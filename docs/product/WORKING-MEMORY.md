@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-16 (PostgreSQL 18 local/test/CI contract)
+Last updated: 2026-09-16 (marketing master-brand repositioning)
 
 ---
 
@@ -1118,3 +1118,21 @@ Local/test compatibility upgrade. **Neon production was not contacted.** Product
 | Generated columns  | None                                                                                                                                                                                                                |
 
 Do not claim production is ready because the Neon project exists.
+
+---
+
+## Marketing master-brand repositioning (2026-09-16)
+
+Public marketing copy and SEO defaults now present River Aftercare as **patient aftercare software for clinics and practices**, not a dental-first / mobile-first product that may broaden later. Dental remains the live demo example (Riverside Dental Demo / Tooth Extraction). Vertical landing pages are not in this change.
+
+| Area            | Behaviour                                                                                                                                                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Master brand    | Patient aftercare for clinics and practices. Core H1 remains **Aftercare that still feels like your clinic.**                                                                                                                                          |
+| Demo CTA        | **View the dental demo** (Riverside Dental Demo). Closing / contact CTA remains **Request a demo**.                                                                                                                                                    |
+| Pricing         | Essential / Practice / Group prices unchanged. Plan copy no longer claims a dental-only library. Templates are “available River Aftercare guide templates”.                                                                                            |
+| SEO titles      | Operator `seoTitle` is the complete document title. If it already contains the site name, do **not** append `— River Aftercare`. Marketing metadata always uses `{ absolute }`. Layout has a default title and **no** `%s — River Aftercare` template. |
+| JSON-LD         | `WebPage.name` uses the page SEO title. OG title/description overrides are social-only.                                                                                                                                                                |
+| Privacy / Terms | Still drafts. Source defaults are `noindex, follow`. Sitemap and `llms.txt` still list them. Production operator rows are **not** mutated; uncheck Allow indexing on `/privacy` and `/terms` after deploy if those rows already exist.                 |
+| Group plan      | Copy is commercial/onboarding (“coordinated rollout”), not a claim that multi-location centralised management UI exists.                                                                                                                               |
+
+---

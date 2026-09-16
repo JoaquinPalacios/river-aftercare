@@ -123,11 +123,12 @@ export default async function OperatorSeoPage() {
           Search visibility
         </h2>
         <p className="text-sm text-staff-muted">
-          Marketing pages are indexable. Staff, operator, and authenticated
-          preview stay noindex. Clinic tenant guides stay{" "}
-          <strong>private from search</strong> at launch, even when they have
-          complete title, description, canonical, and Open Graph tags for
-          patient sharing.
+          Marketing pages are indexable. Privacy and Terms default to noindex
+          while they remain drafts for legal review; links may still be
+          followed. Staff, operator, and authenticated preview stay noindex.
+          Clinic tenant guides stay <strong>private from search</strong> at
+          launch, even when they have complete title, description, canonical,
+          and Open Graph tags for patient sharing.
         </p>
         <p className="text-sm text-staff-muted">
           A future INDEXABLE state is reserved for published clinic or editorial

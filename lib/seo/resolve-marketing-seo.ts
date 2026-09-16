@@ -5,6 +5,7 @@ import {
   DEFAULT_MARKETING_PAGE_SEO,
   DEFAULT_PLATFORM_SEO,
 } from "@/lib/seo/defaults";
+import { marketingDocumentTitle } from "@/lib/seo/document-title";
 import { isDedicatedOgImageConfigured } from "@/lib/seo/og-policy";
 import { sanitizeMetadataText } from "@/lib/seo/metadata-text";
 import type {
@@ -115,22 +116,20 @@ export function resolveMarketingSeo(input: {
     page.metaDescription.trim() ||
     identity.defaultDescription ||
     defaults.metaDescription;
-  const absoluteTitle = input.path === "/";
-  const resolvedTitle = absoluteTitle
-    ? seoTitle
-    : `${seoTitle} — ${identity.siteName}`;
+  const documentTitle = marketingDocumentTitle(seoTitle, identity.siteName);
   const social = resolveSocialMetadata({
     page,
     identity,
-    resolvedTitle,
+    resolvedTitle: documentTitle,
     resolvedDescription: description,
   });
 
   return {
     path: input.path,
     siteName: identity.siteName,
-    title: seoTitle,
-    absoluteTitle,
+    title: documentTitle,
+    seoTitle,
+    absoluteTitle: true,
     description,
     canonicalUrl: marketingCanonicalUrl(input.path, input.origin),
     robots: {
@@ -160,7 +159,7 @@ export function marketingSeoToMetadata(
   const images = imagePath ? [{ url: imagePath }] : undefined;
 
   return {
-    title: resolved.absoluteTitle ? { absolute: title } : title,
+    title: { absolute: title },
     description,
     robots: resolved.robots,
     alternates: { canonical: resolved.canonicalUrl },

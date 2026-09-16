@@ -312,16 +312,18 @@ test.describe("Phase 1F.11 story clarity", () => {
     await expect(steps).toHaveCount(4);
     await expect(section.locator("ol")).toHaveCount(1);
     await expect(
-      section.getByRole("heading", { name: "Select guides" })
+      section.getByRole("heading", { name: "Prepare the right guidance" })
     ).toBeVisible();
     await expect(
-      section.getByRole("heading", { name: "Apply clinic brand" })
+      section.getByRole("heading", { name: "Apply your clinic brand" })
     ).toBeVisible();
     await expect(
-      section.getByRole("heading", { name: "Share a durable link" })
+      section.getByRole("heading", { name: "Share by link or QR code" })
     ).toBeVisible();
     await expect(
-      section.getByRole("heading", { name: "Patient revisits anytime" })
+      section.getByRole("heading", {
+        name: "Patients return when they need it",
+      })
     ).toBeVisible();
     await expect(section.getByText("Step 1")).toBeVisible();
     await expect(section.locator("[data-mk-process-rail]")).toHaveAttribute(
@@ -578,28 +580,28 @@ test.describe("Phase 1F.11 story clarity", () => {
       section.getByRole("heading", { name: "Looks like your clinic" })
     ).toBeVisible();
     await expect(
-      section.getByRole("heading", { name: "Built for patients" })
+      section.getByRole("heading", { name: "Easy for patients to revisit" })
     ).toBeVisible();
     await expect(
-      section.getByRole("heading", { name: "Simple to operate" })
+      section.getByRole("heading", { name: "Simple for your team" })
     ).toBeVisible();
     await expect(
-      section.getByText("Your name, colours and terminology stay front")
+      section.getByText("Your clinic name, colours and terminology stay front")
     ).toBeVisible();
     await expect(section.getByText("Controlled brand choices")).toBeVisible();
     await expect(section.getByText("Clinic-first presentation")).toBeVisible();
     await expect(
-      section.getByText("Clear aftercare designed to be reopened on a phone.")
+      section.getByText("Give patients one clear place to return to")
     ).toBeVisible();
     await expect(section.getByText("Durable link")).toBeVisible();
-    await expect(section.getByText("Practice contact nearby")).toBeVisible();
+    await expect(section.getByText("Clinic contact nearby")).toBeVisible();
     await expect(
       section.getByText(
-        "Enable reviewed guides instead of building pages from scratch."
+        "Publish approved guidance without rebuilding a page every time."
       )
     ).toBeVisible();
-    await expect(section.getByText("Choose relevant guides")).toBeVisible();
-    await expect(section.getByText("Keep content consistent")).toBeVisible();
+    await expect(section.getByText("Reusable guides")).toBeVisible();
+    await expect(section.getByText("Consistent presentation")).toBeVisible();
     await expect(section.getByText("not a generic platform shell")).toHaveCount(
       0
     );
@@ -613,9 +615,9 @@ test.describe("Phase 1F.11 story clarity", () => {
         (card) => card.querySelectorAll("li").length
       )
     );
-    expect(pointCounts).toEqual([2, 2, 2]);
+    expect(pointCounts).toEqual([2, 3, 3]);
     await expect(
-      section.getByRole("heading", { name: "Controlled customisation" })
+      section.getByRole("heading", { name: "Controlled publishing" })
     ).toBeVisible();
     await expect(
       section.getByText("Riverside Dental", { exact: true })
@@ -776,15 +778,17 @@ test.describe("Phase 1F.11 story clarity", () => {
     await expect(
       problem.getByText("Verbal advice is easy to forget")
     ).toBeVisible();
-    await expect(problem.getByText("PDFs are awkward to reopen")).toBeVisible();
     await expect(
-      problem.getByText("Generic handouts weaken the clinic")
+      problem.getByText("PDFs can be awkward to reopen")
+    ).toBeVisible();
+    await expect(
+      problem.getByText("Generic handouts can feel disconnected")
     ).toBeVisible();
 
     const product = page.locator('[aria-labelledby="product-heading"]');
     await expect(
       product.getByRole("heading", {
-        name: "A branded patient aftercare page that stays available.",
+        name: "A branded patient aftercare home that stays available.",
       })
     ).toBeVisible();
     await expect(product.getByText("Approved guide")).toBeVisible();
@@ -1260,7 +1264,7 @@ test.describe("Phase 1F.11 story clarity", () => {
     expect(footerAfter.underline).toBe(footerAfter.color);
 
     const primary = page
-      .getByRole("link", { name: "View the clinic demo" })
+      .getByRole("link", { name: "View the dental demo" })
       .first();
     const restPrimary = await primary.evaluate((element) => {
       const styles = getComputedStyle(element);
@@ -1537,7 +1541,9 @@ test.describe("Phase 1F.11 story clarity", () => {
         name: "Aftercare that still feels like your clinic.",
       })
     ).toBeVisible();
-    await expect(page.getByText("Aftercare platform").first()).toBeVisible();
+    await expect(
+      page.getByText("Patient aftercare for clinics and practices").first()
+    ).toBeVisible();
     await page.locator('[data-mk-chapter="hero"]').screenshot({
       path: "test-results/artifacts/phase-1f12-hero-1440-light.png",
     });
@@ -1578,13 +1584,14 @@ test.describe("Phase 1F.11 story clarity", () => {
     await expect(section.getByText("Brand flexibility")).toBeVisible();
     await expect(
       section.getByRole("heading", {
-        name: "One product, many practice identities",
+        name: "One platform, many clinic identities",
       })
     ).toBeVisible();
     await expect(
       section.getByText("marketing brand stays separate", { exact: false })
     ).toHaveCount(0);
-    await expect(section.getByText("Family dental")).toBeVisible();
+    await expect(section.getByText("Cosmetic clinic")).toBeVisible();
+    await expect(section.getByText("Family dental")).toHaveCount(0);
     await expect(section.getByText("Family practice")).toHaveCount(0);
 
     const desktop = await section.evaluate((root) => {
@@ -1996,25 +2003,25 @@ test.describe("Phase 1F.11 story clarity", () => {
     await expect(page.getByText("arbitrary CSS")).toHaveCount(0);
     await expect(page.getByText("phone-sized layout")).toHaveCount(0);
     await expect(
-      page.getByText("Patients receive a stable URL they can save")
+      page.getByText("Give patients a stable URL they can save")
     ).toBeVisible();
     await expect(
-      page.getByText("designed for clear reading on a phone")
+      page.getByText("with the clinic still easy to contact")
     ).toBeVisible();
-    await expect(page.getByText("Keep content consistent")).toBeVisible();
+    await expect(page.getByText("Consistent presentation")).toBeVisible();
     await expect(
       page.getByText(
         "Keep approved content consistent across every published guide."
       )
     ).toHaveCount(0);
     await expect(
-      page.getByText("controlled choices that keep every guide consistent")
+      page.getByText("keeping the patient experience structured and readable")
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "See what patients actually receive" })
     ).toBeVisible();
     await expect(
-      page.getByText("Clinic-branded aftercare patients can revisit.")
+      page.getByText("Branded patient aftercare for clinics and practices.")
     ).toBeVisible();
   });
 
@@ -2243,7 +2250,7 @@ test.describe("Phase 1F.11 story clarity", () => {
     expect(hiddenPending).toBe(0);
     await expect(
       page.getByRole("heading", {
-        name: "From approved guidance to a page patients keep",
+        name: "From clinic-approved guidance to a page patients keep",
       })
     ).toBeVisible();
   });
@@ -2276,7 +2283,7 @@ test.describe("Phase 1F.11 story clarity", () => {
       await expect(headingGroup).toHaveAttribute("data-mk-entered", "");
       await expect(
         page.getByRole("heading", {
-          name: "From approved guidance to a page patients keep",
+          name: "From clinic-approved guidance to a page patients keep",
         })
       ).toBeVisible();
       await page.screenshot({

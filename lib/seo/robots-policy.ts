@@ -14,6 +14,15 @@ export const TENANT_LAUNCH_ROBOTS = {
   follow: true,
 } as const;
 
+/**
+ * Privacy and Terms while they remain explicit drafts for legal review.
+ * Links may still be followed; page-level robots metadata is the noindex control.
+ */
+export const DRAFT_LEGAL_ROBOTS = {
+  index: false,
+  follow: true,
+} as const;
+
 export const ROBOTS_ALLOW_PUBLIC = [
   "/",
   "/pricing",

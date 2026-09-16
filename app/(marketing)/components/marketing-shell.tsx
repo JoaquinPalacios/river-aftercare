@@ -101,7 +101,7 @@ export function MarketingShell({
                 {PRODUCT_NAME}
               </p>
               <p className={styles.footerTag}>
-                Clinic-branded aftercare patients can revisit.
+                Branded patient aftercare for clinics and practices.
               </p>
             </div>
             <nav className={styles.footerNav} aria-label="Footer">

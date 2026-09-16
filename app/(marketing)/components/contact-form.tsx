@@ -126,7 +126,7 @@ export function ContactForm({ demoHref }: { demoHref: string }) {
         <div className={styles.actions}>
           <MarketingPrimaryLink href="/">Homepage</MarketingPrimaryLink>
           <a className={`${styles.button} ${styles.secondary}`} href={demoHref}>
-            Clinic demo
+            Dental demo
           </a>
           <Link
             className={`${styles.button} ${styles.secondary}`}
@@ -151,7 +151,7 @@ export function ContactForm({ demoHref }: { demoHref: string }) {
       aria-describedby={formError ? summaryId : undefined}
     >
       <h2 id="contact-form-heading" className={styles.contactFormTitle}>
-        Send an enquiry
+        Request a demo
       </h2>
       {formError ? (
         <div

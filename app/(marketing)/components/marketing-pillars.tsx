@@ -8,20 +8,20 @@ const PILLARS = [
   {
     key: "clinic",
     title: "Looks like your clinic",
-    copy: "Your name, colours and terminology stay front and centre.",
+    copy: "Your clinic name, colours and terminology stay front and centre.",
     points: ["Controlled brand choices", "Clinic-first presentation"],
   },
   {
     key: "patients",
-    title: "Built for patients",
-    copy: "Clear aftercare designed to be reopened on a phone.",
-    points: ["Durable link", "Practice contact nearby"],
+    title: "Easy for patients to revisit",
+    copy: "Give patients one clear place to return to instead of relying on memory, paper or an old attachment.",
+    points: ["Durable link", "Readable on a phone", "Clinic contact nearby"],
   },
   {
     key: "operate",
-    title: "Simple to operate",
-    copy: "Enable reviewed guides instead of building pages from scratch.",
-    points: ["Choose relevant guides", "Keep content consistent"],
+    title: "Simple for your team",
+    copy: "Publish approved guidance without rebuilding a page every time.",
+    points: ["Reusable guides", "Consistent presentation", "Assisted setup"],
   },
 ] as const;
 
@@ -51,10 +51,10 @@ export function MarketingPillars() {
       <MarketingRevealCard index={PILLARS.length}>
         <div className={styles.customStrip} data-mk-custom-strip="">
           <div className={styles.customCopy}>
-            <h3>Controlled customisation</h3>
+            <h3>Controlled publishing</h3>
             <p>
-              Fit the patient page to the clinic with controlled choices that
-              keep every guide consistent and readable.
+              Adapt guidance to the clinic while keeping the patient experience
+              structured and readable.
             </p>
           </div>
           <div className={styles.customGroup} aria-hidden="true">

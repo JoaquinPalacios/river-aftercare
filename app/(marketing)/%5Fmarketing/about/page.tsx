@@ -32,8 +32,8 @@ export default async function MarketingAboutPage() {
           variant="about"
           eyebrow="About"
           titleId="about-hero"
-          title={`${PRODUCT_NAME} is branded aftercare for practices.`}
-          intro={`${PRODUCT_NAME} is a structured clinical aftercare publishing platform. Practices keep their own identity on the pages patients reopen after treatment.`}
+          title="Aftercare should feel like part of the care."
+          intro={`${PRODUCT_NAME} is a patient aftercare platform for clinics and practices. It helps teams publish clear, branded guidance patients can return to after treatment, between appointments and throughout recovery.`}
         />
 
         <div className={styles.marketingSoft} data-mk-chapter="soft">
@@ -49,20 +49,76 @@ export default async function MarketingAboutPage() {
                   </MarketingRevealItem>
                   <MarketingRevealItem delay={editorialRevealDelay(1)}>
                     <h2 id="about-what" className={styles.sectionTitle}>
-                      Clinic-branded instructions, on the web
+                      A branded home for the guidance patients need afterwards
                     </h2>
                   </MarketingRevealItem>
                   <MarketingRevealItem delay={editorialRevealDelay(2)}>
                     <p className={styles.copy}>
-                      {PRODUCT_NAME} helps healthcare practices publish
-                      mobile-first aftercare pages that still feel like the
-                      clinic. Patients reopen procedure-specific guidance
-                      without an app, an account, or a downloaded PDF.
+                      {PRODUCT_NAME} turns clinic-approved treatment, recovery
+                      and home-care instructions into simple web pages that
+                      carry the clinic&apos;s identity. Patients open a durable
+                      link or QR code and return whenever they need to check the
+                      guidance again.
                     </p>
                     <p className={styles.copy}>
-                      The first vertical is dental. The public pages are
-                      web-first documents, not live clinical monitoring, a
-                      patient CRM, or a messaging platform.
+                      No patient app. No patient login. No PDF to hunt down.
+                    </p>
+                  </MarketingRevealItem>
+                </MarketingRevealGroup>
+              </section>
+
+              <section
+                className={`${styles.headingBlock} ${styles.headingFollow}`}
+                aria-labelledby="about-who"
+              >
+                <MarketingRevealGroup>
+                  <MarketingRevealItem delay={0}>
+                    <p className={styles.eyebrow}>Who it is for</p>
+                  </MarketingRevealItem>
+                  <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                    <h2 id="about-who" className={styles.sectionTitle}>
+                      Built for treatment-based practices
+                    </h2>
+                  </MarketingRevealItem>
+                  <MarketingRevealItem delay={editorialRevealDelay(2)}>
+                    <p className={styles.copy}>
+                      {PRODUCT_NAME} is designed for clinics where important
+                      guidance continues after the appointment — including
+                      dental practices, physiotherapy clinics, chiropractic
+                      practices, cosmetic and aesthetic clinics, and other
+                      appropriate allied-health settings.
+                    </p>
+                    <p className={styles.copy}>
+                      The language and guidance may differ by profession. The
+                      underlying job is the same: help the clinic deliver clear
+                      information after the patient leaves.
+                    </p>
+                  </MarketingRevealItem>
+                </MarketingRevealGroup>
+              </section>
+
+              <section
+                className={`${styles.headingBlock} ${styles.headingFollow}`}
+                aria-labelledby="about-ownership"
+              >
+                <MarketingRevealGroup>
+                  <MarketingRevealItem delay={0}>
+                    <p className={styles.eyebrow}>Clinic ownership</p>
+                  </MarketingRevealItem>
+                  <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                    <h2 id="about-ownership" className={styles.sectionTitle}>
+                      Your clinic remains responsible for the care
+                    </h2>
+                  </MarketingRevealItem>
+                  <MarketingRevealItem delay={editorialRevealDelay(2)}>
+                    <p className={styles.copy}>
+                      {PRODUCT_NAME} provides publishing and content-management
+                      technology. The treating clinic remains responsible for
+                      the clinical instructions it publishes. Clinic-owned copy
+                      and adaptations require appropriate clinical review.
+                    </p>
+                    <p className={styles.copy}>
+                      {PRODUCT_NAME} does not replace the treating clinician.
                     </p>
                   </MarketingRevealItem>
                 </MarketingRevealGroup>
@@ -78,20 +134,20 @@ export default async function MarketingAboutPage() {
                   </MarketingRevealItem>
                   <MarketingRevealItem delay={editorialRevealDelay(1)}>
                     <h2 id="about-not" className={styles.sectionTitle}>
-                      No invented clinical authority
+                      A publishing platform, not a clinical system
                     </h2>
                   </MarketingRevealItem>
                   <MarketingRevealItem delay={editorialRevealDelay(2)}>
                     <p className={styles.copy}>
-                      {PRODUCT_NAME} does not replace the treating clinician.
-                      Clinic-owned aftercare copy remains the practice&apos;s
-                      responsibility. This page does not claim certification,
-                      regulatory approval, customer counts, or health outcomes.
+                      {PRODUCT_NAME} is not currently live clinical monitoring,
+                      a patient CRM, a health record, a messaging platform,
+                      emergency care, or personalised diagnosis or treatment.
                     </p>
                     <p className={styles.copy}>
-                      Privacy and Terms drafts are published for legal review.
-                      They are not approved. Until then, use Contact for clinic
-                      enquiries.
+                      This page does not claim certification, regulatory
+                      approval, customer counts, or health outcomes. Privacy and
+                      Terms drafts are published for legal review and are not
+                      yet approved.
                     </p>
                   </MarketingRevealItem>
                   <MarketingRevealItem delay={editorialRevealDelay(3)}>

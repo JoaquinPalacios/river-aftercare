@@ -30,14 +30,15 @@ describe("marketing homepage", () => {
     const html = renderToStaticMarkup(await MarketingHomePage());
 
     expect(html).toContain("River Aftercare");
-    expect(html).toContain("Aftercare platform");
+    expect(html).toContain("Patient aftercare for clinics and practices");
+    expect(html).not.toContain("Aftercare platform");
     expect(html).not.toContain("THE AFTERCARE PLATFORM");
     expect(html).toContain("Aftercare that still feels like your clinic.");
     expect(html).toContain("always leave with clarity.");
     expect(html).toContain("Paper");
     expect(html).toContain("PDFs");
     expect(html).toContain("How it works");
-    expect(html).toContain("Apply clinic brand");
+    expect(html).toContain("Apply your clinic brand");
     expect(html).toContain("data-mk-process");
     expect(html).toContain("data-mk-process-rail");
     expect(html).toContain("data-mk-process-card");
@@ -47,33 +48,35 @@ describe("marketing homepage", () => {
     expect(html).not.toContain("data-mk-bento");
     expect(html).not.toContain("data-mk-bento-card");
     expect(html).toContain("Looks like your clinic");
-    expect(html).toContain("Built for patients");
-    expect(html).toContain("Simple to operate");
+    expect(html).toContain("Easy for patients to revisit");
+    expect(html).toContain("Simple for your team");
     expect(html).toContain("data-mk-product-copy");
     expect(html).toContain("data-mk-product-visual");
     expect(html).toContain("data-mk-process-connector");
     expect(html.indexOf("data-mk-product-copy")).toBeLessThan(
       html.indexOf("data-mk-product-canvas")
     );
-    expect(html).toContain("Your name, colours and terminology stay front");
+    expect(html).toContain(
+      "Your clinic name, colours and terminology stay front"
+    );
     expect(html).toContain("Controlled brand choices");
     expect(html).toContain("Clinic-first presentation");
-    expect(html).toContain("Clear aftercare designed to be reopened");
+    expect(html).toContain("Give patients one clear place to return to");
     expect(html).toContain("Durable link");
-    expect(html).toContain("Practice contact nearby");
+    expect(html).toContain("Clinic contact nearby");
     expect(html).toContain(
-      "Enable reviewed guides instead of building pages from scratch."
+      "Publish approved guidance without rebuilding a page every time."
     );
-    expect(html).toContain("Choose relevant guides");
-    expect(html).toContain("Keep content consistent");
+    expect(html).toContain("Reusable guides");
+    expect(html).toContain("Consistent presentation");
     expect(html).not.toContain("not a generic platform shell");
     expect(html).not.toContain(
       "Keep approved content consistent across every published guide."
     );
-    expect(html).toContain("Controlled customisation");
+    expect(html).toContain("Controlled publishing");
     expect(html).toContain("Approved guide");
     expect(html).toContain("Clinic brand");
-    expect(html).toContain("A branded patient aftercare page");
+    expect(html).toContain("A branded patient aftercare home");
     expect(html).toContain("data-mk-product-canvas");
     expect(html).toContain("data-mk-patient-preview");
     expect(html).toContain("Patient view");
@@ -89,7 +92,7 @@ describe("marketing homepage", () => {
     expect(html).not.toMatch(/<a[^>]*>Tooth Extraction/);
     expect(html).not.toMatch(/<h[1-6][^>]*>Tooth Extraction/);
     expect(html).toContain("<ol");
-    expect(html).toContain("View the clinic demo");
+    expect(html).toContain("View the dental demo");
     expect(html).toContain("Request a demo");
     expect(html).toContain('href="/contact"');
     expect(html).toContain('href="/pricing"');
@@ -117,16 +120,22 @@ describe("marketing homepage", () => {
     expect(html).not.toContain("not a dashboard in this release");
     expect(html).not.toContain("not in this release");
     expect(html).not.toContain("arbitrary CSS");
-    expect(html).not.toContain("phone-sized layout");
+    expect(html).not.toContain("mobile-first pages patients can reopen");
+    expect(html).not.toContain("The first vertical is dental");
     expect(html).not.toContain("Open staff sign in");
     expect(html).not.toContain("Request access");
     expect(html).not.toContain("Contact us");
     expect(html).toContain("Change colour theme");
-    expect(html).toContain("Clinic-branded aftercare patients can revisit.");
+    expect(html).toContain(
+      "Branded patient aftercare for clinics and practices."
+    );
     expect(html).toContain("See what patients actually receive");
-    expect(html).toContain("Family dental");
-    expect(html).not.toContain("Family practice");
-    expect(html).toContain("Choose a visual tone that feels at home");
+    expect(html).toContain("Dental practice");
+    expect(html).toContain("Physiotherapy clinic");
+    expect(html).toContain("Cosmetic clinic");
+    expect(html).not.toContain("Family dental");
+    expect(html).toContain("feels recognisably theirs");
+    expect(html).not.toContain("Choose a visual tone that feels at home");
     expect(html).not.toContain("Staff sign in");
     expect((html.match(/>Sign in</g) ?? []).length).toBe(3);
     expect((html.match(/>About</g) ?? []).length).toBeGreaterThanOrEqual(3);

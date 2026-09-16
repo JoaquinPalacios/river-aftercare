@@ -113,7 +113,7 @@ function webPageNode(input: {
     "@type": input.type,
     "@id": webpageId(input.resolved.path, input.origin),
     url: input.resolved.canonicalUrl,
-    name: input.resolved.social.title,
+    name: input.resolved.seoTitle,
     description: input.resolved.description,
     isPartOf: { "@id": websiteId(input.origin) },
     about: { "@id": organizationId(input.origin) },

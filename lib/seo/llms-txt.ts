@@ -30,7 +30,7 @@ ${input.identity.organizationDescription}
 
 ## When to use ${input.identity.siteName || PRODUCT_NAME}
 
-Use ${input.identity.siteName || PRODUCT_NAME} when a dental practice wants durable, clinic-branded aftercare pages that patients can reopen on the web without an app or login. It is a structured aftercare publishing platform, not live clinical monitoring, a patient health record, an emergency service, or a generic CMS.
+Use ${input.identity.siteName || PRODUCT_NAME} when a clinic or practice wants branded patient aftercare pages that patients can reopen on the web without an app or login. It is a structured aftercare publishing platform for treatment-based healthcare practices, not live clinical monitoring, a patient health record, an emergency service, or a generic CMS.
 
 Do not treat staff, operator, login, or clinic tenant guide URLs as public documentation. Clinic patient guides are private from search by default.
 

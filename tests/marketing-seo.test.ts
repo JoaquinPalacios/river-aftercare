@@ -93,8 +93,12 @@ describe("marketing crawl files", () => {
       ]),
     });
     expect(document.sitemap).toBe("http://localhost/sitemap.xml");
-    expect(HOME_METADATA.title).toContain("Branded patient aftercare");
-    expect(PRICING_METADATA.title).toBe("Pricing");
+    expect(HOME_METADATA.title).toBe(
+      "Patient Aftercare Software for Clinics | River Aftercare"
+    );
+    expect(PRICING_METADATA.title).toBe(
+      "Patient Aftercare Software Pricing | River Aftercare"
+    );
   });
 });
 

@@ -39,28 +39,28 @@ const MarketingReveal = {
 
 const FRICTION = [
   "Verbal advice is easy to forget once the appointment ends.",
-  "Paper is easy to lose, and PDFs are awkward to reopen on a phone.",
-  "Generic handouts weaken the clinic's own identity.",
+  "Paper is easy to lose, and PDFs can be awkward to reopen on a phone.",
+  "Generic handouts can feel disconnected from the clinic that provided the care.",
 ] as const;
 
 const BRAND_CARDS = [
   {
     key: "riverside",
     className: styles.brandTeal,
-    title: "Riverside Dental Demo",
-    copy: "Calm clinical teal for a modern general dental practice.",
+    title: "Dental practice",
+    copy: "A calm clinical presentation for post-treatment guidance.",
   },
   {
     key: "specialist",
     className: styles.brandNavy,
-    title: "Specialist oral surgery",
-    copy: "Ink and navy for a quieter specialist tone.",
+    title: "Physiotherapy clinic",
+    copy: "A clear, approachable presentation for recovery and home-care guidance.",
   },
   {
     key: "family",
     className: styles.brandWarm,
-    title: "Family dental",
-    copy: "A warmer palette for a softer, more approachable welcome.",
+    title: "Cosmetic clinic",
+    copy: "A refined presentation for post-treatment aftercare.",
   },
 ] as const;
 
@@ -75,7 +75,9 @@ export default async function MarketingHomePage() {
   return (
     <MarketingShell currentPath="/" staffHref={staffHref}>
       <JsonLd data={jsonLd} />
-      <style dangerouslySetInnerHTML={{ __html: MARKETING_DEMO_PATIENT_THEME_CSS }} />
+      <style
+        dangerouslySetInnerHTML={{ __html: MARKETING_DEMO_PATIENT_THEME_CSS }}
+      />
       <main>
         <section
           className={`${styles.hero} ${styles.marketingBase}`}
@@ -88,7 +90,7 @@ export default async function MarketingHomePage() {
                 <div className={styles.heroTitleBlock}>
                   <MarketingReveal.Item>
                     <p className={`${styles.eyebrow} ${styles.heroEyebrow}`}>
-                      Aftercare platform
+                      Patient aftercare for clinics and practices
                     </p>
                   </MarketingReveal.Item>
                   <MarketingReveal.Item>
@@ -101,9 +103,10 @@ export default async function MarketingHomePage() {
                   <div className={styles.heroSupport}>
                     <MarketingReveal.Item>
                       <p className={`${styles.lede} ${styles.heroBody}`}>
-                        Turn approved post-treatment instructions into branded,
-                        mobile-first pages patients can reopen whenever they
-                        need them. No app. No login. No PDF to hunt down.
+                        Give patients clear, clinic-branded treatment, recovery
+                        and home-care guidance they can reopen after the
+                        appointment — by link or QR code, with no app or patient
+                        login.
                       </p>
                     </MarketingReveal.Item>
                     <MarketingReveal.Item>
@@ -111,7 +114,7 @@ export default async function MarketingHomePage() {
                         className={`${styles.actions} ${styles.heroActions}`}
                       >
                         <MarketingPrimaryAnchor href={demoHref}>
-                          View the clinic demo
+                          View the dental demo
                         </MarketingPrimaryAnchor>
                         <Link
                           className={`${styles.button} ${styles.secondary}`}
@@ -161,14 +164,16 @@ export default async function MarketingHomePage() {
                   </MarketingReveal.Item>
                   <MarketingReveal.Item delay={editorialRevealDelay(1)}>
                     <h2 id="product-heading">
-                      A branded patient aftercare page that stays available.
+                      A branded patient aftercare home that stays available.
                     </h2>
                   </MarketingReveal.Item>
                   <MarketingReveal.Item delay={editorialRevealDelay(2)}>
                     <p className={styles.copy}>
-                      {PRODUCT_NAME} gives each practice a durable, clinic-first
-                      aftercare home. Patients reopen the same instructions in
-                      the practice&apos;s look — without creating an account.
+                      {PRODUCT_NAME} gives each clinic a simple, branded place
+                      for the guidance patients need after treatment or between
+                      visits. Patients can return to the same clinic-owned
+                      experience without creating an account or installing an
+                      app.
                     </p>
                   </MarketingReveal.Item>
                 </div>
@@ -192,7 +197,7 @@ export default async function MarketingHomePage() {
                   </MarketingReveal.Item>
                   <MarketingReveal.Item delay={editorialRevealDelay(1)}>
                     <h2 id="how-heading" className={styles.sectionTitle}>
-                      From approved guidance to a page patients keep
+                      From clinic-approved guidance to a page patients keep
                     </h2>
                   </MarketingReveal.Item>
                 </MarketingReveal.Group>
@@ -210,7 +215,7 @@ export default async function MarketingHomePage() {
                   </MarketingReveal.Item>
                   <MarketingReveal.Item delay={editorialRevealDelay(1)}>
                     <h2 id="why-heading" className={styles.sectionTitle}>
-                      Clinic-first aftercare, built for rereading
+                      Consistent aftercare, under your clinic&apos;s brand
                     </h2>
                   </MarketingReveal.Item>
                 </MarketingReveal.Group>
@@ -230,14 +235,14 @@ export default async function MarketingHomePage() {
                   </MarketingReveal.Item>
                   <MarketingReveal.Item delay={editorialRevealDelay(1)}>
                     <h2 id="brand-heading" className={styles.sectionTitle}>
-                      One product, many practice identities
+                      One platform, many clinic identities
                     </h2>
                   </MarketingReveal.Item>
                   <MarketingReveal.Item delay={editorialRevealDelay(2)}>
                     <p className={styles.copy}>
-                      Choose a visual tone that feels at home with your practice
-                      while the patient experience stays consistent and easy to
-                      read.
+                      {PRODUCT_NAME} keeps the patient experience consistent
+                      while giving each clinic room to present guidance in a way
+                      that feels recognisably theirs.
                     </p>
                   </MarketingReveal.Item>
                 </MarketingReveal.Group>
@@ -279,9 +284,10 @@ export default async function MarketingHomePage() {
                   </MarketingReveal.Item>
                   <MarketingReveal.Item delay={editorialRevealDelay(2)}>
                     <p className={styles.copy}>
-                      The Riverside Dental Demo shows the patient experience:
-                      clinic branding, post-treatment instructions, and a
-                      published Tooth Extraction guide.
+                      The Riverside Dental Demo is one live example of the{" "}
+                      {PRODUCT_NAME} experience: clinic branding, clear
+                      post-treatment guidance and a page patients can return to
+                      without an app or login.
                     </p>
                   </MarketingReveal.Item>
                   <MarketingReveal.Item delay={editorialRevealDelay(3)}>
@@ -313,9 +319,10 @@ export default async function MarketingHomePage() {
                     <p className={styles.eyebrow}>Get started</p>
                     <h2 id="closing-heading">Bring your aftercare online.</h2>
                     <p className={styles.copy}>
-                      Request a demo and we will walk through branded patient
-                      pages, templates, and what launch onboarding looks like
-                      for your practice.
+                      Tell us how your clinic currently shares treatment,
+                      recovery or home-care guidance. We&apos;ll show you how{" "}
+                      {PRODUCT_NAME} can bring it online under your
+                      clinic&apos;s brand.
                     </p>
                   </MarketingReveal.Item>
                 </div>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_PLATFORM_SEO } from "@/lib/seo/defaults";
+import { marketingDocumentTitle } from "@/lib/seo/document-title";
 import { isDedicatedOgImageConfigured } from "@/lib/seo/og-policy";
 import {
   marketingSeoToMetadata,
@@ -14,11 +15,103 @@ describe("marketing SEO resolution", () => {
       path: "/",
       origin: "https://example.test",
     });
-    expect(home.title).toContain("River Aftercare");
+    expect(home.title).toBe(
+      "Patient Aftercare Software for Clinics | River Aftercare"
+    );
+    expect(home.title).not.toMatch(/River Aftercare.+\s—\sRiver Aftercare/);
+    expect(home.seoTitle).toBe(home.title);
     expect(home.canonicalUrl).toBe("https://example.test/");
     expect(home.robots).toEqual({ index: true, follow: true });
     expect(home.identity.sameAsUrls).toEqual([]);
     expect(home.identity.publicContactEmail).toBeNull();
+  });
+
+  it("does not append the site name when the SEO title already includes it", () => {
+    const pricing = resolveMarketingSeo({
+      path: "/pricing",
+      origin: "https://example.test",
+    });
+    const contact = resolveMarketingSeo({
+      path: "/contact",
+      origin: "https://example.test",
+    });
+    const about = resolveMarketingSeo({
+      path: "/about",
+      origin: "https://example.test",
+    });
+
+    expect(pricing.title).toBe(
+      "Patient Aftercare Software Pricing | River Aftercare"
+    );
+    expect(contact.title).toBe("Book a Demo | River Aftercare");
+    expect(about.title).toBe(
+      "About River Aftercare | Digital Patient Aftercare"
+    );
+    expect(pricing.title).not.toContain("— River Aftercare");
+    expect(contact.title).not.toContain("— River Aftercare");
+    expect(about.title).not.toContain("— River Aftercare");
+  });
+
+  it("appends the site name only when the SEO title does not already include it", () => {
+    expect(marketingDocumentTitle("Privacy Policy", "River Aftercare")).toBe(
+      "Privacy Policy — River Aftercare"
+    );
+    expect(
+      marketingDocumentTitle(
+        "Patient Aftercare Software for Clinics | River Aftercare",
+        "River Aftercare"
+      )
+    ).toBe("Patient Aftercare Software for Clinics | River Aftercare");
+
+    const privacy = resolveMarketingSeo({
+      path: "/privacy",
+      origin: "https://example.test",
+    });
+    expect(privacy.seoTitle).toBe("Privacy Policy");
+    expect(privacy.title).toBe("Privacy Policy — River Aftercare");
+    expect(privacy.robots).toEqual({ index: false, follow: true });
+  });
+
+  it("emits absolute document titles so a layout template cannot double the brand", () => {
+    const home = marketingSeoToMetadata(
+      resolveMarketingSeo({ path: "/", origin: "https://example.test" })
+    );
+    const pricing = marketingSeoToMetadata(
+      resolveMarketingSeo({ path: "/pricing", origin: "https://example.test" })
+    );
+
+    expect(home.title).toEqual({
+      absolute: "Patient Aftercare Software for Clinics | River Aftercare",
+    });
+    expect(pricing.title).toEqual({
+      absolute: "Patient Aftercare Software Pricing | River Aftercare",
+    });
+  });
+
+  it("keeps OG title distinct from the SEO document title when an override exists", () => {
+    const home = resolveMarketingSeo({
+      path: "/",
+      origin: "https://example.test",
+    });
+    const metadata = marketingSeoToMetadata(home);
+
+    expect(home.title).toBe(
+      "Patient Aftercare Software for Clinics | River Aftercare"
+    );
+    expect(home.social.title).toBe(
+      "Aftercare that still feels like your clinic"
+    );
+    expect(home.social.source).toBe("page-og");
+    expect(metadata.openGraph?.title).toBe(
+      "Aftercare that still feels like your clinic"
+    );
+    expect(metadata.openGraph?.title).not.toBe(
+      typeof metadata.title === "object" &&
+        metadata.title &&
+        "absolute" in metadata.title
+        ? metadata.title.absolute
+        : metadata.title
+    );
   });
 
   it("uses page OG overrides, then page SEO, then platform defaults", () => {

@@ -31,8 +31,8 @@ export default async function MarketingContactPage() {
           variant="contact"
           eyebrow="Get started"
           titleId="contact-hero"
-          title="Bring your aftercare online without losing your clinic's identity."
-          intro={`Tell us about your practice and we will walk through branded aftercare pages with you. This is the ${PRODUCT_NAME} platform — not a clinic patient site.`}
+          title={`See how ${PRODUCT_NAME} could fit your clinic.`}
+          intro={`Tell us about your clinic, the guidance you share today and how you currently deliver it. We'll show you how branded ${PRODUCT_NAME} pages could fit your workflow.`}
         />
 
         <div className={styles.marketingSoft} data-mk-chapter="soft">

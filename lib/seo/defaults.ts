@@ -1,4 +1,5 @@
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { DRAFT_LEGAL_ROBOTS, INDEXABLE_ROBOTS } from "@/lib/seo/robots-policy";
 import type {
   MarketingPageSeoInput,
   MarketingSeoPath,
@@ -8,9 +9,9 @@ import type {
 export const DEFAULT_PLATFORM_SEO: PlatformSeoIdentity = {
   siteName: PRODUCT_NAME,
   defaultDescription:
-    "Branded, mobile-first aftercare pages that still feel like your clinic. Patients reopen procedure-specific guidance without an app or login.",
+    "Patient aftercare software for clinics and practices. Create branded treatment, recovery and home-care instructions patients can reopen by link or QR code.",
   organizationName: PRODUCT_NAME,
-  organizationDescription: `${PRODUCT_NAME} is a branded, web-first aftercare platform for healthcare practices. Clinics publish clinic-branded patient instructions. The first vertical is dental.`,
+  organizationDescription: `${PRODUCT_NAME} is a digital patient aftercare platform for clinics and practices. Teams publish branded treatment, recovery and home-care instructions patients can reopen after an appointment by link or QR code, without an app or login.`,
   publicContactEmail: null,
   defaultOgImagePath: null,
   sameAsUrls: [],
@@ -22,40 +23,42 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
   Omit<MarketingPageSeoInput, "path" | "updatedAt">
 > = {
   "/": {
-    seoTitle: `${PRODUCT_NAME} — Branded patient aftercare`,
-    metaDescription: DEFAULT_PLATFORM_SEO.defaultDescription,
-    ogTitle: null,
-    ogDescription: null,
+    seoTitle: "Patient Aftercare Software for Clinics | River Aftercare",
+    metaDescription:
+      "Create branded treatment, recovery and home-care instructions patients can reopen by link or QR code. Built for modern clinics and practices.",
+    ogTitle: "Aftercare that still feels like your clinic",
+    ogDescription:
+      "Give patients clear, branded guidance they can reopen after they leave—without an app or patient login.",
     ogImagePath: null,
-    index: true,
-    follow: true,
+    index: INDEXABLE_ROBOTS.index,
+    follow: INDEXABLE_ROBOTS.follow,
   },
   "/pricing": {
-    seoTitle: "Pricing",
-    metaDescription: `Provisional ${PRODUCT_NAME} plans for dental practices: Essential at A$79 a month, Practice at A$149 a month, and custom Group pricing.`,
+    seoTitle: "Patient Aftercare Software Pricing | River Aftercare",
+    metaDescription: `Compare ${PRODUCT_NAME} plans for clinics and practices, from branded digital aftercare for a single location to multi-location and group support.`,
     ogTitle: null,
     ogDescription: null,
     ogImagePath: null,
-    index: true,
-    follow: true,
+    index: INDEXABLE_ROBOTS.index,
+    follow: INDEXABLE_ROBOTS.follow,
   },
   "/contact": {
-    seoTitle: "Contact",
-    metaDescription: `Request a ${PRODUCT_NAME} demo. Tell us about your practice and we will set up branded aftercare pages with you.`,
+    seoTitle: "Book a Demo | River Aftercare",
+    metaDescription: `See how ${PRODUCT_NAME} helps clinics and practices deliver branded treatment and recovery guidance patients can reopen after their appointment.`,
     ogTitle: null,
     ogDescription: null,
     ogImagePath: null,
-    index: true,
-    follow: true,
+    index: INDEXABLE_ROBOTS.index,
+    follow: INDEXABLE_ROBOTS.follow,
   },
   "/about": {
-    seoTitle: "About",
-    metaDescription: `${PRODUCT_NAME} is a branded aftercare platform for healthcare practices. Clinics publish web-first, clinic-branded patient instructions. Dental is the first vertical.`,
+    seoTitle: "About River Aftercare | Digital Patient Aftercare",
+    metaDescription: `${PRODUCT_NAME} helps clinics and practices deliver clear, branded treatment, recovery and home-care instructions after the appointment.`,
     ogTitle: null,
     ogDescription: null,
     ogImagePath: null,
-    index: true,
-    follow: true,
+    index: INDEXABLE_ROBOTS.index,
+    follow: INDEXABLE_ROBOTS.follow,
   },
   "/privacy": {
     seoTitle: "Privacy Policy",
@@ -63,8 +66,8 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogTitle: null,
     ogDescription: null,
     ogImagePath: null,
-    index: true,
-    follow: true,
+    index: DRAFT_LEGAL_ROBOTS.index,
+    follow: DRAFT_LEGAL_ROBOTS.follow,
   },
   "/terms": {
     seoTitle: "Terms & Conditions",
@@ -72,8 +75,8 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogTitle: null,
     ogDescription: null,
     ogImagePath: null,
-    index: true,
-    follow: true,
+    index: DRAFT_LEGAL_ROBOTS.index,
+    follow: DRAFT_LEGAL_ROBOTS.follow,
   },
 };
 

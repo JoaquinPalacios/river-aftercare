@@ -31,7 +31,7 @@ describe("marketing pricing page", () => {
     const html = renderToStaticMarkup(await MarketingPricingPage());
 
     expect(html.match(/<h1\b/g)).toHaveLength(1);
-    expect(html).toContain("Simple plans for clinic-branded aftercare.");
+    expect(html).toContain("Simple plans for branded patient aftercare.");
     expect(html).toContain('data-mk-page-hero="pricing"');
     expect(html).toContain("mkPageWaveInnerPage");
     expect(html).not.toContain("mkPageWavePricing");
@@ -44,13 +44,17 @@ describe("marketing pricing page", () => {
     expect(html).toContain(LAUNCH_PLANS[0].name);
     expect(html).toContain(LAUNCH_PLANS[1].name);
     expect(html).toContain(LAUNCH_PLANS[2].name);
+    expect(html).toContain("Available River Aftercare guide templates");
     expect(html).toContain("Print / Save PDF");
+    expect(html).not.toContain("Curated dental guide library");
+    expect(html).not.toContain("Broader dental template library");
     expect(html).toContain("Coming after launch");
     expect(html).toContain("Patient check-ins");
     expect(html).toContain("Connected recovery plans");
     expect(html).toContain("Assisted onboarding is available");
-    expect(html).toContain("Start with a reviewed template");
-    expect(html).toContain("Tooth Extraction");
+    expect(html).toContain("Start with approved guidance, then make it yours");
+    expect(html).toContain("Where a River Aftercare template exists");
+    expect(html).toContain("template library is still expanding");
     expect(html).toContain("numberedStepIndex");
     expect(html).toContain("numberedStepRule");
     expect(html).not.toContain("Wisdom Teeth");

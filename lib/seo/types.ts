@@ -46,7 +46,10 @@ export interface ResolvedSocialMetadata {
 export interface ResolvedMarketingSeo {
   path: MarketingSeoPath;
   siteName: string;
+  /** Complete document <title>, never double-appended with the site name. */
   title: string;
+  /** Canonical page SEO title before document-title formatting. */
+  seoTitle: string;
   absoluteTitle: boolean;
   description: string;
   canonicalUrl: string;

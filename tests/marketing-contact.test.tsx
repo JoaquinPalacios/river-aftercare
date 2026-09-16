@@ -30,11 +30,13 @@ describe("marketing contact page", () => {
     const html = renderToStaticMarkup(await MarketingContactPage());
 
     expect(html.match(/<h1\b/g)).toHaveLength(1);
-    expect(html).toContain("Bring your aftercare online without losing your");
+    expect(html).toContain("See how River Aftercare could fit your clinic.");
     expect(html).toContain('data-mk-page-hero="contact"');
     expect(html).toContain("mkPageWaveInnerPage");
     expect(html).not.toContain("mkPageWaveContact");
-    expect(html).toContain("Send an enquiry");
+    expect(html).toContain("Request a demo");
+    expect(html).not.toContain("Send an enquiry");
+    expect(html).not.toContain("not a clinic patient site");
     expect(html).toContain('name="fullName"');
     expect(html).toContain('name="workEmail"');
     expect(html).toContain(">Email<");

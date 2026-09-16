@@ -25,13 +25,16 @@ test.describe("launch SEO surfaces", () => {
     await page.goto(marketingUrl("/"), { waitUntil: "domcontentloaded" });
     expect(await robotsContent(page)).toMatch(/index/i);
     expect(await robotsContent(page)).not.toMatch(/noindex/i);
+    await expect(page).toHaveTitle(
+      "Patient Aftercare Software for Clinics | River Aftercare"
+    );
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
       /https?:\/\/[^/]+\/?$/
     );
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       "content",
-      /River Aftercare/
+      "Aftercare that still feels like your clinic"
     );
     const jsonLd = await page
       .locator('script[type="application/ld+json"]')
@@ -40,6 +43,12 @@ test.describe("launch SEO surfaces", () => {
     expect(jsonLd).toContain("WebSite");
     expect(jsonLd).toContain("Organization");
     expect(jsonLd).not.toContain('"Offer"');
+    expect(jsonLd).toContain(
+      "Patient Aftercare Software for Clinics | River Aftercare"
+    );
+    expect(jsonLd).not.toContain(
+      '"name":"Aftercare that still feels like your clinic"'
+    );
     await expect(
       page.locator('link[rel="icon"][sizes="32x32"]')
     ).toHaveAttribute("href", /favicon-32x32\.png/);
@@ -74,6 +83,15 @@ test.describe("launch SEO surfaces", () => {
     expect(sitemapBody).not.toContain("/operator");
     expect(sitemapBody).not.toContain("/_sites");
     expect(sitemapBody).not.toContain("demodental");
+
+    await page.goto(marketingUrl("/privacy"), {
+      waitUntil: "domcontentloaded",
+    });
+    expect(await robotsContent(page)).toMatch(/noindex/i);
+    expect(await robotsContent(page)).not.toMatch(/nofollow/i);
+    await page.goto(marketingUrl("/terms"), { waitUntil: "domcontentloaded" });
+    expect(await robotsContent(page)).toMatch(/noindex/i);
+    expect(await robotsContent(page)).not.toMatch(/nofollow/i);
   });
 
   test("staff portal and authenticated preview stay noindex", async ({

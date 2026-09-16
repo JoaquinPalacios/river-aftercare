@@ -22,7 +22,7 @@ import {
   TERMS_METADATA,
 } from "@/lib/marketing/metadata";
 import { marketingSiteOrigin } from "@/lib/marketing/site";
-import { INDEXABLE_ROBOTS } from "@/lib/seo/robots-policy";
+import { DRAFT_LEGAL_ROBOTS } from "@/lib/seo/robots-policy";
 
 const marketingCss = readFileSync(
   "app/(marketing)/marketing.module.css",
@@ -77,8 +77,11 @@ describe("marketing + trust polish", () => {
     expect(home).toContain("data-mk-numbered-steps");
     expect(home.match(/data-mk-numbered-steps/g)).toHaveLength(1);
     expect(pricing).toContain("data-mk-numbered-steps");
-    expect(pricing).toContain("Start with a reviewed template");
-    expect(pricing).toContain("Additional dental templates are planned");
+    expect(pricing).toContain(
+      "Choose or prepare the guidance your clinic needs"
+    );
+    expect(pricing).toContain("template library is still expanding");
+    expect(pricing).not.toContain("Additional dental templates are planned");
     expect(pricing).not.toContain("Wisdom Teeth");
     expect(pricing).not.toContain("Dental Implant");
   });
@@ -141,7 +144,7 @@ describe("marketing + trust polish", () => {
     expect(staffCss).toContain("var(--staff-muted)");
   });
 
-  it("publishes privacy and terms drafts with indexable metadata", async () => {
+  it("publishes privacy and terms drafts with noindex metadata", async () => {
     const privacyHtml = renderToStaticMarkup(await MarketingPrivacyPage());
     const termsHtml = renderToStaticMarkup(await MarketingTermsPage());
 
@@ -177,8 +180,8 @@ describe("marketing + trust polish", () => {
     const termsMeta = marketingPageMetadata(TERMS_METADATA, {
       pathname: "/terms",
     });
-    expect(privacyMeta.robots).toEqual(INDEXABLE_ROBOTS);
-    expect(termsMeta.robots).toEqual(INDEXABLE_ROBOTS);
+    expect(privacyMeta.robots).toEqual(DRAFT_LEGAL_ROBOTS);
+    expect(termsMeta.robots).toEqual(DRAFT_LEGAL_ROBOTS);
     expect(privacyMeta.alternates?.canonical).toBe(
       `${marketingSiteOrigin()}/privacy`
     );

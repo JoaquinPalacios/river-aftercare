@@ -98,7 +98,7 @@ test.describe("Phase 2B SEO and discovery", () => {
 
     await page.goto(marketingUrl("/about"), { waitUntil: "domcontentloaded" });
     await expect(
-      page.getByRole("heading", { level: 1, name: /branded aftercare/i })
+      page.getByRole("heading", { level: 1, name: /part of the care/i })
     ).toBeVisible();
     expect(
       await page.locator('meta[name="robots"]').getAttribute("content")

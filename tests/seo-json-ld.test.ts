@@ -104,6 +104,24 @@ describe("marketing JSON-LD", () => {
     expect(JSON.stringify(terms)).not.toContain("MedicalWebPage");
   });
 
+  it("uses the SEO title for WebPage.name, not an OG title override", () => {
+    const resolved = resolveMarketingSeo({
+      path: "/",
+      origin: "https://example.test",
+    });
+    const graph = buildMarketingJsonLdGraph(resolved, "https://example.test");
+    const webPage = graph["@graph"].find((node) => node["@type"] === "WebPage");
+
+    expect(resolved.social.title).toBe(
+      "Aftercare that still feels like your clinic"
+    );
+    expect(webPage?.name).toBe(
+      "Patient Aftercare Software for Clinics | River Aftercare"
+    );
+    expect(webPage?.name).not.toBe(resolved.social.title);
+    expect(webPage?.description).toBe(resolved.description);
+  });
+
   it("serializes JSON-LD without raw HTML injection", () => {
     const serialized = serializeJsonLd({
       name: "Safe",

@@ -11,11 +11,10 @@ import { MarketingPageHero } from "@/app/(marketing)/components/marketing-page-h
 import { MarketingPrimaryLink } from "@/app/(marketing)/components/marketing-primary-link";
 import { MarketingShell } from "@/app/(marketing)/components/marketing-shell";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
-import { CONTACT_METADATA } from "@/lib/marketing/metadata";
 import {
   COMING_AFTER_LAUNCH,
+  GUIDE_AVAILABILITY_NOTE,
   LAUNCH_PLANS,
-  PRICING_DISCLAIMER,
   PRICING_NOTES,
 } from "@/lib/marketing/plans";
 import { marketingPublicLinks } from "@/lib/marketing/public-links";
@@ -43,8 +42,8 @@ export default async function MarketingPricingPage() {
           variant="pricing"
           eyebrow="Pricing"
           titleId="pricing-hero"
-          title="Simple plans for clinic-branded aftercare."
-          intro={`${PRODUCT_NAME} is a branded, mobile-first aftercare page for each practice — not live clinical monitoring, a patient CRM, or a messaging platform. ${PRICING_DISCLAIMER}`}
+          title="Simple plans for branded patient aftercare."
+          intro={`${PRODUCT_NAME} gives clinics and practices a branded place for the guidance patients need after treatment or between visits. The pricing below is working Australian pricing and remains provisional until commercial terms are finalised.`}
         />
 
         <div className={styles.marketingSoft} data-mk-chapter="soft">
@@ -134,16 +133,15 @@ export default async function MarketingPricingPage() {
                   </MarketingRevealItem>
                   <MarketingRevealItem delay={editorialRevealDelay(1)}>
                     <h2 id="onboarding-heading" className={styles.sectionTitle}>
-                      Start from a template, then make it yours
+                      Start with approved guidance, then make it yours
                     </h2>
                   </MarketingRevealItem>
                   <MarketingRevealItem delay={editorialRevealDelay(2)}>
                     <p className={styles.copy}>
-                      Launch is assisted. We begin with a curated template,
-                      adapt it to your practice, add local instructions, and
-                      publish it under your clinic brand. Templates are
-                      structured and configurable — not clinically certified by
-                      default.
+                      Launch is assisted. We identify the guidance your clinic
+                      wants to publish, use an available {PRODUCT_NAME} template
+                      where appropriate, add clinic-approved local instructions
+                      and publish the result under your brand.
                     </p>
                   </MarketingRevealItem>
                 </MarketingRevealGroup>
@@ -151,11 +149,14 @@ export default async function MarketingPricingPage() {
               <MarketingNumberedSteps
                 className={styles.headingFollow}
                 items={[
-                  "Start with a reviewed template for the procedure you provide. The current canonical library includes Tooth Extraction. Additional dental templates are planned and enabled with you at onboarding — they are not all available yet.",
-                  "Adapt the guide to your practice with section overrides and local instructions.",
-                  "Publish a durable, branded patient page patients can reopen on a phone.",
+                  `Choose or prepare the guidance your clinic needs. Where a ${PRODUCT_NAME} template exists, it can be used as a starting point.`,
+                  "Adapt the guide with clinic-approved wording, section overrides and local instructions.",
+                  "Publish a durable, branded page patients can reopen after the appointment.",
                 ]}
               />
+              <p className={`${styles.copy} ${styles.headingFollow}`}>
+                {GUIDE_AVAILABILITY_NOTE}
+              </p>
             </div>
           </section>
         </div>
@@ -239,7 +240,9 @@ export default async function MarketingPricingPage() {
                     <p className={styles.eyebrow}>Get started</p>
                     <h2 id="pricing-closing">Tell us about your practice.</h2>
                     <p className={styles.copy}>
-                      {CONTACT_METADATA.description}
+                      Tell us how your clinic currently shares aftercare
+                      guidance. We&apos;ll walk through branded {PRODUCT_NAME}{" "}
+                      pages and what launch looks like for your practice.
                     </p>
                   </MarketingRevealItem>
                 </div>

@@ -18,6 +18,7 @@ import {
 import { marketingSiteOrigin } from "@/lib/marketing/site";
 import { sanitizeMetadataText } from "@/lib/seo/metadata-text";
 import {
+  DRAFT_LEGAL_ROBOTS,
   INDEXABLE_ROBOTS,
   PRIVATE_ROBOTS,
   ROBOTS_ALLOW_PUBLIC,
@@ -49,20 +50,29 @@ describe("launch SEO policy", () => {
     expect(home.robots).toEqual(INDEXABLE_ROBOTS);
     expect(home.alternates?.canonical).toBe(`${marketingSiteOrigin()}/`);
     expect(home.openGraph?.url).toContain("http://");
+    expect(home.openGraph?.title).toBe(
+      "Aftercare that still feels like your clinic"
+    );
+    expect(home.title).toEqual({
+      absolute: HOME_METADATA.title,
+    });
     expect(pricing.robots).toEqual(INDEXABLE_ROBOTS);
     expect(pricing.alternates?.canonical).toBe(
       `${marketingSiteOrigin()}/pricing`
     );
-    expect(pricing.openGraph?.title).toContain("Pricing");
+    expect(pricing.title).toEqual({
+      absolute: PRICING_METADATA.title,
+    });
+    expect(pricing.openGraph?.title).toBe(PRICING_METADATA.title);
     expect(contact.alternates?.canonical).toBe(
       `${marketingSiteOrigin()}/contact`
     );
     expect(JSON.stringify(contact.twitter)).toContain('"card":"summary"');
-    expect(privacy.robots).toEqual(INDEXABLE_ROBOTS);
+    expect(privacy.robots).toEqual(DRAFT_LEGAL_ROBOTS);
     expect(privacy.alternates?.canonical).toBe(
       `${marketingSiteOrigin()}/privacy`
     );
-    expect(terms.robots).toEqual(INDEXABLE_ROBOTS);
+    expect(terms.robots).toEqual(DRAFT_LEGAL_ROBOTS);
     expect(terms.alternates?.canonical).toBe(`${marketingSiteOrigin()}/terms`);
     expect(privacy.openGraph?.title).toContain("Privacy");
     expect(terms.openGraph?.title).toContain("Terms");
@@ -175,6 +185,13 @@ describe("launch SEO policy", () => {
     expect(operatorSeo).toContain("requirePlatformOperator");
     expect(preview).toContain("PRIVATE_ROBOTS");
     expect(preview).not.toContain("canonical");
+  });
+
+  it("does not append the site name through the marketing title template", () => {
+    const layout = readFileSync("app/(marketing)/layout.tsx", "utf8");
+    expect(layout).toContain('template: "%s"');
+    expect(layout).not.toContain("%s —");
+    expect(layout).not.toContain("MARKETING_TITLE_TEMPLATE");
   });
 });
 

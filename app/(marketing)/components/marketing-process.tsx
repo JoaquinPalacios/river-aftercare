@@ -1,6 +1,7 @@
 "use client";
 
 import { MarketingRevealCard } from "@/app/(marketing)/components/marketing-reveal";
+import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { railRevealVariants } from "@/lib/marketing/reveal-variants";
 
 import styles from "../marketing.module.css";
@@ -9,29 +10,29 @@ const STEPS = [
   {
     index: "Step 1",
     node: "01",
-    title: "Select guides",
-    copy: "The clinic enables the recovery guides that match the care it provides.",
+    title: "Prepare the right guidance",
+    copy: `Start with an available ${PRODUCT_NAME} template or clinic-approved guidance for the treatments and care your practice provides.`,
     visual: "guides",
   },
   {
     index: "Step 2",
     node: "02",
-    title: "Apply clinic brand",
-    copy: "Colour, logo, terminology, and a controlled visual tone make the pages feel like the practice.",
+    title: "Apply your clinic brand",
+    copy: "Use your clinic name, colours, terminology and controlled presentation settings so the guidance feels like part of your practice.",
     visual: "brand",
   },
   {
     index: "Step 3",
     node: "03",
-    title: "Share a durable link",
-    copy: "Patients receive a stable URL they can save and reopen whenever they need it.",
+    title: "Share by link or QR code",
+    copy: "Give patients a stable URL they can save, scan or reopen after the appointment.",
     visual: "link",
   },
   {
     index: "Step 4",
     node: "04",
-    title: "Patient revisits anytime",
-    copy: "The same instructions stay available after the appointment, designed for clear reading on a phone.",
+    title: "Patients return when they need it",
+    copy: "The same guidance stays available whenever patients need to check it again, with the clinic still easy to contact.",
     visual: "revisit",
   },
 ] as const;

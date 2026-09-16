@@ -36,7 +36,7 @@ test.describe("marketing conversion routes", () => {
     expect(pricing?.status()).toBe(200);
     expect(page.url()).toBe(marketingUrl("/pricing"));
     expect(page.url()).not.toContain("/_marketing");
-    await expectOneH1(page, "Simple plans for clinic-branded aftercare.");
+    await expectOneH1(page, "Simple plans for branded patient aftercare.");
     await expect(page.getByText("A$79")).toBeVisible();
     await expect(page.getByText("A$149")).toBeVisible();
     await expect(page.getByText("Custom pricing")).toBeVisible();
@@ -59,15 +59,12 @@ test.describe("marketing conversion routes", () => {
     });
     expect(contact?.status()).toBe(200);
     expect(page.url()).toBe(marketingUrl("/contact"));
-    await expectOneH1(
-      page,
-      "Bring your aftercare online without losing your clinic's identity."
-    );
+    await expectOneH1(page, "See how River Aftercare could fit your clinic.");
     await expect(
-      page.getByRole("heading", { name: "Send an enquiry" })
+      page.getByRole("heading", { name: "Request a demo" })
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "View the clinic demo" })
+      page.getByRole("link", { name: "View the dental demo" })
     ).toHaveCount(0);
     await expect(page.getByRole("link", { name: "See pricing" })).toHaveCount(
       0
@@ -218,7 +215,7 @@ test.describe("marketing conversion routes", () => {
 
     await headerNav.getByRole("link", { name: "Pricing" }).click();
     await expect(page).toHaveURL(marketingUrl("/pricing"));
-    await expectOneH1(page, "Simple plans for clinic-branded aftercare.");
+    await expectOneH1(page, "Simple plans for branded patient aftercare.");
 
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto(marketingUrl("/contact"), { waitUntil: "load" });
@@ -280,7 +277,7 @@ test.describe("marketing conversion routes", () => {
   test("homepage conversion CTAs resolve", async ({ page }) => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await expect(
-      page.getByRole("link", { name: "View the clinic demo" }).first()
+      page.getByRole("link", { name: "View the dental demo" }).first()
     ).toHaveAttribute("href", tenantUrl(DEMO_TENANT_SLUG, "/"));
     await expect(
       page.getByRole("link", { name: "See how it works" })
@@ -381,22 +378,24 @@ test.describe("marketing conversion routes", () => {
   test("metadata titles match the public routes", async ({ page }) => {
     await page.goto(marketingUrl("/"), { waitUntil: "domcontentloaded" });
     await expect(page).toHaveTitle(
-      /River Aftercare — Branded patient aftercare/
+      "Patient Aftercare Software for Clinics | River Aftercare"
     );
 
     await page.goto(marketingUrl("/pricing"), {
       waitUntil: "domcontentloaded",
     });
-    await expect(page).toHaveTitle(/Pricing — River Aftercare/);
+    await expect(page).toHaveTitle(
+      "Patient Aftercare Software Pricing | River Aftercare"
+    );
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(
       "content",
-      /A\$79/
+      /clinics and practices/
     );
 
     await page.goto(marketingUrl("/contact"), {
       waitUntil: "domcontentloaded",
     });
-    await expect(page).toHaveTitle(/Contact — River Aftercare/);
+    await expect(page).toHaveTitle("Book a Demo | River Aftercare");
   });
 
   for (const colorScheme of ["light", "dark"] as const) {

@@ -2,12 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { geistSans } from "@/lib/branding/fonts";
-import {
-  HOME_METADATA,
-  MARKETING_TITLE_TEMPLATE,
-  marketingMetadataBase,
-} from "@/lib/marketing/metadata";
-import { generateMarketingMetadata } from "@/lib/seo/marketing-page";
+import { HOME_METADATA, marketingMetadataBase } from "@/lib/marketing/metadata";
 import { PRODUCT_HEAD_METADATA } from "@/lib/seo/icons";
 import { marketingMotionBootstrapScript } from "@/lib/marketing/motion-bootstrap";
 import {
@@ -17,20 +12,16 @@ import {
 
 import "./marketing.css";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const page = await generateMarketingMetadata("/");
+export function generateMetadata(): Metadata {
   return {
     metadataBase: marketingMetadataBase(),
     title: {
       default: HOME_METADATA.title,
-      template: MARKETING_TITLE_TEMPLATE,
+      // Identity-preserving template: SEO titles already include the brand
+      // when needed. Do not append " — River Aftercare" here.
+      template: "%s",
     },
-    description: page.description,
-    robots: page.robots,
     ...PRODUCT_HEAD_METADATA,
-    alternates: page.alternates,
-    openGraph: page.openGraph,
-    twitter: page.twitter,
   };
 }
 

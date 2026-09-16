@@ -38,16 +38,24 @@ describe("marketing about page", () => {
 
     expect(html.match(/<h1\b/g)).toHaveLength(1);
     expect(html).toContain(
-      `${PRODUCT_NAME} is branded aftercare for practices.`
+      `${PRODUCT_NAME} is a patient aftercare platform for clinics and practices.`
     );
+    expect(html).toContain("Aftercare should feel like part of the care.");
     expect(html).toContain('data-mk-page-hero="about"');
     expect(html).toContain("headingBlock");
     expect(html).toContain("headingFollow");
     expect(html).toContain("What it is");
+    expect(html).toContain("Who it is for");
+    expect(html).toContain("Clinic ownership");
     expect(html).toContain("What it is not");
-    expect(html).toContain("Clinic-branded instructions, on the web");
-    expect(html).toContain("web-first");
-    expect(html).toContain("not live clinical monitoring");
+    expect(html).toContain(
+      "A branded home for the guidance patients need afterwards"
+    );
+    expect(html).toContain("Built for treatment-based practices");
+    expect(html).toContain("Your clinic remains responsible for the care");
+    expect(html).not.toContain("The first vertical is dental");
+    expect(html).not.toContain("mobile-first aftercare pages");
+    expect(html).toContain("not currently live clinical monitoring");
     expect(html).toContain("patient CRM");
     expect(html).toContain("messaging platform");
     expect(html).toContain("Talk to us about a demo");

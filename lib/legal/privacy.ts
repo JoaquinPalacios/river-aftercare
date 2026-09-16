@@ -21,7 +21,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} is an Australian B2B publishing platform for healthcare practices. It helps clinics publish clinic-branded aftercare guidance on the web. The first vertical is dental, with planned applicability to other clinic types such as cosmetic and aesthetic clinics, physiotherapy, chiropractic and allied health.`,
+        text: `${PRODUCT_NAME} is an Australian B2B publishing platform for healthcare practices. It helps clinics publish clinic-branded treatment, recovery, home-care and aftercare guidance on the web. The platform is designed for treatment-based practices including dental, cosmetic and aesthetic clinics, physiotherapy, chiropractic and allied health.`,
       },
     ],
   },

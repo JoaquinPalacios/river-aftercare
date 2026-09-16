@@ -14,7 +14,7 @@ describe("marketing primary actions", () => {
     );
     const anchor = renderToStaticMarkup(
       <MarketingPrimaryAnchor href="http://demodental.localhost:3000/">
-        View the clinic demo
+        View the dental demo
       </MarketingPrimaryAnchor>
     );
     const button = renderToStaticMarkup(
@@ -25,7 +25,7 @@ describe("marketing primary actions", () => {
 
     expect(link).toContain("Request a demo");
     expect(link).toContain('href="/contact"');
-    expect(anchor).toContain("View the clinic demo");
+    expect(anchor).toContain("View the dental demo");
     expect(anchor).toContain("<a ");
     expect(button).toContain("<button");
     expect(button).toContain('type="submit"');

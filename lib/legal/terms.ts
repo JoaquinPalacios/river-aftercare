@@ -21,11 +21,11 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} is an Australian B2B SaaS publishing platform for healthcare practices. Clinics use it to turn approved post-treatment instructions into branded, mobile-first web pages that patients can reopen without an app or a patient account.`,
+        text: `${PRODUCT_NAME} is an Australian B2B SaaS publishing platform for healthcare practices. Clinics use it to publish clinic-approved treatment, recovery, home-care and post-treatment guidance as branded web pages patients can reopen without an app or patient account.`,
       },
       {
         type: "p",
-        text: "The first vertical is dental, with planned applicability to other clinic types such as cosmetic and aesthetic clinics, physiotherapy, chiropractic and allied health. The product is a structured publishing platform. It is not live clinical monitoring, a patient health record, a messaging product or emergency care.",
+        text: "The platform is designed for treatment-based practices including dental, cosmetic and aesthetic clinics, physiotherapy, chiropractic and allied health. The product is a structured publishing platform. It is not live clinical monitoring, a patient health record, a messaging product or emergency care.",
       },
     ],
   },

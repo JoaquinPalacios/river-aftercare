@@ -11,6 +11,8 @@ describe("llms.txt", () => {
       origin: "https://example.test",
     });
     expect(body).toContain("# River Aftercare");
+    expect(body).toContain("clinic or practice");
+    expect(body).not.toContain("when a dental practice wants");
     expect(body).toContain("https://example.test/");
     expect(body).toContain("https://example.test/pricing");
     expect(body).toContain("https://example.test/contact");

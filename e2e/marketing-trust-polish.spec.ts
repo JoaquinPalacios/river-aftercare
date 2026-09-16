@@ -97,7 +97,7 @@ test.describe("marketing + trust polish", () => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
     const canonical = page
-      .getByRole("link", { name: "View the clinic demo" })
+      .getByRole("link", { name: "View the dental demo" })
       .first();
     await expect(canonical).toBeVisible();
     await page.mouse.move(0, 0);
@@ -230,10 +230,7 @@ test.describe("marketing + trust polish", () => {
 
     await page.goto(marketingUrl("/about"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
-    await expectOneH1(
-      page,
-      "River Aftercare is branded aftercare for practices."
-    );
+    await expectOneH1(page, "Aftercare should feel like part of the care.");
     const aboutPad = await page
       .locator('[data-mk-chapter="soft"] > :first-child')
       .evaluate((element) =>

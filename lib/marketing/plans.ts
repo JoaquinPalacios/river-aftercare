@@ -9,20 +9,20 @@ export const LAUNCH_PLANS = [
     name: "Essential",
     price: "A$79",
     cadence: "per month",
-    position: "For a small practice getting started.",
+    position: "For a clinic getting started with branded digital aftercare.",
     recommended: false,
     ctaLabel: "Request a demo",
     ctaHref: "/contact",
     features: [
       "1 practice / location",
-      "Branded clinic aftercare page",
-      "Controlled branding",
-      "Curated dental guide library",
+      "Branded patient aftercare pages",
+      "Controlled clinic branding",
+      "Available River Aftercare guide templates",
       "Permanent guide URLs",
-      "QR-ready sharing from durable links",
+      "QR-ready sharing",
       "Print / Save PDF",
       "Clinic contact and emergency information",
-      "Light, dark, and system patient presentation",
+      "Light, Dark and System patient presentation",
     ],
   },
   {
@@ -30,16 +30,17 @@ export const LAUNCH_PLANS = [
     name: "Practice",
     price: "A$149",
     cadence: "per month",
-    position: "The main plan for an established clinic.",
+    position:
+      "For an established clinic that needs more control over content and presentation.",
     recommended: true,
     ctaLabel: "Request a demo",
     ctaHref: "/contact",
     features: [
       "Everything in Essential",
-      "Broader dental template library, enabled with you at onboarding",
+      "Expanded guide and setup options, confirmed during onboarding",
       "Clinic section overrides",
       "Local instructions and clinic additions",
-      "Custom clinic guides, prepared during onboarding",
+      "Custom clinic guides prepared during onboarding",
       "Richer branding controls",
       "Operator-led clinic setup for launch",
       `Option to hide ${PRODUCT_NAME} attribution`,
@@ -56,7 +57,7 @@ export const LAUNCH_PLANS = [
     ctaHref: "/contact",
     features: [
       "Multiple locations",
-      "Centralised management",
+      "Coordinated rollout and operator-led setup",
       "Custom onboarding",
       "Priority support",
     ],
@@ -84,3 +85,5 @@ export const PRICING_NOTES = [
     body: "Active plans describe aftercare pages, branding, templates, and clinic-controlled publishing. They do not include live clinical monitoring, persisted patient check-ins, CRM, messaging, or PMS integrations.",
   },
 ] as const;
+
+export const GUIDE_AVAILABILITY_NOTE = `The reviewed ${PRODUCT_NAME} template library is still expanding. Template availability depends on the care area and is confirmed during onboarding. Clinics remain responsible for approving the clinical guidance they publish.`;

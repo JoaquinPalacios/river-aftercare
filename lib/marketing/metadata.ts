@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 
-import { PRODUCT_NAME } from "@/lib/branding/product-name";
-import { INDEXABLE_ROBOTS } from "@/lib/seo/robots-policy";
 import { DEFAULT_MARKETING_PAGE_SEO } from "@/lib/seo/defaults";
 import { marketingSiteOrigin } from "@/lib/marketing/site";
 import {
@@ -9,8 +7,6 @@ import {
   marketingSeoToMetadata,
   resolveMarketingSeo,
 } from "@/lib/seo/resolve-marketing-seo";
-
-export const MARKETING_TITLE_TEMPLATE = `%s — ${PRODUCT_NAME}`;
 
 export const HOME_METADATA = {
   title: DEFAULT_MARKETING_PAGE_SEO["/"].seoTitle,
@@ -66,22 +62,15 @@ export function marketingPageMetadata(
       path: options.pathname,
       seoTitle: input.title,
       metaDescription: input.description,
-      ogTitle: null,
-      ogDescription: null,
+      ogTitle: DEFAULT_MARKETING_PAGE_SEO[options.pathname].ogTitle,
+      ogDescription: DEFAULT_MARKETING_PAGE_SEO[options.pathname].ogDescription,
       ogImagePath: null,
-      index: INDEXABLE_ROBOTS.index,
-      follow: INDEXABLE_ROBOTS.follow,
+      index: DEFAULT_MARKETING_PAGE_SEO[options.pathname].index,
+      follow: DEFAULT_MARKETING_PAGE_SEO[options.pathname].follow,
       updatedAt: null,
     },
   });
-  const metadata = marketingSeoToMetadata(resolved);
-  if (options.absoluteTitle) {
-    return metadata;
-  }
-  return {
-    ...metadata,
-    title: input.title,
-  };
+  return marketingSeoToMetadata(resolved);
 }
 
 export { marketingCanonicalUrl };
