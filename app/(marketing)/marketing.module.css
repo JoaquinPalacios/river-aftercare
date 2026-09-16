@@ -143,8 +143,7 @@
   object-fit: contain;
 }
 
-.mark,
-.footerMark {
+.mark {
   flex-shrink: 0;
   width: 1.75rem;
   height: 1.75rem;
@@ -152,8 +151,10 @@
 }
 
 .footerMark {
-  width: 1.55rem;
-  height: 1.55rem;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
 }
 
 html[data-theme-mode="dark"] .logo {
@@ -2115,16 +2116,12 @@ html[data-theme-mode="dark"] .wordmarkName {
 .footerName {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   margin: 0 0 0.3rem;
   color: var(--mk-ink);
+  font-size: 1rem;
   font-weight: 700;
   letter-spacing: -0.03em;
-}
-
-.footerMark {
-  width: 1.35rem;
-  height: 1.35rem;
 }
 
 .footerTag {
@@ -2789,11 +2786,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   .mark {
     width: 1.75rem;
     height: 1.75rem;
-  }
-
-  .footerMark {
-    width: 1.35rem;
-    height: 1.35rem;
   }
 
   .nav {

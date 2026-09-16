@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-17 (marketing nav logo height 1.75rem)
+Last updated: 2026-09-17 (marketing footer isologo 2rem, name 1rem)
 
 ---
 
@@ -632,7 +632,7 @@ Motion, inner-page hero rhythm, shared conversion button, simplified contact for
 | Motion            | Same viewport thresholds (~-80px mobile, ~-200px desktop, tablet interpolated). Editorial **900ms / 150ms**. Cards **800ms / 120ms**, cap **400ms**. `y` 14px, once, cubic-bezier(.22, 1, .36, 1). Reduced motion unchanged. Duration stays ≤1s. Tune in `lib/marketing/reveal-timing.ts` → `MARKETING_MOTION_TIMING`. |
 | Inner-page heroes | Shared `--mk-hero-bottom-gap: calc(1.35rem + 2.5rem)` on `.pageHeroInner`. Pricing and Contact share one inner-page SVG edge (`mkPageWaveInnerPage`). Homepage keeps its unique wave. `data-mk-page-hero` remains `pricing` \| `contact`.                                                                              |
 | Primary button    | Shared `.button.primary` with a 1px hover lift (removed under `prefers-reduced-motion`). Explicit `MarketingPrimaryLink` / `MarketingPrimaryAnchor` / `MarketingPrimaryButton` — not boolean soup. Contact **Send enquiry** / **Sending…** uses the same system with a reserved label width.                           |
-| Footer            | `--mk-footer-pad-top: 2rem` (32px). Compact footer otherwise unchanged.                                                                                                                                                                                                                                                |
+| Footer            | `--mk-footer-pad-top: 2rem` (32px). Brand row: isologo `2rem`, product name `1rem`, gap `0.25rem`. Compact footer otherwise unchanged.                                                                                                                                                                                 |
 | Form              | Required: Full name, Email, Practice / clinic name. Optional: Phone, Anything you'd like us to know? Locations field removed. User-facing copy says Email, not Work email. Internal name may remain `workEmail`. Honeypot + validation + throttle kept.                                                                |
 | Anti-spam         | **Cloudflare Turnstile is HIGH PRIORITY before or immediately after launch. Not implemented.** Server-side verification, graceful failure, accessibility required when added. See [POST-LAUNCH-ROADMAP.md](POST-LAUNCH-ROADMAP.md) and [MARKETING-CONTACT.md](../architecture/MARKETING-CONTACT.md).                   |
 | Nav               | Unchanged desktop: Pricing / Contact / Staff sign in / Theme. Mobile closed header is brand + burger only; Pricing, Contact, Staff sign in, and Theme live inside the menu as full-width rows.                                                                                                                         |
