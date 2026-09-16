@@ -636,10 +636,12 @@ test.describe("marketing conversion routes", () => {
     );
     expect(hoverBg).not.toBe("rgba(0, 0, 0, 0)");
 
+    const firstClinicLink = page
+      .getByRole("navigation", { name: "Marketing" })
+      .getByRole("link", { name: "Dental" });
     await page.keyboard.press("Tab");
-    await page.keyboard.press("Tab");
-    await expect(pricing).toBeFocused();
-    const outline = await pricing.evaluate(
+    await expect(firstClinicLink).toBeFocused();
+    const outline = await firstClinicLink.evaluate(
       (element) => getComputedStyle(element).outlineStyle
     );
     expect(outline).not.toBe("none");

@@ -61,7 +61,7 @@ describe("marketing mobile navigation", () => {
     expect(styles).not.toContain(".navMenuLink");
   });
 
-  it("parks pointer focus on the panel and only autofocuses About for keyboard open", () => {
+  it("parks pointer focus on the panel and only autofocuses the first clinic link for keyboard open", () => {
     const source = readFileSync(
       "app/(marketing)/components/marketing-nav-menu.tsx",
       "utf8"
