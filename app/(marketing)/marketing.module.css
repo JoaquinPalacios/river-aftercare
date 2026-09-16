@@ -138,7 +138,7 @@
 .logo {
   display: none;
   flex-shrink: 0;
-  height: 2rem;
+  height: 1.75rem;
   width: auto;
   object-fit: contain;
 }
@@ -146,8 +146,8 @@
 .mark,
 .footerMark {
   flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
+  width: 1.75rem;
+  height: 1.75rem;
   object-fit: contain;
 }
 
@@ -2782,13 +2782,13 @@ html[data-theme-mode="dark"] .wordmarkName {
   }
 
   .logo {
-    height: 2rem;
+    height: 1.75rem;
     width: auto;
   }
 
   .mark {
-    width: 2rem;
-    height: 2rem;
+    width: 1.75rem;
+    height: 1.75rem;
   }
 
   .footerMark {
