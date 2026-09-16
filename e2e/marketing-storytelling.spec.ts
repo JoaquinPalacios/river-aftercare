@@ -947,7 +947,9 @@ test.describe("Phase 1F.11 story clarity", () => {
     ).toBeVisible();
     await expect(section.getByText("Get started")).toBeVisible();
     await expect(
-      section.getByText("Request a demo and we will walk through")
+      section.getByText(
+        "Tell us how your clinic currently shares treatment, recovery or home-care guidance."
+      )
     ).toBeVisible();
     await expect(
       section.getByRole("link", { name: "Request a demo" })
@@ -1433,8 +1435,13 @@ test.describe("Phase 1F.11 story clarity", () => {
     ).toHaveCount(0);
     await expect(page.getByText("Brand flexibility")).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Riverside Dental Demo" })
+      section.getByText("The Riverside Dental Demo is one live example", {
+        exact: false,
+      })
     ).toBeVisible();
+    await expect(section.locator("[data-mk-patient-preview]")).toContainText(
+      "Riverside Dental Demo"
+    );
     await expect(
       section.getByRole("link", { name: "Tooth Extraction" })
     ).toHaveCount(0);

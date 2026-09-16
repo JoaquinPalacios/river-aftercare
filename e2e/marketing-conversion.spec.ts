@@ -352,7 +352,7 @@ test.describe("marketing conversion routes", () => {
       "/"
     );
     await expect(
-      page.getByRole("link", { name: "Clinic demo" })
+      page.getByRole("link", { name: "Dental demo" })
     ).toHaveAttribute("href", tenantUrl(DEMO_TENANT_SLUG, "/"));
     await expect(
       page.getByRole("link", { name: "Pricing" }).last()
@@ -675,7 +675,9 @@ test.describe("marketing conversion routes", () => {
       await page.goto(marketingUrl("/pricing"), { waitUntil: "load" });
       const item = page
         .locator("ol")
-        .filter({ hasText: "Start with a reviewed template" })
+        .filter({
+          hasText: "Choose or prepare the guidance your clinic needs",
+        })
         .locator("li")
         .first();
       const alignment = await item.evaluate((element) => {

@@ -32,7 +32,7 @@ async function showMarketingScheme(
 }
 
 test.describe("marketing + trust polish", () => {
-  test("privacy and terms are published drafts with index,follow metadata", async ({
+  test("privacy and terms are published drafts with noindex,follow metadata", async ({
     page,
   }) => {
     const privacy = await page.goto(marketingUrl("/privacy"), {
@@ -46,7 +46,10 @@ test.describe("marketing + trust polish", () => {
     );
     expect(
       await page.locator('meta[name="robots"]').getAttribute("content")
-    ).not.toMatch(/noindex/i);
+    ).toMatch(/noindex/i);
+    expect(
+      await page.locator('meta[name="robots"]').getAttribute("content")
+    ).not.toMatch(/nofollow/i);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
       /\/privacy\/?$/
@@ -67,7 +70,10 @@ test.describe("marketing + trust polish", () => {
     );
     expect(
       await page.locator('meta[name="robots"]').getAttribute("content")
-    ).not.toMatch(/noindex/i);
+    ).toMatch(/noindex/i);
+    expect(
+      await page.locator('meta[name="robots"]').getAttribute("content")
+    ).not.toMatch(/nofollow/i);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
       /\/terms\/?$/
