@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-16 (PostgreSQL 18 local/test/CI contract)
+Last updated: 2026-09-16 (branded tenant not-found)
 
 ---
 
@@ -105,7 +105,7 @@ Hostname tenant resolution. No branded patient UI.
 | Internal routes | `app/%5Fsites/[tenant]/**` (URL `/_sites/<slug>/…`, blocked from the public Host) |
 | Tenant check    | `requireTenantClinic` → `getClinicBySlug` → `notFound()`                          |
 
-Local URLs: `localhost:3000` is the public marketing homepage. `app.localhost:3000` stays staff/parked. `demodental.localhost:3000` rewrites internally. `unknown.localhost:3000` is a generic 404. Tenant hosts block `/login`, `/dashboard`, `/sessions`, `/session`, `/display`, `/api/auth`. Direct `/_sites` and `/_marketing` are 404.
+Local URLs: `localhost:3000` is the public marketing homepage. `app.localhost:3000` stays staff/parked. `demodental.localhost:3000` rewrites internally. `unknown.localhost:3000` is the branded River Aftercare 404 (same copy as unpublished/missing guides). Tenant hosts block `/login`, `/dashboard`, `/sessions`, `/session`, `/display`, `/api/auth`. Direct `/_sites` and `/_marketing` are 404.
 
 Internal aftercare files now live at `app/(aftercare)/%5Fsites/[tenant]`. Public rewrite target remains `/_sites/<slug>/…`. The marketing homepage rewrites to `/_marketing`.
 
@@ -152,7 +152,7 @@ Local URLs:
 - `http://demodental.localhost:3000/` — practice aftercare home
 - `http://demodental.localhost:3000/extraction` — Tooth Extraction composed guide
 
-Homepage lists only enabled + published PracticeGuides pinned to a published revision, ordered by `sortOrder` then `publicSlug`. Unknown tenant, unknown/draft/disabled guides → generic 404.
+Homepage lists only enabled + published PracticeGuides pinned to a published revision, ordered by `sortOrder` then `publicSlug`. Unknown tenant, unknown/draft/disabled/unpublished guides → branded River Aftercare 404 (`app/(aftercare)/not-found.tsx`) with the same copy and a link to `https://riveraftercare.com.au`. Do not reveal whether a slug exists, was removed, or is unpublished.
 
 Emergency rule: guide `EMERGENCY` / `WARNING_SIGNS` sections explain condition/context; `ClinicProfile` contact/emergency copy is chrome (“how to reach this practice”). They are not merged.
 
