@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+import { prismaCliDatabaseUrl } from "./lib/db/prisma-cli-database-url";
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -8,6 +10,8 @@ export default defineConfig({
     seed: "node prisma/seed.mjs",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Local Docker: DATABASE_URL only. Later Neon: DIRECT_URL = unpooled
+    // migrate/seed connection; runtime PrismaPg still uses DATABASE_URL.
+    url: prismaCliDatabaseUrl(),
   },
 });

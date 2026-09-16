@@ -6,6 +6,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { Client } from "pg";
 
+import { assertPostgresMajor } from "../../lib/db/assert-postgres-major";
 import {
   developmentDatabaseUrl,
   e2eDatabaseUrl,
@@ -39,6 +40,10 @@ export async function ensureE2eDatabase(): Promise<string> {
   });
   await client.connect();
   try {
+    const version = await client.query<{ server_version: string }>(
+      "SHOW server_version"
+    );
+    assertPostgresMajor(version.rows[0]?.server_version ?? "");
     const existing = await client.query(
       "SELECT 1 FROM pg_database WHERE datname = $1",
       [database]

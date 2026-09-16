@@ -1,15 +1,22 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: care_guide
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      # Official PostgreSQL 18 image stores files under a versioned path.
+      # Do not set this to /var/lib/postgresql/data (that was the PG17 layout).
+      PGDATA: /var/lib/postgresql/18/docker
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # New PG18 volume. The previous compose key `postgres_data` (PG17,
+      # mounted at /var/lib/postgresql/data) is intentionally unused so an
+      # existing local volume is never mounted, overwritten, initialized, or
+      # deleted by PostgreSQL 18. Do not run `docker compose down -v`.
+      - postgres18_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d care_guide"]
       interval: 5s
@@ -17,4 +24,4 @@ services:
       retries: 5
 
 volumes:
-  postgres_data:
+  postgres18_data:
