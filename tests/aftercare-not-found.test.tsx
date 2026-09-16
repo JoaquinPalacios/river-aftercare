@@ -23,6 +23,8 @@ describe("aftercare not-found", () => {
     expect(html).toContain(`href="${PRODUCT_MARKETING_ORIGIN}"`);
     expect(html).toContain(AFTERCARE_UNAVAILABLE_HOME_LABEL);
     expect(html).toContain(PRODUCT_NAME);
+    expect(html).toContain("<style");
+    expect(html).toContain("aftercareUnavailable");
   });
 
   it("does not reveal whether a slug exists, was removed, or is unpublished", () => {
