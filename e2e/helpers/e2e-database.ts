@@ -35,15 +35,23 @@ function quoteIdent(value: string): string {
 export async function ensureE2eDatabase(): Promise<string> {
   const e2eUrl = e2eDatabaseUrl();
   const { database } = parseDatabaseUrl(e2eUrl);
+  const versionAdapter = new PrismaPg({
+    connectionString: developmentDatabaseUrl(),
+  });
+  const versionPrisma = new PrismaClient({ adapter: versionAdapter });
+  try {
+    const rows = await versionPrisma.$queryRaw<
+      Array<{ server_version: string }>
+    >`SHOW server_version`;
+    assertPostgresMajor(rows[0]?.server_version ?? "");
+  } finally {
+    await versionPrisma.$disconnect();
+  }
   const client = new Client({
     connectionString: maintenanceDatabaseUrl(e2eUrl),
   });
   await client.connect();
   try {
-    const version = await client.query<{ server_version: string }>(
-      "SHOW server_version"
-    );
-    assertPostgresMajor(version.rows[0]?.server_version ?? "");
     const existing = await client.query(
       "SELECT 1 FROM pg_database WHERE datname = $1",
       [database]
