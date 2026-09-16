@@ -14,10 +14,21 @@ describe("marketing mobile navigation", () => {
           { href: "/pricing", label: "Pricing" },
           { href: "/contact", label: "Contact", current: true },
         ]}
+        clinicItems={[
+          { href: "/dental", label: "Dental" },
+          { href: "/physiotherapy", label: "Physiotherapy" },
+          { href: "/chiropractic", label: "Chiropractic" },
+          { href: "/cosmetic-clinics", label: "Cosmetic & aesthetic" },
+        ]}
       />
     );
 
     expect(html).toContain("Site menu");
+    expect(html).toContain("For clinics");
+    expect(html).toContain("Dental");
+    expect(html).toContain("Physiotherapy");
+    expect(html).toContain("Chiropractic");
+    expect(html).toContain("Cosmetic &amp; aesthetic");
     expect(html).toContain("About");
     expect(html).toContain("Pricing");
     expect(html).toContain("Contact");

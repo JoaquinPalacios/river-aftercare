@@ -194,6 +194,8 @@ describe("marketing + trust polish", () => {
     expect(shell).toContain('{ href: "/about", label: "About" }');
     expect(shell).toContain('{ href: "/privacy", label: "Privacy" }');
     expect(shell).toContain('{ href: "/terms", label: "Terms" }');
+    expect(shell).toContain('label: "For clinics"');
+    expect(shell).toContain("CLINIC_VERTICAL_NAV");
     expect((shell.match(/href: "\/privacy"/g) ?? []).length).toBe(1);
     expect((shell.match(/href: "\/terms"/g) ?? []).length).toBe(1);
     expect(shell).not.toContain("How it works");

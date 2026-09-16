@@ -15,9 +15,11 @@ export type MarketingMenuItem = {
 
 export function MarketingNavMenu({
   items,
+  clinicItems,
   staffHref,
 }: {
   items: MarketingMenuItem[];
+  clinicItems: MarketingMenuItem[];
   staffHref: string;
 }) {
   const reactId = useId().replace(/:/g, "");
@@ -117,6 +119,27 @@ export function MarketingNavMenu({
         className={styles.navMenuPanel}
       >
         <ul className={styles.navMenuList}>
+          <li className={styles.navMenuGroup}>
+            <p className={styles.navMenuGroupLabel} id={`${menuId}-clinics`}>
+              For clinics
+            </p>
+            <ul
+              className={styles.navMenuSublist}
+              aria-labelledby={`${menuId}-clinics`}
+            >
+              {clinicItems.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    className={styles.navMenuRow}
+                    href={item.href}
+                    aria-current={item.current ? "page" : undefined}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </li>
           {items.map((item) => (
             <li key={item.label}>
               <Link

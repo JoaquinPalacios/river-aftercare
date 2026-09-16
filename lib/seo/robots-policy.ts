@@ -30,6 +30,10 @@ export const ROBOTS_ALLOW_PUBLIC = [
   "/about",
   "/privacy",
   "/terms",
+  "/dental",
+  "/physiotherapy",
+  "/chiropractic",
+  "/cosmetic-clinics",
   "/llms.txt",
 ] as const;
 

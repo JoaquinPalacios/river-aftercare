@@ -72,7 +72,7 @@ describe("proxy", () => {
     );
   });
 
-  it("rewrites marketing pricing, contact, about, privacy, and terms to /_marketing/...", () => {
+  it("rewrites marketing pricing, contact, about, privacy, terms, and clinic pages to /_marketing/...", () => {
     const pricing = proxy(requestFor("http://localhost:3000/pricing"));
     expect(pricing.status).toBe(200);
     expect(rewrittenUrl(pricing)?.pathname).toBe("/_marketing/pricing");
@@ -92,6 +92,34 @@ describe("proxy", () => {
     const terms = proxy(requestFor("http://localhost:3000/terms"));
     expect(terms.status).toBe(200);
     expect(rewrittenUrl(terms)?.pathname).toBe("/_marketing/terms");
+
+    const dental = proxy(requestFor("http://localhost:3000/dental"));
+    expect(dental.status).toBe(200);
+    expect(rewrittenUrl(dental)?.pathname).toBe("/_marketing/dental");
+
+    const physiotherapy = proxy(
+      requestFor("http://localhost:3000/physiotherapy")
+    );
+    expect(physiotherapy.status).toBe(200);
+    expect(rewrittenUrl(physiotherapy)?.pathname).toBe(
+      "/_marketing/physiotherapy"
+    );
+
+    const chiropractic = proxy(
+      requestFor("http://localhost:3000/chiropractic")
+    );
+    expect(chiropractic.status).toBe(200);
+    expect(rewrittenUrl(chiropractic)?.pathname).toBe(
+      "/_marketing/chiropractic"
+    );
+
+    const cosmetic = proxy(
+      requestFor("http://localhost:3000/cosmetic-clinics")
+    );
+    expect(cosmetic.status).toBe(200);
+    expect(rewrittenUrl(cosmetic)?.pathname).toBe(
+      "/_marketing/cosmetic-clinics"
+    );
   });
 
   it("lets sitemap, robots, and llms.txt pass through on the marketing host", () => {

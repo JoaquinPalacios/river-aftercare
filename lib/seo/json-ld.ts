@@ -179,6 +179,22 @@ export function buildMarketingJsonLdGraph(
         origin,
       })
     );
+  } else if (
+    resolved.path === "/dental" ||
+    resolved.path === "/physiotherapy" ||
+    resolved.path === "/chiropractic" ||
+    resolved.path === "/cosmetic-clinics"
+  ) {
+    graph.push(
+      webPageNode({
+        type: "WebPage",
+        resolved,
+        origin,
+        extra: {
+          mainEntity: { "@id": softwareApplicationId(origin) },
+        },
+      })
+    );
   }
 
   return {

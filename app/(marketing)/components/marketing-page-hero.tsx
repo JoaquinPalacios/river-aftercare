@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import {
   MarketingRevealGroup,
   MarketingRevealItem,
@@ -7,7 +9,15 @@ import { editorialRevealDelay } from "@/lib/marketing/reveal-timing";
 
 import styles from "../marketing.module.css";
 
-export type MarketingPageHeroVariant = "pricing" | "contact" | "about" | "legal";
+export type MarketingPageHeroVariant =
+  | "pricing"
+  | "contact"
+  | "about"
+  | "legal"
+  | "dental"
+  | "physiotherapy"
+  | "chiropractic"
+  | "cosmetic";
 
 export function MarketingPageHero({
   variant,
@@ -15,15 +25,21 @@ export function MarketingPageHero({
   titleId,
   title,
   intro,
+  actions,
+  wideTitle = false,
 }: {
   variant: MarketingPageHeroVariant;
   eyebrow: string;
   titleId: string;
   title: string;
   intro: string;
+  actions?: ReactNode;
+  wideTitle?: boolean;
 }) {
   const heroClass =
-    variant === "pricing" ? styles.pageHeroPricing : styles.pageHeroContact;
+    variant === "pricing" || variant === "dental" || variant === "cosmetic"
+      ? styles.pageHeroPricing
+      : styles.pageHeroContact;
 
   return (
     <section
@@ -37,13 +53,25 @@ export function MarketingPageHero({
             <p className={styles.eyebrow}>{eyebrow}</p>
           </MarketingRevealItem>
           <MarketingRevealItem delay={editorialRevealDelay(1)}>
-            <h1 id={titleId} className={styles.pageTitle}>
+            <h1
+              id={titleId}
+              className={
+                wideTitle
+                  ? `${styles.pageTitle} ${styles.pageTitleWide}`
+                  : styles.pageTitle
+              }
+            >
               {title}
             </h1>
           </MarketingRevealItem>
           <MarketingRevealItem delay={editorialRevealDelay(2)}>
             <p className={`${styles.copy} ${styles.pageLede}`}>{intro}</p>
           </MarketingRevealItem>
+          {actions ? (
+            <MarketingRevealItem delay={editorialRevealDelay(3)}>
+              <div className={styles.actions}>{actions}</div>
+            </MarketingRevealItem>
+          ) : null}
         </MarketingRevealGroup>
       </div>
       <MarketingPageHeroEdge />

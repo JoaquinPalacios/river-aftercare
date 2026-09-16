@@ -144,6 +144,8 @@ test.describe("Phase 2B SEO and discovery", () => {
     expect(llmsBody).toContain("/about");
     expect(llmsBody).toContain("/privacy");
     expect(llmsBody).toContain("/terms");
+    expect(llmsBody).toContain("/dental");
+    expect(llmsBody).toContain("/physiotherapy");
     expect(llmsBody).not.toContain("/operator");
     expect(llmsBody).not.toContain("/login");
 
@@ -154,6 +156,10 @@ test.describe("Phase 2B SEO and discovery", () => {
     expect(sitemapBody).toContain("/about");
     expect(sitemapBody).toContain("/privacy");
     expect(sitemapBody).toContain("/terms");
+    expect(sitemapBody).toContain("/dental");
+    expect(sitemapBody).toContain("/physiotherapy");
+    expect(sitemapBody).toContain("/chiropractic");
+    expect(sitemapBody).toContain("/cosmetic-clinics");
     expect(sitemapBody).not.toContain("demodental");
     expect(sitemapBody).not.toContain("/operator");
   });
@@ -221,6 +227,16 @@ test.describe("Phase 2B SEO and discovery", () => {
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Structured data" })
+    ).toBeVisible();
+    await expect(page.getByText("/dental", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("/physiotherapy", { exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByText("/chiropractic", { exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByText("/cosmetic-clinics", { exact: true })
     ).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Site name" })).toHaveValue(
       "River Aftercare"

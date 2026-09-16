@@ -79,6 +79,10 @@ export async function savePlatformSeoAction(
     revalidatePath("/about");
     revalidatePath("/privacy");
     revalidatePath("/terms");
+    revalidatePath("/dental");
+    revalidatePath("/physiotherapy");
+    revalidatePath("/chiropractic");
+    revalidatePath("/cosmetic-clinics");
     revalidatePath("/sitemap.xml");
     revalidatePath("/llms.txt");
     revalidatePath("/operator/seo");

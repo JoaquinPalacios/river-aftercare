@@ -13,12 +13,25 @@ describe("llms.txt", () => {
     expect(body).toContain("# River Aftercare");
     expect(body).toContain("clinic or practice");
     expect(body).not.toContain("when a dental practice wants");
+    expect(body).toContain(
+      "patient aftercare platform for clinics and practices"
+    );
     expect(body).toContain("https://example.test/");
     expect(body).toContain("https://example.test/pricing");
     expect(body).toContain("https://example.test/contact");
     expect(body).toContain("https://example.test/about");
     expect(body).toContain("https://example.test/privacy");
     expect(body).toContain("https://example.test/terms");
+    expect(body).toContain("https://example.test/dental");
+    expect(body).toContain("https://example.test/physiotherapy");
+    expect(body).toContain("https://example.test/chiropractic");
+    expect(body).toContain("https://example.test/cosmetic-clinics");
+    expect(body).toContain("post-treatment instructions");
+    expect(body).toContain("recovery, home-care");
+    expect(body).toContain("home-care and post-appointment");
+    expect(body).toContain("post-treatment aftercare");
+    expect(body).toContain("Not an exercise-tracking app.");
+    expect(body).not.toContain("Wisdom Teeth");
     expect(body).not.toContain("/operator");
     expect(body).not.toContain("/login");
     expect(body).not.toContain("/dashboard");
@@ -41,9 +54,16 @@ describe("marketing sitemap builder", () => {
       "http://localhost/about",
       "http://localhost/privacy",
       "http://localhost/terms",
+      "http://localhost/dental",
+      "http://localhost/physiotherapy",
+      "http://localhost/chiropractic",
+      "http://localhost/cosmetic-clinics",
     ]);
     expect(entries.every((entry) => entry.lastModified === undefined)).toBe(
       true
+    );
+    expect(new Set(entries.map((entry) => entry.url)).size).toBe(
+      entries.length
     );
   });
 

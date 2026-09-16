@@ -1,12 +1,14 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { MarketingClinicsNav } from "@/app/(marketing)/components/marketing-clinics-nav";
 import { MarketingExperience } from "@/app/(marketing)/components/marketing-experience";
 import { MarketingNavMenu } from "@/app/(marketing)/components/marketing-nav-menu";
 import { MarketingThemeControl } from "@/app/(marketing)/components/marketing-theme-control";
 import { ProductLogo } from "@/lib/branding/product-logo";
 import { ProductMark } from "@/lib/branding/product-mark";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { CLINIC_VERTICAL_NAV } from "@/lib/marketing/clinic-verticals";
 import type { MarketingSeoPath } from "@/lib/seo/types";
 
 import styles from "../marketing.module.css";
@@ -14,6 +16,14 @@ import styles from "../marketing.module.css";
 export type MarketingPath = MarketingSeoPath;
 
 const FOOTER_GROUPS = [
+  {
+    id: "clinics",
+    label: "For clinics",
+    links: CLINIC_VERTICAL_NAV.map((item) => ({
+      href: item.path,
+      label: item.navLabel,
+    })),
+  },
   {
     id: "product",
     label: "Product",
@@ -54,6 +64,11 @@ export function MarketingShell({
     ...item,
     current: currentPath === item.href,
   }));
+  const clinicItems = CLINIC_VERTICAL_NAV.map((item) => ({
+    href: item.path,
+    label: item.navLabel,
+    current: currentPath === item.path,
+  }));
 
   return (
     <MarketingExperience className={styles.page}>
@@ -67,6 +82,7 @@ export function MarketingShell({
             </span>
           </Link>
           <nav className={styles.nav} aria-label="Marketing">
+            <MarketingClinicsNav currentPath={currentPath} />
             {PRIMARY_NAV.map((item) => (
               <Link
                 key={item.href}
@@ -86,7 +102,11 @@ export function MarketingShell({
             <span className={styles.navTheme}>
               <MarketingThemeControl />
             </span>
-            <MarketingNavMenu items={menuItems} staffHref={staffHref} />
+            <MarketingNavMenu
+              items={menuItems}
+              clinicItems={clinicItems}
+              staffHref={staffHref}
+            />
           </nav>
         </div>
       </header>

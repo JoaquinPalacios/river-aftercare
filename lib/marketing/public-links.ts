@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { DEMO_AFTERCARE_TENANT_SLUG } from "@/lib/aftercare/demo-tenant";
 import { apexPublicUrl, labeledPublicUrl } from "@/lib/tenancy/public-url";
 import { getRootDomain } from "@/lib/tenancy/root-domain";
+import type { MarketingSeoPath } from "@/lib/seo/types";
 
 export type MarketingPublicLinks = {
   demoHref: string;
@@ -51,9 +52,6 @@ export async function marketingPublicLinks(): Promise<MarketingPublicLinks> {
   };
 }
 
-export function homepageAnchor(
-  path: "/" | "/pricing" | "/contact" | "/about" | "/privacy" | "/terms",
-  hash: string
-): string {
+export function homepageAnchor(path: MarketingSeoPath, hash: string): string {
   return path === "/" ? `#${hash}` : `/#${hash}`;
 }

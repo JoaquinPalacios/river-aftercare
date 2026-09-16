@@ -7,6 +7,7 @@ import {
   marketingSeoToMetadata,
   resolveMarketingSeo,
   resolveSocialMetadata,
+  brandCountInTitle,
 } from "@/lib/seo/resolve-marketing-seo";
 
 describe("marketing SEO resolution", () => {
@@ -175,6 +176,32 @@ describe("marketing SEO resolution", () => {
     expect(metadata.twitter).toMatchObject({ card: "summary" });
     expect(JSON.stringify(metadata)).not.toContain('"images":[]');
     expect(metadata.alternates?.canonical).toBe("https://example.test/contact");
+  });
+
+  it("keeps a single River Aftercare brand reference on vertical titles", () => {
+    const dental = resolveMarketingSeo({
+      path: "/dental",
+      origin: "https://example.test",
+    });
+    expect(dental.absoluteTitle).toBe(true);
+    expect(dental.title).toBe(
+      "Dental Aftercare Software for Practices | River Aftercare"
+    );
+    expect(dental.title).not.toContain("River Aftercare — River Aftercare");
+    expect(brandCountInTitle(dental.title, "River Aftercare")).toBe(1);
+
+    const metadata = marketingSeoToMetadata(dental);
+    expect(metadata.title).toEqual({
+      absolute: "Dental Aftercare Software for Practices | River Aftercare",
+    });
+    expect(metadata.description).toContain("clinic-branded post-treatment");
+    expect(metadata.robots).toEqual({ index: true, follow: true });
+    expect(metadata.alternates?.canonical).toBe("https://example.test/dental");
+    expect(metadata.openGraph).toMatchObject({
+      title: "Aftercare that still feels like your dental practice",
+      description:
+        "Give patients clear post-treatment guidance under your practice brand, with a page they can reopen whenever they need it.",
+    });
   });
 
   it("does not treat the product logo as a dedicated OG image", () => {

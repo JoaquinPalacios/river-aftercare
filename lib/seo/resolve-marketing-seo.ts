@@ -34,6 +34,25 @@ function firstText(...values: Array<string | null | undefined>): string | null {
   return null;
 }
 
+export function brandCountInTitle(title: string, siteName: string): number {
+  const needle = siteName.trim().toLowerCase();
+  if (!needle) {
+    return 0;
+  }
+  const haystack = title.toLowerCase();
+  let count = 0;
+  let from = 0;
+  while (from <= haystack.length - needle.length) {
+    const index = haystack.indexOf(needle, from);
+    if (index === -1) {
+      break;
+    }
+    count += 1;
+    from = index + needle.length;
+  }
+  return count;
+}
+
 export function mergePlatformIdentity(
   stored: PlatformSeoIdentity | null | undefined
 ): PlatformSeoIdentity {

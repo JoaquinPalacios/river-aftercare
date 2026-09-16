@@ -15,6 +15,10 @@ export const MARKETING_PAGE_PATHS = [
   "/about",
   "/privacy",
   "/terms",
+  "/dental",
+  "/physiotherapy",
+  "/chiropractic",
+  "/cosmetic-clinics",
 ] as const;
 
 export const MARKETING_CRAWL_PATHS = [

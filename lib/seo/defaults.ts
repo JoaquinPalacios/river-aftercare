@@ -78,6 +78,50 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     index: DRAFT_LEGAL_ROBOTS.index,
     follow: DRAFT_LEGAL_ROBOTS.follow,
   },
+  "/dental": {
+    seoTitle: "Dental Aftercare Software for Practices | River Aftercare",
+    metaDescription:
+      "Give patients clear, clinic-branded post-treatment instructions they can reopen after dental treatment by link or QR code, with no app or patient login.",
+    ogTitle: "Aftercare that still feels like your dental practice",
+    ogDescription:
+      "Give patients clear post-treatment guidance under your practice brand, with a page they can reopen whenever they need it.",
+    ogImagePath: null,
+    index: true,
+    follow: true,
+  },
+  "/physiotherapy": {
+    seoTitle: "Physiotherapy Patient Aftercare Software | River Aftercare",
+    metaDescription:
+      "Share branded recovery, home-care and written exercise guidance patients can reopen between physiotherapy appointments by link or QR code.",
+    ogTitle: "Recovery guidance that still feels like your clinic",
+    ogDescription:
+      "Give patients clear home-care and recovery guidance they can return to between physiotherapy appointments.",
+    ogImagePath: null,
+    index: true,
+    follow: true,
+  },
+  "/chiropractic": {
+    seoTitle: "Chiropractic Patient Aftercare Software | River Aftercare",
+    metaDescription:
+      "Publish branded home-care and post-appointment guidance patients can reopen between chiropractic visits by link or QR code, with no app or login.",
+    ogTitle: "Between-visit guidance that still feels like your practice",
+    ogDescription:
+      "Keep clinic-approved home-care and post-appointment guidance clear, branded and easy for patients to revisit.",
+    ogImagePath: null,
+    index: true,
+    follow: true,
+  },
+  "/cosmetic-clinics": {
+    seoTitle: "Cosmetic Clinic Aftercare Software | River Aftercare",
+    metaDescription:
+      "Give clients clear, clinic-branded post-treatment aftercare they can reopen after cosmetic and aesthetic treatments by link or QR code.",
+    ogTitle: "Post-treatment aftercare that stays under your clinic brand",
+    ogDescription:
+      "Extend the treatment experience with clear, branded aftercare clients can return to once they leave the clinic.",
+    ogImagePath: null,
+    index: true,
+    follow: true,
+  },
 };
 
 export const MARKETING_PAGE_LABELS: Record<MarketingSeoPath, string> = {
@@ -87,6 +131,10 @@ export const MARKETING_PAGE_LABELS: Record<MarketingSeoPath, string> = {
   "/about": "About",
   "/privacy": "Privacy Policy",
   "/terms": "Terms & Conditions",
+  "/dental": "Dental",
+  "/physiotherapy": "Physiotherapy",
+  "/chiropractic": "Chiropractic",
+  "/cosmetic-clinics": "Cosmetic & aesthetic",
 };
 
 export const TITLE_GUIDE_LENGTH = 60;

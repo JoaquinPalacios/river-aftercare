@@ -314,6 +314,7 @@ describe("aftercare style boundary", () => {
       "app/(marketing)/components/marketing-pillars.tsx",
       "app/(marketing)/components/marketing-product-assembly.tsx",
       "app/(marketing)/components/marketing-nav-menu.tsx",
+      "app/(marketing)/components/marketing-clinics-nav.tsx",
       "app/(marketing)/components/marketing-nav-theme.tsx",
       "app/(marketing)/components/contact-form.tsx",
     ]);

@@ -63,6 +63,10 @@ describe("marketing crawl files", () => {
       "http://localhost/about",
       "http://localhost/privacy",
       "http://localhost/terms",
+      "http://localhost/dental",
+      "http://localhost/physiotherapy",
+      "http://localhost/chiropractic",
+      "http://localhost/cosmetic-clinics",
     ]);
     expect(urls.join(" ")).not.toContain("/_marketing");
     expect(urls.join(" ")).not.toContain("/_sites");
@@ -80,6 +84,10 @@ describe("marketing crawl files", () => {
         "/about",
         "/privacy",
         "/terms",
+        "/dental",
+        "/physiotherapy",
+        "/chiropractic",
+        "/cosmetic-clinics",
         "/llms.txt",
       ],
       disallow: expect.arrayContaining([

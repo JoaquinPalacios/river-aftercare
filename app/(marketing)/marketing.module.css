@@ -199,6 +199,87 @@ html[data-theme-mode="dark"] .wordmarkName {
   display: inline-flex;
 }
 
+.navClinics {
+  position: relative;
+}
+
+.navClinicsTrigger {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mk-muted);
+  font: inherit;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.navClinicsTrigger[aria-expanded="true"],
+.navClinicsTrigger[aria-current="true"] {
+  color: var(--mk-ink);
+}
+
+.navClinicsTrigger[aria-current="true"]::after {
+  transform: scaleX(1);
+}
+
+.navClinicsPanel {
+  position: absolute;
+  top: calc(100% - 0.15rem);
+  left: 0;
+  z-index: 4;
+  display: grid;
+  gap: 0.12rem;
+  min-width: 14.5rem;
+  margin: 0;
+  padding: 0.45rem;
+  list-style: none;
+  border: 1px solid var(--mk-card-line);
+  border-radius: 1rem;
+  background: light-dark(#fffdf9, #151922);
+  box-shadow: light-dark(
+    0 14px 36px rgb(10 13 20 / 10%),
+    0 16px 40px rgb(0 0 0 / 46%)
+  );
+}
+
+.navClinicsPanel[hidden] {
+  display: none;
+}
+
+.navClinicsLink {
+  display: flex;
+  align-items: center;
+  min-height: 2.65rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 0.65rem;
+  color: var(--mk-muted);
+  font-weight: 650;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.navClinicsLink[aria-current="page"] {
+  color: var(--mk-ink);
+  background: light-dark(
+    color-mix(in srgb, var(--mk-ink) 9%, transparent),
+    color-mix(in srgb, #ffffff 12%, transparent)
+  );
+  box-shadow: inset 0.18rem 0 0 var(--mk-brand);
+}
+
+.navClinicsLink:focus-visible {
+  color: var(--mk-ink);
+  outline: 2.5px solid var(--mk-focus);
+  outline-offset: -2px;
+}
+
 .navRoute[aria-current="page"] {
   color: var(--mk-ink);
 }
@@ -325,6 +406,30 @@ html[data-theme-mode="dark"] .wordmarkName {
   list-style: none;
 }
 
+.navMenuGroup {
+  display: grid;
+  gap: 0.08rem;
+  margin: 0;
+  padding: 0.15rem 0 0.35rem;
+}
+
+.navMenuGroupLabel {
+  margin: 0.35rem 0.9rem 0.15rem;
+  color: var(--mk-ink);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.navMenuSublist {
+  display: grid;
+  gap: 0.12rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .navMenuMeta {
   display: grid;
   gap: 0.12rem;
@@ -423,14 +528,30 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .nav > a:hover {
+  .nav > a:hover,
+  .navClinicsTrigger:hover {
     color: var(--mk-ink);
+  }
+
+  .navClinicsLink:hover {
+    color: var(--mk-ink);
+    background: light-dark(
+      color-mix(in srgb, var(--mk-ink) 5%, transparent),
+      color-mix(in srgb, #ffffff 7%, transparent)
+    );
   }
 }
 
 .nav > a:focus-visible,
-.nav > a:active {
+.nav > a:active,
+.navClinicsTrigger:focus-visible,
+.navClinicsTrigger:active {
   color: var(--mk-ink);
+}
+
+.navClinicsTrigger:focus-visible {
+  outline: 2.5px solid var(--mk-focus);
+  outline-offset: 3px;
 }
 
 .textLink {
@@ -463,7 +584,8 @@ html[data-theme-mode="dark"] .wordmarkName {
   transition: transform var(--interaction-duration) var(--interaction-easing);
 }
 
-.nav a.textLink::after {
+.nav a.textLink::after,
+.navClinicsTrigger.textLink::after {
   bottom: 0.72rem;
 }
 
@@ -2116,6 +2238,10 @@ html[data-theme-mode="dark"] .wordmarkName {
   text-wrap: pretty;
 }
 
+.pageTitleWide {
+  max-width: 22ch;
+}
+
 .pageLede {
   max-width: 42rem;
   margin-top: var(--mk-heading-intro-gap);
@@ -2502,6 +2628,147 @@ html[data-theme-mode="dark"] .wordmarkName {
   border: 0;
 }
 
+.clinicTypeGrid,
+.verticalCardGrid,
+.verticalBenefitGrid {
+  display: grid;
+  gap: var(--mk-card-grid-gap);
+}
+
+.clinicTypeSlot,
+.verticalCardSlot,
+.clinicTypeCard,
+.verticalCard {
+  height: 100%;
+}
+
+.clinicTypeCard,
+.verticalCard,
+.verticalFaqItem,
+.verticalWorkflowStep {
+  display: flex;
+  flex-direction: column;
+  padding: 1.2rem 1.2rem 1.25rem;
+  border: 1px solid var(--mk-card-line);
+  border-radius: var(--mk-card-radius);
+  background: var(--mk-card);
+  color: var(--mk-ink);
+  box-shadow: var(--mk-card-shadow);
+}
+
+.clinicTypeCard {
+  text-decoration: none;
+  min-height: 100%;
+  transition:
+    border-color var(--interaction-duration) var(--interaction-easing),
+    box-shadow var(--interaction-duration) var(--interaction-easing);
+}
+
+.clinicTypeCard h3,
+.verticalCard h3,
+.verticalFaqItem h3,
+.verticalWorkflowStep h3 {
+  margin: 0 0 0.45rem;
+  font-size: 1.08rem;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+}
+
+.clinicTypeCard p,
+.verticalCard p,
+.verticalFaqItem p,
+.verticalWorkflowStep p {
+  margin: 0;
+  color: var(--mk-muted);
+  line-height: 1.45;
+}
+
+.clinicTypeCard:focus-visible {
+  outline: 2.5px solid var(--mk-focus);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .clinicTypeCard:hover {
+    border-color: color-mix(in srgb, var(--mk-brand) 42%, var(--mk-card-line));
+  }
+}
+
+.verticalExampleList {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0 0 1.15rem;
+  padding: 0;
+  list-style: none;
+  max-width: 42rem;
+}
+
+.verticalExampleList li {
+  position: relative;
+  padding-left: 1rem;
+  color: var(--mk-muted);
+  line-height: 1.45;
+}
+
+.verticalExampleList li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-top: calc((1.45em - 0.4rem) / 2);
+  border-radius: 999px;
+  background: var(--mk-brand);
+}
+
+.verticalBoundary,
+.verticalNote {
+  max-width: 42rem;
+}
+
+.verticalBoundary {
+  padding: 0.85rem 1rem;
+  border-left: 2px solid var(--mk-brand);
+  background: var(--mk-card);
+  color: var(--mk-ink);
+}
+
+.verticalWorkflow {
+  display: grid;
+  gap: var(--mk-card-grid-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.verticalWorkflowStep {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  column-gap: 0.85rem;
+  align-items: start;
+}
+
+.verticalWorkflowIndex {
+  color: var(--mk-brand);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.55;
+}
+
+.verticalFaq {
+  display: grid;
+  gap: var(--mk-card-grid-gap);
+}
+
+.verticalRelated {
+  margin: 0.85rem 0 0;
+  color: var(--mk-muted);
+  font-size: 0.95rem;
+}
+
 @media (max-width: 47.99rem) {
   .topInner {
     width: min(80rem, calc(100% - 2rem));
@@ -2536,7 +2803,8 @@ html[data-theme-mode="dark"] .wordmarkName {
 
   .nav a.navRoute,
   .nav a.navStaff,
-  .navTheme {
+  .navTheme,
+  .navClinics {
     display: none;
   }
 
@@ -2780,6 +3048,18 @@ html[data-theme-mode="dark"] .wordmarkName {
     align-items: stretch;
   }
 
+  .clinicTypeGrid,
+  .verticalCardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .verticalBenefitGrid,
+  .verticalWorkflow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
   .brandCard {
     height: 100%;
   }
@@ -2855,6 +3135,12 @@ html[data-theme-mode="dark"] .wordmarkName {
   .deviceNote {
     max-width: 24rem;
   }
+
+  .clinicTypeGrid,
+  .verticalCardGrid,
+  .verticalBenefitGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2862,7 +3148,9 @@ html[data-theme-mode="dark"] .wordmarkName {
   .textLink,
   .textLink::after,
   .navMenuRow,
-  .navMenuTrigger {
+  .navMenuTrigger,
+  .navClinicsTrigger,
+  .clinicTypeCard {
     transition: none;
   }
 }

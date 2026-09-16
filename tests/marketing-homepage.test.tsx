@@ -112,6 +112,16 @@ describe("marketing homepage", () => {
     expect(html).not.toContain("See it in practice");
     expect(html).not.toContain("See the patient experience for yourself.");
     expect(html).toContain("Bring your aftercare online.");
+    expect(html).toContain("Built for different kinds of care");
+    expect(html).toContain(
+      "One aftercare platform. Different clinic workflows."
+    );
+    expect(html).toContain('href="/dental"');
+    expect(html).toContain('href="/physiotherapy"');
+    expect(html).toContain('href="/chiropractic"');
+    expect(html).toContain('href="/cosmetic-clinics"');
+    expect(html).toContain("Physiotherapy clinics");
+    expect(html).toContain("Cosmetic &amp; aesthetic clinics");
     expect(html).toContain("closingCta");
     expect(html).toContain('id="see-it"');
     expect(html).not.toContain("Lead capture is not on this page yet.");

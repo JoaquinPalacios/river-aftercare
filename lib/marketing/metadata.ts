@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { DEFAULT_MARKETING_PAGE_SEO } from "@/lib/seo/defaults";
 import { marketingSiteOrigin } from "@/lib/marketing/site";
+import type { MarketingSeoPath } from "@/lib/seo/types";
 import {
   marketingCanonicalUrl,
   marketingSeoToMetadata,
@@ -50,7 +51,7 @@ export function marketingPageMetadata(
     description: string;
   },
   options: {
-    pathname: "/" | "/pricing" | "/contact" | "/about" | "/privacy" | "/terms";
+    pathname: MarketingSeoPath;
     absoluteTitle?: boolean;
   }
 ): Metadata {

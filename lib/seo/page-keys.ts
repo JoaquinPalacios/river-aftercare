@@ -7,4 +7,8 @@ export const MARKETING_SEO_PAGE_KEYS: Record<MarketingSeoPath, string> = {
   "/about": "about",
   "/privacy": "privacy",
   "/terms": "terms",
+  "/dental": "dental",
+  "/physiotherapy": "physiotherapy",
+  "/chiropractic": "chiropractic",
+  "/cosmetic-clinics": "cosmeticClinics",
 };

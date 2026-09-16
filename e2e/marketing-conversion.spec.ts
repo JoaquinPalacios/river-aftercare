@@ -106,6 +106,7 @@ test.describe("marketing conversion routes", () => {
     const sitemapBody = await sitemap?.text();
     expect(sitemapBody).toContain("/pricing");
     expect(sitemapBody).toContain("/contact");
+    expect(sitemapBody).toContain("/dental");
     expect(sitemapBody).not.toContain("/_marketing");
     expect(sitemapBody).not.toContain("/_sites");
     expect(sitemapBody).not.toContain("/dashboard");
@@ -128,6 +129,9 @@ test.describe("marketing conversion routes", () => {
       headerNav.getByRole("link", { name: "Contact" })
     ).toBeVisible();
     await expect(
+      headerNav.getByRole("button", { name: "For clinics" })
+    ).toBeVisible();
+    await expect(
       headerNav.getByRole("link", { name: "How it works" })
     ).toHaveCount(0);
     await expect(
@@ -147,6 +151,10 @@ test.describe("marketing conversion routes", () => {
     ).toBeVisible();
     await expect(
       footerNav.getByRole("link", { name: "Contact" })
+    ).toBeVisible();
+    await expect(footerNav.getByRole("link", { name: "Dental" })).toBeVisible();
+    await expect(
+      footerNav.getByRole("link", { name: "Physiotherapy" })
     ).toBeVisible();
     await expect(
       footerNav.getByRole("link", { name: "Privacy" })
@@ -193,6 +201,10 @@ test.describe("marketing conversion routes", () => {
     await expect(menu).toBeVisible();
     await menu.click();
     await expect(menu).toHaveAttribute("aria-expanded", "true");
+    await expect(headerNav.getByRole("link", { name: "Dental" })).toBeVisible();
+    await expect(
+      headerNav.getByRole("link", { name: "Physiotherapy" })
+    ).toBeVisible();
     await expect(headerNav.getByRole("link", { name: "About" })).toBeVisible();
     await expect(
       headerNav.getByRole("link", { name: "Pricing" })
@@ -238,13 +250,16 @@ test.describe("marketing conversion routes", () => {
 
     const menu = page.getByRole("button", { name: "Site menu" });
     const headerNav = page.getByRole("navigation", { name: "Marketing" });
+    const firstLink = headerNav.getByRole("link", { name: "Dental" });
     const about = headerNav.getByRole("link", { name: "About" });
 
     await menu.click();
     await expect(menu).toHaveAttribute("aria-expanded", "true");
+    await expect(firstLink).toBeVisible();
     await expect(about).toBeVisible();
+    await expect(firstLink).not.toBeFocused();
     await expect(about).not.toBeFocused();
-    const pointerOutline = await about.evaluate(
+    const pointerOutline = await firstLink.evaluate(
       (element) => getComputedStyle(element).outlineStyle
     );
     expect(pointerOutline).toBe("none");
@@ -253,8 +268,8 @@ test.describe("marketing conversion routes", () => {
     });
 
     await page.keyboard.press("Tab");
-    await expect(about).toBeFocused();
-    const keyboardOutline = await about.evaluate((element) =>
+    await expect(firstLink).toBeFocused();
+    const keyboardOutline = await firstLink.evaluate((element) =>
       Number.parseFloat(getComputedStyle(element).outlineWidth)
     );
     expect(keyboardOutline).toBeGreaterThanOrEqual(2);
@@ -264,8 +279,8 @@ test.describe("marketing conversion routes", () => {
     await menu.focus();
     await page.keyboard.press("Enter");
     await expect(menu).toHaveAttribute("aria-expanded", "true");
-    await expect(about).toBeFocused();
-    const enterOutline = await about.evaluate((element) =>
+    await expect(firstLink).toBeFocused();
+    const enterOutline = await firstLink.evaluate((element) =>
       Number.parseFloat(getComputedStyle(element).outlineWidth)
     );
     expect(enterOutline).toBeGreaterThanOrEqual(2);

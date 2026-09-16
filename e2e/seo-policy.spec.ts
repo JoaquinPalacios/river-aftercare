@@ -79,6 +79,7 @@ test.describe("launch SEO surfaces", () => {
     expect(sitemapBody).toContain("/about");
     expect(sitemapBody).toContain("/privacy");
     expect(sitemapBody).toContain("/terms");
+    expect(sitemapBody).toContain("/dental");
     expect(sitemapBody).not.toContain("/dashboard");
     expect(sitemapBody).not.toContain("/operator");
     expect(sitemapBody).not.toContain("/_sites");

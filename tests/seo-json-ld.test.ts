@@ -122,6 +122,45 @@ describe("marketing JSON-LD", () => {
     expect(webPage?.description).toBe(resolved.description);
   });
 
+  it("emits WebPage data for clinic acquisition pages without invented schema", () => {
+    const dental = buildMarketingJsonLdGraph(
+      resolveMarketingSeo({ path: "/dental", origin: "https://example.test" }),
+      "https://example.test"
+    );
+    const physio = buildMarketingJsonLdGraph(
+      resolveMarketingSeo({
+        path: "/physiotherapy",
+        origin: "https://example.test",
+      }),
+      "https://example.test"
+    );
+
+    const dentalPage = dental["@graph"].find(
+      (node) => node["@id"] === "https://example.test/dental#webpage"
+    );
+    expect(dentalPage?.["@type"]).toBe("WebPage");
+    expect(dentalPage?.url).toBe("https://example.test/dental");
+    expect(dentalPage?.name).toBe(
+      "Dental Aftercare Software for Practices | River Aftercare"
+    );
+    expect(dentalPage?.inLanguage).toBe("en");
+    expect(dentalPage?.isPartOf).toEqual({
+      "@id": "https://example.test/#website",
+    });
+    expect(dentalPage?.mainEntity).toEqual({
+      "@id": "https://example.test/#application",
+    });
+    expect(JSON.stringify(dental)).toContain("SoftwareApplication");
+    expect(JSON.stringify(dental)).not.toContain("FAQPage");
+    expect(JSON.stringify(dental)).not.toContain("MedicalWebPage");
+    expect(JSON.stringify(dental)).not.toContain("aggregateRating");
+    expect(jsonLdContainsOffer(dental)).toBe(false);
+    expect(JSON.stringify(physio)).not.toContain("FAQPage");
+    expect(
+      physio["@graph"].filter((node) => node["@type"] === "SoftwareApplication")
+    ).toHaveLength(1);
+  });
+
   it("serializes JSON-LD without raw HTML injection", () => {
     const serialized = serializeJsonLd({
       name: "Safe",

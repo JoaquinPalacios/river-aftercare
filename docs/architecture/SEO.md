@@ -4,17 +4,18 @@ Phase 2B production-quality discovery layer. This remains a **structured clinica
 
 ## Surfaces
 
-| Surface                                           | Host                            | Index               | Follow | Sitemap | Notes                                                                                                               |
-| ------------------------------------------------- | ------------------------------- | ------------------- | ------ | ------- | ------------------------------------------------------------------------------------------------------------------- |
-| Marketing `/`, `/pricing`, `/contact`, `/about`   | apex / `localhost`              | yes                 | yes    | yes     | Title, description, canonical, Open Graph, Twitter, generated JSON-LD.                                              |
-| Marketing `/privacy`, `/terms`                    | apex / `localhost`              | **no** while drafts | yes    | yes     | Explicit legal drafts. Page-level `noindex, follow` until counsel approval. Still listed in sitemap and `llms.txt`. |
-| `/llms.txt`                                       | apex                            | n/a                 | n/a    | no      | Agent-oriented public summary generated from identity + public routes                                               |
-| Staff portal `/dashboard`, `/guides`, `/practice` | `app.<root>`                    | no                  | no     | no      | Authenticated clinic chrome                                                                                         |
-| Operator `/operator/*`                            | `app.<root>`                    | no                  | no     | no      | Includes SEO & Discovery                                                                                            |
-| Authenticated draft preview                       | `app.<root>/guides/:id/preview` | no                  | no     | no      | Never a public canonical                                                                                            |
-| Parked chairside `/display`, `/sessions`          | `app.<root>`                    | no                  | no     | no      | Existing anti-index posture                                                                                         |
-| Tenant home and published guides                  | `<clinic>.<root>`               | **no**              | yes    | **no**  | Shareable aftercare documents; clinic-first metadata; not SEO inventory                                             |
-| Internal rewrites `/_marketing`, `/_sites`        | n/a                             | no                  | no     | no      | Blocked from the public Host                                                                                        |
+| Surface                                                                          | Host                            | Index               | Follow | Sitemap | Notes                                                                                                                                      |
+| -------------------------------------------------------------------------------- | ------------------------------- | ------------------- | ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Marketing `/`, `/pricing`, `/contact`, `/about`                                  | apex / `localhost`              | yes                 | yes    | yes     | Title, description, canonical, Open Graph, Twitter, generated JSON-LD.                                                                     |
+| Marketing `/privacy`, `/terms`                                                   | apex / `localhost`              | **no** while drafts | yes    | yes     | Explicit legal drafts. Page-level `noindex, follow` until counsel approval. Still listed in sitemap and `llms.txt`.                        |
+| Marketing `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics`      | apex / `localhost`              | yes                 | yes    | yes     | Vertical acquisition pages. Shared Organization / WebSite / SoftwareApplication plus per-route WebPage. No FAQPage or MedicalWebPage.      |
+| `/llms.txt`                                                                      | apex                            | n/a                 | n/a    | no      | Agent-oriented public summary generated from identity + public routes, including clinic vertical pages                                     |
+| Staff portal `/dashboard`, `/guides`, `/practice`                                | `app.<root>`                    | no                  | no     | no      | Authenticated clinic chrome                                                                                                                |
+| Operator `/operator/*`                                                           | `app.<root>`                    | no                  | no     | no      | Includes SEO & Discovery                                                                                                                   |
+| Authenticated draft preview                                                      | `app.<root>/guides/:id/preview` | no                  | no     | no      | Never a public canonical                                                                                                                   |
+| Parked chairside `/display`, `/sessions`                                         | `app.<root>`                    | no                  | no     | no      | Existing anti-index posture                                                                                                                |
+| Tenant home and published guides                                                 | `<clinic>.<root>`               | **no**              | yes    | **no**  | Shareable aftercare documents; clinic-first metadata; not SEO inventory                                                                    |
+| Internal rewrites `/_marketing`, `/_sites`                                       | n/a                             | no                  | no     | no      | Blocked from the public Host                                                                                                               |
 
 Page-level Next.js `robots` metadata is the real noindex control. `robots.txt` is a crawl hint, not a substitute.
 
@@ -75,6 +76,8 @@ Server-rendered, serialized with `<` escaped. Homepage graph:
 - `WebPage`
 
 Pricing uses `WebPage` + the same SoftwareApplication identity **without** `Offer`, because Essential A$79 / Practice A$149 remain **provisional**.
+
+Clinic acquisition pages (`/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics`) use `WebPage` with `mainEntity` pointing at the shared SoftwareApplication. They do not create per-profession organizations, ratings, FAQPage, or MedicalWebPage.
 
 Contact uses `ContactPage`. About uses `AboutPage`.
 

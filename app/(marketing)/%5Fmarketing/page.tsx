@@ -19,6 +19,7 @@ import { JsonLd } from "@/app/(marketing)/components/json-ld";
 import { MarketingShell } from "@/app/(marketing)/components/marketing-shell";
 import { MarketingWave } from "@/app/(marketing)/components/marketing-wave";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { CLINIC_VERTICAL_NAV } from "@/lib/marketing/clinic-verticals";
 import { MARKETING_DEMO_PATIENT_THEME_CSS } from "@/lib/marketing/demo-patient-preview";
 import { marketingPublicLinks } from "@/lib/marketing/public-links";
 import { editorialRevealDelay } from "@/lib/marketing/reveal-timing";
@@ -221,6 +222,54 @@ export default async function MarketingHomePage() {
                 </MarketingReveal.Group>
               </div>
               <MarketingPillars />
+            </div>
+          </section>
+
+          <section
+            className={styles.band}
+            aria-labelledby="clinic-types-heading"
+          >
+            <div className={styles.inner}>
+              <div className={styles.headingBlock}>
+                <MarketingReveal.Group>
+                  <MarketingReveal.Item delay={0}>
+                    <p className={styles.eyebrow}>
+                      Built for different kinds of care
+                    </p>
+                  </MarketingReveal.Item>
+                  <MarketingReveal.Item delay={editorialRevealDelay(1)}>
+                    <h2
+                      id="clinic-types-heading"
+                      className={styles.sectionTitle}
+                    >
+                      One aftercare platform. Different clinic workflows.
+                    </h2>
+                  </MarketingReveal.Item>
+                  <MarketingReveal.Item delay={editorialRevealDelay(2)}>
+                    <p className={styles.copy}>
+                      {PRODUCT_NAME} adapts to the language and guidance
+                      different treatment-based practices use, while keeping the
+                      patient experience clear, branded and easy to revisit.
+                    </p>
+                  </MarketingReveal.Item>
+                </MarketingReveal.Group>
+              </div>
+              <div
+                className={`${styles.clinicTypeGrid} ${styles.headingFollow}`}
+              >
+                {CLINIC_VERTICAL_NAV.map((item, index) => (
+                  <MarketingReveal.Card
+                    key={item.path}
+                    index={index}
+                    className={styles.clinicTypeSlot}
+                  >
+                    <Link className={styles.clinicTypeCard} href={item.path}>
+                      <h3>{item.cardTitle}</h3>
+                      <p>{item.cardCopy}</p>
+                    </Link>
+                  </MarketingReveal.Card>
+                ))}
+              </div>
             </div>
           </section>
         </div>

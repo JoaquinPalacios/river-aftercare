@@ -7,6 +7,10 @@ export const MARKETING_SEO_PATHS = [
   "/about",
   "/privacy",
   "/terms",
+  "/dental",
+  "/physiotherapy",
+  "/chiropractic",
+  "/cosmetic-clinics",
 ] as const;
 
 export type MarketingSeoPath = (typeof MARKETING_SEO_PATHS)[number];
