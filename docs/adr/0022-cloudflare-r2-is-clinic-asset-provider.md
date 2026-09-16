@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-13
+- **Updated:** 2026-09-16 (private R2 + Vercel asset host; no R2 custom domain)
 - **PRD:** [../product/PRD.md](../product/PRD.md) §10.2
 - **Supersedes provider choice in:** [0019](0019-clinic-logo-upload-requires-object-storage.md)
 
@@ -17,6 +18,13 @@ River Aftercare already listed R2 as a production-readiness gate. Logos are smal
 
 - **Cloudflare R2** is the production clinic-asset provider for clinic logos and future small clinic brand marks (isologo / similar).
 - Talk to R2 with the latest stable `@aws-sdk/client-s3` from the **Next.js server only**. No browser SDK. No presigned browser upload for launch: files are small and must be validated/sanitized on the server.
+- Keep the R2 bucket **private**. Disable r2.dev. Do **not** attach a Cloudflare R2 custom domain.
+- Public delivery is:
+
+  `browser → assets.<platform-domain> → Vercel route → authenticated private GetObject`
+
+  Vercel remains authoritative DNS. `assets` is a reserved tenant slug, not a clinic hostname.
+
 - Store a provider-independent **object key** in `ClinicProfile.logoUrl`. Resolve `img src` at runtime from `CLINIC_ASSET_PUBLIC_ORIGIN` + key.
 - Use immutable keys `clinics/<clinicId>/branding/<uuid>.<ext>`.
 - Keep the in-memory driver for automated tests. Do not introduce MinIO, Docker S3, or a fake filesystem production path.
@@ -27,11 +35,11 @@ Cloudflare DNS / R2 ≠ application runtime. Next.js remains on Vercel.
 
 ## Consequences
 
-- Production logo upload stays dark until the R2 bucket, scoped token, `assets.<domain>`, and server env exist.
+- Production logo upload stays dark until the R2 bucket, scoped token, and server env exist. The public hostname is the Vercel `assets.` label, not an R2 custom domain.
 - Demo `/demo/riverside-mark.svg` continues to work without R2.
 - SVG remains sanitized on the server and rendered only as `<img>`.
-- A Cloudflare Worker is not required for launch headers. `Cache-Control` and `Content-Type` are set on `PutObject`. Optional `X-Content-Type-Options: nosniff` can be a Transform Rule later.
-- This bucket is public-asset-only. Future private documents need a separate bucket and policy.
+- A Cloudflare Worker is not required. The Vercel route sets `Cache-Control`, `Content-Type` from the validated extension, and `X-Content-Type-Options: nosniff`.
+- This bucket is public-asset-only (public-by-exact-key via the app). Future private documents need a separate bucket and policy.
 
 ## Notes for later implementation
 

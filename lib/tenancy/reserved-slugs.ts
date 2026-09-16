@@ -11,6 +11,7 @@ export const RESERVED_TENANT_SLUGS = [
   "auth",
   "static",
   "cdn",
+  "assets",
   "mail",
   "status",
   "health",

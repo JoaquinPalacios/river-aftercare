@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { isClinicBrandingPublicPath } from "@/lib/clinic-assets/clinic-logo";
 import { parseHostname } from "@/lib/tenancy/parse-hostname";
 import {
   isInternalAppPath,
@@ -45,7 +46,17 @@ export function proxy(request: NextRequest): NextResponse {
     getRootDomain()
   );
 
-  if (classification.kind === "invalid" || classification.kind === "reserved") {
+  if (classification.kind === "invalid") {
+    return notFound();
+  }
+
+  if (classification.kind === "reserved") {
+    if (
+      classification.label === "assets" &&
+      isClinicBrandingPublicPath(pathname)
+    ) {
+      return continueWithoutSpoofedHeaders(request);
+    }
     return notFound();
   }
 

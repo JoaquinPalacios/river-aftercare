@@ -11,7 +11,7 @@ export async function GET(request: Request, context: RouteContext) {
     clinicId,
     filename,
     method: "GET",
-    variant: "fallback",
+    variant: "public",
   });
 }
 
@@ -22,6 +22,6 @@ export async function HEAD(request: Request, context: RouteContext) {
     clinicId,
     filename,
     method: "HEAD",
-    variant: "fallback",
+    variant: "public",
   });
 }

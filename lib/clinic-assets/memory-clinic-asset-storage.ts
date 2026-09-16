@@ -47,6 +47,16 @@ export function createMemoryClinicAssetStorage(): ClinicAssetStorage {
       };
     },
 
+    async headLogo(input) {
+      const stored = store.get(input.storageKey);
+      if (!stored) {
+        return null;
+      }
+      return {
+        contentLength: stored.bytes.byteLength,
+      };
+    },
+
     getPublicLogoUrl(input) {
       const publicPath = clinicAssetPublicUrl(input.storageKey);
       if (!publicPath) {

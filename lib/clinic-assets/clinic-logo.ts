@@ -179,14 +179,60 @@ export function clinicLogoObjectKey(input: {
 
 const PUBLIC_LOGO_PATH =
   /^\/clinic-branding\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+\.(?:png|jpe?g|webp|svg))$/;
+const PUBLIC_ASSET_PATH =
+  /^\/clinics\/([A-Za-z0-9._-]+)\/branding\/([A-Za-z0-9._-]+\.(?:png|jpe?g|webp|svg))$/;
 const STORAGE_KEY =
   /^clinics\/([A-Za-z0-9._-]+)\/branding\/([A-Za-z0-9._-]+\.(?:png|jpe?g|webp|svg))$/;
 
+function isSafeClinicLogoSegment(value: string): boolean {
+  return (
+    Boolean(value) &&
+    !value.includes("..") &&
+    !value.includes("/") &&
+    !value.includes("\\") &&
+    !value.includes("%") &&
+    !value.includes("\0")
+  );
+}
+
 export function isClinicLogoStorageKey(value: string): boolean {
+  if (
+    !value ||
+    value.includes("..") ||
+    value.includes("\\") ||
+    value.includes("%")
+  ) {
+    return false;
+  }
   return STORAGE_KEY.test(value);
 }
 
+export function clinicLogoStorageKeyFromBrandingParams(
+  clinicId: string,
+  filename: string
+): string | null {
+  if (
+    !isSafeClinicLogoSegment(clinicId) ||
+    !isSafeClinicLogoSegment(filename)
+  ) {
+    return null;
+  }
+  const key = `clinics/${clinicId}/branding/${filename}`;
+  return isClinicLogoStorageKey(key) ? key : null;
+}
+
+export function isClinicBrandingPublicPath(pathname: string): boolean {
+  const match = PUBLIC_ASSET_PATH.exec(pathname);
+  if (!match) {
+    return false;
+  }
+  return clinicLogoStorageKeyFromBrandingParams(match[1], match[2]) !== null;
+}
+
 export function clinicLogoPublicPath(storageKey: string): string | null {
+  if (!isClinicLogoStorageKey(storageKey)) {
+    return null;
+  }
   const match = STORAGE_KEY.exec(storageKey);
   if (!match) {
     return null;
@@ -204,7 +250,7 @@ export function storageKeyFromClinicLogoPath(
   if (!match) {
     return null;
   }
-  return `clinics/${match[1]}/branding/${match[2]}`;
+  return clinicLogoStorageKeyFromBrandingParams(match[1], match[2]);
 }
 
 export function clinicLogoStorageKeyFromStoredValue(

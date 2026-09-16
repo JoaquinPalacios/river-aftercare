@@ -53,6 +53,55 @@ export function clinicAssetPublicOrigin(): string | null {
   }
 }
 
+/**
+ * Compare the request `Host` header to `CLINIC_ASSET_PUBLIC_ORIGIN`.
+ * Uses `Host` only — the same header the hostname proxy trusts.
+ * Do not consult `x-forwarded-host` or other forwarded hostname headers.
+ */
+export function requestHostMatchesClinicAssetPublicOrigin(
+  hostHeader: string | null | undefined
+): boolean {
+  const origin = clinicAssetPublicOrigin();
+  if (!origin || !hostHeader) {
+    return false;
+  }
+
+  let originUrl: URL;
+  try {
+    originUrl = new URL(origin);
+  } catch {
+    return false;
+  }
+
+  const raw = hostHeader.trim().toLowerCase();
+  if (
+    !raw ||
+    raw.includes("/") ||
+    raw.includes("?") ||
+    raw.includes("#") ||
+    raw.includes("@") ||
+    raw.includes("\\")
+  ) {
+    return false;
+  }
+
+  let requestUrl: URL;
+  try {
+    requestUrl = new URL(`${originUrl.protocol}//${raw}`);
+  } catch {
+    return false;
+  }
+
+  if (requestUrl.hostname !== originUrl.hostname) {
+    return false;
+  }
+
+  const defaultPort = originUrl.protocol === "https:" ? "443" : "80";
+  const originPort = originUrl.port || defaultPort;
+  const requestPort = requestUrl.port || defaultPort;
+  return originPort === requestPort;
+}
+
 function r2S3Endpoint(accountId: string): string | null {
   const override = readEnv("R2_S3_ENDPOINT");
   if (override) {

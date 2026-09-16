@@ -285,6 +285,57 @@ describe("proxy", () => {
     ).toBe(404);
   });
 
+  it("does not treat assets as a tenant host", () => {
+    const homepage = proxy(requestFor("http://assets.localhost:3000/"));
+    expect(homepage.status).toBe(404);
+    expect(rewrittenUrl(homepage)).toBeNull();
+
+    const otherPath = proxy(
+      requestFor("http://assets.localhost:3000/extraction")
+    );
+    expect(otherPath.status).toBe(404);
+    expect(rewrittenUrl(otherPath)).toBeNull();
+  });
+
+  it("lets the reserved assets host serve exact branding object paths", () => {
+    const response = proxy(
+      requestFor(
+        "http://assets.localhost:3000/clinics/clinic_a/branding/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
+      )
+    );
+    expect(response.status).toBe(200);
+    expect(rewrittenUrl(response)).toBeNull();
+  });
+
+  it("does not list branding prefixes on the assets host", () => {
+    expect(
+      proxy(requestFor("http://assets.localhost:3000/clinics")).status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://assets.localhost:3000/clinics/clinic_a")).status
+    ).toBe(404);
+    expect(
+      proxy(
+        requestFor("http://assets.localhost:3000/clinics/clinic_a/branding")
+      ).status
+    ).toBe(404);
+    expect(
+      proxy(
+        requestFor("http://assets.localhost:3000/clinics/clinic_a/branding/")
+      ).status
+    ).toBe(404);
+  });
+
+  it("still 404s branding paths on other reserved hosts", () => {
+    expect(
+      proxy(
+        requestFor(
+          "http://cdn.localhost:3000/clinics/clinic_a/branding/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
+        )
+      ).status
+    ).toBe(404);
+  });
+
   it("excludes framework static assets from the matcher", () => {
     const matchers = Array.isArray(config.matcher)
       ? config.matcher

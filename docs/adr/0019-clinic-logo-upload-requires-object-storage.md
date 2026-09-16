@@ -23,6 +23,6 @@ Phase 2A.4 completed the application boundary. The provisional adapter was Supab
 ## Consequences
 
 - Demo logo `/demo/riverside-mark.svg` continues to work.
-- Launch checklist must include R2 + `assets.<domain>` before clinic-uploaded logos work in production.
+- Launch checklist must include R2 env + the Vercel `assets.` hostname before clinic-uploaded logos work in production. Do not use an R2 custom domain.
 - Arbitrary CSS, HTML, remote stylesheet URLs, and inline SVG injection remain forbidden.
 - A `memory` driver exists for tests only.

@@ -3,6 +3,7 @@ import "server-only";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
   type S3ClientConfig,
@@ -35,6 +36,23 @@ async function bodyToBytes(body: unknown): Promise<Uint8Array | null> {
     return body.transformToByteArray();
   }
   return null;
+}
+
+function isR2MissingObjectError(error: unknown): boolean {
+  const status =
+    error &&
+    typeof error === "object" &&
+    "$metadata" in error &&
+    error.$metadata &&
+    typeof error.$metadata === "object" &&
+    "httpStatusCode" in error.$metadata
+      ? error.$metadata.httpStatusCode
+      : undefined;
+  if (status === 404) {
+    return true;
+  }
+  const name = error instanceof Error ? error.name : "";
+  return name === "NoSuchKey" || name === "NotFound";
 }
 
 export function createR2S3Client(config: R2ClinicAssetConfig): S3Client {
@@ -130,23 +148,37 @@ export function createR2ClinicAssetStorage(options?: {
           mimeType: result.ContentType || "application/octet-stream",
         };
       } catch (error) {
-        const status =
-          error &&
-          typeof error === "object" &&
-          "$metadata" in error &&
-          error.$metadata &&
-          typeof error.$metadata === "object" &&
-          "httpStatusCode" in error.$metadata
-            ? error.$metadata.httpStatusCode
-            : undefined;
-        if (status === 404) {
-          return null;
-        }
-        const name = error instanceof Error ? error.name : "";
-        if (name === "NoSuchKey" || name === "NotFound") {
+        if (isR2MissingObjectError(error)) {
           return null;
         }
         console.warn("[clinic-assets]", "r2_get_failed", {
+          clinicId: input.clinicId,
+          storageKey: input.storageKey,
+          class: error instanceof Error ? error.name : "unknown",
+        });
+        return null;
+      }
+    },
+
+    async headLogo(input) {
+      try {
+        const result = await client.send(
+          new HeadObjectCommand({
+            Bucket: config.bucket,
+            Key: input.storageKey,
+          })
+        );
+        return {
+          contentLength:
+            typeof result.ContentLength === "number"
+              ? result.ContentLength
+              : null,
+        };
+      } catch (error) {
+        if (isR2MissingObjectError(error)) {
+          return null;
+        }
+        console.warn("[clinic-assets]", "r2_head_failed", {
           clinicId: input.clinicId,
           storageKey: input.storageKey,
           class: error instanceof Error ? error.name : "unknown",

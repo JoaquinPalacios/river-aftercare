@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-17 (marketing footer isologo 2rem, name 1rem)
+Last updated: 2026-09-16 (private R2 clinic-asset delivery through Vercel `assets.` host)
 
 ---
 
@@ -97,14 +97,14 @@ Caching: no `cacheComponents`, no `cacheTag()`. Request-level `React.cache()` wa
 
 Hostname tenant resolution. No branded patient UI.
 
-| Area            | Location                                                                          |
-| --------------- | --------------------------------------------------------------------------------- |
-| Root domain     | `CARE_GUIDE_ROOT_DOMAIN` (`lib/tenancy/root-domain.ts`)                           |
-| Parser          | `lib/tenancy/parse-hostname.ts` — apex/app staff, reserved, tenant, invalid       |
-| Reserved labels | `lib/tenancy/reserved-slugs.ts`                                                   |
-| Proxy           | `proxy.ts` — rewrite only; no Prisma/auth/tenant-existence lookup                 |
-| Internal routes | `app/%5Fsites/[tenant]/**` (URL `/_sites/<slug>/…`, blocked from the public Host) |
-| Tenant check    | `requireTenantClinic` → `getClinicBySlug` → `notFound()`                          |
+| Area            | Location                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------ |
+| Root domain     | `CARE_GUIDE_ROOT_DOMAIN` (`lib/tenancy/root-domain.ts`)                                          |
+| Parser          | `lib/tenancy/parse-hostname.ts` — apex/app staff, reserved (including `assets`), tenant, invalid |
+| Reserved labels | `lib/tenancy/reserved-slugs.ts` — includes `assets` so `assets.<root>` is never a tenant         |
+| Proxy           | `proxy.ts` — rewrite only; no Prisma/auth/tenant-existence lookup                                |
+| Internal routes | `app/%5Fsites/[tenant]/**` (URL `/_sites/<slug>/…`, blocked from the public Host)                |
+| Tenant check    | `requireTenantClinic` → `getClinicBySlug` → `notFound()`                                         |
 
 Local URLs: `localhost:3000` is the public marketing homepage. `app.localhost:3000` stays staff/parked. `demodental.localhost:3000` rewrites internally. `unknown.localhost:3000` is a generic 404. Tenant hosts block `/login`, `/dashboard`, `/sessions`, `/session`, `/display`, `/api/auth`. Direct `/_sites` and `/_marketing` are 404.
 
@@ -1055,18 +1055,19 @@ Do not remove the draft banners until counsel review and the remaining launch bl
 
 ## R2 clinic asset storage (implemented)
 
-Date: 2026-09-13
+Date: 2026-09-13; private Vercel delivery 2026-09-16
 
-Application support for production clinic logos on **Cloudflare R2**. No Cloudflare resources were provisioned from this branch.
+Application support for production clinic logos on **Cloudflare R2**. The bucket stays private. Public reads are not r2.dev and not an R2 custom domain.
 
-| Area         | Behaviour                                                                                                                                                              |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Provider     | `CLINIC_ASSET_STORAGE_DRIVER=r2` + `@aws-sdk/client-s3` server-only. Supabase Storage clinic-asset adapter removed. Parked chairside Realtime unchanged.               |
-| DB contract  | `ClinicProfile.logoUrl` stores a demo path or object key `clinics/<clinicId>/branding/<uuid>.<ext>`. No migration. Resolve with `resolveClinicLogoSrc`.                |
-| Upload       | ADMIN server action: validate → sanitize SVG → PutObject → DB key update → best-effort old delete. STAFF 404 on Practice; mutations forbidden. Cross-clinic forbidden. |
-| Public URL   | `CLINIC_ASSET_PUBLIC_ORIGIN` + key. Tests/memory use `/clinic-branding/<clinicId>/<file>`.                                                                             |
-| Tests        | Memory driver. Playwright e2e uses memory. No live Cloudflare.                                                                                                         |
-| Provisioning | [R2-PROVISIONING.md](../launch/R2-PROVISIONING.md) for Joaquín. Worker not required.                                                                                   |
+| Area         | Behaviour                                                                                                                                                                                            |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Provider     | `CLINIC_ASSET_STORAGE_DRIVER=r2` + `@aws-sdk/client-s3` server-only. Supabase Storage clinic-asset adapter removed. Parked chairside Realtime unchanged.                                             |
+| DB contract  | `ClinicProfile.logoUrl` stores a demo path or object key `clinics/<clinicId>/branding/<uuid>.<ext>`. No migration. Resolve with `resolveClinicLogoSrc`.                                              |
+| Upload       | ADMIN server action: validate → sanitize SVG → PutObject → DB key update → best-effort old delete. STAFF 404 on Practice; mutations forbidden. Cross-clinic forbidden. No browser-direct uploads.    |
+| Public URL   | `CLINIC_ASSET_PUBLIC_ORIGIN` + key. Production: `https://assets.riveraftercare.com.au/...` → Vercel route → private `GetObject`/`HeadObject`. Tests/memory use `/clinic-branding/<clinicId>/<file>`. |
+| Host         | Public route serves only when `Host` matches `CLINIC_ASSET_PUBLIC_ORIGIN`. Apex, `app.`, tenants, and arbitrary hosts get a generic 404. `assets` is a reserved tenant slug.                         |
+| Tests        | Memory driver. Playwright e2e uses memory. No live Cloudflare.                                                                                                                                       |
+| Provisioning | [R2-PROVISIONING.md](../launch/R2-PROVISIONING.md) for Joaquín (env only). Worker not required. Vercel remains authoritative DNS.                                                                    |
 
 ---
 

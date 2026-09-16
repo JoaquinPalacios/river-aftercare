@@ -16,6 +16,10 @@ export interface ClinicLogoReadResult {
   mimeType: string;
 }
 
+export interface ClinicLogoHeadResult {
+  contentLength: number | null;
+}
+
 export interface ClinicAssetStorage {
   uploadLogo(input: ClinicLogoUploadInput): Promise<ClinicLogoObject>;
   deleteLogo(input: { clinicId: string; storageKey: string }): Promise<void>;
@@ -23,5 +27,9 @@ export interface ClinicAssetStorage {
     clinicId: string;
     storageKey: string;
   }): Promise<ClinicLogoReadResult | null>;
+  headLogo(input: {
+    clinicId: string;
+    storageKey: string;
+  }): Promise<ClinicLogoHeadResult | null>;
   getPublicLogoUrl(input: { clinicId: string; storageKey: string }): string;
 }

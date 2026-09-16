@@ -1,6 +1,8 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { afterEach, describe, expect, it } from "vitest";
@@ -157,6 +159,52 @@ describe("R2ClinicAssetStorage", () => {
     expect(
       await storage.readLogo({ clinicId: "clinic_a", storageKey: KEY })
     ).toBeNull();
+  });
+
+  it("heads object metadata without GetObject or ListObjects", async () => {
+    const commands: string[] = [];
+    const storage = createR2ClinicAssetStorage({
+      config: r2Config(),
+      client: {
+        async send(command) {
+          commands.push(command.constructor.name);
+          if (command instanceof HeadObjectCommand) {
+            return { ContentLength: PNG.byteLength };
+          }
+          if (command instanceof ListObjectsV2Command) {
+            throw new Error("listing is forbidden");
+          }
+          throw new Error(`unexpected ${command.constructor.name}`);
+        },
+      },
+    });
+
+    const head = await storage.headLogo({
+      clinicId: "clinic_a",
+      storageKey: KEY,
+    });
+    expect(head).toEqual({ contentLength: PNG.byteLength });
+    expect(commands).toEqual(["HeadObjectCommand"]);
+  });
+
+  it("returns null for a missing head without leaking provider details", async () => {
+    const storage = createR2ClinicAssetStorage({
+      config: r2Config(),
+      client: {
+        async send(command) {
+          if (command instanceof HeadObjectCommand) {
+            const error = new Error("NoSuchKey secret=abc");
+            error.name = "NotFound";
+            throw error;
+          }
+          throw new Error(`unexpected ${command.constructor.name}`);
+        },
+      },
+    });
+
+    await expect(
+      storage.headLogo({ clinicId: "clinic_a", storageKey: KEY })
+    ).resolves.toBeNull();
   });
 
   it("does not leak AWS errors from a failed put", async () => {

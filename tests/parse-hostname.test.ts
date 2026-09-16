@@ -70,6 +70,14 @@ describe("parseHostname", () => {
       kind: "reserved",
       label: "operator",
     });
+    expect(parseHostname("assets.localhost:3000", LOCAL_ROOT)).toEqual({
+      kind: "reserved",
+      label: "assets",
+    });
+    expect(parseHostname("assets.example.com", PROD_ROOT)).toEqual({
+      kind: "reserved",
+      label: "assets",
+    });
   });
 
   it("rejects an unrelated domain", () => {

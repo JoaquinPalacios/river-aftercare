@@ -56,6 +56,8 @@ describe("logo upload infrastructure", () => {
     expect(adapter).toContain("server-only");
     expect(adapter).toContain("@aws-sdk/client-s3");
     expect(adapter).not.toContain("fs.writeFile");
+    expect(adapter).not.toContain("ListObjects");
+    expect(adapter).not.toContain("r2.dev");
     expect(sanitizer).toContain("server-only");
     expect(sanitizer).toContain("dompurify");
     expect(sanitizer).not.toContain("dangerouslySetInnerHTML");

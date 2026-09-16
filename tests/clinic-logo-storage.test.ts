@@ -6,10 +6,16 @@ import {
   CLINIC_LOGO_RASTER_MAX_BYTES,
   clinicLogoObjectKey,
   clinicLogoPublicPath,
+  clinicLogoStorageKeyFromBrandingParams,
+  isClinicBrandingPublicPath,
+  isClinicLogoStorageKey,
   storageKeyFromClinicLogoPath,
   validateClinicLogo,
 } from "@/lib/clinic-assets/clinic-logo";
-import { clinicAssetStorageStatus } from "@/lib/clinic-assets/config";
+import {
+  clinicAssetStorageStatus,
+  requestHostMatchesClinicAssetPublicOrigin,
+} from "@/lib/clinic-assets/config";
 
 const PNG = Uint8Array.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
@@ -93,6 +99,45 @@ describe("clinic logo validation", () => {
       )
     ).toBe(key);
     expect(clinicLogoPublicPath("public/uploads/logo.png")).toBeNull();
+  });
+
+  it("rejects traversal, unexpected namespaces, and unsupported extensions", () => {
+    expect(clinicLogoStorageKeyFromBrandingParams("clinic_a", "logo.png")).toBe(
+      "clinics/clinic_a/branding/logo.png"
+    );
+    expect(
+      clinicLogoStorageKeyFromBrandingParams("../clinic_a", "logo.png")
+    ).toBeNull();
+    expect(
+      clinicLogoStorageKeyFromBrandingParams("clinic_a", "../logo.png")
+    ).toBeNull();
+    expect(
+      clinicLogoStorageKeyFromBrandingParams("clinic_a", "logo.gif")
+    ).toBeNull();
+    expect(
+      clinicLogoStorageKeyFromBrandingParams("clinic/a", "logo.png")
+    ).toBeNull();
+    expect(
+      clinicLogoStorageKeyFromBrandingParams("clinic_a", "nested/logo.png")
+    ).toBeNull();
+    expect(
+      clinicLogoStorageKeyFromBrandingParams("clinic_a", "%2e%2e%2fsecret.png")
+    ).toBeNull();
+    expect(isClinicLogoStorageKey("patients/clinic_a/records/logo.png")).toBe(
+      false
+    );
+    expect(isClinicBrandingPublicPath("/clinics/clinic_a/branding")).toBe(
+      false
+    );
+    expect(isClinicBrandingPublicPath("/clinics/clinic_a/branding/")).toBe(
+      false
+    );
+    expect(
+      isClinicBrandingPublicPath("/clinics/clinic_a/branding/logo.png")
+    ).toBe(true);
+    expect(
+      storageKeyFromClinicLogoPath("/clinic-branding/clinic_a/..%2fsecret.png")
+    ).toBeNull();
   });
 });
 
@@ -183,5 +228,28 @@ describe("clinic asset storage configuration", () => {
       driver: "r2",
       bucket: "clinic-branding-assets",
     });
+  });
+
+  it("matches only the configured asset Host header", () => {
+    process.env.CLINIC_ASSET_PUBLIC_ORIGIN = "https://assets.example.test";
+    expect(
+      requestHostMatchesClinicAssetPublicOrigin("assets.example.test")
+    ).toBe(true);
+    expect(
+      requestHostMatchesClinicAssetPublicOrigin("ASSETS.EXAMPLE.TEST")
+    ).toBe(true);
+    expect(requestHostMatchesClinicAssetPublicOrigin("example.test")).toBe(
+      false
+    );
+    expect(requestHostMatchesClinicAssetPublicOrigin("app.example.test")).toBe(
+      false
+    );
+    expect(
+      requestHostMatchesClinicAssetPublicOrigin("demodental.example.test")
+    ).toBe(false);
+    expect(requestHostMatchesClinicAssetPublicOrigin("evil.example")).toBe(
+      false
+    );
+    expect(requestHostMatchesClinicAssetPublicOrigin(null)).toBe(false);
   });
 });
