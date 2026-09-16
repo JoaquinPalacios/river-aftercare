@@ -197,11 +197,6 @@ html.aftercareDocument body {
   }
 }
 
-.notFound {
-  padding: 1.5rem 1.25rem 2.5rem;
-  max-width: 42rem;
-}
-
 .aftercareTheme :focus-visible {
   outline: var(--interaction-focus-width) solid var(--cg-focus);
   outline-offset: 3px;

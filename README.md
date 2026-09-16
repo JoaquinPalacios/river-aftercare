@@ -78,7 +78,7 @@ Tenant hostname simulation (`*.localhost`, no `/etc/hosts` changes):
 
 - [http://demodental.localhost:3000](http://demodental.localhost:3000) — known demo tenant
 - [http://demodental.localhost:3000/extraction](http://demodental.localhost:3000/extraction) — rewritten tenant guide path
-- [http://unknown.localhost:3000](http://unknown.localhost:3000) — unknown tenant (generic not-found)
+- [http://unknown.localhost:3000](http://unknown.localhost:3000) — unknown tenant (River Aftercare not-found)
 
 Set `CARE_GUIDE_ROOT_DOMAIN=localhost` in `.env`. Tenant hosts render the public patient experience (practice-branded aftercare home and published guides). The staff app stays on `app.localhost`.
 

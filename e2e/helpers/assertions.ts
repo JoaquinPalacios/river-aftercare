@@ -1,11 +1,27 @@
 import { expect, type Page } from "@playwright/test";
 
+import { PRODUCT_LOGO_SRC } from "../../lib/branding/product-assets";
+import { PRODUCT_MARKETING_ORIGIN } from "../../lib/branding/product-name";
+import {
+  AFTERCARE_UNAVAILABLE_BODY,
+  AFTERCARE_UNAVAILABLE_HEADING,
+  AFTERCARE_UNAVAILABLE_HOME_LABEL,
+} from "../../lib/aftercare/unavailable-copy";
+
 export async function expectGenericNotFound(page: Page): Promise<void> {
   expect(page.url()).not.toContain("/_sites");
-  await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: AFTERCARE_UNAVAILABLE_HEADING })
+  ).toBeVisible();
+  await expect(page.getByText(AFTERCARE_UNAVAILABLE_BODY)).toBeVisible();
+  await expect(page.locator(`img[src="${PRODUCT_LOGO_SRC}"]`)).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: AFTERCARE_UNAVAILABLE_HOME_LABEL })
+  ).toHaveAttribute("href", PRODUCT_MARKETING_ORIGIN);
+  await expect(page.getByRole("heading", { name: "Not found" })).toHaveCount(0);
   await expect(
     page.getByText("This aftercare page is not available.")
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: "Riverside Dental Demo", exact: true })
   ).toHaveCount(0);
@@ -16,6 +32,11 @@ export async function expectGenericNotFound(page: Page): Promise<void> {
     page.getByRole("heading", { name: "Staff sign in" })
   ).toHaveCount(0);
   await expect(page.locator('input[type="password"]')).toHaveCount(0);
+  const body = ((await page.textContent("main")) ?? "").toLowerCase();
+  expect(body).not.toContain("unpublished");
+  expect(body).not.toContain("removed");
+  expect(body).not.toContain("does not exist");
+  expect(body).not.toContain("unknown tenant");
 }
 
 export async function expectPublicTenantUrl(

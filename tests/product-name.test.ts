@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { PRODUCT_ATTRIBUTION, PRODUCT_NAME } from "@/lib/branding/product-name";
+import {
+  PRODUCT_ATTRIBUTION,
+  PRODUCT_MARKETING_ORIGIN,
+  PRODUCT_NAME,
+} from "@/lib/branding/product-name";
 
 function walk(dir: string, acc: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -22,6 +26,7 @@ describe("product brand", () => {
   it("uses River Aftercare as the visible product name", () => {
     expect(PRODUCT_NAME).toBe("River Aftercare");
     expect(PRODUCT_ATTRIBUTION).toBe("Powered by River Aftercare");
+    expect(PRODUCT_MARKETING_ORIGIN).toBe("https://riveraftercare.com.au");
   });
 
   it("does not hardcode Aftercare Guide in current runtime surfaces", () => {

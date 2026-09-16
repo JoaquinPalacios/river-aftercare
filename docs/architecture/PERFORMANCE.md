@@ -189,7 +189,7 @@ Revisit only if a later phase adds authenticated or highly interactive patient U
 ### 404 distinction
 
 - **Security routing 404:** hostname proxy returns an empty 404 for invalid/reserved hosts, direct `/_sites`, and staff paths on a tenant host. Do not brand these.
-- **Application tenant 404:** unknown tenant, unknown/draft/disabled guide, or pinned draft revision render `app/(aftercare)/not-found.tsx` (“Not found” / “This aftercare page is not available.”). Generic, practice-neutral copy. Known-tenant layout may still apply CSS variables around that page; visible chrome does not advertise another tenant.
+- **Application tenant 404:** unknown tenant, unknown/draft/disabled guide, or pinned draft revision render `app/(aftercare)/not-found.tsx` (River Aftercare logo, “This aftercare guide isn’t available”, link to `https://riveraftercare.com.au`). Same copy for missing, removed, unpublished, or never-existed slugs. 404 styles stay inline on that page so they are not added to the tenant CSS budget. Known-tenant layout may still apply CSS variables around that page; the 404 covers clinic chrome so it does not advertise another tenant.
 
 ## After Phase 1F (public experience and branding foundation)
 
