@@ -7,8 +7,8 @@ export function ProductLogo({ className }: { className?: string }) {
     <img
       src={PRODUCT_LOGO_SRC}
       alt=""
-      width={820}
-      height={180}
+      width={771}
+      height={123}
       className={className}
       decoding="async"
     />

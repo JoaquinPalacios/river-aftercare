@@ -14,6 +14,7 @@ import {
   PRODUCT_WEB_MANIFEST_SRC,
 } from "@/lib/branding/product-assets";
 import { PRODUCT_HEAD_METADATA, PRODUCT_ICONS } from "@/lib/seo/icons";
+import { ORGANIZATION_LOGO, PRODUCT_WORDMARK_LOGO } from "@/lib/seo/og-policy";
 
 function publicPath(src: string): string {
   return `public${src}`;
@@ -59,6 +60,18 @@ describe("product brand assets", () => {
       PRODUCT_APPLE_TOUCH_ICON_SRC,
     ]);
     expect(PRODUCT_HEAD_METADATA.manifest).toBe(PRODUCT_WEB_MANIFEST_SRC);
+  });
+
+  it("keeps logo and isologo intrinsic sizes aligned with SEO logo metadata", () => {
+    const wordmark = readFileSync(publicPath(PRODUCT_LOGO_SRC), "utf8");
+    const isologo = readFileSync(publicPath(PRODUCT_ISOLOGO_SRC), "utf8");
+
+    expect(wordmark).toContain(
+      `width="${PRODUCT_WORDMARK_LOGO.width}" height="${PRODUCT_WORDMARK_LOGO.height}"`
+    );
+    expect(isologo).toContain(
+      `width="${ORGANIZATION_LOGO.width}" height="${ORGANIZATION_LOGO.height}"`
+    );
   });
 
   it("names the installed web manifest River Aftercare and points at favicon PNGs", () => {

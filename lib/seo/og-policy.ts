@@ -14,15 +14,15 @@ export const DEDICATED_OG_IMAGE_REQUIRED =
 
 export const ORGANIZATION_LOGO = {
   path: PRODUCT_ISOLOGO_SRC,
-  width: 1254,
-  height: 1254,
+  width: 180,
+  height: 180,
   type: "image/svg+xml",
 } as const;
 
 export const PRODUCT_WORDMARK_LOGO = {
   path: PRODUCT_LOGO_SRC,
-  width: 820,
-  height: 180,
+  width: 771,
+  height: 123,
   type: "image/svg+xml",
 } as const;
 
