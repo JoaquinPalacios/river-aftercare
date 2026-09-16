@@ -10,7 +10,7 @@ Do **not** introduce NestJS, `apps/api`, a REST façade, or a second authenticat
 | --------------------------------- | ------------------------------------------------------------------------------------------- |
 | App Router routes                 | Hosts, layouts, Server Components, metadata. Launch indexing policy: [SEO.md](SEO.md).      |
 | Server Actions / server functions | Authorize, validate input, call a domain module, map the result                             |
-| Prisma + PostgreSQL               | Persistence                                                                                 |
+| Prisma 7 + PostgreSQL 18          | Persistence. Local Docker and tests use major 18. Production target is Neon PG18 (Sydney).  |
 | Domain modules                    | Guides, publication, practice configuration, authorization, operator queries, asset storage |
 
 Patient tenant rendering, clinic portal, and operator console share this process. That avoids a second deployment, session propagation across a network boundary, DTO duplication, CORS, and extra monitoring for a workload that does not need it yet.

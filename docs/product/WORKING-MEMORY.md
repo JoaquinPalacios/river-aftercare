@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-15 (Marketing mobile UI polish: phone mockup composition + mobile nav focus/styling)
+Last updated: 2026-09-16 (PostgreSQL 18 local/test/CI contract)
 
 ---
 
@@ -707,7 +707,7 @@ Archive of **published** guides (delete after history exists), QR, invitations/t
 
 ## Reusable foundation
 
-- Next.js App Router, React, Tailwind (staff only), CSS Modules (patient + marketing), PostgreSQL, Prisma
+- Next.js App Router, React, Tailwind (staff only), CSS Modules (patient + marketing), PostgreSQL **18**, Prisma 7 (`PrismaPg` + `pg`)
 - `Clinic` (`id`, `name`, **`slug`**), `User`, `ClinicMembership`, **`ClinicProfile`** (`primaryColor`, `accentColor`, `neutralColor`, `radiusPreset`, `instructionTerminology`, `themeMode`, `allowPatientThemeToggle`)
 - Staff auth: `auth.ts`, `lib/auth/*`, `/login`, clinic portal `/dashboard` + `/guides` + `/practice` (`requireStaffSession()` / `requireClinicAdmin()`)
 - Platform operator: `User.platformRole`, `/operator/clinics` (`requirePlatformOperator()`)
@@ -1096,3 +1096,25 @@ Public marketing only. No Neon, auth, tenancy, proxy, or R2 changes.
 | Mobile nav styling | Slightly larger sheet, route list separated from Sign in + Theme, current/selected inset brand bar. Same destinations. No hamburger morph. Desktop header nav gap is `0.7rem 2.5rem`.                                                                                                           |
 
 Hero-attributed client JS added: **0**. Nav still uses the existing Client Component.
+
+---
+
+## PostgreSQL 18 repository contract (2026-09-16)
+
+Local/test compatibility upgrade. **Neon production was not contacted.** Production schema is not migrated. Vercel `DATABASE_URL` is unchanged.
+
+| Surface            | Contract                                                                                                                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local Docker       | `postgres:18-alpine`, port **5432**, DB `care_guide`, volume `postgres18_data` → `/var/lib/postgresql`, `PGDATA=/var/lib/postgresql/18/docker`                                                                      |
+| Legacy PG17 volume | Compose key `postgres_data` (mount `/var/lib/postgresql/data`) is **unused**. Do not `docker compose down -v`. Dump/restore runbook: [../development/POSTGRES-18-UPGRADE.md](../development/POSTGRES-18-UPGRADE.md) |
+| Vitest DB tests    | Same `DATABASE_URL` server; assert `SHOW server_version` major 18                                                                                                                                                   |
+| Playwright         | `care_guide_e2e` on the same PG18 server. Global setup fails if major ≠ 18. Does not write the development DB                                                                                                       |
+| GitHub Actions     | **None.** Automated tests assume a reachable PG18 at `DATABASE_URL`                                                                                                                                                 |
+| Production Neon    | Project **River Aftercare Production**, branch `production`, AWS Asia Pacific 2 (Sydney), PostgreSQL 18. Empty of River Aftercare schema until Joaquín migrates                                                     |
+| Prisma             | 7.10.x + `@prisma/adapter-pg` + `pg`. No Prisma 8 RC. No `@neondatabase/serverless`                                                                                                                                 |
+| CLI URL            | `prisma.config.ts` uses `DIRECT_URL` when set, else `DATABASE_URL`. Runtime `getPrisma()` always uses `DATABASE_URL`                                                                                                |
+| Later Vercel       | Pooled Neon URL (`-pooler`, `sslmode=require`) as `DATABASE_URL`; unpooled as `DIRECT_URL` for `prisma migrate deploy`                                                                                              |
+| Extensions         | Default `plpgsql` only. No `pgcrypto` / `uuid-ossp` / `citext`                                                                                                                                                      |
+| Generated columns  | None                                                                                                                                                                                                                |
+
+Do not claim production is ready because the Neon project exists.

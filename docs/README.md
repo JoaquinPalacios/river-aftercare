@@ -4,20 +4,21 @@ This directory is the product and architecture documentation for Care Guide.
 
 ## Authoritative product contract
 
-| Document                                                               | Purpose                                                                                                                         |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| [product/PRD.md](product/PRD.md)                                       | **Care Guide PRD v1.0 — Aftercare SaaS.** Authoritative product requirements, MVP scope, phases, and parked-chairside boundary. |
-| [product/POST-LAUNCH-ROADMAP.md](product/POST-LAUNCH-ROADMAP.md)       | Post-launch Check-ins, RecoveryPlan, template library, and future verticals. Not current implementation.                        |
-| [adr/](adr/README.md)                                                  | Architecture Decision Records for the aftercare product reset.                                                                  |
-| [product/WORKING-MEMORY.md](product/WORKING-MEMORY.md)                 | Working notes for later implementation sessions. Not a substitute for the PRD.                                                  |
-| [architecture/PERFORMANCE.md](architecture/PERFORMANCE.md)             | Patient-route CSS/JS measurement contract and Phase 1F.1 budget.                                                                |
-| [architecture/MARKETING-CONTACT.md](architecture/MARKETING-CONTACT.md) | Clinic enquiry delivery, SMTP env, and the recommended public mailbox.                                                          |
-| [architecture/CLINIC-PORTAL.md](architecture/CLINIC-PORTAL.md)         | Clinic portal IA, permissions, guide lifecycle, and logo storage blocker.                                                       |
-| [architecture/APPLICATION.md](architecture/APPLICATION.md)             | Next.js monolith launch architecture and future API extraction triggers.                                                        |
-| [architecture/SEO.md](architecture/SEO.md)                             | Launch indexing policy, structured SEO settings, JSON-LD, tenant noindex, and future search visibility.                         |
-| [launch/PRODUCTION-READINESS.md](launch/PRODUCTION-READINESS.md)       | Current production-readiness gate. Not a provisioning runbook.                                                                  |
-| [launch/AGENTIC-READINESS.md](launch/AGENTIC-READINESS.md)             | Architecture audit vs Is Agentic. No claimed production score.                                                                  |
-| [launch/R2-PROVISIONING.md](launch/R2-PROVISIONING.md)                 | Manual Cloudflare R2 bucket/token/domain steps for Joaquín. Not executed from Cursor.                                           |
+| Document                                                                 | Purpose                                                                                                                         |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| [product/PRD.md](product/PRD.md)                                         | **Care Guide PRD v1.0 — Aftercare SaaS.** Authoritative product requirements, MVP scope, phases, and parked-chairside boundary. |
+| [product/POST-LAUNCH-ROADMAP.md](product/POST-LAUNCH-ROADMAP.md)         | Post-launch Check-ins, RecoveryPlan, template library, and future verticals. Not current implementation.                        |
+| [adr/](adr/README.md)                                                    | Architecture Decision Records for the aftercare product reset.                                                                  |
+| [product/WORKING-MEMORY.md](product/WORKING-MEMORY.md)                   | Working notes for later implementation sessions. Not a substitute for the PRD.                                                  |
+| [architecture/PERFORMANCE.md](architecture/PERFORMANCE.md)               | Patient-route CSS/JS measurement contract and Phase 1F.1 budget.                                                                |
+| [architecture/MARKETING-CONTACT.md](architecture/MARKETING-CONTACT.md)   | Clinic enquiry delivery, SMTP env, and the recommended public mailbox.                                                          |
+| [architecture/CLINIC-PORTAL.md](architecture/CLINIC-PORTAL.md)           | Clinic portal IA, permissions, guide lifecycle, and logo storage blocker.                                                       |
+| [architecture/APPLICATION.md](architecture/APPLICATION.md)               | Next.js monolith launch architecture and future API extraction triggers.                                                        |
+| [architecture/SEO.md](architecture/SEO.md)                               | Launch indexing policy, structured SEO settings, JSON-LD, tenant noindex, and future search visibility.                         |
+| [launch/PRODUCTION-READINESS.md](launch/PRODUCTION-READINESS.md)         | Current production-readiness gate. Not a provisioning runbook.                                                                  |
+| [launch/AGENTIC-READINESS.md](launch/AGENTIC-READINESS.md)               | Architecture audit vs Is Agentic. No claimed production score.                                                                  |
+| [launch/R2-PROVISIONING.md](launch/R2-PROVISIONING.md)                   | Manual Cloudflare R2 bucket/token/domain steps for Joaquín. Not executed from Cursor.                                           |
+| [development/POSTGRES-18-UPGRADE.md](development/POSTGRES-18-UPGRADE.md) | Local PostgreSQL 17 → 18 dump/restore runbook. Protects the existing PG17 Docker volume.                                        |
 
 ## How to read these documents
 

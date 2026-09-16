@@ -104,7 +104,7 @@ pnpm test:e2e      # Playwright against production `next start` on port 4173
 pnpm test:all      # Vitest then Playwright
 ```
 
-Browser tests use a **dedicated Postgres database** (`care_guide_e2e` by default), not `DATABASE_URL`. Playwright creates that database if needed, runs `prisma migrate deploy` + `prisma db seed` against it, and starts `next start` with `DATABASE_URL` pointed at the e2e database. `CI=1 pnpm test:e2e` therefore must not add guides to the normal local development dataset.
+Browser tests use a **dedicated PostgreSQL 18 database** (`care_guide_e2e` by default), not `DATABASE_URL`. Playwright creates that database if needed, runs `prisma migrate deploy` + `prisma db seed` against it, and starts `next start` with `DATABASE_URL` pointed at the e2e database. `CI=1 pnpm test:e2e` therefore must not add guides to the normal local development dataset. Playwright refuses to start unless the server major is 18.
 
 Optional override:
 
@@ -120,7 +120,7 @@ Browser tests also expect a seeded **development** database only for `pnpm dev` 
 
 ## Database workflow
 
-This project uses Postgres with Prisma for application data.
+This project uses **PostgreSQL 18** with Prisma 7 (`PrismaPg` + `pg`) for application data.
 
 Issue #2 replaced the temporary Prisma bootstrap model with the first real clinic-scoped staff schema:
 
@@ -133,7 +133,7 @@ Issue #2 replaced the temporary Prisma bootstrap model with the first real clini
 
 The Auth.js adapter models use the canonical Prisma names for adapter compatibility. The parked chairside workflow uses the explicit name `ProcedureSession` rather than a generic `Session` name. **New aftercare models must not reuse `ProcedureTemplate` / `ProcedureSession` for the aftercare domain** (see the PRD glossary).
 
-### Local Postgres
+### Local PostgreSQL 18
 
 If you have Docker available, start the local database with:
 
@@ -141,17 +141,21 @@ If you have Docker available, start the local database with:
 docker compose up -d
 ```
 
-Stop it with:
+That starts `postgres:18-alpine` on **localhost:5432**, database `care_guide`, named volume `postgres18_data` mounted at `/var/lib/postgresql` (`PGDATA=/var/lib/postgresql/18/docker`). Stop it with:
 
 ```bash
 docker compose down
 ```
+
+Do **not** add `-v`. That would delete the PostgreSQL 18 volume. The previous PostgreSQL 17 volume (`postgres_data`) is intentionally unused so Compose never mounts it into 18. If you already have local PG17 data, follow [docs/development/POSTGRES-18-UPGRADE.md](docs/development/POSTGRES-18-UPGRADE.md) (dump → restore into the new volume). Production minor/patch versions are controlled by Neon; local Docker uses the `postgres:18-alpine` major tag.
 
 The expected local connection string for this repo is:
 
 ```bash
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/care_guide?schema=public"
 ```
+
+Prisma CLI (`migrate` / `seed` / `studio`) uses optional `DIRECT_URL` when set, otherwise `DATABASE_URL`. Local Docker does not need a second URL. Later Neon production should use a **pooled** `DATABASE_URL` for the app and an **unpooled** `DIRECT_URL` for migrations.
 
 The app runtime also expects:
 

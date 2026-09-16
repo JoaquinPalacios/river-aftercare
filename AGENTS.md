@@ -6,6 +6,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- END:nextjs-agent-rules -->
 
+# Database
+
+Local development, Vitest database tests, and Playwright e2e target **PostgreSQL 18**. Docker Compose uses `postgres:18-alpine` with named volume `postgres18_data` mounted at `/var/lib/postgresql` (`PGDATA=/var/lib/postgresql/18/docker`). Do not mount a PostgreSQL 17 volume into PostgreSQL 18. Existing local PG17 volumes (`postgres_data`) must stay untouched until Joaquín restores via dump/restore. See [docs/development/POSTGRES-18-UPGRADE.md](docs/development/POSTGRES-18-UPGRADE.md).
+
+Production target is Neon PostgreSQL 18 in AWS Asia Pacific 2 (Sydney). Do not connect to that project, run production migrations, or change Vercel `DATABASE_URL` unless Joaquín explicitly asks. Prisma stays on the stable 7.x line (`PrismaPg` + `pg`). Do not add a Neon-specific client.
+
 # Care Guide product contract
 
 Authoritative product requirements: `docs/product/PRD.md` (v1.0 — Aftercare SaaS).
