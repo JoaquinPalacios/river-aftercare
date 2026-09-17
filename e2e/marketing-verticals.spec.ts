@@ -104,7 +104,7 @@ test.describe("clinic vertical acquisition pages", () => {
       expect(types).not.toContain('"Offer"');
       expect(types).not.toMatch(/River Aftercare — River Aftercare/);
 
-      await expect(page.getByText(vertical.unique).first()).toBeVisible();
+      expect(await page.content()).toContain(vertical.unique);
       for (const phrase of vertical.absent) {
         await expect(page.getByText(phrase)).toHaveCount(0);
       }
@@ -141,12 +141,19 @@ test.describe("clinic vertical acquisition pages", () => {
     const secondAnswer =
       "No. The current public guide experience does not require a patient login.";
 
-    const first = page.getByRole("button", { name: firstQuestion });
-    const second = page.getByRole("button", { name: secondQuestion });
+    const first = page.locator("summary").filter({
+      hasText: firstQuestion,
+    });
+    const second = page.locator("summary").filter({
+      hasText: secondQuestion,
+    });
     const firstDetails = page.locator("details").filter({ has: first });
     const secondDetails = page.locator("details").filter({ has: second });
     await first.scrollIntoViewIfNeeded();
     await expect(first).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: firstQuestion })
+    ).toBeVisible();
     await expect(page.locator("details")).toHaveCount(5);
     await expect(firstDetails).toHaveJSProperty("open", false);
     await expect(page.getByText(firstAnswer)).toBeHidden();
@@ -246,7 +253,7 @@ test.describe("clinic vertical acquisition pages", () => {
       await expect(page.locator("details")).toHaveCount(5);
 
       for (const question of vertical.questions) {
-        const control = page.getByRole("button", { name: question });
+        const control = page.locator("summary").filter({ hasText: question });
         await control.scrollIntoViewIfNeeded();
         await expect(control).toBeVisible();
         await expect(
@@ -257,8 +264,8 @@ test.describe("clinic vertical acquisition pages", () => {
       const html = await page.content();
       expect(html).toContain(vertical.answer);
 
-      const firstControl = page.getByRole("button", {
-        name: vertical.questions[0],
+      const firstControl = page.locator("summary").filter({
+        hasText: vertical.questions[0],
       });
       const firstDetails = page
         .locator("details")

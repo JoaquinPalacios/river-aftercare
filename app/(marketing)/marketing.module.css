@@ -2766,21 +2766,14 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .verticalFaqQuestion {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
+  display: list-item;
   width: 100%;
   margin: 0;
-  padding: 1.2rem 1.2rem 1.25rem;
+  padding: 0;
   list-style: none;
   cursor: pointer;
   color: inherit;
   font: inherit;
-  font-size: 1.08rem;
-  letter-spacing: -0.03em;
-  line-height: 1.25;
-  text-align: left;
 }
 
 .verticalFaqQuestion::-webkit-details-marker {
@@ -2799,6 +2792,18 @@ html[data-theme-mode="dark"] .wordmarkName {
 .verticalFaqQuestion:focus-visible {
   outline: 2.5px solid var(--mk-focus);
   outline-offset: 3px;
+}
+
+.verticalFaqQuestionInner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.2rem 1.2rem 1.25rem;
+  font-size: 1.08rem;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  text-align: left;
 }
 
 .verticalFaqQuestionText {
@@ -2838,7 +2843,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   display: none;
 }
 
-.verticalFaqItem[open] .verticalFaqQuestion {
+.verticalFaqItem[open] .verticalFaqQuestionInner {
   padding-bottom: 0.55rem;
 }
 

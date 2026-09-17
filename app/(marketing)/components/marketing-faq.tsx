@@ -22,10 +22,12 @@ export function MarketingFaq({
               id={questionId}
               aria-controls={panelId}
             >
-              <span className={styles.verticalFaqQuestionText}>
-                {item.question}
+              <span className={styles.verticalFaqQuestionInner}>
+                <span className={styles.verticalFaqQuestionText}>
+                  {item.question}
+                </span>
+                <span className={styles.verticalFaqIcon} aria-hidden="true" />
               </span>
-              <span className={styles.verticalFaqIcon} aria-hidden="true" />
             </summary>
             <div id={panelId} className={styles.verticalFaqPanel}>
               <p>{item.answer}</p>
