@@ -257,7 +257,7 @@ test.describe("marketing conversion routes", () => {
 
     const menu = page.getByRole("button", { name: "Site menu" });
     const headerNav = page.getByRole("navigation", { name: "Marketing" });
-    const firstLink = headerNav.getByRole("link", { name: "Dental" });
+    const firstLink = headerNav.getByRole("link", { name: "Overview" });
     const about = headerNav.getByRole("link", { name: "About" });
 
     await menu.click();
@@ -645,7 +645,7 @@ test.describe("marketing conversion routes", () => {
 
     const firstClinicLink = page
       .getByRole("navigation", { name: "Marketing" })
-      .getByRole("link", { name: "Dental" });
+      .getByRole("link", { name: "Overview" });
     await page.keyboard.press("Tab");
     await expect(firstClinicLink).toBeFocused();
     const outline = await firstClinicLink.evaluate(
