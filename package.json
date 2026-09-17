@@ -21,6 +21,7 @@
     "db:migrate:dev": "prisma migrate dev --config prisma.config.ts",
     "db:migrate:reset": "prisma migrate reset --config prisma.config.ts",
     "db:seed": "prisma db seed --config prisma.config.ts",
+    "bootstrap:demo-template": "node scripts/bootstrap-demo-template.mjs",
     "db:studio": "prisma studio --config prisma.config.ts",
     "prepare": "husky"
   },

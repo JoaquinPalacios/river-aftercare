@@ -15,7 +15,7 @@ const FAQ_EXPECTATIONS = {
     ],
     answers: [
       "No. River Aftercare patient pages open in the browser from a link or QR code.",
-      "Tooth Extraction is the current reviewed starting template.",
+      "Riverside Dental Demo currently uses a Tooth Extraction sample template.",
     ],
   },
   "/physiotherapy": {

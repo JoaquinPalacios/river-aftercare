@@ -140,4 +140,61 @@ describe("clinic portal pages", () => {
     expect(edit).toContain("`/${guide.publicSlug}`");
     expect(edit).not.toContain("overview.patientSiteHref");
   });
+
+  it("uses honest sample-template wording for the demo tenant and reviewed wording for other clinics", () => {
+    const createPage = readFileSync(
+      "app/(staff)/(clinic-portal)/guides/new/page.tsx",
+      "utf8"
+    );
+    const form = readFileSync(
+      "app/(staff)/(clinic-portal)/guides/create-guide-form.tsx",
+      "utf8"
+    );
+    const list = readFileSync(
+      "lib/clinic-portal/list-canonical-templates.ts",
+      "utf8"
+    );
+    const create = readFileSync(
+      "lib/clinic-portal/create-practice-guide.ts",
+      "utf8"
+    );
+
+    expect(createPage).toContain("isDemoTenant");
+    expect(createPage).toContain(
+      "Start from a template, or create a custom guide for this demo."
+    );
+    expect(createPage).toContain(
+      "Start from a reviewed template, or create a custom guide for this practice."
+    );
+    expect(form).toContain('? "Start from a template"');
+    expect(form).toContain(': "Start from a reviewed template"}');
+    expect(form).toContain("Sample template");
+    expect(form).toContain("Reviewed template");
+    expect(form).toContain("sample template, then adapt it for this demo.");
+    expect(form).toContain("No reviewed templates are available yet.");
+    expect(form).toContain("No sample templates are available yet.");
+    expect(form).not.toContain("clinically approved");
+    expect(form).not.toContain("clinically reviewed");
+    expect(form).not.toContain("Canonical template");
+    expect(list).toContain("clinicCanUseCanonicalTemplate");
+    expect(create).toContain("clinicCanUseCanonicalTemplate");
+    expect(create).toContain("isDemoTenant");
+
+    const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+    expect(pkg.scripts["bootstrap:demo-template"]).toBe(
+      "node scripts/bootstrap-demo-template.mjs"
+    );
+    expect(pkg.scripts.build).not.toContain("bootstrap");
+    expect(pkg.scripts["db:seed"]).not.toContain("bootstrap");
+    expect(readFileSync("prisma.config.ts", "utf8")).not.toContain(
+      "bootstrap-demo-template"
+    );
+    const bootstrapCli = readFileSync(
+      "scripts/bootstrap-demo-template.mjs",
+      "utf8"
+    );
+    expect(bootstrapCli).toContain("Does not run prisma/seed.mjs.");
+    expect(bootstrapCli).not.toMatch(/from ["'].*prisma\/seed/);
+    expect(bootstrapCli).not.toMatch(/import\(["'].*prisma\/seed/);
+  });
 });

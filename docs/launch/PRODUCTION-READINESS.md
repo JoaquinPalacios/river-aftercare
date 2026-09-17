@@ -11,17 +11,17 @@ Do not provision Vercel, Cloudflare, R2, domains, or email from this document. D
 
 ## Product
 
-| Item                                   | Status                                 | Notes                                                                                                                        |
-| -------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Brand assets (logo, isologo, favicon)  | READY                                  | Final approved pack on main. Operator upload exists for a dedicated 1200×630 OG image; the image still needs to be uploaded. |
-| Patient UX                             | READY                                  | Tenant home + published guides, CSS Modules, no patient Tailwind.                                                            |
-| Clinic portal                          | READY                                  | Overview / Guides / Practice, draft-preview-publish-unpublish-delete.                                                        |
-| Operator                               | READY                                  | All Clinics + SEO & Discovery. No Templates library UI.                                                                      |
-| Guide lifecycle                        | READY                                  | Draft / published / unpublished; public pin protected.                                                                       |
-| Canonical dental templates             | REQUIRED BEFORE PRODUCTION             | Seeded library is **Tooth Extraction** only. Marketing no longer advertises unbuilt templates as available.                  |
-| Clinical governance / review ownership | REQUIRED BEFORE PRODUCTION             | Policy exists; no signed clinical review of production copy.                                                                 |
-| QR / share                             | RECOMMENDED BEFORE FIRST PAYING CLINIC | Durable URLs exist. Copy-URL UI, QR generation, and QR download/print are **not** implemented.                               |
-| Check-ins / RecoveryPlan               | POST-LAUNCH                            | Explicitly out of this phase.                                                                                                |
+| Item                                   | Status                                 | Notes                                                                                                                                                                                                                                                 |
+| -------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Brand assets (logo, isologo, favicon)  | READY                                  | Final approved pack on main. Operator upload exists for a dedicated 1200×630 OG image; the image still needs to be uploaded.                                                                                                                          |
+| Patient UX                             | READY                                  | Tenant home + published guides, CSS Modules, no patient Tailwind.                                                                                                                                                                                     |
+| Clinic portal                          | READY                                  | Overview / Guides / Practice, draft-preview-publish-unpublish-delete.                                                                                                                                                                                 |
+| Operator                               | READY                                  | All Clinics + SEO & Discovery. No Templates library UI.                                                                                                                                                                                               |
+| Guide lifecycle                        | READY                                  | Draft / published / unpublished; public pin protected.                                                                                                                                                                                                |
+| Canonical dental templates             | REQUIRED BEFORE PRODUCTION             | Tooth Extraction exists as a **sample / non-clinical** demo-only library row for `demodental`. It is not generally available and is not clinical approval. Production insert: `pnpm bootstrap:demo-template`. **Never** `pnpm db:seed` in production. |
+| Clinical governance / review ownership | REQUIRED BEFORE PRODUCTION             | Policy exists: normal clinics only see templates with `reviewedAt` + named `reviewedBy`. No signed clinical review of production copy.                                                                                                                |
+| QR / share                             | RECOMMENDED BEFORE FIRST PAYING CLINIC | Durable URLs exist. Copy-URL UI, QR generation, and QR download/print are **not** implemented.                                                                                                                                                        |
+| Check-ins / RecoveryPlan               | POST-LAUNCH                            | Explicitly out of this phase.                                                                                                                                                                                                                         |
 
 ## Discovery
 
@@ -79,10 +79,10 @@ Do not provision Vercel, Cloudflare, R2, domains, or email from this document. D
 
 ## Content
 
-| Item                      | Status                     | Notes                                                                                            |
-| ------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------ |
-| Reviewed dental templates | REQUIRED BEFORE PRODUCTION | Only Tooth Extraction is seeded. Wisdom Teeth / Implant / Root Canal are **not** in the library. |
-| Clinical review ownership | REQUIRED BEFORE PRODUCTION | Named reviewer/process missing.                                                                  |
+| Item                      | Status                     | Notes                                                                                                                                                    |
+| ------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reviewed dental templates | REQUIRED BEFORE PRODUCTION | No generally available reviewed templates. Sample Tooth Extraction is `demodental`-only. Wisdom Teeth / Implant / Root Canal are **not** in the library. |
+| Clinical review ownership | REQUIRED BEFORE PRODUCTION | Named reviewer/process missing.                                                                                                                          |
 
 ## Legal
 

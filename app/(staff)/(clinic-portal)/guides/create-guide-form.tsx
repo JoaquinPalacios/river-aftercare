@@ -14,8 +14,10 @@ const initialState: GuideActionState = {};
 
 export function CreateGuideForm({
   templates,
+  isDemoTenant,
 }: {
   templates: CanonicalGuideTemplateOption[];
+  isDemoTenant: boolean;
 }) {
   const [templateState, templateAction, templatePending] = useActionState(
     createGuideFromTemplateAction,
@@ -30,15 +32,20 @@ export function CreateGuideForm({
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5 shadow-sm">
         <h2 className="text-base font-semibold tracking-tight">
-          Start from a template
+          {isDemoTenant
+            ? "Start from a template"
+            : "Start from a reviewed template"}
         </h2>
         <p className="mt-2 text-sm leading-6 text-staff-muted">
-          Enable a canonical {PRODUCT_NAME} template, then adapt it for this
-          practice.
+          {isDemoTenant
+            ? `Use a ${PRODUCT_NAME} sample template, then adapt it for this demo.`
+            : `Enable a reviewed ${PRODUCT_NAME} template, then adapt it for this practice.`}
         </p>
         {templates.length === 0 ? (
           <p className="mt-4 text-sm text-staff-muted">
-            No reviewed templates are available yet.
+            {isDemoTenant
+              ? "No sample templates are available yet."
+              : "No reviewed templates are available yet."}
           </p>
         ) : (
           <ul className="mt-4 flex flex-col gap-3">
@@ -51,7 +58,9 @@ export function CreateGuideForm({
                 <p className="mt-1 text-sm text-staff-muted">
                   {template.alreadyEnabled
                     ? "Already in your guides"
-                    : "Canonical template"}
+                    : template.availability === "sample"
+                      ? "Sample template"
+                      : "Reviewed template"}
                 </p>
                 {template.alreadyEnabled ? null : (
                   <form action={templateAction} className="mt-3">

@@ -5,6 +5,11 @@ import {
 } from "@prisma/client";
 
 import { composeGuideDocument } from "@/lib/aftercare/compose-guide-document";
+import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
+import {
+  classifyCanonicalTemplateAvailability,
+  clinicCanUseCanonicalTemplate,
+} from "@/lib/aftercare/guide-template-review";
 import { isValidCareGuideSlug } from "@/lib/aftercare/slug";
 import {
   practiceRevisionSectionsFromComposed,
@@ -108,6 +113,14 @@ export async function createPracticeGuideFromTemplate(input: {
   actorUserId: string;
   values: CreateTemplateGuideInput;
 }): Promise<{ id: string }> {
+  const clinic = await getPrisma().clinic.findUnique({
+    where: { id: input.clinicId },
+    select: { slug: true },
+  });
+  if (!clinic) {
+    throw new ClinicPortalError("That template is not available.", "not_found");
+  }
+
   const template = await getPrisma().guideTemplate.findFirst({
     where: {
       id: input.values.templateId,
@@ -121,9 +134,11 @@ export async function createPracticeGuideFromTemplate(input: {
       revisions: {
         where: { status: GuideRevisionStatus.PUBLISHED },
         orderBy: { version: "desc" },
-        take: 1,
         select: {
           id: true,
+          status: true,
+          reviewedAt: true,
+          reviewedBy: true,
           sections: {
             orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
           },
@@ -132,8 +147,15 @@ export async function createPracticeGuideFromTemplate(input: {
     },
   });
 
+  const availability = classifyCanonicalTemplateAvailability(
+    template?.revisions ?? []
+  );
+  const allowed = clinicCanUseCanonicalTemplate({
+    isDemoTenant: isDemoTenant(clinic.slug),
+    availability,
+  });
   const publishedRevision = template?.revisions[0];
-  if (!template || !publishedRevision) {
+  if (!template || !publishedRevision || !allowed) {
     throw new ClinicPortalError("That template is not available.", "not_found");
   }
 
