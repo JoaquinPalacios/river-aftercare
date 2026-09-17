@@ -4,6 +4,7 @@ import { marketingSiteOrigin } from "@/lib/marketing/site";
 import {
   DEFAULT_MARKETING_PAGE_SEO,
   DEFAULT_PLATFORM_SEO,
+  marketingPageSeoFields,
 } from "@/lib/seo/defaults";
 import { marketingDocumentTitle } from "@/lib/seo/document-title";
 import { resolvePlatformSeoOgImageUrl } from "@/lib/platform-assets/public-url";
@@ -20,7 +21,7 @@ import type {
 function fallbackPage(path: MarketingSeoPath): MarketingPageSeoInput {
   return {
     path,
-    ...DEFAULT_MARKETING_PAGE_SEO[path],
+    ...marketingPageSeoFields(path),
     updatedAt: null,
   };
 }

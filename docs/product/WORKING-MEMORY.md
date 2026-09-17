@@ -1181,3 +1181,15 @@ Indexable B2B pages on the apex host. Shared composition, distinct copy. Layered
 | Nav     | Desktop **For clinics** click disclosure (keyboard, Escape, outside click). Mobile site menu group. Footer **For clinics** column.                                                                               |
 | Schema  | Shared Organization / WebSite / SoftwareApplication plus per-route `WebPage`. No FAQPage, MedicalWebPage, reviews, or per-profession SoftwareApplication.                                                        |
 | Tests   | `pnpm lint`, `pnpm test` (497), `pnpm build`, and Playwright (150) pass locally. Mobile site-menu keyboard order starts at Dental, then physiotherapy / chiropractic / cosmetic, then About / Pricing / Contact. |
+
+---
+
+## Accurate sitemap lastmod (2026-09-17)
+
+Production sitemap was emitting per-route Prisma `MarketingPageSeo.updatedAt` (and `PlatformSeoSettings.updatedAt` via max). Operator save upserts every path in a loop, so lastmod was sequential write time, not page-content time.
+
+| Area     | Behaviour                                                                                                                                                          |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Contract | `DEFAULT_MARKETING_PAGE_SEO[path].lastModified` is a `YYYY-MM-DD` content-change date. Sitemap reads that field only.                                              |
+| Semantics | Update lastModified when materially changing indexable page content. Do not bump it for deploys, formatting, or sitemap regeneration.                            |
+| Loader   | `app/sitemap.ts` no longer loads Prisma timestamps. Invalid or missing dates omit `lastmod` rather than inventing now().                                           |
