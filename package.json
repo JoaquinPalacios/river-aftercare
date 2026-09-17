@@ -30,6 +30,7 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@supabase/supabase-js": "^2.116.0",
+    "@vercel/analytics": "^2.0.1",
     "dompurify": "3.4.15",
     "jsdom": "26.1.0",
     "motion": "13.2.0",

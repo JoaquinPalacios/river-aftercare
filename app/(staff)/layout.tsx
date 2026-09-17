@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 
 import { geistMono, geistSans } from "@/lib/branding/fonts";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -36,6 +37,7 @@ export default function RootLayout({
           }}
         />
         {children}
+        <Analytics />
       </body>
     </html>
   );

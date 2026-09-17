@@ -157,7 +157,7 @@ describe("marketing + trust polish", () => {
     expect(privacyHtml).not.toContain("We store all information with Neon");
     expect(privacyHtml).toContain('data-mk-page-hero="legal"');
     expect(privacyHtml).toContain("<time");
-    expect(privacyHtml).toContain('dateTime="2026-09-14"');
+    expect(privacyHtml).toContain('dateTime="2026-09-17"');
 
     expect(termsHtml).toContain("Terms &amp; Conditions");
     expect(termsHtml).toContain("not a healthcare provider");

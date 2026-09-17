@@ -4,7 +4,7 @@
  */
 export const LEGAL_DOCUMENT_STATUS = "DRAFT_FOR_LEGAL_REVIEW";
 
-export const LEGAL_LAST_UPDATED_ISO = "2026-09-14";
+export const LEGAL_LAST_UPDATED_ISO = "2026-09-17";
 
 export const LEGAL_ABN = "32 671 297 130";
 

@@ -34,7 +34,7 @@ describe("legal drafts", () => {
     expect(TERMS_DOCUMENT.title).toBe("Terms & Conditions");
     expect(TERMS_DOCUMENT.status).toBe(LEGAL_DOCUMENT_STATUS);
     expect(TERMS_DOCUMENT.draftBanner).toBe(TERMS_DRAFT_BANNER);
-    expect(TERMS_DOCUMENT.lastUpdatedIso).toBe("2026-09-14");
+    expect(TERMS_DOCUMENT.lastUpdatedIso).toBe("2026-09-17");
     expect(TERMS_PAGE_LEGALLY_APPROVED).toBe(false);
     expect(TERMS_DOCUMENT.sections.map((section) => section.title)).toEqual([
       "1. About River Aftercare",
@@ -135,6 +135,7 @@ describe("legal drafts", () => {
     expect(body).toContain(
       "does not currently use third-party behavioural advertising"
     );
+    expect(body).toContain("cookieless, aggregated web analytics");
     expect(body).toContain("We do not sell personal information.");
     expect(body).toContain("Notifiable Data Breaches");
     expect(body).toContain("where applicable");

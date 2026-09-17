@@ -220,7 +220,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "We do not currently operate a cookie-consent marketing stack, because we do not currently run marketing analytics or advertising pixels.",
+        text: "We do not currently operate a cookie-consent marketing stack, because we do not run advertising pixels or cookie-based marketing trackers. The aggregated web analytics described in section 12 do not use cookies.",
       },
     ],
   },
@@ -234,7 +234,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "We do not currently operate a marketing analytics product on those pages. If that changes, we will update this policy before any such processing begins.",
+        text: "We use cookieless, aggregated web analytics through our application hosting provider to count page views and understand which pages are visited. This processing does not identify individual visitors and is not used to target advertising.",
       },
     ],
   },
@@ -253,8 +253,9 @@ const SECTIONS: readonly LegalSection[] = [
           "database hosting;",
           "object or file storage for clinic logos and similar assets;",
           "DNS and network services;",
-          "email delivery; and",
-          "monitoring or security services.",
+          "email delivery;",
+          "monitoring or security services; and",
+          "aggregated web analytics.",
         ],
       },
       {

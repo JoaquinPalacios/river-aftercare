@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { Analytics } from "@vercel/analytics/next";
 
 import { geistSans } from "@/lib/branding/fonts";
 import { PRODUCT_HEAD_METADATA } from "@/lib/seo/icons";
@@ -25,7 +26,10 @@ export default function AftercareRootLayout({
       className={`aftercareDocument ${geistSans.variable}`}
       suppressHydrationWarning
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
