@@ -60,6 +60,7 @@ describe("logo upload infrastructure", () => {
     expect(adapter).not.toContain("r2.dev");
     expect(sanitizer).toContain("server-only");
     expect(sanitizer).toContain("dompurify");
+    expect(sanitizer).toContain('from "jsdom"');
     expect(sanitizer).not.toContain("dangerouslySetInnerHTML");
   });
 });

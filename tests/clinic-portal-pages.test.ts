@@ -89,6 +89,10 @@ describe("clinic portal pages", () => {
       "app/(staff)/(clinic-portal)/practice/actions.ts",
       "utf8"
     );
+    const logoActions = readFileSync(
+      "app/(staff)/(clinic-portal)/practice/logo-actions.ts",
+      "utf8"
+    );
     const guideActions = readFileSync(
       "app/(staff)/(clinic-portal)/guides/actions.ts",
       "utf8"
@@ -111,6 +115,9 @@ describe("clinic portal pages", () => {
     expect(practiceActions).toContain("requireClinicAdmin");
     expect(practiceActions).toContain("clinicMembership.clinic.id");
     expect(practiceActions).not.toContain('formData.get("clinicId")');
+    expect(logoActions).toContain("requireClinicAdmin");
+    expect(logoActions).toContain("clinicMembership.clinic.id");
+    expect(logoActions).not.toContain('formData.get("clinicId")');
     expect(guideActions).toContain("requireClinicAdmin");
     expect(guideActions).toContain("unpublishGuideAction");
     expect(guideActions).not.toContain('formData.get("clinicId")');

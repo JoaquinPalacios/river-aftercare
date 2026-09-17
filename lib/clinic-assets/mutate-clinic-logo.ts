@@ -14,7 +14,6 @@ import {
   ClinicAssetStorageUnavailableError,
   clinicAssetErrorClass,
 } from "@/lib/clinic-assets/errors";
-import { sanitizeClinicLogoSvg } from "@/lib/clinic-assets/sanitize-clinic-logo-svg";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { getPrisma } from "@/lib/prisma";
 
@@ -68,6 +67,8 @@ export async function uploadClinicLogo(input: {
   let bytes = input.bytes;
   let mimeType = validated.mimeType;
   if (validated.kind === "svg") {
+    const { sanitizeClinicLogoSvg } =
+      await import("@/lib/clinic-assets/sanitize-clinic-logo-svg");
     const sanitized = sanitizeClinicLogoSvg(input.bytes);
     if (!sanitized.ok) {
       throw new ClinicPortalError(sanitized.error, "invalid");

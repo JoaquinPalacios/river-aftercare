@@ -17,7 +17,7 @@ The repository now has:
 - `R2ClinicAssetStorage` adapter (`@aws-sdk/client-s3`, server-only, S3-compatible R2 API)
 - In-memory driver for automated tests only (`CLINIC_ASSET_STORAGE_DRIVER=memory`) — not a filesystem and not for production
 - Validation: PNG / JPEG / WebP (2 MB) and SVG (1 MB); MIME, extension, and magic/markup checked independently
-- Server-only SVG sanitization (`jsdom` XML parse + DOMPurify SVG profile)
+- Server-only SVG sanitization (`jsdom` XML parse + DOMPurify SVG profile), loaded **only** on the SVG upload path
 - ADMIN-only, same-clinic mutation (`uploadClinicLogo` / `removeClinicLogo`)
 - Same-origin GET `/clinic-branding/<clinicId>/<filename>` as the **test / unconfigured-origin** fallback
 - Production public URLs: `CLINIC_ASSET_PUBLIC_ORIGIN` + object key (`https://assets.riveraftercare.com.au/clinics/...`) served by a Vercel route that performs authenticated private R2 `GetObject`
@@ -47,6 +47,10 @@ SVG rejection / removal includes at least:
 - DTD/ENTITY payloads and non-XML processing instructions
 
 Sanitization is **server-only**. Regex is not the security boundary. The stored object is a generated `*.svg` with `Content-Type: image/svg+xml`. Clients render it as an image.
+
+Ordinary Practice mutations (display name, colours, contact, emergency text, presentation) must not import `jsdom`, DOMPurify, or `sanitize-clinic-logo-svg`. Those live in `practice/actions.ts`. Logo upload/remove live in `practice/logo-actions.ts`. `mutate-clinic-logo` dynamically imports the sanitizer only after `validateClinicLogo` reports `kind === "svg"`. Raster PNG/JPEG/WebP uploads never load jsdom.
+
+`jsdom` is pinned to **26.1.0** (CJS `html-encoding-sniffer@4` / `parse5@7`). jsdom 27+ requires ESM-only `@exodus/bytes` from CommonJS; Vercel’s Node runtime rejects that with `ERR_REQUIRE_ESM`. Do not “fix” this by changing Vercel `NODE_OPTIONS`. Fail closed on SVG rather than skip sanitization.
 
 ## Production provider
 
