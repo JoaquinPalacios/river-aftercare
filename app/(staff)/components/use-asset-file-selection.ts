@@ -1,24 +1,48 @@
 "use client";
 
-import { useCallback, useRef, useState, type ChangeEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 
 import { formatSelectedAssetFileLabel } from "@/app/(staff)/components/asset-file-label";
+import {
+  createLocalAssetPreviewUrl,
+  revokeLocalAssetPreviewUrl,
+} from "@/app/(staff)/components/local-asset-preview";
 import { rasterImageSize } from "@/lib/platform-assets/image-size";
 
 export function useAssetFileSelection() {
   const fileRef = useRef<HTMLInputElement>(null);
   const selectionRead = useRef(0);
+  const previewUrlRef = useRef<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const [selectedPreviewSrc, setSelectedPreviewSrc] = useState<string | null>(
+    null
+  );
+
+  const replacePreview = useCallback((next: string | null): void => {
+    const previous = previewUrlRef.current;
+    previewUrlRef.current = next;
+    setSelectedPreviewSrc(next);
+    if (previous && previous !== next) {
+      revokeLocalAssetPreviewUrl(previous);
+    }
+  }, []);
 
   const clearSelection = useCallback((): void => {
     selectionRead.current += 1;
     setSelectedName(null);
     setSelectedLabel(null);
+    replacePreview(null);
     if (fileRef.current) {
       fileRef.current.value = "";
     }
-  }, []);
+  }, [replacePreview]);
 
   const onFileChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
@@ -39,6 +63,7 @@ export function useAssetFileSelection() {
           height: null,
         })
       );
+      replacePreview(createLocalAssetPreviewUrl(file));
 
       const size = rasterImageSize(new Uint8Array(await file.arrayBuffer()));
       if (selectionRead.current !== readId) {
@@ -53,13 +78,21 @@ export function useAssetFileSelection() {
         })
       );
     },
-    [clearSelection]
+    [clearSelection, replacePreview]
   );
+
+  useEffect(() => {
+    return () => {
+      revokeLocalAssetPreviewUrl(previewUrlRef.current);
+      previewUrlRef.current = null;
+    };
+  }, []);
 
   return {
     fileRef,
     selectedName,
     selectedLabel,
+    selectedPreviewSrc,
     hasSelection: Boolean(selectedName),
     clearSelection,
     onFileChange,

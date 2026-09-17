@@ -1599,6 +1599,73 @@ a.staffOverflowItem {
   background: var(--staff-canvas);
 }
 
+.staffLogoCompare {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.staffLogoCompareSlot {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.staffLogoCompareLabel {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--staff-muted);
+}
+
+.staffLogoCompareSlotSelected .staffLogoCompareLabel {
+  color: var(--staff-ink);
+  font-weight: 500;
+}
+
+.staffLogoCompare .staffLogoPreview,
+.staffLogoCompare .staffLogoPreviewEmpty {
+  max-width: min(100%, 16rem);
+}
+
+.staffLogoCompareArrow {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  color: var(--staff-muted);
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.staffLogoCompareArrowDesktop {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .staffLogoCompare {
+    flex-direction: row;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .staffLogoCompareSlot {
+    flex: 1 1 0;
+  }
+
+  .staffLogoCompareArrowMobile {
+    display: none;
+  }
+
+  .staffLogoCompareArrowDesktop {
+    display: inline;
+  }
+}
+
 .staffOgPreview {
   width: min(100%, 24rem);
   height: auto;

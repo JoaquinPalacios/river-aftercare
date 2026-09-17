@@ -19,6 +19,22 @@ const REQUIREMENTS_FORMATS = "SVG, PNG, JPEG or WebP";
 const REQUIREMENTS_LIMITS = "Raster max 2 MB · SVG max 1 MB";
 const REQUIREMENTS = `${REQUIREMENTS_FORMATS} · ${REQUIREMENTS_LIMITS}`;
 
+function PracticeLogoPreview({
+  src,
+  alt,
+  onError,
+}: {
+  src: string;
+  alt: string;
+  onError?: () => void;
+}) {
+  return (
+    // Clinic mark is a same-origin path, configured assets origin, or a local object URL.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} className="staffLogoPreview" onError={onError} />
+  );
+}
+
 export function PracticeLogoField({
   displayName,
   logoUrl,
@@ -50,13 +66,20 @@ export function PracticeLogoField({
   const [success, setSuccess] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [previewBroken, setPreviewBroken] = useState(false);
   const [uploadState, uploadAction, uploading] = useActionState(
     uploadClinicLogoAction,
     empty
   );
   const [removing, setRemoving] = useState(false);
-  const { fileRef, selectedLabel, hasSelection, clearSelection, onFileChange } =
-    useAssetFileSelection();
+  const {
+    fileRef,
+    selectedLabel,
+    selectedPreviewSrc,
+    hasSelection,
+    clearSelection,
+    onFileChange,
+  } = useAssetFileSelection();
 
   useEffect(() => {
     setMounted(true);
@@ -66,6 +89,10 @@ export function PracticeLogoField({
     setLogoSrc(initialLogoSrc);
     setHasLogo(Boolean(logoUrl));
   }, [initialLogoSrc, logoUrl]);
+
+  useEffect(() => {
+    setPreviewBroken(false);
+  }, [selectedPreviewSrc]);
 
   useEffect(() => {
     if (seenUploadState.current === uploadState) {
@@ -121,8 +148,19 @@ export function PracticeLogoField({
 
   const previewSrc = logoSrc;
   const busy = uploading || removing;
-  const previewAlt = `Current ${displayName || "Practice"} logo`;
+  const practiceName = displayName || "Practice";
+  const previewAlt = `Current ${practiceName} logo`;
+  const selectedPreviewAlt = hasLogo
+    ? `Selected replacement for the ${practiceName} logo`
+    : `Selected ${practiceName} logo`;
   const chooseLabel = hasLogo ? "Choose replacement" : "Choose logo";
+  const comparing = hasLogo && hasSelection;
+  const showSelectedPreview = Boolean(selectedPreviewSrc) && !previewBroken;
+  const selectedCaption = selectedLabel ? (
+    <p className="text-sm text-staff-ink" id={selectedId} aria-live="polite">
+      {selectedLabel}
+    </p>
+  ) : null;
   const describedBy = [
     helpId,
     requirementsId,
@@ -148,10 +186,42 @@ export function PracticeLogoField({
         </p>
       </div>
 
-      {previewSrc ? (
-        // Clinic mark is a same-origin path or the configured assets origin.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={previewSrc} alt={previewAlt} className="staffLogoPreview" />
+      {comparing ? (
+        <div className="staffLogoCompare">
+          <div className="staffLogoCompareSlot">
+            <p className="staffLogoCompareLabel">Current logo</p>
+            {previewSrc ? (
+              <PracticeLogoPreview src={previewSrc} alt={previewAlt} />
+            ) : (
+              <div className="staffLogoPreviewEmpty" />
+            )}
+          </div>
+          <span className="staffLogoCompareArrow" aria-hidden="true">
+            <span className="staffLogoCompareArrowMobile">↓</span>
+            <span className="staffLogoCompareArrowDesktop">→</span>
+          </span>
+          <div className="staffLogoCompareSlot staffLogoCompareSlotSelected">
+            <p className="staffLogoCompareLabel">Selected replacement</p>
+            {showSelectedPreview && selectedPreviewSrc ? (
+              <PracticeLogoPreview
+                src={selectedPreviewSrc}
+                alt={selectedPreviewAlt}
+                onError={() => setPreviewBroken(true)}
+              />
+            ) : (
+              <div className="staffLogoPreviewEmpty" />
+            )}
+            {selectedCaption}
+          </div>
+        </div>
+      ) : previewSrc ? (
+        <PracticeLogoPreview src={previewSrc} alt={previewAlt} />
+      ) : showSelectedPreview && selectedPreviewSrc ? (
+        <PracticeLogoPreview
+          src={selectedPreviewSrc}
+          alt={selectedPreviewAlt}
+          onError={() => setPreviewBroken(true)}
+        />
       ) : (
         <div className="staffLogoPreviewEmpty" id={requirementsId}>
           <p className="text-sm text-staff-muted">{REQUIREMENTS_FORMATS}</p>
@@ -159,7 +229,7 @@ export function PracticeLogoField({
         </div>
       )}
 
-      {previewSrc ? (
+      {previewSrc || comparing || showSelectedPreview ? (
         <p className="text-sm text-staff-muted" id={requirementsId}>
           {REQUIREMENTS}
         </p>
@@ -169,15 +239,7 @@ export function PracticeLogoField({
 
       {storageAvailable && canEdit ? (
         <div className="flex min-w-0 flex-col gap-3">
-          {hasSelection ? (
-            <p
-              className="text-sm text-staff-ink"
-              id={selectedId}
-              aria-live="polite"
-            >
-              {selectedLabel}
-            </p>
-          ) : null}
+          {hasSelection && !comparing ? selectedCaption : null}
 
           <div className="staffAssetActions">
             <StaffFileTrigger
