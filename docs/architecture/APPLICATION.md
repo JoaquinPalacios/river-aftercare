@@ -27,6 +27,7 @@ Business rules should not live only inside React components. Current server modu
 | Operator clinic queries | `lib/operator/list-operator-clinics.ts`                               |
 | Platform SEO            | `lib/seo/*`                                                           |
 | Logo storage boundary   | `lib/clinic-assets/*`                                                 |
+| Platform SEO assets     | `lib/platform-assets/*`                                               |
 
 Route handlers and Server Actions should generally: authorize → validate → call the module → map the result.
 

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-13
-- **Updated:** 2026-09-16 (private R2 + Vercel asset host; no R2 custom domain)
+- **Updated:** 2026-09-17 (platform SEO social images use a distinct `platform/seo/` namespace in the same private bucket)
 - **PRD:** [../product/PRD.md](../product/PRD.md) §10.2
 - **Supersedes provider choice in:** [0019](0019-clinic-logo-upload-requires-object-storage.md)
 
@@ -40,6 +40,7 @@ Cloudflare DNS / R2 ≠ application runtime. Next.js remains on Vercel.
 - SVG remains sanitized on the server and rendered only as `<img>`.
 - A Cloudflare Worker is not required. The Vercel route sets `Cache-Control`, `Content-Type` from the validated extension, and `X-Content-Type-Options: nosniff`.
 - This bucket is public-asset-only (public-by-exact-key via the app). Future private documents need a separate bucket and policy.
+- The same private bucket may also store platform SEO social images under the distinct `platform/seo/` namespace. Do not fold that work into `ClinicAssetStorage`. See [0023](0023-platform-seo-assets-use-a-distinct-private-r2-namespace.md).
 
 ## Notes for later implementation
 

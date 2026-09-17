@@ -1564,6 +1564,16 @@ a.staffOverflowItem {
   object-fit: contain;
 }
 
+.staffOgPreview {
+  width: min(100%, 24rem);
+  height: auto;
+  aspect-ratio: 1200 / 630;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.375rem;
+  background: var(--staff-panel);
+  object-fit: contain;
+}
+
 .staffLogoUnavailable {
   margin: 0;
   max-width: 38rem;

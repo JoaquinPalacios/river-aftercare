@@ -1,8 +1,8 @@
-# R2 provisioning — clinic branding assets
+# R2 provisioning — public-by-exact-key assets
 
 Manual runbook for Joaquín. Cursor / CI must **not** execute these steps, log into Cloudflare, create buckets or tokens, change DNS, or write production secrets.
 
-Production clinic-asset provider: **Cloudflare R2**. Application runtime stays on **Vercel**. Public reads go through a River Aftercare route, not an R2 public bucket or custom domain. See [../architecture/CLINIC-ASSETS.md](../architecture/CLINIC-ASSETS.md) and [ADR 0022](../adr/0022-cloudflare-r2-is-clinic-asset-provider.md).
+Production clinic-asset and platform SEO-asset provider: **Cloudflare R2**. Application runtime stays on **Vercel**. Public reads go through a River Aftercare route, not an R2 public bucket or custom domain. See [../architecture/CLINIC-ASSETS.md](../architecture/CLINIC-ASSETS.md), [../architecture/SEO.md](../architecture/SEO.md), [ADR 0022](../adr/0022-cloudflare-r2-is-clinic-asset-provider.md), and [ADR 0023](../adr/0023-platform-seo-assets-use-a-distinct-private-r2-namespace.md).
 
 Do not put credentials in the repository.
 
@@ -13,6 +13,13 @@ browser
   -> https://assets.riveraftercare.com.au/clinics/<clinicId>/branding/<filename>
   -> River Aftercare / Vercel server route
   -> authenticated private R2 GetObject / HeadObject
+
+Operator
+  -> authenticated server-side upload
+  -> private R2
+  -> platform/seo/<immutable-key>
+  -> https://assets.riveraftercare.com.au/platform/seo/<immutable-key>
+  -> Vercel cached public exact-key delivery
 ```
 
 Production facts:
@@ -23,6 +30,7 @@ Production facts:
 - **No Cloudflare R2 custom domain.** Do not connect `assets.riveraftercare.com.au` (or any hostname) to the bucket.
 - **No browser-direct uploads.** ADMIN uploads go clinic portal → Next.js server → `PutObject`. There are no presigned browser uploads.
 - **Clinic branding is public-by-exact-key only.** Knowing `clinics/<clinicId>/branding/<uuid>.<ext>` is enough to fetch that image. There is no directory listing.
+- **Platform SEO social images are public-by-exact-key only**, under a distinct namespace: `platform/seo/<uuid>.<ext>`. Clinic ADMIN/STAFF cannot mutate them.
 - **This bucket must not be used for private patient documents.** Future private files need a separate bucket, token, and auth model.
 
 `assets` is a reserved tenant slug. Hostname routing must never treat `assets.riveraftercare.com.au` as a clinic tenant.
@@ -39,7 +47,7 @@ Production facts:
 1. R2 → **Create bucket** if it does not already exist.
 2. Production name: `river-aftercare-clinic-assets-prod` (must match `R2_BUCKET`).
 3. Location: choose the jurisdiction/region appropriate for the practice data residency decision. Default to the account’s primary R2 location if none is set yet.
-4. This bucket is **public-asset-only** clinic branding (logos / future small brand marks). Do **not** store private documents, patient files, or backups here.
+4. This bucket is **public-asset-only** (clinic branding and platform SEO social images). Do **not** store private documents, patient files, or backups here.
 5. Do **not** enable a general bucket listing/index. Objects are reachable only by exact key through the Vercel route.
 6. Leave **r2.dev** disabled. Leave the bucket **private**. Do **not** attach an R2 custom domain.
 
@@ -80,8 +88,9 @@ The public URL is a Vercel hostname:
 Public read is by object key only:
 
 `https://assets.riveraftercare.com.au/clinics/<clinicId>/branding/<uuid>.<ext>`
+`https://assets.riveraftercare.com.au/platform/seo/<uuid>.<ext>`
 
-The Next.js route `app/clinics/[clinicId]/branding/[filename]/route.ts` serves that path **only** when `Host` matches the hostname in `CLINIC_ASSET_PUBLIC_ORIGIN`. The same path on `riveraftercare.com.au`, `app.riveraftercare.com.au`, tenant subdomains, or an arbitrary `Host` header returns a generic empty 404.
+The Next.js route `app/clinics/[clinicId]/branding/[filename]/route.ts` serves clinic branding **only** when `Host` matches the hostname in `CLINIC_ASSET_PUBLIC_ORIGIN`. `app/platform/seo/[filename]/route.ts` does the same for platform social images. The same paths on `riveraftercare.com.au`, `app.riveraftercare.com.au`, tenant subdomains, or an arbitrary `Host` header return a generic empty 404.
 
 The route sets:
 
@@ -128,18 +137,26 @@ Redeploy after setting env so server processes see the values. Practice Upload /
 3. Confirm the UI shows **Uploaded** and a preview `<img>`.
 4. Confirm `ClinicProfile.logoUrl` is a key `clinics/<clinicId>/branding/<uuid>.<ext>`, not a Cloudflare, r2.dev, or `assets.` URL.
 
+Platform default social image:
+
+1. Sign in as a platform **OPERATOR** (not clinic ADMIN or STAFF).
+2. Operator → SEO & Discovery → choose a PNG/JPEG/WebP that is exactly 1200 × 630 → **Upload image**.
+3. Confirm the preview updates. Confirm `PlatformSeoSettings.defaultOgImagePath` is `/platform/seo/<uuid>.<ext>`.
+4. Confirm clinic ADMIN/STAFF cannot open the operator SEO page.
+
 ## 8. Verify public read
 
 1. Open the patient tenant homepage and a published guide.
 2. The clinic mark must load from `CLINIC_ASSET_PUBLIC_ORIGIN` + key.
 3. `curl -I` the object URL: HTTP 200, expected `Content-Type`, `X-Content-Type-Options: nosniff`.
-4. Confirm a guessed directory URL (`/clinics/<clinicId>/branding/`) does **not** list the bucket.
+4. Confirm a guessed directory URL (`/clinics/<clinicId>/branding/` or `/platform/seo/`) does **not** list the bucket.
 5. Confirm the same path on the apex, `app.`, or a tenant host returns a generic 404.
 
 ## 9. Verify cache headers
 
 ```bash
 curl -sI "https://assets.riveraftercare.com.au/clinics/<clinicId>/branding/<uuid>.png"
+curl -sI "https://assets.riveraftercare.com.au/platform/seo/<uuid>.png"
 ```
 
 Expect:
@@ -181,7 +198,7 @@ Infrastructure rollback:
 ## Local development
 
 - Automated tests: `CLINIC_ASSET_STORAGE_DRIVER=memory` (Playwright webServer and Vitest). Never hits Cloudflare.
-- Same-origin fallback route: `/clinic-branding/<clinicId>/<filename>` for memory/test when `CLINIC_ASSET_PUBLIC_ORIGIN` is unset.
+- Same-origin fallback route: `/clinic-branding/<clinicId>/<filename>` for memory/test when `CLINIC_ASSET_PUBLIC_ORIGIN` is unset. Platform SEO uses `/platform-seo/<filename>`.
 - Manual real-R2: optional development bucket + the same env names. Do not commit values.
 - Do not require MinIO or a local filesystem fake of production.
 

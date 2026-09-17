@@ -214,5 +214,77 @@ describe("marketing SEO resolution", () => {
     expect(isDedicatedOgImageConfigured("/brand/river-aftercare-og.png")).toBe(
       true
     );
+    expect(
+      isDedicatedOgImageConfigured(
+        "/platform/seo/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
+      )
+    ).toBe(true);
+  });
+
+  it("resolves an uploaded global default into Open Graph and Twitter metadata", () => {
+    process.env.CLINIC_ASSET_PUBLIC_ORIGIN = "https://assets.example.test";
+    try {
+      const stored = "/platform/seo/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png";
+      const home = resolveMarketingSeo({
+        path: "/contact",
+        origin: "https://example.test",
+        platform: {
+          ...DEFAULT_PLATFORM_SEO,
+          defaultOgImagePath: stored,
+        },
+      });
+      const metadata = marketingSeoToMetadata(home);
+      expect(home.social.imagePath).toBe(stored);
+      expect(metadata.openGraph?.images).toEqual([
+        {
+          url: "https://assets.example.test/platform/seo/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png",
+        },
+      ]);
+      expect(metadata.twitter).toMatchObject({
+        card: "summary_large_image",
+        images: [
+          "https://assets.example.test/platform/seo/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png",
+        ],
+      });
+      expect(metadata.alternates?.canonical).toBe(
+        "https://example.test/contact"
+      );
+      expect(metadata.robots).toEqual({ index: true, follow: true });
+    } finally {
+      delete process.env.CLINIC_ASSET_PUBLIC_ORIGIN;
+    }
+  });
+
+  it("keeps a page-specific social image override ahead of the uploaded default", () => {
+    process.env.CLINIC_ASSET_PUBLIC_ORIGIN = "https://assets.example.test";
+    try {
+      const resolved = resolveMarketingSeo({
+        path: "/pricing",
+        origin: "https://example.test",
+        platform: {
+          ...DEFAULT_PLATFORM_SEO,
+          defaultOgImagePath:
+            "/platform/seo/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png",
+        },
+        page: {
+          path: "/pricing",
+          seoTitle: "Pricing",
+          metaDescription: "Page description",
+          ogTitle: "Share title",
+          ogDescription: "Share description",
+          ogImagePath: "/brand/custom-og.png",
+          index: true,
+          follow: true,
+          updatedAt: null,
+        },
+      });
+      const metadata = marketingSeoToMetadata(resolved);
+      expect(resolved.social.imagePath).toBe("/brand/custom-og.png");
+      expect(metadata.openGraph?.images).toEqual([
+        { url: "/brand/custom-og.png" },
+      ]);
+    } finally {
+      delete process.env.CLINIC_ASSET_PUBLIC_ORIGIN;
+    }
   });
 });

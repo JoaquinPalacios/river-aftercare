@@ -7,14 +7,16 @@ import type { ValidatedPlatformSeoInput } from "@/lib/seo/validation";
 export async function savePlatformSeoSettings(
   input: ValidatedPlatformSeoInput
 ): Promise<void> {
+  const { defaultOgImagePath, ...identityWithoutOg } = input.identity;
   await getPrisma().$transaction(async (tx) => {
     await tx.platformSeoSettings.upsert({
       where: { id: PLATFORM_SEO_ID },
       create: {
         id: PLATFORM_SEO_ID,
-        ...input.identity,
+        ...identityWithoutOg,
+        defaultOgImagePath,
       },
-      update: input.identity,
+      update: identityWithoutOg,
     });
 
     for (const page of input.pages) {

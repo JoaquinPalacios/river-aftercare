@@ -4,6 +4,8 @@ import { CopyJsonButton } from "@/app/(staff)/(operator)/operator/seo/copy-json-
 import { SeoDiscoveryForm } from "@/app/(staff)/(operator)/operator/seo/seo-discovery-form";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { isClinicAssetStorageConfigured } from "@/lib/clinic-assets/config";
+import { resolvePlatformSeoOgImageUrl } from "@/lib/platform-assets/public-url";
 import { buildSeoDiagnostics } from "@/lib/seo/diagnostics";
 import { buildMarketingJsonLdGraph } from "@/lib/seo/json-ld";
 import {
@@ -33,6 +35,9 @@ export default async function OperatorSeoPage() {
   });
   const jsonLd = buildMarketingJsonLdGraph(home);
   const serialized = serializeJsonLd(jsonLd);
+  const ogConfigured = diagnostics.some(
+    (item) => item.id === "og-image" && item.status === "complete"
+  );
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-4xl flex-col gap-10">
@@ -75,12 +80,19 @@ export default async function OperatorSeoPage() {
             </li>
           ))}
         </ul>
-        <p className="text-sm text-staff-muted">
-          {DEDICATED_OG_IMAGE_REQUIRED}
-        </p>
+        {ogConfigured ? null : (
+          <p className="text-sm text-staff-muted">
+            {DEDICATED_OG_IMAGE_REQUIRED}
+          </p>
+        )}
       </section>
 
-      <SeoDiscoveryForm identity={identity} pages={pages} />
+      <SeoDiscoveryForm
+        identity={identity}
+        pages={pages}
+        storageAvailable={isClinicAssetStorageConfigured()}
+        ogImageSrc={resolvePlatformSeoOgImageUrl(identity.defaultOgImagePath)}
+      />
 
       <section className="flex flex-col gap-3" aria-labelledby="seo-jsonld">
         <div className="flex flex-wrap items-end justify-between gap-3">

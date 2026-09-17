@@ -4,18 +4,18 @@ Phase 2B production-quality discovery layer. This remains a **structured clinica
 
 ## Surfaces
 
-| Surface                                                                          | Host                            | Index               | Follow | Sitemap | Notes                                                                                                                                      |
-| -------------------------------------------------------------------------------- | ------------------------------- | ------------------- | ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Marketing `/`, `/pricing`, `/contact`, `/about`                                  | apex / `localhost`              | yes                 | yes    | yes     | Title, description, canonical, Open Graph, Twitter, generated JSON-LD.                                                                     |
-| Marketing `/privacy`, `/terms`                                                   | apex / `localhost`              | **no** while drafts | yes    | yes     | Explicit legal drafts. Page-level `noindex, follow` until counsel approval. Still listed in sitemap and `llms.txt`.                        |
-| Marketing `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics`      | apex / `localhost`              | yes                 | yes    | yes     | Vertical acquisition pages. Shared Organization / WebSite / SoftwareApplication plus per-route WebPage. No FAQPage or MedicalWebPage.      |
-| `/llms.txt`                                                                      | apex                            | n/a                 | n/a    | no      | Agent-oriented public summary generated from identity + public routes, including clinic vertical pages                                     |
-| Staff portal `/dashboard`, `/guides`, `/practice`                                | `app.<root>`                    | no                  | no     | no      | Authenticated clinic chrome                                                                                                                |
-| Operator `/operator/*`                                                           | `app.<root>`                    | no                  | no     | no      | Includes SEO & Discovery                                                                                                                   |
-| Authenticated draft preview                                                      | `app.<root>/guides/:id/preview` | no                  | no     | no      | Never a public canonical                                                                                                                   |
-| Parked chairside `/display`, `/sessions`                                         | `app.<root>`                    | no                  | no     | no      | Existing anti-index posture                                                                                                                |
-| Tenant home and published guides                                                 | `<clinic>.<root>`               | **no**              | yes    | **no**  | Shareable aftercare documents; clinic-first metadata; not SEO inventory                                                                    |
-| Internal rewrites `/_marketing`, `/_sites`                                       | n/a                             | no                  | no     | no      | Blocked from the public Host                                                                                                               |
+| Surface                                                                     | Host                            | Index               | Follow | Sitemap | Notes                                                                                                                                 |
+| --------------------------------------------------------------------------- | ------------------------------- | ------------------- | ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Marketing `/`, `/pricing`, `/contact`, `/about`                             | apex / `localhost`              | yes                 | yes    | yes     | Title, description, canonical, Open Graph, Twitter, generated JSON-LD.                                                                |
+| Marketing `/privacy`, `/terms`                                              | apex / `localhost`              | **no** while drafts | yes    | yes     | Explicit legal drafts. Page-level `noindex, follow` until counsel approval. Still listed in sitemap and `llms.txt`.                   |
+| Marketing `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics` | apex / `localhost`              | yes                 | yes    | yes     | Vertical acquisition pages. Shared Organization / WebSite / SoftwareApplication plus per-route WebPage. No FAQPage or MedicalWebPage. |
+| `/llms.txt`                                                                 | apex                            | n/a                 | n/a    | no      | Agent-oriented public summary generated from identity + public routes, including clinic vertical pages                                |
+| Staff portal `/dashboard`, `/guides`, `/practice`                           | `app.<root>`                    | no                  | no     | no      | Authenticated clinic chrome                                                                                                           |
+| Operator `/operator/*`                                                      | `app.<root>`                    | no                  | no     | no      | Includes SEO & Discovery                                                                                                              |
+| Authenticated draft preview                                                 | `app.<root>/guides/:id/preview` | no                  | no     | no      | Never a public canonical                                                                                                              |
+| Parked chairside `/display`, `/sessions`                                    | `app.<root>`                    | no                  | no     | no      | Existing anti-index posture                                                                                                           |
+| Tenant home and published guides                                            | `<clinic>.<root>`               | **no**              | yes    | **no**  | Shareable aftercare documents; clinic-first metadata; not SEO inventory                                                               |
+| Internal rewrites `/_marketing`, `/_sites`                                  | n/a                             | no                  | no     | no      | Blocked from the public Host                                                                                                          |
 
 Page-level Next.js `robots` metadata is the real noindex control. `robots.txt` is a crawl hint, not a substitute.
 
@@ -58,13 +58,30 @@ Operators cannot paste HTML, scripts, `javascript:` / `data:` URLs, or raw JSON-
 
 ## Open Graph image
 
-Ideal share card: **1200 × 630**. The approved logo/isologo is **not** a social card. Until a dedicated asset exists:
+Ideal share card: **1200 × 630**. The approved logo/isologo is **not** a social card.
+
+Operators upload the default social image from **SEO & Discovery**. The file is validated on the server (PNG / JPEG / WebP only, exact 1200 × 630, ≤ 2 MB), stored in private R2 under `platform/seo/<uuid>.<ext>`, and delivered at:
+
+```text
+Operator
+  -> authenticated server-side upload
+  -> private R2
+  -> platform/seo/<immutable-key>
+  -> https://assets.riveraftercare.com.au/platform/seo/<immutable-key>
+  -> Vercel cached public exact-key delivery
+```
+
+`PlatformSeoSettings.defaultOgImagePath` remains the canonical persisted field. Uploads store a same-origin public path `/platform/seo/<uuid>.<ext>`. Metadata resolution prefixes `CLINIC_ASSET_PUBLIC_ORIGIN` so crawlers request the `assets.` host, not the apex. Page-specific `ogImagePath` overrides still win.
+
+SVG is not accepted for this social image. The image is not resized or recompressed.
+
+R2 stays private. r2.dev stays disabled. There is no R2 custom domain and no browser-direct or presigned upload. Platform OG images are public-by-exact-key only. Private patient documents must never use this mechanism.
+
+Until an operator uploads a dedicated 1200 × 630 asset, diagnostics still show:
 
 **DEDICATED RIVER AFTERCARE OG IMAGE STILL REQUIRED**
 
-Do not stretch a square mark into 1200 × 630. No image generation in this phase.
-
-Organization JSON-LD `logo` uses the public isologo at a stable absolute URL (`/brand/river-aftercare-isologo.svg`), never localhost.
+Organization JSON-LD `logo` uses the public isologo at a stable absolute URL (`/brand/river-aftercare-isologo.svg`), never localhost. That logo is not the social card.
 
 ## JSON-LD
 
@@ -123,6 +140,7 @@ The editorial library is **not** built in Phase 2B. Architecture must not preven
 | llms.txt               | `lib/seo/llms-txt.ts`, `app/llms.txt/route.ts`                                           |
 | Sitemap / robots       | `lib/seo/sitemap.ts`, `app/sitemap.ts`, `app/robots.ts`                                  |
 | Operator UI            | `app/(staff)/(operator)/operator/seo/`                                                   |
+| Platform OG assets     | `lib/platform-assets/*`, `app/platform/seo/[filename]/route.ts`                          |
 | Marketing metadata     | `lib/seo/marketing-page.ts`, `lib/marketing/metadata.ts`                                 |
 | Tenant metadata        | `lib/aftercare/tenant-metadata.ts`                                                       |
 | Robots constants       | `lib/seo/robots-policy.ts`                                                               |

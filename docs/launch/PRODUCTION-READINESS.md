@@ -11,17 +11,17 @@ Do not provision Vercel, Cloudflare, R2, domains, or email from this document. D
 
 ## Product
 
-| Item                                   | Status                                 | Notes                                                                                                       |
-| -------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Brand assets (logo, isologo, favicon)  | READY                                  | Final approved pack on main. Dedicated 1200×630 OG image still required.                                    |
-| Patient UX                             | READY                                  | Tenant home + published guides, CSS Modules, no patient Tailwind.                                           |
-| Clinic portal                          | READY                                  | Overview / Guides / Practice, draft-preview-publish-unpublish-delete.                                       |
-| Operator                               | READY                                  | All Clinics + SEO & Discovery. No Templates library UI.                                                     |
-| Guide lifecycle                        | READY                                  | Draft / published / unpublished; public pin protected.                                                      |
-| Canonical dental templates             | REQUIRED BEFORE PRODUCTION             | Seeded library is **Tooth Extraction** only. Marketing no longer advertises unbuilt templates as available. |
-| Clinical governance / review ownership | REQUIRED BEFORE PRODUCTION             | Policy exists; no signed clinical review of production copy.                                                |
-| QR / share                             | RECOMMENDED BEFORE FIRST PAYING CLINIC | Durable URLs exist. Copy-URL UI, QR generation, and QR download/print are **not** implemented.              |
-| Check-ins / RecoveryPlan               | POST-LAUNCH                            | Explicitly out of this phase.                                                                               |
+| Item                                   | Status                                 | Notes                                                                                                                        |
+| -------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Brand assets (logo, isologo, favicon)  | READY                                  | Final approved pack on main. Operator upload exists for a dedicated 1200×630 OG image; the image still needs to be uploaded. |
+| Patient UX                             | READY                                  | Tenant home + published guides, CSS Modules, no patient Tailwind.                                                            |
+| Clinic portal                          | READY                                  | Overview / Guides / Practice, draft-preview-publish-unpublish-delete.                                                        |
+| Operator                               | READY                                  | All Clinics + SEO & Discovery. No Templates library UI.                                                                      |
+| Guide lifecycle                        | READY                                  | Draft / published / unpublished; public pin protected.                                                                       |
+| Canonical dental templates             | REQUIRED BEFORE PRODUCTION             | Seeded library is **Tooth Extraction** only. Marketing no longer advertises unbuilt templates as available.                  |
+| Clinical governance / review ownership | REQUIRED BEFORE PRODUCTION             | Policy exists; no signed clinical review of production copy.                                                                 |
+| QR / share                             | RECOMMENDED BEFORE FIRST PAYING CLINIC | Durable URLs exist. Copy-URL UI, QR generation, and QR download/print are **not** implemented.                               |
+| Check-ins / RecoveryPlan               | POST-LAUNCH                            | Explicitly out of this phase.                                                                                                |
 
 ## Discovery
 
@@ -34,7 +34,7 @@ Do not provision Vercel, Cloudflare, R2, domains, or email from this document. D
 | Agentic readiness  | READY                                  | Architecture audit in [AGENTIC-READINESS.md](AGENTIC-READINESS.md). No numeric Is Agentic score.        |
 | Privacy / Terms    | REQUIRED BEFORE PRODUCTION             | Substantial drafts published at `/privacy` and `/terms`. **Legal review still required.** Not approved. |
 | About              | READY                                  | Factual public page.                                                                                    |
-| Dedicated OG image | RECOMMENDED BEFORE FIRST PAYING CLINIC | Missing 1200×630 asset.                                                                                 |
+| Dedicated OG image | RECOMMENDED BEFORE FIRST PAYING CLINIC | Operator upload/replace/remove is implemented. A 1200×630 PNG/JPEG/WebP still needs to be uploaded.     |
 
 ## Infra
 
@@ -161,7 +161,7 @@ Cloudflare as authoritative DNS plus `_acme-challenge` delegation to Vercel must
 | MUST BEFORE PRODUCTION     | Turnstile on login/contact                                       | Yes                   | Cloudflare widget                                                                                                                            |
 | MUST BEFORE PRODUCTION     | Error monitoring + secrets review                                | Yes                   | Sentry or equivalent                                                                                                                         |
 | MUST BEFORE PRODUCTION     | Auth.js v5 beta accepted in writing                              | Yes                   | Keep exception or separate auth project                                                                                                      |
-| MUST BEFORE PRODUCTION     | Dedicated OG image optional for go-live                          | No                    | 1200×630 asset                                                                                                                               |
+| MUST BEFORE PRODUCTION     | Dedicated OG image optional for go-live                          | No                    | Upload workflow exists; 1200×630 asset still needs to be uploaded                                                                            |
 | BEFORE FIRST PAYING CLINIC | Reviewed multi-template dental library                           | Yes for paid          | Clinical review of Extraction + additional procedures                                                                                        |
 | BEFORE FIRST PAYING CLINIC | QR + copy URL                                                    | No for design partner | Implement share kit                                                                                                                          |
 | BEFORE FIRST PAYING CLINIC | Final commercial pricing / Stripe                                | Yes for paid          | Replace provisional A$79 / A$149                                                                                                             |

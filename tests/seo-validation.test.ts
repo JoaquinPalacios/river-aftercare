@@ -97,4 +97,16 @@ describe("SEO validation", () => {
       "https://www.linkedin.com/company/example",
     ]);
   });
+
+  it("accepts a managed platform SEO public path", () => {
+    const result = validatePlatformSeoInput({
+      ...baseInput(),
+      defaultOgImagePath:
+        "/platform/seo/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png",
+    });
+    expect(result.issues).toEqual([]);
+    expect(result.value?.identity.defaultOgImagePath).toBe(
+      "/platform/seo/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
+    );
+  });
 });

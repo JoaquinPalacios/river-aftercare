@@ -297,6 +297,28 @@ describe("proxy", () => {
     expect(rewrittenUrl(otherPath)).toBeNull();
   });
 
+  it("lets the reserved assets host serve exact platform SEO object paths", () => {
+    const response = proxy(
+      requestFor(
+        "http://assets.localhost:3000/platform/seo/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
+      )
+    );
+    expect(response.status).toBe(200);
+    expect(rewrittenUrl(response)).toBeNull();
+  });
+
+  it("does not list platform SEO prefixes on the assets host", () => {
+    expect(
+      proxy(requestFor("http://assets.localhost:3000/platform")).status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://assets.localhost:3000/platform/seo")).status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://assets.localhost:3000/platform/seo/")).status
+    ).toBe(404);
+  });
+
   it("lets the reserved assets host serve exact branding object paths", () => {
     const response = proxy(
       requestFor(

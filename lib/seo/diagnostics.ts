@@ -47,7 +47,7 @@ export function buildSeoDiagnostics(input: {
       label: "OG image",
       status: ogConfigured ? "complete" : "attention",
       detail: ogConfigured
-        ? "A dedicated social image path is configured."
+        ? "A dedicated 1200 × 630 social image is configured."
         : "Dedicated 1200 × 630 River Aftercare OG image still required. Do not stretch the logo.",
     },
     {

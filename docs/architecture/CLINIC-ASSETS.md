@@ -132,3 +132,13 @@ The `/clinic-branding/...` route remains for the memory driver / unconfigured or
 ## Authorization
 
 Logo mutation requires authenticated clinic **ADMIN**, clinic membership, and `targetClinicId === authenticated clinic`. STAFF cannot upload, replace, or remove. OPERATOR remains a separate surface. Do not trust a client-supplied clinic id; server actions use `requireClinicAdmin()` membership.
+
+## Platform SEO social images
+
+Clinic branding and platform SEO images share the **same private R2 bucket** and Vercel `assets.` host. They do **not** share the clinic storage interface.
+
+- Clinic logos stay under `clinics/<clinicId>/branding/<uuid>.<ext>`
+- Platform default social images use `platform/seo/<uuid>.<ext>`
+- `ClinicAssetStorage` remains clinic-logo-specific. Platform uploads go through `PlatformSeoAssetStorage`.
+
+See [SEO.md](SEO.md) and [ADR 0023](../adr/0023-platform-seo-assets-use-a-distinct-private-r2-namespace.md). Private patient documents must never use this public-by-exact-key mechanism.

@@ -3,8 +3,15 @@
 import { revalidatePath } from "next/cache";
 
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
+import { isPlatformOperator } from "@/lib/auth/session";
+import { ClinicAssetStorageUnavailableError } from "@/lib/clinic-assets/errors";
+import { isPlatformSeoAssetError } from "@/lib/platform-assets/errors";
+import {
+  removePlatformSeoOgImage,
+  uploadPlatformSeoOgImage,
+} from "@/lib/platform-assets/mutate-platform-seo-og";
 import { MARKETING_SEO_PAGE_KEYS } from "@/lib/seo/page-keys";
-import { MARKETING_SEO_PATHS, type MarketingSeoPath } from "@/lib/seo/types";
+import { MARKETING_SEO_PATHS } from "@/lib/seo/types";
 import { savePlatformSeoSettings } from "@/lib/seo/save-platform-seo";
 import {
   parseSameAsUrls,
@@ -17,6 +24,13 @@ export interface SeoActionState {
   fieldErrors?: Record<string, string>;
 }
 
+export interface PlatformSeoOgActionState {
+  error?: string;
+  defaultOgImagePath?: string | null;
+  imageSrc?: string | null;
+  ok?: boolean;
+}
+
 const PAGE_KEYS = MARKETING_SEO_PAGE_KEYS;
 
 function readString(formData: FormData, name: string): string {
@@ -26,6 +40,33 @@ function readString(formData: FormData, name: string): string {
 
 function readChecked(formData: FormData, name: string): boolean {
   return formData.get(name) === "on";
+}
+
+function revalidateSeoSurfaces(): void {
+  revalidatePath("/", "layout");
+  revalidatePath("/_marketing", "layout");
+  revalidatePath("/pricing");
+  revalidatePath("/contact");
+  revalidatePath("/about");
+  revalidatePath("/privacy");
+  revalidatePath("/terms");
+  revalidatePath("/dental");
+  revalidatePath("/physiotherapy");
+  revalidatePath("/chiropractic");
+  revalidatePath("/cosmetic-clinics");
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/llms.txt");
+  revalidatePath("/operator/seo");
+}
+
+function ogError(error: unknown): string {
+  if (error instanceof ClinicAssetStorageUnavailableError) {
+    return error.message;
+  }
+  if (isPlatformSeoAssetError(error)) {
+    return error.message;
+  }
+  return "Could not update the default social image.";
 }
 
 export async function savePlatformSeoAction(
@@ -40,7 +81,7 @@ export async function savePlatformSeoAction(
     organizationName: readString(formData, "organizationName"),
     organizationDescription: readString(formData, "organizationDescription"),
     publicContactEmail: readString(formData, "publicContactEmail"),
-    defaultOgImagePath: readString(formData, "defaultOgImagePath"),
+    defaultOgImagePath: null,
     sameAsUrls: parseSameAsUrls(readString(formData, "sameAsUrls")),
     pages: MARKETING_SEO_PATHS.map((path) => {
       const key = PAGE_KEYS[path];
@@ -72,22 +113,55 @@ export async function savePlatformSeoAction(
 
   try {
     await savePlatformSeoSettings(parsed.value);
-    revalidatePath("/", "layout");
-    revalidatePath("/_marketing", "layout");
-    revalidatePath("/pricing");
-    revalidatePath("/contact");
-    revalidatePath("/about");
-    revalidatePath("/privacy");
-    revalidatePath("/terms");
-    revalidatePath("/dental");
-    revalidatePath("/physiotherapy");
-    revalidatePath("/chiropractic");
-    revalidatePath("/cosmetic-clinics");
-    revalidatePath("/sitemap.xml");
-    revalidatePath("/llms.txt");
-    revalidatePath("/operator/seo");
+    revalidateSeoSurfaces();
     return { success: "SEO & Discovery settings saved." };
   } catch {
     return { error: "Could not save SEO settings." };
+  }
+}
+
+export async function uploadPlatformSeoOgImageAction(
+  _previous: PlatformSeoOgActionState,
+  formData: FormData
+): Promise<PlatformSeoOgActionState> {
+  const { user } = await requirePlatformOperator();
+  const file = formData.get("ogImage");
+  if (!(file instanceof File) || file.size === 0) {
+    return {
+      error: "Choose a PNG, JPEG, or WebP image that is exactly 1200 × 630.",
+    };
+  }
+
+  try {
+    const uploaded = await uploadPlatformSeoOgImage({
+      actorIsPlatformOperator: isPlatformOperator(user),
+      bytes: new Uint8Array(await file.arrayBuffer()),
+      mimeType: file.type,
+      fileName: file.name,
+    });
+    revalidateSeoSurfaces();
+    return {
+      ok: true,
+      defaultOgImagePath: uploaded.defaultOgImagePath,
+      imageSrc: uploaded.imageSrc,
+    };
+  } catch (error) {
+    return { error: ogError(error) };
+  }
+}
+
+export async function removePlatformSeoOgImageAction(
+  _previous: PlatformSeoOgActionState,
+  _formData: FormData
+): Promise<PlatformSeoOgActionState> {
+  const { user } = await requirePlatformOperator();
+  try {
+    await removePlatformSeoOgImage({
+      actorIsPlatformOperator: isPlatformOperator(user),
+    });
+    revalidateSeoSurfaces();
+    return { ok: true, defaultOgImagePath: null, imageSrc: null };
+  } catch (error) {
+    return { error: ogError(error) };
   }
 }

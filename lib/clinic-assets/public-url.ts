@@ -4,7 +4,7 @@ import {
   clinicLogoStorageKeyFromStoredValue,
   isClinicLogoStorageKey,
 } from "@/lib/clinic-assets/clinic-logo";
-import { clinicAssetPublicOrigin } from "@/lib/clinic-assets/config";
+import { clinicAssetPublicOrigin } from "@/lib/clinic-assets/public-origin";
 
 export function clinicAssetPublicUrl(storageKey: string): string | null {
   if (!isClinicLogoStorageKey(storageKey)) {

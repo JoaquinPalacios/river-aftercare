@@ -49,6 +49,7 @@ Do not create an ADR for a reversible UI detail. Create one when a later impleme
 | [0020](0020-platform-seo-is-structured-database-configuration.md)            | Platform SEO is structured database configuration            | Accepted |
 | [0021](0021-clinic-patient-guides-stay-noindex-by-default.md)                | Clinic patient guides stay noindex by default                | Accepted |
 | [0022](0022-cloudflare-r2-is-clinic-asset-provider.md)                       | Cloudflare R2 is the production clinic asset provider        | Accepted |
+| [0023](0023-platform-seo-assets-use-a-distinct-private-r2-namespace.md)      | Platform SEO assets use a distinct private R2 namespace      | Accepted |
 
 Related product contract: [../product/PRD.md](../product/PRD.md).
 Performance contract: [../architecture/PERFORMANCE.md](../architecture/PERFORMANCE.md).

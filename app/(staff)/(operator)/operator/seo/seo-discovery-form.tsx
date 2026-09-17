@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState, type ChangeEvent } from "react";
 
+import { DefaultOgImageField } from "@/app/(staff)/(operator)/operator/seo/og-image-field";
 import {
   savePlatformSeoAction,
   type SeoActionState,
@@ -123,9 +124,13 @@ function SerpPreview({
 export function SeoDiscoveryForm({
   identity,
   pages,
+  storageAvailable,
+  ogImageSrc,
 }: {
   identity: PlatformSeoIdentity;
   pages: MarketingPageSeoInput[];
+  storageAvailable: boolean;
+  ogImageSrc: string | null;
 }) {
   const [state, action, pending] = useActionState(
     savePlatformSeoAction,
@@ -216,23 +221,16 @@ export function SeoDiscoveryForm({
             Social sharing
           </h2>
           <p className="mt-1 text-sm text-staff-muted">
-            Use a dedicated 1200 × 630 image. Do not stretch the River Aftercare
-            logo into a social card. Leave this empty until that asset exists.
+            Use a dedicated 1200 × 630 social sharing image. Do not stretch the
+            River Aftercare logo into a social card. Pages can still set their
+            own social image override below.
           </p>
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium" htmlFor="defaultOgImagePath">
-            Default OG image path
-          </label>
-          <input
-            id="defaultOgImagePath"
-            name="defaultOgImagePath"
-            defaultValue={identity.defaultOgImagePath ?? ""}
-            placeholder="/brand/river-aftercare-og.png"
-            className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
-          />
-          {fieldError(state.fieldErrors, "defaultOgImagePath")}
-        </div>
+        <DefaultOgImageField
+          imagePath={identity.defaultOgImagePath}
+          imageSrc={ogImageSrc}
+          storageAvailable={storageAvailable}
+        />
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium" htmlFor="sameAsUrls">
             Entity or social URLs

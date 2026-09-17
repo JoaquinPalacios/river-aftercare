@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { isClinicBrandingPublicPath } from "@/lib/clinic-assets/clinic-logo";
+import { isPlatformSeoPublicPath } from "@/lib/platform-assets/platform-seo-image";
 import { parseHostname } from "@/lib/tenancy/parse-hostname";
 import {
   isInternalAppPath,
@@ -53,7 +54,8 @@ export function proxy(request: NextRequest): NextResponse {
   if (classification.kind === "reserved") {
     if (
       classification.label === "assets" &&
-      isClinicBrandingPublicPath(pathname)
+      (isClinicBrandingPublicPath(pathname) ||
+        isPlatformSeoPublicPath(pathname))
     ) {
       return continueWithoutSpoofedHeaders(request);
     }

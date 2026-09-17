@@ -187,6 +187,8 @@ describe("launch SEO policy", () => {
     expect(staff).toContain("PRIVATE_ROBOTS");
     expect(operator).toContain("staffAppScroller");
     expect(operatorSeo).toContain("requirePlatformOperator");
+    expect(operatorSeo).toContain("uploadPlatformSeoOgImageAction");
+    expect(operatorSeo).toContain("removePlatformSeoOgImageAction");
     expect(preview).toContain("PRIVATE_ROBOTS");
     expect(preview).not.toContain("canonical");
   });

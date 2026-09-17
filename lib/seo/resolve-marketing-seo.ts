@@ -6,6 +6,7 @@ import {
   DEFAULT_PLATFORM_SEO,
 } from "@/lib/seo/defaults";
 import { marketingDocumentTitle } from "@/lib/seo/document-title";
+import { resolvePlatformSeoOgImageUrl } from "@/lib/platform-assets/public-url";
 import { isDedicatedOgImageConfigured } from "@/lib/seo/og-policy";
 import { sanitizeMetadataText } from "@/lib/seo/metadata-text";
 import type {
@@ -172,8 +173,11 @@ export function marketingSeoToMetadata(
     resolved.social.description,
     320
   );
-  const imagePath = isDedicatedOgImageConfigured(resolved.social.imagePath)
+  const storedImage = isDedicatedOgImageConfigured(resolved.social.imagePath)
     ? resolved.social.imagePath
+    : null;
+  const imagePath = storedImage
+    ? resolvePlatformSeoOgImageUrl(storedImage)
     : null;
   const images = imagePath ? [{ url: imagePath }] : undefined;
 
