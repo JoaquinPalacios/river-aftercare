@@ -108,13 +108,16 @@ describe("default social sharing image field", () => {
     const field = source(
       "app/(staff)/(operator)/operator/seo/og-image-field.tsx"
     );
+    const trigger = source("app/(staff)/components/staff-file-trigger.tsx");
     const css = source("app/(staff)/staff.css");
     const form = source(
       "app/(staff)/(operator)/operator/seo/seo-discovery-form.tsx"
     );
 
-    expect(field).toContain('type="file"');
-    expect(field).toContain("staffFileInput");
+    expect(field).toContain("StaffFileTrigger");
+    expect(field).toContain("useAssetFileSelection");
+    expect(trigger).toContain('type="file"');
+    expect(trigger).toContain("staffFileInput");
     expect(field).toContain("image/png,image/jpeg,image/webp");
     expect(field).toContain("Choose replacement");
     expect(field).toContain("Choose image");

@@ -40,13 +40,18 @@ describe("logo upload infrastructure", () => {
       "lib/clinic-assets/sanitize-clinic-logo-svg.ts",
       "utf8"
     );
+    const trigger = readFileSync(
+      "app/(staff)/components/staff-file-trigger.tsx",
+      "utf8"
+    );
 
     const fieldText = field.replace(/\s+/g, " ");
 
-    expect(field).toContain('type="file"');
+    expect(field).toContain("StaffFileTrigger");
+    expect(trigger).toContain('type="file"');
     expect(fieldText).toContain("clinic object storage is not configured");
     expect(field).toContain("Uploading…");
-    expect(field).toContain("Uploaded");
+    expect(field).toContain("Practice logo updated.");
     expect(field).not.toContain("public/uploads");
     expect(field).not.toContain("coming before launch");
     expect(field).not.toContain("@aws-sdk/client-s3");

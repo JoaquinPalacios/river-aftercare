@@ -1,23 +1,16 @@
 "use client";
 
-import {
-  useActionState,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ChangeEvent,
-} from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
+import { StaffFileTrigger } from "@/app/(staff)/components/staff-file-trigger";
+import { useAssetFileSelection } from "@/app/(staff)/components/use-asset-file-selection";
 import {
   removePlatformSeoOgImageAction,
   uploadPlatformSeoOgImageAction,
   type PlatformSeoOgActionState,
 } from "@/app/(staff)/(operator)/operator/seo/actions";
-import { formatSelectedOgFileLabel } from "@/app/(staff)/(operator)/operator/seo/og-image-selection";
-import { rasterImageSize } from "@/lib/platform-assets/image-size";
 import {
   PLATFORM_SEO_IMAGE_HEIGHT,
   PLATFORM_SEO_IMAGE_WIDTH,
@@ -36,10 +29,8 @@ export function DefaultOgImageField({
   imageSrc: string | null;
   storageAvailable: boolean;
 }) {
-  const fileRef = useRef<HTMLInputElement>(null);
   const appliedUploadKey = useRef<string | null>(null);
   const seenUploadState = useRef<PlatformSeoOgActionState>(empty);
-  const selectionRead = useRef(0);
   const labelId = useId();
   const helpId = useId();
   const requirementsId = useId();
@@ -48,8 +39,6 @@ export function DefaultOgImageField({
   const [mounted, setMounted] = useState(false);
   const [imageSrc, setImageSrc] = useState(initialImageSrc);
   const [hasImage, setHasImage] = useState(Boolean(imagePath));
-  const [selectedName, setSelectedName] = useState<string | null>(null);
-  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -58,6 +47,8 @@ export function DefaultOgImageField({
     empty
   );
   const [removing, setRemoving] = useState(false);
+  const { fileRef, selectedLabel, hasSelection, clearSelection, onFileChange } =
+    useAssetFileSelection();
 
   useEffect(() => {
     setMounted(true);
@@ -92,53 +83,7 @@ export function DefaultOgImageField({
       setSuccess(undefined);
       setError(uploadState.error);
     }
-  }, [uploadState]);
-
-  function clearSelection(): void {
-    selectionRead.current += 1;
-    setSelectedName(null);
-    setSelectedLabel(null);
-    if (fileRef.current) {
-      fileRef.current.value = "";
-    }
-  }
-
-  async function onFileChange(
-    event: ChangeEvent<HTMLInputElement>
-  ): Promise<void> {
-    const file = event.target.files?.[0];
-    setSuccess(undefined);
-    setError(undefined);
-    if (!file) {
-      clearSelection();
-      return;
-    }
-
-    const readId = selectionRead.current + 1;
-    selectionRead.current = readId;
-    setSelectedName(file.name);
-    setSelectedLabel(
-      formatSelectedOgFileLabel({
-        name: file.name,
-        byteLength: file.size,
-        width: null,
-        height: null,
-      })
-    );
-
-    const size = rasterImageSize(new Uint8Array(await file.arrayBuffer()));
-    if (selectionRead.current !== readId) {
-      return;
-    }
-    setSelectedLabel(
-      formatSelectedOgFileLabel({
-        name: file.name,
-        byteLength: file.size,
-        width: size?.width ?? null,
-        height: size?.height ?? null,
-      })
-    );
-  }
+  }, [uploadState, clearSelection]);
 
   async function removeImage(): Promise<void> {
     setRemoving(true);
@@ -164,7 +109,6 @@ export function DefaultOgImageField({
 
   const previewSrc = imageSrc;
   const busy = uploading || removing;
-  const hasSelection = Boolean(selectedName);
   const chooseLabel = hasImage ? "Choose replacement" : "Choose image";
   const describedBy = [
     helpId,
@@ -177,7 +121,7 @@ export function DefaultOgImageField({
 
   return (
     <div
-      className="staffOgAsset"
+      className="staffAssetControl staffAssetControlContained"
       role="group"
       aria-labelledby={labelId}
       aria-busy={busy || undefined}
@@ -232,33 +176,25 @@ export function DefaultOgImageField({
             </p>
           ) : null}
 
-          <div className="staffOgActions">
-            <label
-              className={
-                hasSelection ? "staffFileTriggerPending" : "staffFileTrigger"
-              }
-            >
-              <input
-                ref={fileRef}
-                id="platform-og-file"
-                form="platform-og-upload"
-                name="ogImage"
-                type="file"
-                accept={ACCEPT}
-                disabled={busy}
-                aria-label={chooseLabel}
-                aria-describedby={describedBy}
-                className="staffFileInput"
-                onChange={(event) => {
-                  void onFileChange(event);
-                }}
-              />
-              {hasSelection ? null : (
-                <span className="staffBtn staffBtnSecondary">
-                  {chooseLabel}
-                </span>
-              )}
-            </label>
+          <div className="staffAssetActions">
+            <StaffFileTrigger
+              inputRef={fileRef}
+              id="platform-og-file"
+              form="platform-og-upload"
+              name="ogImage"
+              accept={ACCEPT}
+              disabled={busy}
+              ariaLabel={chooseLabel}
+              ariaDescribedBy={describedBy}
+              ariaInvalid={Boolean(error)}
+              pending={hasSelection}
+              buttonLabel={chooseLabel}
+              onChange={(event) => {
+                setSuccess(undefined);
+                setError(undefined);
+                void onFileChange(event);
+              }}
+            />
 
             {hasSelection ? (
               <>

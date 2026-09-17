@@ -133,8 +133,8 @@ Redeploy after setting env so server processes see the values. Practice Upload /
 ## 7. Verify upload
 
 1. Sign in as a clinic **ADMIN** (not STAFF).
-2. Practice → Identity → choose a PNG/JPEG/WebP (≤2 MB) or SVG (≤1 MB) → **Upload logo**.
-3. Confirm the UI shows **Uploaded** and a preview `<img>`.
+2. Practice → Identity → **Choose logo** (PNG/JPEG/WebP ≤2 MB or SVG ≤1 MB) → **Upload logo**. Do not expect upload to start on file selection.
+3. Confirm the UI shows **Practice logo updated.** and a preview `<img>`.
 4. Confirm `ClinicProfile.logoUrl` is a key `clinics/<clinicId>/branding/<uuid>.<ext>`, not a Cloudflare, r2.dev, or `assets.` URL.
 
 Platform default social image:
