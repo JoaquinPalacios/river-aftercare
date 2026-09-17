@@ -220,7 +220,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "We do not currently operate a cookie-consent marketing stack, because we do not run advertising pixels or cookie-based marketing trackers. The aggregated web analytics described in section 12 do not use cookies.",
+        text: "We do not currently operate a cookie-consent marketing stack, because we do not run advertising pixels or cookie-based marketing trackers. The aggregated web analytics and performance measurement described in section 12 do not use cookies.",
       },
     ],
   },
@@ -234,7 +234,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "We use cookieless, aggregated web analytics through our application hosting provider to count page views and understand which pages are visited. This processing does not identify individual visitors and is not used to target advertising.",
+        text: "We use cookieless, aggregated web analytics and performance measurement through our application hosting provider to count page views, understand which pages are visited, and measure how quickly pages load. This processing does not identify individual visitors and is not used to target advertising.",
       },
     ],
   },
@@ -255,7 +255,7 @@ const SECTIONS: readonly LegalSection[] = [
           "DNS and network services;",
           "email delivery;",
           "monitoring or security services; and",
-          "aggregated web analytics.",
+          "aggregated web analytics and performance measurement.",
         ],
       },
       {

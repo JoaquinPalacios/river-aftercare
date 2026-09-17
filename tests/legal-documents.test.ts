@@ -135,7 +135,9 @@ describe("legal drafts", () => {
     expect(body).toContain(
       "does not currently use third-party behavioural advertising"
     );
-    expect(body).toContain("cookieless, aggregated web analytics");
+    expect(body).toContain(
+      "cookieless, aggregated web analytics and performance measurement"
+    );
     expect(body).toContain("We do not sell personal information.");
     expect(body).toContain("Notifiable Data Breaches");
     expect(body).toContain("where applicable");

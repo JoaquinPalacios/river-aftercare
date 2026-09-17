@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-17 (Vercel Web Analytics)
+Last updated: 2026-09-17 (Vercel Speed Insights)
 
 ---
 
@@ -17,7 +17,7 @@ Last updated: 2026-09-17 (Vercel Web Analytics)
 | **Current implementation**     | Staff auth + parked chairside sessions + Phase 1A–1C aftercare + **Phase 1E browser/performance acceptance** + **Phase 1F public marketing face** through **1F.16 / reveal timing** + **Phase 1G interactive patient demo** + **Phase 1G.1 launch-scope cleanup** + **marketing completion** (`/`, `/pricing`, `/contact`, `/about` on the root host) + **marketing conversion polish** + **marketing final polish** + **UX polish + clinic portal foundation** + **Phase 2A clinic self-service foundation** + **Phase 2A.4** + **Phase 2A.5** (portal shell, launch SEO indexing policy, unpublish, Geist, River Aftercare brand pack) + **Phase 2B** (operator SEO & Discovery, structured SEO settings, JSON-LD, llms.txt, production-readiness audit) + **public UI + published-guide QR share** + **public legal copy rewrite** + **R2 clinic-asset application support** + **marketing master-brand repositioning** + **clinic vertical acquisition pages** (`/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics`). Motion is approved for marketing presentation only. Patient clinical content remains motion-light and document-first. Check-in is post-launch only — see [POST-LAUNCH-ROADMAP.md](POST-LAUNCH-ROADMAP.md). Logo **application** upload is implemented against Cloudflare R2; production still needs Joaquín to provision the bucket. A Cloudflare Turnstile challenge is HIGH PRIORITY before or immediately after launch and is **not implemented**. |
 | **Aftercare MVP implemented?** | **No** — Phase 1 technical vertical slice is implemented and hardened. Commercial MVP is after Phase 3.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
-Published-guide QR sharing is implemented for clinic staff (durable public URL, SVG/PNG). Vercel Web Analytics (`@vercel/analytics`) is installed as cookieless platform page-view telemetry in the three root layouts. Do not claim the PRD operator anonymous-analytics dashboard, approved Privacy/Terms, or production infra exist until they are built. Public `/privacy` and `/terms` are production-facing drafts and still require legal review. Hostname routing (Phase 1B) and branded patient pages (Phase 1C) are implemented. Operator now has All Clinics plus SEO & Discovery; it still does not have a template CMS. Phase 1E added Playwright + axe browser acceptance; it did not add product features.
+Published-guide QR sharing is implemented for clinic staff (durable public URL, SVG/PNG). Vercel Web Analytics (`@vercel/analytics`) and Speed Insights (`@vercel/speed-insights`) are installed as cookieless platform telemetry in the three root layouts. Do not claim the PRD operator anonymous-analytics dashboard, approved Privacy/Terms, or production infra exist until they are built. Public `/privacy` and `/terms` are production-facing drafts and still require legal review. Hostname routing (Phase 1B) and branded patient pages (Phase 1C) are implemented. Operator now has All Clinics plus SEO & Discovery; it still does not have a template CMS. Phase 1E added Playwright + axe browser acceptance; it did not add product features.
 
 ---
 
@@ -1235,3 +1235,15 @@ Cookieless platform page-view telemetry. This is **not** the PRD operator anonym
 | Layouts | Mounted in the three independent root layouts: marketing, staff, aftercare. There is no shared `app/layout.tsx`.                                                  |
 | Privacy | Public draft describes cookieless aggregated page-view stats via the application hosting provider. Do not name Vercel in `/privacy`. Legal review still required. |
 | Product | Operator analytics (views by practice/guide, QR-origin) remain unimplemented.                                                                                     |
+
+---
+
+## Vercel Speed Insights (2026-09-17)
+
+Cookieless Core Web Vitals / page-load telemetry. Same three root layouts as Web Analytics.
+
+| Area    | Behaviour                                                                                                                                                  |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Package | `@vercel/speed-insights` 2.0.0 (`latest` stable). Import `SpeedInsights` from `@vercel/speed-insights/next`.                                               |
+| Layouts | Mounted beside `<Analytics />` in marketing, staff, and aftercare root layouts.                                                                            |
+| Privacy | Public draft covers aggregated performance measurement through the application hosting provider, still without naming Vercel. Legal review still required. |

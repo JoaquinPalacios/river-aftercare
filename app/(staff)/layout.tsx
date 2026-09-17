@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { geistMono, geistSans } from "@/lib/branding/fonts";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -38,6 +39,7 @@ export default function RootLayout({
         />
         {children}
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
