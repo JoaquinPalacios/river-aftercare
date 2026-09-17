@@ -2641,7 +2641,6 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .clinicTypeCard,
 .verticalCard,
-.verticalFaqItem,
 .verticalWorkflowStep {
   display: flex;
   flex-direction: column;
@@ -2663,7 +2662,6 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .clinicTypeCard h3,
 .verticalCard h3,
-.verticalFaqItem h3,
 .verticalWorkflowStep h3 {
   margin: 0 0 0.45rem;
   font-size: 1.08rem;
@@ -2673,7 +2671,6 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .clinicTypeCard p,
 .verticalCard p,
-.verticalFaqItem p,
 .verticalWorkflowStep p {
   margin: 0;
   color: var(--mk-muted);
@@ -2758,6 +2755,101 @@ html[data-theme-mode="dark"] .wordmarkName {
 .verticalFaq {
   display: grid;
   gap: var(--mk-card-grid-gap);
+}
+
+.verticalFaqItem {
+  border: 1px solid var(--mk-card-line);
+  border-radius: var(--mk-card-radius);
+  background: var(--mk-card);
+  color: var(--mk-ink);
+  box-shadow: var(--mk-card-shadow);
+}
+
+.verticalFaqQuestion {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  margin: 0;
+  padding: 1.2rem 1.2rem 1.25rem;
+  list-style: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  font-size: 1.08rem;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.verticalFaqQuestion::-webkit-details-marker {
+  display: none;
+}
+
+.verticalFaqQuestion::marker {
+  content: "";
+  font-size: 0;
+}
+
+.verticalFaqQuestion:focus {
+  outline: none;
+}
+
+.verticalFaqQuestion:focus-visible {
+  outline: 2.5px solid var(--mk-focus);
+  outline-offset: 3px;
+}
+
+.verticalFaqQuestionText {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.verticalFaqIcon {
+  position: relative;
+  flex: 0 0 auto;
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-top: 0.22rem;
+}
+
+.verticalFaqIcon::before,
+.verticalFaqIcon::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: var(--mk-brand);
+  transform: translate(-50%, -50%);
+}
+
+.verticalFaqIcon::before {
+  width: 100%;
+  height: 2px;
+}
+
+.verticalFaqIcon::after {
+  width: 2px;
+  height: 100%;
+}
+
+.verticalFaqItem[open] .verticalFaqIcon::after {
+  display: none;
+}
+
+.verticalFaqItem[open] .verticalFaqQuestion {
+  padding-bottom: 0.55rem;
+}
+
+.verticalFaqPanel {
+  padding: 0 1.2rem 1.25rem;
+}
+
+.verticalFaqPanel p {
+  margin: 0;
+  color: var(--mk-muted);
+  line-height: 1.45;
 }
 
 .verticalRelated {

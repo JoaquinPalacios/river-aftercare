@@ -37,6 +37,13 @@ test.describe("marketing conversion routes", () => {
     expect(page.url()).toBe(marketingUrl("/pricing"));
     expect(page.url()).not.toContain("/_marketing");
     await expectOneH1(page, "Simple plans for branded patient aftercare.");
+    await expect(
+      page.getByRole("heading", {
+        name: "Choose the plan that fits your practice",
+      })
+    ).toBeVisible();
+    await expect(page.getByText("Connected aftercare plans")).toBeVisible();
+    await expect(page.getByText("Connected recovery plans")).toHaveCount(0);
     await expect(page.getByText("A$79")).toBeVisible();
     await expect(page.getByText("A$149")).toBeVisible();
     await expect(page.getByText("Custom pricing")).toBeVisible();

@@ -128,6 +128,149 @@ test.describe("clinic vertical acquisition pages", () => {
     });
   }
 
+  test("vertical FAQ accordions are keyboard accessible and independent", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(marketingUrl("/dental"), { waitUntil: "load" });
+
+    const firstQuestion = "Do patients need to download an app?";
+    const secondQuestion = "Do patients need an account?";
+    const firstAnswer =
+      "No. River Aftercare patient pages open in the browser from a link or QR code.";
+    const secondAnswer =
+      "No. The current public guide experience does not require a patient login.";
+
+    const first = page.getByRole("button", { name: firstQuestion });
+    const second = page.getByRole("button", { name: secondQuestion });
+    const firstDetails = page.locator("details").filter({ has: first });
+    const secondDetails = page.locator("details").filter({ has: second });
+    await first.scrollIntoViewIfNeeded();
+    await expect(first).toBeVisible();
+    await expect(page.locator("details")).toHaveCount(5);
+    await expect(firstDetails).toHaveJSProperty("open", false);
+    await expect(page.getByText(firstAnswer)).toBeHidden();
+
+    await first.focus();
+    await expect(first).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(firstDetails).toHaveJSProperty("open", true);
+    await expect(page.getByText(firstAnswer)).toBeVisible();
+    await expect(first).toBeFocused();
+
+    await page.keyboard.press("Space");
+    await expect(firstDetails).toHaveJSProperty("open", false);
+    await expect(page.getByText(firstAnswer)).toBeHidden();
+    await expect(first).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await second.focus();
+    await expect(second).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(secondDetails).toHaveJSProperty("open", true);
+    await expect(page.getByText(secondAnswer)).toBeVisible();
+    await expect(firstDetails).toHaveJSProperty("open", true);
+    await expect(page.getByText(firstAnswer)).toBeVisible();
+    await expect(second).toBeFocused();
+
+    await expectNoSeriousAxeViolations(page, {
+      exclude: ["[data-mk-pending]", "[data-mk-pending] *"],
+    });
+  });
+
+  const FAQ_COPY = [
+    {
+      path: "/dental",
+      heading: "Questions dental practices ask",
+      questions: [
+        "Do patients need to download an app?",
+        "Do patients need an account?",
+        "Can our practice change the instructions?",
+        "Does River Aftercare replace our practice-management system?",
+        "What dental templates are available?",
+      ],
+      answer: "Tooth Extraction is the current reviewed starting template.",
+    },
+    {
+      path: "/physiotherapy",
+      heading: "Questions physiotherapy clinics ask",
+      questions: [
+        "Is River Aftercare a home exercise programme app?",
+        "Do patients need another app?",
+        "Can our clinic use its own recovery guidance?",
+        "Does it store patient health records?",
+        "Are physiotherapy templates already available?",
+      ],
+      answer:
+        "Physiotherapy template availability is confirmed during onboarding. Where no suitable River Aftercare template exists, the clinic can publish its own approved guidance.",
+    },
+    {
+      path: "/chiropractic",
+      heading: "Questions chiropractic practices ask",
+      questions: [
+        "Do patients need an app?",
+        "Can our practice publish its own instructions?",
+        "Does River Aftercare provide chiropractic treatment advice?",
+        "Does it replace our practice-management software?",
+        "Is there already a chiropractic template library?",
+      ],
+      answer:
+        "No pre-built chiropractic template library is currently being advertised.",
+    },
+    {
+      path: "/cosmetic-clinics",
+      heading: "Questions cosmetic and aesthetic clinics ask",
+      questions: [
+        "Do patients or clients need to install an app?",
+        "Can our clinic use its own aftercare instructions?",
+        "Does River Aftercare monitor patients after treatment?",
+        "Does River Aftercare replace our clinic-management software?",
+        "Are cosmetic treatment templates already available?",
+      ],
+      answer:
+        "it does not provide live clinical monitoring or emergency triage",
+    },
+  ] as const;
+
+  for (const vertical of FAQ_COPY) {
+    test(`${vertical.path} renders five visible FAQ controls with answers in the HTML`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto(marketingUrl(vertical.path), {
+        waitUntil: "load",
+      });
+      await expect(
+        page.getByRole("heading", { name: vertical.heading })
+      ).toBeVisible();
+      await expect(page.locator("details")).toHaveCount(5);
+
+      for (const question of vertical.questions) {
+        const control = page.getByRole("button", { name: question });
+        await control.scrollIntoViewIfNeeded();
+        await expect(control).toBeVisible();
+        await expect(
+          page.locator("details").filter({ has: control })
+        ).toHaveJSProperty("open", false);
+      }
+
+      const html = await page.content();
+      expect(html).toContain(vertical.answer);
+
+      const firstControl = page.getByRole("button", {
+        name: vertical.questions[0],
+      });
+      const firstDetails = page
+        .locator("details")
+        .filter({ has: firstControl });
+      await firstControl.click();
+      await expect(firstDetails).toHaveJSProperty("open", true);
+      await expectNoSeriousAxeViolations(page, {
+        exclude: ["[data-mk-pending]", "[data-mk-pending] *"],
+      });
+    });
+  }
+
   test("dental demo CTA uses the real Riverside tenant", async ({ page }) => {
     await page.goto(marketingUrl("/dental"), { waitUntil: "domcontentloaded" });
     await expect(

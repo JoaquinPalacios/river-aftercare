@@ -48,7 +48,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: INDEXABLE_ROBOTS.index,
     follow: INDEXABLE_ROBOTS.follow,
-    lastModified: "2026-09-16",
+    lastModified: "2026-09-17",
   },
   "/pricing": {
     seoTitle: "Patient Aftercare Software Pricing | River Aftercare",
@@ -58,7 +58,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: INDEXABLE_ROBOTS.index,
     follow: INDEXABLE_ROBOTS.follow,
-    lastModified: "2026-09-16",
+    lastModified: "2026-09-17",
   },
   "/contact": {
     seoTitle: "Book a Demo | River Aftercare",
@@ -110,7 +110,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-09-16",
+    lastModified: "2026-09-17",
   },
   "/physiotherapy": {
     seoTitle: "Physiotherapy Patient Aftercare Software | River Aftercare",
@@ -122,7 +122,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-09-16",
+    lastModified: "2026-09-17",
   },
   "/chiropractic": {
     seoTitle: "Chiropractic Patient Aftercare Software | River Aftercare",
@@ -134,7 +134,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-09-16",
+    lastModified: "2026-09-17",
   },
   "/cosmetic-clinics": {
     seoTitle: "Cosmetic Clinic Aftercare Software | River Aftercare",
@@ -146,7 +146,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-09-16",
+    lastModified: "2026-09-17",
   },
 };
 
