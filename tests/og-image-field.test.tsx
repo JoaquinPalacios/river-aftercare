@@ -46,7 +46,19 @@ function pngFile(name = "share.png", size = 196 * 1024): File {
   const bytes = pngBytes();
   const padded = new Uint8Array(size);
   padded.set(bytes);
-  return new File([padded], name, { type: "image/png" });
+  const file = new File([padded], name, { type: "image/png" });
+  // jsdom 26 File (production CJS pin) has no arrayBuffer(); browsers do.
+  Object.defineProperty(file, "arrayBuffer", {
+    configurable: true,
+    value: () =>
+      Promise.resolve(
+        padded.buffer.slice(
+          padded.byteOffset,
+          padded.byteOffset + padded.byteLength
+        )
+      ),
+  });
+  return file;
 }
 
 describe("default social sharing image field", () => {
@@ -184,6 +196,7 @@ describe("default social sharing image field", () => {
 
     await act(async () => {
       setInputFile(input!, pngFile());
+      await Promise.resolve();
     });
 
     expect(container.textContent).toContain("share.png · 1200 × 630 · 196 KB");
