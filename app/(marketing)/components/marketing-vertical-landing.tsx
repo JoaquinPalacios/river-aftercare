@@ -187,7 +187,9 @@ export function MarketingVerticalLanding({
                 rail
                 className={styles.verticalRailLine}
                 ariaHidden
-              />
+              >
+                {null}
+              </MarketingRevealItem>
               <ol className={styles.verticalRail}>
                 {content.workflow.steps.map((step, index) => (
                   <MarketingRevealCard

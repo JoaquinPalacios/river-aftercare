@@ -5,6 +5,7 @@
 .page[data-vertical] {
   --vertical-accent: var(--mk-brand);
   --vertical-accent-secondary: var(--mk-brand-strong);
+  --vertical-accent-text: var(--mk-brand);
   --vertical-accent-soft: color-mix(
     in srgb,
     var(--vertical-accent) 14%,
@@ -22,6 +23,7 @@
 .page[data-vertical="physiotherapy"] {
   --vertical-accent: var(--mk-wave-cyan);
   --vertical-accent-secondary: var(--mk-brand);
+  --vertical-accent-text: light-dark(#146f88, #7ec8e6);
   --vertical-glow: color-mix(in srgb, var(--mk-hero-mist) 92%, transparent);
 }
 
@@ -42,7 +44,7 @@
 }
 
 .page[data-vertical] .eyebrow {
-  color: var(--vertical-accent);
+  color: var(--vertical-accent-text);
 }
 
 .page[data-vertical] .top {
@@ -2845,14 +2847,14 @@ html[data-theme-mode="dark"] .wordmarkName {
   min-width: 0;
   padding: 1.2rem 1.2rem 1.15rem 1.15rem;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--vertical-accent) 22%, var(--mk-line));
+  border: 1px solid
+    color-mix(in srgb, var(--vertical-accent) 22%, var(--mk-line));
   border-radius: 1.25rem;
-  background:
-    linear-gradient(
-      165deg,
-      color-mix(in srgb, var(--vertical-accent) 10%, var(--mk-card)),
-      var(--mk-card) 42%
-    );
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--vertical-accent) 10%, var(--mk-card)),
+    var(--mk-card) 42%
+  );
   box-shadow: var(--mk-card-shadow);
 }
 
@@ -2911,9 +2913,10 @@ html[data-theme-mode="dark"] .wordmarkName {
   width: 1.85rem;
   height: 1.85rem;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--vertical-accent) 48%, var(--mk-line));
+  border: 1px solid
+    color-mix(in srgb, var(--vertical-accent) 48%, var(--mk-line));
   background: color-mix(in srgb, var(--mk-hero) 55%, var(--mk-card));
-  color: var(--vertical-accent);
+  color: var(--vertical-accent-text);
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -3066,7 +3069,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .verticalStatusLabel {
-  color: var(--vertical-accent);
+  color: var(--vertical-accent-text);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -3140,9 +3143,10 @@ html[data-theme-mode="dark"] .wordmarkName {
   width: var(--rail-node);
   height: var(--rail-node);
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--vertical-accent) 50%, var(--mk-line));
+  border: 1px solid
+    color-mix(in srgb, var(--vertical-accent) 50%, var(--mk-line));
   background: var(--mk-card);
-  color: var(--vertical-accent);
+  color: var(--vertical-accent-text);
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -3152,20 +3156,20 @@ html[data-theme-mode="dark"] .wordmarkName {
 .verticalProofPanel {
   min-width: 0;
   padding: 1.25rem 1.2rem 1.3rem;
-  border: 1px solid color-mix(in srgb, var(--vertical-accent) 24%, var(--mk-line));
+  border: 1px solid
+    color-mix(in srgb, var(--vertical-accent) 24%, var(--mk-line));
   border-radius: 1.2rem;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--vertical-accent) 12%, var(--mk-card)),
-      var(--mk-card) 48%
-    );
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--vertical-accent) 12%, var(--mk-card)),
+    var(--mk-card) 48%
+  );
   box-shadow: var(--mk-card-shadow);
 }
 
 .verticalProofKicker {
   margin: 0 0 0.45rem;
-  color: var(--vertical-accent);
+  color: var(--vertical-accent-text);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -3662,7 +3666,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 
   .verticalHeroInner > [data-mk-section] {
     grid-template-columns: minmax(0, 1.05fr) minmax(18rem, 0.86fr);
-    column-gap: 3.25rem;
+    column-gap: 3.2rem;
     align-items: center;
   }
 
@@ -3676,7 +3680,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   .verticalProofLayout,
   .verticalFitLayout {
     grid-template-columns: minmax(0, 0.96fr) minmax(18rem, 1.04fr);
-    column-gap: 3.25rem;
+    column-gap: 3.2rem;
   }
 
   .verticalRailWrap::before {

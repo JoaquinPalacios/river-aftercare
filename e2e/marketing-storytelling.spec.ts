@@ -1131,11 +1131,9 @@ test.describe("Phase 1F.11 story clarity", () => {
     expect(lightClosing!.hairlineImage).toMatch(/linear-gradient/i);
     expect(lightClosing!.closingGlowImage).toMatch(/radial-gradient/i);
     expect(lightClosing!.closingGlowImage).toMatch(/82%/);
-    expect(lightClosing!.footerGlowImage).toMatch(/radial-gradient/i);
-    expect(lightClosing!.footerGlowImage).toMatch(/82%/);
+    expect(lightClosing!.footerGlowImage === "none").toBe(true);
     expect(lightClosing!.footerAfterImage === "none").toBe(true);
     expect(lightClosing!.closingGlowBottom).toBe("0px");
-    expect(lightClosing!.footerGlowTop).toBe("0px");
     expect(lightClosing!.separatorHeight).toBe("1px");
     expect(lightClosing!.separatorImage).toMatch(/linear-gradient/i);
     expect(lightClosing!.usesBlur).toBe(false);
@@ -1948,7 +1946,6 @@ test.describe("Phase 1F.11 story clarity", () => {
         const footerBox = footer.getBoundingClientRect();
         const copyBox = copy.getBoundingClientRect();
         const styles = getComputedStyle(footer);
-        const glow = getComputedStyle(footer, "::before");
         const scrollY = window.scrollY;
         const documentBottom = Math.max(
           document.documentElement.scrollHeight,
@@ -1958,18 +1955,10 @@ test.describe("Phase 1F.11 story clarity", () => {
           gap: Math.round(documentBottom - (copyBox.bottom + scrollY)),
           paddingBottom: Number.parseFloat(styles.paddingBottom),
           footerHeight: Math.round(footerBox.height),
-          glowHeight: Number.parseFloat(glow.height),
-          glowPosition: glow.position,
-          glowPointer: glow.pointerEvents,
         };
       });
 
       expect(geometry).not.toBeNull();
-      expect(geometry!.glowPosition).toBe("absolute");
-      expect(geometry!.glowPointer).toBe("none");
-      expect(geometry!.glowHeight).toBeLessThanOrEqual(
-        geometry!.footerHeight + 1
-      );
       expect(geometry!.gap).toBeGreaterThanOrEqual(geometry!.paddingBottom - 6);
       expect(geometry!.gap).toBeLessThanOrEqual(geometry!.paddingBottom + 24);
       expect(geometry!.paddingBottom).toBeGreaterThanOrEqual(32);
