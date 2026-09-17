@@ -1174,14 +1174,14 @@ Public marketing copy and SEO defaults present River Aftercare as **patient afte
 
 Indexable B2B pages on the apex host. Shared composition, distinct copy. Layered on the master-brand repositioning: the homepage stays broad clinic/practice positioning and adds a vertical discovery section.
 
-| Area    | Behaviour                                                                                                                                                                                                        |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Routes  | `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics` rewrite through existing `/_marketing` proxy. Tenant copies 404.                                                                               |
-| Content | `lib/marketing/vertical-landing.ts` + `MarketingVerticalLanding`. Dental uses the real Riverside Dental Demo. Other verticals have no fake demos or template libraries.                                          |
-| SEO     | Defaults in `DEFAULT_MARKETING_PAGE_SEO`. Operator SEO registry includes all four. Titles that already contain the site name stay absolute so they do not become `… \| River Aftercare — River Aftercare`.       |
-| Nav     | Desktop **For clinics** click disclosure (keyboard, Escape, outside click). Mobile site menu group. Footer **For clinics** column.                                                                               |
-| Schema  | Shared Organization / WebSite / SoftwareApplication plus per-route `WebPage`. No FAQPage, MedicalWebPage, reviews, or per-profession SoftwareApplication.                                                        |
-| Tests   | `pnpm lint`, `pnpm test` (497), `pnpm build`, and Playwright (150) pass locally. Mobile site-menu keyboard order starts at Dental, then physiotherapy / chiropractic / cosmetic, then About / Pricing / Contact. |
+| Area    | Behaviour                                                                                                                                                                                                                                     |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Routes  | `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics` rewrite through existing `/_marketing` proxy. Tenant copies 404.                                                                                                            |
+| Content | `lib/marketing/vertical-landing.ts` + `MarketingVerticalLanding`. Dental uses the real Riverside Dental Demo. Other verticals have no fake demos or template libraries.                                                                       |
+| SEO     | Defaults in `DEFAULT_MARKETING_PAGE_SEO`. Operator SEO registry includes all four. Titles that already contain the site name stay absolute so they do not become `… \| River Aftercare — River Aftercare`.                                    |
+| Nav     | Desktop **For clinics** click disclosure (keyboard, Escape, outside click). Mobile site menu group. Footer **For clinics** column.                                                                                                            |
+| Schema  | Shared Organization / WebSite / SoftwareApplication plus per-route `WebPage`. No FAQPage, MedicalWebPage, reviews, or per-profession SoftwareApplication.                                                                                     |
+| Tests   | `pnpm lint`, `pnpm test` (586), `pnpm build`, and Playwright (155) pass locally after the FAQ accordion pass. Mobile site-menu keyboard order starts at Dental, then physiotherapy / chiropractic / cosmetic, then About / Pricing / Contact. |
 
 ---
 
@@ -1195,6 +1195,7 @@ Pre-indexing content pass. Positioning, navigation, metadata, and layout were le
 | Accordion  | Shared server-rendered `MarketingFaq` uses native `<details>`/`<summary>`. Questions and answers are in the HTML when collapsed. No FAQPage schema.                                                                                                                                                |
 | Copy       | Homepage patient-preview caption uses “guidance” / “clinic”. Pricing heading is “Choose the plan that fits your practice”. Roadmap item is “Connected aftercare plans”. Physiotherapy template note and chiropractic guidance note were tightened without claiming extra product capability.       |
 | lastmod    | `/`, `/pricing`, and the four vertical routes bump `DEFAULT_MARKETING_PAGE_SEO.lastModified` to `2026-09-17`. Titles, robots, canonicals, and JSON-LD types are unchanged.                                                                                                                         |
+| Tests      | `pnpm lint`, `pnpm test` (586), `pnpm build`, and Playwright (155) pass in this environment after installing PostgreSQL 18 locally (Docker was unavailable).                                                                                                                                       |
 
 ---
 
