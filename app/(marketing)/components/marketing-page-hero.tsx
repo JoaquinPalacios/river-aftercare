@@ -13,11 +13,7 @@ export type MarketingPageHeroVariant =
   | "pricing"
   | "contact"
   | "about"
-  | "legal"
-  | "dental"
-  | "physiotherapy"
-  | "chiropractic"
-  | "cosmetic";
+  | "legal";
 
 export function MarketingPageHero({
   variant,
@@ -37,9 +33,7 @@ export function MarketingPageHero({
   wideTitle?: boolean;
 }) {
   const heroClass =
-    variant === "pricing" || variant === "dental" || variant === "cosmetic"
-      ? styles.pageHeroPricing
-      : styles.pageHeroContact;
+    variant === "pricing" ? styles.pageHeroPricing : styles.pageHeroContact;
 
   return (
     <section

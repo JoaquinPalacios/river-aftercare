@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-17 (demo-only Tooth Extraction sample template + production-safe bootstrap; Vercel Speed Insights)
+Last updated: 2026-09-17 (vertical acquisition design system v2; demo-only Tooth Extraction sample; Vercel Speed Insights)
 
 ---
 
@@ -23,51 +23,51 @@ Published-guide QR sharing is implemented for clinic staff (durable public URL, 
 
 ## Phase status
 
-| Phase                     | Status                                                                    |
-| ------------------------- | ------------------------------------------------------------------------- |
-| 1A                        | COMPLETE / APPROVED                                                       |
-| 1B                        | COMPLETE / APPROVED                                                       |
-| 1B.5                      | COMPLETE / APPROVED                                                       |
-| 1C                        | COMPLETE / APPROVED                                                       |
-| 1D                        | ABSORBED INTO PHASE 1C / NO SEPARATE IMPLEMENTATION                       |
-| 1E                        | COMPLETE — TECHNICALLY READY FOR LOCAL JOAQUÍN ACCEPTANCE                 |
-| 1F                        | COMPLETE — READY FOR LOCAL JOAQUÍN REVIEW                                 |
-| 1F.1                      | COMPLETE — PREMIUM PRODUCT EXPERIENCE READY FOR REVIEW                    |
-| 1F.2                      | COMPLETE — READY FOR LOCAL JOAQUÍN REVIEW                                 |
-| 1F.3                      | COMPLETE — VISUAL SIMPLIFICATION READY FOR JOAQUÍN REVIEW                 |
-| 1F.4                      | COMPLETE — MARKETING MOTION READY FOR JOAQUÍN REVIEW                      |
-| 1F.5                      | COMPLETE — HERO COMPOSITION READY FOR JOAQUÍN REVIEW                      |
-| 1F.6                      | COMPLETE — PREMIUM MOBILE HERO READY FOR JOAQUÍN REVIEW                   |
-| 1F.7                      | COMPLETE — HERO INTERACTION POLISH READY FOR JOAQUÍN REVIEW               |
-| 1F.8                      | COMPLETE — PREMIUM HERO ATMOSPHERE READY FOR JOAQUÍN REVIEW               |
-| 1F.9                      | COMPLETE — RESPONSIVE PRODUCT PREVIEW READY FOR JOAQUÍN REVIEW            |
-| 1F.10                     | COMPLETE — PREMIUM STORYTELLING READY FOR JOAQUÍN REVIEW                  |
-| 1F.11                     | COMPLETE — STORY CLARITY READY FOR JOAQUÍN REVIEW                         |
-| 1F.12                     | COMPLETE — DESIGN COHERENCE READY FOR JOAQUÍN REVIEW                      |
-| 1F.13                     | COMPLETE — CLOSING COMPOSITION READY FOR JOAQUÍN REVIEW                   |
-| 1F.14                     | COMPLETE — FINAL MARKETING REFINEMENT READY FOR JOAQUÍN REVIEW            |
-| 1F.15                     | COMPLETE — MOBILE STORYTELLING READY FOR JOAQUÍN REVIEW                   |
-| 1F.16                     | COMPLETE — MOTION CHOREOGRAPHY READY FOR JOAQUÍN REVIEW                   |
-| 1F.10vt                   | COMPLETE — VIEWPORT REVEAL TIMING READY FOR JOAQUÍN REVIEW                |
-| 1G                        | COMPLETE — INTERACTIVE RECOVERY DEMO READY FOR JOAQUÍN REVIEW             |
-| 1G.1                      | COMPLETE — LAUNCH-SCOPE CLEANUP                                           |
-| Marketing completion      | COMPLETE — PRICING + CONTACT READY FOR JOAQUÍN REVIEW                     |
-| Marketing polish          | COMPLETE — CONVERSION POLISH READY FOR JOAQUÍN REVIEW                     |
-| Marketing final polish    | COMPLETE — READY FOR JOAQUÍN REVIEW                                       |
-| UX polish + clinic portal | COMPLETE — READY FOR JOAQUÍN REVIEW                                       |
-| 2A                        | LOCAL — CLINIC SELF-SERVICE FOUNDATION                                    |
-| 2A.1                      | LOCAL — CLINIC PORTAL UX READY FOR JOAQUÍN REVIEW                         |
-| 2A.2                      | LOCAL — PORTAL WORKFLOW POLISH READY FOR JOAQUÍN REVIEW                   |
-| 2A.3                      | LOCAL — EDITOR / PRACTICE / OPERATOR POLISH                               |
-| 2A.4                      | LOCAL — OVERFLOW / PREVIEW / GUIDE ACTIONS / LOGO READINESS               |
-| 2A.5                      | LOCAL — VISUAL SYSTEM CORRECTIONS READY FOR JOAQUÍN REVIEW                |
-| 2B                        | LOCAL — SEO / DISCOVERY / LAUNCH AUDIT READY FOR JOAQUÍN REVIEW           |
-| Marketing + trust polish  | LOCAL — LISTS, PREVIEWS, LEGAL DRAFTS READY FOR JOAQUÍN REVIEW            |
-| Public UI + share polish  | LOCAL — NAV, SPACING, CONTACT CTA, PUBLISHED QR READY FOR REVIEW          |
-| Public legal copy rewrite | LOCAL — PRODUCTION-FACING PRIVACY/TERMS DRAFTS READY FOR REVIEW           |
-| Clinic vertical pages     | LOCAL — `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics` |
-| Marketing FAQ + copy QA   | LOCAL — vertical FAQ accordion + final pre-index copy                     |
-| 2+ remainder              | Not started                                                               |
+| Phase                     | Status                                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 1A                        | COMPLETE / APPROVED                                                                                          |
+| 1B                        | COMPLETE / APPROVED                                                                                          |
+| 1B.5                      | COMPLETE / APPROVED                                                                                          |
+| 1C                        | COMPLETE / APPROVED                                                                                          |
+| 1D                        | ABSORBED INTO PHASE 1C / NO SEPARATE IMPLEMENTATION                                                          |
+| 1E                        | COMPLETE — TECHNICALLY READY FOR LOCAL JOAQUÍN ACCEPTANCE                                                    |
+| 1F                        | COMPLETE — READY FOR LOCAL JOAQUÍN REVIEW                                                                    |
+| 1F.1                      | COMPLETE — PREMIUM PRODUCT EXPERIENCE READY FOR REVIEW                                                       |
+| 1F.2                      | COMPLETE — READY FOR LOCAL JOAQUÍN REVIEW                                                                    |
+| 1F.3                      | COMPLETE — VISUAL SIMPLIFICATION READY FOR JOAQUÍN REVIEW                                                    |
+| 1F.4                      | COMPLETE — MARKETING MOTION READY FOR JOAQUÍN REVIEW                                                         |
+| 1F.5                      | COMPLETE — HERO COMPOSITION READY FOR JOAQUÍN REVIEW                                                         |
+| 1F.6                      | COMPLETE — PREMIUM MOBILE HERO READY FOR JOAQUÍN REVIEW                                                      |
+| 1F.7                      | COMPLETE — HERO INTERACTION POLISH READY FOR JOAQUÍN REVIEW                                                  |
+| 1F.8                      | COMPLETE — PREMIUM HERO ATMOSPHERE READY FOR JOAQUÍN REVIEW                                                  |
+| 1F.9                      | COMPLETE — RESPONSIVE PRODUCT PREVIEW READY FOR JOAQUÍN REVIEW                                               |
+| 1F.10                     | COMPLETE — PREMIUM STORYTELLING READY FOR JOAQUÍN REVIEW                                                     |
+| 1F.11                     | COMPLETE — STORY CLARITY READY FOR JOAQUÍN REVIEW                                                            |
+| 1F.12                     | COMPLETE — DESIGN COHERENCE READY FOR JOAQUÍN REVIEW                                                         |
+| 1F.13                     | COMPLETE — CLOSING COMPOSITION READY FOR JOAQUÍN REVIEW                                                      |
+| 1F.14                     | COMPLETE — FINAL MARKETING REFINEMENT READY FOR JOAQUÍN REVIEW                                               |
+| 1F.15                     | COMPLETE — MOBILE STORYTELLING READY FOR JOAQUÍN REVIEW                                                      |
+| 1F.16                     | COMPLETE — MOTION CHOREOGRAPHY READY FOR JOAQUÍN REVIEW                                                      |
+| 1F.10vt                   | COMPLETE — VIEWPORT REVEAL TIMING READY FOR JOAQUÍN REVIEW                                                   |
+| 1G                        | COMPLETE — INTERACTIVE RECOVERY DEMO READY FOR JOAQUÍN REVIEW                                                |
+| 1G.1                      | COMPLETE — LAUNCH-SCOPE CLEANUP                                                                              |
+| Marketing completion      | COMPLETE — PRICING + CONTACT READY FOR JOAQUÍN REVIEW                                                        |
+| Marketing polish          | COMPLETE — CONVERSION POLISH READY FOR JOAQUÍN REVIEW                                                        |
+| Marketing final polish    | COMPLETE — READY FOR JOAQUÍN REVIEW                                                                          |
+| UX polish + clinic portal | COMPLETE — READY FOR JOAQUÍN REVIEW                                                                          |
+| 2A                        | LOCAL — CLINIC SELF-SERVICE FOUNDATION                                                                       |
+| 2A.1                      | LOCAL — CLINIC PORTAL UX READY FOR JOAQUÍN REVIEW                                                            |
+| 2A.2                      | LOCAL — PORTAL WORKFLOW POLISH READY FOR JOAQUÍN REVIEW                                                      |
+| 2A.3                      | LOCAL — EDITOR / PRACTICE / OPERATOR POLISH                                                                  |
+| 2A.4                      | LOCAL — OVERFLOW / PREVIEW / GUIDE ACTIONS / LOGO READINESS                                                  |
+| 2A.5                      | LOCAL — VISUAL SYSTEM CORRECTIONS READY FOR JOAQUÍN REVIEW                                                   |
+| 2B                        | LOCAL — SEO / DISCOVERY / LAUNCH AUDIT READY FOR JOAQUÍN REVIEW                                              |
+| Marketing + trust polish  | LOCAL — LISTS, PREVIEWS, LEGAL DRAFTS READY FOR JOAQUÍN REVIEW                                               |
+| Public UI + share polish  | LOCAL — NAV, SPACING, CONTACT CTA, PUBLISHED QR READY FOR REVIEW                                             |
+| Public legal copy rewrite | LOCAL — PRODUCTION-FACING PRIVACY/TERMS DRAFTS READY FOR REVIEW                                              |
+| Clinic vertical pages     | LOCAL — shared editorial design system for `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics` |
+| Marketing FAQ + copy QA   | LOCAL — vertical FAQ accordion + final pre-index copy                                                        |
+| 2+ remainder              | Not started                                                                                                  |
 
 Phase 1D is not a missing slice. Phase 1C already shipped canonical composition, practice overrides, practice additions, semantic section rendering, warning/emergency rendering, and the real patient guide UI. A separate 1D implementation would have been artificial. Historical phase numbers are not renumbered.
 
@@ -1250,3 +1250,22 @@ Cookieless Core Web Vitals / page-load telemetry. Same three root layouts as Web
 | Package | `@vercel/speed-insights` 2.0.0 (`latest` stable). Import `SpeedInsights` from `@vercel/speed-insights/next`.                                               |
 | Layouts | Mounted beside `<Analytics />` in marketing, staff, and aftercare root layouts.                                                                            |
 | Privacy | Public draft covers aggregated performance measurement through the application hosting provider, still without naming Vercel. Legal review still required. |
+
+---
+
+## Vertical acquisition design system v2 (2026-09-17)
+
+Shared premium editorial system for `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics`. Content strategy and SEO metadata are unchanged. This is presentation, not a copy rewrite.
+
+| Area           | Behaviour                                                                                                                                                                                                                                                                                                                              |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Composition    | `MarketingVerticalLanding` + `MarketingVerticalHero`. Typed model in `lib/marketing/vertical-landing.ts` now includes `themeId`, hero pathway panel, guidance status, proof/fit extras, FAQ eyebrow, and a single closing secondary (`View pricing`).                                                                                  |
+| Accents        | CSS custom properties `--vertical-accent` / `--vertical-accent-secondary` / `--vertical-accent-soft` / `--vertical-glow` / `--vertical-accent-text` on `.page[data-vertical]`. Dental periwinkle, physio cyan (text uses `#146f88` in light mode for WCAG), chiro cobalt, cosmetic periwinkle/lavender mix from existing brand tokens. |
+| Spacing        | `--mk-section-space-xl/lg/md` for vertical section rhythm. Homepage chapter padding is unchanged.                                                                                                                                                                                                                                      |
+| Surfaces       | Hero canvas → problem soft → solution canvas → guidance soft → workflow canvas → proof/fit showcase → FAQ soft → closing CTA + glow → quiet footer.                                                                                                                                                                                    |
+| Hero           | Split copy + truthful pathway panel. Not the homepage phone mockup. Dental keeps the real demo CTA.                                                                                                                                                                                                                                    |
+| Workflow       | Connected process rail (`ol` + numbered nodes). Decorative connector is `aria-hidden`.                                                                                                                                                                                                                                                 |
+| Proof          | Dental: Riverside Dental Demo typographic showcase. Other verticals: profession-specific fit module, no fake demos.                                                                                                                                                                                                                    |
+| CTA / footer   | Closing CTA is Request a demo + View pricing only. Footer is a quiet utility band: For clinics / Product (includes Sign in) / Legal. Account column removed. No “Request a demo” in the footer.                                                                                                                                        |
+| Copy exception | Dental guidance badge is **Current starting template** / Tooth Extraction, not “reviewed”, because the sample is not clinically reviewed.                                                                                                                                                                                              |
+| SEO            | Titles, descriptions, canonicals, robots, JSON-LD, sitemap, and `lastModified` unchanged. Main copy remains server-rendered; FAQ answers stay in markup.                                                                                                                                                                               |

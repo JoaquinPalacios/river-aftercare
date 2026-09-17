@@ -30,14 +30,18 @@ export {
 export function MarketingExperience({
   className,
   children,
+  verticalId,
 }: {
   className: string;
   children: ReactNode;
+  verticalId?: string;
 }) {
   return (
     <LazyMotion features={loadFeatures} strict>
       <MotionConfig reducedMotion="user">
-        <div className={className}>{children}</div>
+        <div className={className} data-vertical={verticalId}>
+          {children}
+        </div>
       </MotionConfig>
     </LazyMotion>
   );
