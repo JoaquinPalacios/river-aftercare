@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function CreateGuidePage() {
   const { clinicMembership } = await requireClinicAdmin();
-  const templates = await listCanonicalGuideTemplates(
+  const { templates, isDemoTenant } = await listCanonicalGuideTemplates(
     clinicMembership.clinic.id
   );
 
@@ -33,11 +33,12 @@ export default async function CreateGuidePage() {
           Create guide
         </h1>
         <p className="mt-2 max-w-xl text-sm leading-6 text-staff-muted">
-          Start from a reviewed template, or create a custom guide for this
-          practice.
+          {isDemoTenant
+            ? "Start from a template, or create a custom guide for this demo."
+            : "Start from a reviewed template, or create a custom guide for this practice."}
         </p>
       </header>
-      <CreateGuideForm templates={templates} />
+      <CreateGuideForm templates={templates} isDemoTenant={isDemoTenant} />
     </div>
   );
 }

@@ -110,6 +110,10 @@ Mutations authorize on the server: authenticated user → clinic membership → 
 
 Canonical template or custom guide → working draft (`PracticeGuideRevision` version 0) → authenticated preview at `/guides/[id]/preview` → explicit Publish copies an immutable snapshot → tenant URL serves that pin.
 
+Normal clinics only see **reviewed** templates: active + published revision with `reviewedAt` and a named `reviewedBy` (not a demo/seed label). Active + `PUBLISHED` alone is not reviewed.
+
+The Tooth Extraction library row shipped for Riverside Dental Demo is **sample / non-clinical**. Guides → Create shows it only to `demodental`, labelled “Sample template”. Server-side enablement rejects every other clinic. Production inserts that row with `pnpm bootstrap:demo-template` (library rows only). Do not run `pnpm db:seed` in production.
+
 See [ADR 0017](../adr/0017-clinic-owned-practice-revisions-pin-public-documents.md).
 
 ### Draft delete and discard (Phase 2A.2)

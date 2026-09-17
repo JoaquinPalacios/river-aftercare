@@ -5,6 +5,8 @@ import { randomBytes, scryptSync } from "node:crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, ClinicMembershipRole } from "@prisma/client";
 
+import { DEMO_EXTRACTION_CANONICAL_SECTIONS } from "../lib/aftercare/demo-extraction-template-payload.mjs";
+
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
@@ -288,6 +290,17 @@ const DEMO_CLINIC_PROFILE = {
   showCareGuideAttribution: true,
 };
 
+const DEMO_EXTRACTION_SECTION_IDS = {
+  introduction: "guide_sec_demo_extraction_intro",
+  "immediate-care": "guide_sec_demo_extraction_immediate",
+  "first-24-hours": "guide_sec_demo_extraction_first_day",
+  "days-2-3": "guide_sec_demo_extraction_days_2_3",
+  "days-4-7": "guide_sec_demo_extraction_days_4_7",
+  "what-is-normal": "guide_sec_demo_extraction_normal",
+  "warning-signs": "guide_sec_demo_extraction_warnings",
+  "contact-practice": "guide_sec_demo_extraction_contact",
+};
+
 const DEMO_EXTRACTION_GUIDE = {
   templateId: "guide_tmpl_demo_extraction",
   specialty: "DENTAL",
@@ -299,88 +312,10 @@ const DEMO_EXTRACTION_GUIDE = {
   overrideId: "practice_override_demo_rivers_extraction_contact",
   additionId: "practice_addition_demo_rivers_extraction_hours",
   publishedAt: new Date("2026-08-31T00:00:00.000Z"),
-  sections: [
-    {
-      id: "guide_sec_demo_extraction_intro",
-      key: "introduction",
-      kind: "INTRODUCTION",
-      title: "After your extraction",
-      periodLabel: null,
-      sortOrder: 1,
-      body: `This page is your recovery information from Riverside Dental Demo. Follow the stages in order, and contact the practice if you are unsure or need help.`,
-    },
-    {
-      id: "guide_sec_demo_extraction_immediate",
-      key: "immediate-care",
-      kind: "RECOVERY_TIMELINE",
-      title: "Immediate care",
-      periodLabel: "First few hours",
-      startDay: 0,
-      endDay: 0,
-      sortOrder: 2,
-      body: `Bite gently on the gauze the clinic placed and keep the site still so a clot can form. Rest, keep your head up, and avoid rinsing, spitting, or using a straw during this first period.`,
-    },
-    {
-      id: "guide_sec_demo_extraction_first_day",
-      key: "first-24-hours",
-      kind: "RECOVERY_TIMELINE",
-      title: "Protect the healing site",
-      periodLabel: "Today / first 24 hours",
-      startDay: 1,
-      endDay: 1,
-      sortOrder: 3,
-      body: `Leave the site undisturbed. Choose soft, cool foods and take any pain relief only as the clinic advised. Do not smoke, drink alcohol, or poke the area today.`,
-    },
-    {
-      id: "guide_sec_demo_extraction_days_2_3",
-      key: "days-2-3",
-      kind: "RECOVERY_TIMELINE",
-      title: "Early recovery",
-      periodLabel: "Days 2–3",
-      startDay: 2,
-      endDay: 3,
-      sortOrder: 4,
-      body: `Swelling often peaks, then eases. If the clinic recommended a gentle salt-water rinse, start it now. Keep meals soft and avoid strenuous exercise until you feel steady.`,
-    },
-    {
-      id: "guide_sec_demo_extraction_days_4_7",
-      key: "days-4-7",
-      kind: "RECOVERY_TIMELINE",
-      title: "Healing check",
-      periodLabel: "Days 4–7",
-      startDay: 4,
-      endDay: 7,
-      sortOrder: 5,
-      body: `Discomfort should continue to settle. Return to usual food only as comfort allows. Contact the practice if pain increases, the site feels worse, or you are unsure.`,
-    },
-    {
-      id: "guide_sec_demo_extraction_normal",
-      key: "what-is-normal",
-      kind: "WHAT_IS_NORMAL",
-      title: "What's normal",
-      periodLabel: null,
-      sortOrder: 6,
-      body: `Mild swelling, a dull ache, and a little oozing can be expected in the first days. Recovery varies; contact the practice if you are unsure.`,
-    },
-    {
-      id: "guide_sec_demo_extraction_warnings",
-      key: "warning-signs",
-      kind: "WARNING_SIGNS",
-      title: "When to contact us",
-      periodLabel: null,
-      sortOrder: 7,
-      body: `Call the practice if bleeding will not slow, swelling spreads, swallowing becomes difficult, or pain gets worse after the first few days. For trouble breathing, use emergency services.`,
-    },
-    {
-      id: "guide_sec_demo_extraction_contact",
-      key: "contact-practice",
-      kind: "CONTACT_PRACTICE",
-      title: "Contact the practice",
-      periodLabel: null,
-      sortOrder: 8,
-      body: `Use the practice phone on this page if you have a question about recovery.`,
-    },
-  ],
+  sections: DEMO_EXTRACTION_CANONICAL_SECTIONS.map((section) => ({
+    ...section,
+    id: DEMO_EXTRACTION_SECTION_IDS[section.key],
+  })),
   override: {
     sectionKey: "first-24-hours",
     title: "The first day at Riverside Dental Demo",
@@ -563,8 +498,8 @@ async function upsertAftercareDemo(clinicId) {
       version: DEMO_EXTRACTION_GUIDE.version,
       status: "PUBLISHED",
       publishedAt: DEMO_EXTRACTION_GUIDE.publishedAt,
-      reviewedAt: DEMO_EXTRACTION_GUIDE.publishedAt,
-      reviewedBy: "Care Guide demo seed",
+      reviewedAt: null,
+      reviewedBy: null,
     },
     create: {
       id: DEMO_EXTRACTION_GUIDE.revisionId,
@@ -572,8 +507,8 @@ async function upsertAftercareDemo(clinicId) {
       version: DEMO_EXTRACTION_GUIDE.version,
       status: "PUBLISHED",
       publishedAt: DEMO_EXTRACTION_GUIDE.publishedAt,
-      reviewedAt: DEMO_EXTRACTION_GUIDE.publishedAt,
-      reviewedBy: "Care Guide demo seed",
+      reviewedAt: null,
+      reviewedBy: null,
     },
   });
 
@@ -850,7 +785,7 @@ async function main() {
     `- Clinic profile: ${DEMO_CLINIC_PROFILE.displayName} (patient-facing)`
   );
   console.info(
-    `- Aftercare template: ${aftercareDemo.template.title} (${aftercareDemo.template.slug}) revision v${aftercareDemo.revision.version}`
+    `- Aftercare template: ${aftercareDemo.template.title} (${aftercareDemo.template.slug}) revision v${aftercareDemo.revision.version} SAMPLE/NON-CLINICAL demo-only (reviewedAt/reviewedBy null)`
   );
   console.info(
     `- Practice guide: ${aftercareDemo.practiceGuide.publicSlug} pinned=${aftercareDemo.revision.id} published/enabled`

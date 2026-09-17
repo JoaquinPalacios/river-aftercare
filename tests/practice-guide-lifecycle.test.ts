@@ -109,6 +109,8 @@ describe("practice guide lifecycle and isolation", () => {
             version: 1,
             status: GuideRevisionStatus.PUBLISHED,
             publishedAt: new Date("2026-09-01"),
+            reviewedAt: new Date("2026-09-01"),
+            reviewedBy: "Lifecycle test reviewer",
             sections: {
               create: [
                 {
@@ -848,6 +850,8 @@ describe("draft delete and discard", () => {
             version: 1,
             status: GuideRevisionStatus.PUBLISHED,
             publishedAt: new Date("2026-09-01"),
+            reviewedAt: new Date("2026-09-01"),
+            reviewedBy: "Lifecycle test reviewer",
             sections: {
               create: {
                 key: "introduction",
@@ -869,7 +873,7 @@ describe("draft delete and discard", () => {
     });
     const listedBefore = await listCanonicalGuideTemplates(CLINIC_A_ID);
     expect(
-      listedBefore.find((template) => template.id === TEMPLATE_ID)
+      listedBefore.templates.find((template) => template.id === TEMPLATE_ID)
         ?.alreadyEnabled
     ).toBe(true);
 
@@ -893,7 +897,7 @@ describe("draft delete and discard", () => {
 
     const listedAfter = await listCanonicalGuideTemplates(CLINIC_A_ID);
     expect(
-      listedAfter.find((template) => template.id === TEMPLATE_ID)
+      listedAfter.templates.find((template) => template.id === TEMPLATE_ID)
         ?.alreadyEnabled
     ).toBe(false);
 

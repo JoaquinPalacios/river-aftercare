@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { DEMO_AFTERCARE_NOTICE } from "@/lib/aftercare/demo-tenant";
+import {
+  DEMO_AFTERCARE_NOTICE,
+  isDemoTenant,
+} from "@/lib/aftercare/demo-tenant";
 import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
 
 const PROFILE = {
@@ -14,6 +17,12 @@ const PROFILE = {
 };
 
 describe("resolvePracticeChrome", () => {
+  it("identifies only demodental as the interactive demo tenant", () => {
+    expect(isDemoTenant("demodental")).toBe(true);
+    expect(isDemoTenant("pacificdental")).toBe(false);
+    expect(isDemoTenant("test-tmpl-vis-normal")).toBe(false);
+  });
+
   it("maps a complete demo profile onto patient chrome", () => {
     const chrome = resolvePracticeChrome({
       slug: "demodental",

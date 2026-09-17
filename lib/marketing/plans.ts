@@ -86,4 +86,4 @@ export const PRICING_NOTES = [
   },
 ] as const;
 
-export const GUIDE_AVAILABILITY_NOTE = `The reviewed ${PRODUCT_NAME} template library is still expanding. Template availability depends on the care area and is confirmed during onboarding. Clinics remain responsible for approving the clinical guidance they publish.`;
+export const GUIDE_AVAILABILITY_NOTE = `The ${PRODUCT_NAME} template library is still expanding. Template availability depends on the care area and is confirmed during onboarding. Clinics remain responsible for approving the clinical guidance they publish.`;

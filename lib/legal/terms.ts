@@ -202,7 +202,7 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: `${PRODUCT_NAME} may provide canonical templates, such as a reviewed Tooth Extraction starting guide. Clinics may adapt templates. Additional procedure templates may be enabled during onboarding when they exist.`,
+        text: `${PRODUCT_NAME} may provide canonical templates, such as a Tooth Extraction starting guide. The current Tooth Extraction library entry used by the interactive demo is sample content, not clinically reviewed. Clinics may adapt templates. Additional procedure templates may be enabled during onboarding when they exist.`,
       },
       {
         type: "p",

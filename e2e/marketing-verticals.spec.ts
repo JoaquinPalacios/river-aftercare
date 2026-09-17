@@ -193,7 +193,8 @@ test.describe("clinic vertical acquisition pages", () => {
         "Does River Aftercare replace our practice-management system?",
         "What dental templates are available?",
       ],
-      answer: "Tooth Extraction is the current reviewed starting template.",
+      answer:
+        "Riverside Dental Demo currently uses a Tooth Extraction sample template.",
     },
     {
       path: "/physiotherapy",

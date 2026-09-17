@@ -186,7 +186,18 @@ The seed creates one fictional clinic plus clinic-scoped staff users when local 
 
 Copy the `LOCAL_*` examples from `.env.example`. They are fake local-only values and are not created if `NODE_ENV=production`.
 
-The seed also creates parked chairside fixtures (room, doctor, procedure templates) and one canonical aftercare **Tooth Extraction** demo guide. Chairside templates are **not** the aftercare Guide Template library. Aftercare demo copy is labelled non-clinical.
+The seed also creates parked chairside fixtures (room, doctor, procedure templates) and one **sample / non-clinical** aftercare **Tooth Extraction** template plus a demo clinic guide. Chairside templates are **not** the aftercare Guide Template library. Aftercare demo copy is labelled non-clinical. That template is visible only to the `demodental` tenant.
+
+`pnpm db:seed` is **not** safe for production: it upserts the demo clinic, users (when allowed), rooms, doctors, chairside templates, and a published practice guide.
+
+To create **only** the sample Tooth Extraction canonical library rows (1 `GuideTemplate`, 1 published unreviewed revision, 8 sections) against a database:
+
+```bash
+pnpm bootstrap:demo-template            # dry-run (default)
+pnpm bootstrap:demo-template -- --apply # writes
+```
+
+The command prefers `DIRECT_URL` when set. It does not run `prisma/seed.mjs`. It is not part of build, migrate, or deploy.
 
 ## Current staff auth (implemented)
 

@@ -35,10 +35,14 @@ export const DEMO_RECOVERY_FIXTURE = {
 
 const DEMO_AFTERCARE_TENANT_SLUGS = new Set([DEMO_AFTERCARE_TENANT_SLUG]);
 
-export function shouldShowDemoAftercareNotice(clinicSlug: string): boolean {
+export function isDemoTenant(clinicSlug: string): boolean {
   return DEMO_AFTERCARE_TENANT_SLUGS.has(clinicSlug);
 }
 
+export function shouldShowDemoAftercareNotice(clinicSlug: string): boolean {
+  return isDemoTenant(clinicSlug);
+}
+
 export function isDemoPatientExperienceEnabled(clinicSlug: string): boolean {
-  return shouldShowDemoAftercareNotice(clinicSlug);
+  return isDemoTenant(clinicSlug);
 }

@@ -132,7 +132,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
   guidance: {
     h2: `Use ${PRODUCT_NAME} for the dental guidance your practice needs`,
     body: `Start with an available ${PRODUCT_NAME} template where one exists, or prepare clinic-approved guidance during onboarding. Published pages can be adapted with your local instructions and practice terminology.`,
-    note: "Tooth Extraction is currently the reviewed starting template. The library is expanding, and template availability is confirmed during onboarding.",
+    note: "Riverside Dental Demo currently uses a Tooth Extraction sample template. It is not clinically reviewed. Additional dental templates are confirmed during onboarding.",
   },
   workflow: {
     h2: "From approved instructions to a page patients can keep",
@@ -186,7 +186,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       {
         question: "What dental templates are available?",
         answer:
-          "Tooth Extraction is the current reviewed starting template. The library is expanding, and template availability is confirmed during onboarding.",
+          "Riverside Dental Demo currently uses a Tooth Extraction sample template. It is not clinically reviewed. The library is expanding, and template availability is confirmed during onboarding.",
       },
     ],
   },
