@@ -1239,12 +1239,19 @@ test.describe("Phase 1F.11 story clarity", () => {
     const hoverColors = await pricing.evaluate((element) => {
       const styles = getComputedStyle(element);
       const after = getComputedStyle(element, "::after");
+      const probe = document.createElement("span");
+      probe.style.color = "var(--mk-sky)";
+      document.body.append(probe);
+      const sky = getComputedStyle(probe).color;
+      probe.remove();
       return {
         color: styles.color,
         underline: after.backgroundColor,
+        sky,
       };
     });
-    expect(hoverColors.underline).toBe(hoverColors.color);
+    expect(hoverColors.color).not.toBe(hoverColors.sky);
+    expect(hoverColors.underline).toBe(hoverColors.sky);
 
     const footerLink = page
       .getByRole("navigation", { name: "Footer" })
