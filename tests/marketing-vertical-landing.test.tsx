@@ -104,6 +104,9 @@ describe("clinic vertical landing pages", () => {
     expect(physio).toContain('data-vertical="physiotherapy"');
     expect(chiro).toContain('data-vertical="chiropractic"');
     expect(cosmetic).toContain('data-vertical="cosmetic"');
+    expect(dental).toContain('data-brand-scope="vertical"');
+    expect(physio).toContain('data-brand-scope="vertical"');
+    expect(chiro).not.toContain('data-brand-scope="master"');
     expect(dental).toContain("data-mk-vertical-hero");
     expect(dental).toContain("Current starting template");
     expect(dental).toContain("Live example");
@@ -181,6 +184,10 @@ describe("clinic vertical landing pages", () => {
     expect(css).toContain(".verticalProblemGrid");
     expect(css).toContain(".verticalRail");
     expect(css).toContain(".verticalProofPanel");
+    expect(css).toContain("--vertical-surface-soft");
+    expect(css).toContain("--vertical-surface-emphasis");
+    expect(css).toContain("--vertical-hero-canvas");
+    expect(css).toContain("--vertical-card-tint");
     expect(css).not.toContain(".dentalHero");
     expect(css).not.toContain(".physioHero");
     expect(landing).toContain("MarketingVerticalHero");

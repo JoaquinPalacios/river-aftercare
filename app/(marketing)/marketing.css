@@ -83,12 +83,50 @@
   --mk-heading-content-gap: clamp(2rem, 3vw, 2.5rem);
   --vertical-accent: var(--mk-brand);
   --vertical-accent-secondary: var(--mk-brand-strong);
+  --vertical-accent-text: var(--mk-brand);
   --vertical-accent-soft: color-mix(
     in srgb,
     var(--vertical-accent) 14%,
     transparent
   );
   --vertical-glow: color-mix(in srgb, var(--vertical-accent) 20%, transparent);
+  --vertical-hero-canvas: light-dark(
+    color-mix(in srgb, var(--mk-brand) 5%, var(--mk-hero)),
+    var(--mk-hero)
+  );
+  --vertical-hero-bloom: light-dark(
+    color-mix(in srgb, var(--mk-brand) 16%, transparent),
+    color-mix(in srgb, #8ea0ff 22%, transparent)
+  );
+  --vertical-hero-mist: light-dark(
+    color-mix(in srgb, var(--mk-sky) 11%, transparent),
+    color-mix(in srgb, #5ec8e0 15%, transparent)
+  );
+  --vertical-surface-soft: light-dark(
+    color-mix(in srgb, var(--mk-brand) 5%, var(--mk-hero)),
+    color-mix(in srgb, var(--mk-cobalt) 7%, var(--mk-hero))
+  );
+  --vertical-surface-emphasis: light-dark(
+    color-mix(in srgb, var(--mk-brand) 7%, var(--mk-showcase)),
+    color-mix(in srgb, var(--mk-cobalt) 10%, var(--mk-showcase))
+  );
+  --vertical-card-tint: light-dark(
+    color-mix(in srgb, var(--mk-brand) 4%, var(--mk-card)),
+    color-mix(in srgb, var(--mk-brand) 8%, var(--mk-card))
+  );
+  --vertical-card-border: color-mix(
+    in srgb,
+    var(--vertical-accent) 26%,
+    var(--mk-card-line)
+  );
+  --vertical-section-glow: light-dark(
+    color-mix(in srgb, var(--mk-brand) 10%, transparent),
+    color-mix(in srgb, #7c8cff 16%, transparent)
+  );
+  --vertical-closing-bloom: light-dark(
+    color-mix(in srgb, #cfd6ff 18%, transparent),
+    color-mix(in srgb, #3d58d6 34%, transparent)
+  );
   --mk-card-grid-gap: 1.15rem;
   --mk-card: light-dark(#ffffff, #171b24);
   --mk-card-line: light-dark(color-mix(in srgb, #0a0d14 8%, #ece8df), #2c3342);
