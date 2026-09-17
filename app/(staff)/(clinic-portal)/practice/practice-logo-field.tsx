@@ -7,7 +7,7 @@ import {
   removeClinicLogoAction,
   uploadClinicLogoAction,
   type ClinicLogoActionState,
-} from "@/app/(staff)/(clinic-portal)/practice/actions";
+} from "@/app/(staff)/(clinic-portal)/practice/logo-actions";
 
 const empty: ClinicLogoActionState = {};
 

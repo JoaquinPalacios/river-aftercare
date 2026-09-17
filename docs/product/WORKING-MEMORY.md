@@ -1208,3 +1208,17 @@ Production sitemap was emitting per-route Prisma `MarketingPageSeo.updatedAt` (a
 | Contract  | `DEFAULT_MARKETING_PAGE_SEO[path].lastModified` is a `YYYY-MM-DD` content-change date. Sitemap reads that field only.                 |
 | Semantics | Update lastModified when materially changing indexable page content. Do not bump it for deploys, formatting, or sitemap regeneration. |
 | Loader    | `app/sitemap.ts` no longer loads Prisma timestamps. Invalid or missing dates omit `lastmod` rather than inventing now().              |
+
+---
+
+## Practice save jsdom isolation (2026-09-17)
+
+Production `POST /practice` returned HTTP 500 while saving ordinary branding. No logo was uploaded.
+
+| Area            | Behaviour                                                                                                                                                                                                                                                                    |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Root cause      | `practice/actions.ts` co-exported `savePracticeSettingsAction` with logo upload/remove. Next evaluated the whole `"use server"` module, which statically imported `mutate-clinic-logo` → `sanitize-clinic-logo-svg` → `jsdom` / `dompurify`.                                 |
+| Runtime failure | jsdom 30 `require()`s CJS `html-encoding-sniffer@6`, which `require()`s ESM-only `@exodus/bytes`. Vercel’s Node runtime disables `require(esm)`, so module evaluation throws `ERR_REQUIRE_ESM`. Dynamic `import("jsdom")` does not fix that inner `require()`.               |
+| Isolation       | Settings save stays in `practice/actions.ts`. Logo upload/remove moved to `practice/logo-actions.ts`. `mutate-clinic-logo` dynamically imports the sanitizer only when `validated.kind === "svg"`. Raster PNG/JPEG/WebP and ordinary Practice mutations must not load jsdom. |
+| jsdom pin       | **26.1.0** (last CJS-safe line: `html-encoding-sniffer@4` + `parse5@7`). `@types/jsdom` 21.1.7. Do not bump to 27+ until the Vercel CJS graph is safe. Do not change Vercel `NODE_OPTIONS` to paper over this.                                                               |
+| Security        | SVG still uses server-side jsdom XML parse + DOMPurify. No unsanitised SVG. Rendered as `<img>` only. Platform OG upload and clinic R2 adapter unchanged.                                                                                                                    |
