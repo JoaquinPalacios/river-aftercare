@@ -318,19 +318,21 @@ export function DefaultOgImageField({
         </p>
       ) : null}
 
-      <ConfirmDialog
-        open={confirmRemove}
-        title="Remove default social image?"
-        description="This removes the configured default social sharing image. Page-level social image overrides are not affected."
-        cancelLabel="Keep image"
-        confirmLabel={removing ? "Removing…" : "Remove image"}
-        confirmTone="danger"
-        onCancel={() => setConfirmRemove(false)}
-        onConfirm={() => {
-          setConfirmRemove(false);
-          void removeImage();
-        }}
-      />
+      {hasImage || confirmRemove ? (
+        <ConfirmDialog
+          open={confirmRemove}
+          title="Remove default social image?"
+          description="This removes the configured default social sharing image. Page-level social image overrides are not affected."
+          cancelLabel="Keep image"
+          confirmLabel={removing ? "Removing…" : "Remove image"}
+          confirmTone="danger"
+          onCancel={() => setConfirmRemove(false)}
+          onConfirm={() => {
+            setConfirmRemove(false);
+            void removeImage();
+          }}
+        />
+      ) : null}
 
       {mounted && storageAvailable
         ? createPortal(

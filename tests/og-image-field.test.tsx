@@ -27,9 +27,18 @@ function source(path: string): string {
 }
 
 function setInputFile(input: HTMLInputElement, file: File): void {
-  const data = new DataTransfer();
-  data.items.add(file);
-  input.files = data.files;
+  const files = {
+    0: file,
+    length: 1,
+    item: (index: number) => (index === 0 ? file : null),
+    *[Symbol.iterator]() {
+      yield file;
+    },
+  } as unknown as FileList;
+  Object.defineProperty(input, "files", {
+    configurable: true,
+    value: files,
+  });
   input.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
@@ -45,6 +54,7 @@ describe("default social sharing image field", () => {
   let root: Root;
 
   beforeEach(() => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
     uploadMock.mockReset();
     removeMock.mockReset();
     HTMLDialogElement.prototype.showModal = function showModal() {
