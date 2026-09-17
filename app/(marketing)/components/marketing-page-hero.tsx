@@ -49,6 +49,14 @@ export function MarketingPageHero({
     >
       <div className={`${styles.inner} ${styles.pageHeroInner}`}>
         <MarketingRevealGroup>
+          {variant === "dental" ? (
+            <MarketingRevealItem delay={0}>
+              <div className={styles.dentalHeroKicker} aria-hidden="true">
+                <span className={styles.dentalHeroKickerDot} />
+                <span>THE PATIENT JOURNEY, CONTINUED</span>
+              </div>
+            </MarketingRevealItem>
+          ) : null}
           <MarketingRevealItem delay={0}>
             <p className={styles.eyebrow}>{eyebrow}</p>
           </MarketingRevealItem>
@@ -73,6 +81,49 @@ export function MarketingPageHero({
             </MarketingRevealItem>
           ) : null}
         </MarketingRevealGroup>
+        {variant === "dental" ? (
+          <div className={styles.dentalHeroVisual} aria-hidden="true">
+            <div className={styles.dentalHeroCard}>
+              <div className={styles.dentalHeroCardTop}>
+                <span className={styles.dentalHeroBrandMark}>R</span>
+                <span>Riverside Dental</span>
+                <span className={styles.dentalHeroCardStatus}>LIVE</span>
+              </div>
+              <div className={styles.dentalHeroCardRule} />
+              <p className={styles.dentalHeroCardEyebrow}>YOUR RECOVERY PLAN</p>
+              <h2>Tooth extraction</h2>
+              <p className={styles.dentalHeroCardIntro}>
+                A calm, clear guide for the days ahead.
+              </p>
+              <div className={styles.dentalHeroTimeline}>
+                <div className={styles.dentalHeroTimelineItem}>
+                  <span>01</span>
+                  <div>
+                    <strong>Today</strong>
+                    <small>Immediate care</small>
+                  </div>
+                </div>
+                <div className={styles.dentalHeroTimelineItem}>
+                  <span>02</span>
+                  <div>
+                    <strong>Days 2–3</strong>
+                    <small>Early recovery</small>
+                  </div>
+                </div>
+                <div className={styles.dentalHeroTimelineItem}>
+                  <span>03</span>
+                  <div>
+                    <strong>Days 4–7</strong>
+                    <small>Healing check</small>
+                  </div>
+                </div>
+              </div>
+              <div className={styles.dentalHeroCardFooter}>
+                Open your care guide <span>↗</span>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
       <MarketingPageHeroEdge />
     </section>

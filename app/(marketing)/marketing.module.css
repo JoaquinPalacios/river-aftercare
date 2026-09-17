@@ -2226,6 +2226,199 @@ html[data-theme-mode="dark"] .wordmarkName {
     radial-gradient(30% 18% at 62% 88%, var(--mk-hero-mist), transparent 74%);
 }
 
+.pageHeroPricing[data-mk-page-hero="dental"] {
+  min-height: min(48rem, calc(100svh - 4rem));
+  padding-top: clamp(4.5rem, 9vw, 8rem);
+  overflow: hidden;
+  background: #101a1a;
+  color: #f4f0e8;
+}
+
+.pageHeroPricing[data-mk-page-hero="dental"]::before {
+  background:
+    radial-gradient(
+      42% 70% at 82% 42%,
+      rgb(184 207 170 / 22%),
+      transparent 70%
+    ),
+    radial-gradient(
+      35% 42% at 18% 12%,
+      rgb(202 155 118 / 16%),
+      transparent 72%
+    ),
+    linear-gradient(
+      120deg,
+      transparent 20%,
+      rgb(255 255 255 / 3%) 50%,
+      transparent 78%
+    );
+}
+
+.pageHeroPricing[data-mk-page-hero="dental"] .pageHeroInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(20rem, 0.92fr);
+  align-items: center;
+  gap: clamp(2rem, 7vw, 7rem);
+  padding-bottom: clamp(4rem, 8vw, 7rem);
+}
+
+.pageHeroPricing[data-mk-page-hero="dental"] .pageTitle {
+  max-width: 10ch;
+  color: #f4f0e8;
+  font-size: clamp(3.25rem, 7.4vw, 6.8rem);
+  letter-spacing: -0.075em;
+  line-height: 0.94;
+}
+
+.pageHeroPricing[data-mk-page-hero="dental"] .pageLede {
+  max-width: 34rem;
+  color: rgb(230 228 216 / 72%);
+  font-size: clamp(1.02rem, 1.5vw, 1.2rem);
+}
+
+.dentalHeroKicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1.25rem;
+  color: #bfd7ad;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+.dentalHeroKickerDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #d8a67e;
+  box-shadow: 0 0 0 0.28rem rgb(216 166 126 / 12%);
+}
+
+.dentalHeroVisual {
+  display: flex;
+  justify-content: center;
+  transform: rotate(4deg);
+}
+
+.dentalHeroCard {
+  width: min(100%, 25rem);
+  padding: clamp(1.35rem, 3vw, 2rem);
+  border: 1px solid rgb(221 224 198 / 26%);
+  border-radius: 1.5rem;
+  background: linear-gradient(145deg, rgb(35 53 48 / 96%), rgb(20 31 31 / 96%));
+  box-shadow:
+    1.5rem 2rem 4rem rgb(0 0 0 / 30%),
+    inset 0 1px rgb(255 255 255 / 10%);
+}
+
+.dentalHeroCardTop,
+.dentalHeroCardFooter,
+.dentalHeroTimelineItem {
+  display: flex;
+  align-items: center;
+}
+
+.dentalHeroCardTop {
+  gap: 0.55rem;
+  color: rgb(244 240 232 / 72%);
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+
+.dentalHeroBrandMark {
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 0.42rem;
+  background: #c7d9b6;
+  color: #182522;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.dentalHeroCardStatus {
+  margin-left: auto;
+  color: #c7d9b6;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+}
+
+.dentalHeroCardRule {
+  height: 1px;
+  margin: 1.5rem 0 1.65rem;
+  background: rgb(221 224 198 / 16%);
+}
+
+.dentalHeroCardEyebrow {
+  margin: 0 0 0.55rem;
+  color: #d8a67e;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+.dentalHeroCard h2 {
+  margin: 0;
+  color: #f4f0e8;
+  font-size: clamp(1.65rem, 3vw, 2.15rem);
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.dentalHeroCardIntro {
+  margin: 0.65rem 0 1.5rem;
+  color: rgb(230 228 216 / 62%);
+  font-size: 0.9rem;
+}
+
+.dentalHeroTimeline {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.dentalHeroTimelineItem {
+  gap: 0.85rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid rgb(221 224 198 / 12%);
+}
+
+.dentalHeroTimelineItem > span {
+  color: #d8a67e;
+  font-size: 0.66rem;
+  font-weight: 750;
+}
+
+.dentalHeroTimelineItem div {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.dentalHeroTimelineItem strong {
+  color: #f4f0e8;
+  font-size: 0.88rem;
+}
+
+.dentalHeroTimelineItem small {
+  color: rgb(230 228 216 / 55%);
+  font-size: 0.72rem;
+}
+
+.dentalHeroCardFooter {
+  justify-content: space-between;
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgb(221 224 198 / 16%);
+  color: #c7d9b6;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.dentalHeroCardFooter span {
+  font-size: 1rem;
+}
+
 .pageTitle {
   margin: 0;
   font-size: clamp(2.15rem, 5.4vw, 3.35rem);
@@ -2908,6 +3101,32 @@ html[data-theme-mode="dark"] .wordmarkName {
   .pageHeroPricing::before,
   .pageHeroContact::before {
     opacity: 0.7;
+  }
+
+  .pageHeroPricing[data-mk-page-hero="dental"] {
+    min-height: 0;
+    padding-top: 3.5rem;
+  }
+
+  .pageHeroPricing[data-mk-page-hero="dental"] .pageHeroInner {
+    grid-template-columns: 1fr;
+    gap: 3.5rem;
+    padding-bottom: 4rem;
+  }
+
+  .pageHeroPricing[data-mk-page-hero="dental"] .pageTitle {
+    max-width: 11ch;
+    font-size: clamp(3.1rem, 14vw, 5rem);
+  }
+
+  .dentalHeroVisual {
+    justify-content: flex-end;
+    padding-right: 0.5rem;
+    transform: rotate(3deg) translateX(0.5rem);
+  }
+
+  .dentalHeroCard {
+    width: min(100%, 22rem);
   }
 
   .ctaBlock,
