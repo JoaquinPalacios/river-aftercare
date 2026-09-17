@@ -11,7 +11,7 @@ const nextCoreWebVitals = nextPlugin.configs["core-web-vitals"];
 // or canary typescript-eslint merely to regain type-aware rules.
 const eslintConfig = defineConfig([
   {
-    name: "care-guide/next",
+    name: "river-aftercare/next",
     files: ["**/*.{js,jsx,mjs,cjs,ts,tsx}"],
     plugins: nextCoreWebVitals.plugins,
     rules: nextCoreWebVitals.rules,
@@ -31,7 +31,7 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    name: "care-guide/aftercare-native-markup",
+    name: "river-aftercare/aftercare-native-markup",
     files: ["app/(aftercare)/**/*.{ts,tsx}"],
     rules: {
       // Patient pages stay Server Components. next/link and next/image

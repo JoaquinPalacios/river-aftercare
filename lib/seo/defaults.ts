@@ -88,7 +88,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: DRAFT_LEGAL_ROBOTS.index,
     follow: DRAFT_LEGAL_ROBOTS.follow,
-    lastModified: "2026-09-16",
+    lastModified: "2026-09-17",
   },
   "/terms": {
     seoTitle: "Terms & Conditions",
