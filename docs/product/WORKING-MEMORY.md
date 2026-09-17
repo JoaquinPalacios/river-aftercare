@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-17 (`/clinics` overview hub; content-sized vertical hero pathway; design system v2)
+Last updated: 2026-09-17 (Practice logo choose-then-upload control; `/clinics` hub; design system v2)
 
 ---
 
@@ -1091,17 +1091,32 @@ Operator
   -> Vercel cached public exact-key delivery
 ```
 
-| Area        | Behaviour                                                                                                                                                                                      |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Operator UI | Contained SEO card: visually hidden file input, explicit choose-then-upload, cancel selection, confirm before removing the default social image. Storage/validation/precedence unchanged.      |
-| Contract    | `PlatformSeoSettings.defaultOgImagePath` stays canonical. Uploads persist `/platform/seo/<uuid>.<ext>`. No second SEO image column.                                                            |
-| Storage     | Narrow `PlatformSeoAssetStorage`. Clinic `ClinicAssetStorage` is unchanged. Same private bucket, credentials, and `assets.` origin.                                                            |
-| Validation  | Exact 1200 × 630 PNG/JPEG/WebP, ≤ 2 MB. Magic bytes, MIME, extension, and dimensions checked. SVG rejected. No resize/recompress.                                                              |
-| Auth        | Platform OPERATOR only. Unauthenticated, clinic ADMIN, and STAFF cannot mutate.                                                                                                                |
-| Delivery    | `GET`/`HEAD` `/platform/seo/[filename]` on the asset host. Host header only. Generic empty 404 otherwise. MIME from filename. `Cache-Control` immutable, `nosniff`, CORP `same-site`, no CORS. |
-| Lifecycle   | Upload then persist then best-effort delete previous managed object. Persistence failure deletes the new orphan. Legacy `/brand/...` and external URLs are never deleted.                      |
-| Metadata    | Page `ogImagePath` still wins. Uploaded default fills Open Graph and Twitter when no page override exists. Canonical/index/sitemap/robots/llms unchanged.                                      |
-| Safety      | R2 remains private. r2.dev disabled. No R2 custom domain. No browser-direct upload. Private patient documents must never use this public-by-exact-key path.                                    |
+| Area        | Behaviour                                                                                                                                                                                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Operator UI | Contained SEO card: visually hidden file input, explicit choose-then-upload, cancel selection, confirm before removing the default social image. Shared `StaffFileTrigger` / `useAssetFileSelection` with Practice logo. Storage/validation/precedence unchanged. |
+| Contract    | `PlatformSeoSettings.defaultOgImagePath` stays canonical. Uploads persist `/platform/seo/<uuid>.<ext>`. No second SEO image column.                                                                                                                               |
+| Storage     | Narrow `PlatformSeoAssetStorage`. Clinic `ClinicAssetStorage` is unchanged. Same private bucket, credentials, and `assets.` origin.                                                                                                                               |
+| Validation  | Exact 1200 × 630 PNG/JPEG/WebP, ≤ 2 MB. Magic bytes, MIME, extension, and dimensions checked. SVG rejected. No resize/recompress.                                                                                                                                 |
+| Auth        | Platform OPERATOR only. Unauthenticated, clinic ADMIN, and STAFF cannot mutate.                                                                                                                                                                                   |
+| Delivery    | `GET`/`HEAD` `/platform/seo/[filename]` on the asset host. Host header only. Generic empty 404 otherwise. MIME from filename. `Cache-Control` immutable, `nosniff`, CORP `same-site`, no CORS.                                                                    |
+| Lifecycle   | Upload then persist then best-effort delete previous managed object. Persistence failure deletes the new orphan. Legacy `/brand/...` and external URLs are never deleted.                                                                                         |
+| Metadata    | Page `ogImagePath` still wins. Uploaded default fills Open Graph and Twitter when no page override exists. Canonical/index/sitemap/robots/llms unchanged.                                                                                                         |
+| Safety      | R2 remains private. r2.dev disabled. No R2 custom domain. No browser-direct upload. Private patient documents must never use this public-by-exact-key path.                                                                                                       |
+
+---
+
+## Practice logo asset control (UI polish)
+
+Date: 2026-09-17
+
+Practice Identity logo upload matches the Operator SEO default social-image control. Storage, R2, `ClinicProfile.logoUrl`, public asset route, validation, SVG sanitisation, and authorization are unchanged.
+
+| Area        | Behaviour                                                                                                                                                               |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Practice UI | Visually hidden file input, **Choose logo** / **Choose replacement**, explicit **Upload logo** / **Upload replacement**, **Cancel** selection, confirm **Remove logo**. |
+| Shared UI   | `StaffFileTrigger`, `useAssetFileSelection`, and `formatSelectedAssetFileLabel` are shared with Operator SEO. Clinic and platform storage adapters stay separate.       |
+| Preview     | Logo keeps intrinsic aspect ratio inside max-width/max-height. Rendered as `<img>`, including SVG.                                                                      |
+| Auth        | Clinic ADMIN mutates. STAFF still 404s on Practice and cannot call logo actions.                                                                                        |
 
 ---
 

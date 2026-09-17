@@ -719,8 +719,11 @@ test.describe("clinic portal UX polish", () => {
       page.getByRole("heading", { name: "Patient presentation" })
     ).toBeVisible();
     await expect(page.locator("[data-save-state=saved]")).toBeVisible();
-    await expect(page.getByText("Current logo preview")).toBeVisible();
-    await expect(page.locator("#clinic-logo-file")).toBeVisible();
+    await expect(
+      page.getByText("Practice logo", { exact: true }).first()
+    ).toBeVisible();
+    await expect(page.locator("#clinic-logo-file")).toHaveCount(1);
+    await expect(page.getByText("Choose replacement")).toBeVisible();
     await expect(
       page.getByText("SVG, PNG, JPEG or WebP", { exact: false })
     ).toBeVisible();

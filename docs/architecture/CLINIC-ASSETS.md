@@ -21,7 +21,7 @@ The repository now has:
 - ADMIN-only, same-clinic mutation (`uploadClinicLogo` / `removeClinicLogo`)
 - Same-origin GET `/clinic-branding/<clinicId>/<filename>` as the **test / unconfigured-origin** fallback
 - Production public URLs: `CLINIC_ASSET_PUBLIC_ORIGIN` + object key (`https://assets.riveraftercare.com.au/clinics/...`) served by a Vercel route that performs authenticated private R2 `GetObject`
-- Practice UI: current logo, Upload / Replace / Remove when storage is configured; explicit infrastructure-unavailable copy when it is not
+- Practice UI: contained logo control with visually hidden file input, explicit choose-then-upload, cancel selection, and confirm-before-remove when storage is configured; explicit infrastructure-unavailable copy when it is not
 
 Do not claim production clinics can upload logos until the R2 driver env is set in the deployed environment. Derive availability from the storage driver.
 

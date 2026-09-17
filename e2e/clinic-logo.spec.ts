@@ -48,7 +48,8 @@ test.describe("clinic logo upload", () => {
 
     await signInAsLocalAdmin(page);
     await page.goto(staffUrl("/practice"), { waitUntil: "load" });
-    await expect(page.getByText("No logo configured.")).toBeVisible();
+    await expect(page.getByText("Choose logo")).toBeVisible();
+    await expect(page.getByText("No logo configured.")).toHaveCount(0);
     await page.screenshot({
       path: `${ARTIFACT_DIR}/practice-no-logo.png`,
       fullPage: true,
@@ -59,12 +60,17 @@ test.describe("clinic logo upload", () => {
       mimeType: "image/png",
       buffer: PNG,
     });
+    await expect(page.getByText("clinic-mark.png")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Upload logo" })
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
     await page.screenshot({
       path: `${ARTIFACT_DIR}/practice-upload-selected.png`,
       fullPage: true,
     });
     await page.getByRole("button", { name: "Upload logo" }).click();
-    await expect(page.getByRole("status")).toHaveText("Uploaded");
+    await expect(page.getByRole("status")).toHaveText("Practice logo updated.");
     const uploaded = page.locator("img.staffLogoPreview");
     await expect(uploaded).toHaveAttribute(
       "src",
@@ -102,13 +108,15 @@ test.describe("clinic logo upload", () => {
     });
 
     await page.goto(staffUrl("/practice"), { waitUntil: "load" });
+    await expect(page.getByText("Choose replacement")).toBeVisible();
     await page.setInputFiles("#clinic-logo-file", {
       name: "clinic-mark.svg",
       mimeType: "image/svg+xml",
       buffer: SVG,
     });
-    await page.getByRole("button", { name: "Replace logo" }).click();
-    await expect(page.getByRole("status")).toHaveText("Uploaded");
+    await expect(page.getByText("clinic-mark.svg")).toBeVisible();
+    await page.getByRole("button", { name: "Upload replacement" }).click();
+    await expect(page.getByRole("status")).toHaveText("Practice logo updated.");
     await expect(page.locator("img.staffLogoPreview")).toHaveAttribute(
       "src",
       /\/clinic-branding\/clinic_demo_rivers\/.+\.svg$/
@@ -118,11 +126,24 @@ test.describe("clinic logo upload", () => {
       fullPage: true,
     });
 
-    await page.getByRole("button", { name: "Remove" }).click();
-    await expect(page.getByText("No logo configured.")).toBeVisible();
+    await page.getByRole("button", { name: "Remove logo" }).click();
     await expect(
-      page.getByRole("button", { name: "Upload logo" })
+      page.getByRole("dialog", { name: "Remove practice logo?" })
     ).toBeVisible();
+    await expect(
+      page.getByText(
+        "The patient aftercare site will fall back to the practice name and default presentation."
+      )
+    ).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Remove logo" })
+      .click();
+    await expect(page.getByText("Choose logo")).toBeVisible();
+    await expect(page.getByRole("status")).toHaveText("Practice logo removed.");
+    await expect(page.getByRole("button", { name: "Upload logo" })).toHaveCount(
+      0
+    );
     await page.screenshot({
       path: `${ARTIFACT_DIR}/practice-removed.png`,
       fullPage: true,
