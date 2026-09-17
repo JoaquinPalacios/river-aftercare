@@ -134,6 +134,10 @@ describe("marketing brand colour hierarchy", () => {
     expect(styles).toContain(
       "color-mix(in srgb, var(--mk-wave-periwinkle) 8%, #faf8ff)"
     );
+    expect(styles).toContain("color-mix(in srgb, #7c8cff 12%, var(--mk-hero))");
+    expect(styles).toContain("color-mix(in srgb, #2c46c4 18%, #05070c)");
+    expect(styles).toContain("color-mix(in srgb, #a6b8ff 11%, #0b0a12)");
+    expect(styles).toContain("color-mix(in srgb, #5ec8e0 9%, var(--mk-hero))");
   });
 
   it("keeps atmosphere in CSS tokens rather than component hex values", () => {
@@ -234,6 +238,16 @@ describe("marketing brand colour hierarchy", () => {
       ["#98a2b3", "#101321"],
       ["#f5f3ee", "#171b24"],
       ["#7ec8e6", "#1a2428"],
+      ["#f5f3ee", "#15182a"],
+      ["#a6b8ff", "#15182a"],
+      ["#8ea0ff", "#15182a"],
+      ["#98a2b3", "#15182a"],
+      ["#f5f3ee", "#0b1129"],
+      ["#8ea0ff", "#0b1129"],
+      ["#98a2b3", "#0b1129"],
+      ["#f5f3ee", "#1a1b2a"],
+      ["#a6b8ff", "#1a1b2a"],
+      ["#98a2b3", "#1a1b2a"],
     ] as const;
 
     for (const [foreground, background] of [

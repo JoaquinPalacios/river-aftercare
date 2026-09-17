@@ -54,7 +54,7 @@
   --vertical-accent-text: var(--mk-brand);
   --vertical-card-tint: light-dark(
     color-mix(in srgb, var(--mk-brand) 6%, var(--mk-card)),
-    color-mix(in srgb, #a6b8ff 11%, var(--mk-card))
+    color-mix(in srgb, #a6b8ff 16%, var(--mk-card))
   );
   --vertical-card-border: color-mix(
     in srgb,
@@ -67,31 +67,31 @@
   --vertical-glow: color-mix(in srgb, var(--mk-hero-bloom) 88%, transparent);
   --vertical-hero-canvas: light-dark(
     color-mix(in srgb, var(--mk-brand) 7%, var(--mk-hero)),
-    var(--mk-hero)
+    color-mix(in srgb, #7c8cff 12%, var(--mk-hero))
   );
   --vertical-hero-bloom: light-dark(
     color-mix(in srgb, #b7c2ff 30%, transparent),
-    color-mix(in srgb, #8ea0ff 32%, transparent)
+    color-mix(in srgb, #8ea0ff 42%, transparent)
   );
   --vertical-hero-mist: light-dark(
     color-mix(in srgb, var(--mk-sky) 6%, transparent),
-    color-mix(in srgb, var(--mk-sky) 9%, transparent)
+    color-mix(in srgb, var(--mk-sky) 8%, transparent)
   );
   --vertical-surface-soft: light-dark(
     color-mix(in srgb, var(--mk-brand) 7%, var(--mk-hero)),
-    color-mix(in srgb, #7c8cff 8%, var(--mk-hero))
+    color-mix(in srgb, #7c8cff 13%, var(--mk-hero))
   );
   --vertical-surface-emphasis: light-dark(
     color-mix(in srgb, var(--mk-brand) 11%, var(--mk-showcase)),
-    color-mix(in srgb, #7c8cff 16%, var(--mk-showcase))
+    color-mix(in srgb, #8ea0ff 20%, var(--mk-showcase))
   );
   --vertical-section-glow: light-dark(
     color-mix(in srgb, var(--mk-brand) 12%, transparent),
-    color-mix(in srgb, #8ea0ff 22%, transparent)
+    color-mix(in srgb, #8ea0ff 30%, transparent)
   );
   --vertical-closing-bloom: light-dark(
     color-mix(in srgb, #cfd6ff 24%, transparent),
-    color-mix(in srgb, #8ea0ff 30%, transparent)
+    color-mix(in srgb, #8ea0ff 38%, transparent)
   );
   --mk-closing-glow: var(--vertical-closing-bloom);
   --mk-closing-mist: light-dark(
@@ -126,7 +126,7 @@
   --vertical-glow: color-mix(in srgb, var(--mk-sky-glow) 92%, transparent);
   --vertical-hero-canvas: light-dark(
     color-mix(in srgb, var(--mk-sky) 8%, #f4fbfd),
-    var(--mk-hero)
+    color-mix(in srgb, #5ec8e0 9%, var(--mk-hero))
   );
   --vertical-hero-bloom: light-dark(
     color-mix(in srgb, #b5ebf1 28%, transparent),
@@ -172,7 +172,7 @@
   --vertical-accent-text: var(--mk-cobalt-soft);
   --vertical-card-tint: light-dark(
     color-mix(in srgb, var(--mk-cobalt-deep) 5%, var(--mk-card)),
-    color-mix(in srgb, #3d58d6 12%, var(--mk-card))
+    color-mix(in srgb, #3d58d6 18%, var(--mk-card))
   );
   --vertical-card-border: color-mix(
     in srgb,
@@ -185,31 +185,31 @@
   --vertical-glow: color-mix(in srgb, var(--mk-hero-glow) 90%, transparent);
   --vertical-hero-canvas: light-dark(
     color-mix(in srgb, var(--mk-cobalt-deep) 6%, #f3f5fb),
-    var(--mk-hero)
+    color-mix(in srgb, #2c46c4 18%, #05070c)
   );
   --vertical-hero-bloom: light-dark(
     color-mix(in srgb, var(--mk-cobalt) 18%, transparent),
-    color-mix(in srgb, #2c46c4 34%, transparent)
+    color-mix(in srgb, #2c46c4 48%, transparent)
   );
   --vertical-hero-mist: light-dark(
     color-mix(in srgb, var(--mk-cobalt-deep) 8%, transparent),
-    color-mix(in srgb, #3d58d6 22%, transparent)
+    color-mix(in srgb, #3d58d6 30%, transparent)
   );
   --vertical-surface-soft: light-dark(
     color-mix(in srgb, var(--mk-cobalt-deep) 6%, #f3f5fb),
-    color-mix(in srgb, #2c46c4 10%, var(--mk-hero))
+    color-mix(in srgb, #2c46c4 16%, var(--mk-hero))
   );
   --vertical-surface-emphasis: light-dark(
     color-mix(in srgb, var(--mk-cobalt) 9%, #eef1f8),
-    color-mix(in srgb, #3d58d6 16%, var(--mk-showcase))
+    color-mix(in srgb, #3d58d6 22%, var(--mk-showcase))
   );
   --vertical-section-glow: light-dark(
     color-mix(in srgb, var(--mk-cobalt) 12%, transparent),
-    color-mix(in srgb, #3d58d6 24%, transparent)
+    color-mix(in srgb, #3d58d6 32%, transparent)
   );
   --vertical-closing-bloom: light-dark(
     color-mix(in srgb, var(--mk-cobalt) 16%, transparent),
-    color-mix(in srgb, #2c46c4 30%, transparent)
+    color-mix(in srgb, #2c46c4 40%, transparent)
   );
   --mk-closing-glow: var(--vertical-closing-bloom);
   --mk-closing-mist: light-dark(
@@ -235,7 +235,7 @@
   --vertical-accent-text: var(--mk-brand);
   --vertical-card-tint: light-dark(
     color-mix(in srgb, var(--mk-wave-periwinkle) 7%, var(--mk-card)),
-    color-mix(in srgb, #8ea0ff 11%, var(--mk-card))
+    color-mix(in srgb, #a6b8ff 16%, var(--mk-card))
   );
   --vertical-card-border: color-mix(
     in srgb,
@@ -248,31 +248,31 @@
   --vertical-glow: color-mix(in srgb, var(--mk-hero-sheen) 86%, transparent);
   --vertical-hero-canvas: light-dark(
     color-mix(in srgb, var(--mk-wave-periwinkle) 8%, #faf8ff),
-    var(--mk-hero)
+    color-mix(in srgb, #a6b8ff 11%, #0b0a12)
   );
   --vertical-hero-bloom: light-dark(
     color-mix(in srgb, var(--mk-wave-periwinkle) 22%, transparent),
-    color-mix(in srgb, #a6b8ff 28%, transparent)
+    color-mix(in srgb, #a6b8ff 40%, transparent)
   );
   --vertical-hero-mist: light-dark(
     color-mix(in srgb, var(--mk-lavender) 10%, transparent),
-    color-mix(in srgb, #8ea0ff 16%, transparent)
+    color-mix(in srgb, #c4c8ff 20%, transparent)
   );
   --vertical-surface-soft: light-dark(
     color-mix(in srgb, var(--mk-wave-periwinkle) 7%, #faf8ff),
-    color-mix(in srgb, #8ea0ff 9%, var(--mk-hero))
+    color-mix(in srgb, #a6b8ff 13%, var(--mk-hero))
   );
   --vertical-surface-emphasis: light-dark(
     color-mix(in srgb, var(--mk-lavender) 10%, #f3f0f8),
-    color-mix(in srgb, #8ea0ff 14%, var(--mk-showcase))
+    color-mix(in srgb, #a6b8ff 20%, var(--mk-showcase))
   );
   --vertical-section-glow: light-dark(
     color-mix(in srgb, var(--mk-wave-periwinkle) 12%, transparent),
-    color-mix(in srgb, #a6b8ff 20%, transparent)
+    color-mix(in srgb, #a6b8ff 28%, transparent)
   );
   --vertical-closing-bloom: light-dark(
     color-mix(in srgb, var(--mk-wave-periwinkle) 18%, transparent),
-    color-mix(in srgb, #a6b8ff 26%, transparent)
+    color-mix(in srgb, #a6b8ff 34%, transparent)
   );
   --mk-closing-glow: var(--vertical-closing-bloom);
   --mk-closing-mist: light-dark(
