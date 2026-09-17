@@ -2,8 +2,8 @@ import { cache } from "react";
 
 import { getPrisma } from "@/lib/prisma";
 import {
-  DEFAULT_MARKETING_PAGE_SEO,
   DEFAULT_PLATFORM_SEO,
+  marketingPageSeoFields,
 } from "@/lib/seo/defaults";
 import { MARKETING_SEO_PATHS, PLATFORM_SEO_ID } from "@/lib/seo/types";
 import type {
@@ -84,7 +84,7 @@ export const loadMarketingPageSeo = cache(
   async (path: MarketingSeoPath): Promise<MarketingPageSeoInput> => {
     const fallback = {
       path,
-      ...DEFAULT_MARKETING_PAGE_SEO[path],
+      ...marketingPageSeoFields(path),
       updatedAt: null,
     };
     try {
@@ -112,36 +112,16 @@ export const loadAllMarketingPageSeo = cache(
         (path) =>
           byPath.get(path) ?? {
             path,
-            ...DEFAULT_MARKETING_PAGE_SEO[path],
+            ...marketingPageSeoFields(path),
             updatedAt: null,
           }
       );
     } catch {
       return MARKETING_SEO_PATHS.map((path) => ({
         path,
-        ...DEFAULT_MARKETING_PAGE_SEO[path],
+        ...marketingPageSeoFields(path),
         updatedAt: null,
       }));
     }
   }
 );
-
-export async function getSitemapLastModifiedByPath(): Promise<
-  Partial<Record<MarketingSeoPath, Date>>
-> {
-  const identity = await loadPlatformSeoIdentity();
-  const pages = await loadAllMarketingPageSeo();
-  const dates: Partial<Record<MarketingSeoPath, Date>> = {};
-  for (const page of pages) {
-    const candidates = [page.updatedAt, identity.updatedAt].filter(
-      (value): value is Date => value instanceof Date
-    );
-    if (candidates.length === 0) {
-      continue;
-    }
-    dates[page.path] = new Date(
-      Math.max(...candidates.map((value) => value.getTime()))
-    );
-  }
-  return dates;
-}

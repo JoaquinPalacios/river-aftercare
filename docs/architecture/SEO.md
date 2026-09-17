@@ -21,6 +21,14 @@ Page-level Next.js `robots` metadata is the real noindex control. `robots.txt` i
 
 `robots.txt` allows public marketing paths and `/llms.txt`. It disallows authenticated/internal prefixes so those URLs are not advertised as crawl targets. Tenant patient pages are not disallowed (they live on clinic hosts at `/` and `/<slug>`), and they still emit `noindex, follow`.
 
+## Sitemap lastmod
+
+Sitemap `lastmod` is an explicit per-route calendar date on `DEFAULT_MARKETING_PAGE_SEO.lastModified`, not Prisma `updatedAt` and not sitemap generation or deploy time.
+
+When materially changing a public marketing page, update its sitemap lastModified value.
+
+Omit `lastModified` rather than publishing a knowingly false timestamp. Do not invent millisecond precision.
+
 ## Canonical URL policy
 
 Canonical URLs are **derived**, not operator-editable:

@@ -43,7 +43,7 @@ describe("llms.txt", () => {
 });
 
 describe("marketing sitemap builder", () => {
-  it("includes marketing routes and omits invented timestamps", () => {
+  it("includes marketing routes from the canonical SEO path list", () => {
     const entries = buildMarketingSitemap({
       origin: "http://localhost",
     });
@@ -59,21 +59,8 @@ describe("marketing sitemap builder", () => {
       "http://localhost/chiropractic",
       "http://localhost/cosmetic-clinics",
     ]);
-    expect(entries.every((entry) => entry.lastModified === undefined)).toBe(
-      true
-    );
     expect(new Set(entries.map((entry) => entry.url)).size).toBe(
       entries.length
     );
-  });
-
-  it("uses stored updatedAt when provided", () => {
-    const updatedAt = new Date("2026-09-13T00:00:00.000Z");
-    const entries = buildMarketingSitemap({
-      origin: "http://localhost",
-      lastModifiedByPath: { "/": updatedAt },
-    });
-    expect(entries[0]?.lastModified).toEqual(updatedAt);
-    expect(entries[1]?.lastModified).toBeUndefined();
   });
 });

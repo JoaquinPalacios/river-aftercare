@@ -24,8 +24,8 @@ vi.mock("@/lib/prisma", () => ({
 
 import { savePlatformSeoSettings } from "@/lib/seo/save-platform-seo";
 import {
-  DEFAULT_MARKETING_PAGE_SEO,
   DEFAULT_PLATFORM_SEO,
+  marketingPageSeoFields,
 } from "@/lib/seo/defaults";
 import { MARKETING_SEO_PATHS } from "@/lib/seo/types";
 
@@ -51,7 +51,7 @@ describe("savePlatformSeoSettings", () => {
       },
       pages: MARKETING_SEO_PATHS.map((path) => ({
         path,
-        ...DEFAULT_MARKETING_PAGE_SEO[path],
+        ...marketingPageSeoFields(path),
         updatedAt: null,
       })),
     });

@@ -18,9 +18,25 @@ export const DEFAULT_PLATFORM_SEO: PlatformSeoIdentity = {
   updatedAt: null,
 };
 
+/**
+ * Code-owned marketing SEO defaults, including sitemap lastmod.
+ *
+ * `lastModified` is a calendar date (`YYYY-MM-DD`) of the last material
+ * public-page content change for that route (copy, title/description,
+ * structured sections, or other indexable SEO content). Sitemap lastmod
+ * reads this field. Update it when those change. Do not set it to deploy,
+ * build, or sitemap-generation time.
+ */
+export type MarketingPageSeoDefault = Omit<
+  MarketingPageSeoInput,
+  "path" | "updatedAt"
+> & {
+  lastModified: string;
+};
+
 export const DEFAULT_MARKETING_PAGE_SEO: Record<
   MarketingSeoPath,
-  Omit<MarketingPageSeoInput, "path" | "updatedAt">
+  MarketingPageSeoDefault
 > = {
   "/": {
     seoTitle: "Patient Aftercare Software for Clinics | River Aftercare",
@@ -32,6 +48,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: INDEXABLE_ROBOTS.index,
     follow: INDEXABLE_ROBOTS.follow,
+    lastModified: "2026-09-16",
   },
   "/pricing": {
     seoTitle: "Patient Aftercare Software Pricing | River Aftercare",
@@ -41,6 +58,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: INDEXABLE_ROBOTS.index,
     follow: INDEXABLE_ROBOTS.follow,
+    lastModified: "2026-09-16",
   },
   "/contact": {
     seoTitle: "Book a Demo | River Aftercare",
@@ -50,6 +68,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: INDEXABLE_ROBOTS.index,
     follow: INDEXABLE_ROBOTS.follow,
+    lastModified: "2026-09-16",
   },
   "/about": {
     seoTitle: "About River Aftercare | Digital Patient Aftercare",
@@ -59,6 +78,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: INDEXABLE_ROBOTS.index,
     follow: INDEXABLE_ROBOTS.follow,
+    lastModified: "2026-09-16",
   },
   "/privacy": {
     seoTitle: "Privacy Policy",
@@ -68,6 +88,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: DRAFT_LEGAL_ROBOTS.index,
     follow: DRAFT_LEGAL_ROBOTS.follow,
+    lastModified: "2026-09-16",
   },
   "/terms": {
     seoTitle: "Terms & Conditions",
@@ -77,6 +98,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: DRAFT_LEGAL_ROBOTS.index,
     follow: DRAFT_LEGAL_ROBOTS.follow,
+    lastModified: "2026-09-16",
   },
   "/dental": {
     seoTitle: "Dental Aftercare Software for Practices | River Aftercare",
@@ -88,6 +110,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: true,
     follow: true,
+    lastModified: "2026-09-16",
   },
   "/physiotherapy": {
     seoTitle: "Physiotherapy Patient Aftercare Software | River Aftercare",
@@ -99,6 +122,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: true,
     follow: true,
+    lastModified: "2026-09-16",
   },
   "/chiropractic": {
     seoTitle: "Chiropractic Patient Aftercare Software | River Aftercare",
@@ -110,6 +134,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: true,
     follow: true,
+    lastModified: "2026-09-16",
   },
   "/cosmetic-clinics": {
     seoTitle: "Cosmetic Clinic Aftercare Software | River Aftercare",
@@ -121,8 +146,17 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: true,
     follow: true,
+    lastModified: "2026-09-16",
   },
 };
+
+export function marketingPageSeoFields(
+  path: MarketingSeoPath
+): Omit<MarketingPageSeoInput, "path" | "updatedAt"> {
+  const { lastModified, ...fields } = DEFAULT_MARKETING_PAGE_SEO[path];
+  void lastModified;
+  return fields;
+}
 
 export const MARKETING_PAGE_LABELS: Record<MarketingSeoPath, string> = {
   "/": "Home",
