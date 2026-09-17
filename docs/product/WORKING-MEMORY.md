@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-16 (private R2 clinic-asset delivery through Vercel `assets.` host)
+Last updated: 2026-09-17 (public clinic-asset CORP `same-site`)
 
 ---
 
@@ -1055,7 +1055,7 @@ Do not remove the draft banners until counsel review and the remaining launch bl
 
 ## R2 clinic asset storage (implemented)
 
-Date: 2026-09-13; private Vercel delivery 2026-09-16
+Date: 2026-09-13; private Vercel delivery 2026-09-16; public CORP `same-site` 2026-09-17
 
 Application support for production clinic logos on **Cloudflare R2**. The bucket stays private. Public reads are not r2.dev and not an R2 custom domain.
 
@@ -1066,6 +1066,7 @@ Application support for production clinic logos on **Cloudflare R2**. The bucket
 | Upload       | ADMIN server action: validate → sanitize SVG → PutObject → DB key update → best-effort old delete. STAFF 404 on Practice; mutations forbidden. Cross-clinic forbidden. No browser-direct uploads.    |
 | Public URL   | `CLINIC_ASSET_PUBLIC_ORIGIN` + key. Production: `https://assets.riveraftercare.com.au/...` → Vercel route → private `GetObject`/`HeadObject`. Tests/memory use `/clinic-branding/<clinicId>/<file>`. |
 | Host         | Public route serves only when `Host` matches `CLINIC_ASSET_PUBLIC_ORIGIN`. Apex, `app.`, tenants, and arbitrary hosts get a generic 404. `assets` is a reserved tenant slug.                         |
+| Headers      | Public `/clinics/.../branding/...` success: `Content-Type`, `Cache-Control: public, max-age=31536000, immutable`, `X-Content-Type-Options: nosniff`, `Cross-Origin-Resource-Policy: same-site`. Never `same-origin` on that route (subdomain-to-`assets.` `<img>` loads). No CORS. Fallback `/clinic-branding/...` keeps `same-origin` + CSP for localhost/tests. |
 | Tests        | Memory driver. Playwright e2e uses memory. No live Cloudflare.                                                                                                                                       |
 | Provisioning | [R2-PROVISIONING.md](../launch/R2-PROVISIONING.md) for Joaquín (env only). Worker not required. Vercel remains authoritative DNS.                                                                    |
 

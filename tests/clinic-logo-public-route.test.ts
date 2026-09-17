@@ -123,7 +123,12 @@ describe("public clinic branding asset route", () => {
     expect(response.headers.get("cache-control")).toBe(
       "public, max-age=31536000, immutable"
     );
-    expect(response.headers.get("cross-origin-resource-policy")).toBeNull();
+    expect(response.headers.get("cross-origin-resource-policy")).toBe(
+      "same-site"
+    );
+    expect(response.headers.get("cross-origin-resource-policy")).not.toBe(
+      "same-origin"
+    );
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
     expect(headerBag(response)).not.toContain(SECRET);
     expect(headerBag(response)).not.toContain(ACCESS_KEY);
@@ -146,7 +151,12 @@ describe("public clinic branding asset route", () => {
     expect(response.headers.get("cache-control")).toBe(
       "public, max-age=31536000, immutable"
     );
-    expect(response.headers.get("cross-origin-resource-policy")).toBeNull();
+    expect(response.headers.get("cross-origin-resource-policy")).toBe(
+      "same-site"
+    );
+    expect(response.headers.get("cross-origin-resource-policy")).not.toBe(
+      "same-origin"
+    );
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
     expect(headerBag(response)).not.toContain(SECRET);
   });

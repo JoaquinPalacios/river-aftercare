@@ -89,9 +89,10 @@ The route sets:
 content-type: image/png | image/jpeg | image/webp | image/svg+xml
 cache-control: public, max-age=31536000, immutable
 x-content-type-options: nosniff
+cross-origin-resource-policy: same-site
 ```
 
-Do not add `Cross-Origin-Resource-Policy: same-origin` (clinic and staff hosts load the image cross-subdomain). Do not add CORS; these are normal `<img>` requests. CSP is not required for launch: SVG is sanitized and loaded only as `<img>`.
+Do not use `Cross-Origin-Resource-Policy: same-origin` (clinic and staff hosts load the image cross-subdomain from `assets.`). Do not add CORS; these are normal `<img>` requests. CSP is not required for launch: SVG is sanitized and loaded only as `<img>`.
 
 ## 6. Application environment variables
 

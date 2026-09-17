@@ -25,6 +25,7 @@ export const CLINIC_LOGO_PUBLIC_RESPONSE_HEADERS = {
   "X-Content-Type-Options": "nosniff",
   "Content-Disposition": "inline",
   "Cache-Control": CLINIC_ASSET_CACHE_CONTROL,
+  "Cross-Origin-Resource-Policy": "same-site",
 } as const;
 
 function clinicLogoContentType(mimeType: string): string {

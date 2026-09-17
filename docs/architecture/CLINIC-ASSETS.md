@@ -125,9 +125,9 @@ browser
   -> authenticated private R2 GetObject (GET) or HeadObject (HEAD)
 ```
 
-The route only serves when `Host` matches `CLINIC_ASSET_PUBLIC_ORIGIN`. Successful responses set `Content-Type` from the validated file extension (never arbitrary R2 metadata), `Cache-Control: public, max-age=31536000, immutable`, and `X-Content-Type-Options: nosniff`. Do not send `Cross-Origin-Resource-Policy: same-origin` (images are loaded from clinic/staff hosts). CORS is not required. A Cloudflare Worker is not required.
+The route only serves when `Host` matches `CLINIC_ASSET_PUBLIC_ORIGIN`. Successful responses set `Content-Type` from the validated file extension (never arbitrary R2 metadata), `Cache-Control: public, max-age=31536000, immutable`, `X-Content-Type-Options: nosniff`, and `Cross-Origin-Resource-Policy: same-site`. Do not send `Cross-Origin-Resource-Policy: same-origin` — clinic, staff, and marketing hosts load the image from the `assets.` subdomain. CORS is not required. A Cloudflare Worker is not required.
 
-The `/clinic-branding/...` route remains for the memory driver / unconfigured origin and still sets `nosniff` + a restrictive CSP for that same-origin fallback path.
+The `/clinic-branding/...` route remains for the memory driver / unconfigured origin and still sets `nosniff`, a restrictive CSP, and `Cross-Origin-Resource-Policy: same-origin` for that same-origin localhost fallback path.
 
 ## Authorization
 
