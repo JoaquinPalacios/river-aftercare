@@ -68,7 +68,7 @@ export function isClinicVerticalSeoPath(
   return isClinicVerticalPath(path);
 }
 
-export function clinicDirectoryNavItems(currentPath: string): readonly {
+export function clinicDirectoryNavItems(currentPath: string): {
   href: string;
   label: string;
   current: boolean;
