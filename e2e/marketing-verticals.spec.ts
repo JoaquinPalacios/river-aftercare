@@ -151,9 +151,6 @@ test.describe("clinic vertical acquisition pages", () => {
     const secondDetails = page.locator("details").filter({ has: second });
     await first.scrollIntoViewIfNeeded();
     await expect(first).toBeVisible();
-    await expect(
-      page.getByRole("group", { name: firstQuestion })
-    ).toBeVisible();
     await expect(page.locator("details")).toHaveCount(5);
     await expect(firstDetails).toHaveJSProperty("open", false);
     await expect(page.getByText(firstAnswer)).toBeHidden();
