@@ -17,7 +17,10 @@ import MarketingCosmeticClinicsPage from "@/app/(marketing)/%5Fmarketing/cosmeti
 import { MARKETING_PAGE_LABELS } from "@/lib/seo/defaults";
 import { MARKETING_SEO_PATHS } from "@/lib/seo/types";
 import { MARKETING_SEO_PAGE_KEYS } from "@/lib/seo/page-keys";
-import { VERTICAL_LANDINGS } from "@/lib/marketing/vertical-landing";
+import {
+  VERTICAL_ACCENT_FAMILY,
+  VERTICAL_LANDINGS,
+} from "@/lib/marketing/vertical-landing";
 
 describe("clinic vertical landing pages", () => {
   const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
@@ -170,6 +173,10 @@ describe("clinic vertical landing pages", () => {
     expect(css).toContain('data-vertical="physiotherapy"');
     expect(css).toContain('data-vertical="chiropractic"');
     expect(css).toContain('data-vertical="cosmetic"');
+    expect(css).toContain("var(--mk-sky)");
+    expect(css).toContain("var(--mk-sky-text)");
+    expect(css).toContain("var(--mk-cobalt-soft)");
+    expect(css).toContain("var(--mk-lavender)");
     expect(css).toContain(".verticalHero");
     expect(css).toContain(".verticalProblemGrid");
     expect(css).toContain(".verticalRail");
@@ -179,6 +186,12 @@ describe("clinic vertical landing pages", () => {
     expect(landing).toContain("MarketingVerticalHero");
     expect(landing).not.toContain("VERTICAL_RELATED_LINKS");
     expect(landing).not.toContain("About River Aftercare");
+    expect(VERTICAL_ACCENT_FAMILY).toEqual({
+      dental: "periwinkle",
+      physiotherapy: "sky",
+      chiropractic: "cobalt",
+      cosmetic: "lavender",
+    });
   });
 
   it("sizes the hero pathway panel to its content instead of stretching the column", () => {

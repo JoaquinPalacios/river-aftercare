@@ -214,7 +214,9 @@ export function MarketingClinicsHub({
               <div className={styles.clinicsHubOther}>
                 <MarketingRevealGroup>
                   <MarketingRevealItem delay={0}>
-                    <p className={styles.eyebrow}>{copy.other.eyebrow}</p>
+                    <p className={`${styles.eyebrow} ${styles.eyebrowFlow}`}>
+                      {copy.other.eyebrow}
+                    </p>
                   </MarketingRevealItem>
                   <MarketingRevealItem delay={editorialRevealDelay(1)}>
                     <h2 id="clinics-other" className={styles.sectionTitle}>

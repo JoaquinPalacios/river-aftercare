@@ -19,10 +19,7 @@
     color-mix(in srgb, #cfd6ff 12%, transparent),
     color-mix(in srgb, #3d58d6 32%, transparent)
   );
-  --mk-closing-mist: light-dark(
-    color-mix(in srgb, #b5ebf1 8%, transparent),
-    color-mix(in srgb, #5ec8e0 16%, transparent)
-  );
+  --mk-closing-mist: var(--mk-sky-glow);
   --mk-closing-cobalt: light-dark(
     transparent,
     color-mix(in srgb, #2c46c4 22%, transparent)
@@ -45,16 +42,34 @@
     color-mix(in srgb, #cfd6ff 12%, transparent),
     color-mix(in srgb, #8ea0ff 16%, transparent)
   );
-  --mk-hero-mist: light-dark(
-    color-mix(in srgb, #b5ebf1 11%, transparent),
-    color-mix(in srgb, #5ec8e0 11%, transparent)
-  );
+  --mk-hero-mist: var(--mk-sky-glow);
   --mk-hero-sheen: light-dark(
     color-mix(in srgb, #e4e8ff 9%, transparent),
     color-mix(in srgb, #7c8cff 10%, transparent)
   );
+  --mk-sky: light-dark(#67c5d6, #7ec8e6);
+  --mk-sky-strong: light-dark(#146f88, #5ec8e0);
+  --mk-sky-text: light-dark(#146f88, #7ec8e6);
+  --mk-sky-glow: light-dark(
+    color-mix(in srgb, #b5ebf1 11%, transparent),
+    color-mix(in srgb, #5ec8e0 16%, transparent)
+  );
+  --mk-sky-soft: color-mix(in srgb, var(--mk-sky) 12%, transparent);
+  --mk-sky-border: color-mix(in srgb, var(--mk-sky) 34%, var(--mk-line));
+  --mk-sky-hover: light-dark(
+    color-mix(in srgb, #146f88 86%, #0a0d14 14%),
+    color-mix(in srgb, #7ec8e6 85%, white 15%)
+  );
+  --mk-sky-muted: color-mix(in srgb, var(--mk-sky) 42%, var(--mk-muted));
+  --mk-cobalt: light-dark(#3b4bd1, #3d58d6);
+  --mk-cobalt-deep: light-dark(#2d3bb8, #2c46c4);
+  --mk-cobalt-soft: light-dark(#3b4bd1, #8ea0ff);
+  --mk-lavender: light-dark(
+    color-mix(in srgb, var(--mk-brand) 70%, var(--mk-wave-periwinkle)),
+    #8ea0ff
+  );
   --mk-wave-periwinkle: light-dark(#7c8cff, #a6b8ff);
-  --mk-wave-cyan: light-dark(#67c5d6, #7ec8e6);
+  --mk-wave-cyan: var(--mk-sky);
   --mk-wave-glow-opacity: light-dark(0.3, 0.52);
   --mk-interact-duration: var(--interaction-duration);
   --mk-interact-ease: var(--interaction-easing);
@@ -90,8 +105,8 @@
     0 1px 0 rgb(10 13 20 / 3.5%),
     0 1px 0 rgb(255 255 255 / 3%)
   );
-  --mk-rail: light-dark(#7c8cff, #a6b8ff);
-  --mk-rail-end: light-dark(#67c5d6, #7ec8e6);
+  --mk-rail: var(--mk-wave-periwinkle);
+  --mk-rail-end: var(--mk-sky);
 }
 
 html[data-theme-mode="light"] {

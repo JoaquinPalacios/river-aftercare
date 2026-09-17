@@ -192,6 +192,11 @@ describe("aftercare style boundary", () => {
     expect(tokens).toContain("--mk-hero-glow");
     expect(tokens).toContain("--mk-hero-bloom");
     expect(tokens).toContain("--mk-hero-mist");
+    expect(tokens).toContain("--mk-sky");
+    expect(tokens).toContain("--mk-sky-text");
+    expect(tokens).toContain("--mk-sky-glow");
+    expect(tokens).toContain("--mk-cobalt");
+    expect(tokens).toContain("--mk-lavender");
     expect(tokens).toContain("--mk-brand-hover");
     expect(tokens).toContain("--mk-closing-glow");
     expect(tokens).toContain("--mk-closing-cobalt");
