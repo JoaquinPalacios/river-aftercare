@@ -67,7 +67,7 @@ export const LAUNCH_PLANS = [
 export const COMING_AFTER_LAUNCH = [
   "Patient check-ins",
   "Advanced follow-up",
-  "Connected recovery plans",
+  "Connected aftercare plans",
   "Messaging and integrations",
 ] as const;
 

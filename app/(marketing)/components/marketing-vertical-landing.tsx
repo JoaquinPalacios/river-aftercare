@@ -5,6 +5,7 @@ import {
   MarketingRevealGroup,
   MarketingRevealItem,
 } from "@/app/(marketing)/components/marketing-experience";
+import { MarketingFaq } from "@/app/(marketing)/components/marketing-faq";
 import { MarketingPageHero } from "@/app/(marketing)/components/marketing-page-hero";
 import { MarketingPrimaryAnchor } from "@/app/(marketing)/components/marketing-primary-anchor";
 import { MarketingPrimaryLink } from "@/app/(marketing)/components/marketing-primary-link";
@@ -299,8 +300,8 @@ export function MarketingVerticalLanding({
             aria-labelledby={`${content.path.slice(1)}-faq`}
           >
             <div className={styles.inner}>
-              <div className={styles.headingBlock}>
-                <MarketingRevealGroup>
+              <MarketingRevealGroup>
+                <div className={styles.headingBlock}>
                   <MarketingRevealItem delay={0}>
                     <h2
                       id={`${content.path.slice(1)}-faq`}
@@ -309,21 +310,16 @@ export function MarketingVerticalLanding({
                       {content.faq.h2}
                     </h2>
                   </MarketingRevealItem>
-                </MarketingRevealGroup>
-              </div>
-              <div className={`${styles.verticalFaq} ${styles.headingFollow}`}>
-                {content.faq.items.map((item, index) => (
-                  <MarketingRevealItem
-                    key={item.question}
-                    delay={editorialRevealDelay(index)}
-                  >
-                    <article className={styles.verticalFaqItem}>
-                      <h3>{item.question}</h3>
-                      <p>{item.answer}</p>
-                    </article>
-                  </MarketingRevealItem>
-                ))}
-              </div>
+                </div>
+                <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                  <div className={styles.headingFollow}>
+                    <MarketingFaq
+                      headingId={`${content.path.slice(1)}-faq`}
+                      items={content.faq.items}
+                    />
+                  </div>
+                </MarketingRevealItem>
+              </MarketingRevealGroup>
             </div>
           </section>
         </div>

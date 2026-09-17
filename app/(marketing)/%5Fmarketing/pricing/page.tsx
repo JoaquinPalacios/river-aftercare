@@ -56,7 +56,7 @@ export default async function MarketingPricingPage() {
                   </MarketingRevealItem>
                   <MarketingRevealItem delay={editorialRevealDelay(1)}>
                     <h2 id="plans-heading" className={styles.sectionTitle}>
-                      Choose the shape that matches your practice
+                      Choose the plan that fits your practice
                     </h2>
                   </MarketingRevealItem>
                 </MarketingRevealGroup>

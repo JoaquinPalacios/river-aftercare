@@ -82,6 +82,10 @@ describe("marketing homepage", () => {
     expect(html).toContain("Patient view");
     expect(html).toContain("Brand flexibility");
     expect(html).not.toContain("Brand directions");
+    expect(html).toContain(
+      "No login, no feed — just the guidance patients need, with the clinic still one tap away."
+    );
+    expect(html).not.toContain("recovery information patients need");
     expect(html).toContain("No login, no feed");
     expect(html).toContain("riverside.[your-domain]/extraction");
     expect(html).toContain("Call the practice →");

@@ -45,8 +45,8 @@ export function MarketingPatientPreview() {
         </div>
       </div>
       <p className={styles.previewCaption}>
-        No login, no feed — just the recovery information patients need, with
-        the practice still one tap away.
+        No login, no feed — just the guidance patients need, with the clinic
+        still one tap away.
       </p>
     </div>
   );

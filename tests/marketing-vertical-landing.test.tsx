@@ -74,10 +74,16 @@ describe("clinic vertical landing pages", () => {
 
     expect(physio).toContain("not for tracking whether a patient completes");
     expect(physio).toContain("home exercise programme app");
+    expect(physio).toContain(
+      "Physiotherapy template availability is confirmed during onboarding. Where no suitable River Aftercare template exists, the clinic can publish its own approved guidance."
+    );
     expect(physio).not.toContain("adherence monitoring");
     expect(physio).not.toContain("video exercise");
     expect(chiro).toContain("does not replace your clinical record");
     expect(chiro).toContain("publishing technology");
+    expect(chiro).toContain(
+      "These are examples of guidance a practice may choose to publish, not a pre-built chiropractic template library. Clinical content remains clinic-approved."
+    );
     expect(chiro).not.toContain("spinal alignment");
     expect(chiro).not.toContain("clinical outcomes");
     expect(cosmetic).toContain("does not provide live clinical monitoring");
@@ -92,6 +98,20 @@ describe("clinic vertical landing pages", () => {
     expect(dental).toContain("<main");
     expect(dental).not.toContain("/_marketing");
     expect(JSON.stringify(VERTICAL_LANDINGS)).not.toContain("Riverside Physio");
+
+    for (const [html, landing] of [
+      [dental, VERTICAL_LANDINGS["/dental"]],
+      [physio, VERTICAL_LANDINGS["/physiotherapy"]],
+      [chiro, VERTICAL_LANDINGS["/chiropractic"]],
+      [cosmetic, VERTICAL_LANDINGS["/cosmetic-clinics"]],
+    ] as const) {
+      expect(html).toContain(landing.faq.h2);
+      expect(html.match(/<details\b/g)).toHaveLength(5);
+      for (const item of landing.faq.items) {
+        expect(html).toContain(item.question);
+        expect(html).toContain(item.answer.replaceAll("'", "&#x27;"));
+      }
+    }
   });
 
   it("registers the four clinic pages in the operator SEO defaults", () => {

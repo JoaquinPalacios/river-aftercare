@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-17 (operator default social image control polish)
+Last updated: 2026-09-17 (final marketing FAQ + copy QA)
 
 ---
 
@@ -66,6 +66,7 @@ Published-guide QR sharing is implemented for clinic staff (durable public URL, 
 | Public UI + share polish  | LOCAL — NAV, SPACING, CONTACT CTA, PUBLISHED QR READY FOR REVIEW          |
 | Public legal copy rewrite | LOCAL — PRODUCTION-FACING PRIVACY/TERMS DRAFTS READY FOR REVIEW           |
 | Clinic vertical pages     | LOCAL — `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics` |
+| Marketing FAQ + copy QA   | LOCAL — vertical FAQ accordion + final pre-index copy                     |
 | 2+ remainder              | Not started                                                               |
 
 Phase 1D is not a missing slice. Phase 1C already shipped canonical composition, practice overrides, practice additions, semantic section rendering, warning/emergency rendering, and the real patient guide UI. A separate 1D implementation would have been artificial. Historical phase numbers are not renumbered.
@@ -1173,14 +1174,28 @@ Public marketing copy and SEO defaults present River Aftercare as **patient afte
 
 Indexable B2B pages on the apex host. Shared composition, distinct copy. Layered on the master-brand repositioning: the homepage stays broad clinic/practice positioning and adds a vertical discovery section.
 
-| Area    | Behaviour                                                                                                                                                                                                        |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Routes  | `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics` rewrite through existing `/_marketing` proxy. Tenant copies 404.                                                                               |
-| Content | `lib/marketing/vertical-landing.ts` + `MarketingVerticalLanding`. Dental uses the real Riverside Dental Demo. Other verticals have no fake demos or template libraries.                                          |
-| SEO     | Defaults in `DEFAULT_MARKETING_PAGE_SEO`. Operator SEO registry includes all four. Titles that already contain the site name stay absolute so they do not become `… \| River Aftercare — River Aftercare`.       |
-| Nav     | Desktop **For clinics** click disclosure (keyboard, Escape, outside click). Mobile site menu group. Footer **For clinics** column.                                                                               |
-| Schema  | Shared Organization / WebSite / SoftwareApplication plus per-route `WebPage`. No FAQPage, MedicalWebPage, reviews, or per-profession SoftwareApplication.                                                        |
-| Tests   | `pnpm lint`, `pnpm test` (497), `pnpm build`, and Playwright (150) pass locally. Mobile site-menu keyboard order starts at Dental, then physiotherapy / chiropractic / cosmetic, then About / Pricing / Contact. |
+| Area    | Behaviour                                                                                                                                                                                                                                     |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Routes  | `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics` rewrite through existing `/_marketing` proxy. Tenant copies 404.                                                                                                            |
+| Content | `lib/marketing/vertical-landing.ts` + `MarketingVerticalLanding`. Dental uses the real Riverside Dental Demo. Other verticals have no fake demos or template libraries.                                                                       |
+| SEO     | Defaults in `DEFAULT_MARKETING_PAGE_SEO`. Operator SEO registry includes all four. Titles that already contain the site name stay absolute so they do not become `… \| River Aftercare — River Aftercare`.                                    |
+| Nav     | Desktop **For clinics** click disclosure (keyboard, Escape, outside click). Mobile site menu group. Footer **For clinics** column.                                                                                                            |
+| Schema  | Shared Organization / WebSite / SoftwareApplication plus per-route `WebPage`. No FAQPage, MedicalWebPage, reviews, or per-profession SoftwareApplication.                                                                                     |
+| Tests   | `pnpm lint`, `pnpm test` (586), `pnpm build`, and Playwright (155) pass locally after the FAQ accordion pass. Mobile site-menu keyboard order starts at Dental, then physiotherapy / chiropractic / cosmetic, then About / Pricing / Contact. |
+
+---
+
+## Final marketing FAQ and copy QA (2026-09-17)
+
+Pre-indexing content pass. Positioning, navigation, metadata, and layout were left in place.
+
+| Area       | Behaviour                                                                                                                                                                                                                                                                                          |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Root cause | FAQ copy already lived in `VERTICAL_LANDINGS`. `MarketingVerticalLanding` rendered each item as a `MarketingRevealItem` **outside** a `MarketingRevealGroup`. Those nodes keep `data-mk-pending`, so enhanced motion CSS leaves them at `opacity: 0`. The heading revealed; the questions did not. |
+| Accordion  | Shared server-rendered `MarketingFaq` uses native `<details>`/`<summary>`. Questions and answers are in the HTML when collapsed. No FAQPage schema.                                                                                                                                                |
+| Copy       | Homepage patient-preview caption uses “guidance” / “clinic”. Pricing heading is “Choose the plan that fits your practice”. Roadmap item is “Connected aftercare plans”. Physiotherapy template note and chiropractic guidance note were tightened without claiming extra product capability.       |
+| lastmod    | `/`, `/pricing`, and the four vertical routes bump `DEFAULT_MARKETING_PAGE_SEO.lastModified` to `2026-09-17`. Titles, robots, canonicals, and JSON-LD types are unchanged.                                                                                                                         |
+| Tests      | `pnpm lint`, `pnpm test` (586), `pnpm build`, and Playwright (155) pass in this environment after installing PostgreSQL 18 locally (Docker was unavailable).                                                                                                                                       |
 
 ---
 
@@ -1188,8 +1203,8 @@ Indexable B2B pages on the apex host. Shared composition, distinct copy. Layered
 
 Production sitemap was emitting per-route Prisma `MarketingPageSeo.updatedAt` (and `PlatformSeoSettings.updatedAt` via max). Operator save upserts every path in a loop, so lastmod was sequential write time, not page-content time.
 
-| Area     | Behaviour                                                                                                                                                          |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Contract | `DEFAULT_MARKETING_PAGE_SEO[path].lastModified` is a `YYYY-MM-DD` content-change date. Sitemap reads that field only.                                              |
-| Semantics | Update lastModified when materially changing indexable page content. Do not bump it for deploys, formatting, or sitemap regeneration.                            |
-| Loader   | `app/sitemap.ts` no longer loads Prisma timestamps. Invalid or missing dates omit `lastmod` rather than inventing now().                                           |
+| Area      | Behaviour                                                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Contract  | `DEFAULT_MARKETING_PAGE_SEO[path].lastModified` is a `YYYY-MM-DD` content-change date. Sitemap reads that field only.                 |
+| Semantics | Update lastModified when materially changing indexable page content. Do not bump it for deploys, formatting, or sitemap regeneration. |
+| Loader    | `app/sitemap.ts` no longer loads Prisma timestamps. Invalid or missing dates omit `lastmod` rather than inventing now().              |

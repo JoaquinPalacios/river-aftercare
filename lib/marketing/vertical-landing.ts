@@ -177,7 +177,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       },
       {
         question: "Can our practice change the instructions?",
-        answer: `${PRODUCT_NAME} supports clinic-controlled guidance and supported local overrides. The dental practice remains responsible for approving the clinical information it publishes.`,
+        answer: `Yes. ${PRODUCT_NAME} supports clinic-controlled guidance and supported local overrides. The dental practice remains responsible for approving the clinical information it publishes.`,
       },
       {
         question: `Does ${PRODUCT_NAME} replace our practice-management system?`,
@@ -186,7 +186,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       {
         question: "What dental templates are available?",
         answer:
-          "Tooth Extraction is currently the reviewed starting template. Additional dental guidance can be prepared from clinic-approved instructions during onboarding as the library expands. Template availability is confirmed during onboarding.",
+          "Tooth Extraction is the current reviewed starting template. The library is expanding, and template availability is confirmed during onboarding.",
       },
     ],
   },
@@ -262,7 +262,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       "clinic contact and escalation information",
     ],
     boundary: `${PRODUCT_NAME} is designed for publishing guidance, not for tracking whether a patient completes an exercise programme.`,
-    note: `${PRODUCT_NAME}'s reviewed template library is still expanding. Guidance and template availability for your clinic is confirmed during onboarding.`,
+    note: "Physiotherapy template availability is confirmed during onboarding. Where no suitable River Aftercare template exists, the clinic can publish its own approved guidance.",
   },
   workflow: {
     h2: "Fit aftercare into the workflow you already have",
@@ -311,11 +311,12 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       {
         question: "Does it store patient health records?",
         answer:
-          "The current product is not designed to store identifiable patient health records or personalised patient clinical information.",
+          "No. The current product is not designed to store identifiable patient health records or personalised patient clinical information.",
       },
       {
         question: "Are physiotherapy templates already available?",
-        answer: `${PRODUCT_NAME}'s reviewed template library is still expanding. Guidance and template availability for your clinic is confirmed during onboarding.`,
+        answer:
+          "Physiotherapy template availability is confirmed during onboarding. Where no suitable River Aftercare template exists, the clinic can publish its own approved guidance.",
       },
     ],
   },
@@ -390,7 +391,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       "posture or everyday activity information",
       "clinic contact and escalation information",
     ],
-    note: "These are examples of information types a practice may choose to publish. They are not a chiropractic template library, and they are not clinical advice from River Aftercare.",
+    note: "These are examples of guidance a practice may choose to publish, not a pre-built chiropractic template library. Clinical content remains clinic-approved.",
   },
   workflow: {
     h2: "From clinic-approved notes to a page patients can keep",
@@ -426,23 +427,24 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       {
         question: "Do patients need an app?",
         answer:
-          "No. Published guidance opens in the browser from a link or QR code.",
+          "No. Patient guidance opens in the browser from a link or QR code.",
       },
       {
         question: "Can our practice publish its own instructions?",
-        answer: `Yes, within supported publishing functionality. The treating practice remains responsible for reviewing and approving the clinical information it publishes.`,
+        answer: `Yes. ${PRODUCT_NAME} supports clinic-approved guidance within the platform's publishing controls. The practice remains responsible for the clinical information it publishes.`,
       },
       {
         question: `Does ${PRODUCT_NAME} provide chiropractic treatment advice?`,
-        answer: `${PRODUCT_NAME} provides publishing technology. The treating practice remains responsible for the clinical information and instructions it publishes.`,
+        answer: `No. ${PRODUCT_NAME} provides publishing technology. The treating practice remains responsible for the clinical information and instructions it publishes.`,
       },
       {
         question: "Does it replace our practice-management software?",
-        answer: `No. ${PRODUCT_NAME} is a patient aftercare publishing platform, not a practice-management system, clinical record or messaging product.`,
+        answer: `No. ${PRODUCT_NAME} is a patient-facing publishing layer, not a practice-management system or clinical record.`,
       },
       {
         question: "Is there already a chiropractic template library?",
-        answer: `The reviewed ${PRODUCT_NAME} template library is still expanding. Chiropractic content and setup requirements are confirmed during onboarding rather than presented as an existing library where one does not yet exist.`,
+        answer:
+          "No pre-built chiropractic template library is currently being advertised. Content and setup requirements are confirmed during onboarding.",
       },
     ],
   },
@@ -543,13 +545,13 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
     h2: "Questions cosmetic and aesthetic clinics ask",
     items: [
       {
-        question: "Do clients need to install an app?",
+        question: "Do patients or clients need to install an app?",
         answer:
           "No. Published aftercare opens in the browser from a link or QR code.",
       },
       {
         question: "Can our clinic use its own aftercare instructions?",
-        answer: `Yes, subject to supported publishing functionality. The clinic remains responsible for reviewing and approving the aftercare information it publishes.`,
+        answer: `Yes. ${PRODUCT_NAME} is designed around clinic-approved content and supported clinic customisation. The clinic remains responsible for reviewing and approving the information it publishes.`,
       },
       {
         question: `Does ${PRODUCT_NAME} monitor patients after treatment?`,
@@ -558,11 +560,11 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
       },
       {
         question: `Does ${PRODUCT_NAME} replace our clinic-management software?`,
-        answer: `No. ${PRODUCT_NAME} is a patient aftercare publishing platform. It is not currently a clinic-management system, CRM, patient record or messaging platform.`,
+        answer: `No. ${PRODUCT_NAME} is an aftercare publishing platform, not a CRM, clinical record or clinic-management system.`,
       },
       {
         question: "Are cosmetic treatment templates already available?",
-        answer: `${PRODUCT_NAME}'s reviewed template library is still expanding. Cosmetic and aesthetic setup requirements are confirmed during onboarding rather than presented as an existing treatment library.`,
+        answer: `Template availability is confirmed during onboarding as the ${PRODUCT_NAME} library expands. Cosmetic and aesthetic aftercare is typically prepared from clinic-approved instructions rather than from a pre-built treatment library.`,
       },
     ],
   },

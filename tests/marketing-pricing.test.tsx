@@ -50,7 +50,10 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("Broader dental template library");
     expect(html).toContain("Coming after launch");
     expect(html).toContain("Patient check-ins");
-    expect(html).toContain("Connected recovery plans");
+    expect(html).toContain("Choose the plan that fits your practice");
+    expect(html).not.toContain("Choose the shape that matches your practice");
+    expect(html).toContain("Connected aftercare plans");
+    expect(html).not.toContain("Connected recovery plans");
     expect(html).toContain("Assisted onboarding is available");
     expect(html).toContain("Start with approved guidance, then make it yours");
     expect(html).toContain("Where a River Aftercare template exists");
@@ -81,6 +84,7 @@ describe("marketing pricing page", () => {
       html.indexOf('id="plan-practice"')
     );
     expect(essentialBlock).not.toContain("Patient check-ins");
+    expect(essentialBlock).not.toContain("Connected aftercare");
     expect(essentialBlock).not.toContain("Connected recovery");
   });
 });
