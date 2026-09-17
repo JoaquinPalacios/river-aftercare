@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-17 (Practice logo choose-then-upload control; `/clinics` hub; design system v2)
+Last updated: 2026-09-17 (Practice logo replacement comparison preview; `/clinics` hub; design system v2)
 
 ---
 
@@ -1111,12 +1111,12 @@ Date: 2026-09-17
 
 Practice Identity logo upload matches the Operator SEO default social-image control. Storage, R2, `ClinicProfile.logoUrl`, public asset route, validation, SVG sanitisation, and authorization are unchanged.
 
-| Area        | Behaviour                                                                                                                                                               |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Practice UI | Visually hidden file input, **Choose logo** / **Choose replacement**, explicit **Upload logo** / **Upload replacement**, **Cancel** selection, confirm **Remove logo**. |
-| Shared UI   | `StaffFileTrigger`, `useAssetFileSelection`, and `formatSelectedAssetFileLabel` are shared with Operator SEO. Clinic and platform storage adapters stay separate.       |
-| Preview     | Logo keeps intrinsic aspect ratio inside max-width/max-height. Rendered as `<img>`, including SVG.                                                                      |
-| Auth        | Clinic ADMIN mutates. STAFF still 404s on Practice and cannot call logo actions.                                                                                        |
+| Area        | Behaviour                                                                                                                                                                                                                                                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Practice UI | Visually hidden file input, **Choose logo** / **Choose replacement**, explicit **Upload logo** / **Upload replacement**, **Cancel** selection, confirm **Remove logo**. Pending replacement shows **Current logo → Selected replacement** with a local preview of the chosen file.                                       |
+| Shared UI   | `StaffFileTrigger`, `useAssetFileSelection`, and `formatSelectedAssetFileLabel` are shared with Operator SEO. Clinic and platform storage adapters stay separate. Local object-URL preview lives in `local-asset-preview.ts` and does not change storage.                                                                |
+| Preview     | Logo keeps intrinsic aspect ratio inside max-width/max-height. Rendered as `<img>`, including SVG. Replacement comparison is column + ↓ on small screens and row + → from 640px. Failed local preview still shows filename/size and does not block upload. Cancel and successful upload return to a single current logo. |
+| Auth        | Clinic ADMIN mutates. STAFF still 404s on Practice and cannot call logo actions.                                                                                                                                                                                                                                         |
 
 ---
 

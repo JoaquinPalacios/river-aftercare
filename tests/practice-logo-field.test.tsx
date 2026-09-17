@@ -81,12 +81,33 @@ describe("practice logo field", () => {
   let container: HTMLDivElement;
   let root: Root;
   const onLogoChange = vi.fn();
+  const createObjectURL = vi.fn((blob: Blob) => {
+    const name = blob instanceof File ? blob.name : "blob";
+    return `blob:http://localhost/${encodeURIComponent(name)}`;
+  });
+  const revokeObjectURL = vi.fn();
 
   beforeEach(() => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
     uploadMock.mockReset();
     removeMock.mockReset();
     onLogoChange.mockReset();
+    createObjectURL.mockReset();
+    createObjectURL.mockImplementation((blob: Blob) => {
+      const name = blob instanceof File ? blob.name : "blob";
+      return `blob:http://localhost/${encodeURIComponent(name)}`;
+    });
+    revokeObjectURL.mockReset();
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      writable: true,
+      value: createObjectURL,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      writable: true,
+      value: revokeObjectURL,
+    });
     HTMLDialogElement.prototype.showModal = function showModal() {
       this.setAttribute("open", "");
     };
@@ -127,6 +148,18 @@ describe("practice logo field", () => {
     });
   }
 
+  function currentLogo(): HTMLImageElement | null {
+    return container.querySelector(
+      'img[alt="Current Riverside Dental Demo logo"]'
+    );
+  }
+
+  function selectedReplacement(): HTMLImageElement | null {
+    return container.querySelector(
+      'img[alt="Selected replacement for the Riverside Dental Demo logo"]'
+    );
+  }
+
   it("keeps a visually hidden file input and explicit select-then-upload copy", () => {
     const field = source(
       "app/(staff)/(clinic-portal)/practice/practice-logo-field.tsx"
@@ -135,6 +168,9 @@ describe("practice logo field", () => {
     const css = source("app/(staff)/staff.css");
     const sanitizer = source("lib/clinic-assets/sanitize-clinic-logo-svg.ts");
     const mutate = source("lib/clinic-assets/mutate-clinic-logo.ts");
+    const selection = source(
+      "app/(staff)/components/use-asset-file-selection.ts"
+    );
 
     expect(field).toContain("StaffFileTrigger");
     expect(field).toContain("useAssetFileSelection");
@@ -160,8 +196,20 @@ describe("practice logo field", () => {
     expect(css).toContain(".staffFileInput");
     expect(css).toContain("clip-path: inset(50%)");
     expect(css).toContain(".staffLogoPreview");
+    expect(css).toContain(".staffLogoCompare");
+    expect(css).toContain(".staffLogoCompareArrow");
+    expect(css).toContain(".staffLogoCompareArrowMobile");
+    expect(css).toContain(".staffLogoCompareArrowDesktop");
     expect(css).toContain("max-height: 6.5rem");
     expect(css).toContain("object-fit: contain");
+    expect(field).toContain("Current logo");
+    expect(field).toContain("Selected replacement");
+    expect(field).toContain("selectedPreviewSrc");
+    expect(field).toContain('aria-hidden="true"');
+    expect(field).not.toContain("jsdom");
+    expect(field).not.toContain("sanitize-clinic-logo-svg");
+    expect(selection).toContain("createLocalAssetPreviewUrl");
+    expect(selection).toContain("revokeLocalAssetPreviewUrl");
     expect(sanitizer).toContain("dompurify");
     expect(sanitizer).toContain("foreignObject");
     expect(mutate).toContain('validated.kind === "svg"');
@@ -234,6 +282,14 @@ describe("practice logo field", () => {
     expect(container.textContent).toContain("Upload logo");
     expect(container.textContent).toContain("Cancel");
     expect(container.textContent).not.toContain("Choose logo");
+    expect(container.textContent).not.toContain("Current logo");
+    expect(container.textContent).not.toContain("Selected replacement");
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+      "blob:http://localhost/clinic-mark.png"
+    );
+    expect(container.querySelector("img")?.getAttribute("alt")).toBe(
+      "Selected Riverside Dental Demo logo"
+    );
     expect(
       container.querySelector('button[form="clinic-logo-upload"]')
     ).toBeTruthy();
@@ -268,8 +324,14 @@ describe("practice logo field", () => {
       setInputFile(input!, pngFile("next.png"));
     });
 
+    expect(container.textContent).toContain("Current logo");
+    expect(container.textContent).toContain("Selected replacement");
     expect(container.textContent).toContain("Upload replacement");
     expect(container.textContent).toContain("next.png");
+    expect(currentLogo()?.getAttribute("src")).toBe(configuredSrc);
+    expect(selectedReplacement()?.getAttribute("src")).toBe(
+      "blob:http://localhost/next.png"
+    );
 
     await act(async () => {
       const cancel = [...container.querySelectorAll("button")].find(
@@ -281,10 +343,106 @@ describe("practice logo field", () => {
     expect(container.textContent).toContain("Choose replacement");
     expect(container.textContent).not.toContain("Upload replacement");
     expect(container.textContent).not.toContain("next.png");
-    expect(container.querySelector("img")?.getAttribute("src")).toBe(
-      configuredSrc
-    );
+    expect(container.textContent).not.toContain("Current logo");
+    expect(container.textContent).not.toContain("Selected replacement");
+    expect(container.querySelectorAll("img")).toHaveLength(1);
+    expect(currentLogo()?.getAttribute("src")).toBe(configuredSrc);
+    expect(selectedReplacement()).toBeNull();
     expect(input?.value).toBe("");
+  });
+
+  it("renders current and selected replacement previews side by side", async () => {
+    await renderField({
+      logoUrl: configuredKey,
+      logoSrc: configuredSrc,
+    });
+
+    await act(async () => {
+      setInputFile(
+        container.querySelector("#clinic-logo-file")!,
+        pngFile("next.png")
+      );
+    });
+
+    expect(container.textContent).toContain("Current logo");
+    expect(container.textContent).toContain("Selected replacement");
+    expect(container.querySelector(".staffLogoCompare")).toBeTruthy();
+    expect(
+      container
+        .querySelector(".staffLogoCompareArrow")
+        ?.getAttribute("aria-hidden")
+    ).toBe("true");
+    expect(
+      container.querySelector(".staffLogoCompareArrowMobile")?.textContent
+    ).toBe("↓");
+    expect(
+      container.querySelector(".staffLogoCompareArrowDesktop")?.textContent
+    ).toBe("→");
+    expect(currentLogo()?.getAttribute("src")).toBe(configuredSrc);
+    expect(currentLogo()?.getAttribute("alt")).toBe(
+      "Current Riverside Dental Demo logo"
+    );
+    expect(selectedReplacement()?.getAttribute("src")).toBe(
+      "blob:http://localhost/next.png"
+    );
+    expect(selectedReplacement()?.getAttribute("alt")).toBe(
+      "Selected replacement for the Riverside Dental Demo logo"
+    );
+    expect(container.textContent).toContain("next.png · 320 × 80 · 48 KB");
+    expect(
+      container.querySelector('button[form="clinic-logo-upload"]')?.className
+    ).toContain("staffBtnPrimary");
+    expect(uploadMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the current logo and filename when local preview generation fails", async () => {
+    createObjectURL.mockImplementation(() => {
+      throw new Error("preview failed");
+    });
+    await renderField({
+      logoUrl: configuredKey,
+      logoSrc: configuredSrc,
+    });
+
+    await act(async () => {
+      setInputFile(
+        container.querySelector("#clinic-logo-file")!,
+        pngFile("next.png")
+      );
+    });
+
+    expect(container.textContent).toContain("Current logo");
+    expect(container.textContent).toContain("Selected replacement");
+    expect(container.textContent).toContain("next.png");
+    expect(container.textContent).toContain("Upload replacement");
+    expect(currentLogo()?.getAttribute("src")).toBe(configuredSrc);
+    expect(selectedReplacement()).toBeNull();
+    expect(onLogoChange).not.toHaveBeenCalled();
+  });
+
+  it("hides a broken selected preview without blocking upload", async () => {
+    await renderField({
+      logoUrl: configuredKey,
+      logoSrc: configuredSrc,
+    });
+
+    await act(async () => {
+      setInputFile(
+        container.querySelector("#clinic-logo-file")!,
+        pngFile("next.png")
+      );
+    });
+    expect(selectedReplacement()).toBeTruthy();
+
+    await act(async () => {
+      selectedReplacement()?.dispatchEvent(new Event("error"));
+    });
+
+    expect(selectedReplacement()).toBeNull();
+    expect(currentLogo()?.getAttribute("src")).toBe(configuredSrc);
+    expect(container.textContent).toContain("next.png");
+    expect(container.textContent).toContain("Upload replacement");
+    expect(onLogoChange).not.toHaveBeenCalled();
   });
 
   it("does not enable upload until a file is selected", async () => {
@@ -343,6 +501,47 @@ describe("practice logo field", () => {
     });
   });
 
+  it("collapses the comparison to the new current logo after a successful replacement", async () => {
+    uploadMock.mockResolvedValue({
+      ok: true,
+      logoUrl:
+        "clinics/clinic_demo_rivers/branding/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.png",
+      logoSrc:
+        "https://assets.example.test/clinics/clinic_demo_rivers/branding/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.png",
+    });
+    await renderField({
+      logoUrl: configuredKey,
+      logoSrc: configuredSrc,
+    });
+
+    await act(async () => {
+      setInputFile(
+        container.querySelector("#clinic-logo-file")!,
+        pngFile("next.png")
+      );
+    });
+    expect(container.querySelectorAll("img")).toHaveLength(2);
+    expect(container.textContent).toContain("Selected replacement");
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('button[form="clinic-logo-upload"]')
+        ?.click();
+    });
+
+    expect(container.textContent).toContain("Practice logo updated.");
+    expect(container.textContent).toContain("Choose replacement");
+    expect(container.textContent).not.toContain("Selected replacement");
+    expect(container.textContent).not.toContain("next.png");
+    expect(container.querySelectorAll("img")).toHaveLength(1);
+    expect(currentLogo()?.getAttribute("src")).toContain(
+      "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.png"
+    );
+    expect(currentLogo()?.getAttribute("alt")).toBe(
+      "Current Riverside Dental Demo logo"
+    );
+  });
+
   it("keeps the existing logo and selected file after a failed upload", async () => {
     uploadMock.mockResolvedValue({
       error: "Choose a PNG, JPEG, WebP, or SVG image.",
@@ -368,8 +567,11 @@ describe("practice logo field", () => {
     expect(alert?.textContent).toContain("PNG, JPEG, WebP, or SVG");
     expect(container.textContent).toContain("bad.png");
     expect(container.textContent).toContain("Upload replacement");
-    expect(container.querySelector("img")?.getAttribute("src")).toBe(
-      configuredSrc
+    expect(container.textContent).toContain("Current logo");
+    expect(container.textContent).toContain("Selected replacement");
+    expect(currentLogo()?.getAttribute("src")).toBe(configuredSrc);
+    expect(selectedReplacement()?.getAttribute("src")).toBe(
+      "blob:http://localhost/bad.png"
     );
     expect(onLogoChange).not.toHaveBeenCalled();
   });
