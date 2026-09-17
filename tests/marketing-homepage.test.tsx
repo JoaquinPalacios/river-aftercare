@@ -126,6 +126,10 @@ describe("marketing homepage", () => {
     expect(html).toContain('href="/cosmetic-clinics"');
     expect(html).toContain('href="/clinics"');
     expect(html).toContain("Explore all clinic types");
+    expect(html).toContain('data-vertical="dental"');
+    expect(html).toContain('data-vertical="physiotherapy"');
+    expect(html).toContain('data-vertical="chiropractic"');
+    expect(html).toContain('data-vertical="cosmetic"');
     expect(html).toContain("Physiotherapy clinics");
     expect(html).toContain("Cosmetic &amp; aesthetic clinics");
     expect(html).toContain("closingCta");

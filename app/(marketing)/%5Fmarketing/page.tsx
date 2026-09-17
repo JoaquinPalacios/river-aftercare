@@ -187,7 +187,7 @@ export default async function MarketingHomePage() {
 
           <section
             id="how-it-works"
-            className={styles.band}
+            className={`${styles.band} ${styles.flowSection}`}
             aria-labelledby="how-heading"
           >
             <div className={styles.inner}>
@@ -263,7 +263,11 @@ export default async function MarketingHomePage() {
                     index={index}
                     className={styles.clinicTypeSlot}
                   >
-                    <Link className={styles.clinicTypeCard} href={item.path}>
+                    <Link
+                      className={styles.clinicTypeCard}
+                      href={item.path}
+                      data-vertical={item.themeId}
+                    >
                       <h3>{item.cardTitle}</h3>
                       <p>{item.cardCopy}</p>
                     </Link>
@@ -329,7 +333,9 @@ export default async function MarketingHomePage() {
               <div className={`${styles.inner} ${styles.previewGrid}`}>
                 <div className={styles.previewCopy}>
                   <MarketingReveal.Item delay={0}>
-                    <p className={styles.eyebrow}>Clinic preview</p>
+                    <p className={`${styles.eyebrow} ${styles.eyebrowFlow}`}>
+                      Clinic preview
+                    </p>
                   </MarketingReveal.Item>
                   <MarketingReveal.Item delay={editorialRevealDelay(1)}>
                     <h2 id="preview-heading">

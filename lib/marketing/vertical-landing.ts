@@ -3,10 +3,16 @@ import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import type { ClinicVerticalPath } from "@/lib/marketing/clinic-verticals";
 
 export type VerticalThemeId =
-  | "dental"
-  | "physiotherapy"
-  | "chiropractic"
-  | "cosmetic";
+  "dental" | "physiotherapy" | "chiropractic" | "cosmetic";
+
+export type VerticalAccentFamily = "periwinkle" | "sky" | "cobalt" | "lavender";
+
+export const VERTICAL_ACCENT_FAMILY = {
+  dental: "periwinkle",
+  physiotherapy: "sky",
+  chiropractic: "cobalt",
+  cosmetic: "lavender",
+} as const satisfies Record<VerticalThemeId, VerticalAccentFamily>;
 
 export type VerticalSecondaryCta =
   | { kind: "demo"; label: string }

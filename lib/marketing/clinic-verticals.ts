@@ -1,3 +1,4 @@
+import type { VerticalThemeId } from "@/lib/marketing/vertical-landing";
 import type { MarketingSeoPath } from "@/lib/seo/types";
 
 export const CLINIC_HUB_PATH = "/clinics";
@@ -14,6 +15,7 @@ export type ClinicVerticalPath = (typeof CLINIC_VERTICAL_PATHS)[number];
 
 export interface ClinicVerticalNavItem {
   path: ClinicVerticalPath;
+  themeId: VerticalThemeId;
   navLabel: string;
   cardTitle: string;
   cardCopy: string;
@@ -22,6 +24,7 @@ export interface ClinicVerticalNavItem {
 export const CLINIC_VERTICAL_NAV: readonly ClinicVerticalNavItem[] = [
   {
     path: "/dental",
+    themeId: "dental",
     navLabel: "Dental",
     cardTitle: "Dental practices",
     cardCopy:
@@ -29,6 +32,7 @@ export const CLINIC_VERTICAL_NAV: readonly ClinicVerticalNavItem[] = [
   },
   {
     path: "/physiotherapy",
+    themeId: "physiotherapy",
     navLabel: "Physiotherapy",
     cardTitle: "Physiotherapy clinics",
     cardCopy:
@@ -36,6 +40,7 @@ export const CLINIC_VERTICAL_NAV: readonly ClinicVerticalNavItem[] = [
   },
   {
     path: "/chiropractic",
+    themeId: "chiropractic",
     navLabel: "Chiropractic",
     cardTitle: "Chiropractic practices",
     cardCopy:
@@ -43,6 +48,7 @@ export const CLINIC_VERTICAL_NAV: readonly ClinicVerticalNavItem[] = [
   },
   {
     path: "/cosmetic-clinics",
+    themeId: "cosmetic",
     navLabel: "Cosmetic & aesthetic",
     cardTitle: "Cosmetic & aesthetic clinics",
     cardCopy:

@@ -124,7 +124,10 @@ export default async function MarketingPricingPage() {
             </div>
           </section>
 
-          <section className={styles.band} aria-labelledby="onboarding-heading">
+          <section
+            className={`${styles.band} ${styles.flowSection}`}
+            aria-labelledby="onboarding-heading"
+          >
             <div className={styles.inner}>
               <div className={styles.headingBlock}>
                 <MarketingRevealGroup>
