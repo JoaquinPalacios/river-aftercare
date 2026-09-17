@@ -3202,15 +3202,16 @@ html[data-theme-mode="dark"] .wordmarkName {
   margin-bottom: 1.15rem;
 }
 
-.verticalHeroPanelSlot,
-.verticalHeroPanel {
+.verticalHeroPanelSlot {
   min-width: 0;
-  height: 100%;
+  height: auto;
+  align-self: center;
 }
 
 .verticalHeroPanel {
   position: relative;
   min-width: 0;
+  height: auto;
   padding: 1.2rem 1.2rem 1.15rem 1.15rem;
   overflow: hidden;
   border: 1px solid

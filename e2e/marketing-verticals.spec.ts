@@ -442,6 +442,39 @@ test.describe("clinic vertical acquisition pages", () => {
       await expect(page.getByText("Clinic approved")).toBeVisible();
       await expect(page.locator("#workflow")).toBeVisible();
       await expectNoHorizontalOverflow(page);
+
+      const metrics = await page
+        .locator("[data-mk-vertical-hero]")
+        .evaluate((hero) => {
+          const grid = hero.querySelector("[data-mk-section]");
+          const copy = grid?.children[0];
+          const panel = hero.querySelector("aside");
+          const pathway = hero.querySelector("ol");
+          const lastStep = pathway?.querySelector("li:last-child");
+          if (!copy || !panel || !pathway || !lastStep) {
+            return null;
+          }
+
+          const copyBox = copy.getBoundingClientRect();
+          const panelBox = panel.getBoundingClientRect();
+          const pathwayBox = pathway.getBoundingClientRect();
+          const lastStepBox = lastStep.getBoundingClientRect();
+
+          return {
+            copyHeight: copyBox.height,
+            panelHeight: panelBox.height,
+            unusedBelowPathway: panelBox.height - pathwayBox.height,
+            unusedBelowLastStep: panelBox.bottom - lastStepBox.bottom,
+          };
+        });
+
+      expect(metrics).not.toBeNull();
+      expect(metrics!.unusedBelowPathway).toBeLessThan(80);
+      expect(metrics!.unusedBelowLastStep).toBeGreaterThan(10);
+      expect(metrics!.unusedBelowLastStep).toBeLessThan(48);
+      if (viewport.width >= 1024) {
+        expect(metrics!.panelHeight).toBeLessThan(metrics!.copyHeight);
+      }
     }
   });
 

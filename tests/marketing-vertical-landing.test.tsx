@@ -180,4 +180,17 @@ describe("clinic vertical landing pages", () => {
     expect(landing).not.toContain("VERTICAL_RELATED_LINKS");
     expect(landing).not.toContain("About River Aftercare");
   });
+
+  it("sizes the hero pathway panel to its content instead of stretching the column", () => {
+    const css = readFileSync("app/(marketing)/marketing.module.css", "utf8");
+    const slotRule =
+      css.match(/\.verticalHeroPanelSlot\s*\{[^}]+\}/)?.[0] ?? "";
+    const panelRule = css.match(/\.verticalHeroPanel\s*\{[^}]+\}/)?.[0] ?? "";
+
+    expect(slotRule).toContain("height: auto");
+    expect(slotRule).toContain("align-self: center");
+    expect(slotRule).not.toContain("height: 100%");
+    expect(panelRule).toContain("height: auto");
+    expect(panelRule).not.toContain("height: 100%");
+  });
 });
