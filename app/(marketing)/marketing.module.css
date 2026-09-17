@@ -310,10 +310,6 @@
   color: var(--mk-ink);
 }
 
-.page[data-brand-scope="master"] .hero.marketingBase {
-  background-color: var(--vertical-hero-canvas);
-}
-
 .page[data-vertical] .marketingClosing {
   background: light-dark(
     color-mix(in srgb, var(--vertical-accent) 6%, var(--mk-closing)),
