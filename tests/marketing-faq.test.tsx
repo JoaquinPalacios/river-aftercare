@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { MarketingFaq } from "@/app/(marketing)/components/marketing-faq";

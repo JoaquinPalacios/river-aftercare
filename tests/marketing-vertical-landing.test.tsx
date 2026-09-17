@@ -109,7 +109,7 @@ describe("clinic vertical landing pages", () => {
       expect(html.match(/<details\b/g)).toHaveLength(5);
       for (const item of landing.faq.items) {
         expect(html).toContain(item.question);
-        expect(html).toContain(item.answer);
+        expect(html).toContain(item.answer.replaceAll("'", "&#x27;"));
       }
     }
   });
