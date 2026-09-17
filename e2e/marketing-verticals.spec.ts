@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { expectOneH1 } from "./helpers/assertions";
 import { expectNoSeriousAxeViolations } from "./helpers/axe";
+import { expectNoHorizontalOverflow } from "./helpers/layout";
 import { marketingUrl, tenantUrl, DEMO_TENANT_SLUG } from "./helpers/origins";
 
 const VERTICALS = [
@@ -378,6 +379,132 @@ test.describe("clinic vertical acquisition pages", () => {
     await page.goto(marketingUrl("/dental"), { waitUntil: "load" });
     await expectNoSeriousAxeViolations(page, {
       exclude: ["[data-mk-pending]", "[data-mk-pending] *"],
+    });
+  });
+
+  test("closing CTA is conversion-focused and footer owns navigation", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(marketingUrl("/dental"), { waitUntil: "load" });
+
+    const cta = page.locator('[aria-labelledby="dental-cta"]');
+    await expect(
+      cta.getByRole("link", { name: "Request a demo" })
+    ).toHaveAttribute("href", "/contact");
+    await expect(cta.getByRole("link", { name: "View pricing" })).toHaveAttribute(
+      "href",
+      "/pricing"
+    );
+    await expect(cta.getByRole("link", { name: "About" })).toHaveCount(0);
+    await expect(cta.getByText("About River Aftercare")).toHaveCount(0);
+
+    const footer = page.getByRole("contentinfo");
+    await expect(footer.getByText("Account", { exact: true })).toHaveCount(0);
+    await expect(
+      footer.getByRole("heading", { name: "Account" })
+    ).toHaveCount(0);
+    await expect(footer.getByRole("link", { name: "Sign in" })).toBeVisible();
+    await expect(footer.getByRole("link", { name: "Contact" })).toHaveAttribute(
+      "href",
+      "/contact"
+    );
+    await expect(footer.getByRole("link", { name: "Dental" })).toHaveAttribute(
+      "href",
+      "/dental"
+    );
+  });
+
+  test("vertical pages keep a split hero, process rail, and no overflow", async ({
+    page,
+  }) => {
+    const viewports = [
+      { width: 1440, height: 900 },
+      { width: 1024, height: 768 },
+      { width: 390, height: 844 },
+    ] as const;
+
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      await page.goto(marketingUrl("/physiotherapy"), {
+        waitUntil: "load",
+      });
+      await expect(page.locator("[data-mk-vertical-hero]")).toHaveCount(1);
+      await expect(page.getByText("Clinic approved")).toBeVisible();
+      await expect(page.locator("#workflow")).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+    }
+  });
+
+  test("captures vertical landing artifacts for design review", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "dark" });
+    const paths = [
+      "/dental",
+      "/physiotherapy",
+      "/chiropractic",
+      "/cosmetic-clinics",
+    ] as const;
+    const viewports = [
+      { name: "1440", width: 1440, height: 900 },
+      { name: "1728", width: 1728, height: 1117 },
+      { name: "1024", width: 1024, height: 768 },
+      { name: "390", width: 390, height: 844 },
+    ] as const;
+
+    for (const path of paths) {
+      const slug = path.slice(1);
+      const themeId = slug === "cosmetic-clinics" ? "cosmetic" : slug;
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(marketingUrl(path), { waitUntil: "load" });
+      await page.screenshot({
+        path: `test-results/artifacts/vertical-qa/${slug}-1440-full.png`,
+        fullPage: true,
+      });
+      await page.locator("[data-mk-vertical-hero]").screenshot({
+        path: `test-results/artifacts/vertical-qa/${slug}-1440-hero.png`,
+      });
+      await page
+        .locator(`[aria-labelledby="${themeId}-problem"]`)
+        .screenshot({
+          path: `test-results/artifacts/vertical-qa/${slug}-1440-problem.png`,
+        });
+      await page.locator("#workflow").screenshot({
+        path: `test-results/artifacts/vertical-qa/${slug}-1440-workflow.png`,
+      });
+      await page
+        .locator(`[aria-labelledby="${themeId}-faq"]`)
+        .screenshot({
+          path: `test-results/artifacts/vertical-qa/${slug}-1440-faq.png`,
+        });
+      await page
+        .locator(`[aria-labelledby="${themeId}-cta"]`)
+        .screenshot({
+          path: `test-results/artifacts/vertical-qa/${slug}-1440-cta.png`,
+        });
+    }
+
+    for (const viewport of viewports) {
+      await page.setViewportSize({
+        width: viewport.width,
+        height: viewport.height,
+      });
+      await page.goto(marketingUrl("/dental"), { waitUntil: "load" });
+      await page.screenshot({
+        path: `test-results/artifacts/vertical-qa/dental-${viewport.name}.png`,
+        fullPage: true,
+      });
+      await expectNoHorizontalOverflow(page);
+    }
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(marketingUrl("/"), { waitUntil: "load" });
+    await page.locator("header").screenshot({
+      path: "test-results/artifacts/vertical-qa/shared-nav-1440.png",
+    });
+    await page.locator("footer").screenshot({
+      path: "test-results/artifacts/vertical-qa/shared-footer-1440.png",
     });
   });
 });

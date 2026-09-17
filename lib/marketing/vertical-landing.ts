@@ -2,7 +2,11 @@ import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 import type { ClinicVerticalPath } from "@/lib/marketing/clinic-verticals";
 
-export type VerticalHeroAtmosphere = "pricing" | "contact";
+export type VerticalThemeId =
+  | "dental"
+  | "physiotherapy"
+  | "chiropractic"
+  | "cosmetic";
 
 export type VerticalSecondaryCta =
   | { kind: "demo"; label: string }
@@ -23,31 +27,60 @@ export interface VerticalFaq {
   answer: string;
 }
 
+export interface VerticalPanelItem {
+  title: string;
+  body: string;
+}
+
+export interface VerticalGuidanceStatus {
+  label: string;
+  value: string;
+}
+
+export interface VerticalDemoPreview {
+  kicker: string;
+  title: string;
+  facts: readonly string[];
+}
+
 export type VerticalExtraSection =
   | {
       kind: "demo";
+      eyebrow: string;
       h2: string;
       body: string;
       ctaLabel: string;
+      preview: VerticalDemoPreview;
     }
   | {
       kind: "copy";
+      eyebrow: string;
       h2: string;
       body: string;
+      highlights: readonly [VerticalCard, VerticalCard, VerticalCard];
     };
 
 export interface VerticalLandingContent {
   path: ClinicVerticalPath;
-  heroAtmosphere: VerticalHeroAtmosphere;
+  themeId: VerticalThemeId;
   hero: {
     eyebrow: string;
     h1: string;
     body: string;
     primaryCtaLabel: string;
     secondaryCta: VerticalSecondaryCta;
+    panel: {
+      label: string;
+      items: readonly [
+        VerticalPanelItem,
+        VerticalPanelItem,
+        VerticalPanelItem,
+        VerticalPanelItem,
+      ];
+    };
   };
   problem: {
-    eyebrow?: string;
+    eyebrow: string;
     h2: string;
     cards: readonly [VerticalCard, VerticalCard, VerticalCard];
   };
@@ -57,11 +90,13 @@ export interface VerticalLandingContent {
     benefits: readonly VerticalCard[];
   };
   guidance: {
+    eyebrow: string;
     h2: string;
     body: string;
     items?: readonly string[];
     note?: string;
     boundary?: string;
+    status?: VerticalGuidanceStatus;
   };
   workflow: {
     h2: string;
@@ -69,6 +104,7 @@ export interface VerticalLandingContent {
   };
   extras: readonly VerticalExtraSection[];
   faq: {
+    eyebrow: string;
     h2: string;
     items: readonly VerticalFaq[];
   };
@@ -76,18 +112,41 @@ export interface VerticalLandingContent {
     h2: string;
     body: string;
     label: string;
+    secondaryLabel: string;
+    secondaryHref: "/pricing";
   };
 }
 
 export const DENTAL_LANDING: VerticalLandingContent = {
   path: "/dental",
-  heroAtmosphere: "pricing",
+  themeId: "dental",
   hero: {
     eyebrow: `${PRODUCT_NAME} for dental practices`,
     h1: "Make post-treatment instructions part of your dental experience.",
     body: "Give patients clear, practice-branded guidance they can reopen after treatment — by link or QR code, with no app or patient login.",
     primaryCtaLabel: "Request a demo",
     secondaryCta: { kind: "demo", label: "View the dental demo" },
+    panel: {
+      label: "How patients receive dental guidance",
+      items: [
+        {
+          title: "Clinic approved",
+          body: "Practice-approved dental instructions",
+        },
+        {
+          title: "Practice branded",
+          body: "Your identity stays on the patient page",
+        },
+        {
+          title: "Reopen anytime",
+          body: "Same link or QR after treatment",
+        },
+        {
+          title: "No app or login",
+          body: "The page opens in the browser",
+        },
+      ],
+    },
   },
   problem: {
     eyebrow: "After the appointment",
@@ -130,8 +189,13 @@ export const DENTAL_LANDING: VerticalLandingContent = {
     ],
   },
   guidance: {
+    eyebrow: "Clinic-approved guidance",
     h2: `Use ${PRODUCT_NAME} for the dental guidance your practice needs`,
     body: `Start with an available ${PRODUCT_NAME} template where one exists, or prepare clinic-approved guidance during onboarding. Published pages can be adapted with your local instructions and practice terminology.`,
+    status: {
+      label: "Current starting template",
+      value: "Tooth Extraction",
+    },
     note: "Riverside Dental Demo currently uses a Tooth Extraction sample template. It is not clinically reviewed. Additional dental templates are confirmed during onboarding.",
   },
   workflow: {
@@ -158,12 +222,19 @@ export const DENTAL_LANDING: VerticalLandingContent = {
   extras: [
     {
       kind: "demo",
+      eyebrow: "Live example",
       h2: `See a real ${PRODUCT_NAME} dental example`,
       body: "Riverside Dental Demo shows the current patient experience using a published Tooth Extraction guide.",
       ctaLabel: "Open Riverside Dental Demo",
+      preview: {
+        kicker: "Riverside Dental Demo",
+        title: "Tooth Extraction",
+        facts: ["Clinic branded", "Browser-based", "No app or login"],
+      },
     },
   ],
   faq: {
+    eyebrow: "Common questions",
     h2: "Questions dental practices ask",
     items: [
       {
@@ -194,12 +265,14 @@ export const DENTAL_LANDING: VerticalLandingContent = {
     h2: "Bring your dental aftercare online.",
     body: `Show us how your practice shares post-treatment instructions today and we'll walk you through a branded ${PRODUCT_NAME} experience.`,
     label: "Request a demo",
+    secondaryLabel: "View pricing",
+    secondaryHref: "/pricing",
   },
 };
 
 export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
   path: "/physiotherapy",
-  heroAtmosphere: "contact",
+  themeId: "physiotherapy",
   hero: {
     eyebrow: `${PRODUCT_NAME} for physiotherapy`,
     h1: "Keep recovery guidance clear between appointments.",
@@ -210,8 +283,30 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       label: "See how River Aftercare works",
       href: "#workflow",
     },
+    panel: {
+      label: "How patients receive recovery guidance",
+      items: [
+        {
+          title: "Clinic approved",
+          body: "Clinic-controlled recovery guidance",
+        },
+        {
+          title: "Clinic branded",
+          body: "Your clinic stays visible on the page",
+        },
+        {
+          title: "Between visits",
+          body: "Patients reopen the same link",
+        },
+        {
+          title: "No app or login",
+          body: "No patient account required",
+        },
+      ],
+    },
   },
   problem: {
+    eyebrow: "Between visits",
     h2: "Patients leave the clinic with a plan. Remembering it later is harder.",
     cards: [
       {
@@ -251,6 +346,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
     ],
   },
   guidance: {
+    eyebrow: "Between-visit care",
     h2: "Support the guidance that happens outside the treatment room",
     body: `Depending on your clinic's services and approved content, ${PRODUCT_NAME} can provide a branded home for guidance such as:`,
     items: [
@@ -288,11 +384,27 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
   extras: [
     {
       kind: "copy",
+      eyebrow: "How it fits",
       h2: "Designed to complement clinical software, not replace it",
       body: `${PRODUCT_NAME} focuses on clear patient-facing guidance. It is not currently a practice-management system, clinical record, messaging platform or exercise-adherence tracker.`,
+      highlights: [
+        {
+          title: "Guidance publishing",
+          body: "A clinic-controlled place for the written guidance patients may need between appointments.",
+        },
+        {
+          title: "Not exercise tracking",
+          body: "It is not currently an exercise-adherence tracker.",
+        },
+        {
+          title: "No patient account",
+          body: "Patients return through a durable link without creating another account.",
+        },
+      ],
     },
   ],
   faq: {
+    eyebrow: "Common questions",
     h2: "Questions physiotherapy clinics ask",
     items: [
       {
@@ -324,12 +436,14 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
     h2: "Give recovery guidance a clearer place to live.",
     body: `Tell us how your physiotherapy clinic currently shares between-visit guidance and we'll show you how ${PRODUCT_NAME} could fit your workflow.`,
     label: "Request a demo",
+    secondaryLabel: "View pricing",
+    secondaryHref: "/pricing",
   },
 };
 
 export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
   path: "/chiropractic",
-  heroAtmosphere: "contact",
+  themeId: "chiropractic",
   hero: {
     eyebrow: `${PRODUCT_NAME} for chiropractic practices`,
     h1: "Give patients clearer guidance between chiropractic visits.",
@@ -340,8 +454,30 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       label: "See how it works",
       href: "#workflow",
     },
+    panel: {
+      label: "How patients receive practice guidance",
+      items: [
+        {
+          title: "Clinic approved",
+          body: "Practice-controlled home-care guidance",
+        },
+        {
+          title: "Practice branded",
+          body: "Your identity stays visible",
+        },
+        {
+          title: "Between visits",
+          body: "A stable page patients can return to",
+        },
+        {
+          title: "No app or login",
+          body: "No patient account required",
+        },
+      ],
+    },
   },
   problem: {
+    eyebrow: "After the appointment",
     h2: "Important guidance shouldn't disappear when the appointment ends.",
     cards: [
       {
@@ -381,6 +517,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
     ],
   },
   guidance: {
+    eyebrow: "Home-care guidance",
     h2: "Publish the guidance that supports your care",
     body: `Depending on the services your practice provides and the content your clinicians approve, ${PRODUCT_NAME} can provide a branded place for written guidance such as:`,
     items: [
@@ -417,11 +554,27 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
   extras: [
     {
       kind: "copy",
+      eyebrow: "How it fits",
       h2: "A publishing layer for patient guidance",
       body: `${PRODUCT_NAME} does not replace your clinical record, practice-management system or practitioner judgement. It provides a simple patient-facing place for guidance the clinic has chosen to publish.`,
+      highlights: [
+        {
+          title: "Practice controlled",
+          body: "The treating practice remains responsible for the guidance it publishes.",
+        },
+        {
+          title: "Durable patient page",
+          body: "A simple patient-facing place for approved home-care and post-appointment information.",
+        },
+        {
+          title: "Not a clinical record",
+          body: "It does not replace your clinical record or practice-management system.",
+        },
+      ],
     },
   ],
   faq: {
+    eyebrow: "Common questions",
     h2: "Questions chiropractic practices ask",
     items: [
       {
@@ -452,12 +605,14 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
     h2: "Keep your guidance connected to your practice.",
     body: `Tell us how you currently share home-care and post-appointment information and we'll show you what a ${PRODUCT_NAME} experience could look like for your practice.`,
     label: "Request a demo",
+    secondaryLabel: "View pricing",
+    secondaryHref: "/pricing",
   },
 };
 
 export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
   path: "/cosmetic-clinics",
-  heroAtmosphere: "pricing",
+  themeId: "cosmetic",
   hero: {
     eyebrow: `${PRODUCT_NAME} for cosmetic & aesthetic clinics`,
     h1: "Make post-treatment aftercare feel as considered as the treatment.",
@@ -468,8 +623,30 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
       label: "See how it works",
       href: "#workflow",
     },
+    panel: {
+      label: "How patients receive clinic aftercare",
+      items: [
+        {
+          title: "Clinic approved",
+          body: "Clinic-controlled post-treatment aftercare",
+        },
+        {
+          title: "Clinic branded",
+          body: "The experience stays recognisably yours",
+        },
+        {
+          title: "Reopen anytime",
+          body: "Same link or QR after treatment",
+        },
+        {
+          title: "No app or login",
+          body: "No patient account required",
+        },
+      ],
+    },
   },
   problem: {
+    eyebrow: "After treatment",
     h2: "Aftercare is part of the treatment experience.",
     cards: [
       {
@@ -509,6 +686,7 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
     ],
   },
   guidance: {
+    eyebrow: "Post-treatment experience",
     h2: "Build aftercare around the treatments your clinic provides",
     body: `Use an available ${PRODUCT_NAME} template where appropriate, or prepare clinic-approved post-treatment guidance during onboarding. The published experience can carry your clinic terminology, contact information and supported local instructions.`,
     note: `Template availability is confirmed during onboarding as the ${PRODUCT_NAME} library expands. Cosmetic and aesthetic aftercare is typically prepared from clinic-approved instructions rather than from a pre-built treatment library.`,
@@ -537,11 +715,27 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
   extras: [
     {
       kind: "copy",
+      eyebrow: "How it fits",
       h2: "Keep the experience recognisably yours",
       body: `${PRODUCT_NAME} is deliberately clinic-first. Patients or clients see the clinic's identity and guidance, not a generic social feed or consumer health app.`,
+      highlights: [
+        {
+          title: "Clinic identity",
+          body: "Patients or clients see the clinic's identity and guidance.",
+        },
+        {
+          title: "Durable aftercare",
+          body: "They return to the same branded page whenever they need to check the guidance.",
+        },
+        {
+          title: "No app",
+          body: "Aftercare opens in the browser from a link or QR code.",
+        },
+      ],
     },
   ],
   faq: {
+    eyebrow: "Common questions",
     h2: "Questions cosmetic and aesthetic clinics ask",
     items: [
       {
@@ -572,6 +766,8 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
     h2: "Extend your clinic experience beyond the appointment.",
     body: `Tell us how your clinic currently delivers post-treatment aftercare and we'll show you how ${PRODUCT_NAME} can bring that guidance online under your brand.`,
     label: "Request a demo",
+    secondaryLabel: "View pricing",
+    secondaryHref: "/pricing",
   },
 };
 
@@ -581,9 +777,3 @@ export const VERTICAL_LANDINGS = {
   "/chiropractic": CHIROPRACTIC_LANDING,
   "/cosmetic-clinics": COSMETIC_CLINICS_LANDING,
 } as const satisfies Record<ClinicVerticalPath, VerticalLandingContent>;
-
-export const VERTICAL_RELATED_LINKS = [
-  { href: "/pricing", label: "Pricing" },
-  { href: "/contact", label: "Request a demo" },
-  { href: "/about", label: "About River Aftercare" },
-] as const;

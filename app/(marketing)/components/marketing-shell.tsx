@@ -9,11 +9,17 @@ import { ProductLogo } from "@/lib/branding/product-logo";
 import { ProductMark } from "@/lib/branding/product-mark";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { CLINIC_VERTICAL_NAV } from "@/lib/marketing/clinic-verticals";
+import type { VerticalThemeId } from "@/lib/marketing/vertical-landing";
 import type { MarketingSeoPath } from "@/lib/seo/types";
 
 import styles from "../marketing.module.css";
 
 export type MarketingPath = MarketingSeoPath;
+
+type FooterLink = {
+  href: string;
+  label: string;
+};
 
 const FOOTER_GROUPS = [
   {
@@ -51,14 +57,45 @@ const PRIMARY_NAV = [
 
 const SIGN_IN_LABEL = "Sign in";
 
+function FooterNavLink({
+  link,
+  currentPath,
+}: {
+  link: FooterLink;
+  currentPath: MarketingPath;
+}) {
+  const current = currentPath === link.href;
+  const className = styles.textLink;
+
+  if (link.href.startsWith("/")) {
+    return (
+      <Link
+        className={className}
+        href={link.href}
+        aria-current={current ? "page" : undefined}
+      >
+        {link.label}
+      </Link>
+    );
+  }
+
+  return (
+    <a className={className} href={link.href}>
+      {link.label}
+    </a>
+  );
+}
+
 export function MarketingShell({
   currentPath,
   staffHref,
   children,
+  verticalId,
 }: {
   currentPath: MarketingPath;
   staffHref: string;
   children: ReactNode;
+  verticalId?: VerticalThemeId;
 }) {
   const menuItems = PRIMARY_NAV.map((item) => ({
     ...item,
@@ -70,8 +107,21 @@ export function MarketingShell({
     current: currentPath === item.path,
   }));
 
+  const footerGroups = [
+    FOOTER_GROUPS[0],
+    {
+      id: FOOTER_GROUPS[1].id,
+      label: FOOTER_GROUPS[1].label,
+      links: [
+        ...FOOTER_GROUPS[1].links,
+        { href: staffHref, label: SIGN_IN_LABEL },
+      ],
+    },
+    FOOTER_GROUPS[2],
+  ] as const;
+
   return (
-    <MarketingExperience className={styles.page}>
+    <MarketingExperience className={styles.page} verticalId={verticalId}>
       <header className={`${styles.top} ${styles.marketingBase}`}>
         <div className={styles.topInner}>
           <Link className={styles.wordmark} href="/" aria-label={PRODUCT_NAME}>
@@ -111,7 +161,7 @@ export function MarketingShell({
         </div>
       </header>
       {children}
-      <footer className={`${styles.footer} ${styles.marketingClosing}`}>
+      <footer className={styles.footer}>
         <div className={styles.inner}>
           <div className={styles.footerSeparator} aria-hidden="true" />
           <div className={styles.footerInner}>
@@ -125,7 +175,7 @@ export function MarketingShell({
               </p>
             </div>
             <nav className={styles.footerNav} aria-label="Footer">
-              {FOOTER_GROUPS.map((group) => (
+              {footerGroups.map((group) => (
                 <div key={group.id} className={styles.footerNavGroup}>
                   <p
                     className={styles.footerNavLabel}
@@ -139,35 +189,15 @@ export function MarketingShell({
                   >
                     {group.links.map((link) => (
                       <li key={link.href}>
-                        <Link
-                          className={styles.textLink}
-                          href={link.href}
-                          aria-current={
-                            currentPath === link.href ? "page" : undefined
-                          }
-                        >
-                          {link.label}
-                        </Link>
+                        <FooterNavLink
+                          link={link}
+                          currentPath={currentPath}
+                        />
                       </li>
                     ))}
                   </ul>
                 </div>
               ))}
-              <div className={styles.footerNavGroup}>
-                <p className={styles.footerNavLabel} id="footer-account">
-                  Account
-                </p>
-                <ul
-                  className={styles.footerNavList}
-                  aria-labelledby="footer-account"
-                >
-                  <li>
-                    <a className={styles.textLink} href={staffHref}>
-                      {SIGN_IN_LABEL}
-                    </a>
-                  </li>
-                </ul>
-              </div>
             </nav>
           </div>
           <p className={styles.footerCopy}>

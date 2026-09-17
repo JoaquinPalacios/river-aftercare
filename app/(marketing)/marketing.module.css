@@ -2,6 +2,68 @@
   min-height: 100%;
 }
 
+.page[data-vertical] {
+  --vertical-accent: var(--mk-brand);
+  --vertical-accent-secondary: var(--mk-brand-strong);
+  --vertical-accent-soft: color-mix(
+    in srgb,
+    var(--vertical-accent) 14%,
+    transparent
+  );
+  --vertical-glow: color-mix(in srgb, var(--vertical-accent) 22%, transparent);
+}
+
+.page[data-vertical="dental"] {
+  --vertical-accent: var(--mk-brand);
+  --vertical-accent-secondary: var(--mk-brand-strong);
+  --vertical-glow: color-mix(in srgb, var(--mk-hero-bloom) 88%, transparent);
+}
+
+.page[data-vertical="physiotherapy"] {
+  --vertical-accent: var(--mk-wave-cyan);
+  --vertical-accent-secondary: var(--mk-brand);
+  --vertical-glow: color-mix(in srgb, var(--mk-hero-mist) 92%, transparent);
+}
+
+.page[data-vertical="chiropractic"] {
+  --vertical-accent: light-dark(#3b4bd1, #8ea0ff);
+  --vertical-accent-secondary: light-dark(#2d3bb8, #3d58d6);
+  --vertical-glow: color-mix(in srgb, var(--mk-hero-glow) 90%, transparent);
+}
+
+.page[data-vertical="cosmetic"] {
+  --vertical-accent: var(--mk-brand);
+  --vertical-accent-secondary: color-mix(
+    in srgb,
+    var(--mk-brand-strong) 58%,
+    var(--mk-wave-periwinkle)
+  );
+  --vertical-glow: color-mix(in srgb, var(--mk-hero-sheen) 86%, transparent);
+}
+
+.page[data-vertical] .eyebrow {
+  color: var(--vertical-accent);
+}
+
+.page[data-vertical] .top {
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--vertical-accent) 16%,
+    var(--mk-line)
+  );
+}
+
+.page[data-vertical] .navClinicsTrigger[aria-current="true"]::after,
+.page[data-vertical] .navRoute[aria-current="page"]::after {
+  background: var(--vertical-accent);
+  height: 1.5px;
+}
+
+.page[data-vertical] .navClinicsLink[aria-current="page"] {
+  background: var(--vertical-accent-soft);
+  box-shadow: inset 0.16rem 0 0 var(--vertical-accent);
+}
+
 .marketingBase {
   background-color: var(--mk-hero);
   color: var(--mk-ink);
@@ -180,7 +242,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.7rem 2.5rem;
+  gap: 0.45rem 1.85rem;
 }
 
 .nav > a {
@@ -232,17 +294,17 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .navClinicsPanel {
   position: absolute;
-  top: calc(100% - 0.15rem);
+  top: calc(100% + 0.2rem);
   left: 0;
   z-index: 4;
   display: grid;
-  gap: 0.12rem;
-  min-width: 14.5rem;
+  gap: 0.08rem;
+  min-width: 15rem;
   margin: 0;
-  padding: 0.45rem;
+  padding: 0.4rem;
   list-style: none;
   border: 1px solid var(--mk-card-line);
-  border-radius: 1rem;
+  border-radius: 0.9rem;
   background: light-dark(#fffdf9, #151922);
   box-shadow: light-dark(
     0 14px 36px rgb(10 13 20 / 10%),
@@ -257,13 +319,16 @@ html[data-theme-mode="dark"] .wordmarkName {
 .navClinicsLink {
   display: flex;
   align-items: center;
-  min-height: 2.65rem;
-  padding: 0.45rem 0.8rem;
-  border-radius: 0.65rem;
+  min-height: 2.55rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.55rem;
   color: var(--mk-muted);
   font-weight: 650;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   text-decoration: none;
+  transition:
+    color var(--mk-interact-duration) var(--mk-interact-ease),
+    background-color var(--mk-interact-duration) var(--mk-interact-ease);
 }
 
 .navClinicsLink[aria-current="page"] {
@@ -2077,6 +2142,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .footer {
+  background: var(--mk-hero);
   padding: 0 0
     calc(var(--mk-footer-pad-bottom) + env(safe-area-inset-bottom, 0px));
   color: var(--mk-muted);
@@ -2129,9 +2195,10 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .footerNav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.15rem 1.75rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(7.5rem, max-content));
+  gap: 1.35rem 2.25rem;
+  justify-content: start;
 }
 
 .footerNavGroup {
@@ -2625,23 +2692,17 @@ html[data-theme-mode="dark"] .wordmarkName {
   border: 0;
 }
 
-.clinicTypeGrid,
-.verticalCardGrid,
-.verticalBenefitGrid {
+.clinicTypeGrid {
   display: grid;
   gap: var(--mk-card-grid-gap);
 }
 
 .clinicTypeSlot,
-.verticalCardSlot,
-.clinicTypeCard,
-.verticalCard {
+.clinicTypeCard {
   height: 100%;
 }
 
-.clinicTypeCard,
-.verticalCard,
-.verticalWorkflowStep {
+.clinicTypeCard {
   display: flex;
   flex-direction: column;
   padding: 1.2rem 1.2rem 1.25rem;
@@ -2650,9 +2711,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   background: var(--mk-card);
   color: var(--mk-ink);
   box-shadow: var(--mk-card-shadow);
-}
-
-.clinicTypeCard {
   text-decoration: none;
   min-height: 100%;
   transition:
@@ -2660,18 +2718,14 @@ html[data-theme-mode="dark"] .wordmarkName {
     box-shadow var(--interaction-duration) var(--interaction-easing);
 }
 
-.clinicTypeCard h3,
-.verticalCard h3,
-.verticalWorkflowStep h3 {
+.clinicTypeCard h3 {
   margin: 0 0 0.45rem;
   font-size: 1.08rem;
   letter-spacing: -0.03em;
   line-height: 1.25;
 }
 
-.clinicTypeCard p,
-.verticalCard p,
-.verticalWorkflowStep p {
+.clinicTypeCard p {
   margin: 0;
   color: var(--mk-muted);
   line-height: 1.45;
@@ -2688,13 +2742,286 @@ html[data-theme-mode="dark"] .wordmarkName {
   }
 }
 
-.verticalExampleList {
+.verticalBand {
+  padding: var(--mk-section-space-lg) 0;
+}
+
+.verticalSurfaceSoft {
+  background: var(--mk-soft);
+  color: var(--mk-ink);
+}
+
+.verticalSurfaceCanvas {
+  background: var(--mk-hero);
+  color: var(--mk-ink);
+}
+
+.verticalSurfaceShowcase {
+  background: var(--mk-showcase);
+  color: var(--mk-ink);
+}
+
+.verticalIntro {
+  max-width: 38rem;
+}
+
+.verticalIntro .sectionTitle,
+.verticalSolutionCopy .sectionTitle,
+.verticalGuidanceLayout .sectionTitle,
+.verticalProofLayout .sectionTitle,
+.verticalFitLayout .sectionTitle,
+.verticalFaqIntro .sectionTitle {
+  max-width: 22ch;
+}
+
+.verticalHero {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(2.35rem, 4.2vw, 3.4rem) 0 0;
+}
+
+.verticalHero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(58% 42% at 18% 12%, var(--vertical-glow), transparent 72%),
+    radial-gradient(
+      36% 28% at 88% 18%,
+      var(--vertical-accent-soft),
+      transparent 74%
+    ),
+    radial-gradient(
+      42% 30% at 72% 88%,
+      color-mix(in srgb, var(--vertical-accent-secondary) 18%, transparent),
+      transparent 76%
+    );
+}
+
+.verticalHero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.verticalHeroInner {
+  padding-bottom: var(--mk-hero-bottom-gap);
+}
+
+.verticalHeroInner > [data-mk-section] {
   display: grid;
-  gap: 0.45rem;
-  margin: 0 0 1.15rem;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+.verticalHeroCopy {
+  min-width: 0;
+}
+
+.verticalHeroTitle {
+  margin: 0;
+  font-size: clamp(2.05rem, 4.6vw, 3.15rem);
+  letter-spacing: -0.055em;
+  line-height: 1.05;
+  max-width: 18ch;
+  text-wrap: pretty;
+}
+
+.verticalHeroLede {
+  max-width: 36rem;
+  margin-top: var(--mk-heading-intro-gap);
+  margin-bottom: 1.15rem;
+}
+
+.verticalHeroPanelSlot,
+.verticalHeroPanel {
+  min-width: 0;
+  height: 100%;
+}
+
+.verticalHeroPanel {
+  position: relative;
+  min-width: 0;
+  padding: 1.2rem 1.2rem 1.15rem 1.15rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--vertical-accent) 22%, var(--mk-line));
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--vertical-accent) 10%, var(--mk-card)),
+      var(--mk-card) 42%
+    );
+  box-shadow: var(--mk-card-shadow);
+}
+
+.verticalHeroPanel::before {
+  content: "";
+  position: absolute;
+  inset: auto -18% -38% auto;
+  width: 12rem;
+  height: 12rem;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--vertical-accent) 22%, transparent),
+    transparent 68%
+  );
+}
+
+.verticalHeroPathway {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
   padding: 0;
   list-style: none;
-  max-width: 42rem;
+}
+
+.verticalHeroPathway::before {
+  content: "";
+  position: absolute;
+  left: 0.9rem;
+  top: 1.05rem;
+  bottom: 1.05rem;
+  width: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--vertical-accent),
+    color-mix(in srgb, var(--mk-wave-cyan) 70%, var(--vertical-accent))
+  );
+  opacity: 0.45;
+}
+
+.verticalHeroPathStep {
+  display: grid;
+  grid-template-columns: 1.85rem minmax(0, 1fr);
+  column-gap: 0.8rem;
+  align-items: start;
+}
+
+.verticalHeroPathIndex {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--vertical-accent) 48%, var(--mk-line));
+  background: color-mix(in srgb, var(--mk-hero) 55%, var(--mk-card));
+  color: var(--vertical-accent);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.verticalHeroPathTitle {
+  margin: 0;
+  color: var(--mk-ink);
+  font-size: 0.98rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+}
+
+.verticalHeroPathBody {
+  margin: 0.18rem 0 0;
+  color: var(--mk-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.verticalProblemGrid {
+  display: grid;
+  gap: var(--mk-card-grid-gap);
+  margin-top: var(--mk-heading-content-gap);
+}
+
+.verticalProblemSlot,
+.verticalProblemCard {
+  height: 100%;
+}
+
+.verticalProblemCard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.15rem 1.15rem 1.2rem;
+  border: 1px solid var(--mk-card-line);
+  border-radius: var(--mk-card-radius);
+  background: var(--mk-card);
+  box-shadow: var(--mk-card-shadow);
+}
+
+.verticalProblemCard h3,
+.verticalBenefitRow h3,
+.verticalFitItem h3,
+.verticalRailCopy h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+}
+
+.verticalProblemCard p,
+.verticalBenefitRow p,
+.verticalFitItem p,
+.verticalRailCopy p {
+  margin: 0;
+  color: var(--mk-muted);
+  line-height: 1.45;
+}
+
+.verticalSolutionLayout,
+.verticalGuidanceLayout,
+.verticalProofLayout,
+.verticalFitLayout {
+  display: grid;
+  gap: var(--mk-section-space-md);
+  align-items: start;
+}
+
+.verticalSolutionCopy .copy,
+.verticalGuidanceLayout .copy,
+.verticalProofLayout .copy,
+.verticalFitLayout .copy {
+  max-width: 38rem;
+}
+
+.verticalBenefitList,
+.verticalFitList {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--mk-card-line);
+}
+
+.verticalBenefitRow,
+.verticalFitItem {
+  padding: 1rem 0 1.05rem;
+  border-bottom: 1px solid var(--mk-card-line);
+}
+
+.verticalBenefitRow h3,
+.verticalFitItem h3 {
+  padding-left: 0.85rem;
+  border-left: 2px solid var(--vertical-accent);
+}
+
+.verticalExampleList {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-width: 38rem;
 }
 
 .verticalExampleList li {
@@ -2713,56 +3040,201 @@ html[data-theme-mode="dark"] .wordmarkName {
   height: 0.4rem;
   margin-top: calc((1.45em - 0.4rem) / 2);
   border-radius: 999px;
-  background: var(--mk-brand);
+  background: var(--vertical-accent);
 }
 
+.verticalGuidanceAside {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.verticalStatus,
 .verticalBoundary,
 .verticalNote {
-  max-width: 42rem;
+  margin: 0;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--mk-card-line);
+  border-radius: var(--mk-card-radius);
+  background: var(--mk-card);
+  box-shadow: var(--mk-card-shadow);
+}
+
+.verticalStatus {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.verticalStatusLabel {
+  color: var(--vertical-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.verticalStatusValue {
+  color: var(--mk-ink);
+  font-size: 1.12rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
 }
 
 .verticalBoundary {
-  padding: 0.85rem 1rem;
-  border-left: 2px solid var(--mk-brand);
-  background: var(--mk-card);
+  border-left: 2px solid var(--vertical-accent);
   color: var(--mk-ink);
 }
 
-.verticalWorkflow {
+.verticalNote {
+  color: var(--mk-muted);
+  line-height: 1.45;
+}
+
+.verticalRailWrap {
+  --rail-node: 2rem;
+  position: relative;
+  margin-top: var(--mk-heading-content-gap);
+}
+
+.verticalRail {
+  position: relative;
+  z-index: 1;
   display: grid;
-  gap: var(--mk-card-grid-gap);
+  gap: 1.2rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.verticalWorkflowStep {
+.verticalRailLine {
+  display: none;
+}
+
+.verticalRailWrap::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: calc(var(--rail-node) / 2);
+  top: var(--rail-node);
+  bottom: 0.4rem;
+  width: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--vertical-accent),
+    var(--mk-wave-cyan)
+  );
+  opacity: 0.55;
+}
+
+.verticalRailStep {
   display: grid;
-  grid-template-columns: 2.25rem minmax(0, 1fr);
-  column-gap: 0.85rem;
+  grid-template-columns: var(--rail-node) minmax(0, 1fr);
+  column-gap: 0.9rem;
   align-items: start;
 }
 
-.verticalWorkflowIndex {
-  color: var(--mk-brand);
-  font-size: 0.8rem;
+.verticalRailIndex {
+  display: grid;
+  place-items: center;
+  width: var(--rail-node);
+  height: var(--rail-node);
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--vertical-accent) 50%, var(--mk-line));
+  background: var(--mk-card);
+  color: var(--vertical-accent);
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   font-variant-numeric: tabular-nums;
-  line-height: 1.55;
+}
+
+.verticalProofPanel {
+  min-width: 0;
+  padding: 1.25rem 1.2rem 1.3rem;
+  border: 1px solid color-mix(in srgb, var(--vertical-accent) 24%, var(--mk-line));
+  border-radius: 1.2rem;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--vertical-accent) 12%, var(--mk-card)),
+      var(--mk-card) 48%
+    );
+  box-shadow: var(--mk-card-shadow);
+}
+
+.verticalProofKicker {
+  margin: 0 0 0.45rem;
+  color: var(--vertical-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.verticalProofTitle {
+  margin: 0 0 1rem;
+  color: var(--mk-ink);
+  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+
+.verticalProofFacts {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.verticalProofFacts li {
+  position: relative;
+  padding-left: 1rem;
+  color: var(--mk-muted);
+  line-height: 1.4;
+}
+
+.verticalProofFacts li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 999px;
+  background: var(--vertical-accent);
+}
+
+.verticalFaqBand .inner {
+  max-width: min(48rem, calc(100% - 2.5rem));
+}
+
+.verticalFaqIntro {
+  margin-bottom: var(--mk-heading-content-gap);
 }
 
 .verticalFaq {
   display: grid;
-  gap: var(--mk-card-grid-gap);
-}
-
-.verticalFaqItem {
+  gap: 0;
+  overflow: hidden;
   border: 1px solid var(--mk-card-line);
   border-radius: var(--mk-card-radius);
   background: var(--mk-card);
-  color: var(--mk-ink);
   box-shadow: var(--mk-card-shadow);
+}
+
+.verticalFaqItem {
+  border-bottom: 1px solid var(--mk-card-line);
+}
+
+.verticalFaqItem:last-child {
+  border-bottom: 0;
+}
+
+.verticalFaqItem[open] {
+  box-shadow: inset 2px 0 0 var(--vertical-accent);
 }
 
 .verticalFaqQuestion {
@@ -2790,19 +3262,20 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .verticalFaqQuestion:focus-visible {
-  outline: 2.5px solid var(--mk-focus);
-  outline-offset: 3px;
+  outline: 2.5px solid var(--vertical-accent, var(--mk-focus));
+  outline-offset: -2px;
 }
 
 .verticalFaqQuestionInner {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.2rem 1.2rem 1.25rem;
-  font-size: 1.08rem;
+  min-height: 4.15rem;
+  padding: 1.05rem 1.15rem;
+  font-size: 1.05rem;
   letter-spacing: -0.03em;
-  line-height: 1.25;
+  line-height: 1.3;
   text-align: left;
 }
 
@@ -2816,7 +3289,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   flex: 0 0 auto;
   width: 0.85rem;
   height: 0.85rem;
-  margin-top: 0.22rem;
 }
 
 .verticalFaqIcon::before,
@@ -2825,8 +3297,11 @@ html[data-theme-mode="dark"] .wordmarkName {
   position: absolute;
   top: 50%;
   left: 50%;
-  background: var(--mk-brand);
+  background: var(--vertical-accent, var(--mk-brand));
   transform: translate(-50%, -50%);
+  transition:
+    opacity var(--mk-interact-duration) var(--mk-interact-ease),
+    transform var(--mk-interact-duration) var(--mk-interact-ease);
 }
 
 .verticalFaqIcon::before {
@@ -2840,27 +3315,61 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .verticalFaqItem[open] .verticalFaqIcon::after {
-  display: none;
+  opacity: 0;
+  transform: translate(-50%, -50%) scaleY(0);
 }
 
 .verticalFaqItem[open] .verticalFaqQuestionInner {
-  padding-bottom: 0.55rem;
+  padding-bottom: 0.45rem;
 }
 
 .verticalFaqPanel {
-  padding: 0 1.2rem 1.25rem;
+  padding: 0 1.15rem 1.15rem;
 }
 
 .verticalFaqPanel p {
   margin: 0;
+  max-width: 42rem;
   color: var(--mk-muted);
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
-.verticalRelated {
-  margin: 0.85rem 0 0;
+@media (hover: hover) and (pointer: fine) {
+  .verticalFaqQuestion:hover .verticalFaqQuestionInner {
+    color: var(--mk-ink);
+  }
+
+  .verticalFaqQuestion:hover .verticalFaqIcon::before,
+  .verticalFaqQuestion:hover .verticalFaqIcon::after {
+    background: var(--vertical-accent, var(--mk-brand));
+  }
+}
+
+.verticalCtaBlock {
+  padding: var(--mk-section-space-lg) 0 var(--mk-section-space-md);
+}
+
+.verticalCtaActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.15rem;
+}
+
+.verticalCtaSecondary {
   color: var(--mk-muted);
-  font-size: 0.95rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .verticalCtaSecondary:hover {
+    color: var(--mk-ink);
+  }
+}
+
+.verticalCtaSecondary:focus-visible {
+  color: var(--mk-ink);
 }
 
 @media (max-width: 47.99rem) {
@@ -2905,14 +3414,23 @@ html[data-theme-mode="dark"] .wordmarkName {
     min-height: 0;
   }
 
-  .pageHeroPricing::before,
-  .pageHeroContact::before {
-    opacity: 0.7;
-  }
-
   .ctaBlock,
   .marketingShowcase > .band:first-child {
     padding-top: 4rem;
+  }
+
+  .page[data-vertical] .ctaBlock {
+    padding-top: var(--mk-section-space-lg);
+  }
+
+  .verticalFaqBand .inner {
+    max-width: min(80rem, calc(100% - 2rem));
+  }
+
+  .verticalHero::before,
+  .pageHeroPricing::before,
+  .pageHeroContact::before {
+    opacity: 0.7;
   }
 
   .productInputs {
@@ -3137,16 +3655,63 @@ html[data-theme-mode="dark"] .wordmarkName {
     align-items: stretch;
   }
 
-  .clinicTypeGrid,
-  .verticalCardGrid {
+  .clinicTypeGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
   }
 
-  .verticalBenefitGrid,
-  .verticalWorkflow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .verticalHeroInner > [data-mk-section] {
+    grid-template-columns: minmax(0, 1.05fr) minmax(18rem, 0.86fr);
+    column-gap: 3.25rem;
+    align-items: center;
+  }
+
+  .verticalProblemGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
+  }
+
+  .verticalSolutionLayout,
+  .verticalGuidanceLayout,
+  .verticalProofLayout,
+  .verticalFitLayout {
+    grid-template-columns: minmax(0, 0.96fr) minmax(18rem, 1.04fr);
+    column-gap: 3.25rem;
+  }
+
+  .verticalRailWrap::before {
+    display: none;
+  }
+
+  .verticalRailLine {
+    display: block;
+    position: absolute;
+    z-index: 0;
+    left: 6%;
+    right: 6%;
+    top: calc(var(--rail-node) / 2);
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      var(--vertical-accent),
+      var(--vertical-accent-secondary),
+      var(--mk-wave-cyan)
+    );
+    opacity: 0.72;
+    pointer-events: none;
+    transform-origin: left center;
+  }
+
+  .verticalRail {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0 1.15rem;
+  }
+
+  .verticalRailStep {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    min-width: 0;
   }
 
   .brandCard {
@@ -3159,15 +3724,21 @@ html[data-theme-mode="dark"] .wordmarkName {
     align-items: end;
   }
 
-  .closingCtaAction {
+  .closingCtaAction,
+  .verticalCtaActions {
     justify-content: flex-end;
     padding-bottom: 0.15rem;
   }
 
   .footerInner {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(14rem, 1.05fr) minmax(0, 1.95fr);
     align-items: start;
-    justify-content: space-between;
+    column-gap: 3rem;
+  }
+
+  .footerNav {
+    grid-template-columns: repeat(3, minmax(7.5rem, 1fr));
+    justify-self: stretch;
   }
 
   .planGrid {
@@ -3225,10 +3796,45 @@ html[data-theme-mode="dark"] .wordmarkName {
     max-width: 24rem;
   }
 
-  .clinicTypeGrid,
-  .verticalCardGrid,
-  .verticalBenefitGrid {
+  .clinicTypeGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .verticalHeroInner > [data-mk-section] {
+    grid-template-columns: minmax(0, 1.05fr) minmax(16rem, 0.9fr);
+    column-gap: 2rem;
+    align-items: start;
+  }
+
+  .verticalProblemGrid {
+    grid-template-columns: 1.15fr 0.85fr;
+    grid-template-areas:
+      "one two"
+      "one three";
+  }
+
+  .verticalProblemGrid > :nth-child(1) {
+    grid-area: one;
+  }
+
+  .verticalProblemGrid > :nth-child(2) {
+    grid-area: two;
+  }
+
+  .verticalProblemGrid > :nth-child(3) {
+    grid-area: three;
+  }
+
+  .verticalSolutionLayout,
+  .verticalGuidanceLayout,
+  .verticalProofLayout,
+  .verticalFitLayout {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.92fr);
+    column-gap: 1.75rem;
+  }
+
+  .footerNav {
+    grid-template-columns: repeat(3, minmax(7rem, 1fr));
   }
 }
 
@@ -3239,7 +3845,11 @@ html[data-theme-mode="dark"] .wordmarkName {
   .navMenuRow,
   .navMenuTrigger,
   .navClinicsTrigger,
-  .clinicTypeCard {
+  .navClinicsLink,
+  .clinicTypeCard,
+  .verticalFaqIcon::before,
+  .verticalFaqIcon::after,
+  .verticalCtaSecondary {
     transition: none;
   }
 }

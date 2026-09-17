@@ -1250,3 +1250,23 @@ Cookieless Core Web Vitals / page-load telemetry. Same three root layouts as Web
 | Package | `@vercel/speed-insights` 2.0.0 (`latest` stable). Import `SpeedInsights` from `@vercel/speed-insights/next`.                                               |
 | Layouts | Mounted beside `<Analytics />` in marketing, staff, and aftercare root layouts.                                                                            |
 | Privacy | Public draft covers aggregated performance measurement through the application hosting provider, still without naming Vercel. Legal review still required. |
+
+---
+
+## Vertical acquisition design system v2 (2026-09-17)
+
+Shared premium editorial system for `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics`. Content strategy and SEO metadata are unchanged. This is presentation, not a copy rewrite.
+
+| Area           | Behaviour                                                                                                                                                                                                 |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Composition    | `MarketingVerticalLanding` + `MarketingVerticalHero`. Typed model in `lib/marketing/vertical-landing.ts` now includes `themeId`, hero pathway panel, guidance status, proof/fit extras, FAQ eyebrow, and a single closing secondary (`View pricing`). |
+| Accents        | CSS custom properties `--vertical-accent` / `--vertical-accent-secondary` / `--vertical-accent-soft` / `--vertical-glow` on `.page[data-vertical]`. Dental periwinkle, physio cyan, chiro cobalt, cosmetic periwinkle/lavender mix from existing brand tokens. |
+| Spacing        | `--mk-section-space-xl/lg/md` for vertical section rhythm. Homepage chapter padding is unchanged.                                                                                                         |
+| Surfaces       | Hero canvas → problem soft → solution canvas → guidance soft → workflow canvas → proof/fit showcase → FAQ soft → closing CTA + glow → quiet footer.                                                       |
+| Hero           | Split copy + truthful pathway panel. Not the homepage phone mockup. Dental keeps the real demo CTA.                                                                                                       |
+| Workflow       | Connected process rail (`ol` + numbered nodes). Decorative connector is `aria-hidden`.                                                                                                                    |
+| Proof          | Dental: Riverside Dental Demo typographic showcase. Other verticals: profession-specific fit module, no fake demos.                                                                                        |
+| CTA / footer   | Closing CTA is Request a demo + View pricing only. Footer is a quiet utility band: For clinics / Product (includes Sign in) / Legal. Account column removed. No “Request a demo” in the footer.             |
+| Copy exception | Dental guidance badge is **Current starting template** / Tooth Extraction, not “reviewed”, because the sample is not clinically reviewed.                                                                  |
+| SEO            | Titles, descriptions, canonicals, robots, JSON-LD, sitemap, and `lastModified` unchanged. Main copy remains server-rendered; FAQ answers stay in markup.                                                  |
+

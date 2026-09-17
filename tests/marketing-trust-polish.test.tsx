@@ -203,5 +203,7 @@ describe("marketing + trust polish", () => {
     expect(shell).not.toContain("homepageAnchor");
     expect(shell).toContain('SIGN_IN_LABEL = "Sign in"');
     expect(shell).not.toContain("Staff sign in");
+    expect(shell).not.toContain("footer-account");
+    expect(shell).not.toContain('label: "Account"');
   });
 });

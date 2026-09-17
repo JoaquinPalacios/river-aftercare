@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 
 vi.mock("next/headers", () => ({
@@ -96,8 +97,25 @@ describe("clinic vertical landing pages", () => {
     expect(dental).toContain('href="/about"');
     expect(physio).toContain('href="#workflow"');
     expect(dental).toContain("<main");
+    expect(dental).toContain('data-vertical="dental"');
+    expect(physio).toContain('data-vertical="physiotherapy"');
+    expect(chiro).toContain('data-vertical="chiropractic"');
+    expect(cosmetic).toContain('data-vertical="cosmetic"');
+    expect(dental).toContain("data-mk-vertical-hero");
+    expect(dental).toContain("Current starting template");
+    expect(dental).toContain("Live example");
+    expect(dental).toContain("View pricing");
+    expect(dental).not.toContain("About River Aftercare");
+    expect(dental).not.toContain("footer-account");
+    expect(dental).toContain("Common questions");
+    expect(physio).toContain("How it fits");
+    expect(chiro).toContain("A publishing layer for patient guidance");
+    expect(cosmetic).toContain("Keep the experience recognisably yours");
     expect(dental).not.toContain("/_marketing");
     expect(JSON.stringify(VERTICAL_LANDINGS)).not.toContain("Riverside Physio");
+    expect(JSON.stringify(VERTICAL_LANDINGS)).not.toContain(
+      "Current reviewed starting template"
+    );
 
     for (const [html, landing] of [
       [dental, VERTICAL_LANDINGS["/dental"]],
@@ -131,5 +149,32 @@ describe("clinic vertical landing pages", () => {
     expect(MARKETING_SEO_PAGE_KEYS["/cosmetic-clinics"]).toBe(
       "cosmeticClinics"
     );
+  });
+
+  it("uses one shared vertical design system with per-vertical accents", () => {
+    const css = readFileSync("app/(marketing)/marketing.module.css", "utf8");
+    const landing = readFileSync(
+      "app/(marketing)/components/marketing-vertical-landing.tsx",
+      "utf8"
+    );
+    const tokens = readFileSync("app/(marketing)/marketing.css", "utf8");
+
+    expect(tokens).toContain("--mk-section-space-xl");
+    expect(tokens).toContain("--mk-section-space-lg");
+    expect(tokens).toContain("--mk-section-space-md");
+    expect(css).toContain("--vertical-accent");
+    expect(css).toContain('data-vertical="dental"');
+    expect(css).toContain('data-vertical="physiotherapy"');
+    expect(css).toContain('data-vertical="chiropractic"');
+    expect(css).toContain('data-vertical="cosmetic"');
+    expect(css).toContain(".verticalHero");
+    expect(css).toContain(".verticalProblemGrid");
+    expect(css).toContain(".verticalRail");
+    expect(css).toContain(".verticalProofPanel");
+    expect(css).not.toContain(".dentalHero");
+    expect(css).not.toContain(".physioHero");
+    expect(landing).toContain("MarketingVerticalHero");
+    expect(landing).not.toContain("VERTICAL_RELATED_LINKS");
+    expect(landing).not.toContain("About River Aftercare");
   });
 });
