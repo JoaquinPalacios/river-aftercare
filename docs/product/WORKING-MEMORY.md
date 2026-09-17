@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-17 (vertical acquisition design system v2; demo-only Tooth Extraction sample; Vercel Speed Insights)
+Last updated: 2026-09-17 (vertical hero pathway content-sized; design system v2 on main; demo-only Tooth Extraction sample)
 
 ---
 
@@ -1263,7 +1263,7 @@ Shared premium editorial system for `/dental`, `/physiotherapy`, `/chiropractic`
 | Accents        | CSS custom properties `--vertical-accent` / `--vertical-accent-secondary` / `--vertical-accent-soft` / `--vertical-glow` / `--vertical-accent-text` on `.page[data-vertical]`. Dental periwinkle, physio cyan (text uses `#146f88` in light mode for WCAG), chiro cobalt, cosmetic periwinkle/lavender mix from existing brand tokens. |
 | Spacing        | `--mk-section-space-xl/lg/md` for vertical section rhythm. Homepage chapter padding is unchanged.                                                                                                                                                                                                                                      |
 | Surfaces       | Hero canvas → problem soft → solution canvas → guidance soft → workflow canvas → proof/fit showcase → FAQ soft → closing CTA + glow → quiet footer.                                                                                                                                                                                    |
-| Hero           | Split copy + truthful pathway panel. Not the homepage phone mockup. Dental keeps the real demo CTA.                                                                                                                                                                                                                                    |
+| Hero           | Split copy + truthful pathway panel. The panel is content-sized (`height: auto`, `align-self: center`) so it does not stretch to the copy column. Not the homepage phone mockup. Dental keeps the real demo CTA.                                                                                                                       |
 | Workflow       | Connected process rail (`ol` + numbered nodes). Decorative connector is `aria-hidden`.                                                                                                                                                                                                                                                 |
 | Proof          | Dental: Riverside Dental Demo typographic showcase. Other verticals: profession-specific fit module, no fake demos.                                                                                                                                                                                                                    |
 | CTA / footer   | Closing CTA is Request a demo + View pricing only. Footer is a quiet utility band: For clinics / Product (includes Sign in) / Legal. Account column removed. No “Request a demo” in the footer.                                                                                                                                        |

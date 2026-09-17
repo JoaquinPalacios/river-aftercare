@@ -392,18 +392,17 @@ test.describe("clinic vertical acquisition pages", () => {
     await expect(
       cta.getByRole("link", { name: "Request a demo" })
     ).toHaveAttribute("href", "/contact");
-    await expect(cta.getByRole("link", { name: "View pricing" })).toHaveAttribute(
-      "href",
-      "/pricing"
-    );
+    await expect(
+      cta.getByRole("link", { name: "View pricing" })
+    ).toHaveAttribute("href", "/pricing");
     await expect(cta.getByRole("link", { name: "About" })).toHaveCount(0);
     await expect(cta.getByText("About River Aftercare")).toHaveCount(0);
 
     const footer = page.getByRole("contentinfo");
     await expect(footer.getByText("Account", { exact: true })).toHaveCount(0);
-    await expect(
-      footer.getByRole("heading", { name: "Account" })
-    ).toHaveCount(0);
+    await expect(footer.getByRole("heading", { name: "Account" })).toHaveCount(
+      0
+    );
     await expect(footer.getByRole("link", { name: "Sign in" })).toBeVisible();
     await expect(footer.getByRole("link", { name: "Contact" })).toHaveAttribute(
       "href",
@@ -433,6 +432,39 @@ test.describe("clinic vertical acquisition pages", () => {
       await expect(page.getByText("Clinic approved")).toBeVisible();
       await expect(page.locator("#workflow")).toBeVisible();
       await expectNoHorizontalOverflow(page);
+
+      const metrics = await page
+        .locator("[data-mk-vertical-hero]")
+        .evaluate((hero) => {
+          const grid = hero.querySelector("[data-mk-section]");
+          const copy = grid?.children[0];
+          const panel = hero.querySelector("aside");
+          const pathway = hero.querySelector("ol");
+          const lastStep = pathway?.querySelector("li:last-child");
+          if (!copy || !panel || !pathway || !lastStep) {
+            return null;
+          }
+
+          const copyBox = copy.getBoundingClientRect();
+          const panelBox = panel.getBoundingClientRect();
+          const pathwayBox = pathway.getBoundingClientRect();
+          const lastStepBox = lastStep.getBoundingClientRect();
+
+          return {
+            copyHeight: copyBox.height,
+            panelHeight: panelBox.height,
+            unusedBelowPathway: panelBox.height - pathwayBox.height,
+            unusedBelowLastStep: panelBox.bottom - lastStepBox.bottom,
+          };
+        });
+
+      expect(metrics).not.toBeNull();
+      expect(metrics!.unusedBelowPathway).toBeLessThan(80);
+      expect(metrics!.unusedBelowLastStep).toBeGreaterThan(10);
+      expect(metrics!.unusedBelowLastStep).toBeLessThan(48);
+      if (viewport.width >= 1024) {
+        expect(metrics!.panelHeight).toBeLessThan(metrics!.copyHeight);
+      }
     }
   });
 
@@ -465,24 +497,18 @@ test.describe("clinic vertical acquisition pages", () => {
       await page.locator("[data-mk-vertical-hero]").screenshot({
         path: `test-results/artifacts/vertical-qa/${slug}-1440-hero.png`,
       });
-      await page
-        .locator(`[aria-labelledby="${themeId}-problem"]`)
-        .screenshot({
-          path: `test-results/artifacts/vertical-qa/${slug}-1440-problem.png`,
-        });
+      await page.locator(`[aria-labelledby="${themeId}-problem"]`).screenshot({
+        path: `test-results/artifacts/vertical-qa/${slug}-1440-problem.png`,
+      });
       await page.locator("#workflow").screenshot({
         path: `test-results/artifacts/vertical-qa/${slug}-1440-workflow.png`,
       });
-      await page
-        .locator(`[aria-labelledby="${themeId}-faq"]`)
-        .screenshot({
-          path: `test-results/artifacts/vertical-qa/${slug}-1440-faq.png`,
-        });
-      await page
-        .locator(`[aria-labelledby="${themeId}-cta"]`)
-        .screenshot({
-          path: `test-results/artifacts/vertical-qa/${slug}-1440-cta.png`,
-        });
+      await page.locator(`[aria-labelledby="${themeId}-faq"]`).screenshot({
+        path: `test-results/artifacts/vertical-qa/${slug}-1440-faq.png`,
+      });
+      await page.locator(`[aria-labelledby="${themeId}-cta"]`).screenshot({
+        path: `test-results/artifacts/vertical-qa/${slug}-1440-cta.png`,
+      });
     }
 
     for (const viewport of viewports) {
