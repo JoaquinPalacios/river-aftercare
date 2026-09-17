@@ -161,6 +161,36 @@ describe("marketing JSON-LD", () => {
     ).toHaveLength(1);
   });
 
+  it("emits WebPage data for the clinics hub without invented medical schema", () => {
+    const clinics = buildMarketingJsonLdGraph(
+      resolveMarketingSeo({ path: "/clinics", origin: "https://example.test" }),
+      "https://example.test"
+    );
+    const page = clinics["@graph"].find(
+      (node) => node["@id"] === "https://example.test/clinics#webpage"
+    );
+
+    expect(page?.["@type"]).toBe("WebPage");
+    expect(page?.url).toBe("https://example.test/clinics");
+    expect(page?.name).toBe(
+      "Patient Aftercare Software for Clinics & Practices | River Aftercare"
+    );
+    expect(page?.mainEntity).toEqual({
+      "@id": "https://example.test/#application",
+    });
+    expect(JSON.stringify(clinics)).toContain("SoftwareApplication");
+    expect(JSON.stringify(clinics)).toContain("Organization");
+    expect(JSON.stringify(clinics)).toContain("WebSite");
+    expect(JSON.stringify(clinics)).not.toContain("FAQPage");
+    expect(JSON.stringify(clinics)).not.toContain("MedicalWebPage");
+    expect(JSON.stringify(clinics)).not.toContain("MedicalOrganization");
+    expect(JSON.stringify(clinics)).not.toContain("aggregateRating");
+    expect(jsonLdContainsOffer(clinics)).toBe(false);
+    expect(
+      clinics["@graph"].filter((node) => node["@type"] === "Organization")
+    ).toHaveLength(1);
+  });
+
   it("serializes JSON-LD without raw HTML injection", () => {
     const serialized = serializeJsonLd({
       name: "Safe",

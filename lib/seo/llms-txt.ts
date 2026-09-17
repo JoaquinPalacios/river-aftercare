@@ -1,10 +1,16 @@
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
-import { CLINIC_VERTICAL_NAV } from "@/lib/marketing/clinic-verticals";
+import {
+  CLINIC_HUB_PATH,
+  CLINIC_VERTICAL_NAV,
+} from "@/lib/marketing/clinic-verticals";
 import { MARKETING_PAGE_LABELS } from "@/lib/seo/defaults";
 import { MARKETING_SEO_PATHS, type PlatformSeoIdentity } from "@/lib/seo/types";
 import { marketingCanonicalUrl } from "@/lib/seo/resolve-marketing-seo";
 
 export const LLMS_TXT_PATH = "/llms.txt";
+
+const HUB_LLMS_BLURB =
+  "Overview of River Aftercare for treatment-based clinics and practices.";
 
 const VERTICAL_LLMS_BLURBS: Record<string, string> = {
   "/dental":
@@ -37,11 +43,15 @@ export function buildLlmsTxt(input: {
     })
     .join("\n");
 
-  const verticals = CLINIC_VERTICAL_NAV.map((item) => {
-    const blurb = VERTICAL_LLMS_BLURBS[item.path];
-    const url = marketingCanonicalUrl(item.path, input.origin);
-    return `- [${item.cardTitle}](${url}) — ${blurb}`;
-  }).join("\n");
+  const hubUrl = marketingCanonicalUrl(CLINIC_HUB_PATH, input.origin);
+  const verticals = [
+    `- [Clinics overview](${hubUrl}) — ${HUB_LLMS_BLURB}`,
+    ...CLINIC_VERTICAL_NAV.map((item) => {
+      const blurb = VERTICAL_LLMS_BLURBS[item.path];
+      const url = marketingCanonicalUrl(item.path, input.origin);
+      return `- [${item.cardTitle}](${url}) — ${blurb}`;
+    }),
+  ].join("\n");
 
   return `# ${siteName}
 

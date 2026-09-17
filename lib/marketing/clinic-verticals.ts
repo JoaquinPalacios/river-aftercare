@@ -1,5 +1,8 @@
 import type { MarketingSeoPath } from "@/lib/seo/types";
 
+export const CLINIC_HUB_PATH = "/clinics";
+export const CLINIC_HUB_NAV_LABEL = "Overview";
+
 export const CLINIC_VERTICAL_PATHS = [
   "/dental",
   "/physiotherapy",
@@ -51,8 +54,35 @@ export function isClinicVerticalPath(path: string): path is ClinicVerticalPath {
   return (CLINIC_VERTICAL_PATHS as readonly string[]).includes(path);
 }
 
+export function isClinicHubPath(path: string): path is typeof CLINIC_HUB_PATH {
+  return path === CLINIC_HUB_PATH;
+}
+
+export function isClinicAcquisitionPath(path: string): boolean {
+  return isClinicHubPath(path) || isClinicVerticalPath(path);
+}
+
 export function isClinicVerticalSeoPath(
   path: MarketingSeoPath
 ): path is ClinicVerticalPath {
   return isClinicVerticalPath(path);
+}
+
+export function clinicDirectoryNavItems(currentPath: string): {
+  href: string;
+  label: string;
+  current: boolean;
+}[] {
+  return [
+    {
+      href: CLINIC_HUB_PATH,
+      label: CLINIC_HUB_NAV_LABEL,
+      current: currentPath === CLINIC_HUB_PATH,
+    },
+    ...CLINIC_VERTICAL_NAV.map((item) => ({
+      href: item.path,
+      label: item.navLabel,
+      current: currentPath === item.path,
+    })),
+  ];
 }

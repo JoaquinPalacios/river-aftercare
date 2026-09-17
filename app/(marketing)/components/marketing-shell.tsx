@@ -8,7 +8,7 @@ import { MarketingThemeControl } from "@/app/(marketing)/components/marketing-th
 import { ProductLogo } from "@/lib/branding/product-logo";
 import { ProductMark } from "@/lib/branding/product-mark";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
-import { CLINIC_VERTICAL_NAV } from "@/lib/marketing/clinic-verticals";
+import { clinicDirectoryNavItems } from "@/lib/marketing/clinic-verticals";
 import type { VerticalThemeId } from "@/lib/marketing/vertical-landing";
 import type { MarketingSeoPath } from "@/lib/seo/types";
 
@@ -25,9 +25,9 @@ const FOOTER_GROUPS = [
   {
     id: "clinics",
     label: "For clinics",
-    links: CLINIC_VERTICAL_NAV.map((item) => ({
-      href: item.path,
-      label: item.navLabel,
+    links: clinicDirectoryNavItems("").map((item) => ({
+      href: item.href,
+      label: item.label,
     })),
   },
   {
@@ -101,11 +101,7 @@ export function MarketingShell({
     ...item,
     current: currentPath === item.href,
   }));
-  const clinicItems = CLINIC_VERTICAL_NAV.map((item) => ({
-    href: item.path,
-    label: item.navLabel,
-    current: currentPath === item.path,
-  }));
+  const clinicItems = clinicDirectoryNavItems(currentPath);
 
   const footerGroups = [
     FOOTER_GROUPS[0],
@@ -189,10 +185,7 @@ export function MarketingShell({
                   >
                     {group.links.map((link) => (
                       <li key={link.href}>
-                        <FooterNavLink
-                          link={link}
-                          currentPath={currentPath}
-                        />
+                        <FooterNavLink link={link} currentPath={currentPath} />
                       </li>
                     ))}
                   </ul>

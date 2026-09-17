@@ -120,6 +120,10 @@ describe("proxy", () => {
     expect(rewrittenUrl(cosmetic)?.pathname).toBe(
       "/_marketing/cosmetic-clinics"
     );
+
+    const clinics = proxy(requestFor("http://localhost:3000/clinics"));
+    expect(clinics.status).toBe(200);
+    expect(rewrittenUrl(clinics)?.pathname).toBe("/_marketing/clinics");
   });
 
   it("lets sitemap, robots, and llms.txt pass through on the marketing host", () => {

@@ -22,6 +22,7 @@ describe("llms.txt", () => {
     expect(body).toContain("https://example.test/about");
     expect(body).toContain("https://example.test/privacy");
     expect(body).toContain("https://example.test/terms");
+    expect(body).toContain("https://example.test/clinics");
     expect(body).toContain("https://example.test/dental");
     expect(body).toContain("https://example.test/physiotherapy");
     expect(body).toContain("https://example.test/chiropractic");
@@ -31,6 +32,7 @@ describe("llms.txt", () => {
     expect(body).toContain("home-care and post-appointment");
     expect(body).toContain("post-treatment aftercare");
     expect(body).toContain("Not an exercise-tracking app.");
+    expect(body).toContain("treatment-based clinics and practices");
     expect(body).not.toContain("Wisdom Teeth");
     expect(body).not.toContain("/operator");
     expect(body).not.toContain("/login");
@@ -54,6 +56,7 @@ describe("marketing sitemap builder", () => {
       "http://localhost/about",
       "http://localhost/privacy",
       "http://localhost/terms",
+      "http://localhost/clinics",
       "http://localhost/dental",
       "http://localhost/physiotherapy",
       "http://localhost/chiropractic",

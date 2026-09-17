@@ -15,6 +15,7 @@ export const MARKETING_PAGE_PATHS = [
   "/about",
   "/privacy",
   "/terms",
+  "/clinics",
   "/dental",
   "/physiotherapy",
   "/chiropractic",

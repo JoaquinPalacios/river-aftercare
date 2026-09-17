@@ -348,6 +348,12 @@ html[data-theme-mode="dark"] .wordmarkName {
   outline-offset: -2px;
 }
 
+.navClinicsOverview {
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.28rem;
+  border-bottom: 1px solid var(--mk-card-line);
+}
+
 .navRoute[aria-current="page"] {
   color: var(--mk-ink);
 }
@@ -2744,6 +2750,366 @@ html[data-theme-mode="dark"] .wordmarkName {
   }
 }
 
+.clinicTypeMore {
+  margin: 1.15rem 0 0;
+}
+
+.clinicTypeMore a {
+  font-weight: 650;
+}
+
+.clinicsHubHero {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(2.35rem, 4.2vw, 3.4rem) 0 0;
+}
+
+.clinicsHubHero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(58% 42% at 16% 10%, var(--mk-hero-bloom), transparent 74%),
+    radial-gradient(38% 26% at 86% 18%, var(--mk-hero-glow), transparent 72%),
+    radial-gradient(42% 28% at 72% 88%, var(--mk-hero-mist), transparent 76%);
+}
+
+.clinicsHubHero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.clinicsHubHeroInner {
+  padding-bottom: var(--mk-hero-bottom-gap);
+}
+
+.clinicsHubHeroInner > [data-mk-section] {
+  display: grid;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+.clinicsHubCopy {
+  min-width: 0;
+}
+
+.clinicsHubTitle {
+  margin: 0;
+  font-size: clamp(2.05rem, 4.6vw, 3.15rem);
+  letter-spacing: -0.055em;
+  line-height: 1.05;
+  max-width: 16ch;
+  text-wrap: pretty;
+}
+
+.clinicsHubLede {
+  max-width: 36rem;
+  margin-top: var(--mk-heading-intro-gap);
+  margin-bottom: 1.15rem;
+}
+
+.clinicsHubVisualSlot {
+  min-width: 0;
+  height: auto;
+  align-self: center;
+}
+
+.clinicsHubVisual {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 1.15rem 1.15rem 1.2rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--mk-brand) 22%, var(--mk-line));
+  border-radius: 1.25rem;
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--mk-brand) 10%, var(--mk-card)),
+    var(--mk-card) 46%
+  );
+  box-shadow: var(--mk-card-shadow);
+}
+
+.clinicsHubVisual::before {
+  content: "";
+  position: absolute;
+  inset: auto -20% -42% auto;
+  width: 12rem;
+  height: 12rem;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--mk-wave-cyan) 24%, transparent),
+    transparent 68%
+  );
+}
+
+.clinicsHubPaths {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clinicsHubPath {
+  min-width: 0;
+  padding: 0.7rem 0.75rem 0.75rem;
+  border: 1px solid
+    color-mix(in srgb, var(--vertical-accent) 28%, var(--mk-line));
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--mk-hero) 55%, var(--mk-card));
+}
+
+.clinicsHubPath[data-vertical="dental"] {
+  --vertical-accent: var(--mk-brand);
+  --vertical-accent-text: var(--mk-brand);
+}
+
+.clinicsHubPath[data-vertical="physiotherapy"] {
+  --vertical-accent: var(--mk-wave-cyan);
+  --vertical-accent-text: light-dark(#146f88, #7ec8e6);
+}
+
+.clinicsHubPath[data-vertical="chiropractic"] {
+  --vertical-accent: light-dark(#3b4bd1, #8ea0ff);
+  --vertical-accent-text: light-dark(#3b4bd1, #8ea0ff);
+}
+
+.clinicsHubPath[data-vertical="cosmetic"] {
+  --vertical-accent: color-mix(
+    in srgb,
+    var(--mk-brand) 70%,
+    var(--mk-wave-periwinkle)
+  );
+  --vertical-accent-text: var(--mk-brand);
+}
+
+.clinicsHubPathLabel {
+  display: block;
+  color: var(--vertical-accent-text, var(--mk-brand));
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.clinicsHubPathDetail {
+  display: block;
+  margin-top: 0.18rem;
+  color: var(--mk-ink);
+  font-size: 0.88rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.clinicsHubCore {
+  position: relative;
+  z-index: 1;
+  padding: 0.95rem 1rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--mk-brand) 32%, var(--mk-line));
+  border-radius: 0.95rem;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mk-brand) 14%, var(--mk-card)),
+    var(--mk-card)
+  );
+  text-align: center;
+}
+
+.clinicsHubCoreTitle {
+  margin: 0;
+  color: var(--mk-ink);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.clinicsHubCoreFacts {
+  margin: 0.28rem 0 0;
+  color: var(--mk-muted);
+  font-size: 0.86rem;
+}
+
+.clinicsHubPlatform {
+  max-width: 48rem;
+}
+
+.clinicsHubDiscovery {
+  background: var(--mk-hero);
+}
+
+.clinicsHubGrid {
+  display: grid;
+  gap: var(--mk-card-grid-gap);
+}
+
+.clinicsHubCardSlot,
+.clinicsHubCard {
+  min-width: 0;
+  height: auto;
+}
+
+.clinicsHubCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 12.5rem;
+  padding: 1.25rem 1.25rem 1.2rem 1.4rem;
+  overflow: hidden;
+  border: 1px solid
+    color-mix(in srgb, var(--vertical-accent) 22%, var(--mk-card-line));
+  border-radius: var(--mk-card-radius);
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--vertical-accent) 10%, var(--mk-card)),
+    var(--mk-card) 48%
+  );
+  color: var(--mk-ink);
+  box-shadow: var(--mk-card-shadow);
+  text-decoration: none;
+  transition:
+    border-color var(--interaction-duration) var(--interaction-easing),
+    box-shadow var(--interaction-duration) var(--interaction-easing);
+}
+
+.clinicsHubCard[data-vertical="dental"] {
+  --vertical-accent: var(--mk-brand);
+  --vertical-accent-text: var(--mk-brand);
+}
+
+.clinicsHubCard[data-vertical="physiotherapy"] {
+  --vertical-accent: var(--mk-wave-cyan);
+  --vertical-accent-text: light-dark(#146f88, #7ec8e6);
+}
+
+.clinicsHubCard[data-vertical="chiropractic"] {
+  --vertical-accent: light-dark(#3b4bd1, #8ea0ff);
+  --vertical-accent-text: light-dark(#2d3bb8, #a6b8ff);
+}
+
+.clinicsHubCard[data-vertical="cosmetic"] {
+  --vertical-accent: color-mix(
+    in srgb,
+    var(--mk-brand) 62%,
+    var(--mk-wave-periwinkle)
+  );
+  --vertical-accent-text: var(--mk-brand);
+}
+
+.clinicsHubCardRail {
+  position: absolute;
+  top: 0.95rem;
+  bottom: 0.95rem;
+  left: 0;
+  width: 0.28rem;
+  border-radius: 0 0.2rem 0.2rem 0;
+  background: linear-gradient(
+    to bottom,
+    var(--vertical-accent),
+    var(--mk-wave-cyan)
+  );
+}
+
+.clinicsHubCard h3 {
+  margin: 0 0 0.45rem;
+  color: var(--vertical-accent-text, var(--mk-ink));
+  font-size: 1.18rem;
+  letter-spacing: -0.035em;
+  line-height: 1.25;
+}
+
+.clinicsHubCard p {
+  margin: 0;
+  flex: 1 1 auto;
+  color: var(--mk-muted);
+  line-height: 1.45;
+}
+
+.clinicsHubCardCta {
+  margin-top: 1rem;
+  color: var(--vertical-accent-text, var(--mk-brand));
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.clinicsHubCard:focus-visible {
+  outline: 2.5px solid var(--mk-focus);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .clinicsHubCard:hover {
+    border-color: color-mix(
+      in srgb,
+      var(--vertical-accent) 46%,
+      var(--mk-card-line)
+    );
+  }
+}
+
+.clinicsHubPrinciples {
+  display: grid;
+  gap: var(--mk-card-grid-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clinicsHubPrinciple {
+  display: grid;
+  grid-template-columns: 2.1rem minmax(0, 1fr);
+  column-gap: 0.85rem;
+  padding: 1.1rem 1.15rem 1.15rem;
+  border: 1px solid var(--mk-card-line);
+  border-radius: var(--mk-card-radius);
+  background: var(--mk-card);
+  box-shadow: var(--mk-card-shadow);
+}
+
+.clinicsHubPrincipleIndex {
+  color: var(--mk-brand);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.clinicsHubPrinciple h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
+}
+
+.clinicsHubPrinciple p {
+  margin: 0;
+  color: var(--mk-muted);
+  line-height: 1.45;
+}
+
+.clinicsHubOther {
+  max-width: 40rem;
+  padding: 1.35rem 1.35rem 1.4rem;
+  border: 1px solid color-mix(in srgb, var(--mk-brand) 18%, var(--mk-line));
+  border-radius: 1.15rem;
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--mk-brand) 8%, var(--mk-card)),
+    var(--mk-card) 52%
+  );
+}
+
+.clinicsHubOther .actions {
+  margin-top: 1rem;
+}
+
 .verticalBand {
   padding: var(--mk-section-space-lg) 0;
 }
@@ -3665,6 +4031,21 @@ html[data-theme-mode="dark"] .wordmarkName {
     align-items: stretch;
   }
 
+  .clinicsHubHeroInner > [data-mk-section] {
+    grid-template-columns: minmax(0, 1.05fr) minmax(18rem, 0.92fr);
+    column-gap: 3.2rem;
+    align-items: center;
+  }
+
+  .clinicsHubGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .clinicsHubPrinciples {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .verticalHeroInner > [data-mk-section] {
     grid-template-columns: minmax(0, 1.05fr) minmax(18rem, 0.86fr);
     column-gap: 3.2rem;
@@ -3805,6 +4186,11 @@ html[data-theme-mode="dark"] .wordmarkName {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* Keep the hub hero stacked until 64rem so the four-path visual is not cramped. */
+  .clinicsHubGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .verticalHeroInner > [data-mk-section] {
     grid-template-columns: minmax(0, 1.05fr) minmax(16rem, 0.9fr);
     column-gap: 2rem;
@@ -3852,6 +4238,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   .navClinicsTrigger,
   .navClinicsLink,
   .clinicTypeCard,
+  .clinicsHubCard,
   .verticalFaqIcon::before,
   .verticalFaqIcon::after,
   .verticalCtaSecondary {

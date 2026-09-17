@@ -308,6 +308,9 @@ test.describe("clinic vertical acquisition pages", () => {
     await expect(
       page.getByRole("link", { name: /Cosmetic & aesthetic clinics/ })
     ).toHaveAttribute("href", "/cosmetic-clinics");
+    await expect(
+      page.getByRole("link", { name: "Explore all clinic types →" })
+    ).toHaveAttribute("href", "/clinics");
 
     await page
       .getByRole("navigation", { name: "Marketing" })
@@ -331,6 +334,9 @@ test.describe("clinic vertical acquisition pages", () => {
     await page.goto(marketingUrl("/about"), { waitUntil: "load" });
     const header = page.getByRole("navigation", { name: "Marketing" });
     await header.getByRole("button", { name: "For clinics" }).click();
+    await expect(
+      header.getByRole("link", { name: "Overview" })
+    ).toHaveAttribute("href", "/clinics");
     await expect(header.getByRole("link", { name: "Dental" })).toBeVisible();
     await expect(
       header.getByRole("link", { name: "Cosmetic & aesthetic" })
@@ -355,6 +361,7 @@ test.describe("clinic vertical acquisition pages", () => {
     });
     const body = (await sitemap?.text()) ?? "";
     for (const path of [
+      "/clinics",
       "/dental",
       "/physiotherapy",
       "/chiropractic",
@@ -408,6 +415,9 @@ test.describe("clinic vertical acquisition pages", () => {
       "href",
       "/contact"
     );
+    await expect(
+      footer.getByRole("link", { name: "Overview" })
+    ).toHaveAttribute("href", "/clinics");
     await expect(footer.getByRole("link", { name: "Dental" })).toHaveAttribute(
       "href",
       "/dental"
