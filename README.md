@@ -1,6 +1,6 @@
-# Care Guide
+# River Aftercare
 
-The repository is still called **care-guide**. The current commercial/product name is **River Aftercare**. Repository, package, and `CARE_GUIDE_*` identifiers remain technical.
+The GitHub repository and npm package are **river-aftercare**. The current commercial/product name is **River Aftercare**. `CARE_GUIDE_*` environment prefixes remain technical.
 
 ## Product direction
 

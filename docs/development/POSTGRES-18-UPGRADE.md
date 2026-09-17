@@ -99,7 +99,7 @@ OLD_VOLUME="$(docker volume ls -q | grep -E '_postgres_data$' | grep -v postgres
 echo "$OLD_VOLUME"
 ```
 
-If more than one name matches, pick the volume this repo actually used (same Compose project directory as `care-guide`).
+If more than one name matches, pick the volume this repo actually used. Compose project name is pinned to `care-guide` in `compose.yaml`, so the local volume is `care-guide_postgres18_data` even though the repository directory is `river-aftercare`.
 
 ### 2. Verify the PG17 source while it is still running
 

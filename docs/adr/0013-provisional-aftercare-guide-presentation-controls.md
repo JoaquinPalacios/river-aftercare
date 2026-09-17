@@ -8,7 +8,9 @@
 
 Phase 1F shipped a public marketing homepage and clinic branding tokens. The visible product still read as an engineering prototype, occupied teal/green territory similar to unrelated products, and treated “post-operative instructions” as a universal patient heading.
 
-The working commercial name is now **Aftercare Guide**. That name is provisional. It is not a legal brand lock. The repository, package, and environment prefixes remain `care-guide` until branding is formally locked.
+The working commercial name is now **Aftercare Guide**. That name is provisional. It is not a legal brand lock. At the time of this ADR, the repository, package, and environment prefixes remained `care-guide` until branding was formally locked.
+
+**Update 2026-09-17:** the commercial name is **River Aftercare**. The GitHub repository and npm package were renamed to `river-aftercare`. `CARE_GUIDE_*` environment prefixes remain.
 
 Clinic pages must stay clinic-first. Platform marketing colour must not be imposed on tenant pages. Arbitrary tenant CSS remains prohibited.
 

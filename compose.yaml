@@ -1,3 +1,8 @@
+# Compose project name stays `care-guide` so the existing
+# `care-guide_postgres18_data` volume remains attached after the
+# repository directory was renamed to `river-aftercare`.
+name: care-guide
+
 services:
   postgres:
     image: postgres:18-alpine
