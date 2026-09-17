@@ -152,7 +152,7 @@ test.describe("clinic vertical acquisition pages", () => {
     await first.scrollIntoViewIfNeeded();
     await expect(first).toBeVisible();
     await expect(
-      page.getByRole("button", { name: firstQuestion })
+      page.getByRole("group", { name: firstQuestion })
     ).toBeVisible();
     await expect(page.locator("details")).toHaveCount(5);
     await expect(firstDetails).toHaveJSProperty("open", false);
