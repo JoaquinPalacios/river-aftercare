@@ -50,6 +50,7 @@ function revalidateSeoSurfaces(): void {
   revalidatePath("/about");
   revalidatePath("/privacy");
   revalidatePath("/terms");
+  revalidatePath("/clinics");
   revalidatePath("/dental");
   revalidatePath("/physiotherapy");
   revalidatePath("/chiropractic");

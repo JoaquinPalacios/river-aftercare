@@ -100,6 +100,19 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     follow: DRAFT_LEGAL_ROBOTS.follow,
     lastModified: "2026-09-16",
   },
+  "/clinics": {
+    seoTitle:
+      "Patient Aftercare Software for Clinics & Practices | River Aftercare",
+    metaDescription:
+      "Explore River Aftercare for dental, physiotherapy, chiropractic and cosmetic clinics. One branded aftercare platform, adapted to different care workflows.",
+    ogTitle: "Patient aftercare for different kinds of clinics",
+    ogDescription:
+      "See how River Aftercare adapts branded patient guidance to dental, physiotherapy, chiropractic and cosmetic clinic workflows.",
+    ogImagePath: null,
+    index: INDEXABLE_ROBOTS.index,
+    follow: INDEXABLE_ROBOTS.follow,
+    lastModified: "2026-09-17",
+  },
   "/dental": {
     seoTitle: "Dental Aftercare Software for Practices | River Aftercare",
     metaDescription:
@@ -165,6 +178,7 @@ export const MARKETING_PAGE_LABELS: Record<MarketingSeoPath, string> = {
   "/about": "About",
   "/privacy": "Privacy Policy",
   "/terms": "Terms & Conditions",
+  "/clinics": "Clinics",
   "/dental": "Dental",
   "/physiotherapy": "Physiotherapy",
   "/chiropractic": "Chiropractic",

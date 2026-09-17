@@ -17,6 +17,7 @@ const PUBLIC_PATHS = [
   "/about",
   "/privacy",
   "/terms",
+  "/clinics",
   "/dental",
   "/physiotherapy",
   "/chiropractic",

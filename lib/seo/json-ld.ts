@@ -180,6 +180,7 @@ export function buildMarketingJsonLdGraph(
       })
     );
   } else if (
+    resolved.path === "/clinics" ||
     resolved.path === "/dental" ||
     resolved.path === "/physiotherapy" ||
     resolved.path === "/chiropractic" ||

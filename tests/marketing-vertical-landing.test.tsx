@@ -135,12 +135,15 @@ describe("clinic vertical landing pages", () => {
   it("registers the four clinic pages in the operator SEO defaults", () => {
     expect(MARKETING_SEO_PATHS).toEqual(
       expect.arrayContaining([
+        "/clinics",
         "/dental",
         "/physiotherapy",
         "/chiropractic",
         "/cosmetic-clinics",
       ])
     );
+    expect(MARKETING_PAGE_LABELS["/clinics"]).toBe("Clinics");
+    expect(MARKETING_SEO_PAGE_KEYS["/clinics"]).toBe("clinics");
     expect(MARKETING_PAGE_LABELS["/dental"]).toBe("Dental");
     expect(MARKETING_PAGE_LABELS["/cosmetic-clinics"]).toBe(
       "Cosmetic & aesthetic"

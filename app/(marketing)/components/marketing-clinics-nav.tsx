@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import {
-  CLINIC_VERTICAL_NAV,
-  isClinicVerticalPath,
+  clinicDirectoryNavItems,
+  isClinicAcquisitionPath,
 } from "@/lib/marketing/clinic-verticals";
 import type { MarketingSeoPath } from "@/lib/seo/types";
 
@@ -21,7 +21,7 @@ export function MarketingClinicsNav({
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const current = isClinicVerticalPath(currentPath);
+  const current = isClinicAcquisitionPath(currentPath);
 
   useEffect(() => {
     if (!open) {
@@ -66,15 +66,18 @@ export function MarketingClinicsNav({
         For clinics
       </button>
       <ul id={menuId} hidden={!open} className={styles.navClinicsPanel}>
-        {CLINIC_VERTICAL_NAV.map((item) => (
-          <li key={item.path}>
+        {clinicDirectoryNavItems(currentPath).map((item, index) => (
+          <li
+            key={item.href}
+            className={index === 0 ? styles.navClinicsOverview : undefined}
+          >
             <Link
               className={styles.navClinicsLink}
-              href={item.path}
-              aria-current={currentPath === item.path ? "page" : undefined}
+              href={item.href}
+              aria-current={item.current ? "page" : undefined}
               onClick={() => setOpen(false)}
             >
-              {item.navLabel}
+              {item.label}
             </Link>
           </li>
         ))}

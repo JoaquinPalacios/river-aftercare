@@ -144,6 +144,7 @@ describe("launch SEO policy", () => {
         "http://localhost/about",
         "http://localhost/privacy",
         "http://localhost/terms",
+        "http://localhost/clinics",
         "http://localhost/dental",
         "http://localhost/physiotherapy",
         "http://localhost/chiropractic",

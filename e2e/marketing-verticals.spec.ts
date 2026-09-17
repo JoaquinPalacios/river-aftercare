@@ -308,6 +308,9 @@ test.describe("clinic vertical acquisition pages", () => {
     await expect(
       page.getByRole("link", { name: /Cosmetic & aesthetic clinics/ })
     ).toHaveAttribute("href", "/cosmetic-clinics");
+    await expect(
+      page.getByRole("link", { name: "Explore all clinic types →" })
+    ).toHaveAttribute("href", "/clinics");
 
     await page
       .getByRole("navigation", { name: "Marketing" })
@@ -331,6 +334,9 @@ test.describe("clinic vertical acquisition pages", () => {
     await page.goto(marketingUrl("/about"), { waitUntil: "load" });
     const header = page.getByRole("navigation", { name: "Marketing" });
     await header.getByRole("button", { name: "For clinics" }).click();
+    await expect(
+      header.getByRole("link", { name: "Overview" })
+    ).toHaveAttribute("href", "/clinics");
     await expect(header.getByRole("link", { name: "Dental" })).toBeVisible();
     await expect(
       header.getByRole("link", { name: "Cosmetic & aesthetic" })
@@ -355,6 +361,7 @@ test.describe("clinic vertical acquisition pages", () => {
     });
     const body = (await sitemap?.text()) ?? "";
     for (const path of [
+      "/clinics",
       "/dental",
       "/physiotherapy",
       "/chiropractic",
@@ -392,23 +399,25 @@ test.describe("clinic vertical acquisition pages", () => {
     await expect(
       cta.getByRole("link", { name: "Request a demo" })
     ).toHaveAttribute("href", "/contact");
-    await expect(cta.getByRole("link", { name: "View pricing" })).toHaveAttribute(
-      "href",
-      "/pricing"
-    );
+    await expect(
+      cta.getByRole("link", { name: "View pricing" })
+    ).toHaveAttribute("href", "/pricing");
     await expect(cta.getByRole("link", { name: "About" })).toHaveCount(0);
     await expect(cta.getByText("About River Aftercare")).toHaveCount(0);
 
     const footer = page.getByRole("contentinfo");
     await expect(footer.getByText("Account", { exact: true })).toHaveCount(0);
-    await expect(
-      footer.getByRole("heading", { name: "Account" })
-    ).toHaveCount(0);
+    await expect(footer.getByRole("heading", { name: "Account" })).toHaveCount(
+      0
+    );
     await expect(footer.getByRole("link", { name: "Sign in" })).toBeVisible();
     await expect(footer.getByRole("link", { name: "Contact" })).toHaveAttribute(
       "href",
       "/contact"
     );
+    await expect(
+      footer.getByRole("link", { name: "Overview" })
+    ).toHaveAttribute("href", "/clinics");
     await expect(footer.getByRole("link", { name: "Dental" })).toHaveAttribute(
       "href",
       "/dental"
@@ -465,24 +474,18 @@ test.describe("clinic vertical acquisition pages", () => {
       await page.locator("[data-mk-vertical-hero]").screenshot({
         path: `test-results/artifacts/vertical-qa/${slug}-1440-hero.png`,
       });
-      await page
-        .locator(`[aria-labelledby="${themeId}-problem"]`)
-        .screenshot({
-          path: `test-results/artifacts/vertical-qa/${slug}-1440-problem.png`,
-        });
+      await page.locator(`[aria-labelledby="${themeId}-problem"]`).screenshot({
+        path: `test-results/artifacts/vertical-qa/${slug}-1440-problem.png`,
+      });
       await page.locator("#workflow").screenshot({
         path: `test-results/artifacts/vertical-qa/${slug}-1440-workflow.png`,
       });
-      await page
-        .locator(`[aria-labelledby="${themeId}-faq"]`)
-        .screenshot({
-          path: `test-results/artifacts/vertical-qa/${slug}-1440-faq.png`,
-        });
-      await page
-        .locator(`[aria-labelledby="${themeId}-cta"]`)
-        .screenshot({
-          path: `test-results/artifacts/vertical-qa/${slug}-1440-cta.png`,
-        });
+      await page.locator(`[aria-labelledby="${themeId}-faq"]`).screenshot({
+        path: `test-results/artifacts/vertical-qa/${slug}-1440-faq.png`,
+      });
+      await page.locator(`[aria-labelledby="${themeId}-cta"]`).screenshot({
+        path: `test-results/artifacts/vertical-qa/${slug}-1440-cta.png`,
+      });
     }
 
     for (const viewport of viewports) {

@@ -144,6 +144,7 @@ test.describe("Phase 2B SEO and discovery", () => {
     expect(llmsBody).toContain("/about");
     expect(llmsBody).toContain("/privacy");
     expect(llmsBody).toContain("/terms");
+    expect(llmsBody).toContain("/clinics");
     expect(llmsBody).toContain("/dental");
     expect(llmsBody).toContain("/physiotherapy");
     expect(llmsBody).not.toContain("/operator");
@@ -156,6 +157,7 @@ test.describe("Phase 2B SEO and discovery", () => {
     expect(sitemapBody).toContain("/about");
     expect(sitemapBody).toContain("/privacy");
     expect(sitemapBody).toContain("/terms");
+    expect(sitemapBody).toContain("/clinics");
     expect(sitemapBody).toContain("/dental");
     expect(sitemapBody).toContain("/physiotherapy");
     expect(sitemapBody).toContain("/chiropractic");
@@ -228,6 +230,7 @@ test.describe("Phase 2B SEO and discovery", () => {
     await expect(
       page.getByRole("heading", { name: "Structured data" })
     ).toBeVisible();
+    await expect(page.getByText("/clinics", { exact: true })).toBeVisible();
     await expect(page.getByText("/dental", { exact: true })).toBeVisible();
     await expect(
       page.getByText("/physiotherapy", { exact: true })

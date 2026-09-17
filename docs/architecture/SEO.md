@@ -8,8 +8,9 @@ Phase 2B production-quality discovery layer. This remains a **structured clinica
 | --------------------------------------------------------------------------- | ------------------------------- | ------------------- | ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Marketing `/`, `/pricing`, `/contact`, `/about`                             | apex / `localhost`              | yes                 | yes    | yes     | Title, description, canonical, Open Graph, Twitter, generated JSON-LD.                                                                |
 | Marketing `/privacy`, `/terms`                                              | apex / `localhost`              | **no** while drafts | yes    | yes     | Explicit legal drafts. Page-level `noindex, follow` until counsel approval. Still listed in sitemap and `llms.txt`.                   |
+| Marketing `/clinics`                                                        | apex / `localhost`              | yes                 | yes    | yes     | Clinic overview hub. Shared Organization / WebSite / SoftwareApplication plus route WebPage. Not a fifth vertical.                    |
 | Marketing `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics` | apex / `localhost`              | yes                 | yes    | yes     | Vertical acquisition pages. Shared Organization / WebSite / SoftwareApplication plus per-route WebPage. No FAQPage or MedicalWebPage. |
-| `/llms.txt`                                                                 | apex                            | n/a                 | n/a    | no      | Agent-oriented public summary generated from identity + public routes, including clinic vertical pages                                |
+| `/llms.txt`                                                                 | apex                            | n/a                 | n/a    | no      | Agent-oriented public summary generated from identity + public routes, including `/clinics` and clinic vertical pages                 |
 | Staff portal `/dashboard`, `/guides`, `/practice`                           | `app.<root>`                    | no                  | no     | no      | Authenticated clinic chrome                                                                                                           |
 | Operator `/operator/*`                                                      | `app.<root>`                    | no                  | no     | no      | Includes SEO & Discovery                                                                                                              |
 | Authenticated draft preview                                                 | `app.<root>/guides/:id/preview` | no                  | no     | no      | Never a public canonical                                                                                                              |
@@ -102,7 +103,7 @@ Server-rendered, serialized with `<` escaped. Homepage graph:
 
 Pricing uses `WebPage` + the same SoftwareApplication identity **without** `Offer`, because Essential A$79 / Practice A$149 remain **provisional**.
 
-Clinic acquisition pages (`/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics`) use `WebPage` with `mainEntity` pointing at the shared SoftwareApplication. They do not create per-profession organizations, ratings, FAQPage, or MedicalWebPage.
+The `/clinics` hub and clinic acquisition pages (`/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics`) use `WebPage` with `mainEntity` pointing at the shared SoftwareApplication. They do not create per-profession organizations, ratings, FAQPage, or MedicalWebPage.
 
 Contact uses `ContactPage`. About uses `AboutPage`.
 

@@ -270,6 +270,11 @@ export default async function MarketingHomePage() {
                   </MarketingReveal.Card>
                 ))}
               </div>
+              <p className={styles.clinicTypeMore}>
+                <Link className={styles.textLink} href="/clinics">
+                  Explore all clinic types →
+                </Link>
+              </p>
             </div>
           </section>
         </div>

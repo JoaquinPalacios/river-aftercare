@@ -30,6 +30,7 @@ export const ROBOTS_ALLOW_PUBLIC = [
   "/about",
   "/privacy",
   "/terms",
+  "/clinics",
   "/dental",
   "/physiotherapy",
   "/chiropractic",

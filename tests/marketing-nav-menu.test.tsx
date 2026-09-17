@@ -15,6 +15,7 @@ describe("marketing mobile navigation", () => {
           { href: "/contact", label: "Contact", current: true },
         ]}
         clinicItems={[
+          { href: "/clinics", label: "Overview" },
           { href: "/dental", label: "Dental" },
           { href: "/physiotherapy", label: "Physiotherapy" },
           { href: "/chiropractic", label: "Chiropractic" },
@@ -25,6 +26,7 @@ describe("marketing mobile navigation", () => {
 
     expect(html).toContain("Site menu");
     expect(html).toContain("For clinics");
+    expect(html).toContain("Overview");
     expect(html).toContain("Dental");
     expect(html).toContain("Physiotherapy");
     expect(html).toContain("Chiropractic");

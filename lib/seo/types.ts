@@ -7,6 +7,7 @@ export const MARKETING_SEO_PATHS = [
   "/about",
   "/privacy",
   "/terms",
+  "/clinics",
   "/dental",
   "/physiotherapy",
   "/chiropractic",
