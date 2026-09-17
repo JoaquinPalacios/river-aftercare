@@ -115,6 +115,7 @@ test.describe("clinics overview hub", () => {
     for (const viewport of [
       { width: 1440, height: 900 },
       { width: 1024, height: 768 },
+      { width: 768, height: 1024 },
       { width: 390, height: 844 },
     ] as const) {
       await page.setViewportSize(viewport);

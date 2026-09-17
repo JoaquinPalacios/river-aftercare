@@ -1184,7 +1184,7 @@ Indexable B2B pages on the apex host. Shared composition, distinct copy. Layered
 | SEO     | Defaults in `DEFAULT_MARKETING_PAGE_SEO`. Operator SEO registry includes all four. Titles that already contain the site name stay absolute so they do not become `… \| River Aftercare — River Aftercare`.                                         |
 | Nav     | Desktop **For clinics** click disclosure (Overview, then the four verticals; keyboard, Escape, outside click). Mobile site menu group. Footer **For clinics** column with Overview first. The top-level label stays **For clinics**, not Services. |
 | Schema  | Shared Organization / WebSite / SoftwareApplication plus per-route `WebPage`. No FAQPage, MedicalWebPage, reviews, or per-profession SoftwareApplication.                                                                                          |
-| Tests   | `pnpm lint`, `pnpm test` (586), `pnpm build`, and Playwright (155) pass locally after the FAQ accordion pass. Mobile site-menu keyboard order starts at Dental, then physiotherapy / chiropractic / cosmetic, then About / Pricing / Contact.      |
+| Tests   | Historical FAQ-accordion pass: `pnpm lint`, `pnpm test` (586), Playwright (155). Current clinics-hub branch: Overview is first in For clinics menus; see Clinics overview hub below.                                                               |
 
 ---
 
@@ -1276,10 +1276,12 @@ Shared premium editorial system for `/dental`, `/physiotherapy`, `/chiropractic`
 
 Parent acquisition page for the four verticals. Not a fifth vertical and not a second homepage.
 
-| Area          | Behaviour                                                                                                                                                                              |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Route         | `/clinics` rewrites to `/_marketing/clinics`. Distinct from staff/public branding `/clinics/[clinicId]/branding/[filename]`.                                                           |
-| Nav label     | Top-level remains **For clinics**. Dropdown/mobile/footer first item is **Overview** → `/clinics`. Do not rename to Services, Solutions, Industries, or Our clinics.                   |
-| Visual        | Master River Aftercare palette (periwinkle / cobalt / cyan). Four-path composition into one branded patient-guidance card. Per-vertical accents only on the four destination cards.    |
-| Product truth | No fake template libraries, vertical demos, customers, integrations, or clinical claims. Dental remains the only live demo.                                                            |
-| SEO           | Indexable WebPage + shared Organization / WebSite / SoftwareApplication. Canonical `https://riveraftercare.com.au/clinics` in production. Sitemap and `llms.txt` include the hub once. |
+| Area          | Behaviour                                                                                                                                                                                                                                                      |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Route         | `/clinics` rewrites to `/_marketing/clinics`. Distinct from staff/public branding `/clinics/[clinicId]/branding/[filename]`.                                                                                                                                   |
+| Nav label     | Top-level remains **For clinics**. Dropdown/mobile/footer first item is **Overview** → `/clinics`. Do not rename to Services, Solutions, Industries, or Our clinics.                                                                                           |
+| Visual        | Master River Aftercare palette (periwinkle / cobalt / cyan). Four-path composition into one branded patient-guidance card. Per-vertical accents only on the four destination cards. Hub hero stays stacked below 64rem so the visual is not cramped on tablet. |
+| Product truth | No fake template libraries, vertical demos, customers, integrations, or clinical claims. Dental remains the only live demo.                                                                                                                                    |
+| SEO           | Indexable WebPage + shared Organization / WebSite / SoftwareApplication. Canonical `https://riveraftercare.com.au/clinics` in production. Sitemap and `llms.txt` include the hub once.                                                                         |
+| Nav order     | Desktop disclosure, mobile site menu, and footer: Overview, Dental, Physiotherapy, Chiropractic, Cosmetic & aesthetic. Homepage adds **Explore all clinic types →**.                                                                                           |
+| Tests         | `pnpm lint`, `pnpm test` (618), `pnpm build`, Playwright (161) in this environment.                                                                                                                                                                            |

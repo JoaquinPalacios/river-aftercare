@@ -4185,12 +4185,7 @@ html[data-theme-mode="dark"] .wordmarkName {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .clinicsHubHeroInner > [data-mk-section] {
-    grid-template-columns: minmax(0, 1.05fr) minmax(16rem, 0.9fr);
-    column-gap: 2rem;
-    align-items: start;
-  }
-
+  /* Keep the hub hero stacked until 64rem so the four-path visual is not cramped. */
   .clinicsHubGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
