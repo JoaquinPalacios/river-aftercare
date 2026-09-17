@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-17 (marketing nav logo height 1.625rem)
+Last updated: 2026-09-17 (operator default social image control polish)
 
 ---
 
@@ -985,7 +985,7 @@ Local phase on `feature/phase-2b-seo-discovery-launch`. Starts from current main
 
 | Area             | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Marketing header | Public logo/isologo height `1.625rem`, `width: auto`. Desktop marketing nav links `1rem`. Clinic/staff nav unchanged.                                                                                                                                                                                                                                                                                                                                                                       |
+| Marketing header | Public logo/isologo height `1.625rem`, `width: auto`. Desktop marketing nav links `1rem`. Clinic/staff nav unchanged.                                                                                                                                                                                                                                                                                                                                                                      |
 | Operator         | `/operator/seo` — SEO & Discovery. Platform OPERATOR only. Nav: Clinics, SEO & Discovery.                                                                                                                                                                                                                                                                                                                                                                                                  |
 | SEO data         | `PlatformSeoSettings` + `MarketingPageSeo`. Code fallbacks if the row is absent. Canonical URLs derived, not editable. No `seo.json`, no raw JSON-LD editing.                                                                                                                                                                                                                                                                                                                              |
 | JSON-LD          | Server-generated Organization / WebSite / SoftwareApplication (no Offer — pricing remains provisional) / ContactPage / AboutPage.                                                                                                                                                                                                                                                                                                                                                          |
@@ -1087,16 +1087,17 @@ Operator
   -> Vercel cached public exact-key delivery
 ```
 
-| Area       | Behaviour                                                                                                                                                                                      |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Contract   | `PlatformSeoSettings.defaultOgImagePath` stays canonical. Uploads persist `/platform/seo/<uuid>.<ext>`. No second SEO image column.                                                            |
-| Storage    | Narrow `PlatformSeoAssetStorage`. Clinic `ClinicAssetStorage` is unchanged. Same private bucket, credentials, and `assets.` origin.                                                            |
-| Validation | Exact 1200 × 630 PNG/JPEG/WebP, ≤ 2 MB. Magic bytes, MIME, extension, and dimensions checked. SVG rejected. No resize/recompress.                                                              |
-| Auth       | Platform OPERATOR only. Unauthenticated, clinic ADMIN, and STAFF cannot mutate.                                                                                                                |
-| Delivery   | `GET`/`HEAD` `/platform/seo/[filename]` on the asset host. Host header only. Generic empty 404 otherwise. MIME from filename. `Cache-Control` immutable, `nosniff`, CORP `same-site`, no CORS. |
-| Lifecycle  | Upload then persist then best-effort delete previous managed object. Persistence failure deletes the new orphan. Legacy `/brand/...` and external URLs are never deleted.                      |
-| Metadata   | Page `ogImagePath` still wins. Uploaded default fills Open Graph and Twitter when no page override exists. Canonical/index/sitemap/robots/llms unchanged.                                      |
-| Safety     | R2 remains private. r2.dev disabled. No R2 custom domain. No browser-direct upload. Private patient documents must never use this public-by-exact-key path.                                    |
+| Area        | Behaviour                                                                                                                                                                                      |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Operator UI | Contained SEO card: visually hidden file input, explicit choose-then-upload, cancel selection, confirm before removing the default social image. Storage/validation/precedence unchanged.      |
+| Contract    | `PlatformSeoSettings.defaultOgImagePath` stays canonical. Uploads persist `/platform/seo/<uuid>.<ext>`. No second SEO image column.                                                            |
+| Storage     | Narrow `PlatformSeoAssetStorage`. Clinic `ClinicAssetStorage` is unchanged. Same private bucket, credentials, and `assets.` origin.                                                            |
+| Validation  | Exact 1200 × 630 PNG/JPEG/WebP, ≤ 2 MB. Magic bytes, MIME, extension, and dimensions checked. SVG rejected. No resize/recompress.                                                              |
+| Auth        | Platform OPERATOR only. Unauthenticated, clinic ADMIN, and STAFF cannot mutate.                                                                                                                |
+| Delivery    | `GET`/`HEAD` `/platform/seo/[filename]` on the asset host. Host header only. Generic empty 404 otherwise. MIME from filename. `Cache-Control` immutable, `nosniff`, CORP `same-site`, no CORS. |
+| Lifecycle   | Upload then persist then best-effort delete previous managed object. Persistence failure deletes the new orphan. Legacy `/brand/...` and external URLs are never deleted.                      |
+| Metadata    | Page `ogImagePath` still wins. Uploaded default fills Open Graph and Twitter when no page override exists. Canonical/index/sitemap/robots/llms unchanged.                                      |
+| Safety      | R2 remains private. r2.dev disabled. No R2 custom domain. No browser-direct upload. Private patient documents must never use this public-by-exact-key path.                                    |
 
 ---
 

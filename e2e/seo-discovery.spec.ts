@@ -243,6 +243,10 @@ test.describe("Phase 2B SEO and discovery", () => {
     );
     await expect(page.getByLabel("Default description")).toBeVisible();
     await expect(page.getByText("Default social sharing image")).toBeVisible();
+    await expect(
+      page.getByText("Used when a page does not have its own social image.")
+    ).toBeVisible();
+    await expect(page.getByText("Choose image")).toBeVisible();
     await expect(page.getByText("Needs attention").first()).toBeVisible();
     await expect(
       page.getByRole("button", { name: /Copy JSON-LD/i })

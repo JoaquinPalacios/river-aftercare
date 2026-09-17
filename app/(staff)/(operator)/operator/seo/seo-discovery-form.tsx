@@ -221,9 +221,7 @@ export function SeoDiscoveryForm({
             Social sharing
           </h2>
           <p className="mt-1 text-sm text-staff-muted">
-            Use a dedicated 1200 × 630 social sharing image. Do not stretch the
-            River Aftercare logo into a social card. Pages can still set their
-            own social image override below.
+            Pages can still set their own social image override below.
           </p>
         </div>
         <DefaultOgImageField
