@@ -259,7 +259,7 @@ export function PracticeLogoField({
         </p>
       ) : null}
 
-      {hasLogo || confirmRemove ? (
+      {canEdit && (hasLogo || confirmRemove) ? (
         <ConfirmDialog
           open={confirmRemove}
           title="Remove practice logo?"
