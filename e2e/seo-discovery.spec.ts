@@ -22,7 +22,7 @@ const HEADER_VIEWPORTS = [
 ] as const;
 
 test.describe("Phase 2B SEO and discovery", () => {
-  test("marketing header uses 1.75rem logo height and 1rem desktop nav", async ({
+  test("marketing header uses 1.625rem logo height and 1rem desktop nav", async ({
     page,
   }) => {
     for (const viewport of HEADER_VIEWPORTS) {
@@ -54,7 +54,7 @@ test.describe("Phase 2B SEO and discovery", () => {
           headerHeight,
         };
       });
-      expect(metrics.logoHeight).toBeCloseTo(1.75 * metrics.rem, 1);
+      expect(metrics.logoHeight).toBeCloseTo(1.625 * metrics.rem, 1);
       expect(metrics.headerHeight).toBeGreaterThan(metrics.logoHeight);
       if (viewport.width >= 768) {
         expect(metrics.navVisible).toBe(true);
