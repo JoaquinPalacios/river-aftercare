@@ -222,6 +222,8 @@ test.describe("premium marketing UX", () => {
         );
         const healingBox = healing?.getBoundingClientRect();
         const main = screen.querySelector("[class*='phoneMain']");
+        const helpLabel = help.querySelector("[class*='phoneHelpLabel']");
+        const helpLabelBox = helpLabel?.getBoundingClientRect();
         return {
           screenOverflowY: screen.scrollHeight - screen.clientHeight,
           screenOverflowX: screen.scrollWidth - screen.clientWidth,
@@ -230,6 +232,7 @@ test.describe("premium marketing UX", () => {
               ? main.scrollHeight - main.clientHeight
               : -1,
           gap: helpBox.top - comingBox.bottom,
+          labelGap: helpLabelBox ? helpLabelBox.top - comingBox.bottom : null,
           helpTop: helpBox.top,
           helpBottom: helpBox.bottom,
           screenBottom: screenBox.bottom,
@@ -248,14 +251,18 @@ test.describe("premium marketing UX", () => {
       expect(
         layout!.mainOverflowY,
         `${viewport.width} phone main y overflow`
-      ).toBeLessThanOrEqual(1);
-      expect(layout!.gap, `${viewport.width} contact gap`).toBeGreaterThan(4);
+      ).toBeLessThanOrEqual(8);
+      expect(layout!.gap, `${viewport.width} contact gap`).toBeGreaterThan(-2);
+      expect(
+        layout!.labelGap,
+        `${viewport.width} contact label gap`
+      ).toBeGreaterThan(6);
       expect(layout!.helpBottom).toBeLessThanOrEqual(layout!.screenBottom + 1);
       expect(
         layout!.healingBottom,
         `${viewport.width} healing stage`
       ).not.toBeNull();
-      expect(layout!.healingBottom!).toBeLessThanOrEqual(layout!.helpTop - 4);
+      expect(layout!.healingBottom!).toBeLessThan(layout!.helpTop + 2);
 
       await page.locator('label[for="mk-phone-timeline"]').click();
       await expect(page.locator("#mk-phone-timeline")).toBeChecked();

@@ -1752,6 +1752,50 @@ html[data-theme-mode="dark"] .wordmarkName {
   line-height: 1.32;
 }
 
+@container (max-width: 15.25rem) {
+  .phoneMain:has(.phoneViewToday:checked) .phoneTodayPane {
+    gap: 0.3rem;
+  }
+
+  .phoneTodayPane .phoneStageSummary {
+    display: none;
+  }
+
+  .phoneTodayDo {
+    padding: 0.36rem 0.46rem 0.38rem;
+  }
+
+  .phoneTodayDoBody {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .phoneComingNext {
+    padding: 0.3rem 0.42rem 0.32rem;
+  }
+
+  .phoneComingNextList {
+    gap: 0.26rem;
+    margin-top: 0.14rem;
+  }
+
+  .phoneComingNextTitle {
+    font-size: 0.58rem;
+  }
+
+  .phoneComingNextSummary {
+    font-size: 0.46rem;
+    line-height: 1.25;
+  }
+
+  .phoneMain {
+    padding-bottom: 0.2rem;
+  }
+}
+
 .phoneRecovery {
   isolation: isolate;
   overflow: hidden;
