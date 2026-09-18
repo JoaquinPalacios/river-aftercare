@@ -130,6 +130,8 @@ describe("marketing homepage", () => {
     expect(html).toContain('data-vertical="physiotherapy"');
     expect(html).toContain('data-vertical="chiropractic"');
     expect(html).toContain('data-vertical="cosmetic"');
+    expect(html).toContain('data-brand-scope="master"');
+    expect(html).not.toContain('data-brand-scope="vertical"');
     expect(html).toContain("Physiotherapy clinics");
     expect(html).toContain("Cosmetic &amp; aesthetic clinics");
     expect(html).toContain("closingCta");

@@ -39,7 +39,11 @@ export function MarketingExperience({
   return (
     <LazyMotion features={loadFeatures} strict>
       <MotionConfig reducedMotion="user">
-        <div className={className} data-vertical={verticalId}>
+        <div
+          className={className}
+          data-vertical={verticalId}
+          data-brand-scope={verticalId ? "vertical" : "master"}
+        >
           {children}
         </div>
       </MotionConfig>

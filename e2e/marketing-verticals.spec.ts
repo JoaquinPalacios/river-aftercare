@@ -389,6 +389,80 @@ test.describe("clinic vertical acquisition pages", () => {
     });
   });
 
+  test("vertical atmosphere tokens resolve distinctly in light and dark", async ({
+    page,
+  }) => {
+    const paths = [
+      "/dental",
+      "/physiotherapy",
+      "/chiropractic",
+      "/cosmetic-clinics",
+    ] as const;
+
+    async function readAtmosphere(
+      path: (typeof paths)[number],
+      scheme: "light" | "dark"
+    ) {
+      await page.emulateMedia({
+        colorScheme: scheme,
+        reducedMotion: "reduce",
+      });
+      await page.goto(marketingUrl(path), { waitUntil: "load" });
+      await page.evaluate((mode) => {
+        document.documentElement.setAttribute("data-theme-mode", mode);
+      }, scheme);
+
+      return page.locator('[data-brand-scope="vertical"]').evaluate((element) => {
+        const styles = getComputedStyle(element);
+        return {
+          accent: styles.getPropertyValue("--vertical-accent").trim(),
+          canvas: styles.getPropertyValue("--vertical-hero-canvas").trim(),
+          surface: styles.getPropertyValue("--vertical-surface-soft").trim(),
+          emphasis: styles.getPropertyValue("--vertical-surface-emphasis").trim(),
+          bloom: styles.getPropertyValue("--vertical-hero-bloom").trim(),
+          mist: styles.getPropertyValue("--vertical-hero-mist").trim(),
+          card: styles.getPropertyValue("--vertical-card-tint").trim(),
+        };
+      });
+    }
+
+    for (const scheme of ["light", "dark"] as const) {
+      const dental = await readAtmosphere("/dental", scheme);
+      const physio = await readAtmosphere("/physiotherapy", scheme);
+      const chiro = await readAtmosphere("/chiropractic", scheme);
+      const cosmetic = await readAtmosphere("/cosmetic-clinics", scheme);
+
+      expect(dental.canvas).not.toBe("");
+      expect(physio.surface).not.toBe(dental.surface);
+      expect(chiro.surface).not.toBe(dental.surface);
+      expect(chiro.surface).not.toBe(physio.surface);
+      expect(cosmetic.surface).not.toBe(dental.surface);
+      expect(cosmetic.bloom).not.toBe(physio.bloom);
+      expect(physio.mist).not.toBe(dental.mist);
+      expect(physio.card).not.toBe(chiro.card);
+    }
+
+    await page.goto(marketingUrl("/"), { waitUntil: "load" });
+    await expect(page.locator('[data-brand-scope="master"]')).toHaveCount(1);
+
+    await page.goto(marketingUrl("/physiotherapy"), { waitUntil: "load" });
+    const physioPrimary = page
+      .getByRole("link", { name: "Request a demo" })
+      .first();
+    const colors = await physioPrimary.evaluate((element) => {
+      const probe = document.createElement("span");
+      probe.style.backgroundColor = "var(--mk-brand-strong)";
+      document.body.append(probe);
+      const periwinkle = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return {
+        background: getComputedStyle(element).backgroundColor,
+        periwinkle,
+      };
+    });
+    expect(colors.background).toBe(colors.periwinkle);
+  });
+
   test("closing CTA is conversion-focused and footer owns navigation", async ({
     page,
   }) => {

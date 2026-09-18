@@ -151,24 +151,37 @@ export async function expectPracticePageDoesNotOverflow(
 }
 
 export function relativeLuminance(rgb: string): number {
-  const hex = rgb.trim().match(/^#([0-9a-f]{6})$/i);
+  const value = rgb.trim();
+  const hex = value.match(/^#([0-9a-f]{6})$/i);
   if (hex) {
-    const value = Number.parseInt(hex[1], 16);
+    const parsed = Number.parseInt(hex[1], 16);
     return (
-      (0.2126 * ((value >> 16) & 255) +
-        0.7152 * ((value >> 8) & 255) +
-        0.0722 * (value & 255)) /
+      (0.2126 * ((parsed >> 16) & 255) +
+        0.7152 * ((parsed >> 8) & 255) +
+        0.0722 * (parsed & 255)) /
       255
     );
   }
 
-  const match = rgb.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/);
-  if (!match) {
-    return -1;
+  const rgbMatch = value.match(
+    /rgba?\(\s*([\d.]+)[,\s/]+([\d.]+)[,\s/]+([\d.]+)/
+  );
+  if (rgbMatch) {
+    const [red, green, blue] = rgbMatch
+      .slice(1)
+      .map((channel) => Number(channel) / 255);
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
   }
 
-  const [red, green, blue] = match.slice(1).map((value) => Number(value) / 255);
-  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+  const srgbMatch = value.match(
+    /color\(\s*srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/i
+  );
+  if (srgbMatch) {
+    const [red, green, blue] = srgbMatch.slice(1).map(Number);
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+  }
+
+  return -1;
 }
 
 export function contrastRatio(first: string, second: string): number {

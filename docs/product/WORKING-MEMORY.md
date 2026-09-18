@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-17 (Practice logo replacement comparison preview; `/clinics` hub; design system v2)
+Last updated: 2026-09-17 (vertical atmosphere colour pass; Practice logo replacement comparison preview; `/clinics` hub; design system v2)
 
 ---
 
@@ -1316,3 +1316,18 @@ Colour-language pass only. Layout, copy, SEO, and logo artwork are unchanged.
 | `/clinics`   | Four pathway/card identities remain distinct. Core “Branded patient guidance” hairline is periwinkle → sky → cobalt.                                                                                                                                                                                                                                                     |
 | Light mode   | Bright dark-sky values are not used as Light text. Physio/sky text stays `#146f88` on warm white.                                                                                                                                                                                                                                                                        |
 | Logo         | `public/brand/river-aftercare-*.svg` colours unchanged.                                                                                                                                                                                                                                                                                                                  |
+
+---
+
+## Vertical atmosphere colour pass (2026-09-17)
+
+Extends the approved accent hierarchy into page atmosphere. Layout, copy, SEO, and CTA hierarchy are unchanged.
+
+| Area            | Behaviour                                                                                                                                                                                                                                                                                           |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tokens          | New surface layer in `marketing.css` and per-vertical `light-dark()` overrides: `--vertical-hero-canvas/bloom/mist`, `--vertical-surface-soft/emphasis`, `--vertical-card-tint/border`, `--vertical-section-glow`, `--vertical-closing-bloom`. Master pages use `data-brand-scope="master"`.        |
+| Rhythm          | Hero strongest → problem/guidance/FAQ stay `--mk-soft` → solution/workflow use `--vertical-surface-soft` → proof/fit use `--vertical-surface-emphasis` → closing echoes `--vertical-closing-bloom`. Primary Request a demo stays periwinkle.                                                        |
+| Light           | Pigment/wash: dental warm periwinkle, physio cool sky on `#f4fbfd`, chiro cool cobalt on `#f3f5fb`, cosmetic pearl lavender on `#faf8ff`. Sky body text remains `#146f88`.                                                                                                                          |
+| Dark            | Illumination plus a distinct canvas mix so verticals do not share one navy base. Dental periwinkle-lifted `#7c8cff` canvas, physio cyan `#5ec8e0` wash, chiro cobalt depth (`#2c46c4` / `#3d58d6` on `#05070c`), cosmetic softer `#a6b8ff` on `#0b0a12`. Bloom/mist remain glow, not filled colour. |
+| Discovery cards | Homepage `.clinicTypeCard` and `/clinics` hub cards share `--vertical-card-tint`. Hub core uses a restrained periwinkle → sky → cobalt wash, not a rainbow.                                                                                                                                         |
+| Tests           | Colour-system tests cover atmosphere tokens, Light/Dark definitions, no component hex, and tinted-surface contrast pairs. Playwright checks computed atmosphere values differ per vertical.                                                                                                         |
