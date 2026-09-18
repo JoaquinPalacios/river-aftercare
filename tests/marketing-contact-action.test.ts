@@ -17,8 +17,10 @@ vi.mock("next/headers", () => ({
 }));
 
 import { submitMarketingContactAction } from "@/app/(marketing)/%5Fmarketing/contact/actions";
-import { CONTACT_VERIFICATION_EXPIRED } from "@/app/(marketing)/%5Fmarketing/contact/actions";
-import { initialContactActionState } from "@/app/(marketing)/%5Fmarketing/contact/state";
+import {
+  CONTACT_VERIFICATION_EXPIRED,
+  initialContactActionState,
+} from "@/app/(marketing)/%5Fmarketing/contact/state";
 import { CONTACT_HONEYPOT_FIELD } from "@/lib/marketing/contact-enquiry";
 import {
   CONTACT_DELIVERY_FAILED,

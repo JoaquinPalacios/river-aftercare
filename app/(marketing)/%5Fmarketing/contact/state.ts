@@ -16,3 +16,6 @@ export type ContactActionState =
 export const initialContactActionState: ContactActionState = {
   status: "idle",
 };
+
+export const CONTACT_VERIFICATION_EXPIRED =
+  "Verification expired. Please try again.";

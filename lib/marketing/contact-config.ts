@@ -184,11 +184,10 @@ export function getMarketingContactDeliveryConfig(
 }
 
 export function isMarketingContactHost(
-  hostHeader: string | null | undefined,
-  env: Env = process.env
+  hostHeader: string | null | undefined
 ): boolean {
   try {
-    return parseHostname(hostHeader, getRootDomain(env)).kind === "marketing";
+    return parseHostname(hostHeader, getRootDomain()).kind === "marketing";
   } catch {
     return false;
   }

@@ -24,10 +24,11 @@ import {
 } from "@/lib/marketing/contact-turnstile";
 import { readTurnstileToken } from "@/lib/marketing/contact-turnstile-public";
 
-import { type ContactActionState, initialContactActionState } from "./state";
-
-export const CONTACT_VERIFICATION_EXPIRED =
-  "Verification expired. Please try again.";
+import {
+  CONTACT_VERIFICATION_EXPIRED,
+  type ContactActionState,
+  initialContactActionState,
+} from "./state";
 
 function genericError(
   error: string = CONTACT_DELIVERY_FAILED
