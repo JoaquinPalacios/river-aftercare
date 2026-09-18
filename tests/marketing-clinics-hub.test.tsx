@@ -58,6 +58,8 @@ describe("clinics overview hub", () => {
     expect(html).toContain("Don&#x27;t see your clinic type?");
     expect(html).toContain("Talk to us");
     expect(html).toContain("Request a demo");
+    expect(html).toContain("heroActions");
+    expect(html).toContain('data-mk-hero-actions=""');
     expect(html).toContain('href="/contact"');
     expect(html).toContain("View pricing");
     expect(html).toContain('href="/pricing"');

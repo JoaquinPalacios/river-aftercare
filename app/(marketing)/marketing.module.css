@@ -602,7 +602,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .navClinicsList {
   display: grid;
-  gap: 0.08rem;
+  gap: var(--mk-nav-dropdown-item-gap);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -818,7 +818,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   display: grid;
   gap: 0.06rem;
   margin: 0;
-  padding: 0.1rem 0 0.3rem;
+  padding: 0.1rem 0 0.5rem;
 }
 
 .navMenuGroupLabel {
@@ -832,7 +832,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .navMenuSublist {
   display: grid;
-  gap: 0.08rem;
+  gap: var(--mk-nav-item-gap);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -4961,6 +4961,17 @@ html[data-theme-mode="dark"] .wordmarkName {
   .pageHeroPricing::before,
   .pageHeroContact::before {
     opacity: 0.7;
+  }
+
+  .heroActions {
+    width: 100%;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+
+  .heroActions > * {
+    width: 100%;
   }
 
   .productInputs {

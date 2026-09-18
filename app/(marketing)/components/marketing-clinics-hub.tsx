@@ -52,7 +52,10 @@ export function MarketingClinicsHub({
                   </p>
                 </MarketingRevealItem>
                 <MarketingRevealItem delay={editorialRevealDelay(3)}>
-                  <div className={styles.actions}>
+                  <div
+                    className={`${styles.actions} ${styles.heroActions}`}
+                    data-mk-hero-actions=""
+                  >
                     <MarketingPrimaryLink href="/contact">
                       {copy.hero.primaryCta}
                     </MarketingPrimaryLink>
@@ -117,7 +120,9 @@ export function MarketingClinicsHub({
                     </h2>
                   </MarketingRevealItem>
                   <MarketingRevealItem delay={editorialRevealDelay(2)}>
-                    <p className={`${styles.copy} ${styles.clinicsHubPlatform}`}>
+                    <p
+                      className={`${styles.copy} ${styles.clinicsHubPlatform}`}
+                    >
                       {copy.platform.body}
                     </p>
                   </MarketingRevealItem>

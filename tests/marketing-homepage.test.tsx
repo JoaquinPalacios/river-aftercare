@@ -179,6 +179,7 @@ describe("marketing homepage", () => {
     expect(html).toContain("heroTitle");
     expect(html).toContain("heroBody");
     expect(html).toContain("heroActions");
+    expect(html).toContain('data-mk-hero-actions=""');
     expect(html).toContain("heroLower");
     expect(html).toContain("heroFrame");
     expect(html).toContain("deviceStage");

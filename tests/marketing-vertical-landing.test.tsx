@@ -69,6 +69,9 @@ describe("clinic vertical landing pages", () => {
 
     expect(dental).toContain("Riverside Dental Demo");
     expect(dental).toContain("View the dental demo");
+    expect(dental).toContain("heroActions");
+    expect(dental).toContain('data-mk-hero-actions=""');
+    expect(physio).toContain('data-mk-hero-actions=""');
     expect(dental).toContain("Tooth Extraction");
     expect(dental).toContain("http://demodental.localhost:3000/");
     expect(physio).not.toContain("Riverside Dental Demo");

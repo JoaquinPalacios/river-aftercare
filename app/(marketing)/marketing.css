@@ -109,6 +109,9 @@
   --mk-footer-link-underline-offset: 0;
   --mk-header-height: 4rem;
   --mk-nav-duration: 180ms;
+  /* Inter-row cadence for clinic-type nav surfaces (hover/focus/current). */
+  --mk-nav-item-gap: 0.35rem;
+  --mk-nav-dropdown-item-gap: 0.2rem;
   --vertical-accent: var(--mk-brand);
   --vertical-accent-secondary: var(--mk-brand-strong);
   --vertical-accent-text: var(--mk-brand);

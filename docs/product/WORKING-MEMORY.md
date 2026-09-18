@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-18 (homepage phone Coming next uses real Tooth Extraction sample summaries; marketing finish polish: phone mockup, link offset, About list, Pricing notes, /clinics heading gap, FAQ overflow; marketing Contact: Resend + Cloudflare Turnstile; marketing UI polish; premium marketing UX refinement; River spectrum + vertical marketing accents; `/clinics` hub; design system v2)
+Last updated: 2026-09-18 (mobile nav clinic-row cadence + stacked hero CTAs full-width on mobile; homepage phone Coming next uses real Tooth Extraction sample summaries; marketing finish polish: phone mockup, link offset, About list, Pricing notes, /clinics heading gap, FAQ overflow; marketing Contact: Resend + Cloudflare Turnstile; marketing UI polish; premium marketing UX refinement; River spectrum + vertical marketing accents; `/clinics` hub; design system v2)
 
 ---
 
@@ -1449,3 +1449,16 @@ Tight marketing-illustration pass. No patient-product change, no SEO, no invente
 | Timeline view | Same source data; upcoming rows stay compact (period + title only) so the pane does not overflow.                                                                                                                                                                                            |
 | Empty region  | Contact/help stays `margin-top: auto` at the bottom of the device. Extra truthful copy reduces the leftover gap; it is not removed by collapsing flex space.                                                                                                                                 |
 | Artifact      | No last-stage rail or extra divider under Days 4–7. `user-select: none` and `tabindex="-1"` radios unchanged.                                                                                                                                                                                |
+
+---
+
+## Mobile nav cadence + stacked hero CTAs (2026-09-18)
+
+Follow-up to the homepage phone illustration pass. No copy, SEO, or page redesign.
+
+| Area               | Behaviour                                                                                                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Mobile clinic rows | `--mk-nav-item-gap: 0.35rem` on `.navMenuSublist`. Row padding and `min-height: 3.05rem` unchanged. Hover/focus/current surfaces no longer sit flush against neighbouring clinic types.                      |
+| Group rhythm       | Existing Overview divider kept. `.navMenuGroup` bottom padding `0.5rem` so About / Pricing / Contact sit in a clearer next group. Utility Sign in + Theme stay in the sticky meta.                           |
+| Desktop dropdown   | Same crowding existed (`gap: 0.08rem`). Modest `--mk-nav-dropdown-item-gap: 0.2rem` on `.navClinicsList` only. Dropdown stays compact.                                                                       |
+| Hero CTAs          | Shared `.heroActions` at `max-width: 47.99rem`: column, `width: 100%`, children stretch. Gap remains `.actions` `0.7rem`. Desktop/tablet stay intrinsic. Homepage, `/clinics`, and vertical heroes share it. |

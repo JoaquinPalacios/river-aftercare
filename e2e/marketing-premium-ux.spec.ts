@@ -93,6 +93,217 @@ test.describe("premium marketing UX", () => {
     }
   });
 
+  test("mobile clinic rows keep independent hover and current surfaces", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(marketingUrl("/physiotherapy"), { waitUntil: "load" });
+    await page.getByRole("button", { name: "Site menu" }).click();
+
+    const nav = page.getByRole("navigation", { name: "Marketing" });
+    const clinicList = nav.getByRole("list", { name: "For clinics" });
+    const gap = await clinicList.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return Number.parseFloat(style.rowGap || style.gap);
+    });
+    expect(gap).toBeGreaterThanOrEqual(5);
+    expect(gap).toBeLessThan(10);
+
+    const dental = nav.getByRole("link", { name: "Dental", exact: true });
+    const physio = nav.getByRole("link", {
+      name: "Physiotherapy",
+      exact: true,
+    });
+    const chiro = nav.getByRole("link", { name: "Chiropractic", exact: true });
+    const cosmetic = nav.getByRole("link", {
+      name: "Cosmetic & aesthetic",
+      exact: true,
+    });
+
+    await expect(physio).toHaveAttribute("aria-current", "page");
+    await expect(dental).not.toHaveAttribute("aria-current", "page");
+    await expect(chiro).not.toHaveAttribute("aria-current", "page");
+
+    const boxes = [];
+    for (const row of [dental, physio, chiro, cosmetic]) {
+      const box = await row.boundingBox();
+      expect(box, "clinic row should be visible").not.toBeNull();
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+      boxes.push(box!);
+    }
+
+    for (let index = 0; index < boxes.length - 1; index += 1) {
+      const space =
+        boxes[index + 1]!.y - (boxes[index]!.y + boxes[index]!.height);
+      expect(space).toBeGreaterThanOrEqual(4);
+      expect(space).toBeLessThan(12);
+    }
+
+    await chiro.focus();
+    await expect(chiro).toBeFocused();
+    const outline = await chiro.evaluate(
+      (element) => getComputedStyle(element).outlineStyle
+    );
+    expect(outline).not.toBe("none");
+  });
+
+  test("short-height mobile menu keeps every destination reachable", async ({
+    page,
+  }) => {
+    const labels = [
+      "Overview",
+      "Dental",
+      "Physiotherapy",
+      "Chiropractic",
+      "Cosmetic & aesthetic",
+      "About",
+      "Pricing",
+      "Contact",
+      "Sign in",
+    ] as const;
+
+    for (const viewport of [
+      { width: 390, height: 667 },
+      { width: 375, height: 667 },
+      { width: 360, height: 640 },
+      { width: 320, height: 568 },
+    ] as const) {
+      await page.setViewportSize(viewport);
+      await page.goto(marketingUrl("/"), { waitUntil: "load" });
+      await page.getByRole("button", { name: "Site menu" }).click();
+      const nav = page.getByRole("navigation", { name: "Marketing" });
+      const panel = page.locator("[class*='navMenuPanel']");
+
+      const canScroll = await panel.evaluate((element) => {
+        return element.scrollHeight - element.clientHeight > 1;
+      });
+      if (canScroll) {
+        await panel.evaluate((element) => {
+          element.scrollTop = element.scrollHeight;
+        });
+      }
+
+      for (const label of labels) {
+        const link = nav.getByRole("link", { name: label, exact: true });
+        await link.scrollIntoViewIfNeeded();
+        await expect(
+          link,
+          `${label} at ${viewport.width}x${viewport.height}`
+        ).toBeVisible();
+      }
+
+      const theme = page.getByRole("radiogroup", { name: "Theme" });
+      await theme.scrollIntoViewIfNeeded();
+      await expect(theme).toBeVisible();
+      const themeBox = await theme.boundingBox();
+      expect(themeBox).not.toBeNull();
+      expect(themeBox!.y).toBeGreaterThanOrEqual(0);
+      expect(themeBox!.y + themeBox!.height).toBeLessThanOrEqual(
+        viewport.height + 1
+      );
+      await page.keyboard.press("Escape");
+    }
+  });
+
+  test("desktop For clinics rows stay compact with independent surfaces", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(marketingUrl("/physiotherapy"), { waitUntil: "load" });
+    const header = page.getByRole("navigation", { name: "Marketing" });
+    await header.getByRole("button", { name: "For clinics" }).click();
+
+    const panel = page.locator("[class*='navClinicsPanel']");
+    await expect(panel).toBeVisible();
+    const panelBox = await panel.boundingBox();
+    expect(panelBox).not.toBeNull();
+    expect(panelBox!.height).toBeLessThan(360);
+
+    const listGap = await panel.locator("ul").evaluate((element) => {
+      const style = getComputedStyle(element);
+      return Number.parseFloat(style.rowGap || style.gap);
+    });
+    expect(listGap).toBeGreaterThan(1);
+    expect(listGap).toBeLessThan(6);
+
+    const dental = header.getByRole("link", { name: "Dental", exact: true });
+    const physio = header.getByRole("link", {
+      name: "Physiotherapy",
+      exact: true,
+    });
+    await expect(physio).toHaveAttribute("aria-current", "page");
+
+    const dentalBox = await dental.boundingBox();
+    const physioBox = await physio.boundingBox();
+    expect(dentalBox).not.toBeNull();
+    expect(physioBox).not.toBeNull();
+    const space = physioBox!.y - (dentalBox!.y + dentalBox!.height);
+    expect(space).toBeGreaterThanOrEqual(2);
+    expect(space).toBeLessThan(10);
+
+    await dental.hover();
+    const hoverBg = await dental.evaluate(
+      (element) => getComputedStyle(element).backgroundColor
+    );
+    expect(hoverBg).not.toBe("rgba(0, 0, 0, 0)");
+
+    await physio.focus();
+    await expect(physio).toBeFocused();
+    const outline = await physio.evaluate(
+      (element) => getComputedStyle(element).outlineStyle
+    );
+    expect(outline).not.toBe("none");
+  });
+
+  test("stacked hero CTAs fill the content column on mobile only", async ({
+    page,
+  }) => {
+    async function measureHeroActions() {
+      const group = page.locator("[data-mk-hero-actions]").first();
+      await expect(group).toBeVisible();
+      return group.evaluate((element) => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        const children = [...element.children].map((child) => {
+          const box = child.getBoundingClientRect();
+          return { width: box.width, top: box.top };
+        });
+        return {
+          width: rect.width,
+          flexDirection: style.flexDirection,
+          children,
+          viewportWidth: window.innerWidth,
+        };
+      });
+    }
+
+    for (const path of ["/", "/clinics", "/dental"] as const) {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(marketingUrl(path), { waitUntil: "load" });
+      const mobile = await measureHeroActions();
+      expect(mobile.children.length).toBe(2);
+      expect(mobile.flexDirection).toBe("column");
+      expect(
+        Math.abs(mobile.children[0]!.width - mobile.children[1]!.width)
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(mobile.children[0]!.width - mobile.width)
+      ).toBeLessThanOrEqual(2);
+      expect(mobile.width).toBeLessThan(mobile.viewportWidth - 24);
+      expect(mobile.width).toBeGreaterThan(mobile.viewportWidth * 0.7);
+    }
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(marketingUrl("/"), { waitUntil: "load" });
+    const desktop = await measureHeroActions();
+    expect(desktop.flexDirection).toBe("row");
+    expect(desktop.children[0]!.width).toBeLessThan(desktop.width - 24);
+    expect(desktop.children[1]!.width).toBeLessThan(desktop.width - 24);
+    expect(
+      Math.abs(desktop.children[0]!.top - desktop.children[1]!.top)
+    ).toBeLessThanOrEqual(2);
+  });
+
   test("FAQ first, middle, and last rows open, close, and keep focus", async ({
     page,
   }) => {
@@ -281,6 +492,103 @@ test.describe("premium marketing UX", () => {
       expect(timelineOverflow!.y).toBeLessThanOrEqual(1);
       await expectNoHorizontalOverflow(page);
     }
+  });
+
+  test("captures mobile nav spacing and stacked hero CTA artifacts", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(marketingUrl("/"), { waitUntil: "load" });
+    await showMarketingScheme(page, "light");
+    await page
+      .getByRole("navigation", { name: "Marketing" })
+      .getByRole("button", { name: "For clinics" })
+      .click();
+    await page.locator("[class*='navClinicsPanel']").screenshot({
+      path: "test-results/artifacts/desktop-dropdown-light.png",
+    });
+    await page.keyboard.press("Escape");
+    await page.locator("[aria-labelledby='marketing-hero']").screenshot({
+      path: "test-results/artifacts/home-desktop-hero-ctas-intrinsic.png",
+    });
+
+    await showMarketingScheme(page, "dark");
+    await page
+      .getByRole("navigation", { name: "Marketing" })
+      .getByRole("button", { name: "For clinics" })
+      .click();
+    await page.locator("[class*='navClinicsPanel']").screenshot({
+      path: "test-results/artifacts/desktop-dropdown-dark.png",
+    });
+    await page.keyboard.press("Escape");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await showMarketingScheme(page, "dark");
+    await page.goto(marketingUrl("/"), { waitUntil: "load" });
+    await page.locator("[aria-labelledby='marketing-hero']").screenshot({
+      path: "test-results/artifacts/home-mobile-hero-390-dark.png",
+    });
+    await page.getByRole("button", { name: "Site menu" }).click();
+    await page.locator("[class*='navMenuPanel']").screenshot({
+      path: "test-results/artifacts/mobile-nav-dark-390x844.png",
+    });
+    await page
+      .getByRole("navigation", { name: "Marketing" })
+      .getByRole("link", { name: "Chiropractic", exact: true })
+      .focus();
+    await page.locator("[class*='navMenuPanel']").screenshot({
+      path: "test-results/artifacts/mobile-nav-chiro-focus.png",
+    });
+    await page.keyboard.press("Escape");
+
+    await showMarketingScheme(page, "light");
+    await page.locator("[aria-labelledby='marketing-hero']").screenshot({
+      path: "test-results/artifacts/home-mobile-hero-390-light.png",
+    });
+    await page.getByRole("button", { name: "Site menu" }).click();
+    await page.locator("[class*='navMenuPanel']").screenshot({
+      path: "test-results/artifacts/mobile-nav-light-390x844.png",
+    });
+    await page.keyboard.press("Escape");
+
+    await showMarketingScheme(page, "dark");
+    await page.setViewportSize({ width: 390, height: 667 });
+    await page.getByRole("button", { name: "Site menu" }).click();
+    await page.locator("[class*='navMenuPanel']").screenshot({
+      path: "test-results/artifacts/mobile-nav-dark-390x667.png",
+    });
+    await page.keyboard.press("Escape");
+
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.getByRole("button", { name: "Site menu" }).click();
+    await page.locator("[class*='navMenuPanel']").screenshot({
+      path: "test-results/artifacts/mobile-nav-dark-320x568.png",
+    });
+    await page.keyboard.press("Escape");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(marketingUrl("/physiotherapy"), { waitUntil: "load" });
+    await page.locator("[data-mk-vertical-hero]").screenshot({
+      path: "test-results/artifacts/physio-mobile-hero-390-dark.png",
+    });
+    await page.getByRole("button", { name: "Site menu" }).click();
+    await page.locator("[class*='navMenuPanel']").screenshot({
+      path: "test-results/artifacts/mobile-nav-physio-active.png",
+    });
+    await page.keyboard.press("Escape");
+
+    await page.goto(marketingUrl("/dental"), { waitUntil: "load" });
+    await page.locator("[data-mk-vertical-hero]").screenshot({
+      path: "test-results/artifacts/dental-mobile-hero-390-dark.png",
+    });
+
+    await page.goto(marketingUrl("/clinics"), { waitUntil: "load" });
+    await page.locator("[aria-labelledby='clinics-hero']").screenshot({
+      path: "test-results/artifacts/clinics-mobile-hero-390-dark.png",
+    });
   });
 
   test("captures premium UX visual QA artifacts", async ({ page }) => {
