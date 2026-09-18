@@ -86,7 +86,7 @@ describe("marketing about page", () => {
     expect(marketingCss).toContain("margin-top: var(--mk-heading-intro-gap)");
     expect(marketingCss).toContain("margin-top: var(--mk-heading-content-gap)");
     expect(marketingCss).toContain(".aboutClinicList");
-    expect(marketingCss).toMatch(/\.aboutClinicList\s*\{[^}]*gap:\s*0\.45rem/);
+    expect(marketingCss).toMatch(/\.aboutClinicList\s*\{[^}]*gap:\s*0\.65rem/);
     expect(html).toContain("aboutClinicList");
     expect(html).toContain("aboutClinicLink");
     expect(html).toContain("aboutClinicMuted");

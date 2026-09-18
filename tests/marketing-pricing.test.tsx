@@ -50,6 +50,12 @@ describe("marketing pricing page", () => {
     );
     expect(styles).toContain(".laterList.headingFollow");
     expect(styles).toContain("margin-top: var(--mk-intro-content-gap)");
+    expect(html).toContain("noteCard");
+    expect(styles).toContain(".noteCard");
+    expect(styles).toContain("inset 0 1px 0");
+    expect(styles).toContain(
+      "color-mix(in srgb, var(--mk-brand) 20%, var(--mk-card-line))"
+    );
     expect(html).toContain("A$79");
     expect(html).toContain("A$149");
     expect(html).toContain("Custom pricing");

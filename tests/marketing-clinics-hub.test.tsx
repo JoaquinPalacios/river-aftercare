@@ -51,6 +51,8 @@ describe("clinics overview hub", () => {
     expect(html).toContain("Explore dental aftercare");
     expect(html).toContain("What stays consistent across every clinic");
     expect(html).toContain("Shared foundation");
+    expect(html).toContain("headingBlock");
+    expect(html).toContain("clinicsHubPlatform");
     expect(html).toContain("clinicsHubFoundation");
     expect(html).toContain("Clinic controlled");
     expect(html).toContain("Don&#x27;t see your clinic type?");

@@ -120,6 +120,7 @@ test.describe("premium marketing UX", () => {
         };
       });
       expect(overflow.parentOverflow).not.toBe("hidden");
+      expect(overflow.itemOverflow).toBe("hidden");
       await summary.focus();
       await expect(summary).toBeFocused();
       const before = await item.evaluate((element) =>
@@ -174,7 +175,13 @@ test.describe("premium marketing UX", () => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
     await waitForPhoneFrame(page);
-    await page.locator('[class*="phoneShell"]').screenshot({
+    const phone = page.locator('[class*="phoneShell"]');
+    await expect(phone).toHaveAttribute("aria-hidden", "true");
+    const phoneSelect = await phone.evaluate(
+      (element) => getComputedStyle(element).userSelect
+    );
+    expect(phoneSelect).toBe("none");
+    await phone.screenshot({
       path: "test-results/artifacts/home-phone-desktop-light.png",
     });
     await page
@@ -369,7 +376,7 @@ test.describe("premium marketing UX", () => {
     const inlineUnderline = await inlineLink.evaluate(
       (element) => getComputedStyle(element, "::after").bottom
     );
-    expect(inlineUnderline).toBe("0px");
+    expect(Number.parseFloat(inlineUnderline)).toBeCloseTo(-2, 0);
     await inlineLink.screenshot({
       path: "test-results/artifacts/link-underline-inline.png",
     });
@@ -400,8 +407,8 @@ test.describe("premium marketing UX", () => {
       const value = getComputedStyle(element).rowGap;
       return Number.parseFloat(value);
     });
-    expect(rowGap).toBeGreaterThanOrEqual(6);
-    expect(rowGap).toBeLessThanOrEqual(10);
+    expect(rowGap).toBeGreaterThanOrEqual(8);
+    expect(rowGap).toBeLessThanOrEqual(14);
     await expect(
       clinicList.getByRole("link", { name: "Dental", exact: true })
     ).toBeVisible();

@@ -106,21 +106,23 @@ export function MarketingClinicsHub({
         <div className={styles.marketingSoft} data-mk-chapter="soft">
           <section className={styles.band} aria-labelledby="clinics-platform">
             <div className={styles.inner}>
-              <MarketingRevealGroup>
-                <MarketingRevealItem delay={0}>
-                  <p className={styles.eyebrow}>{copy.platform.eyebrow}</p>
-                </MarketingRevealItem>
-                <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                  <h2 id="clinics-platform" className={styles.sectionTitle}>
-                    {copy.platform.h2}
-                  </h2>
-                </MarketingRevealItem>
-                <MarketingRevealItem delay={editorialRevealDelay(2)}>
-                  <p className={`${styles.copy} ${styles.clinicsHubPlatform}`}>
-                    {copy.platform.body}
-                  </p>
-                </MarketingRevealItem>
-              </MarketingRevealGroup>
+              <div className={styles.headingBlock}>
+                <MarketingRevealGroup>
+                  <MarketingRevealItem delay={0}>
+                    <p className={styles.eyebrow}>{copy.platform.eyebrow}</p>
+                  </MarketingRevealItem>
+                  <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                    <h2 id="clinics-platform" className={styles.sectionTitle}>
+                      {copy.platform.h2}
+                    </h2>
+                  </MarketingRevealItem>
+                  <MarketingRevealItem delay={editorialRevealDelay(2)}>
+                    <p className={`${styles.copy} ${styles.clinicsHubPlatform}`}>
+                      {copy.platform.body}
+                    </p>
+                  </MarketingRevealItem>
+                </MarketingRevealGroup>
+              </div>
             </div>
           </section>
         </div>
