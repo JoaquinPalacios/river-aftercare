@@ -300,6 +300,7 @@ describe("aftercare style boundary", () => {
     expect(preview).toContain("PHONE_VIEW_NAME");
     expect(preview).toContain("mk-phone-today");
     expect(preview).toContain("MARKETING_DEMO_COMING_NEXT_LABEL");
+    expect(preview).toContain("data-mk-phone-coming-next");
     expect(preview).not.toContain("phoneBezel");
     expect(preview).not.toContain("phoneIsland");
     expect(preview).not.toContain("phoneGlass");

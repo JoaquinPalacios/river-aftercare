@@ -10,10 +10,7 @@ import { editorialRevealDelay } from "@/lib/marketing/reveal-timing";
 import styles from "../marketing.module.css";
 
 export type MarketingPageHeroVariant =
-  | "pricing"
-  | "contact"
-  | "about"
-  | "legal";
+  "pricing" | "contact" | "about" | "legal";
 
 export function MarketingPageHero({
   variant,
@@ -63,7 +60,12 @@ export function MarketingPageHero({
           </MarketingRevealItem>
           {actions ? (
             <MarketingRevealItem delay={editorialRevealDelay(3)}>
-              <div className={styles.actions}>{actions}</div>
+              <div
+                className={`${styles.actions} ${styles.heroActions}`}
+                data-mk-hero-actions=""
+              >
+                {actions}
+              </div>
             </MarketingRevealItem>
           ) : null}
         </MarketingRevealGroup>

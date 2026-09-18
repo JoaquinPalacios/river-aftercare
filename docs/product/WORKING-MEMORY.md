@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-18 (marketing finish polish: phone mockup, link offset, About list, Pricing notes, /clinics heading gap, FAQ overflow; marketing Contact: Resend + Cloudflare Turnstile; marketing UI polish; premium marketing UX refinement; River spectrum + vertical marketing accents; `/clinics` hub; design system v2)
+Last updated: 2026-09-18 (mobile nav clinic-row cadence + stacked hero CTAs full-width on mobile; homepage phone Coming next uses real Tooth Extraction sample summaries; marketing finish polish: phone mockup, link offset, About list, Pricing notes, /clinics heading gap, FAQ overflow; marketing Contact: Resend + Cloudflare Turnstile; marketing UI polish; premium marketing UX refinement; River spectrum + vertical marketing accents; `/clinics` hub; design system v2)
 
 ---
 
@@ -1379,7 +1379,7 @@ Tight production-design pass. No copy, SEO, or architecture change.
 
 | Area                     | Behaviour                                                                                                                                                                                                               |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Link underlines          | Inline `.textLink` offset is `--mk-inline-link-underline-offset: -0.125rem`. Desktop nav keeps `--mk-nav-underline-offset: 0.5rem`. Footer keeps `--mk-footer-link-underline-offset: 0`.                                 |
+| Link underlines          | Inline `.textLink` offset is `--mk-inline-link-underline-offset: -0.125rem`. Desktop nav keeps `--mk-nav-underline-offset: 0.5rem`. Footer keeps `--mk-footer-link-underline-offset: 0`.                                |
 | About clinic list        | `.aboutClinicList` row gap is `0.65rem` with `0.5rem 0.85rem` item padding. Vertical accents and the non-linked allied-health row stay quieter.                                                                         |
 | Pricing planned features | `.laterList.headingFollow` uses `--mk-intro-content-gap` (`clamp(1.25rem, 2vw, 1.5rem)`) so intro copy no longer sits against the first card. `.laterList { margin: 0 }` had been zeroing `.headingFollow`.             |
 | Contact form             | `.contactFormPanel` is `width: min(100%, 56rem)`, `margin-inline: auto`, `padding: clamp(1.5rem, 2.5vw, 2.5rem)`, `text-align: left`. Mobile uses the normal `.inner` gutters. Subtle panel tint only; no extra shadow. |
@@ -1426,11 +1426,39 @@ See [MARKETING-CONTACT.md](../architecture/MARKETING-CONTACT.md).
 
 Second tightly scoped production-design pass. No copy, SEO, or architecture change.
 
-| Area                | Behaviour                                                                                                                                                                                                 |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phone mockup        | Decorative illustration: `user-select: none`, `aria-hidden` on the shell, radios `tabindex="-1"`. Last timeline rail ends at the dot. Coming-next/help no longer stack a stray 1px line.                  |
-| Link underlines     | Non-nav `.textLink` uses `--mk-inline-link-underline-offset: -0.125rem`. Nav stays `0.5rem`. Footer stays `0`.                                                                                            |
-| About clinic list   | Row gap `0.65rem` and slightly more item padding so accent rails read as a family, not a stripe. Allied-health row stays muted.                                                                           |
-| Pricing notes       | `.noteCard` gets a tinted 1px border, faint top-edge inset highlight, and a quiet surface gradient. No lift, glow, or hover animation.                                                                    |
-| `/clinics` platform | “One platform” copy sits in `.headingBlock` so heading → body uses `--mk-heading-intro-gap`.                                                                                                              |
-| FAQ                 | Item overflow clips hover/open fills and rails to nested radius. Summary is `display: block`. Focus remains visible as an inset ring.                                                                     |
+| Area                | Behaviour                                                                                                                                                                                |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phone mockup        | Decorative illustration: `user-select: none`, `aria-hidden` on the shell, radios `tabindex="-1"`. Last timeline rail ends at the dot. Coming-next/help no longer stack a stray 1px line. |
+| Link underlines     | Non-nav `.textLink` uses `--mk-inline-link-underline-offset: -0.125rem`. Nav stays `0.5rem`. Footer stays `0`.                                                                           |
+| About clinic list   | Row gap `0.65rem` and slightly more item padding so accent rails read as a family, not a stripe. Allied-health row stays muted.                                                          |
+| Pricing notes       | `.noteCard` gets a tinted 1px border, faint top-edge inset highlight, and a quiet surface gradient. No lift, glow, or hover animation.                                                   |
+| `/clinics` platform | “One platform” copy sits in `.headingBlock` so heading → body uses `--mk-heading-intro-gap`.                                                                                             |
+| FAQ                 | Item overflow clips hover/open fills and rails to nested radius. Summary is `display: block`. Focus remains visible as an inset ring.                                                    |
+
+---
+
+## Homepage phone Coming next density (2026-09-18)
+
+Tight marketing-illustration pass. No patient-product change, no SEO, no invented clinical copy.
+
+| Area          | Behaviour                                                                                                                                                                                                                                                                                    |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source        | `MARKETING_DEMO_TIMELINE` reads period/title/upcoming summaries from `DEMO_EXTRACTION_CANONICAL_SECTIONS` (`immediate-care`, `days-2-3`, `days-4-7`).                                                                                                                                        |
+| Today view    | “Coming next” is one card with two stacked stage rows: muted day range, stage title, and the first sentence of the canonical sample body. The smaller desktop phone container omits the redundant current-stage blurb and clamps “What to do today” so Days 4–7 stays visible above contact. |
+| Current stage | Existing short marketing summary kept; full Immediate care body remains under “What to do today”.                                                                                                                                                                                            |
+| Timeline view | Same source data; upcoming rows stay compact (period + title only) so the pane does not overflow.                                                                                                                                                                                            |
+| Empty region  | Contact/help stays `margin-top: auto` at the bottom of the device. Extra truthful copy reduces the leftover gap; it is not removed by collapsing flex space.                                                                                                                                 |
+| Artifact      | No last-stage rail or extra divider under Days 4–7. `user-select: none` and `tabindex="-1"` radios unchanged.                                                                                                                                                                                |
+
+---
+
+## Mobile nav cadence + stacked hero CTAs (2026-09-18)
+
+Follow-up to the homepage phone illustration pass. No copy, SEO, or page redesign.
+
+| Area               | Behaviour                                                                                                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Mobile clinic rows | `--mk-nav-item-gap: 0.35rem` on `.navMenuSublist`. Row padding and `min-height: 3.05rem` unchanged. Hover/focus/current surfaces no longer sit flush against neighbouring clinic types.                      |
+| Group rhythm       | Existing Overview divider kept. `.navMenuGroup` bottom padding `0.5rem` so About / Pricing / Contact sit in a clearer next group. Utility Sign in + Theme stay in the sticky meta.                           |
+| Desktop dropdown   | Same crowding existed (`gap: 0.08rem`). Modest `--mk-nav-dropdown-item-gap: 0.2rem` on `.navClinicsList` only. Dropdown stays compact.                                                                       |
+| Hero CTAs          | Shared `.heroActions` at `max-width: 47.99rem`: column, `width: 100%`, children stretch. Gap remains `.actions` `0.7rem`. Desktop/tablet stay intrinsic. Homepage, `/clinics`, and vertical heroes share it. |

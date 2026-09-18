@@ -113,6 +113,7 @@ export default async function MarketingHomePage() {
                     <MarketingReveal.Item>
                       <div
                         className={`${styles.actions} ${styles.heroActions}`}
+                        data-mk-hero-actions=""
                       >
                         <MarketingPrimaryAnchor href={demoHref}>
                           View the dental demo

@@ -44,7 +44,10 @@ export function MarketingVerticalHero({
               </p>
             </MarketingRevealItem>
             <MarketingRevealItem delay={editorialRevealDelay(3)}>
-              <div className={styles.actions}>
+              <div
+                className={`${styles.actions} ${styles.heroActions}`}
+                data-mk-hero-actions=""
+              >
                 <MarketingPrimaryLink href="/contact">
                   {content.hero.primaryCtaLabel}
                 </MarketingPrimaryLink>
