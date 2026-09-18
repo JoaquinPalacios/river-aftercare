@@ -347,11 +347,16 @@ test.describe("premium marketing UX", () => {
     });
     await faqLast.locator("summary").focus();
     await page.screenshot({ path: "test-results/artifacts/faq-focus.png" });
-    await page.locator('[class*="verticalFaq"]').screenshot({
+    const faqAccordion = page
+      .locator("div")
+      .filter({ has: page.locator('details[data-faq-position="first"]') })
+      .filter({ has: page.locator('details[data-faq-position="last"]') })
+      .first();
+    await faqAccordion.screenshot({
       path: "test-results/artifacts/faq-light-open-close-states.png",
     });
     await showMarketingScheme(page, "dark");
-    await page.locator('[class*="verticalFaq"]').screenshot({
+    await faqAccordion.screenshot({
       path: "test-results/artifacts/faq-dark-open-close-states.png",
     });
     await page.getByRole("link", { name: "View the dental demo" }).screenshot({
