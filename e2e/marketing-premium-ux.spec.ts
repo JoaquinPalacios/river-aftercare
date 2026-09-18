@@ -139,12 +139,15 @@ test.describe("premium marketing UX", () => {
       expect(space).toBeLessThan(12);
     }
 
-    await chiro.focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
     await expect(chiro).toBeFocused();
-    const outline = await chiro.evaluate(
-      (element) => getComputedStyle(element).outlineStyle
+    const focusVisible = await chiro.evaluate((element) =>
+      element.matches(":focus-visible")
     );
-    expect(outline).not.toBe("none");
+    expect(focusVisible).toBe(true);
   });
 
   test("short-height mobile menu keeps every destination reachable", async ({
@@ -247,12 +250,14 @@ test.describe("premium marketing UX", () => {
     );
     expect(hoverBg).not.toBe("rgba(0, 0, 0, 0)");
 
-    await physio.focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
     await expect(physio).toBeFocused();
-    const outline = await physio.evaluate(
-      (element) => getComputedStyle(element).outlineStyle
+    const focusVisible = await physio.evaluate((element) =>
+      element.matches(":focus-visible")
     );
-    expect(outline).not.toBe("none");
+    expect(focusVisible).toBe(true);
   });
 
   test("stacked hero CTAs fill the content column on mobile only", async ({
@@ -535,10 +540,15 @@ test.describe("premium marketing UX", () => {
     await page.locator("[class*='navMenuPanel']").screenshot({
       path: "test-results/artifacts/mobile-nav-dark-390x844.png",
     });
-    await page
-      .getByRole("navigation", { name: "Marketing" })
-      .getByRole("link", { name: "Chiropractic", exact: true })
-      .focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await expect(
+      page
+        .getByRole("navigation", { name: "Marketing" })
+        .getByRole("link", { name: "Chiropractic", exact: true })
+    ).toBeFocused();
     await page.locator("[class*='navMenuPanel']").screenshot({
       path: "test-results/artifacts/mobile-nav-chiro-focus.png",
     });
