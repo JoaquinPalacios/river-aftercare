@@ -1196,7 +1196,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 .heroLower {
   display: flex;
   flex-direction: column;
-  gap: 1.05rem;
+  gap: 1.125rem;
 }
 
 .heroLower > * {
@@ -3580,7 +3580,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .clinicTypeMore {
-  margin: 1.5rem 0 0;
+  margin: 2rem 0 0;
 }
 
 .clinicTypeMore a {
@@ -4944,9 +4944,13 @@ html[data-theme-mode="dark"] .wordmarkName {
     min-height: 0;
   }
 
-  .ctaBlock,
-  .marketingShowcase > .band:first-child {
+  .ctaBlock {
     padding-top: 4rem;
+  }
+
+  .marketingSoft > .band:first-child,
+  .marketingShowcase > .band:first-child {
+    padding-top: var(--mk-chapter-pad-y-mobile);
   }
 
   .page[data-vertical] .ctaBlock {

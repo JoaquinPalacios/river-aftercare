@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-18 (mobile nav clinic-row cadence + stacked hero CTAs full-width on mobile; homepage phone Coming next uses real Tooth Extraction sample summaries; marketing finish polish: phone mockup, link offset, About list, Pricing notes, /clinics heading gap, FAQ overflow; marketing Contact: Resend + Cloudflare Turnstile; marketing UI polish; premium marketing UX refinement; River spectrum + vertical marketing accents; `/clinics` hub; design system v2)
+Last updated: 2026-09-18 (mobile chapter-start padding token; mobile nav clinic-row cadence + stacked hero CTAs full-width on mobile; homepage phone Coming next uses real Tooth Extraction sample summaries; marketing finish polish: phone mockup, link offset, About list, Pricing notes, /clinics heading gap, FAQ overflow; marketing Contact: Resend + Cloudflare Turnstile; marketing UI polish; premium marketing UX refinement; River spectrum + vertical marketing accents; `/clinics` hub; design system v2)
 
 ---
 
@@ -360,7 +360,7 @@ Mobile marketing navigation, section spacing tokens, and a richer static phone-s
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Mobile nav     | Below `47.99rem`, same-page anchors (`How it works`, `Clinic preview`) are `display: none`. Header keeps River Aftercare, Staff sign in, and the compact theme control. Tablet/desktop keep those two anchors plus Staff sign in. Footer anchors remain. There is no public Early Access link. |
 | Wordmark       | `white-space: nowrap` plus a slightly smaller mobile mark/type so “River Aftercare” stays one line at 360/390                                                                                                                                                                                  |
-| Section rhythm | `--mk-section-pad-y: clamp(4rem, 6vw, 6rem)` on inner `.band`s; `--mk-chapter-pad-y: clamp(6rem, 8vw, 8rem)` on chapter starts and the closing CTA. Blends are `4rem`. Hero keeps custom spacing.                                                                                              |
+| Section rhythm | `--mk-section-pad-y: clamp(4rem, 6vw, 6rem)` on inner `.band`s; `--mk-chapter-pad-y: clamp(6rem, 8vw, 8rem)` on chapter starts and the closing CTA. Mobile chapter starts use `--mk-chapter-pad-y-mobile: clamp(4rem, 8vw, 8rem)`. Blends are `4rem`. Hero keeps custom spacing.               |
 | Phone screen   | Still `PhoneShell` → `PhoneScreen` → `ProductPreviewScreen`. Hardware frame unchanged. Screen stays light (`color-scheme: light`, `#ffffff`) even when marketing chrome is dark.                                                                                                               |
 | Preview copy   | Clinic → terminology → Tooth Extraction → Your recovery → current Immediate care stage with a short demo line → quieter Days 2–3 / Days 4–7 → “Need help? Call Riverside Dental →” (not a real link)                                                                                           |
 
@@ -498,7 +498,7 @@ Mobile composition and content-density refinement only. No Phase 2. No Motion. D
 | Product           | DOM is copy then assembly visual. Mobile reads copy → visual. Desktop CSS Grid areas keep visual LEFT / copy RIGHT. Copy-to-visual gap is `2.25rem`. No `column-reverse`.                               |
 | How it works      | Desktop connected rail unchanged. Mobile drops the long left rail and `01–04` nodes. Full-width stacked cards with STEP 1–4 inside each card, short centred periwinkle→cyan connectors, natural height. |
 | Why clinics       | Same three pillars + Controlled Customisation. Each pillar is title + one sentence + two proof points. Customisation strip unchanged. Copy is shared across viewports.                                  |
-| Brand Flexibility | Mobile `padding-top` reduced from `--mk-chapter-pad-y` (96px) to `4rem` / 64px. Desktop chapter padding unchanged. Problem chapter still uses 96px on mobile.                                           |
+| Brand Flexibility | Mobile `padding-top` reduced from `--mk-chapter-pad-y` (96px) to `4rem` / 64px. Desktop chapter padding unchanged. Problem chapter later joined the mobile chapter-start token (see below).             |
 | Early Access      | Mobile `padding-top` `4rem` / 64px. `padding-bottom` remains `2.25rem` / 36px. Desktop chapter padding unchanged.                                                                                       |
 
 Hero, Problem layout, Clinic Preview, Footer, and mobile nav were not redesigned. **New marketing client JS added: 0.**
@@ -1462,3 +1462,9 @@ Follow-up to the homepage phone illustration pass. No copy, SEO, or page redesig
 | Group rhythm       | Existing Overview divider kept. `.navMenuGroup` bottom padding `0.5rem` so About / Pricing / Contact sit in a clearer next group. Utility Sign in + Theme stay in the sticky meta.                           |
 | Desktop dropdown   | Same crowding existed (`gap: 0.08rem`). Modest `--mk-nav-dropdown-item-gap: 0.2rem` on `.navClinicsList` only. Dropdown stays compact.                                                                       |
 | Hero CTAs          | Shared `.heroActions` at `max-width: 47.99rem`: column, `width: 100%`, children stretch. Gap remains `.actions` `0.7rem`. Desktop/tablet stay intrinsic. Homepage, `/clinics`, and vertical heroes share it. |
+
+---
+
+## Mobile chapter-start padding (2026-09-18)
+
+Desktop `--mk-chapter-pad-y: clamp(6rem, 8vw, 8rem)` is unchanged. First bands in `.marketingSoft` and `.marketingShowcase` use `--mk-chapter-pad-y-mobile: clamp(4rem, 8vw, 8rem)` below `47.99rem`. Closing CTA mobile `padding-top` stays `4rem`.

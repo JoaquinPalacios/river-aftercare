@@ -103,6 +103,9 @@ describe("marketing about page", () => {
     );
     expect(marketingCss).toContain(".marketingSoft > .band:first-child");
     expect(marketingCss).toContain("padding-top: var(--mk-chapter-pad-y)");
+    expect(marketingCss).toContain(
+      "padding-top: var(--mk-chapter-pad-y-mobile)"
+    );
     expect(marketingCss).toContain(".aboutEditorial");
     expect(marketingCss).toContain(".aboutValuePanel");
     expect(marketingCss).toContain(".aboutScopeGrid");

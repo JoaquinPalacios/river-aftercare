@@ -94,6 +94,7 @@
   --mk-interact-ease: var(--interaction-easing);
   --mk-section-pad-y: clamp(4rem, 6vw, 6rem);
   --mk-chapter-pad-y: clamp(6rem, 8vw, 8rem);
+  --mk-chapter-pad-y-mobile: clamp(4rem, 8vw, 8rem);
   --mk-section-space-xl: clamp(4.25rem, 6.2vw, 5.75rem);
   --mk-section-space-lg: clamp(3.15rem, 4.8vw, 4.5rem);
   --mk-section-space-md: clamp(2.1rem, 3.2vw, 2.85rem);
@@ -174,7 +175,7 @@
   );
   --mk-hero-bottom-gap: calc(1.35rem + 2.5rem);
   --mk-footer-pad-top: 2rem;
-  --mk-footer-pad-bottom: 2.6rem;
+  --mk-footer-pad-bottom: 2rem;
   --mk-card-shadow: light-dark(
     0 1px 0 rgb(10 13 20 / 3.5%),
     0 1px 0 rgb(255 255 255 / 3%)
@@ -456,7 +457,14 @@ html[data-mk-motion="enhance"] .mkReveal[data-mk-pending][data-mk-preview] {
 }
 
 .mkWaveFill {
-  fill: currentColor;
+  fill: var(
+      --lightningcss-light,
+      color-mix(in srgb, var(--mk-brand) 3.5%, var(--mk-soft))
+    )
+    var(
+      --lightningcss-dark,
+      color-mix(in srgb, var(--mk-cobalt) 5%, var(--mk-soft))
+    );
 }
 
 .mkWaveGlow {
