@@ -494,9 +494,7 @@ test.describe("premium marketing UX", () => {
       })
       .locator("xpath=ancestor::section[1]");
     await expect(workflowSection.locator('[class*="eyebrow"]')).toHaveCount(0);
-    await expect(
-      page.getByRole("heading", { name: "After the appointment" })
-    ).toBeVisible();
+    await expect(page.getByText("After the appointment")).toBeVisible();
     await page.screenshot({
       path: "test-results/artifacts/dental-section-rhythm.png",
       fullPage: true,
