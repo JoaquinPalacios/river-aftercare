@@ -1261,7 +1261,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .lede,
 .copy {
-  margin: 0 0 1.3rem;
+  margin: 0 0 1.5rem;
   color: var(--mk-muted);
   max-width: 40rem;
   font-size: 1.08rem;
@@ -1975,7 +1975,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 1.45rem;
+  gap: 1.5rem;
 }
 
 .numberedStep {
@@ -2853,7 +2853,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 .ctaBlock {
   position: relative;
   z-index: 1;
-  padding: var(--mk-chapter-pad-y) 0 2.25rem;
+  padding: var(--mk-chapter-pad-y) 0 2.5rem;
 }
 
 .closingCta {
@@ -2925,7 +2925,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  margin: 0 0 0.3rem;
+  margin: 0 0 0.5rem;
   color: var(--mk-ink);
   font-size: 1rem;
   font-weight: 700;
@@ -3580,7 +3580,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .clinicTypeMore {
-  margin: 1.15rem 0 0;
+  margin: 1.5rem 0 0;
 }
 
 .clinicTypeMore a {
