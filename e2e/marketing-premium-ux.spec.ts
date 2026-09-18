@@ -33,6 +33,12 @@ async function waitForPhoneFrame(page: Page): Promise<void> {
       })
     )
     .toBe(true);
+  await expect(page.locator('[class*="phoneTitle"]')).toHaveText(
+    "Tooth Extraction"
+  );
+  await expect(page.locator('[class*="phoneBrand"]')).toContainText(
+    "Riverside Dental Demo"
+  );
 }
 
 test.describe("premium marketing UX", () => {
@@ -163,6 +169,7 @@ test.describe("premium marketing UX", () => {
   });
 
   test("captures premium UX visual QA artifacts", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
