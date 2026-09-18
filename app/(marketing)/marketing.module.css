@@ -1648,6 +1648,30 @@ html[data-theme-mode="dark"] .wordmarkName {
   background: var(--cg-recovery-surface, #f6faf9);
 }
 
+.phoneTodayDo {
+  padding: 0.45rem 0.5rem 0.5rem;
+  border: 1px solid
+    color-mix(in srgb, var(--cg-border, #ecece8) 75%, transparent);
+  border-radius: var(--cg-radius, 0.75rem);
+  background: var(--cg-recovery-surface, #f6faf9);
+}
+
+.phoneTodayDoLabel {
+  margin: 0;
+  color: var(--cg-text-muted, #6b7280);
+  font-size: 0.46rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.phoneTodayDoBody {
+  margin: 0.22rem 0 0;
+  color: var(--cg-text, #111318);
+  font-size: 0.54rem;
+  line-height: 1.35;
+}
+
 .phoneComingNextLabel {
   margin: 0;
   color: var(--cg-text-muted, #6b7280);
@@ -3732,6 +3756,11 @@ html[data-theme-mode="dark"] .wordmarkName {
   .clinicsHubCard:hover .clinicsHubCardCta {
     color: var(--vertical-accent-hover);
   }
+}
+
+.clinicsHubFoundation {
+  display: grid;
+  gap: var(--mk-heading-content-gap);
 }
 
 .clinicsHubPrinciples {

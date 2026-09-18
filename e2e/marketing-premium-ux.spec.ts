@@ -116,11 +116,15 @@ test.describe("premium marketing UX", () => {
       expect(overflow.parentOverflow).not.toBe("hidden");
       await summary.focus();
       await expect(summary).toBeFocused();
-      const before = await item.evaluate((element) => element.offsetTop);
+      const before = await item.evaluate((element) =>
+        element instanceof HTMLElement ? element.offsetTop : 0
+      );
       await page.keyboard.press("Enter");
       await expect(item).toHaveJSProperty("open", true);
       await expect(summary).toBeFocused();
-      const afterOpen = await item.evaluate((element) => element.offsetTop);
+      const afterOpen = await item.evaluate((element) =>
+        element instanceof HTMLElement ? element.offsetTop : 0
+      );
       expect(Math.abs(afterOpen - before)).toBeLessThan(8);
       await page.keyboard.press("Enter");
       await expect(item).toHaveJSProperty("open", false);
@@ -163,7 +167,7 @@ test.describe("premium marketing UX", () => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
     await waitForPhoneFrame(page);
-    await page.locator('[data-mk-patient-surface="phone"]').screenshot({
+    await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/home-phone-desktop-light.png",
     });
     await page
@@ -189,7 +193,7 @@ test.describe("premium marketing UX", () => {
 
     await showMarketingScheme(page, "dark");
     await waitForPhoneFrame(page);
-    await page.locator('[data-mk-patient-surface="phone"]').screenshot({
+    await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/home-phone-desktop-dark.png",
     });
     await page
@@ -213,7 +217,7 @@ test.describe("premium marketing UX", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await showMarketingScheme(page, "light");
     await waitForPhoneFrame(page);
-    await page.locator('[data-mk-patient-surface="phone"]').screenshot({
+    await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/home-phone-mobile-light.png",
     });
     await page.getByRole("button", { name: "Site menu" }).click();
@@ -223,7 +227,7 @@ test.describe("premium marketing UX", () => {
     await page.keyboard.press("Escape");
     await showMarketingScheme(page, "dark");
     await waitForPhoneFrame(page);
-    await page.locator('[data-mk-patient-surface="phone"]').screenshot({
+    await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/home-phone-mobile-dark.png",
     });
     await page.getByRole("button", { name: "Site menu" }).click();

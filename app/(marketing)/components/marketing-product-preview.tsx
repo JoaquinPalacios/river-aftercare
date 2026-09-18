@@ -12,6 +12,8 @@ import {
   MARKETING_DEMO_THEME_SCOPE,
   MARKETING_DEMO_TIMELINE,
   MARKETING_DEMO_TIMELINE_LABEL,
+  MARKETING_DEMO_TODAY_DO_BODY,
+  MARKETING_DEMO_TODAY_DO_HEADING,
   MARKETING_DEMO_TODAY_LABEL,
 } from "@/lib/marketing/demo-patient-preview";
 
@@ -163,6 +165,16 @@ function ProductPreviewScreen() {
                   </p>
                 ) : null}
               </div>
+            </div>
+          ) : null}
+          {MARKETING_DEMO_TODAY_DO_BODY ? (
+            <div className={styles.phoneTodayDo}>
+              <p className={styles.phoneTodayDoLabel}>
+                {MARKETING_DEMO_TODAY_DO_HEADING}
+              </p>
+              <p className={styles.phoneTodayDoBody}>
+                {MARKETING_DEMO_TODAY_DO_BODY}
+              </p>
             </div>
           ) : null}
           <div className={styles.phoneComingNext}>

@@ -70,7 +70,9 @@ describe("premium marketing UX contracts", () => {
     expect(source).not.toMatch(/['"]use client['"]/);
     expect(html).toContain("Today");
     expect(html).toContain("Timeline");
+    expect(html).toContain("What to do today");
     expect(html).toContain("Coming next");
+    expect(html).toContain("Bite gently on the gauze");
     expect(html).toContain("Recovery overview");
     expect(html).toContain("Call Riverside Dental Demo");
     expect(html).toContain('type="radio"');
