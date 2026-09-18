@@ -232,12 +232,12 @@ test.describe("marketing homepage", () => {
           .getByText("Step-by-step guidance after treatment.")
       ).toHaveCount(0);
       await expect(
-        hero
-          .locator('[class*="deviceStage"]')
-          .getByText("Immediate care", { exact: true })
+        hero.locator('[class*="phoneTodayPane"]').getByText("Immediate care", {
+          exact: true,
+        })
       ).toBeVisible();
       await expect(
-        hero.locator('[class*="deviceStage"]').getByText("Healing check")
+        hero.locator('[class*="phoneTodayPane"]').getByText("Healing check")
       ).toBeVisible();
       await expect(
         hero.locator('[class*="deviceStage"]').getByText("Need help?")

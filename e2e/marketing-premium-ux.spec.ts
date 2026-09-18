@@ -116,18 +116,12 @@ test.describe("premium marketing UX", () => {
       expect(overflow.parentOverflow).not.toBe("hidden");
       await summary.focus();
       await expect(summary).toBeFocused();
-      const before = await item.evaluate((element) => {
-        const box = element.getBoundingClientRect();
-        return { height: box.height, top: box.top };
-      });
+      const before = await item.evaluate((element) => element.offsetTop);
       await page.keyboard.press("Enter");
       await expect(item).toHaveJSProperty("open", true);
       await expect(summary).toBeFocused();
-      const afterOpen = await item.evaluate((element) => {
-        const box = element.getBoundingClientRect();
-        return { top: box.top };
-      });
-      expect(Math.abs(afterOpen.top - before.top)).toBeLessThan(8);
+      const afterOpen = await item.evaluate((element) => element.offsetTop);
+      expect(Math.abs(afterOpen - before)).toBeLessThan(8);
       await page.keyboard.press("Enter");
       await expect(item).toHaveJSProperty("open", false);
       await expect(summary).toBeFocused();
