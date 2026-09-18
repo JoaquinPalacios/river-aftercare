@@ -227,6 +227,9 @@ describe("marketing homepage", () => {
     expect(html).toContain("Today");
     expect(html).toContain("Timeline");
     expect(html).toContain("Coming next");
+    expect(html).toContain("Swelling often peaks, then eases.");
+    expect(html).toContain("Discomfort should continue to settle.");
+    expect(html).toContain('data-mk-phone-coming-next=""');
     expect(html).toContain('data-mk-phone-preview=""');
     expect(html).not.toMatch(/deviceProof[^>]*aria-hidden="true"/);
     expect(html).not.toMatch(/deviceStage[^>]*aria-hidden="true"/);

@@ -93,7 +93,14 @@ describe("premium marketing UX contracts", () => {
     expect(styles).toContain(
       ".phoneTimeline .phoneStage:last-child .phoneStageRail"
     );
-    expect(html).toContain("phoneComingNextItem");
+    expect(html).toContain("phoneComingNextStage");
+    expect(html).toContain('data-mk-phone-coming-next=""');
+    expect(html).toContain("Swelling often peaks, then eases.");
+    expect(html).toContain("Discomfort should continue to settle.");
+    expect(html).not.toContain("Days 2–3 — Early recovery");
+    expect(styles).toContain("-webkit-line-clamp: 2");
+    expect(styles).not.toContain(".phoneComingNextItem");
+    expect(styles).not.toMatch(/\.phoneComingNextStage[^{]*::(?:before|after)/);
   });
 
   it("keeps non-nav marketing underlines tighter than desktop nav", () => {

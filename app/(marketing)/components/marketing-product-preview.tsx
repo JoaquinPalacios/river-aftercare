@@ -177,15 +177,27 @@ function ProductPreviewScreen() {
               </p>
             </div>
           ) : null}
-          <div className={styles.phoneComingNext}>
+          <div className={styles.phoneComingNext} data-mk-phone-coming-next="">
             <p className={styles.phoneComingNextLabel}>
               {MARKETING_DEMO_COMING_NEXT_LABEL}
             </p>
-            {UPCOMING_STAGES.map((stage) => (
-              <p key={stage.period} className={styles.phoneComingNextItem}>
-                {stage.period} — {stage.title}
-              </p>
-            ))}
+            <div className={styles.phoneComingNextList}>
+              {UPCOMING_STAGES.map((stage) => (
+                <div
+                  key={stage.period}
+                  className={styles.phoneComingNextStage}
+                  data-mk-phone-coming-next-stage={stage.key}
+                >
+                  <p className={styles.phoneComingNextPeriod}>{stage.period}</p>
+                  <p className={styles.phoneComingNextTitle}>{stage.title}</p>
+                  {stage.summary ? (
+                    <p className={styles.phoneComingNextSummary}>
+                      {stage.summary}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         <div className={styles.phoneTimelinePane}>

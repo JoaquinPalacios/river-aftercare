@@ -245,6 +245,16 @@ test.describe("marketing homepage", () => {
         hero.locator('[class*="phoneTodayPane"]').getByText("Healing check")
       ).toBeVisible();
       await expect(
+        hero
+          .locator("[data-mk-phone-coming-next]")
+          .getByText("Swelling often peaks, then eases.")
+      ).toBeVisible();
+      await expect(
+        hero
+          .locator("[data-mk-phone-coming-next]")
+          .getByText("Discomfort should continue to settle.")
+      ).toBeVisible();
+      await expect(
         hero.locator('[class*="deviceStage"]').getByText("Need help?")
       ).toHaveCount(0);
       await expect(

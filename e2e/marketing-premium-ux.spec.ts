@@ -169,6 +169,93 @@ test.describe("premium marketing UX", () => {
     ).toHaveCount(0);
   });
 
+  test("homepage phone Coming next uses sample stages without clipping", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+
+    for (const viewport of [
+      { width: 1728, height: 900 },
+      { width: 1440, height: 900 },
+      { width: 1024, height: 768 },
+      { width: 768, height: 1024 },
+      { width: 430, height: 932 },
+      { width: 390, height: 844 },
+      { width: 375, height: 812 },
+    ] as const) {
+      await page.setViewportSize(viewport);
+      await page.goto(marketingUrl("/"), { waitUntil: "load" });
+      await showMarketingScheme(page, "light");
+      await waitForPhoneFrame(page);
+
+      await expect(page.locator("#mk-phone-today")).toBeChecked();
+      const comingNext = page.locator("[data-mk-phone-coming-next]");
+      await expect(comingNext.getByText("Early recovery")).toBeVisible();
+      await expect(comingNext.getByText("Healing check")).toBeVisible();
+      await expect(
+        comingNext.getByText("Swelling often peaks, then eases.")
+      ).toBeVisible();
+      await expect(
+        comingNext.getByText("Discomfort should continue to settle.")
+      ).toBeVisible();
+      await expect(
+        comingNext.getByText("Days 2–3 — Early recovery")
+      ).toHaveCount(0);
+
+      const layout = await page.evaluate(() => {
+        const screen = document.querySelector("[class*='phoneScreen']");
+        const coming = document.querySelector("[data-mk-phone-coming-next]");
+        const help = document.querySelector("[class*='phoneHelp']");
+        if (
+          !(screen instanceof HTMLElement) ||
+          !(coming instanceof HTMLElement) ||
+          !(help instanceof HTMLElement)
+        ) {
+          return null;
+        }
+        const screenBox = screen.getBoundingClientRect();
+        const comingBox = coming.getBoundingClientRect();
+        const helpBox = help.getBoundingClientRect();
+        return {
+          screenOverflowY: screen.scrollHeight - screen.clientHeight,
+          screenOverflowX: screen.scrollWidth - screen.clientWidth,
+          gap: helpBox.top - comingBox.bottom,
+          helpBottom: helpBox.bottom,
+          screenBottom: screenBox.bottom,
+        };
+      });
+      expect(layout, `${viewport.width} phone layout`).not.toBeNull();
+      expect(
+        layout!.screenOverflowX,
+        `${viewport.width} phone x overflow`
+      ).toBeLessThanOrEqual(1);
+      expect(
+        layout!.screenOverflowY,
+        `${viewport.width} phone y overflow`
+      ).toBeLessThanOrEqual(1);
+      expect(layout!.gap, `${viewport.width} contact gap`).toBeGreaterThan(8);
+      expect(layout!.helpBottom).toBeLessThanOrEqual(layout!.screenBottom + 1);
+
+      await page.locator('label[for="mk-phone-timeline"]').click();
+      await expect(page.locator("#mk-phone-timeline")).toBeChecked();
+      const timelineOverflow = await page.evaluate(() => {
+        const screen = document.querySelector("[class*='phoneScreen']");
+        if (!(screen instanceof HTMLElement)) {
+          return null;
+        }
+        return {
+          y: screen.scrollHeight - screen.clientHeight,
+          x: screen.scrollWidth - screen.clientWidth,
+        };
+      });
+      expect(timelineOverflow).not.toBeNull();
+      expect(timelineOverflow!.x).toBeLessThanOrEqual(1);
+      expect(timelineOverflow!.y).toBeLessThanOrEqual(1);
+      await expectNoHorizontalOverflow(page);
+    }
+  });
+
   test("captures premium UX visual QA artifacts", async ({ page }) => {
     test.setTimeout(120_000);
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -185,6 +272,18 @@ test.describe("premium marketing UX", () => {
     await phone.screenshot({
       path: "test-results/artifacts/home-phone-desktop-light.png",
     });
+    await phone.screenshot({
+      path: "test-results/artifacts/homepage-phone-light-1440.png",
+    });
+    await page.locator("[data-mk-phone-coming-next]").screenshot({
+      path: "test-results/artifacts/homepage-phone-detail-after.png",
+    });
+    await page.locator('label[for="mk-phone-timeline"]').click();
+    await expect(page.locator("#mk-phone-timeline")).toBeChecked();
+    await page.locator('[class*="phoneTimelinePane"]').screenshot({
+      path: "test-results/artifacts/timeline-preview-detail.png",
+    });
+    await page.locator('label[for="mk-phone-today"]').click();
     await page
       .getByRole("heading", { name: "One platform, many clinic identities" })
       .scrollIntoViewIfNeeded();
@@ -214,7 +313,10 @@ test.describe("premium marketing UX", () => {
     await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/homepage-phone-mockup-dark-1440.png",
     });
-    await page.locator('div[class*="phoneComingNext"]').screenshot({
+    await page.locator('[class*="phoneShell"]').screenshot({
+      path: "test-results/artifacts/homepage-phone-dark-1440.png",
+    });
+    await page.locator("[data-mk-phone-coming-next]").screenshot({
       path: "test-results/artifacts/homepage-phone-mockup-dark-detail.png",
     });
     await page
@@ -241,6 +343,9 @@ test.describe("premium marketing UX", () => {
     await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/home-phone-mobile-light.png",
     });
+    await page.locator('[class*="phoneShell"]').screenshot({
+      path: "test-results/artifacts/homepage-phone-light-390.png",
+    });
     await page.getByRole("button", { name: "Site menu" }).click();
     await page
       .locator("[class*='navMenuPanel']")
@@ -253,6 +358,9 @@ test.describe("premium marketing UX", () => {
     });
     await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/homepage-phone-mockup-390.png",
+    });
+    await page.locator('[class*="phoneShell"]').screenshot({
+      path: "test-results/artifacts/homepage-phone-dark-390.png",
     });
     await page.getByRole("button", { name: "Site menu" }).click();
     await page

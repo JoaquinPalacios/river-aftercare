@@ -17,10 +17,34 @@ export const MARKETING_DEMO_TIMELINE_LABEL = "Timeline";
 export const MARKETING_DEMO_CURRENT_LABEL = "Current";
 export const MARKETING_DEMO_COMING_NEXT_LABEL = "Coming next";
 export const MARKETING_DEMO_TODAY_DO_HEADING = "What to do today";
-export const MARKETING_DEMO_TODAY_DO_BODY =
-  DEMO_EXTRACTION_CANONICAL_SECTIONS.find(
-    (section) => section.key === "immediate-care"
-  )?.body ?? "";
+
+/**
+ * Canonical Tooth Extraction sample sections for the marketing phone
+ * illustration. Period, title, and upcoming summaries are read from the
+ * demo payload — do not author replacement clinical wording here.
+ */
+function demoExtractionSection(key: string) {
+  const section = DEMO_EXTRACTION_CANONICAL_SECTIONS.find(
+    (entry) => entry.key === key
+  );
+  if (!section?.periodLabel) {
+    throw new Error(
+      `Missing Tooth Extraction sample section "${key}" for the marketing phone preview.`
+    );
+  }
+  return {
+    key: section.key,
+    period: section.periodLabel,
+    title: section.title,
+    body: section.body,
+  };
+}
+
+const DEMO_IMMEDIATE_CARE = demoExtractionSection("immediate-care");
+const DEMO_EARLY_RECOVERY = demoExtractionSection("days-2-3");
+const DEMO_HEALING_CHECK = demoExtractionSection("days-4-7");
+
+export const MARKETING_DEMO_TODAY_DO_BODY = DEMO_IMMEDIATE_CARE.body;
 
 export const MARKETING_DEMO_INSTRUCTIONS_LABEL = instructionLabel(
   MARKETING_DEMO_TERMINOLOGY
@@ -33,21 +57,34 @@ export const MARKETING_DEMO_CALL_LABEL = `Call ${MARKETING_DEMO_CLINIC_NAME}`;
 export const MARKETING_DEMO_THEME_SCOPE = AFTERCARE_THEME_SCOPE;
 export const MARKETING_DEMO_THEME_APPEARANCE = "portal";
 
+/**
+ * Current-stage summary stays the existing short marketing preview line.
+ * The full Immediate care body is already shown under “What to do today”.
+ * Upcoming summaries are the canonical sample bodies, unchanged.
+ */
+export const MARKETING_DEMO_CURRENT_STAGE_SUMMARY =
+  "Follow the clinic's immediate care notes and take it easy.";
+
 export const MARKETING_DEMO_TIMELINE = [
   {
-    period: "First few hours",
-    title: "Immediate care",
-    summary: "Follow the clinic's immediate care notes and take it easy.",
+    key: DEMO_IMMEDIATE_CARE.key,
+    period: DEMO_IMMEDIATE_CARE.period,
+    title: DEMO_IMMEDIATE_CARE.title,
+    summary: MARKETING_DEMO_CURRENT_STAGE_SUMMARY,
     status: "current",
   },
   {
-    period: "Days 2–3",
-    title: "Early recovery",
+    key: DEMO_EARLY_RECOVERY.key,
+    period: DEMO_EARLY_RECOVERY.period,
+    title: DEMO_EARLY_RECOVERY.title,
+    summary: DEMO_EARLY_RECOVERY.body,
     status: "upcoming",
   },
   {
-    period: "Days 4–7",
-    title: "Healing check",
+    key: DEMO_HEALING_CHECK.key,
+    period: DEMO_HEALING_CHECK.period,
+    title: DEMO_HEALING_CHECK.title,
+    summary: DEMO_HEALING_CHECK.body,
     status: "upcoming",
   },
 ] as const;
