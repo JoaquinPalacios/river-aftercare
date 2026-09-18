@@ -18,7 +18,7 @@ Clinic pages must stay clinic-first. Platform marketing colour must not be impos
 
 1. Use **Aftercare Guide** as the visible product name on the public marketing site, marketing metadata, patient attribution (“Powered by Aftercare Guide”), and current product documentation. Do not rewrite historical ADRs or the PRD as if the product was always called Aftercare Guide.
 
-2. Keep the Aftercare Guide marketing palette distinct from clinic brand colours. Tenant pages continue to derive semantic `--cg-*` tokens from `ClinicProfile` colour fields. A clinic may still choose green.
+2. Keep the Aftercare Guide marketing palette distinct from clinic brand colours. Tenant pages continue to derive semantic `--cg-*` tokens from `ClinicProfile` colour fields. A clinic may still choose green. River Aftercare vertical accents (Dental cobalt, Physiotherapy teal, Chiropractic periwinkle, Cosmetic cyan) are **marketing taxonomy only** and must not be written into tenant theme resolution.
 
 3. Extend `ClinicProfile` with controlled presentation settings:
 

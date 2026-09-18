@@ -179,7 +179,10 @@ describe("clinic vertical landing pages", () => {
     expect(css).toContain("var(--mk-sky)");
     expect(css).toContain("var(--mk-sky-text)");
     expect(css).toContain("var(--mk-cobalt-soft)");
-    expect(css).toContain("var(--mk-lavender)");
+    expect(css).toContain("var(--mk-teal)");
+    expect(css).toContain("var(--mk-teal-text)");
+    expect(css).toContain("var(--mk-periwinkle-text)");
+    expect(css).not.toContain("var(--mk-lavender)");
     expect(css).toContain(".verticalHero");
     expect(css).toContain(".verticalProblemGrid");
     expect(css).toContain(".verticalRail");
@@ -194,11 +197,12 @@ describe("clinic vertical landing pages", () => {
     expect(landing).not.toContain("VERTICAL_RELATED_LINKS");
     expect(landing).not.toContain("About River Aftercare");
     expect(VERTICAL_ACCENT_FAMILY).toEqual({
-      dental: "periwinkle",
-      physiotherapy: "sky",
-      chiropractic: "cobalt",
-      cosmetic: "lavender",
+      dental: "cobalt",
+      physiotherapy: "teal",
+      chiropractic: "periwinkle",
+      cosmetic: "cyan",
     });
+    expect(new Set(Object.values(VERTICAL_ACCENT_FAMILY)).size).toBe(4);
   });
 
   it("sizes the hero pathway panel to its content instead of stretching the column", () => {

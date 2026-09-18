@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { CLINIC_VERTICAL_NAV } from "@/lib/marketing/clinic-verticals";
 import {
+  RIVER_SPECTRUM_PRIMITIVES,
   VERTICAL_ACCENT_FAMILY,
   type VerticalThemeId,
 } from "@/lib/marketing/vertical-landing";
@@ -42,30 +43,60 @@ describe("marketing brand colour hierarchy", () => {
   const logo = readFileSync("public/brand/river-aftercare-logo.svg", "utf8");
   const mark = readFileSync("public/brand/river-aftercare-isologo.svg", "utf8");
 
-  it("formalises sky, cobalt, and lavender as semantic marketing tokens", () => {
-    expect(tokens).toContain("--mk-sky: light-dark(#67c5d6, #7ec8e6)");
+  it("formalises Current isologo colours as River spectrum primitives", () => {
+    expect(RIVER_SPECTRUM_PRIMITIVES).toEqual({
+      deep: "#2D3BB8",
+      blue: "#3B4BD1",
+      periwinkle: "#7C8CFF",
+      cyan: "#67C5D6",
+    });
+    expect(tokens).toContain("--river-deep: #2d3bb8");
+    expect(tokens).toContain("--river-blue: #3b4bd1");
+    expect(tokens).toContain("--river-periwinkle: #7c8cff");
+    expect(tokens).toContain("--river-cyan: #67c5d6");
+    expect(tokens).toContain(
+      "--mk-brand: light-dark(var(--river-blue), #a6b8ff)"
+    );
+    expect(tokens).toContain(
+      "--mk-brand-strong: light-dark(var(--river-blue), var(--river-periwinkle))"
+    );
+    expect(tokens).toContain(
+      "--mk-sky: light-dark(var(--river-cyan), #7ec8e6)"
+    );
     expect(tokens).toContain("--mk-sky-strong: light-dark(#146f88, #5ec8e0)");
     expect(tokens).toContain("--mk-sky-text: light-dark(#146f88, #7ec8e6)");
     expect(tokens).toContain("--mk-sky-glow:");
     expect(tokens).toContain("--mk-sky-soft:");
     expect(tokens).toContain("--mk-sky-border:");
     expect(tokens).toContain("--mk-sky-hover:");
-    expect(tokens).toContain("--mk-cobalt: light-dark(#3b4bd1, #3d58d6)");
-    expect(tokens).toContain("--mk-cobalt-deep: light-dark(#2d3bb8, #2c46c4)");
-    expect(tokens).toContain("--mk-cobalt-soft: light-dark(#3b4bd1, #8ea0ff)");
-    expect(tokens).toContain("--mk-lavender:");
+    expect(tokens).toContain(
+      "--mk-cobalt: light-dark(var(--river-blue), #3d58d6)"
+    );
+    expect(tokens).toContain(
+      "--mk-cobalt-deep: light-dark(var(--river-deep), #2c46c4)"
+    );
+    expect(tokens).toContain(
+      "--mk-cobalt-soft: light-dark(var(--river-blue), #8ea0ff)"
+    );
+    expect(tokens).toContain(
+      "--mk-periwinkle-text: light-dark(#515fd8, #a6b8ff)"
+    );
+    expect(tokens).toContain("--mk-teal: light-dark(#50b2b9, #62b8b4)");
+    expect(tokens).toContain("--mk-teal-strong: light-dark(#0e6e72, #5aaeae)");
+    expect(tokens).toContain("--mk-teal-text: light-dark(#12757c, #62b8b4)");
+    expect(tokens).toContain("--mk-teal-glow:");
     expect(tokens).toContain("--mk-wave-cyan: var(--mk-sky)");
     expect(tokens).toContain("--mk-rail-end: var(--mk-sky)");
     expect(tokens).toContain("--mk-hero-mist: var(--mk-sky-glow)");
-    expect(tokens).toContain("--mk-brand: light-dark(#3b4bd1, #a6b8ff)");
-    expect(tokens).toContain("--mk-brand-strong: light-dark(#3b4bd1, #7c8cff)");
+    expect(tokens).not.toContain("--mk-lavender");
   });
 
-  it("keeps primary conversion on periwinkle and connectors on sky", () => {
+  it("keeps primary conversion on River Blue and connectors on cyan", () => {
     expect(styles).toMatch(
       /\.primary\s*\{[^}]*background:\s*var\(--mk-brand-strong\)/
     );
     expect(styles).not.toMatch(/\.primary\s*\{[^}]*--mk-sky/);
+    expect(styles).not.toMatch(/\.primary\s*\{[^}]*--mk-teal/);
     expect(styles).toContain("var(--mk-rail-end)");
     expect(styles).toContain("var(--mk-sky)");
     expect(styles).toContain(".eyebrowFlow");
@@ -73,13 +104,15 @@ describe("marketing brand colour hierarchy", () => {
     expect(styles).toContain("inset 0.18rem 0 0 var(--mk-sky)");
   });
 
-  it("maps each vertical to an explicit accent family without route checks", () => {
+  it("maps each vertical to a distinct accent family without route checks", () => {
     expect(VERTICAL_ACCENT_FAMILY).toEqual({
-      dental: "periwinkle",
-      physiotherapy: "sky",
-      chiropractic: "cobalt",
-      cosmetic: "lavender",
+      dental: "cobalt",
+      physiotherapy: "teal",
+      chiropractic: "periwinkle",
+      cosmetic: "cyan",
     } satisfies Record<VerticalThemeId, string>);
+
+    expect(new Set(Object.values(VERTICAL_ACCENT_FAMILY)).size).toBe(4);
 
     expect(CLINIC_VERTICAL_NAV.map((item) => item.themeId)).toEqual([
       "dental",
@@ -89,12 +122,36 @@ describe("marketing brand colour hierarchy", () => {
     ]);
 
     expect(styles).toContain('data-vertical="dental"');
+    expect(styles).toContain('data-vertical="physiotherapy"');
+    expect(styles).toContain('data-vertical="chiropractic"');
+    expect(styles).toContain('data-vertical="cosmetic"');
+    expect(styles).toContain("--vertical-accent: var(--mk-cobalt-soft)");
+    expect(styles).toContain("--vertical-accent: var(--mk-teal)");
+    expect(styles).toContain("--vertical-accent-text: var(--mk-teal-text)");
+    expect(styles).toContain("--vertical-accent: var(--mk-wave-periwinkle)");
+    expect(styles).toContain(
+      "--vertical-accent-text: var(--mk-periwinkle-text)"
+    );
     expect(styles).toContain("--vertical-accent: var(--mk-sky)");
     expect(styles).toContain("--vertical-accent-text: var(--mk-sky-text)");
-    expect(styles).toContain("--vertical-accent: var(--mk-cobalt-soft)");
-    expect(styles).toContain("--vertical-accent: var(--mk-lavender)");
+    expect(styles).not.toContain("--mk-lavender");
+    expect(styles).not.toContain(".dental-card");
+    expect(styles).not.toContain(".physio-card");
+    expect(styles).not.toContain(".chiro-card");
     expect(styles).not.toContain("if dental");
     expect(styles).not.toContain("/physiotherapy");
+  });
+
+  it("styles discovery cards through shared semantic vertical variants", () => {
+    expect(styles).toContain(".clinicTypeCard[data-vertical] h3");
+    expect(styles).toContain("color: var(--vertical-accent-text)");
+    expect(styles).toContain("inset 0.2rem 0 0 var(--vertical-accent)");
+    expect(styles).toContain("background: var(--vertical-card-tint)");
+    expect(styles).toContain("border-color: var(--vertical-card-border)");
+    expect(styles).toContain(".clinicsHubCardCta");
+    expect(styles).not.toContain(
+      '.clinicsHubCard[data-vertical="physiotherapy"] .clinicsHubCardRail'
+    );
   });
 
   it("defines a vertical atmosphere layer with explicit light and dark values", () => {
@@ -134,10 +191,12 @@ describe("marketing brand colour hierarchy", () => {
     expect(styles).toContain(
       "color-mix(in srgb, var(--mk-wave-periwinkle) 8%, #faf8ff)"
     );
+    expect(styles).toContain("color-mix(in srgb, var(--mk-teal) 8%, #f3fbf9)");
     expect(styles).toContain("color-mix(in srgb, #7c8cff 12%, var(--mk-hero))");
     expect(styles).toContain("color-mix(in srgb, #2c46c4 18%, #05070c)");
-    expect(styles).toContain("color-mix(in srgb, #a6b8ff 11%, #0b0a12)");
     expect(styles).toContain("color-mix(in srgb, #5ec8e0 9%, var(--mk-hero))");
+    expect(styles).toContain("color-mix(in srgb, #5aaeae 9%, var(--mk-hero))");
+    expect(styles).not.toContain("color-mix(in srgb, #a6b8ff 11%, #0b0a12)");
   });
 
   it("keeps atmosphere in CSS tokens rather than component hex values", () => {
@@ -177,9 +236,37 @@ describe("marketing brand colour hierarchy", () => {
     expect(mark).toContain("#3B4BD1");
     expect(mark).toContain("#67C5D6");
     expect(mark).toContain("#7C8CFF");
+    expect(mark).toContain("#2D3BB8");
   });
 
-  it("meets AA text contrast for periwinkle, sky, cobalt, and muted pairs", () => {
+  it("does not leak marketing vertical tokens into clinic tenant theming", () => {
+    const theme = readFileSync("lib/branding/aftercare-theme.ts", "utf8");
+    const aftercareCss = readFileSync("app/(aftercare)/aftercare.css", "utf8");
+    const patientCss = readFileSync(
+      "app/(aftercare)/patient.module.css",
+      "utf8"
+    );
+    const tenantLayout = readFileSync(
+      "app/(aftercare)/%5Fsites/[tenant]/layout.tsx",
+      "utf8"
+    );
+
+    for (const source of [theme, aftercareCss, patientCss, tenantLayout]) {
+      expect(source).not.toContain("--river-");
+      expect(source).not.toContain("--mk-teal");
+      expect(source).not.toContain("--vertical-accent");
+      expect(source).not.toContain("VERTICAL_ACCENT_FAMILY");
+      expect(source).not.toContain("data-vertical");
+    }
+
+    expect(theme).toContain("--cg-brand");
+    expect(theme).toContain("primaryColor");
+    expect(theme).toContain("accentColor");
+    expect(theme).toContain("neutralColor");
+    expect(tenantLayout).toContain("resolveAftercareTheme");
+  });
+
+  it("meets AA text contrast for river, teal, cyan, and muted pairs", () => {
     const darkPairs = [
       ["#a6b8ff", "#07090e"],
       ["#a6b8ff", "#171b24"],
@@ -188,6 +275,8 @@ describe("marketing brand colour hierarchy", () => {
       ["#7ec8e6", "#1c2433"],
       ["#8ea0ff", "#07090e"],
       ["#8ea0ff", "#171b24"],
+      ["#62b8b4", "#07090e"],
+      ["#62b8b4", "#171b24"],
       ["#98a2b3", "#07090e"],
       ["#f5f3ee", "#07090e"],
       ["#0a0d14", "#7c8cff"],
@@ -197,6 +286,12 @@ describe("marketing brand colour hierarchy", () => {
       ["#146f88", "#fffcf8"],
       ["#146f88", "#ffffff"],
       ["#146f88", "#f8f6f1"],
+      ["#12757c", "#fffcf8"],
+      ["#12757c", "#ffffff"],
+      ["#12757c", "#f3fbf9"],
+      ["#0e6e72", "#fffcf8"],
+      ["#515fd8", "#fffcf8"],
+      ["#515fd8", "#faf8ff"],
       ["#5c6573", "#fffcf8"],
       ["#ffffff", "#3b4bd1"],
     ] as const;
@@ -214,7 +309,19 @@ describe("marketing brand colour hierarchy", () => {
     expect(contrastRatio("#5ec8e0", "#07090e")).toBeGreaterThanOrEqual(
       UI_CONTRAST_RATIO
     );
+    expect(contrastRatio("#50b2b9", "#07090e")).toBeGreaterThanOrEqual(
+      UI_CONTRAST_RATIO
+    );
+    expect(contrastRatio("#62b8b4", "#07090e")).toBeGreaterThanOrEqual(
+      UI_CONTRAST_RATIO
+    );
     expect(contrastRatio("#67c5d6", "#fffcf8")).toBeLessThan(
+      TEXT_CONTRAST_RATIO
+    );
+    expect(contrastRatio("#7c8cff", "#fffcf8")).toBeLessThan(
+      TEXT_CONTRAST_RATIO
+    );
+    expect(contrastRatio("#50b2b9", "#fffcf8")).toBeLessThan(
       TEXT_CONTRAST_RATIO
     );
 
@@ -223,21 +330,28 @@ describe("marketing brand colour hierarchy", () => {
       ["#0a0d14", "#e9f7fa"],
       ["#0a0d14", "#e7eaf7"],
       ["#0a0d14", "#f0efff"],
+      ["#0a0d14", "#f3fbf9"],
       ["#5c6573", "#f1f0f5"],
       ["#5c6573", "#e9f7fa"],
       ["#146f88", "#e9f7fa"],
       ["#146f88", "#f4fbfd"],
+      ["#12757c", "#f3fbf9"],
+      ["#12757c", "#eef7f6"],
       ["#3b4bd1", "#f1f0f5"],
-      ["#3b4bd1", "#f0efff"],
+      ["#3b4bd1", "#f3f5fb"],
+      ["#515fd8", "#faf8ff"],
+      ["#515fd8", "#f3f0f8"],
     ] as const;
     const tintedDarkPairs = [
       ["#f5f3ee", "#101321"],
       ["#a6b8ff", "#101321"],
       ["#7ec8e6", "#101321"],
       ["#8ea0ff", "#101321"],
+      ["#62b8b4", "#101321"],
       ["#98a2b3", "#101321"],
       ["#f5f3ee", "#171b24"],
       ["#7ec8e6", "#1a2428"],
+      ["#62b8b4", "#1a2428"],
       ["#f5f3ee", "#15182a"],
       ["#a6b8ff", "#15182a"],
       ["#8ea0ff", "#15182a"],
