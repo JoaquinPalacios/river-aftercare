@@ -415,6 +415,7 @@
 .marketingSoft {
   background: var(--mk-soft);
   color: var(--mk-ink);
+  padding-bottom: var(--mk-chapter-pad-bottom);
 }
 
 .page[data-brand-scope="master"] .marketingSoft {
@@ -434,6 +435,7 @@
 .marketingShowcase {
   background: var(--mk-showcase);
   color: var(--mk-ink);
+  padding-bottom: var(--mk-chapter-pad-bottom);
 }
 
 .top {
@@ -1952,6 +1954,10 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .band {
+  padding-bottom: var(--mk-section-pad-bottom);
+}
+
+.band:first-of-type {
   padding-top: var(--mk-section-pad-top);
 }
 

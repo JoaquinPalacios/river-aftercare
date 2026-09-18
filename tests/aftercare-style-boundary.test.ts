@@ -173,9 +173,14 @@ describe("aftercare style boundary", () => {
     expect(styles).toContain("100svh");
     expect(tokens).toContain("--mk-interact-duration");
     expect(tokens).toContain("--mk-section-pad-top");
+    expect(tokens).toContain("--mk-section-pad-bottom");
+    expect(styles).toContain(".band:first-of-type");
     expect(styles).toContain("padding-top: var(--mk-section-pad-top)");
+    expect(styles).toContain("padding-bottom: var(--mk-section-pad-bottom)");
     expect(tokens).toContain("--mk-chapter-pad-y");
     expect(tokens).toContain("--mk-chapter-pad-y-mobile");
+    expect(tokens).toContain("--mk-chapter-pad-bottom");
+    expect(styles).toContain("padding-bottom: var(--mk-chapter-pad-bottom)");
     expect(tokens).toContain("--mk-card");
     expect(tokens).toContain("clamp(8rem, 6vw, 6rem)");
     expect(tokens).toContain("clamp(6rem, 8vw, 8rem)");
