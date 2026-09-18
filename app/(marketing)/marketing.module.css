@@ -1084,7 +1084,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0.12em;
+  bottom: var(--mk-inline-link-underline-offset);
   height: 1px;
   pointer-events: none;
   background: currentColor;
@@ -1095,7 +1095,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .nav a.textLink::after,
 .navClinicsTrigger.textLink::after {
-  bottom: 0.5rem;
+  bottom: var(--mk-nav-underline-offset);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -2855,7 +2855,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .footerNav a.textLink::after {
-  bottom: 0;
+  bottom: var(--mk-footer-link-underline-offset);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -3185,6 +3185,10 @@ html[data-theme-mode="dark"] .wordmarkName {
   margin: 0;
 }
 
+.laterList.headingFollow {
+  margin-top: var(--mk-intro-content-gap);
+}
+
 .laterItem {
   display: grid;
   grid-template-columns: 0.4rem minmax(0, 1fr);
@@ -3226,14 +3230,21 @@ html[data-theme-mode="dark"] .wordmarkName {
   letter-spacing: -0.04em;
 }
 
+.contactFormPanel {
+  box-sizing: border-box;
+  width: min(100%, 56rem);
+  margin-inline: auto;
+  padding: clamp(1.5rem, 2.5vw, 2.5rem);
+  text-align: left;
+}
+
 .contactForm {
   position: relative;
   display: grid;
   gap: 1.15rem;
-  max-width: 44rem;
 }
 
-.page[data-brand-scope="master"] .contactForm {
+.page[data-brand-scope="master"] .contactFormPanel {
   border-radius: var(--mk-card-radius);
   background: light-dark(
     color-mix(in srgb, var(--mk-brand) 3%, transparent),
@@ -3330,7 +3341,6 @@ html[data-theme-mode="dark"] .wordmarkName {
 .contactSuccess {
   display: grid;
   gap: 1rem;
-  max-width: 36rem;
 }
 
 .contactSuccessTitle {
@@ -4601,7 +4611,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .aboutClinicList {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.45rem;
 }
 
 .aboutClinicLink,

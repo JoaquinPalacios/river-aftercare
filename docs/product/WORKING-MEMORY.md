@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-18 (premium marketing UX refinement; River spectrum + vertical marketing accents; vertical atmosphere colour pass; Practice logo replacement comparison preview; `/clinics` hub; design system v2)
+Last updated: 2026-09-18 (marketing UI polish: link underline offsets, About clinic-list gap, Pricing planned-feature spacing, centred Contact panel; premium marketing UX refinement; River spectrum + vertical marketing accents; vertical atmosphere colour pass; Practice logo replacement comparison preview; `/clinics` hub; design system v2)
 
 ---
 
@@ -1370,6 +1370,20 @@ These colours are River Aftercare marketing categories only. Do not impose “De
 ### White-label boundary
 
 Unchanged: `ClinicProfile` primary/accent/neutral, clinic logo, `resolveAftercareTheme`, `--cg-*` patient tokens, demo clinic saved branding, R2/assets, operator Practice UI. Marketing vertical tokens must not appear in tenant theming.
+
+---
+
+## Marketing UI polish (2026-09-18)
+
+Tight production-design pass. No copy, SEO, or architecture change.
+
+| Area                     | Behaviour                                                                                                                                                                                                               |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Link underlines          | Inline `.textLink` offset is `--mk-inline-link-underline-offset: 0`. Desktop nav keeps `--mk-nav-underline-offset: 0.5rem`. Footer keeps `--mk-footer-link-underline-offset: 0`.                                        |
+| About clinic list        | `.aboutClinicList` row gap is `0.45rem`. Vertical accents and the non-linked allied-health row are unchanged.                                                                                                           |
+| Pricing planned features | `.laterList.headingFollow` uses `--mk-intro-content-gap` (`clamp(1.25rem, 2vw, 1.5rem)`) so intro copy no longer sits against the first card. `.laterList { margin: 0 }` had been zeroing `.headingFollow`.             |
+| Contact form             | `.contactFormPanel` is `width: min(100%, 56rem)`, `margin-inline: auto`, `padding: clamp(1.5rem, 2.5vw, 2.5rem)`, `text-align: left`. Mobile uses the normal `.inner` gutters. Subtle panel tint only; no extra shadow. |
+| Vertical eyebrows        | Solution and workflow remain eyebrow-free on purpose: Hero / Problem / Guidance / Proof / FAQ keep eyebrows.                                                                                                            |
 
 ---
 

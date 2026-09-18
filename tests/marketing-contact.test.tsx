@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 
 vi.mock("next/headers", () => ({
@@ -35,6 +36,8 @@ describe("marketing contact page", () => {
     expect(html).toContain("mkPageWaveInnerPage");
     expect(html).not.toContain("mkPageWaveContact");
     expect(html).toContain("Request a demo");
+    expect(html).toContain("contactFormPanel");
+    expect(html).toContain("contactForm");
     expect(html).not.toContain("Send an enquiry");
     expect(html).not.toContain("not a clinic patient site");
     expect(html).toContain('name="fullName"');
@@ -63,5 +66,18 @@ describe("marketing contact page", () => {
     expect(html).not.toContain("/_marketing");
     expect(html).not.toContain("/_sites");
     expect(html).not.toContain("Call Riverside Dental Demo");
+
+    const styles = readFileSync("app/(marketing)/marketing.module.css", "utf8");
+    expect(styles).toContain(".contactFormPanel");
+    expect(styles).toContain("width: min(100%, 56rem)");
+    expect(styles).toContain("margin-inline: auto");
+    expect(styles).toContain("padding: clamp(1.5rem, 2.5vw, 2.5rem)");
+    expect(styles).toContain("text-align: left");
+    expect(styles).not.toMatch(
+      /\.contactFormPanel[^{]*\{[^}]*text-align:\s*center/
+    );
+    expect(styles).not.toMatch(
+      /\.page\[data-brand-scope="master"\] \.contactFormPanel[^{]*\{[^}]*box-shadow/
+    );
   });
 });

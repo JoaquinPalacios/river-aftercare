@@ -128,6 +128,7 @@ describe("marketing + trust polish", () => {
     expect(contactForm).toContain('type="submit"');
     expect(contactForm).not.toContain("contactSubmit");
     expect(contactForm).toContain("contactActions");
+    expect(contactForm).toContain("contactFormPanel");
     expect(marketingCss).not.toContain(".contactSubmit");
     expect(marketingCss).toContain("appearance: none");
     expect(marketingCss).toContain("border: 0 solid transparent");

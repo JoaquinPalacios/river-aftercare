@@ -85,6 +85,22 @@ describe("marketing about page", () => {
     expect(marketingCss).toContain(".headingBlock .copy + .copy");
     expect(marketingCss).toContain("margin-top: var(--mk-heading-intro-gap)");
     expect(marketingCss).toContain("margin-top: var(--mk-heading-content-gap)");
+    expect(marketingCss).toContain(".aboutClinicList");
+    expect(marketingCss).toMatch(/\.aboutClinicList\s*\{[^}]*gap:\s*0\.45rem/);
+    expect(html).toContain("aboutClinicList");
+    expect(html).toContain("aboutClinicLink");
+    expect(html).toContain("aboutClinicMuted");
+    expect(html).toContain('data-vertical="dental"');
+    expect(html).toContain('data-vertical="physiotherapy"');
+    expect(html).toContain('data-vertical="chiropractic"');
+    expect(html).toContain('data-vertical="cosmetic"');
+    expect(html).toContain("Other appropriate allied health");
+    expect(html).toMatch(
+      /<span[^>]*aboutClinicMuted[^>]*>\s*Other appropriate allied health\s*<\/span>/
+    );
+    expect(html).not.toMatch(
+      /<a[^>]*>\s*Other appropriate allied health\s*<\/a>/
+    );
     expect(marketingCss).toContain(".marketingSoft > .band:first-child");
     expect(marketingCss).toContain("padding-top: var(--mk-chapter-pad-y)");
     expect(marketingCss).toContain(".aboutEditorial");

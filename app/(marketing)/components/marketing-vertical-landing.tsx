@@ -80,6 +80,8 @@ export function MarketingVerticalLanding({
           </div>
         </section>
 
+        {/* Solution omits an eyebrow on purpose: problem has one, then the
+            branded-home section leads with the H2 so the page can breathe. */}
         <section
           className={`${styles.verticalBand} ${styles.verticalSurfaceCanvas}`}
           aria-labelledby={`${id}-solution`}
@@ -169,6 +171,8 @@ export function MarketingVerticalLanding({
           </div>
         </section>
 
+        {/* Workflow also stays eyebrow-free: guidance carries the label,
+            then the numbered rail starts from the H2. */}
         <section
           id="workflow"
           className={`${styles.verticalBand} ${styles.verticalSurfaceCanvas}`}
