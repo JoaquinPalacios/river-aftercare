@@ -16,7 +16,17 @@ export function MarketingFaq({
         const panelId = `${headingId}-a-${index}`;
 
         return (
-          <details key={item.question} className={styles.verticalFaqItem}>
+          <details
+            key={item.question}
+            className={styles.verticalFaqItem}
+            data-faq-position={
+              index === 0
+                ? "first"
+                : index === items.length - 1
+                  ? "last"
+                  : "middle"
+            }
+          >
             <summary
               className={styles.verticalFaqQuestion}
               id={questionId}

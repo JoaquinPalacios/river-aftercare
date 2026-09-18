@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-18 (River spectrum + vertical marketing accents; vertical atmosphere colour pass; Practice logo replacement comparison preview; `/clinics` hub; design system v2)
+Last updated: 2026-09-18 (premium marketing UX refinement; River spectrum + vertical marketing accents; vertical atmosphere colour pass; Practice logo replacement comparison preview; `/clinics` hub; design system v2)
 
 ---
 
@@ -67,6 +67,7 @@ Published-guide QR sharing is implemented for clinic staff (durable public URL, 
 | Public legal copy rewrite | LOCAL — PRODUCTION-FACING PRIVACY/TERMS DRAFTS READY FOR REVIEW                                                                           |
 | Clinic vertical pages     | LOCAL — shared editorial design system for `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics` plus `/clinics` overview hub |
 | Marketing FAQ + copy QA   | LOCAL — vertical FAQ accordion + final pre-index copy                                                                                     |
+| Marketing premium UX      | LOCAL — nav, phone mock, FAQ states, `/clinics` interaction, About editorial layout                                                       |
 | 2+ remainder              | Not started                                                                                                                               |
 
 Phase 1D is not a missing slice. Phase 1C already shipped canonical composition, practice overrides, practice additions, semantic section rendering, warning/emergency rendering, and the real patient guide UI. A separate 1D implementation would have been artificial. Historical phase numbers are not renumbered.
@@ -1369,3 +1370,21 @@ These colours are River Aftercare marketing categories only. Do not impose “De
 ### White-label boundary
 
 Unchanged: `ClinicProfile` primary/accent/neutral, clinic logo, `resolveAftercareTheme`, `--cg-*` patient tokens, demo clinic saved branding, R2/assets, operator Practice UI. Marketing vertical tokens must not appear in tenant theming.
+
+---
+
+## Premium marketing UX refinement (2026-09-18)
+
+Focused experience-design pass. Brand architecture, SEO, and route IA were left in place.
+
+| Area                | Behaviour                                                                                                                                                                                                                          |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phone mock          | Decorative Riverside Dental preview now includes a CSS-only Today / Timeline toggle using existing demo sample copy. Today is default. No client island, no product API. Contact CTA remains at the bottom of the device.          |
+| Sample clinic cards | Brand flexibility palettes stay outside the River vertical family: clinical teal `#14635F`, slate navy `#2A3446`, muted clay/aubergine `#5A3F44`.                                                                                  |
+| Desktop nav         | For clinics panel is a floating editorial menu. Overview is the parent row. Verticals use tiny accent dots from the established River vertical family. Underline offset is `0.5rem`. Enter animation is 180ms, reduced-motion off. |
+| Mobile nav          | Sheet uses `max-height: calc(100dvh - header)` with scroll and a sticky compact Theme segmented control so Theme stays reachable on short viewports.                                                                               |
+| Footer              | Link underline offset is `0` and does not inherit the nav offset.                                                                                                                                                                  |
+| `/clinics`          | Cards tint and advance the arrow (`translateX(0.28rem)`) without lifting. Shared foundation has the `SHARED FOUNDATION` eyebrow and uses `--mk-heading-content-gap`.                                                               |
+| Vertical pages      | Secondary CTA border mixes `--vertical-accent` at 26%. Shared `.sectionStack` plus `--mk-heading-intro-gap` / `--mk-body-gap` separate heading-to-body from paragraph rhythm.                                                      |
+| FAQ                 | Native details/summary. Overflow visible, inset rail on open, no first/last inset-border hacks, unclipped focus.                                                                                                                   |
+| About               | Editorial two-column modules, clinic-type links, responsibility panel, “Not currently” scope grid, product-scope footnote, standard closing CTA. No metadata/schema changes.                                                       |

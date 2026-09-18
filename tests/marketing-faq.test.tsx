@@ -72,6 +72,9 @@ describe("marketing FAQ accordion", () => {
     expect(html.match(/<summary\b/g)).toHaveLength(5);
     expect(html).not.toMatch(/<details[^>]*\sopen\b/);
     expect(html).toContain("aria-controls");
+    expect(html).toContain('data-faq-position="first"');
+    expect(html).toContain('data-faq-position="middle"');
+    expect(html).toContain('data-faq-position="last"');
     expect(html).toContain("Do patients need to download an app?");
     expect(html).toContain(
       "No. River Aftercare patient pages open in the browser from a link or QR code."

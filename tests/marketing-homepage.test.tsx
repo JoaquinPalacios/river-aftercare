@@ -223,7 +223,11 @@ describe("marketing homepage", () => {
     expect(html).toContain("First few hours");
     expect(html).toContain("Days 2–3");
     expect(html).toContain("Days 4–7");
-    expect(html).toMatch(/deviceProof[^>]*aria-hidden="true"/);
+    expect(html).toContain("Today");
+    expect(html).toContain("Timeline");
+    expect(html).toContain("Coming next");
+    expect(html).toContain('data-mk-phone-preview=""');
+    expect(html).not.toMatch(/deviceProof[^>]*aria-hidden="true"/);
     expect(html).not.toMatch(/deviceStage[^>]*aria-hidden="true"/);
     expect(html).toContain('focusable="false"');
     expect(html).toContain("linearGradient");

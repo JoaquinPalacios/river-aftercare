@@ -51,7 +51,7 @@ export function MarketingVerticalLanding({
           aria-labelledby={`${id}-problem`}
         >
           <div className={styles.inner}>
-            <div className={styles.verticalIntro}>
+            <div className={`${styles.verticalIntro} ${styles.sectionStack}`}>
               <MarketingRevealGroup>
                 <MarketingRevealItem delay={0}>
                   <p className={styles.eyebrow}>{content.problem.eyebrow}</p>
@@ -86,7 +86,9 @@ export function MarketingVerticalLanding({
         >
           <div className={styles.inner}>
             <div className={styles.verticalSolutionLayout}>
-              <div className={styles.verticalSolutionCopy}>
+              <div
+                className={`${styles.verticalSolutionCopy} ${styles.sectionStack}`}
+              >
                 <MarketingRevealGroup>
                   <MarketingRevealItem delay={0}>
                     <h2 id={`${id}-solution`} className={styles.sectionTitle}>
@@ -120,7 +122,9 @@ export function MarketingVerticalLanding({
           aria-labelledby={`${id}-guidance`}
         >
           <div className={styles.inner}>
-            <div className={styles.verticalGuidanceLayout}>
+            <div
+              className={`${styles.verticalGuidanceLayout} ${styles.sectionStack}`}
+            >
               <MarketingRevealGroup>
                 <MarketingRevealItem delay={0}>
                   <p className={styles.eyebrow}>{content.guidance.eyebrow}</p>
@@ -171,7 +175,7 @@ export function MarketingVerticalLanding({
           aria-labelledby={`${id}-workflow`}
         >
           <div className={styles.inner}>
-            <div className={styles.verticalIntro}>
+            <div className={`${styles.verticalIntro} ${styles.sectionStack}`}>
               <MarketingRevealGroup>
                 <MarketingRevealItem delay={0}>
                   <h2 id={`${id}-workflow`} className={styles.sectionTitle}>
@@ -223,7 +227,9 @@ export function MarketingVerticalLanding({
               aria-labelledby={`${id}-demo`}
             >
               <div className={styles.inner}>
-                <div className={styles.verticalProofLayout}>
+                <div
+                  className={`${styles.verticalProofLayout} ${styles.sectionStack}`}
+                >
                   <MarketingRevealGroup>
                     <MarketingRevealItem delay={0}>
                       <p className={styles.eyebrow}>{extra.eyebrow}</p>
@@ -267,7 +273,9 @@ export function MarketingVerticalLanding({
               aria-labelledby={`${id}-extra`}
             >
               <div className={styles.inner}>
-                <div className={styles.verticalFitLayout}>
+                <div
+                  className={`${styles.verticalFitLayout} ${styles.sectionStack}`}
+                >
                   <MarketingRevealGroup>
                     <MarketingRevealItem delay={0}>
                       <p className={styles.eyebrow}>{extra.eyebrow}</p>
@@ -306,7 +314,9 @@ export function MarketingVerticalLanding({
         >
           <div className={styles.inner}>
             <MarketingRevealGroup>
-              <div className={styles.verticalFaqIntro}>
+              <div
+                className={`${styles.verticalFaqIntro} ${styles.sectionStack}`}
+              >
                 <MarketingRevealItem delay={0}>
                   <p className={styles.eyebrow}>{content.faq.eyebrow}</p>
                 </MarketingRevealItem>

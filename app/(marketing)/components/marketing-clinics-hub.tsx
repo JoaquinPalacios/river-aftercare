@@ -162,7 +162,27 @@ export function MarketingClinicsHub({
                     <h3>{card.label}</h3>
                     <p>{card.body}</p>
                     <span className={styles.clinicsHubCardCta}>
-                      {card.cta} →
+                      {card.cta}
+                      <span
+                        className={styles.clinicsHubCardArrow}
+                        data-mk-card-arrow=""
+                        aria-hidden="true"
+                      >
+                        <svg
+                          viewBox="0 0 16 16"
+                          width="14"
+                          height="14"
+                          focusable="false"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 8h9.5" />
+                          <path d="M8.75 4.25 13 8l-4.25 3.75" />
+                        </svg>
+                      </span>
                     </span>
                   </Link>
                 </MarketingRevealCard>
@@ -174,38 +194,46 @@ export function MarketingClinicsHub({
         <div className={styles.marketingSoft} data-mk-chapter="soft">
           <section className={styles.band} aria-labelledby="clinics-foundation">
             <div className={styles.inner}>
-              <div className={styles.headingBlock}>
-                <MarketingRevealGroup>
-                  <MarketingRevealItem delay={0}>
-                    <h2 id="clinics-foundation" className={styles.sectionTitle}>
-                      {copy.foundation.h2}
-                    </h2>
-                  </MarketingRevealItem>
-                </MarketingRevealGroup>
-              </div>
-              <ol
-                className={`${styles.clinicsHubPrinciples} ${styles.headingFollow}`}
-              >
-                {copy.foundation.items.map((item, index) => (
-                  <MarketingRevealCard
-                    key={item.title}
-                    as="li"
-                    index={index}
-                    className={styles.clinicsHubPrinciple}
-                  >
-                    <span
-                      className={styles.clinicsHubPrincipleIndex}
-                      aria-hidden="true"
+              <div className={styles.clinicsHubFoundation}>
+                <div className={styles.headingBlock}>
+                  <MarketingRevealGroup>
+                    <MarketingRevealItem delay={0}>
+                      <p className={styles.eyebrow}>
+                        {copy.foundation.eyebrow}
+                      </p>
+                    </MarketingRevealItem>
+                    <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                      <h2
+                        id="clinics-foundation"
+                        className={styles.sectionTitle}
+                      >
+                        {copy.foundation.h2}
+                      </h2>
+                    </MarketingRevealItem>
+                  </MarketingRevealGroup>
+                </div>
+                <ol className={styles.clinicsHubPrinciples}>
+                  {copy.foundation.items.map((item, index) => (
+                    <MarketingRevealCard
+                      key={item.title}
+                      as="li"
+                      index={index}
+                      className={styles.clinicsHubPrinciple}
                     >
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <div>
-                      <h3>{item.title}</h3>
-                      <p>{item.body}</p>
-                    </div>
-                  </MarketingRevealCard>
-                ))}
-              </ol>
+                      <span
+                        className={styles.clinicsHubPrincipleIndex}
+                        aria-hidden="true"
+                      >
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <div>
+                        <h3>{item.title}</h3>
+                        <p>{item.body}</p>
+                      </div>
+                    </MarketingRevealCard>
+                  ))}
+                </ol>
+              </div>
             </div>
           </section>
 

@@ -98,8 +98,11 @@
   --mk-section-space-lg: clamp(3.15rem, 4.8vw, 4.5rem);
   --mk-section-space-md: clamp(2.1rem, 3.2vw, 2.85rem);
   --mk-eyebrow-heading-gap: 0.85rem;
-  --mk-heading-intro-gap: 1.15rem;
-  --mk-heading-content-gap: clamp(2rem, 3vw, 2.5rem);
+  --mk-heading-intro-gap: 1.35rem;
+  --mk-body-gap: 1rem;
+  --mk-heading-content-gap: clamp(2.35rem, 3.4vw, 3.05rem);
+  --mk-header-height: 4rem;
+  --mk-nav-duration: 180ms;
   --vertical-accent: var(--mk-brand);
   --vertical-accent-secondary: var(--mk-brand-strong);
   --vertical-accent-text: var(--mk-brand);

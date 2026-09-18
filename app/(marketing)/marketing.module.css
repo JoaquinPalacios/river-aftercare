@@ -53,7 +53,10 @@
 .page[data-vertical="dental"],
 .clinicsHubPath[data-vertical="dental"],
 .clinicsHubCard[data-vertical="dental"],
-.clinicTypeCard[data-vertical="dental"] {
+.clinicTypeCard[data-vertical="dental"],
+.navClinicsLink[data-vertical="dental"],
+.navMenuRow[data-vertical="dental"],
+.aboutClinicLink[data-vertical="dental"] {
   --vertical-accent: var(--mk-cobalt-soft);
   --vertical-accent-secondary: var(--mk-cobalt-deep);
   --vertical-accent-text: var(--mk-cobalt-soft);
@@ -112,7 +115,10 @@
 .page[data-vertical="physiotherapy"],
 .clinicsHubPath[data-vertical="physiotherapy"],
 .clinicsHubCard[data-vertical="physiotherapy"],
-.clinicTypeCard[data-vertical="physiotherapy"] {
+.clinicTypeCard[data-vertical="physiotherapy"],
+.navClinicsLink[data-vertical="physiotherapy"],
+.navMenuRow[data-vertical="physiotherapy"],
+.aboutClinicLink[data-vertical="physiotherapy"] {
   --vertical-accent: var(--mk-teal);
   --vertical-accent-secondary: var(--mk-teal-strong);
   --vertical-accent-text: var(--mk-teal-text);
@@ -172,7 +178,10 @@
 .page[data-vertical="chiropractic"],
 .clinicsHubPath[data-vertical="chiropractic"],
 .clinicsHubCard[data-vertical="chiropractic"],
-.clinicTypeCard[data-vertical="chiropractic"] {
+.clinicTypeCard[data-vertical="chiropractic"],
+.navClinicsLink[data-vertical="chiropractic"],
+.navMenuRow[data-vertical="chiropractic"],
+.aboutClinicLink[data-vertical="chiropractic"] {
   --vertical-accent: var(--mk-wave-periwinkle);
   --vertical-accent-secondary: var(--mk-brand);
   --vertical-accent-text: var(--mk-periwinkle-text);
@@ -232,7 +241,10 @@
 .page[data-vertical="cosmetic"],
 .clinicsHubPath[data-vertical="cosmetic"],
 .clinicsHubCard[data-vertical="cosmetic"],
-.clinicTypeCard[data-vertical="cosmetic"] {
+.clinicTypeCard[data-vertical="cosmetic"],
+.navClinicsLink[data-vertical="cosmetic"],
+.navMenuRow[data-vertical="cosmetic"],
+.aboutClinicLink[data-vertical="cosmetic"] {
   --vertical-accent: var(--mk-sky);
   --vertical-accent-secondary: var(--mk-sky-strong);
   --vertical-accent-text: var(--mk-sky-text);
@@ -556,26 +568,44 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .navClinicsPanel {
   position: absolute;
-  top: calc(100% + 0.2rem);
+  top: calc(100% + 0.45rem);
   left: 0;
   z-index: 4;
-  display: grid;
-  gap: 0.08rem;
-  min-width: 15rem;
+  min-width: 16.5rem;
   margin: 0;
-  padding: 0.4rem;
-  list-style: none;
-  border: 1px solid var(--mk-card-line);
-  border-radius: 0.9rem;
-  background: light-dark(#fffdf9, #151922);
-  box-shadow: light-dark(
-    0 14px 36px rgb(10 13 20 / 10%),
-    0 16px 40px rgb(0 0 0 / 46%)
+  padding: 0.7rem 0.55rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--mk-brand) 14%, var(--mk-card-line));
+  border-radius: 1rem;
+  background: light-dark(
+    color-mix(in srgb, var(--mk-brand) 4%, #fffdf9),
+    color-mix(in srgb, var(--mk-cobalt) 10%, #151922)
   );
+  box-shadow: light-dark(
+    0 10px 28px rgb(10 13 20 / 8%),
+    0 12px 30px rgb(0 0 0 / 38%)
+  );
+  animation: mkNavPanelIn var(--mk-nav-duration, 180ms) var(--mk-interact-ease);
 }
 
 .navClinicsPanel[hidden] {
   display: none;
+}
+
+.navClinicsKicker {
+  margin: 0 0.75rem 0.45rem;
+  color: var(--mk-brand);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.navClinicsList {
+  display: grid;
+  gap: 0.08rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .navClinicsLink {
@@ -593,13 +623,27 @@ html[data-theme-mode="dark"] .wordmarkName {
     background-color var(--mk-interact-duration) var(--mk-interact-ease);
 }
 
+.navClinicsLink[data-vertical]::before {
+  content: "";
+  width: 0.28rem;
+  height: 0.28rem;
+  margin-right: 0.65rem;
+  border-radius: 999px;
+  background: var(--vertical-accent);
+  box-shadow: 0 0 0 3px var(--vertical-accent-soft);
+  flex-shrink: 0;
+}
+
 .navClinicsLink[aria-current="page"] {
   color: var(--mk-ink);
   background: light-dark(
-    color-mix(in srgb, var(--mk-ink) 9%, transparent),
-    color-mix(in srgb, #ffffff 12%, transparent)
+    color-mix(in srgb, var(--mk-ink) 7%, transparent),
+    color-mix(in srgb, #ffffff 10%, transparent)
   );
-  box-shadow: inset 0.18rem 0 0 var(--mk-sky);
+}
+
+.navClinicsLink[data-vertical][aria-current="page"] {
+  box-shadow: inset 0.16rem 0 0 var(--vertical-accent);
 }
 
 .navClinicsLink:focus-visible {
@@ -609,9 +653,14 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .navClinicsOverview {
-  padding-bottom: 0.35rem;
-  margin-bottom: 0.28rem;
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.35rem;
   border-bottom: 1px solid var(--mk-card-line);
+}
+
+.navClinicsOverview .navClinicsLink {
+  color: var(--mk-ink);
+  font-weight: 700;
 }
 
 .navRoute[aria-current="page"] {
@@ -705,20 +754,37 @@ html[data-theme-mode="dark"] .wordmarkName {
   right: 0.7rem;
   left: 0.7rem;
   bottom: auto;
+  display: none;
   margin: 0;
-  padding: 0.45rem 0.45rem 0.55rem;
+  padding: 0.4rem 0.4rem 0.45rem;
   width: auto;
   max-width: none;
-  height: fit-content;
-  overflow: hidden;
-  border: 1px solid var(--mk-card-line);
-  border-radius: 1.15rem;
-  background: light-dark(#fffdf9, #151922);
+  height: auto;
+  max-height: calc(100svh - var(--mk-header-height) - 1rem);
+  max-height: calc(
+    100dvh - var(--mk-header-height) - 1rem - env(safe-area-inset-bottom, 0px)
+  );
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid color-mix(in srgb, var(--mk-brand) 16%, var(--mk-card-line));
+  border-radius: 1.05rem;
+  background: light-dark(
+    color-mix(in srgb, var(--mk-brand) 3%, #fffdf9),
+    color-mix(in srgb, var(--mk-cobalt) 10%, #151922)
+  );
   color: var(--mk-ink);
   box-shadow: light-dark(
-    0 14px 36px rgb(10 13 20 / 10%),
-    0 16px 40px rgb(0 0 0 / 46%)
+    0 12px 32px rgb(10 13 20 / 9%),
+    0 14px 34px rgb(0 0 0 / 42%)
   );
+  padding-bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
+}
+
+.navMenuPanel:popover-open {
+  display: flex;
+  flex-direction: column;
 }
 
 .navMenuPanel:focus {
@@ -741,48 +807,78 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .navMenuList {
   display: grid;
-  gap: 0.12rem;
+  gap: 0.08rem;
   margin: 0;
-  padding: 0.05rem 0 0.2rem;
+  padding: 0.05rem 0 0.15rem;
   list-style: none;
+  min-height: 0;
 }
 
 .navMenuGroup {
   display: grid;
-  gap: 0.08rem;
+  gap: 0.06rem;
   margin: 0;
-  padding: 0.15rem 0 0.35rem;
+  padding: 0.1rem 0 0.3rem;
 }
 
 .navMenuGroupLabel {
-  margin: 0.35rem 0.9rem 0.15rem;
-  color: var(--mk-ink);
-  font-size: 0.68rem;
+  margin: 0.3rem 0.85rem 0.2rem;
+  color: var(--mk-brand);
+  font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .navMenuSublist {
   display: grid;
-  gap: 0.12rem;
+  gap: 0.08rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.navMenuOverview {
+  padding-bottom: 0.3rem;
+  margin-bottom: 0.28rem;
+  border-bottom: 1px solid var(--mk-card-line);
+}
+
+.navMenuOverview .navMenuRow {
+  color: var(--mk-ink);
+  font-weight: 700;
+}
+
+.navMenuRow[data-vertical]::before {
+  content: "";
+  width: 0.28rem;
+  height: 0.28rem;
+  margin-right: 0.55rem;
+  border-radius: 999px;
+  background: var(--vertical-accent);
+  box-shadow: 0 0 0 3px var(--vertical-accent-soft);
+  flex-shrink: 0;
+}
+
 .navMenuMeta {
   display: grid;
   gap: 0.12rem;
-  margin: 0.2rem 0 0;
-  padding: 0.4rem 0 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: 0.15rem 0 0;
+  padding: 0.45rem 0.15rem 0.1rem;
   border-top: 1px solid var(--mk-line);
+  background: light-dark(
+    color-mix(in srgb, var(--mk-brand) 3%, #fffdf9),
+    color-mix(in srgb, var(--mk-cobalt) 10%, #151922)
+  );
 }
 
 .navMenuRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.75rem;
   width: 100%;
   box-sizing: border-box;
@@ -813,12 +909,67 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .navMenuTheme {
   display: grid;
+  gap: 0.4rem;
+  padding: 0.15rem 0.2rem 0.2rem;
+}
+
+.navMenuThemeLabel {
+  margin: 0 0.7rem;
+  color: var(--mk-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .navMenuChooser {
   display: grid;
-  gap: 0.05rem;
-  padding: 0 0 0.15rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.2rem;
+  padding: 0.18rem;
+  border: 1px solid var(--mk-line);
+  border-radius: 0.85rem;
+  background: light-dark(
+    color-mix(in srgb, var(--mk-ink) 3%, transparent),
+    color-mix(in srgb, #ffffff 5%, transparent)
+  );
+}
+
+.navMenuThemeOption {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0.35rem 0.45rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--mk-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.navMenuThemeOption[aria-checked="true"] {
+  color: var(--mk-ink);
+  background: light-dark(#ffffff, #1d2330);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--mk-brand) 28%, var(--mk-line));
+}
+
+.navMenuThemeOption:focus-visible {
+  outline: 2.5px solid var(--mk-focus);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navMenuThemeOption:hover {
+    color: var(--mk-ink);
+  }
 }
 
 .navMenuRow:focus-visible,
@@ -847,6 +998,10 @@ html[data-theme-mode="dark"] .wordmarkName {
     color-mix(in srgb, #ffffff 12%, transparent)
   );
   box-shadow: inset 0.18rem 0 0 var(--mk-sky);
+}
+
+.navMenuRow[data-vertical][aria-current="page"] {
+  box-shadow: inset 0.16rem 0 0 var(--vertical-accent);
 }
 
 .navMenuRow[aria-checked="true"] {
@@ -897,9 +1052,15 @@ html[data-theme-mode="dark"] .wordmarkName {
   color: var(--mk-ink);
 }
 
+.nav > a:focus-visible,
 .navClinicsTrigger:focus-visible {
   outline: 2.5px solid var(--mk-focus);
-  outline-offset: 3px;
+  outline-offset: 4px;
+  border-radius: 0.45rem;
+  background: light-dark(
+    color-mix(in srgb, var(--mk-brand) 8%, transparent),
+    color-mix(in srgb, var(--mk-brand) 14%, transparent)
+  );
 }
 
 .textLink {
@@ -934,7 +1095,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .nav a.textLink::after,
 .navClinicsTrigger.textLink::after {
-  bottom: 0.72rem;
+  bottom: 0.5rem;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1190,7 +1351,8 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .secondary {
-  border: 1px solid var(--mk-line);
+  border: 1px solid
+    color-mix(in srgb, var(--vertical-accent) 26%, var(--mk-line));
   color: var(--mk-ink);
   background: transparent;
 }
@@ -1198,7 +1360,11 @@ html[data-theme-mode="dark"] .wordmarkName {
 @media (hover: hover) and (pointer: fine) {
   .secondary:hover {
     background: var(--mk-secondary-fill);
-    border-color: color-mix(in srgb, var(--mk-sky) 42%, var(--mk-line));
+    border-color: color-mix(
+      in srgb,
+      var(--vertical-accent) 42%,
+      var(--mk-line)
+    );
   }
 }
 
@@ -1209,7 +1375,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .secondary:active {
   background: var(--mk-secondary-fill-active);
-  border-color: color-mix(in srgb, var(--mk-ink) 48%, var(--mk-line));
+  border-color: color-mix(in srgb, var(--vertical-accent) 48%, var(--mk-line));
 }
 
 .deviceStage {
@@ -1392,8 +1558,139 @@ html[data-theme-mode="dark"] .wordmarkName {
   color: var(--cg-text, #111318);
 }
 
+.phoneMain {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 0.55rem;
+}
+
+.phoneViewRadio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.phoneSegments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.12rem;
+  padding: 0.12rem;
+  border: 1px solid
+    color-mix(in srgb, var(--cg-border, #ecece8) 80%, transparent);
+  border-radius: 999px;
+  background: color-mix(
+    in srgb,
+    var(--cg-brand, #0f766e) 8%,
+    var(--cg-surface, #ffffff)
+  );
+}
+
+.phoneSegment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.35rem;
+  padding: 0.12rem 0.35rem;
+  border-radius: 999px;
+  color: var(--cg-text-muted, #6b7280);
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.phoneMain:has(.phoneViewToday:checked) .phoneSegment[for="mk-phone-today"],
+.phoneMain:has(.phoneViewTimeline:checked)
+  .phoneSegment[for="mk-phone-timeline"] {
+  color: var(--cg-on-brand, #ffffff);
+  background: var(--cg-brand, #0f766e);
+}
+
+.phoneViewToday:focus-visible ~ .phoneSegment[for="mk-phone-today"],
+.phoneViewTimeline:focus-visible ~ .phoneSegment[for="mk-phone-timeline"] {
+  outline: 2px solid var(--cg-brand, #0f766e);
+  outline-offset: 2px;
+}
+
+.phoneTodayPane,
+.phoneTimelinePane {
+  display: none;
+  margin-top: 0.5rem;
+}
+
+.phoneMain:has(.phoneViewToday:checked) .phoneTodayPane,
+.phoneMain:has(.phoneViewTimeline:checked) .phoneTimelinePane {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.phoneViewKicker {
+  margin: 0;
+  color: var(--cg-text, #111318);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.phoneComingNext {
+  padding: 0.45rem 0.5rem 0.5rem;
+  border: 1px solid
+    color-mix(in srgb, var(--cg-border, #ecece8) 75%, transparent);
+  border-radius: var(--cg-radius, 0.75rem);
+  background: var(--cg-recovery-surface, #f6faf9);
+}
+
+.phoneTodayDo {
+  padding: 0.45rem 0.5rem 0.5rem;
+  border: 1px solid
+    color-mix(in srgb, var(--cg-border, #ecece8) 75%, transparent);
+  border-radius: var(--cg-radius, 0.75rem);
+  background: var(--cg-recovery-surface, #f6faf9);
+}
+
+.phoneTodayDoLabel {
+  margin: 0;
+  color: var(--cg-text-muted, #6b7280);
+  font-size: 0.46rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.phoneTodayDoBody {
+  margin: 0.22rem 0 0;
+  color: var(--cg-text, #111318);
+  font-size: 0.54rem;
+  line-height: 1.35;
+}
+
+.phoneComingNextLabel {
+  margin: 0;
+  color: var(--cg-text-muted, #6b7280);
+  font-size: 0.46rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.phoneComingNextItem {
+  margin: 0.18rem 0 0;
+  color: var(--cg-text, #111318);
+  font-size: 0.58rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
 .phoneRecovery {
-  margin: 0.7rem 0 0;
+  margin: 0;
   padding: 0.55rem 0.5rem 0.6rem;
   border: 1px solid
     color-mix(in srgb, var(--cg-border, #ecece8) 75%, transparent);
@@ -1829,13 +2126,21 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .sectionTitle + .copy,
-.headingBlock .copy {
+.headingBlock .copy,
+.sectionStack .copy {
   margin-top: var(--mk-heading-intro-gap);
   margin-bottom: 0;
 }
 
-.headingBlock .copy + .copy {
-  margin-top: 1.3rem;
+.headingBlock .copy + .copy,
+.sectionStack .copy + .copy {
+  margin-top: var(--mk-body-gap);
+}
+
+.sectionStack .mkReveal:has(.sectionTitle) + .mkReveal:has(.copy),
+.sectionStack .mkReveal:has(h1) + .mkReveal:has(.copy),
+.sectionStack .mkReveal:has(h2) + .mkReveal:has(.copy) {
+  margin-top: var(--mk-heading-intro-gap);
 }
 
 .headingFollow {
@@ -2394,19 +2699,26 @@ html[data-theme-mode="dark"] .wordmarkName {
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%);
 }
 
+/* SAMPLE CLINIC IDENTITIES — not River vertical accents. */
 .brandTeal {
-  background: #0f766e;
-  color: #fff;
+  background: #14635f;
+  color: #f4fbfa;
 }
 
 .brandNavy {
-  background: #15233b;
-  color: #eef3ff;
+  background: #2a3446;
+  color: #f1f4f8;
 }
 
 .brandWarm {
-  background: #7a3b1e;
-  color: #fff8f2;
+  background: #5a3f44;
+  color: #fbf6f3;
+}
+
+.brandTeal p,
+.brandNavy p,
+.brandWarm p {
+  color: color-mix(in srgb, currentColor 82%, transparent);
 }
 
 .brandCard h3 {
@@ -2540,6 +2852,10 @@ html[data-theme-mode="dark"] .wordmarkName {
 .footerNav a {
   color: var(--mk-muted);
   font-weight: 600;
+}
+
+.footerNav a.textLink::after {
+  bottom: 0;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -3351,6 +3667,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   text-decoration: none;
   transition:
     border-color var(--interaction-duration) var(--interaction-easing),
+    background-color var(--interaction-duration) var(--interaction-easing),
     box-shadow var(--interaction-duration) var(--interaction-easing);
 }
 
@@ -3366,6 +3683,8 @@ html[data-theme-mode="dark"] .wordmarkName {
     var(--vertical-accent),
     var(--vertical-accent-secondary)
   );
+  opacity: 0.88;
+  transition: opacity var(--interaction-duration) var(--interaction-easing);
 }
 
 .clinicsHubCard h3 {
@@ -3385,6 +3704,9 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .clinicsHubCardCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   margin-top: 1rem;
   color: var(--vertical-accent-text, var(--mk-brand));
   font-size: 0.92rem;
@@ -3392,24 +3714,53 @@ html[data-theme-mode="dark"] .wordmarkName {
   transition: color var(--interaction-duration) var(--interaction-easing);
 }
 
+.clinicsHubCardArrow {
+  display: inline-flex;
+  transform: translateX(0);
+  transform-origin: left center;
+  transition: transform 180ms var(--mk-interact-ease);
+}
+
 .clinicsHubCard:focus-visible {
   outline: 2.5px solid var(--mk-focus);
   outline-offset: 3px;
+}
+
+.clinicsHubCard:focus-visible .clinicsHubCardArrow {
+  transform: translateX(0.28rem) scaleX(1.08);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .clinicsHubCard:hover {
     border-color: color-mix(
       in srgb,
-      var(--vertical-accent) 46%,
+      var(--vertical-accent) 52%,
       var(--mk-card-line)
     );
+    background: linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--vertical-card-tint) 86%, var(--mk-card)),
+      color-mix(in srgb, var(--vertical-card-tint) 54%, var(--mk-card)) 100%
+    );
+  }
+
+  .clinicsHubCard:hover .clinicsHubCardRail {
+    opacity: 1;
+  }
+
+  .clinicsHubCard:hover .clinicsHubCardArrow {
+    transform: translateX(0.28rem) scaleX(1.08);
   }
 
   .clinicsHubCard:hover h3,
   .clinicsHubCard:hover .clinicsHubCardCta {
     color: var(--vertical-accent-hover);
   }
+}
+
+.clinicsHubFoundation {
+  display: grid;
+  gap: var(--mk-heading-content-gap);
 }
 
 .clinicsHubPrinciples {
@@ -3983,7 +4334,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 .verticalFaq {
   display: grid;
   gap: 0;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--mk-card-line);
   border-radius: var(--mk-card-radius);
   background: var(--mk-card);
@@ -3991,15 +4342,40 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .verticalFaqItem {
+  position: relative;
   border-bottom: 1px solid var(--mk-card-line);
+  background: var(--mk-card);
+}
+
+.verticalFaqItem:first-child {
+  border-radius: var(--mk-card-radius) var(--mk-card-radius) 0 0;
 }
 
 .verticalFaqItem:last-child {
   border-bottom: 0;
+  border-radius: 0 0 var(--mk-card-radius) var(--mk-card-radius);
 }
 
-.verticalFaqItem[open] {
-  box-shadow: inset 2px 0 0 var(--vertical-accent);
+.verticalFaqItem:only-child {
+  border-radius: var(--mk-card-radius);
+}
+
+.verticalFaqItem::before {
+  content: "";
+  position: absolute;
+  top: 0.55rem;
+  bottom: 0.55rem;
+  left: 0;
+  width: 2px;
+  border-radius: 0 1px 1px 0;
+  background: var(--vertical-accent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--mk-interact-duration) var(--mk-interact-ease);
+}
+
+.verticalFaqItem[open]::before {
+  opacity: 1;
 }
 
 .verticalFaqItem[open] .verticalFaqIcon::before,
@@ -4016,6 +4392,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   cursor: pointer;
   color: inherit;
   font: inherit;
+  border-radius: inherit;
 }
 
 .verticalFaqQuestion::-webkit-details-marker {
@@ -4032,8 +4409,9 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .verticalFaqQuestion:focus-visible {
-  outline: 2.5px solid var(--vertical-accent, var(--mk-focus));
-  outline-offset: -2px;
+  outline: 2.5px solid var(--mk-focus);
+  outline-offset: 3px;
+  border-radius: inherit;
 }
 
 .verticalFaqQuestionInner {
@@ -4047,6 +4425,9 @@ html[data-theme-mode="dark"] .wordmarkName {
   letter-spacing: -0.03em;
   line-height: 1.3;
   text-align: left;
+  background: transparent;
+  transition: background-color var(--mk-interact-duration)
+    var(--mk-interact-ease);
 }
 
 .verticalFaqQuestionText {
@@ -4091,6 +4472,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .verticalFaqItem[open] .verticalFaqQuestionInner {
   padding-bottom: 0.45rem;
+  background: color-mix(in srgb, var(--vertical-accent) 6%, transparent);
 }
 
 .verticalFaqPanel {
@@ -4107,16 +4489,11 @@ html[data-theme-mode="dark"] .wordmarkName {
 @media (hover: hover) and (pointer: fine) {
   .verticalFaqQuestion:hover .verticalFaqQuestionInner {
     color: var(--mk-ink);
+    background: color-mix(in srgb, var(--mk-sky) 8%, transparent);
   }
 
-  .verticalFaqItem:hover {
-    box-shadow: inset 0 0 0 1px var(--mk-sky-border);
-  }
-
-  .verticalFaqItem[open]:hover {
-    box-shadow:
-      inset 2px 0 0 var(--vertical-accent),
-      inset 0 0 0 1px var(--mk-sky-border);
+  .verticalFaqItem[open] .verticalFaqQuestion:hover .verticalFaqQuestionInner {
+    background: color-mix(in srgb, var(--vertical-accent) 9%, transparent);
   }
 
   .verticalFaqQuestion:hover .verticalFaqIcon::before,
@@ -4150,6 +4527,199 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .verticalCtaSecondary:focus-visible {
   color: var(--mk-sky-hover);
+}
+
+@keyframes mkNavPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.aboutEditorial,
+.aboutOwnershipGrid {
+  display: grid;
+  gap: var(--mk-heading-content-gap);
+}
+
+.aboutEditorial > [data-mk-section] {
+  display: grid;
+  gap: var(--mk-heading-content-gap);
+}
+
+.aboutEditorial + .aboutEditorial {
+  margin-top: var(--mk-section-space-lg);
+}
+
+.aboutCopy {
+  min-width: 0;
+  max-width: 40rem;
+}
+
+.aboutCopy .sectionTitle {
+  max-width: 18ch;
+}
+
+.aboutValuePanel,
+.aboutClinicList,
+.aboutResponsibility,
+.aboutScopeGrid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aboutValuePanel {
+  display: grid;
+  gap: 0.7rem;
+  align-content: start;
+  padding: 1.15rem 1.2rem;
+  border: 1px solid color-mix(in srgb, var(--mk-brand) 18%, var(--mk-line));
+  border-radius: 1.05rem;
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--mk-brand) 8%, var(--mk-card)),
+    var(--mk-card) 58%
+  );
+}
+
+.aboutValuePanel li {
+  color: var(--mk-ink);
+  font-size: 1.02rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.aboutClinicModule {
+  min-width: 0;
+}
+
+.aboutClinicList {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.aboutClinicLink,
+.aboutClinicMuted {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.65rem;
+  color: var(--mk-ink);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.aboutClinicLink {
+  box-shadow: inset 0.16rem 0 0 var(--vertical-accent);
+  background: color-mix(in srgb, var(--vertical-accent) 7%, transparent);
+  transition:
+    background-color var(--mk-interact-duration) var(--mk-interact-ease),
+    color var(--mk-interact-duration) var(--mk-interact-ease);
+}
+
+.aboutClinicMuted {
+  color: var(--mk-muted);
+  box-shadow: inset 0.16rem 0 0 var(--mk-line);
+}
+
+.aboutClinicLink:focus-visible {
+  outline: 2.5px solid var(--mk-focus);
+  outline-offset: 3px;
+}
+
+.aboutOwnership {
+  padding: var(--mk-section-space-lg) 0;
+  background: light-dark(
+    color-mix(in srgb, var(--mk-brand) 6%, var(--mk-hero)),
+    color-mix(in srgb, var(--mk-cobalt) 12%, var(--mk-hero))
+  );
+}
+
+.aboutResponsibility {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.15rem 1.2rem;
+  border: 1px solid color-mix(in srgb, var(--mk-brand) 20%, var(--mk-line));
+  border-radius: 1.05rem;
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--mk-brand) 10%, var(--mk-card)),
+    var(--mk-card) 62%
+  );
+}
+
+.aboutResponsibilityLabel {
+  margin: 0;
+  color: var(--mk-brand);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.aboutResponsibilityBody {
+  margin: 0.2rem 0 0;
+  color: var(--mk-ink);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.aboutScopePanel {
+  padding: 1.1rem 1.15rem 1.15rem;
+  border: 1px solid var(--mk-card-line);
+  border-radius: 1.05rem;
+  background: var(--mk-card);
+}
+
+.aboutScopeLabel {
+  margin: 0 0 0.7rem;
+  color: var(--mk-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.aboutScopeGrid {
+  display: grid;
+  gap: 0.55rem 1.15rem;
+}
+
+.aboutScopeGrid li {
+  color: var(--mk-ink);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.aboutFootnote {
+  margin: 0;
+  max-width: 42rem;
+  color: var(--mk-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.aboutFootnoteLabel {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--mk-ink);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .aboutClinicLink:hover {
+    background: color-mix(in srgb, var(--vertical-accent) 12%, transparent);
+  }
 }
 
 @media (max-width: 47.99rem) {
@@ -4474,6 +5044,18 @@ html[data-theme-mode="dark"] .wordmarkName {
     column-gap: 3.2rem;
   }
 
+  .aboutEditorial > [data-mk-section],
+  .aboutScope .aboutEditorial,
+  .aboutOwnershipGrid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(16rem, 1fr);
+    column-gap: 2.75rem;
+    align-items: start;
+  }
+
+  .aboutScopeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .verticalRailWrap::before {
     display: none;
   }
@@ -4635,6 +5217,10 @@ html[data-theme-mode="dark"] .wordmarkName {
   .footerNav {
     grid-template-columns: repeat(3, minmax(7rem, 1fr));
   }
+
+  .aboutScopeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4645,11 +5231,22 @@ html[data-theme-mode="dark"] .wordmarkName {
   .navMenuTrigger,
   .navClinicsTrigger,
   .navClinicsLink,
+  .navClinicsPanel,
   .clinicTypeCard,
   .clinicsHubCard,
+  .clinicsHubCardArrow,
+  .aboutClinicLink,
   .verticalFaqIcon::before,
   .verticalFaqIcon::after,
+  .verticalFaqItem::before,
+  .verticalFaqQuestionInner,
   .verticalCtaSecondary {
     transition: none;
+    animation: none;
+  }
+
+  .clinicsHubCard:focus-visible .clinicsHubCardArrow,
+  .clinicsHubCard:hover .clinicsHubCardArrow {
+    transform: none;
   }
 }

@@ -78,6 +78,7 @@ export function clinicDirectoryNavItems(currentPath: string): {
   href: string;
   label: string;
   current: boolean;
+  themeId?: VerticalThemeId;
 }[] {
   return [
     {
@@ -89,6 +90,7 @@ export function clinicDirectoryNavItems(currentPath: string): {
       href: item.path,
       label: item.navLabel,
       current: currentPath === item.path,
+      themeId: item.themeId,
     })),
   ];
 }

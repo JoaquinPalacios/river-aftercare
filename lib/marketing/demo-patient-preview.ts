@@ -1,3 +1,4 @@
+import { DEMO_EXTRACTION_CANONICAL_SECTIONS } from "@/lib/aftercare/demo-extraction-template-payload.mjs";
 import { instructionLabel } from "@/lib/aftercare/instruction-terminology";
 import {
   AFTERCARE_THEME_SCOPE,
@@ -11,6 +12,15 @@ export const MARKETING_DEMO_ACCENT_COLOR = "#f59e0b";
 export const MARKETING_DEMO_TERMINOLOGY = "POST_TREATMENT";
 export const MARKETING_DEMO_GUIDE_TITLE = "Tooth Extraction";
 export const MARKETING_DEMO_RECOVERY_HEADING = "Recovery overview";
+export const MARKETING_DEMO_TODAY_LABEL = "Today";
+export const MARKETING_DEMO_TIMELINE_LABEL = "Timeline";
+export const MARKETING_DEMO_CURRENT_LABEL = "Current";
+export const MARKETING_DEMO_COMING_NEXT_LABEL = "Coming next";
+export const MARKETING_DEMO_TODAY_DO_HEADING = "What to do today";
+export const MARKETING_DEMO_TODAY_DO_BODY =
+  DEMO_EXTRACTION_CANONICAL_SECTIONS.find(
+    (section) => section.key === "immediate-care"
+  )?.body ?? "";
 
 export const MARKETING_DEMO_INSTRUCTIONS_LABEL = instructionLabel(
   MARKETING_DEMO_TERMINOLOGY

@@ -22,6 +22,7 @@ export function MarketingClinicsNav({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const current = isClinicAcquisitionPath(currentPath);
+  const items = clinicDirectoryNavItems(currentPath);
 
   useEffect(() => {
     if (!open) {
@@ -65,23 +66,31 @@ export function MarketingClinicsNav({
       >
         For clinics
       </button>
-      <ul id={menuId} hidden={!open} className={styles.navClinicsPanel}>
-        {clinicDirectoryNavItems(currentPath).map((item, index) => (
-          <li
-            key={item.href}
-            className={index === 0 ? styles.navClinicsOverview : undefined}
-          >
-            <Link
-              className={styles.navClinicsLink}
-              href={item.href}
-              aria-current={item.current ? "page" : undefined}
-              onClick={() => setOpen(false)}
+      <div className={styles.navClinicsPanel} id={menuId} hidden={!open}>
+        <p className={styles.navClinicsKicker} aria-hidden="true">
+          For clinics
+        </p>
+        <ul className={styles.navClinicsList}>
+          {items.map((item, index) => (
+            <li
+              key={item.href}
+              className={
+                index === 0 ? styles.navClinicsOverview : styles.navClinicsItem
+              }
             >
-              {item.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
+              <Link
+                className={styles.navClinicsLink}
+                href={item.href}
+                aria-current={item.current ? "page" : undefined}
+                data-vertical={item.themeId}
+                onClick={() => setOpen(false)}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

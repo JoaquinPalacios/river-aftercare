@@ -11,6 +11,7 @@ export type MarketingMenuItem = {
   href: string;
   label: string;
   current?: boolean;
+  themeId?: string;
 };
 
 export function MarketingNavMenu({
@@ -127,12 +128,18 @@ export function MarketingNavMenu({
               className={styles.navMenuSublist}
               aria-labelledby={`${menuId}-clinics`}
             >
-              {clinicItems.map((item) => (
-                <li key={item.href}>
+              {clinicItems.map((item, index) => (
+                <li
+                  key={item.href}
+                  className={
+                    index === 0 ? styles.navMenuOverview : styles.navMenuItem
+                  }
+                >
                   <Link
                     className={styles.navMenuRow}
                     href={item.href}
                     aria-current={item.current ? "page" : undefined}
+                    data-vertical={item.themeId}
                   >
                     {item.label}
                   </Link>
