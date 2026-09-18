@@ -88,11 +88,13 @@ test.describe("marketing conversion routes", () => {
       page.getByLabel("Anything you'd like us to know? (optional)")
     ).toBeVisible();
     await expect(
-      page.getByText("Please don't include patient or clinical information.")
+      page.getByText(
+        "Do not include patient, medical or sensitive health information."
+      )
     ).toBeVisible();
     await expect(page.getByText("Who it's for")).toHaveCount(0);
     await expect(
-      page.getByText("Thanks — your enquiry has been sent.")
+      page.getByText("Thanks — your message has been sent.")
     ).toHaveCount(0);
 
     const robots = await page.goto(marketingUrl("/robots.txt"), {
@@ -331,7 +333,7 @@ test.describe("marketing conversion routes", () => {
     );
     await expect(page.getByText("Work email")).toHaveCount(0);
     await expect(
-      page.getByText("Thanks — your enquiry has been sent.")
+      page.getByText("Thanks — your message has been sent.")
     ).toHaveCount(0);
     await page.locator("form").screenshot({
       path: "test-results/artifacts/contact-form-validation-1440.png",
@@ -349,7 +351,7 @@ test.describe("marketing conversion routes", () => {
     await page.getByRole("button", { name: "Send enquiry" }).click();
 
     await expect(page.getByRole("status")).toContainText(
-      "Thanks — your enquiry has been sent."
+      "Thanks — your message has been sent."
     );
     await expect(
       page.getByText("We'll reply to the email address you provided.")

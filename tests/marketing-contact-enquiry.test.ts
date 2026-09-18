@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   CONTACT_HONEYPOT_FIELD,
@@ -95,25 +95,28 @@ describe("contact enquiry schema", () => {
   it("sanitises mail headers and builds a clinic subject", () => {
     expect(sanitizeHeaderValue("Harbour\r\nDental")).toBe("Harbour Dental");
     expect(enquirySubject("Harbour\nDental")).toBe(
-      "River Aftercare — clinic enquiry — Harbour Dental"
+      "River Aftercare enquiry — Harbour Dental"
+    );
+    expect(enquirySubject("")).toBe("River Aftercare enquiry");
+    expect(enquirySubject("A".repeat(200)).length).toBeLessThanOrEqual(
+      "River Aftercare enquiry — ".length + 80
     );
   });
-});
 
-describe("contact throttle", () => {
-  afterEach(async () => {
-    const { resetContactThrottleForTests } =
-      await import("@/lib/marketing/contact-throttle");
-    resetContactThrottleForTests();
-  });
-
-  it("allows a small burst then blocks", async () => {
-    const { consumeContactThrottle } =
-      await import("@/lib/marketing/contact-throttle");
-    const key = "test-ip";
-    for (let index = 0; index < 5; index += 1) {
-      expect(consumeContactThrottle(key).allowed).toBe(true);
+  it("rejects overlong values", () => {
+    const parsed = contactEnquirySchema.safeParse({
+      ...valid,
+      fullName: "A".repeat(121),
+      phone: "1".repeat(41),
+      message: "M".repeat(2001),
+    });
+    expect(parsed.success).toBe(false);
+    if (parsed.success) {
+      return;
     }
-    expect(consumeContactThrottle(key).allowed).toBe(false);
+    const errors = contactFieldErrorsFromZod(parsed.error);
+    expect(errors.fullName).toMatch(/too long/i);
+    expect(errors.phone).toMatch(/too long/i);
+    expect(errors.message).toMatch(/too long/i);
   });
 });

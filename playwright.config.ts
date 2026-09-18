@@ -41,12 +41,17 @@ export default defineConfig({
       ...process.env,
       DATABASE_URL: e2eUrl,
       CLINIC_ASSET_STORAGE_DRIVER: "memory",
-      MARKETING_CONTACT_TO_EMAIL:
-        process.env.MARKETING_CONTACT_TO_EMAIL ?? "hello@example.test",
-      MARKETING_CONTACT_FROM_EMAIL:
-        process.env.MARKETING_CONTACT_FROM_EMAIL ?? "website@example.test",
-      MARKETING_CONTACT_MAILER:
-        process.env.MARKETING_CONTACT_MAILER ?? "memory",
+      CONTACT_EMAIL_TO: process.env.CONTACT_EMAIL_TO ?? "hello@example.test",
+      CONTACT_EMAIL_FROM:
+        process.env.CONTACT_EMAIL_FROM ??
+        "River Aftercare <website@example.test>",
+      CONTACT_MAILER: process.env.CONTACT_MAILER ?? "memory",
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY:
+        process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ??
+        "1x00000000000000000000AA",
+      TURNSTILE_SECRET_KEY:
+        process.env.TURNSTILE_SECRET_KEY ??
+        "1x0000000000000000000000000000000AA",
     },
   },
   projects: [

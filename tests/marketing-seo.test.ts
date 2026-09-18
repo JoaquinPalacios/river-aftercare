@@ -9,33 +9,37 @@ import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
 
 describe("marketing contact addresses", () => {
-  const previousTo = process.env.MARKETING_CONTACT_TO_EMAIL;
-  const previousFrom = process.env.MARKETING_CONTACT_FROM_EMAIL;
+  const previousTo = process.env.CONTACT_EMAIL_TO;
+  const previousFrom = process.env.CONTACT_EMAIL_FROM;
+  const previousLegacyTo = process.env.MARKETING_CONTACT_TO_EMAIL;
+  const previousLegacyFrom = process.env.MARKETING_CONTACT_FROM_EMAIL;
   const previousLegacy = process.env.MARKETING_CONTACT_EMAIL;
 
   afterEach(() => {
-    restore("MARKETING_CONTACT_TO_EMAIL", previousTo);
-    restore("MARKETING_CONTACT_FROM_EMAIL", previousFrom);
+    restore("CONTACT_EMAIL_TO", previousTo);
+    restore("CONTACT_EMAIL_FROM", previousFrom);
+    restore("MARKETING_CONTACT_TO_EMAIL", previousLegacyTo);
+    restore("MARKETING_CONTACT_FROM_EMAIL", previousLegacyFrom);
     restore("MARKETING_CONTACT_EMAIL", previousLegacy);
   });
 
   it("accepts configured to/from addresses and rejects malformed values", () => {
     expect(
       getMarketingContactToEmail({
-        MARKETING_CONTACT_TO_EMAIL: "hello@example.test",
+        CONTACT_EMAIL_TO: "hello@example.test",
       })
     ).toBe("hello@example.test");
     expect(
       getMarketingContactFromEmail({
-        MARKETING_CONTACT_FROM_EMAIL: "website@example.test",
+        CONTACT_EMAIL_FROM: "website@example.test",
       })
     ).toBe("website@example.test");
     expect(
-      getMarketingContactToEmail({ MARKETING_CONTACT_TO_EMAIL: "not-an-email" })
+      getMarketingContactToEmail({ CONTACT_EMAIL_TO: "not-an-email" })
     ).toBeNull();
     expect(
       getMarketingContactFromEmail({
-        MARKETING_CONTACT_FROM_EMAIL: "hello@example",
+        CONTACT_EMAIL_FROM: "hello@example",
       })
     ).toBeNull();
   });

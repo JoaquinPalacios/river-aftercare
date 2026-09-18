@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   // html-encoding-sniffer → @exodus/bytes, which Vercel's Node runtime
   // rejects with ERR_REQUIRE_ESM even on Node 24.
   serverExternalPackages: [
-    "nodemailer",
+    "resend",
     "jsdom",
     "dompurify",
     "@aws-sdk/client-s3",

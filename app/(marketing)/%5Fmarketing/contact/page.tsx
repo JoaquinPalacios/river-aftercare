@@ -7,6 +7,7 @@ import { ContactForm } from "@/app/(marketing)/components/contact-form";
 import { MarketingPageHero } from "@/app/(marketing)/components/marketing-page-hero";
 import { MarketingShell } from "@/app/(marketing)/components/marketing-shell";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { getTurnstileSiteKey } from "@/lib/marketing/contact-config";
 import { marketingPublicLinks } from "@/lib/marketing/public-links";
 import {
   generateMarketingMetadata,
@@ -43,7 +44,10 @@ export default async function MarketingContactPage() {
             <div className={styles.inner}>
               <MarketingRevealGroup>
                 <MarketingRevealItem delay={0}>
-                  <ContactForm demoHref={demoHref} />
+                  <ContactForm
+                    demoHref={demoHref}
+                    turnstileSiteKey={getTurnstileSiteKey()}
+                  />
                 </MarketingRevealItem>
               </MarketingRevealGroup>
             </div>

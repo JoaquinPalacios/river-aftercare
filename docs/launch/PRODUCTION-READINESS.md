@@ -50,20 +50,20 @@ Do not provision Vercel, Cloudflare, R2, domains, or email from this document. D
 
 ## Email
 
-| Item                        | Status                     | Notes                                                                                                       |
-| --------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Public mailbox              | REQUIRED BEFORE PRODUCTION | Recommend `hello@<brand-domain>`. Not created.                                                              |
-| Resend (or production SMTP) | REQUIRED BEFORE PRODUCTION | Contact currently uses nodemailer/SMTP env. Resend is the desired transactional direction, not implemented. |
-| SPF / DKIM / DMARC          | REQUIRED BEFORE PRODUCTION | Cannot exist until the domain and mail vendor exist.                                                        |
-| Inbound routing             | REQUIRED BEFORE PRODUCTION | Enquiry destination inbox.                                                                                  |
+| Item               | Status | Notes                                                                                                                                               |
+| ------------------ | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public mailbox     | READY  | Production mailbox is `contact@riveraftercare.com.au` (Hostinger, forwarded to operator Gmail). Application never talks to Hostinger SMTP or Gmail. |
+| Resend             | READY  | Marketing Contact sends via the Resend Node SDK using `RESEND_API_KEY`, `CONTACT_EMAIL_FROM`, and `CONTACT_EMAIL_TO`. SMTP/nodemailer path removed. |
+| SPF / DKIM / DMARC | READY  | Configured for the sending domain `mail.riveraftercare.com.au` (operator infrastructure; not modified by this app change).                          |
+| Inbound routing    | READY  | Hostinger mailbox + Gmail forwarding is the operator workflow.                                                                                      |
 
 ## Security
 
 | Item                   | Status                                 | Notes                                                                                                                                                                                 |
 | ---------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Turnstile              | REQUIRED BEFORE PRODUCTION             | High priority; not implemented.                                                                                                                                                       |
-| Login rate limit       | REQUIRED BEFORE PRODUCTION             | Not a production-hardened limiter.                                                                                                                                                    |
-| Contact rate limit     | REQUIRED BEFORE PRODUCTION             | Baseline exists in marketing contact; confirm before public launch.                                                                                                                   |
+| Turnstile              | PARTIAL                                | Marketing `/contact` has a Managed widget plus mandatory server-side Siteverify. Production fails closed without `TURNSTILE_SECRET_KEY`. Login Turnstile is **not** implemented.      |
+| Login rate limit       | REQUIRED BEFORE PRODUCTION             | Vercel WAF `login-post-rate-limit` exists (15 / 10 minutes / IP). Not an application limiter.                                                                                         |
+| Contact rate limit     | OBSERVE                                | Vercel WAF `contact-post-observe` currently logs `POST /contact`. Application relies on Turnstile + honeypot. In-memory Map throttle removed (not durable on Vercel).                 |
 | Security headers / CSP | RECOMMENDED BEFORE FIRST PAYING CLINIC | Review at deploy.                                                                                                                                                                     |
 | Secrets review         | REQUIRED BEFORE PRODUCTION             | No production secrets in repo.                                                                                                                                                        |
 | Auth.js v5 beta        | REQUIRED BEFORE PRODUCTION             | Documented exception. Decision: treat as an **acceptable documented exception for first launch** unless a separate auth migration is approved. Do not silently switch to Better Auth. |
@@ -94,14 +94,14 @@ Do not provision Vercel, Cloudflare, R2, domains, or email from this document. D
 
 ## Operations
 
-| Item             | Status                                 | Notes                                               |
-| ---------------- | -------------------------------------- | --------------------------------------------------- |
-| Error monitoring | REQUIRED BEFORE PRODUCTION             | Not configured.                                     |
-| Logs             | REQUIRED BEFORE PRODUCTION             | Platform logs after Vercel exists.                  |
-| Uptime           | RECOMMENDED BEFORE FIRST PAYING CLINIC |                                                     |
-| Deploy rollback  | REQUIRED BEFORE PRODUCTION             | Vercel rollback once deployed.                      |
-| Backup restore   | RECOMMENDED BEFORE FIRST PAYING CLINIC |                                                     |
-| Support path     | REQUIRED BEFORE PRODUCTION             | Public contact exists; production mailbox does not. |
+| Item             | Status                                 | Notes                                                                                                  |
+| ---------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Error monitoring | REQUIRED BEFORE PRODUCTION             | Not configured.                                                                                        |
+| Logs             | REQUIRED BEFORE PRODUCTION             | Platform logs after Vercel exists.                                                                     |
+| Uptime           | RECOMMENDED BEFORE FIRST PAYING CLINIC |                                                                                                        |
+| Deploy rollback  | REQUIRED BEFORE PRODUCTION             | Vercel rollback once deployed.                                                                         |
+| Backup restore   | RECOMMENDED BEFORE FIRST PAYING CLINIC |                                                                                                        |
+| Support path     | REQUIRED BEFORE PRODUCTION             | Public contact form + production mailbox exist. Confirm Vercel env and a live test send before launch. |
 
 ## Commercial
 
@@ -157,8 +157,8 @@ Cloudflare as authoritative DNS plus `_acme-challenge` delegation to Vercel must
 | MUST BEFORE PRODUCTION     | Neon Sydney PG18 + backups + migrate deploy                      | Yes                   | Project exists. Still need Vercel `DATABASE_URL` (pooled) + `DIRECT_URL` (unpooled) + `prisma migrate deploy`. Never from a drive-by branch. |
 | MUST BEFORE PRODUCTION     | R2 (or equivalent) clinic-logo bucket                            | Yes                   | Follow ADR 0019                                                                                                                              |
 | MUST BEFORE PRODUCTION     | Privacy + Terms counsel approval of published drafts             | Yes                   | Legal review; do not mark approved until counsel signs                                                                                       |
-| MUST BEFORE PRODUCTION     | Public mailbox + SPF/DKIM/DMARC + delivery                       | Yes                   | Brand-domain inbox; Resend or SMTP                                                                                                           |
-| MUST BEFORE PRODUCTION     | Turnstile on login/contact                                       | Yes                   | Cloudflare widget                                                                                                                            |
+| MUST BEFORE PRODUCTION     | Public mailbox + SPF/DKIM/DMARC + delivery                       | Application ready     | Hostinger mailbox + Resend sending domain exist. Confirm production env on Vercel before serving public Contact.                             |
+| MUST BEFORE PRODUCTION     | Turnstile on login                                               | Yes                   | Contact Turnstile is implemented. Login still needs a widget + server-side verification.                                                     |
 | MUST BEFORE PRODUCTION     | Error monitoring + secrets review                                | Yes                   | Sentry or equivalent                                                                                                                         |
 | MUST BEFORE PRODUCTION     | Auth.js v5 beta accepted in writing                              | Yes                   | Keep exception or separate auth project                                                                                                      |
 | MUST BEFORE PRODUCTION     | Dedicated OG image optional for go-live                          | No                    | Upload workflow exists; 1200×630 asset still needs to be uploaded                                                                            |

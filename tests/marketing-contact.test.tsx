@@ -50,16 +50,21 @@ describe("marketing contact page", () => {
     expect(html).toContain('name="phone"');
     expect(html).toContain("Anything you&#x27;d like us to know?");
     expect(html).toContain(
-      "Please don&#x27;t include patient or clinical information."
+      "Do not include patient, medical or sensitive health information."
     );
+    expect(html).toContain("not patient support");
     expect(html).toContain("Send enquiry");
     expect(html).toContain('name="website"');
     expect(html).toContain("optional");
+    expect(html).toContain('name="cf-turnstile-response"');
+    expect(html).toContain('aria-label="Verification"');
+    expect(html).not.toContain("TURNSTILE_SECRET_KEY");
+    expect(html).not.toContain("RESEND_API_KEY");
     expect(html).not.toContain("Who it's for");
     expect(html).not.toContain("What happens next");
     expect(html).not.toContain("What we'll set up");
     expect(html).not.toContain("mailto:");
-    expect(html).not.toContain("Thanks — your enquiry has been sent.");
+    expect(html).not.toContain("Thanks — your message has been sent.");
     expect(html).not.toContain("patient date of birth");
     expect(html).not.toContain("specialty");
     expect(html).not.toContain("password");

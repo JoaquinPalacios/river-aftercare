@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { ContactTurnstile } from "@/app/(marketing)/components/contact-turnstile";
 import { submitMarketingContactAction } from "@/app/(marketing)/%5Fmarketing/contact/actions";
 import {
   initialContactActionState,
@@ -43,7 +44,13 @@ function fieldErrorsFromState(
   return state.status === "error" ? state.fieldErrors : {};
 }
 
-export function ContactForm({ demoHref }: { demoHref: string }) {
+export function ContactForm({
+  demoHref,
+  turnstileSiteKey,
+}: {
+  demoHref: string;
+  turnstileSiteKey: string;
+}) {
   const formId = useId().replace(/:/g, "");
   const formRef = useRef<HTMLFormElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -55,6 +62,7 @@ export function ContactForm({ demoHref }: { demoHref: string }) {
   const [clientErrors, setClientErrors] = useState<ContactEnquiryFieldErrors>(
     {}
   );
+  const [turnstileReset, setTurnstileReset] = useState(0);
   const fieldErrors = {
     ...fieldErrorsFromState(state),
     ...clientErrors,
@@ -76,7 +84,13 @@ export function ContactForm({ demoHref }: { demoHref: string }) {
       return;
     }
 
-    const firstField = FIELD_ORDER.find((field) => fieldErrors[field]);
+    setTurnstileReset((value) => value + 1);
+
+    const errors = {
+      ...fieldErrorsFromState(state),
+      ...clientErrors,
+    };
+    const firstField = FIELD_ORDER.find((field) => errors[field]);
     if (firstField) {
       const node = formRef.current?.elements.namedItem(firstField);
       if (node instanceof HTMLElement) {
@@ -86,7 +100,7 @@ export function ContactForm({ demoHref }: { demoHref: string }) {
     }
 
     summaryRef.current?.focus();
-  }, [state, fieldErrors]);
+  }, [state, clientErrors]);
 
   function validateClient(formData: FormData): ContactEnquiryFieldErrors {
     return validateContactFormValues(readContactFormValues(formData));
@@ -118,7 +132,7 @@ export function ContactForm({ demoHref }: { demoHref: string }) {
         aria-live="polite"
       >
         <h2 id="contact-form-heading" className={styles.contactSuccessTitle}>
-          Thanks — your enquiry has been sent.
+          Thanks — your message has been sent.
         </h2>
         <p className={styles.copy}>
           We&apos;ll reply to the email address you provided.
@@ -278,8 +292,15 @@ export function ContactForm({ demoHref }: { demoHref: string }) {
         />
       </div>
 
+      <ContactTurnstile
+        siteKey={turnstileSiteKey}
+        resetSignal={turnstileReset}
+      />
+
       <p className={styles.contactPrivacy}>
-        Please don&apos;t include patient or clinical information.
+        Do not include patient, medical or sensitive health information. This
+        form is for product, demo and business enquiries — not patient support,
+        clinical advice or emergencies.
       </p>
 
       <div className={styles.contactActions}>

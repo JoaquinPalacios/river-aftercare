@@ -1012,7 +1012,7 @@ Pricing and contact do not add a second animation system. Contact adds a narrow 
 
 ## After marketing conversion polish
 
-Measured 2026-09-09 against `cursor/marketing-conversion-polish-7f34` on production `next start` / port 4173. Next.js 16.3.4 / Turbopack. Motion remains `motion@13.2.0`. Contact is a Server Component page plus a narrow `ContactForm` client island. Zod stays server-only (`contact-enquiry.ts`); the client validates with `contact-fields.ts`. Delivery is a server-only nodemailer adapter.
+Measured 2026-09-09 against `cursor/marketing-conversion-polish-7f34` on production `next start` / port 4173. Next.js 16.3.4 / Turbopack. Motion remains `motion@13.2.0`. Contact is a Server Component page plus a narrow `ContactForm` client island. Zod stays server-only (`contact-enquiry.ts`); the client validates with `contact-fields.ts`. Delivery is now a server-only Resend adapter (nodemailer/SMTP was removed).
 
 Viewport thresholds are unchanged (mobile ~-80px, desktop ~-200px, tablet interpolated). Editorial reveal is **720ms / 110ms**. Cards are **650ms / 95ms**, cap **320ms**.
 

@@ -2,7 +2,10 @@
 
 import { headers } from "next/headers";
 
-import { getMarketingContactDeliveryConfig } from "@/lib/marketing/contact-config";
+import {
+  getMarketingContactDeliveryConfig,
+  isMarketingContactHost,
+} from "@/lib/marketing/contact-config";
 import {
   CONTACT_HONEYPOT_FIELD,
   contactEnquirySchema,
@@ -10,40 +13,58 @@ import {
   isHoneypotTriggered,
   readContactFormValues,
 } from "@/lib/marketing/contact-enquiry";
-import { deliverMarketingContactEnquiry } from "@/lib/marketing/contact-mailer";
 import {
-  consumeContactThrottle,
-  contactThrottleKey,
-} from "@/lib/marketing/contact-throttle";
+  CONTACT_DELIVERY_FAILED,
+  deliverMarketingContactEnquiry,
+} from "@/lib/marketing/contact-mailer";
+import {
+  getTurnstileSecretKey,
+  vercelRequestIp,
+  verifyTurnstileToken,
+} from "@/lib/marketing/contact-turnstile";
+import { readTurnstileToken } from "@/lib/marketing/contact-turnstile-public";
 
 import { type ContactActionState, initialContactActionState } from "./state";
 
-const DELIVERY_FAILED = "Unable to send your enquiry. Please try again.";
-const THROTTLED =
-  "Too many enquiries were sent from this network. Please try again later.";
+export const CONTACT_VERIFICATION_EXPIRED =
+  "Verification expired. Please try again.";
 
-async function clientKey(): Promise<string> {
-  const requestHeaders = await headers();
-  const forwarded = requestHeaders.get("x-forwarded-for");
-  const first = forwarded?.split(",")[0]?.trim();
-  return contactThrottleKey(
-    first ||
-      requestHeaders.get("x-real-ip") ||
-      requestHeaders.get("cf-connecting-ip")
-  );
+function genericError(
+  error: string = CONTACT_DELIVERY_FAILED
+): ContactActionState {
+  return {
+    status: "error",
+    error,
+    fieldErrors: {},
+  };
+}
+
+function turnstileUserError(
+  reason: "missing" | "failed" | "expired" | "unavailable"
+): ContactActionState {
+  if (reason === "expired" || reason === "missing") {
+    return genericError(CONTACT_VERIFICATION_EXPIRED);
+  }
+  return genericError();
 }
 
 export async function submitMarketingContactAction(
   _previous: ContactActionState = initialContactActionState,
   formData: FormData
 ): Promise<ContactActionState> {
-  const throttle = consumeContactThrottle(await clientKey());
-  if (!throttle.allowed) {
-    return {
-      status: "error",
-      error: THROTTLED,
-      fieldErrors: {},
-    };
+  const requestHeaders = await headers();
+  if (!isMarketingContactHost(requestHeaders.get("host"))) {
+    return genericError();
+  }
+
+  const token = readTurnstileToken(formData);
+  const verification = await verifyTurnstileToken({
+    token,
+    secret: getTurnstileSecretKey(),
+    remoteIp: vercelRequestIp(requestHeaders),
+  });
+  if (!verification.ok) {
+    return turnstileUserError(verification.reason);
   }
 
   const parsed = contactEnquirySchema.safeParse(
@@ -61,11 +82,7 @@ export async function submitMarketingContactAction(
     isHoneypotTriggered(parsed.data) ||
     formData.get(CONTACT_HONEYPOT_FIELD)
   ) {
-    return {
-      status: "error",
-      error: DELIVERY_FAILED,
-      fieldErrors: {},
-    };
+    return genericError();
   }
 
   const result = await deliverMarketingContactEnquiry(
@@ -74,11 +91,7 @@ export async function submitMarketingContactAction(
   );
 
   if (!result.ok) {
-    return {
-      status: "error",
-      error: result.error,
-      fieldErrors: {},
-    };
+    return genericError();
   }
 
   return { status: "success" };

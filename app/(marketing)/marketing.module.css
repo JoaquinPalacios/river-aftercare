@@ -3326,6 +3326,15 @@ html[data-theme-mode="dark"] .wordmarkName {
   justify-self: start;
 }
 
+.contactTurnstile {
+  width: min(100%, 19rem);
+  min-height: 4.05rem;
+}
+
+.contactTurnstileWidget {
+  width: 100%;
+}
+
 .contactHoneypot {
   position: absolute;
   width: 1px;

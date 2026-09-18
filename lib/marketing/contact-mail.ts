@@ -38,11 +38,11 @@ export function composeMarketingContactMessage({
   const message = enquiry.message?.trim() || null;
 
   const lines = [
-    `${PRODUCT_NAME} clinic enquiry`,
+    `${PRODUCT_NAME} enquiry`,
     "",
     `Name: ${fullName}`,
     `Email: ${email}`,
-    `Clinic: ${clinicName}`,
+    `Practice: ${clinicName}`,
   ];
 
   if (phone) {
@@ -56,7 +56,7 @@ export function composeMarketingContactMessage({
   const htmlRows = [
     ["Name", fullName],
     ["Email", email],
-    ["Clinic", clinicName],
+    ["Practice", clinicName],
   ];
 
   if (phone) {
@@ -64,7 +64,7 @@ export function composeMarketingContactMessage({
   }
 
   const html = [
-    `<p>${escapeHtml(PRODUCT_NAME)} clinic enquiry</p>`,
+    `<p>${escapeHtml(PRODUCT_NAME)} enquiry</p>`,
     "<table>",
     ...htmlRows.map(
       ([label, value]) =>

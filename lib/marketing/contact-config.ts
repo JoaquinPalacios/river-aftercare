@@ -1,20 +1,31 @@
-export const MARKETING_CONTACT_TO_EMAIL_ENV = "MARKETING_CONTACT_TO_EMAIL";
-export const MARKETING_CONTACT_FROM_EMAIL_ENV = "MARKETING_CONTACT_FROM_EMAIL";
-/** @deprecated Prefer MARKETING_CONTACT_TO_EMAIL. Kept as a local fallback. */
-export const MARKETING_CONTACT_EMAIL_ENV = "MARKETING_CONTACT_EMAIL";
-export const MARKETING_CONTACT_MAILER_ENV = "MARKETING_CONTACT_MAILER";
+import { TURNSTILE_DUMMY_PASS_SITE_KEY } from "@/lib/marketing/contact-turnstile-public";
+import { parseHostname } from "@/lib/tenancy/parse-hostname";
+import { getRootDomain } from "@/lib/tenancy/root-domain";
 
-export const SMTP_HOST_ENV = "SMTP_HOST";
-export const SMTP_PORT_ENV = "SMTP_PORT";
-export const SMTP_USER_ENV = "SMTP_USER";
-export const SMTP_PASSWORD_ENV = "SMTP_PASSWORD";
-export const SMTP_SECURE_ENV = "SMTP_SECURE";
+export const CONTACT_EMAIL_TO_ENV = "CONTACT_EMAIL_TO";
+export const CONTACT_EMAIL_FROM_ENV = "CONTACT_EMAIL_FROM";
+export const CONTACT_MAILER_ENV = "CONTACT_MAILER";
+export const RESEND_API_KEY_ENV = "RESEND_API_KEY";
+export const TURNSTILE_SITE_KEY_ENV = "NEXT_PUBLIC_TURNSTILE_SITE_KEY";
+
+/** @deprecated Prefer CONTACT_EMAIL_TO. Local fallback only. */
+export const MARKETING_CONTACT_TO_EMAIL_ENV = "MARKETING_CONTACT_TO_EMAIL";
+/** @deprecated Prefer CONTACT_EMAIL_FROM. Local fallback only. */
+export const MARKETING_CONTACT_FROM_EMAIL_ENV = "MARKETING_CONTACT_FROM_EMAIL";
+/** @deprecated Prefer CONTACT_EMAIL_TO. Kept as a local fallback. */
+export const MARKETING_CONTACT_EMAIL_ENV = "MARKETING_CONTACT_EMAIL";
+/** @deprecated Prefer CONTACT_MAILER. Local fallback only. */
+export const MARKETING_CONTACT_MAILER_ENV = "MARKETING_CONTACT_MAILER";
 
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Env = Record<string, string | undefined>;
 
-export type MarketingMailerKind = "smtp" | "memory";
+export function isVercelProduction(env: Env = process.env): boolean {
+  return env.VERCEL_ENV === "production";
+}
+
+export type MarketingMailerKind = "resend" | "memory";
 
 export type MarketingContactDeliveryConfig =
   | {
@@ -25,10 +36,10 @@ export type MarketingContactDeliveryConfig =
     }
   | {
       ready: true;
-      kind: "smtp";
+      kind: "resend";
       toEmail: string;
       fromEmail: string;
-      smtp: SmtpConfig;
+      apiKey: string;
     }
   | {
       ready: false;
@@ -36,27 +47,55 @@ export type MarketingContactDeliveryConfig =
       reason: string;
     };
 
-export type SmtpConfig = {
-  host: string;
-  port: number;
-  user: string | null;
-  password: string | null;
-  secure: boolean;
-};
-
 export function parseEmailAddress(value: string | undefined): string | null {
   const trimmed = value?.trim();
-  if (!trimmed || !EMAIL_PATTERN.test(trimmed) || /[\r\n]/.test(trimmed)) {
+  if (!trimmed || trimmed.length > 254 || /[\r\n]/.test(trimmed)) {
+    return null;
+  }
+  if (!EMAIL_PATTERN.test(trimmed)) {
     return null;
   }
 
   return trimmed;
 }
 
+export function parseMailboxAddress(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed.length > 200 || /[\r\n]/.test(trimmed)) {
+    return null;
+  }
+
+  const angled = trimmed.match(/^(?:"([^"]+)"|([^<]*?))\s*<([^<>]+)>$/);
+  if (angled) {
+    const name = (angled[1] ?? angled[2] ?? "").trim();
+    const email = parseEmailAddress(angled[3]);
+    if (!email) {
+      return null;
+    }
+    if (!name) {
+      return email;
+    }
+    if (/[<>]/.test(name)) {
+      return null;
+    }
+    const safeName = name
+      .replace(/[\u0000-\u001f\u007f]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!safeName) {
+      return email;
+    }
+    return `${safeName} <${email}>`;
+  }
+
+  return parseEmailAddress(trimmed);
+}
+
 export function getMarketingContactToEmail(
   env: Env = process.env
 ): string | null {
   return (
+    parseEmailAddress(env[CONTACT_EMAIL_TO_ENV]) ??
     parseEmailAddress(env[MARKETING_CONTACT_TO_EMAIL_ENV]) ??
     parseEmailAddress(env[MARKETING_CONTACT_EMAIL_ENV])
   );
@@ -65,40 +104,41 @@ export function getMarketingContactToEmail(
 export function getMarketingContactFromEmail(
   env: Env = process.env
 ): string | null {
-  return parseEmailAddress(env[MARKETING_CONTACT_FROM_EMAIL_ENV]);
+  return (
+    parseMailboxAddress(env[CONTACT_EMAIL_FROM_ENV]) ??
+    parseMailboxAddress(env[MARKETING_CONTACT_FROM_EMAIL_ENV])
+  );
+}
+
+export function getResendApiKey(env: Env = process.env): string | null {
+  const key = env[RESEND_API_KEY_ENV]?.trim();
+  return key && key.length > 0 ? key : null;
+}
+
+export function getTurnstileSiteKey(env: Env = process.env): string {
+  const configured = env[TURNSTILE_SITE_KEY_ENV]?.trim() ?? "";
+  if (configured) {
+    return configured;
+  }
+
+  if (isVercelProduction(env)) {
+    return "";
+  }
+
+  return TURNSTILE_DUMMY_PASS_SITE_KEY;
 }
 
 export function getMarketingMailerKind(
   env: Env = process.env
 ): MarketingMailerKind {
-  return env[MARKETING_CONTACT_MAILER_ENV]?.trim() === "memory"
-    ? "memory"
-    : "smtp";
-}
-
-export function getSmtpConfig(env: Env = process.env): SmtpConfig | null {
-  const host = env[SMTP_HOST_ENV]?.trim();
-  if (!host) {
-    return null;
+  if (isVercelProduction(env)) {
+    return "resend";
   }
 
-  const portValue = env[SMTP_PORT_ENV]?.trim() || "587";
-  const port = Number.parseInt(portValue, 10);
-  if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-    return null;
-  }
-
-  const secureValue = env[SMTP_SECURE_ENV]?.trim().toLowerCase();
-  const user = env[SMTP_USER_ENV]?.trim() || null;
-  const password = env[SMTP_PASSWORD_ENV] ?? null;
-
-  return {
-    host,
-    port,
-    user,
-    password: password && password.length > 0 ? password : null,
-    secure: secureValue === "true" || secureValue === "1",
-  };
+  const value =
+    env[CONTACT_MAILER_ENV]?.trim() ||
+    env[MARKETING_CONTACT_MAILER_ENV]?.trim();
+  return value === "memory" ? "memory" : "resend";
 }
 
 export function getMarketingContactDeliveryConfig(
@@ -112,8 +152,7 @@ export function getMarketingContactDeliveryConfig(
     return {
       ready: false,
       kind,
-      reason:
-        "Clinic enquiry delivery is not configured. Set MARKETING_CONTACT_TO_EMAIL and MARKETING_CONTACT_FROM_EMAIL.",
+      reason: "Clinic enquiry delivery is not configured.",
     };
   }
 
@@ -126,21 +165,31 @@ export function getMarketingContactDeliveryConfig(
     };
   }
 
-  const smtp = getSmtpConfig(env);
-  if (!smtp) {
+  const apiKey = getResendApiKey(env);
+  if (!apiKey) {
     return {
       ready: false,
-      kind: "smtp",
-      reason:
-        "Clinic enquiry delivery is not configured. Set SMTP_HOST and SMTP_PORT, or use MARKETING_CONTACT_MAILER=memory in local development.",
+      kind: "resend",
+      reason: "Clinic enquiry delivery is not configured.",
     };
   }
 
   return {
     ready: true,
-    kind: "smtp",
+    kind: "resend",
     toEmail,
     fromEmail,
-    smtp,
+    apiKey,
   };
+}
+
+export function isMarketingContactHost(
+  hostHeader: string | null | undefined,
+  env: Env = process.env
+): boolean {
+  try {
+    return parseHostname(hostHeader, getRootDomain(env)).kind === "marketing";
+  } catch {
+    return false;
+  }
 }
