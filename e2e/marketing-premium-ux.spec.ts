@@ -170,6 +170,7 @@ test.describe("premium marketing UX", () => {
   });
 
   test("captures premium UX visual QA artifacts", async ({ page }) => {
+    test.setTimeout(120_000);
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
@@ -210,6 +211,12 @@ test.describe("premium marketing UX", () => {
     await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/home-phone-desktop-dark.png",
     });
+    await page.locator('[class*="phoneShell"]').screenshot({
+      path: "test-results/artifacts/homepage-phone-mockup-dark-1440.png",
+    });
+    await page.locator('[class*="phoneComingNext"]').screenshot({
+      path: "test-results/artifacts/homepage-phone-mockup-dark-detail.png",
+    });
     await page
       .getByRole("heading", { name: "One platform, many clinic identities" })
       .locator("xpath=ancestor::section[1]")
@@ -244,6 +251,9 @@ test.describe("premium marketing UX", () => {
     await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/home-phone-mobile-dark.png",
     });
+    await page.locator('[class*="phoneShell"]').screenshot({
+      path: "test-results/artifacts/homepage-phone-mockup-390.png",
+    });
     await page.getByRole("button", { name: "Site menu" }).click();
     await page
       .locator("[class*='navMenuPanel']")
@@ -262,6 +272,14 @@ test.describe("premium marketing UX", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(marketingUrl("/clinics"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
+    await page
+      .getByRole("heading", {
+        name: "Different kinds of care. The same need for clarity afterwards.",
+      })
+      .locator("xpath=ancestor::section[1]")
+      .screenshot({
+        path: "test-results/artifacts/clinics-one-platform-light-1440.png",
+      });
     const dentalCard = page.getByRole("link", { name: /Dental practices/ });
     await dentalCard.scrollIntoViewIfNeeded();
     await page.locator("[class*='clinicsHubGrid']").screenshot({
@@ -280,6 +298,14 @@ test.describe("premium marketing UX", () => {
         path: "test-results/artifacts/clinics-shared-foundation-light.png",
       });
     await showMarketingScheme(page, "dark");
+    await page
+      .getByRole("heading", {
+        name: "Different kinds of care. The same need for clarity afterwards.",
+      })
+      .locator("xpath=ancestor::section[1]")
+      .screenshot({
+        path: "test-results/artifacts/clinics-one-platform-dark-1440.png",
+      });
     await page.locator("[class*='clinicsHubGrid']").screenshot({
       path: "test-results/artifacts/clinics-cards-default-dark.png",
     });
@@ -321,7 +347,13 @@ test.describe("premium marketing UX", () => {
     });
     await faqLast.locator("summary").focus();
     await page.screenshot({ path: "test-results/artifacts/faq-focus.png" });
+    await page.locator('[class*="verticalFaq"]').screenshot({
+      path: "test-results/artifacts/faq-light-open-close-states.png",
+    });
     await showMarketingScheme(page, "dark");
+    await page.locator('[class*="verticalFaq"]').screenshot({
+      path: "test-results/artifacts/faq-dark-open-close-states.png",
+    });
     await page.getByRole("link", { name: "View the dental demo" }).screenshot({
       path: "test-results/artifacts/dental-secondary-cta-dark.png",
     });
@@ -380,10 +412,16 @@ test.describe("premium marketing UX", () => {
     await inlineLink.screenshot({
       path: "test-results/artifacts/link-underline-inline.png",
     });
+    await inlineLink.screenshot({
+      path: "test-results/artifacts/inline-link-underline-example.png",
+    });
 
     await headerAbout.hover();
     await page.getByRole("navigation", { name: "Marketing" }).screenshot({
       path: "test-results/artifacts/nav-underline.png",
+    });
+    await page.getByRole("navigation", { name: "Marketing" }).screenshot({
+      path: "test-results/artifacts/nav-underline-example.png",
     });
 
     const footerAbout = page
@@ -418,11 +456,17 @@ test.describe("premium marketing UX", () => {
     await expect(
       clinicList.getByRole("link", { name: "Other appropriate allied health" })
     ).toHaveCount(0);
+    await clinicList.screenshot({
+      path: "test-results/artifacts/about-clinic-list-light-1440.png",
+    });
     await page.screenshot({
       path: "test-results/artifacts/about-light-1440.png",
       fullPage: true,
     });
     await showMarketingScheme(page, "dark");
+    await clinicList.screenshot({
+      path: "test-results/artifacts/about-clinic-list-dark-1440.png",
+    });
     await page.screenshot({
       path: "test-results/artifacts/about-dark-1440.png",
       fullPage: true,
@@ -438,12 +482,24 @@ test.describe("premium marketing UX", () => {
     expect(plannedGap).toBeLessThanOrEqual(28);
     await showMarketingScheme(page, "light");
     await page
+      .getByRole("heading", { name: "What these prices do and do not include" })
+      .locator("xpath=ancestor::section[1]")
+      .screenshot({
+        path: "test-results/artifacts/pricing-commercial-notes-light-1440.png",
+      });
+    await page
       .getByRole("heading", { name: "Planned, not in active plans" })
       .locator("xpath=ancestor::section[1]")
       .screenshot({
         path: "test-results/artifacts/pricing-planned-light-1440.png",
       });
     await showMarketingScheme(page, "dark");
+    await page
+      .getByRole("heading", { name: "What these prices do and do not include" })
+      .locator("xpath=ancestor::section[1]")
+      .screenshot({
+        path: "test-results/artifacts/pricing-commercial-notes-dark-1440.png",
+      });
     await page
       .getByRole("heading", { name: "Planned, not in active plans" })
       .locator("xpath=ancestor::section[1]")
@@ -508,8 +564,22 @@ test.describe("premium marketing UX", () => {
     });
 
     await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(marketingUrl("/clinics"), { waitUntil: "load" });
+    await showMarketingScheme(page, "dark");
+    await page
+      .getByRole("heading", {
+        name: "Different kinds of care. The same need for clarity afterwards.",
+      })
+      .locator("xpath=ancestor::section[1]")
+      .screenshot({
+        path: "test-results/artifacts/clinics-one-platform-390.png",
+      });
+
     await page.goto(marketingUrl("/about"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
+    await page.getByRole("navigation", { name: "Clinic types" }).screenshot({
+      path: "test-results/artifacts/about-clinic-list-390.png",
+    });
     await page.screenshot({
       path: "test-results/artifacts/about-390.png",
       fullPage: true,
