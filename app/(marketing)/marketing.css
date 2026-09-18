@@ -96,6 +96,7 @@
   --mk-section-pad-bottom: clamp(8rem, 6vw, 6rem);
   --mk-section-pad-bottom-mobile: clamp(4rem, 6vw, 6rem);
   --mk-section-pad-bottom-last: clamp(6rem, 6vw, 6rem);
+  --mk-section-pad-bottom-last-mobile: clamp(4rem, 5vw, 5rem);
   --mk-chapter-pad-y: clamp(6rem, 8vw, 8rem);
   --mk-chapter-pad-y-mobile: clamp(4rem, 8vw, 8rem);
   --mk-section-space-xl: clamp(4.25rem, 6.2vw, 5.75rem);
@@ -105,6 +106,7 @@
   --mk-heading-intro-gap: 1.25rem;
   --mk-body-gap: 1rem;
   --mk-heading-content-gap: clamp(2.35rem, 3.4vw, 3.05rem);
+  --mk-heading-content-gap-mobile: clamp(2rem, 3.25vw, 3rem);
   /* Intro copy → following collection (not heading → collection). */
   --mk-intro-content-gap: clamp(1.25rem, 2vw, 1.5rem);
   /* Text-link underline offsets stay independent by context. */
@@ -185,6 +187,13 @@
   );
   --mk-rail: var(--mk-wave-periwinkle);
   --mk-rail-end: var(--mk-sky);
+}
+
+@media (max-width: 47.99rem) {
+  :root {
+    --mk-heading-content-gap: var(--mk-heading-content-gap-mobile);
+    --mk-section-pad-bottom-last: var(--mk-section-pad-bottom-last-mobile);
+  }
 }
 
 html[data-theme-mode="light"] {

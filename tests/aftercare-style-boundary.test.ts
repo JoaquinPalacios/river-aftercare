@@ -176,6 +176,7 @@ describe("aftercare style boundary", () => {
     expect(tokens).toContain("--mk-section-pad-bottom");
     expect(tokens).toContain("--mk-section-pad-bottom-mobile");
     expect(tokens).toContain("--mk-section-pad-bottom-last");
+    expect(tokens).toContain("--mk-section-pad-bottom-last-mobile");
     expect(styles).toContain(".band:first-of-type");
     expect(styles).toContain(".band:last-of-type");
     expect(styles).toContain("padding-top: var(--mk-section-pad-top)");
@@ -194,6 +195,7 @@ describe("aftercare style boundary", () => {
     expect(tokens).toContain("clamp(6rem, 6vw, 6rem)");
     expect(tokens).toContain("clamp(4rem, 8vw, 8rem)");
     expect(tokens).toContain("clamp(4rem, 6vw, 6rem)");
+    expect(tokens).toContain("clamp(4rem, 5vw, 5rem)");
     expect(styles).toContain("padding-top: var(--mk-chapter-pad-y-mobile)");
     expect(styles).not.toContain("3.6rem");
     expect(styles).not.toContain("3.25rem");
@@ -207,6 +209,9 @@ describe("aftercare style boundary", () => {
     expect(styles).toContain("bottom: var(--mk-footer-link-underline-offset)");
     expect(styles).not.toContain("bottom: 0.12em");
     expect(tokens).toContain("--mk-heading-content-gap");
+    expect(tokens).toContain("--mk-heading-content-gap-mobile");
+    expect(tokens).toContain("clamp(2.35rem, 3.4vw, 3.05rem)");
+    expect(tokens).toContain("clamp(2rem, 3.25vw, 3rem)");
     expect(tokens).toContain("--mk-intro-content-gap");
     expect(tokens).toContain("--mk-eyebrow-heading-gap");
     expect(tokens).toContain("--mk-heading-intro-gap");

@@ -4990,6 +4990,10 @@ html[data-theme-mode="dark"] .wordmarkName {
     width: 100%;
   }
 
+  .productGrid {
+    row-gap: 1.75rem;
+  }
+
   .productInputs {
     grid-template-columns: 1fr;
     justify-items: stretch;
