@@ -348,10 +348,8 @@ test.describe("premium marketing UX", () => {
     await faqLast.locator("summary").focus();
     await page.screenshot({ path: "test-results/artifacts/faq-focus.png" });
     const faqAccordion = page
-      .locator("div")
-      .filter({ has: page.locator('details[data-faq-position="first"]') })
-      .filter({ has: page.locator('details[data-faq-position="last"]') })
-      .first();
+      .locator('details[data-faq-position="first"]')
+      .locator("xpath=..");
     await faqAccordion.screenshot({
       path: "test-results/artifacts/faq-light-open-close-states.png",
     });
