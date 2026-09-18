@@ -5,13 +5,20 @@ import type { ClinicVerticalPath } from "@/lib/marketing/clinic-verticals";
 export type VerticalThemeId =
   "dental" | "physiotherapy" | "chiropractic" | "cosmetic";
 
-export type VerticalAccentFamily = "periwinkle" | "sky" | "cobalt" | "lavender";
+export type VerticalAccentFamily = "cobalt" | "teal" | "periwinkle" | "cyan";
+
+export const RIVER_SPECTRUM_PRIMITIVES = {
+  deep: "#2D3BB8",
+  blue: "#3B4BD1",
+  periwinkle: "#7C8CFF",
+  cyan: "#67C5D6",
+} as const;
 
 export const VERTICAL_ACCENT_FAMILY = {
-  dental: "periwinkle",
-  physiotherapy: "sky",
-  chiropractic: "cobalt",
-  cosmetic: "lavender",
+  dental: "cobalt",
+  physiotherapy: "teal",
+  chiropractic: "periwinkle",
+  cosmetic: "cyan",
 } as const satisfies Record<VerticalThemeId, VerticalAccentFamily>;
 
 export type VerticalSecondaryCta =

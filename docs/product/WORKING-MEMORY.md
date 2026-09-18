@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-17 (vertical atmosphere colour pass; Practice logo replacement comparison preview; `/clinics` hub; design system v2)
+Last updated: 2026-09-18 (River spectrum + vertical marketing accents; vertical atmosphere colour pass; Practice logo replacement comparison preview; `/clinics` hub; design system v2)
 
 ---
 
@@ -1331,3 +1331,41 @@ Extends the approved accent hierarchy into page atmosphere. Layout, copy, SEO, a
 | Dark            | Illumination plus a distinct canvas mix so verticals do not share one navy base. Dental periwinkle-lifted `#7c8cff` canvas, physio cyan `#5ec8e0` wash, chiro cobalt depth (`#2c46c4` / `#3d58d6` on `#05070c`), cosmetic softer `#a6b8ff` on `#0b0a12`. Bloom/mist remain glow, not filled colour. |
 | Discovery cards | Homepage `.clinicTypeCard` and `/clinics` hub cards share `--vertical-card-tint`. Hub core uses a restrained periwinkle → sky → cobalt wash, not a rainbow.                                                                                                                                         |
 | Tests           | Colour-system tests cover atmosphere tokens, Light/Dark definitions, no component hex, and tinted-surface contrast pairs. Playwright checks computed atmosphere values differ per vertical.                                                                                                         |
+
+---
+
+## River spectrum (2026-09-18)
+
+Marketing-only colour taxonomy. Clinic patient sites stay independently white-labelled.
+
+### Master primitives
+
+Current isologo source colours, exposed as `--river-*` in `app/(marketing)/marketing.css`:
+
+| Token                | Hex       | Role                              |
+| -------------------- | --------- | --------------------------------- |
+| `--river-deep`       | `#2D3BB8` | Deep River Blue                   |
+| `--river-blue`       | `#3B4BD1` | River Blue — primary brand anchor |
+| `--river-periwinkle` | `#7C8CFF` | Periwinkle                        |
+| `--river-cyan`       | `#67C5D6` | Current Cyan                      |
+
+Blue remains the primary River Aftercare conversion colour (`--mk-brand-strong`). Cyan/teal is a genuine secondary family for flow, connectors, atmospheric mist, and selected verticals. Do not recolour primary CTAs teal.
+
+Semantic marketing families (`--mk-cobalt`, `--mk-sky` / cyan, `--mk-teal`, `--mk-periwinkle-text`) are derived for contrast. Raw logo cyan and periwinkle are decorative in Light mode; text uses deeper accessible pairs (`#146f88` cyan, `#12757c` teal, `#515fd8` periwinkle).
+
+### Marketing vertical mapping
+
+`VERTICAL_ACCENT_FAMILY` in `lib/marketing/vertical-landing.ts`. Applied through shared `[data-vertical]` tokens (`--vertical-accent` / text / hover / border / tint). Not a clinic theme.
+
+| Vertical             | Family     | Direction                                     |
+| -------------------- | ---------- | --------------------------------------------- |
+| Dental               | cobalt     | River Blue — strongest master-blue connection |
+| Physiotherapy        | teal       | Derived teal, not hospital green              |
+| Chiropractic         | periwinkle | Brighter indigo-periwinkle, not purple-heavy  |
+| Cosmetic & aesthetic | cyan       | Current cyan / aqua. No pink beauty branding  |
+
+These colours are River Aftercare marketing categories only. Do not impose “Dental = blue” onto clinic tenants.
+
+### White-label boundary
+
+Unchanged: `ClinicProfile` primary/accent/neutral, clinic logo, `resolveAftercareTheme`, `--cg-*` patient tokens, demo clinic saved branding, R2/assets, operator Practice UI. Marketing vertical tokens must not appear in tenant theming.

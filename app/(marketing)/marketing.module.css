@@ -37,6 +37,11 @@
   --vertical-accent: var(--mk-brand);
   --vertical-accent-secondary: var(--mk-brand-strong);
   --vertical-accent-text: var(--mk-brand);
+  --vertical-accent-hover: color-mix(
+    in srgb,
+    var(--vertical-accent-text) 86%,
+    var(--mk-ink) 14%
+  );
   --vertical-accent-soft: color-mix(
     in srgb,
     var(--vertical-accent) 14%,
@@ -49,126 +54,8 @@
 .clinicsHubPath[data-vertical="dental"],
 .clinicsHubCard[data-vertical="dental"],
 .clinicTypeCard[data-vertical="dental"] {
-  --vertical-accent: var(--mk-brand);
-  --vertical-accent-secondary: var(--mk-brand-strong);
-  --vertical-accent-text: var(--mk-brand);
-  --vertical-card-tint: light-dark(
-    color-mix(in srgb, var(--mk-brand) 6%, var(--mk-card)),
-    color-mix(in srgb, #a6b8ff 16%, var(--mk-card))
-  );
-  --vertical-card-border: color-mix(
-    in srgb,
-    var(--mk-brand) 32%,
-    var(--mk-card-line)
-  );
-}
-
-.page[data-vertical="dental"] {
-  --vertical-glow: color-mix(in srgb, var(--mk-hero-bloom) 88%, transparent);
-  --vertical-hero-canvas: light-dark(
-    color-mix(in srgb, var(--mk-brand) 7%, var(--mk-hero)),
-    color-mix(in srgb, #7c8cff 12%, var(--mk-hero))
-  );
-  --vertical-hero-bloom: light-dark(
-    color-mix(in srgb, #b7c2ff 30%, transparent),
-    color-mix(in srgb, #8ea0ff 42%, transparent)
-  );
-  --vertical-hero-mist: light-dark(
-    color-mix(in srgb, var(--mk-sky) 6%, transparent),
-    color-mix(in srgb, var(--mk-sky) 8%, transparent)
-  );
-  --vertical-surface-soft: light-dark(
-    color-mix(in srgb, var(--mk-brand) 7%, var(--mk-hero)),
-    color-mix(in srgb, #7c8cff 13%, var(--mk-hero))
-  );
-  --vertical-surface-emphasis: light-dark(
-    color-mix(in srgb, var(--mk-brand) 11%, var(--mk-showcase)),
-    color-mix(in srgb, #8ea0ff 20%, var(--mk-showcase))
-  );
-  --vertical-section-glow: light-dark(
-    color-mix(in srgb, var(--mk-brand) 12%, transparent),
-    color-mix(in srgb, #8ea0ff 30%, transparent)
-  );
-  --vertical-closing-bloom: light-dark(
-    color-mix(in srgb, #cfd6ff 24%, transparent),
-    color-mix(in srgb, #8ea0ff 38%, transparent)
-  );
-  --mk-closing-glow: var(--vertical-closing-bloom);
-  --mk-closing-mist: light-dark(
-    color-mix(in srgb, var(--mk-sky) 5%, transparent),
-    color-mix(in srgb, var(--mk-sky) 10%, transparent)
-  );
-  --mk-closing-cobalt: light-dark(
-    transparent,
-    color-mix(in srgb, #2c46c4 16%, transparent)
-  );
-}
-
-.page[data-vertical="physiotherapy"],
-.clinicsHubPath[data-vertical="physiotherapy"],
-.clinicsHubCard[data-vertical="physiotherapy"],
-.clinicTypeCard[data-vertical="physiotherapy"] {
-  --vertical-accent: var(--mk-sky);
-  --vertical-accent-secondary: var(--mk-brand);
-  --vertical-accent-text: var(--mk-sky-text);
-  --vertical-card-tint: light-dark(
-    color-mix(in srgb, var(--mk-sky) 7%, var(--mk-card)),
-    color-mix(in srgb, var(--mk-sky) 12%, var(--mk-card))
-  );
-  --vertical-card-border: color-mix(
-    in srgb,
-    var(--mk-sky) 34%,
-    var(--mk-card-line)
-  );
-}
-
-.page[data-vertical="physiotherapy"] {
-  --vertical-glow: color-mix(in srgb, var(--mk-sky-glow) 92%, transparent);
-  --vertical-hero-canvas: light-dark(
-    color-mix(in srgb, var(--mk-sky) 8%, #f4fbfd),
-    color-mix(in srgb, #5ec8e0 9%, var(--mk-hero))
-  );
-  --vertical-hero-bloom: light-dark(
-    color-mix(in srgb, #b5ebf1 28%, transparent),
-    color-mix(in srgb, #5ec8e0 30%, transparent)
-  );
-  --vertical-hero-mist: light-dark(
-    color-mix(in srgb, var(--mk-sky) 16%, transparent),
-    color-mix(in srgb, #5ec8e0 24%, transparent)
-  );
-  --vertical-surface-soft: light-dark(
-    color-mix(in srgb, var(--mk-sky) 8%, #f4fbfd),
-    color-mix(in srgb, var(--mk-sky) 9%, var(--mk-hero))
-  );
-  --vertical-surface-emphasis: light-dark(
-    color-mix(in srgb, var(--mk-sky) 12%, #eef6f8),
-    color-mix(in srgb, #5ec8e0 16%, var(--mk-showcase))
-  );
-  --vertical-section-glow: light-dark(
-    color-mix(in srgb, var(--mk-sky) 14%, transparent),
-    color-mix(in srgb, #5ec8e0 26%, transparent)
-  );
-  --vertical-closing-bloom: light-dark(
-    color-mix(in srgb, #b5ebf1 20%, transparent),
-    color-mix(in srgb, #5ec8e0 24%, transparent)
-  );
-  --mk-closing-glow: light-dark(
-    color-mix(in srgb, #cfd6ff 10%, transparent),
-    color-mix(in srgb, #7c8cff 18%, transparent)
-  );
-  --mk-closing-mist: var(--vertical-closing-bloom);
-  --mk-closing-cobalt: light-dark(
-    transparent,
-    color-mix(in srgb, #2c46c4 10%, transparent)
-  );
-}
-
-.page[data-vertical="chiropractic"],
-.clinicsHubPath[data-vertical="chiropractic"],
-.clinicsHubCard[data-vertical="chiropractic"],
-.clinicTypeCard[data-vertical="chiropractic"] {
   --vertical-accent: var(--mk-cobalt-soft);
-  --vertical-accent-secondary: var(--mk-cobalt);
+  --vertical-accent-secondary: var(--mk-cobalt-deep);
   --vertical-accent-text: var(--mk-cobalt-soft);
   --vertical-card-tint: light-dark(
     color-mix(in srgb, var(--mk-cobalt-deep) 5%, var(--mk-card)),
@@ -181,7 +68,7 @@
   );
 }
 
-.page[data-vertical="chiropractic"] {
+.page[data-vertical="dental"] {
   --vertical-glow: color-mix(in srgb, var(--mk-hero-glow) 90%, transparent);
   --vertical-hero-canvas: light-dark(
     color-mix(in srgb, var(--mk-cobalt-deep) 6%, #f3f5fb),
@@ -192,8 +79,8 @@
     color-mix(in srgb, #2c46c4 48%, transparent)
   );
   --vertical-hero-mist: light-dark(
-    color-mix(in srgb, var(--mk-cobalt-deep) 8%, transparent),
-    color-mix(in srgb, #3d58d6 30%, transparent)
+    color-mix(in srgb, var(--mk-sky) 6%, transparent),
+    color-mix(in srgb, var(--mk-sky) 8%, transparent)
   );
   --vertical-surface-soft: light-dark(
     color-mix(in srgb, var(--mk-cobalt-deep) 6%, #f3f5fb),
@@ -213,8 +100,8 @@
   );
   --mk-closing-glow: var(--vertical-closing-bloom);
   --mk-closing-mist: light-dark(
-    color-mix(in srgb, var(--mk-sky) 4%, transparent),
-    color-mix(in srgb, var(--mk-sky) 8%, transparent)
+    color-mix(in srgb, var(--mk-sky) 5%, transparent),
+    color-mix(in srgb, var(--mk-sky) 10%, transparent)
   );
   --mk-closing-cobalt: light-dark(
     transparent,
@@ -222,62 +109,179 @@
   );
 }
 
-.page[data-vertical="cosmetic"],
-.clinicsHubPath[data-vertical="cosmetic"],
-.clinicsHubCard[data-vertical="cosmetic"],
-.clinicTypeCard[data-vertical="cosmetic"] {
-  --vertical-accent: var(--mk-lavender);
-  --vertical-accent-secondary: color-mix(
-    in srgb,
-    var(--mk-brand-strong) 58%,
-    var(--mk-wave-periwinkle)
+.page[data-vertical="physiotherapy"],
+.clinicsHubPath[data-vertical="physiotherapy"],
+.clinicsHubCard[data-vertical="physiotherapy"],
+.clinicTypeCard[data-vertical="physiotherapy"] {
+  --vertical-accent: var(--mk-teal);
+  --vertical-accent-secondary: var(--mk-teal-strong);
+  --vertical-accent-text: var(--mk-teal-text);
+  --vertical-accent-hover: var(--mk-teal-hover);
+  --vertical-card-tint: light-dark(
+    color-mix(in srgb, var(--mk-teal) 7%, var(--mk-card)),
+    color-mix(in srgb, var(--mk-teal) 12%, var(--mk-card))
   );
-  --vertical-accent-text: var(--mk-brand);
+  --vertical-card-border: color-mix(
+    in srgb,
+    var(--mk-teal) 34%,
+    var(--mk-card-line)
+  );
+}
+
+.page[data-vertical="physiotherapy"] {
+  --vertical-glow: color-mix(in srgb, var(--mk-teal-glow) 92%, transparent);
+  --vertical-hero-canvas: light-dark(
+    color-mix(in srgb, var(--mk-teal) 8%, #f3fbf9),
+    color-mix(in srgb, #5aaeae 9%, var(--mk-hero))
+  );
+  --vertical-hero-bloom: light-dark(
+    color-mix(in srgb, #9ee0dc 26%, transparent),
+    color-mix(in srgb, #5aaeae 26%, transparent)
+  );
+  --vertical-hero-mist: light-dark(
+    color-mix(in srgb, var(--mk-teal) 16%, transparent),
+    color-mix(in srgb, #5aaeae 22%, transparent)
+  );
+  --vertical-surface-soft: light-dark(
+    color-mix(in srgb, var(--mk-teal) 8%, #f3fbf9),
+    color-mix(in srgb, var(--mk-teal) 9%, var(--mk-hero))
+  );
+  --vertical-surface-emphasis: light-dark(
+    color-mix(in srgb, var(--mk-teal) 12%, #eef7f6),
+    color-mix(in srgb, #5aaeae 16%, var(--mk-showcase))
+  );
+  --vertical-section-glow: light-dark(
+    color-mix(in srgb, var(--mk-teal) 14%, transparent),
+    color-mix(in srgb, #5aaeae 24%, transparent)
+  );
+  --vertical-closing-bloom: light-dark(
+    color-mix(in srgb, #9ee0dc 18%, transparent),
+    color-mix(in srgb, #5aaeae 22%, transparent)
+  );
+  --mk-closing-glow: light-dark(
+    color-mix(in srgb, #cfd6ff 10%, transparent),
+    color-mix(in srgb, #7c8cff 18%, transparent)
+  );
+  --mk-closing-mist: var(--vertical-closing-bloom);
+  --mk-closing-cobalt: light-dark(
+    transparent,
+    color-mix(in srgb, #2c46c4 10%, transparent)
+  );
+}
+
+.page[data-vertical="chiropractic"],
+.clinicsHubPath[data-vertical="chiropractic"],
+.clinicsHubCard[data-vertical="chiropractic"],
+.clinicTypeCard[data-vertical="chiropractic"] {
+  --vertical-accent: var(--mk-wave-periwinkle);
+  --vertical-accent-secondary: var(--mk-brand);
+  --vertical-accent-text: var(--mk-periwinkle-text);
+  --vertical-accent-hover: var(--mk-periwinkle-hover);
   --vertical-card-tint: light-dark(
     color-mix(in srgb, var(--mk-wave-periwinkle) 7%, var(--mk-card)),
     color-mix(in srgb, #a6b8ff 16%, var(--mk-card))
   );
   --vertical-card-border: color-mix(
     in srgb,
-    var(--mk-lavender) 30%,
+    var(--mk-wave-periwinkle) 32%,
+    var(--mk-card-line)
+  );
+}
+
+.page[data-vertical="chiropractic"] {
+  --vertical-glow: color-mix(in srgb, var(--mk-hero-bloom) 88%, transparent);
+  --vertical-hero-canvas: light-dark(
+    color-mix(in srgb, var(--mk-wave-periwinkle) 8%, #faf8ff),
+    color-mix(in srgb, #7c8cff 12%, var(--mk-hero))
+  );
+  --vertical-hero-bloom: light-dark(
+    color-mix(in srgb, #b7c2ff 30%, transparent),
+    color-mix(in srgb, #8ea0ff 42%, transparent)
+  );
+  --vertical-hero-mist: light-dark(
+    color-mix(in srgb, var(--mk-wave-periwinkle) 10%, transparent),
+    color-mix(in srgb, #a6b8ff 18%, transparent)
+  );
+  --vertical-surface-soft: light-dark(
+    color-mix(in srgb, var(--mk-wave-periwinkle) 7%, #faf8ff),
+    color-mix(in srgb, #7c8cff 13%, var(--mk-hero))
+  );
+  --vertical-surface-emphasis: light-dark(
+    color-mix(in srgb, var(--mk-wave-periwinkle) 11%, #f3f0f8),
+    color-mix(in srgb, #8ea0ff 20%, var(--mk-showcase))
+  );
+  --vertical-section-glow: light-dark(
+    color-mix(in srgb, var(--mk-wave-periwinkle) 12%, transparent),
+    color-mix(in srgb, #8ea0ff 30%, transparent)
+  );
+  --vertical-closing-bloom: light-dark(
+    color-mix(in srgb, #cfd6ff 24%, transparent),
+    color-mix(in srgb, #8ea0ff 38%, transparent)
+  );
+  --mk-closing-glow: var(--vertical-closing-bloom);
+  --mk-closing-mist: light-dark(
+    color-mix(in srgb, var(--mk-sky) 4%, transparent),
+    color-mix(in srgb, var(--mk-sky) 8%, transparent)
+  );
+  --mk-closing-cobalt: light-dark(
+    transparent,
+    color-mix(in srgb, #2c46c4 16%, transparent)
+  );
+}
+
+.page[data-vertical="cosmetic"],
+.clinicsHubPath[data-vertical="cosmetic"],
+.clinicsHubCard[data-vertical="cosmetic"],
+.clinicTypeCard[data-vertical="cosmetic"] {
+  --vertical-accent: var(--mk-sky);
+  --vertical-accent-secondary: var(--mk-sky-strong);
+  --vertical-accent-text: var(--mk-sky-text);
+  --vertical-accent-hover: var(--mk-sky-hover);
+  --vertical-card-tint: light-dark(
+    color-mix(in srgb, var(--mk-sky) 7%, var(--mk-card)),
+    color-mix(in srgb, var(--mk-sky) 12%, var(--mk-card))
+  );
+  --vertical-card-border: color-mix(
+    in srgb,
+    var(--mk-sky) 34%,
     var(--mk-card-line)
   );
 }
 
 .page[data-vertical="cosmetic"] {
-  --vertical-glow: color-mix(in srgb, var(--mk-hero-sheen) 86%, transparent);
+  --vertical-glow: color-mix(in srgb, var(--mk-sky-glow) 92%, transparent);
   --vertical-hero-canvas: light-dark(
-    color-mix(in srgb, var(--mk-wave-periwinkle) 8%, #faf8ff),
-    color-mix(in srgb, #a6b8ff 11%, #0b0a12)
+    color-mix(in srgb, var(--mk-sky) 8%, #f4fbfd),
+    color-mix(in srgb, #5ec8e0 9%, var(--mk-hero))
   );
   --vertical-hero-bloom: light-dark(
-    color-mix(in srgb, var(--mk-wave-periwinkle) 22%, transparent),
-    color-mix(in srgb, #a6b8ff 40%, transparent)
+    color-mix(in srgb, #b5ebf1 28%, transparent),
+    color-mix(in srgb, #5ec8e0 28%, transparent)
   );
   --vertical-hero-mist: light-dark(
-    color-mix(in srgb, var(--mk-lavender) 10%, transparent),
-    color-mix(in srgb, #c4c8ff 20%, transparent)
+    color-mix(in srgb, var(--mk-sky) 16%, transparent),
+    color-mix(in srgb, #5ec8e0 22%, transparent)
   );
   --vertical-surface-soft: light-dark(
-    color-mix(in srgb, var(--mk-wave-periwinkle) 7%, #faf8ff),
-    color-mix(in srgb, #a6b8ff 13%, var(--mk-hero))
+    color-mix(in srgb, var(--mk-sky) 8%, #f4fbfd),
+    color-mix(in srgb, var(--mk-sky) 9%, var(--mk-hero))
   );
   --vertical-surface-emphasis: light-dark(
-    color-mix(in srgb, var(--mk-lavender) 10%, #f3f0f8),
-    color-mix(in srgb, #a6b8ff 20%, var(--mk-showcase))
+    color-mix(in srgb, var(--mk-sky) 12%, #eef6f8),
+    color-mix(in srgb, #5ec8e0 16%, var(--mk-showcase))
   );
   --vertical-section-glow: light-dark(
-    color-mix(in srgb, var(--mk-wave-periwinkle) 12%, transparent),
-    color-mix(in srgb, #a6b8ff 28%, transparent)
+    color-mix(in srgb, var(--mk-sky) 14%, transparent),
+    color-mix(in srgb, #5ec8e0 24%, transparent)
   );
   --vertical-closing-bloom: light-dark(
-    color-mix(in srgb, var(--mk-wave-periwinkle) 18%, transparent),
-    color-mix(in srgb, #a6b8ff 34%, transparent)
+    color-mix(in srgb, #b5ebf1 20%, transparent),
+    color-mix(in srgb, #5ec8e0 22%, transparent)
   );
   --mk-closing-glow: var(--vertical-closing-bloom);
   --mk-closing-mist: light-dark(
-    color-mix(in srgb, var(--mk-sky) 3%, transparent),
-    color-mix(in srgb, var(--mk-sky) 6%, transparent)
+    color-mix(in srgb, var(--mk-sky) 8%, transparent),
+    color-mix(in srgb, var(--mk-sky) 12%, transparent)
   );
   --mk-closing-cobalt: transparent;
 }
@@ -3062,6 +3066,11 @@ html[data-theme-mode="dark"] .wordmarkName {
   border-color: var(--vertical-card-border);
 }
 
+.clinicTypeCard[data-vertical] h3 {
+  color: var(--vertical-accent-text);
+  transition: color var(--interaction-duration) var(--interaction-easing);
+}
+
 .clinicTypeCard h3 {
   margin: 0 0 0.45rem;
   font-size: 1.08rem;
@@ -3093,6 +3102,10 @@ html[data-theme-mode="dark"] .wordmarkName {
       var(--vertical-accent, var(--mk-brand)) 42%,
       var(--mk-card-line)
     );
+  }
+
+  .clinicTypeCard[data-vertical]:hover h3 {
+    color: var(--vertical-accent-hover);
   }
 }
 
@@ -3194,8 +3207,8 @@ html[data-theme-mode="dark"] .wordmarkName {
   background: linear-gradient(
     165deg,
     color-mix(in srgb, var(--mk-brand) 10%, var(--mk-card)),
-    color-mix(in srgb, var(--mk-sky) 5%, var(--mk-card)) 58%,
-    color-mix(in srgb, var(--mk-cobalt) 6%, var(--mk-card))
+    color-mix(in srgb, var(--mk-wave-periwinkle) 5%, var(--mk-card)) 58%,
+    color-mix(in srgb, var(--mk-sky) 6%, var(--mk-card))
   );
   box-shadow: var(--mk-card-shadow);
 }
@@ -3263,8 +3276,8 @@ html[data-theme-mode="dark"] .wordmarkName {
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--mk-brand) 12%, var(--mk-card)),
-    color-mix(in srgb, var(--mk-sky) 6%, var(--mk-card)) 54%,
-    color-mix(in srgb, var(--mk-cobalt) 8%, var(--mk-card))
+    color-mix(in srgb, var(--mk-wave-periwinkle) 6%, var(--mk-card)) 54%,
+    color-mix(in srgb, var(--mk-sky) 8%, var(--mk-card))
   );
   text-align: center;
 }
@@ -3280,8 +3293,8 @@ html[data-theme-mode="dark"] .wordmarkName {
   background: linear-gradient(
     90deg,
     var(--mk-brand) 0%,
-    var(--mk-sky) 48%,
-    var(--mk-cobalt-soft) 100%
+    var(--mk-wave-periwinkle) 48%,
+    var(--mk-sky) 100%
   );
   opacity: 0.78;
 }
@@ -3355,16 +3368,13 @@ html[data-theme-mode="dark"] .wordmarkName {
   );
 }
 
-.clinicsHubCard[data-vertical="physiotherapy"] .clinicsHubCardRail {
-  background: linear-gradient(to bottom, var(--mk-sky), var(--mk-sky-strong));
-}
-
 .clinicsHubCard h3 {
   margin: 0 0 0.45rem;
   color: var(--vertical-accent-text, var(--mk-ink));
   font-size: 1.18rem;
   letter-spacing: -0.035em;
   line-height: 1.25;
+  transition: color var(--interaction-duration) var(--interaction-easing);
 }
 
 .clinicsHubCard p {
@@ -3379,6 +3389,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   color: var(--vertical-accent-text, var(--mk-brand));
   font-size: 0.92rem;
   font-weight: 650;
+  transition: color var(--interaction-duration) var(--interaction-easing);
 }
 
 .clinicsHubCard:focus-visible {
@@ -3393,6 +3404,11 @@ html[data-theme-mode="dark"] .wordmarkName {
       var(--vertical-accent) 46%,
       var(--mk-card-line)
     );
+  }
+
+  .clinicsHubCard:hover h3,
+  .clinicsHubCard:hover .clinicsHubCardCta {
+    color: var(--vertical-accent-hover);
   }
 }
 

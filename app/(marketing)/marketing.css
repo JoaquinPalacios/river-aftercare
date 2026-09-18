@@ -4,16 +4,21 @@
 
 :root {
   color-scheme: light dark;
+  /* River spectrum master primitives — Current isologo source colours. */
+  --river-deep: #2d3bb8;
+  --river-blue: #3b4bd1;
+  --river-periwinkle: #7c8cff;
+  --river-cyan: #67c5d6;
   --mk-hero: light-dark(#fffcf8, #07090e);
   --mk-soft: light-dark(#f8f6f1, #12151c);
   --mk-showcase: light-dark(#eef0f7, #1c2433);
   --mk-closing: light-dark(#eeeaf2, #07090e);
   --mk-ink: light-dark(#0a0d14, #f5f3ee);
   --mk-muted: light-dark(#5c6573, #98a2b3);
-  --mk-brand: light-dark(#3b4bd1, #a6b8ff);
-  --mk-brand-strong: light-dark(#3b4bd1, #7c8cff);
+  --mk-brand: light-dark(var(--river-blue), #a6b8ff);
+  --mk-brand-strong: light-dark(var(--river-blue), var(--river-periwinkle));
   --mk-brand-hover: light-dark(#3342c6, #93a4ff);
-  --mk-brand-active: light-dark(#2d3bb8, #8496f4);
+  --mk-brand-active: light-dark(var(--river-deep), #8496f4);
   --mk-on-brand: light-dark(#ffffff, #0a0d14);
   --mk-closing-glow: light-dark(
     color-mix(in srgb, #cfd6ff 12%, transparent),
@@ -33,7 +38,7 @@
     color-mix(in srgb, #7c8cff 20%, #171c28)
   );
   --mk-line: light-dark(#e4dfd6, #2a3140);
-  --mk-focus: light-dark(#3b4bd1, #a6b8ff);
+  --mk-focus: light-dark(var(--river-blue), #a6b8ff);
   --mk-hero-glow: light-dark(
     color-mix(in srgb, #b7c2ff 16%, transparent),
     color-mix(in srgb, #2c46c4 24%, transparent)
@@ -44,14 +49,14 @@
   );
   --mk-hero-mist: var(--mk-sky-glow);
   --mk-hero-sheen: light-dark(
-    color-mix(in srgb, #e4e8ff 9%, transparent),
-    color-mix(in srgb, #7c8cff 10%, transparent)
+    color-mix(in srgb, #dbeaf2 10%, transparent),
+    color-mix(in srgb, var(--river-cyan) 9%, transparent)
   );
-  --mk-sky: light-dark(#67c5d6, #7ec8e6);
+  --mk-sky: light-dark(var(--river-cyan), #7ec8e6);
   --mk-sky-strong: light-dark(#146f88, #5ec8e0);
   --mk-sky-text: light-dark(#146f88, #7ec8e6);
   --mk-sky-glow: light-dark(
-    color-mix(in srgb, #b5ebf1 11%, transparent),
+    color-mix(in srgb, #b5ebf1 14%, transparent),
     color-mix(in srgb, #5ec8e0 16%, transparent)
   );
   --mk-sky-soft: color-mix(in srgb, var(--mk-sky) 12%, transparent);
@@ -61,14 +66,28 @@
     color-mix(in srgb, #7ec8e6 85%, white 15%)
   );
   --mk-sky-muted: color-mix(in srgb, var(--mk-sky) 42%, var(--mk-muted));
-  --mk-cobalt: light-dark(#3b4bd1, #3d58d6);
-  --mk-cobalt-deep: light-dark(#2d3bb8, #2c46c4);
-  --mk-cobalt-soft: light-dark(#3b4bd1, #8ea0ff);
-  --mk-lavender: light-dark(
-    color-mix(in srgb, var(--mk-brand) 70%, var(--mk-wave-periwinkle)),
-    #8ea0ff
+  --mk-cobalt: light-dark(var(--river-blue), #3d58d6);
+  --mk-cobalt-deep: light-dark(var(--river-deep), #2c46c4);
+  --mk-cobalt-soft: light-dark(var(--river-blue), #8ea0ff);
+  --mk-periwinkle-text: light-dark(#515fd8, #a6b8ff);
+  --mk-periwinkle-hover: light-dark(
+    color-mix(in srgb, #515fd8 86%, #0a0d14 14%),
+    color-mix(in srgb, #a6b8ff 85%, white 15%)
   );
-  --mk-wave-periwinkle: light-dark(#7c8cff, #a6b8ff);
+  --mk-teal: light-dark(#50b2b9, #62b8b4);
+  --mk-teal-strong: light-dark(#0e6e72, #5aaeae);
+  --mk-teal-text: light-dark(#12757c, #62b8b4);
+  --mk-teal-glow: light-dark(
+    color-mix(in srgb, #9ee0dc 12%, transparent),
+    color-mix(in srgb, #5aaeae 16%, transparent)
+  );
+  --mk-teal-soft: color-mix(in srgb, var(--mk-teal) 12%, transparent);
+  --mk-teal-border: color-mix(in srgb, var(--mk-teal) 34%, var(--mk-line));
+  --mk-teal-hover: light-dark(
+    color-mix(in srgb, #12757c 86%, #0a0d14 14%),
+    color-mix(in srgb, #62b8b4 85%, white 15%)
+  );
+  --mk-wave-periwinkle: light-dark(var(--river-periwinkle), #a6b8ff);
   --mk-wave-cyan: var(--mk-sky);
   --mk-wave-glow-opacity: light-dark(0.3, 0.52);
   --mk-interact-duration: var(--interaction-duration);
@@ -84,6 +103,11 @@
   --vertical-accent: var(--mk-brand);
   --vertical-accent-secondary: var(--mk-brand-strong);
   --vertical-accent-text: var(--mk-brand);
+  --vertical-accent-hover: color-mix(
+    in srgb,
+    var(--vertical-accent-text) 86%,
+    var(--mk-ink) 14%
+  );
   --vertical-accent-soft: color-mix(
     in srgb,
     var(--vertical-accent) 14%,
