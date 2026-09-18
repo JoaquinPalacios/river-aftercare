@@ -238,18 +238,21 @@ test.describe("marketing + trust polish", () => {
     await showMarketingScheme(page, "light");
     await expectOneH1(page, "Aftercare should feel like part of the care.");
     const aboutPad = await page
-      .locator('[data-mk-chapter="soft"] > :first-child')
+      .locator('[data-mk-chapter="soft"]')
+      .first()
+      .locator(":scope > :first-child")
       .evaluate((element) =>
         Number.parseFloat(getComputedStyle(element).paddingTop)
       );
     expect(aboutPad).toBe(contactPad);
-    const relatedGap = await page
-      .locator('[aria-labelledby="about-not"]')
+    const notChapterPad = await page
+      .locator('[data-mk-chapter="soft"]')
+      .nth(1)
+      .locator(":scope > :first-child")
       .evaluate((element) =>
-        Number.parseFloat(getComputedStyle(element).marginTop)
+        Number.parseFloat(getComputedStyle(element).paddingTop)
       );
-    expect(relatedGap).toBeGreaterThanOrEqual(32);
-    expect(relatedGap).toBeLessThanOrEqual(40);
+    expect(notChapterPad).toBeGreaterThanOrEqual(64);
     await page.screenshot({
       path: "test-results/artifacts/public-about-1440.png",
       fullPage: true,

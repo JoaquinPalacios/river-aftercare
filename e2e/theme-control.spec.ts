@@ -14,7 +14,9 @@ test.describe("compact theme control", () => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     const trigger = page.getByRole("button", { name: /Change colour theme/ });
     await expect(trigger).toBeVisible();
-    await expect(page.getByRole("radio")).toHaveCount(0);
+    await expect(
+      page.getByRole("navigation", { name: "Marketing" }).getByRole("radio")
+    ).toHaveCount(0);
     await expect(
       page.getByRole("menuitemradio", { name: "System" })
     ).toHaveCount(0);

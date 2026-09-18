@@ -79,6 +79,10 @@ describe("marketing mobile navigation", () => {
     expect(styles).toContain(".navMenuMeta");
     expect(styles).toContain("100dvh");
     expect(styles).toContain("env(safe-area-inset-bottom");
+    expect(styles).toContain(".navMenuPanel:popover-open");
+    expect(styles).toMatch(
+      /\.navMenuPanel:popover-open\s*\{[^}]*display:\s*flex/
+    );
     expect(styles).not.toContain(".navMenuLink");
   });
 

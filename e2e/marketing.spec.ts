@@ -198,7 +198,7 @@ test.describe("marketing homepage", () => {
         expect(canvas, `${shot.scheme} hero canvas`).toBeLessThan(0.15);
       }
 
-      await expect(hero.locator('[class*="deviceProof"]')).toHaveAttribute(
+      await expect(hero.locator('[class*="deviceProof"]')).not.toHaveAttribute(
         "aria-hidden",
         "true"
       );
@@ -206,6 +206,10 @@ test.describe("marketing homepage", () => {
         "aria-hidden",
         "true"
       );
+      await expect(
+        hero.getByRole("radiogroup", { name: "Recovery view" })
+      ).toBeVisible();
+      await expect(hero.getByRole("radio", { name: "Today" })).toBeChecked();
       if (shot.width < 1024) {
         await expect(hero.getByText("Patient aftercare view")).toBeVisible();
         await expect(hero.getByText("No app to install")).toBeVisible();
@@ -217,7 +221,7 @@ test.describe("marketing homepage", () => {
         "/marketing/iphone-frame.webp"
       );
       await expect(
-        hero.locator('[class*="deviceStage"]').getByText("Recovery overview")
+        hero.locator('[class*="deviceStage"]').getByText("Coming next")
       ).toBeVisible();
       await expect(
         hero.locator('[class*="deviceStage"]').getByText("Tooth Extraction")

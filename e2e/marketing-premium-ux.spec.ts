@@ -142,7 +142,10 @@ test.describe("premium marketing UX", () => {
     await expectOneH1(page, "Aftercare should feel like part of the care.");
     await expect(page.getByText("No patient app")).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "Dental", exact: true })
+      page.getByRole("navigation", { name: "Clinic types" }).getByRole("link", {
+        name: "Dental",
+        exact: true,
+      })
     ).toHaveAttribute("href", "/dental");
     await expect(
       page.getByText("Other appropriate allied health")
