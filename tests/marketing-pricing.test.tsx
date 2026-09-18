@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 
 vi.mock("next/headers", () => ({
@@ -37,6 +38,18 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("mkPageWavePricing");
     expect(html).toContain("headingBlock");
     expect(html).toContain("headingFollow");
+    expect(html).toContain("laterList");
+    expect(html.indexOf("laterList")).toBeGreaterThan(
+      html.indexOf("Coming after launch")
+    );
+
+    const styles = readFileSync("app/(marketing)/marketing.module.css", "utf8");
+    const tokens = readFileSync("app/(marketing)/marketing.css", "utf8");
+    expect(tokens).toContain(
+      "--mk-intro-content-gap: clamp(1.25rem, 2vw, 1.5rem)"
+    );
+    expect(styles).toContain(".laterList.headingFollow");
+    expect(styles).toContain("margin-top: var(--mk-intro-content-gap)");
     expect(html).toContain("A$79");
     expect(html).toContain("A$149");
     expect(html).toContain("Custom pricing");

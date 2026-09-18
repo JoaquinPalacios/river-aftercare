@@ -217,4 +217,32 @@ describe("clinic vertical landing pages", () => {
     expect(panelRule).toContain("height: auto");
     expect(panelRule).not.toContain("height: 100%");
   });
+
+  it("keeps solution and workflow sections eyebrow-free on purpose", () => {
+    const landing = readFileSync(
+      "app/(marketing)/components/marketing-vertical-landing.tsx",
+      "utf8"
+    );
+    const solutionBlock = landing.slice(
+      landing.indexOf("aria-labelledby={`${id}-solution`}"),
+      landing.indexOf("aria-labelledby={`${id}-guidance`}")
+    );
+    const workflowBlock = landing.slice(
+      landing.indexOf('id="workflow"'),
+      landing.indexOf("content.extras.map")
+    );
+
+    expect(solutionBlock).toContain("content.solution.h2");
+    expect(solutionBlock).not.toContain("styles.eyebrow");
+    expect(workflowBlock).toContain("content.workflow.h2");
+    expect(workflowBlock).not.toContain("styles.eyebrow");
+
+    for (const landingContent of Object.values(VERTICAL_LANDINGS)) {
+      expect(landingContent.solution).not.toHaveProperty("eyebrow");
+      expect(landingContent.workflow).not.toHaveProperty("eyebrow");
+      expect(landingContent.problem.eyebrow).toBeTruthy();
+      expect(landingContent.guidance.eyebrow).toBeTruthy();
+      expect(landingContent.faq.eyebrow).toBeTruthy();
+    }
+  });
 });

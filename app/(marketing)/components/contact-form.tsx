@@ -112,7 +112,7 @@ export function ContactForm({ demoHref }: { demoHref: string }) {
     return (
       <div
         ref={successRef}
-        className={styles.contactSuccess}
+        className={`${styles.contactFormPanel} ${styles.contactSuccess}`}
         tabIndex={-1}
         role="status"
         aria-live="polite"
@@ -144,7 +144,7 @@ export function ContactForm({ demoHref }: { demoHref: string }) {
   return (
     <form
       ref={formRef}
-      className={styles.contactForm}
+      className={`${styles.contactFormPanel} ${styles.contactForm}`}
       action={formAction}
       noValidate
       onSubmit={handleSubmit}

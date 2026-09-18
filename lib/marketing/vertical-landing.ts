@@ -97,6 +97,9 @@ export interface VerticalLandingContent {
     h2: string;
     cards: readonly [VerticalCard, VerticalCard, VerticalCard];
   };
+  // Solution and workflow intentionally have no eyebrow. Vertical rhythm is:
+  // Hero (eyebrow) → Problem (eyebrow) → Solution (none) → Guidance (eyebrow)
+  // → Workflow (none) → Proof/fit (eyebrow) → FAQ (eyebrow).
   solution: {
     h2: string;
     body: string;
