@@ -188,6 +188,7 @@ describe("marketing homepage", () => {
     expect(html).toContain("No app to install");
     expect(html).toContain("Practice one tap away");
     expect(html).toContain("phoneShell");
+    expect(html).toMatch(/phoneShell[^>]*aria-hidden="true"/);
     expect(html).toContain("phoneScreen");
     expect(html).toContain("phoneFrame");
     expect(html).toContain("/marketing/iphone-frame.webp");

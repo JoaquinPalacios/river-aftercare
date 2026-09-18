@@ -61,7 +61,12 @@ describe("premium marketing UX contracts", () => {
     expect(styles).toContain(".verticalFaqItem:last-child");
     expect(styles).toContain("overflow: visible");
     expect(styles).toContain(".verticalFaqQuestion:focus-visible");
-    expect(styles).toContain("outline-offset: 3px");
+    expect(styles).toContain("outline-offset: -3px");
+    expect(styles).toContain(".verticalFaqItem:first-child::before");
+    expect(styles).toContain(".verticalFaqItem:last-child::before");
+    expect(styles).toContain(
+      ".verticalFaqItem:last-child:not([open]) .verticalFaqQuestionInner"
+    );
   });
 
   it("renders a truthful Today / Timeline phone preview without client JS", () => {
@@ -79,7 +84,26 @@ describe("premium marketing UX contracts", () => {
     expect(html).toContain("Recovery overview");
     expect(html).toContain("Call Riverside Dental Demo");
     expect(html).toContain('type="radio"');
+    expect(html).toContain('tabindex="-1"');
+    expect(html).toMatch(/phoneShell[^>]*aria-hidden="true"/);
+    expect(html).not.toContain('role="radiogroup"');
     expect(html).not.toContain("<button");
+    expect(styles).toContain("user-select: none");
+    expect(styles).toContain("-webkit-user-select: none");
+    expect(styles).toContain(
+      ".phoneTimeline .phoneStage:last-child .phoneStageRail"
+    );
+    expect(html).toContain("phoneComingNextItem");
+  });
+
+  it("keeps non-nav marketing underlines tighter than desktop nav", () => {
+    expect(tokens).toContain("--mk-inline-link-underline-offset: -0.125rem");
+    expect(tokens).toContain("--mk-nav-underline-offset: 0.5rem");
+    expect(tokens).toContain("--mk-footer-link-underline-offset: 0");
+    expect(styles).toContain("bottom: var(--mk-inline-link-underline-offset)");
+    expect(styles).toContain(".nav a.textLink::after");
+    expect(styles).toContain("bottom: var(--mk-nav-underline-offset)");
+    expect(styles).toContain(".footerNav a.textLink::after");
   });
 
   it("exposes Overview as the parent destination in the clinics disclosure", () => {

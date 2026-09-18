@@ -180,7 +180,7 @@ describe("aftercare style boundary", () => {
     expect(styles).not.toContain("3.6rem");
     expect(styles).not.toContain("3.25rem");
     expect(styles).toContain("a.navRoute");
-    expect(tokens).toContain("--mk-inline-link-underline-offset: 0");
+    expect(tokens).toContain("--mk-inline-link-underline-offset: -0.125rem");
     expect(tokens).toContain("--mk-nav-underline-offset: 0.5rem");
     expect(tokens).toContain("--mk-footer-link-underline-offset: 0");
     expect(styles).toContain("bottom: var(--mk-inline-link-underline-offset)");

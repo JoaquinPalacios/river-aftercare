@@ -104,7 +104,7 @@
   /* Intro copy → following collection (not heading → collection). */
   --mk-intro-content-gap: clamp(1.25rem, 2vw, 1.5rem);
   /* Text-link underline offsets stay independent by context. */
-  --mk-inline-link-underline-offset: 0;
+  --mk-inline-link-underline-offset: -0.125rem;
   --mk-nav-underline-offset: 0.5rem;
   --mk-footer-link-underline-offset: 0;
   --mk-header-height: 4rem;

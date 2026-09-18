@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-18 (marketing Contact: Resend + Cloudflare Turnstile; marketing UI polish: link underline offsets, About clinic-list gap, Pricing planned-feature spacing, centred Contact panel; premium marketing UX refinement; River spectrum + vertical marketing accents; vertical atmosphere colour pass; Practice logo replacement comparison preview; `/clinics` hub; design system v2)
+Last updated: 2026-09-18 (marketing finish polish: phone mockup, link offset, About list, Pricing notes, /clinics heading gap, FAQ overflow; marketing Contact: Resend + Cloudflare Turnstile; marketing UI polish; premium marketing UX refinement; River spectrum + vertical marketing accents; `/clinics` hub; design system v2)
 
 ---
 
@@ -1379,8 +1379,8 @@ Tight production-design pass. No copy, SEO, or architecture change.
 
 | Area                     | Behaviour                                                                                                                                                                                                               |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Link underlines          | Inline `.textLink` offset is `--mk-inline-link-underline-offset: 0`. Desktop nav keeps `--mk-nav-underline-offset: 0.5rem`. Footer keeps `--mk-footer-link-underline-offset: 0`.                                        |
-| About clinic list        | `.aboutClinicList` row gap is `0.45rem`. Vertical accents and the non-linked allied-health row are unchanged.                                                                                                           |
+| Link underlines          | Inline `.textLink` offset is `--mk-inline-link-underline-offset: -0.125rem`. Desktop nav keeps `--mk-nav-underline-offset: 0.5rem`. Footer keeps `--mk-footer-link-underline-offset: 0`.                                 |
+| About clinic list        | `.aboutClinicList` row gap is `0.65rem` with `0.5rem 0.85rem` item padding. Vertical accents and the non-linked allied-health row stay quieter.                                                                         |
 | Pricing planned features | `.laterList.headingFollow` uses `--mk-intro-content-gap` (`clamp(1.25rem, 2vw, 1.5rem)`) so intro copy no longer sits against the first card. `.laterList { margin: 0 }` had been zeroing `.headingFollow`.             |
 | Contact form             | `.contactFormPanel` is `width: min(100%, 56rem)`, `margin-inline: auto`, `padding: clamp(1.5rem, 2.5vw, 2.5rem)`, `text-align: left`. Mobile uses the normal `.inner` gutters. Subtle panel tint only; no extra shadow. |
 | Vertical eyebrows        | Solution and workflow remain eyebrow-free on purpose: Hero / Problem / Guidance / Proof / FAQ keep eyebrows.                                                                                                            |
@@ -1400,7 +1400,7 @@ Focused experience-design pass. Brand architecture, SEO, and route IA were left 
 | Footer              | Link underline offset is `0` and does not inherit the nav offset.                                                                                                                                                                  |
 | `/clinics`          | Cards tint and advance the arrow (`translateX(0.28rem)`) without lifting. Shared foundation has the `SHARED FOUNDATION` eyebrow and uses `--mk-heading-content-gap`.                                                               |
 | Vertical pages      | Secondary CTA border mixes `--vertical-accent` at 26%. Shared `.sectionStack` plus `--mk-heading-intro-gap` / `--mk-body-gap` separate heading-to-body from paragraph rhythm.                                                      |
-| FAQ                 | Native details/summary. Overflow visible, inset rail on open, no first/last inset-border hacks, unclipped focus.                                                                                                                   |
+| FAQ                 | Native details/summary. Accordion stays overflow-visible; items clip to nested radius. Open rail is inset on first/last. Focus ring is inset (`outline-offset: -3px`) so it is not clipped.                                        |
 | About               | Editorial two-column modules, clinic-type links, responsibility panel, “Not currently” scope grid, product-scope footnote, standard closing CTA. No metadata/schema changes.                                                       |
 
 ---
@@ -1419,3 +1419,18 @@ Replaces SMTP/nodemailer on platform `/contact` only. No tenant CAPTCHA. No Verc
 | Obsolete env | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_SECURE` are no longer read. Joaquín can delete them from Vercel if present.                                                                |
 
 See [MARKETING-CONTACT.md](../architecture/MARKETING-CONTACT.md).
+
+---
+
+## Marketing finish polish (2026-09-18)
+
+Second tightly scoped production-design pass. No copy, SEO, or architecture change.
+
+| Area                | Behaviour                                                                                                                                                                                                 |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phone mockup        | Decorative illustration: `user-select: none`, `aria-hidden` on the shell, radios `tabindex="-1"`. Last timeline rail ends at the dot. Coming-next/help no longer stack a stray 1px line.                  |
+| Link underlines     | Non-nav `.textLink` uses `--mk-inline-link-underline-offset: -0.125rem`. Nav stays `0.5rem`. Footer stays `0`.                                                                                            |
+| About clinic list   | Row gap `0.65rem` and slightly more item padding so accent rails read as a family, not a stripe. Allied-health row stays muted.                                                                           |
+| Pricing notes       | `.noteCard` gets a tinted 1px border, faint top-edge inset highlight, and a quiet surface gradient. No lift, glow, or hover animation.                                                                    |
+| `/clinics` platform | “One platform” copy sits in `.headingBlock` so heading → body uses `--mk-heading-intro-gap`.                                                                                                              |
+| FAQ                 | Item overflow clips hover/open fills and rails to nested radius. Summary is `display: block`. Focus remains visible as an inset ring.                                                                     |

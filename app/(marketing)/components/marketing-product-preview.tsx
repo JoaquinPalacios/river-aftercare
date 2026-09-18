@@ -46,8 +46,10 @@ const UPCOMING_STAGES = MARKETING_DEMO_TIMELINE.filter(
  * (Sanity `cationBlue.png`, 1450×2936 PNG with alpha). The screen
  * opening is transparent so this preview stays live HTML/CSS.
  *
- * Today / Timeline is a CSS-only local toggle that mirrors the real
- * demodental patient demo. It does not call a product API.
+ * The shell is a decorative illustration: text is not selectable,
+ * radios are not tab stops, and the hardware/screen are aria-hidden.
+ * Today / Timeline remains a CSS-only mouse toggle using existing
+ * demo sample copy. It does not call a product API.
  *
  * Patient light/dark follows the active marketing appearance via
  * shared aftercare tokens (`data-patient-theme="portal"`). This does
@@ -81,7 +83,7 @@ export function MarketingProductPreview() {
 
 function PhoneShell({ children }: { children: ReactNode }) {
   return (
-    <div className={styles.phoneShell}>
+    <div className={styles.phoneShell} aria-hidden="true">
       {children}
       {/* Native img keeps this Server Component JS-free and out of LCP. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -120,16 +122,13 @@ function ProductPreviewScreen() {
       <p className={styles.phoneKicker}>{MARKETING_DEMO_INSTRUCTIONS_LABEL}</p>
       <p className={styles.phoneTitle}>{MARKETING_DEMO_GUIDE_TITLE}</p>
       <div className={styles.phoneMain} data-mk-phone-preview="">
-        <div
-          className={styles.phoneSegments}
-          role="radiogroup"
-          aria-label="Recovery view"
-        >
+        <div className={styles.phoneSegments}>
           <input
             className={`${styles.phoneViewRadio} ${styles.phoneViewToday}`}
             type="radio"
             name={PHONE_VIEW_NAME}
             id={PHONE_TODAY_ID}
+            tabIndex={-1}
             defaultChecked
           />
           <input
@@ -137,6 +136,7 @@ function ProductPreviewScreen() {
             type="radio"
             name={PHONE_VIEW_NAME}
             id={PHONE_TIMELINE_ID}
+            tabIndex={-1}
           />
           <label className={styles.phoneSegment} htmlFor={PHONE_TODAY_ID}>
             {MARKETING_DEMO_TODAY_LABEL}
