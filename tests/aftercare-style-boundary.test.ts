@@ -180,9 +180,14 @@ describe("aftercare style boundary", () => {
     expect(styles).not.toContain("3.6rem");
     expect(styles).not.toContain("3.25rem");
     expect(styles).toContain("a.navRoute");
+    expect(styles).toContain("bottom: 0.5rem");
+    expect(styles).toContain(".footerNav a.textLink::after");
     expect(tokens).toContain("--mk-heading-content-gap");
     expect(tokens).toContain("--mk-eyebrow-heading-gap");
     expect(tokens).toContain("--mk-heading-intro-gap");
+    expect(tokens).toContain("--mk-body-gap");
+    expect(tokens).toContain("--mk-header-height");
+    expect(tokens).toContain("--mk-nav-duration");
     expect(styles).toContain("phoneStageCurrent");
     expect(styles).toContain("phoneHelp");
     expect(styles).toContain("var(--cg-surface");
@@ -285,6 +290,9 @@ describe("aftercare style boundary", () => {
     expect(preview).toContain("phoneFrame");
     expect(preview).toContain("/marketing/iphone-frame.webp");
     expect(preview).toContain("cationBlue.png");
+    expect(preview).toContain("PHONE_VIEW_NAME");
+    expect(preview).toContain("mk-phone-today");
+    expect(preview).toContain("MARKETING_DEMO_COMING_NEXT_LABEL");
     expect(preview).not.toContain("phoneBezel");
     expect(preview).not.toContain("phoneIsland");
     expect(preview).not.toContain("phoneGlass");
@@ -298,6 +306,7 @@ describe("aftercare style boundary", () => {
     expect(preview).toContain('fetchPriority="low"');
     expect(preview).not.toContain("<button");
     expect(preview).not.toContain("<a ");
+    expect(preview).toContain('type="radio"');
     expect(preview).toContain("MARKETING_DEMO_RECOVERY_HEADING");
     expect(preview).not.toContain("Your recovery");
     expect(preview).toContain("Questions about your recovery?");

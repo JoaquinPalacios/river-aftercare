@@ -22,6 +22,7 @@ export const CLINICS_HUB_COPY = {
     h2: "Find River Aftercare for your practice",
   },
   foundation: {
+    eyebrow: "Shared foundation",
     h2: "What stays consistent across every clinic",
     items: [
       {

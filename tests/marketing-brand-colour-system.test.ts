@@ -142,6 +142,28 @@ describe("marketing brand colour hierarchy", () => {
     expect(styles).not.toContain("/physiotherapy");
   });
 
+  it("keeps brand-flexibility cards as sample clinic identities, not River verticals", () => {
+    expect(styles).toContain("SAMPLE CLINIC IDENTITIES");
+    expect(styles).toContain(".brandTeal");
+    expect(styles).toContain("background: #14635f");
+    expect(styles).toContain(".brandNavy");
+    expect(styles).toContain("background: #2a3446");
+    expect(styles).toContain(".brandWarm");
+    expect(styles).toContain("background: #5a3f44");
+    expect(styles).not.toMatch(/\.brandTeal\s*\{[^}]*--mk-brand/);
+    expect(styles).not.toMatch(/\.brandNavy\s*\{[^}]*--mk-cobalt/);
+    expect(styles).not.toMatch(/\.brandWarm\s*\{[^}]*--mk-sky/);
+    expect(contrastRatio("#f4fbfa", "#14635f")).toBeGreaterThanOrEqual(
+      TEXT_CONTRAST_RATIO
+    );
+    expect(contrastRatio("#f1f4f8", "#2a3446")).toBeGreaterThanOrEqual(
+      TEXT_CONTRAST_RATIO
+    );
+    expect(contrastRatio("#fbf6f3", "#5a3f44")).toBeGreaterThanOrEqual(
+      TEXT_CONTRAST_RATIO
+    );
+  });
+
   it("styles discovery cards through shared semantic vertical variants", () => {
     expect(styles).toContain(".clinicTypeCard[data-vertical] h3");
     expect(styles).toContain("color: var(--vertical-accent-text)");

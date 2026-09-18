@@ -223,7 +223,7 @@ test.describe("marketing conversion routes", () => {
       headerNav.getByRole("link", { name: "Sign in", exact: true })
     ).toBeVisible();
     await expect(
-      headerNav.getByRole("button", { name: "Theme" })
+      headerNav.getByRole("radiogroup", { name: "Theme" })
     ).toBeVisible();
     await expect(
       headerNav.getByRole("link", { name: "How it works" })
@@ -653,9 +653,8 @@ test.describe("marketing conversion routes", () => {
     );
     expect(outline).not.toBe("none");
 
-    const theme = page.getByRole("button", { name: "Theme" });
+    const theme = page.getByRole("radiogroup", { name: "Theme" });
     await expect(theme).toBeVisible();
-    await theme.click();
     await expect(page.getByRole("radio", { name: "Light" })).toBeVisible();
     await page.getByRole("radio", { name: "Dark" }).click();
     await expect(page.locator("html")).toHaveAttribute(

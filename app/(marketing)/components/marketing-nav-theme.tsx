@@ -19,8 +19,8 @@ const OPTIONS: { value: ThemePreference; label: string }[] = [
 
 export function MarketingNavTheme() {
   const chooserId = useId().replace(/:/g, "");
+  const labelId = `mk-theme-label-${chooserId}`;
   const [preference, setPreference] = useState<ThemePreference>("system");
-  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     const stored = parseThemePreference(
@@ -31,9 +31,6 @@ export function MarketingNavTheme() {
     }
   }, []);
 
-  const currentLabel =
-    OPTIONS.find((option) => option.value === preference)?.label ?? "System";
-
   function selectPreference(next: ThemePreference) {
     setPreference(next);
     applyThemePreference(next);
@@ -42,45 +39,31 @@ export function MarketingNavTheme() {
 
   return (
     <div className={styles.navMenuTheme}>
-      <button
-        type="button"
-        className={styles.navMenuRow}
-        aria-expanded={expanded}
-        aria-controls={`mk-theme-${chooserId}`}
-        onClick={() => setExpanded((open) => !open)}
+      <p className={styles.navMenuThemeLabel} id={labelId}>
+        Theme
+      </p>
+      <div
+        id={`mk-theme-${chooserId}`}
+        role="radiogroup"
+        aria-labelledby={labelId}
+        className={styles.navMenuChooser}
       >
-        <span>Theme</span>
-        <span className={styles.navMenuRowMeta}>{currentLabel}</span>
-      </button>
-      {expanded ? (
-        <div
-          id={`mk-theme-${chooserId}`}
-          role="radiogroup"
-          aria-label="Colour theme"
-          className={styles.navMenuChooser}
-        >
-          {OPTIONS.map((option) => {
-            const selected = preference === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                className={styles.navMenuRow}
-                onClick={() => selectPreference(option.value)}
-              >
-                {option.label}
-                {selected ? (
-                  <span className={styles.navMenuRowMeta} aria-hidden="true">
-                    Selected
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+        {OPTIONS.map((option) => {
+          const selected = preference === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              className={styles.navMenuThemeOption}
+              onClick={() => selectPreference(option.value)}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

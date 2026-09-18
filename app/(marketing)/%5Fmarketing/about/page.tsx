@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { JsonLd } from "@/app/(marketing)/components/json-ld";
 import {
   MarketingRevealGroup,
@@ -7,6 +9,7 @@ import { MarketingPageHero } from "@/app/(marketing)/components/marketing-page-h
 import { MarketingPrimaryLink } from "@/app/(marketing)/components/marketing-primary-link";
 import { MarketingShell } from "@/app/(marketing)/components/marketing-shell";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { CLINIC_VERTICAL_NAV } from "@/lib/marketing/clinic-verticals";
 import { marketingPublicLinks } from "@/lib/marketing/public-links";
 import { editorialRevealDelay } from "@/lib/marketing/reveal-timing";
 import {
@@ -17,6 +20,36 @@ import {
 import styles from "../../marketing.module.css";
 
 export const generateMetadata = () => generateMarketingMetadata("/about");
+
+const VALUE_POINTS = [
+  "No patient app",
+  "No patient login",
+  "No PDF to hunt down",
+] as const;
+
+const OWNERSHIP_POINTS = [
+  {
+    label: PRODUCT_NAME,
+    body: "Publishing & content-management technology",
+  },
+  {
+    label: "Your clinic",
+    body: "Approves and owns clinical instructions",
+  },
+  {
+    label: "Treating clinician",
+    body: "Remains responsible for care",
+  },
+] as const;
+
+const SCOPE_EXCLUSIONS = [
+  "Live clinical monitoring",
+  "Patient CRM",
+  "Health record",
+  "Messaging platform",
+  "Emergency care",
+  "Personalised diagnosis or treatment",
+] as const;
 
 export default async function MarketingAboutPage() {
   const [{ staffHref }, jsonLd] = await Promise.all([
@@ -40,68 +73,107 @@ export default async function MarketingAboutPage() {
           <div className={styles.band}>
             <div className={styles.inner}>
               <section
-                className={styles.headingBlock}
+                className={styles.aboutEditorial}
                 aria-labelledby="about-what"
               >
                 <MarketingRevealGroup>
-                  <MarketingRevealItem delay={0}>
-                    <p className={styles.eyebrow}>What it is</p>
-                  </MarketingRevealItem>
-                  <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                    <h2 id="about-what" className={styles.sectionTitle}>
-                      A branded home for the guidance patients need afterwards
-                    </h2>
-                  </MarketingRevealItem>
+                  <div className={`${styles.aboutCopy} ${styles.sectionStack}`}>
+                    <MarketingRevealItem delay={0}>
+                      <p className={styles.eyebrow}>What it is</p>
+                    </MarketingRevealItem>
+                    <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                      <h2 id="about-what" className={styles.sectionTitle}>
+                        A branded home for the guidance patients need afterwards
+                      </h2>
+                    </MarketingRevealItem>
+                    <MarketingRevealItem delay={editorialRevealDelay(2)}>
+                      <p className={styles.copy}>
+                        {PRODUCT_NAME} turns clinic-approved treatment, recovery
+                        and home-care instructions into simple web pages that
+                        carry the clinic&apos;s identity. Patients open a
+                        durable link or QR code and return whenever they need to
+                        check the guidance again.
+                      </p>
+                    </MarketingRevealItem>
+                  </div>
                   <MarketingRevealItem delay={editorialRevealDelay(2)}>
-                    <p className={styles.copy}>
-                      {PRODUCT_NAME} turns clinic-approved treatment, recovery
-                      and home-care instructions into simple web pages that
-                      carry the clinic&apos;s identity. Patients open a durable
-                      link or QR code and return whenever they need to check the
-                      guidance again.
-                    </p>
-                    <p className={styles.copy}>
-                      No patient app. No patient login. No PDF to hunt down.
-                    </p>
+                    <ul className={styles.aboutValuePanel}>
+                      {VALUE_POINTS.map((point) => (
+                        <li key={point}>{point}</li>
+                      ))}
+                    </ul>
                   </MarketingRevealItem>
                 </MarketingRevealGroup>
               </section>
 
               <section
-                className={`${styles.headingBlock} ${styles.headingFollow}`}
+                className={styles.aboutEditorial}
                 aria-labelledby="about-who"
               >
                 <MarketingRevealGroup>
-                  <MarketingRevealItem delay={0}>
-                    <p className={styles.eyebrow}>Who it is for</p>
-                  </MarketingRevealItem>
-                  <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                    <h2 id="about-who" className={styles.sectionTitle}>
-                      Built for treatment-based practices
-                    </h2>
-                  </MarketingRevealItem>
+                  <div className={`${styles.aboutCopy} ${styles.sectionStack}`}>
+                    <MarketingRevealItem delay={0}>
+                      <p className={styles.eyebrow}>Who it is for</p>
+                    </MarketingRevealItem>
+                    <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                      <h2 id="about-who" className={styles.sectionTitle}>
+                        Built for treatment-based practices
+                      </h2>
+                    </MarketingRevealItem>
+                    <MarketingRevealItem delay={editorialRevealDelay(2)}>
+                      <p className={styles.copy}>
+                        {PRODUCT_NAME} is designed for clinics where important
+                        guidance continues after the appointment — including
+                        dental practices, physiotherapy clinics, chiropractic
+                        practices, cosmetic and aesthetic clinics, and other
+                        appropriate allied-health settings.
+                      </p>
+                      <p className={styles.copy}>
+                        The language and guidance may differ by profession. The
+                        underlying job is the same: help the clinic deliver
+                        clear information after the patient leaves.
+                      </p>
+                    </MarketingRevealItem>
+                  </div>
                   <MarketingRevealItem delay={editorialRevealDelay(2)}>
-                    <p className={styles.copy}>
-                      {PRODUCT_NAME} is designed for clinics where important
-                      guidance continues after the appointment — including
-                      dental practices, physiotherapy clinics, chiropractic
-                      practices, cosmetic and aesthetic clinics, and other
-                      appropriate allied-health settings.
-                    </p>
-                    <p className={styles.copy}>
-                      The language and guidance may differ by profession. The
-                      underlying job is the same: help the clinic deliver clear
-                      information after the patient leaves.
-                    </p>
+                    <nav
+                      className={styles.aboutClinicModule}
+                      aria-label="Clinic types"
+                    >
+                      <ul className={styles.aboutClinicList}>
+                        {CLINIC_VERTICAL_NAV.map((item) => (
+                          <li key={item.path}>
+                            <Link
+                              className={styles.aboutClinicLink}
+                              href={item.path}
+                              data-vertical={item.themeId}
+                            >
+                              {item.navLabel}
+                            </Link>
+                          </li>
+                        ))}
+                        <li>
+                          <span className={styles.aboutClinicMuted}>
+                            Other appropriate allied health
+                          </span>
+                        </li>
+                      </ul>
+                    </nav>
                   </MarketingRevealItem>
                 </MarketingRevealGroup>
               </section>
+            </div>
+          </div>
+        </div>
 
-              <section
-                className={`${styles.headingBlock} ${styles.headingFollow}`}
-                aria-labelledby="about-ownership"
-              >
-                <MarketingRevealGroup>
+        <section
+          className={styles.aboutOwnership}
+          aria-labelledby="about-ownership"
+        >
+          <div className={styles.inner}>
+            <MarketingRevealGroup>
+              <div className={styles.aboutOwnershipGrid}>
+                <div className={`${styles.aboutCopy} ${styles.sectionStack}`}>
                   <MarketingRevealItem delay={0}>
                     <p className={styles.eyebrow}>Clinic ownership</p>
                   </MarketingRevealItem>
@@ -121,46 +193,105 @@ export default async function MarketingAboutPage() {
                       {PRODUCT_NAME} does not replace the treating clinician.
                     </p>
                   </MarketingRevealItem>
-                </MarketingRevealGroup>
-              </section>
+                </div>
+                <MarketingRevealItem delay={editorialRevealDelay(2)}>
+                  <ul className={styles.aboutResponsibility}>
+                    {OWNERSHIP_POINTS.map((point) => (
+                      <li key={point.label}>
+                        <p className={styles.aboutResponsibilityLabel}>
+                          {point.label}
+                        </p>
+                        <p className={styles.aboutResponsibilityBody}>
+                          {point.body}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </MarketingRevealItem>
+              </div>
+            </MarketingRevealGroup>
+          </div>
+        </section>
 
+        <div className={styles.marketingSoft} data-mk-chapter="soft">
+          <div className={styles.band}>
+            <div className={styles.inner}>
               <section
-                className={`${styles.headingBlock} ${styles.headingFollow}`}
+                className={styles.aboutScope}
                 aria-labelledby="about-not"
               >
                 <MarketingRevealGroup>
-                  <MarketingRevealItem delay={0}>
-                    <p className={styles.eyebrow}>What it is not</p>
-                  </MarketingRevealItem>
-                  <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                    <h2 id="about-not" className={styles.sectionTitle}>
-                      A publishing platform, not a clinical system
-                    </h2>
-                  </MarketingRevealItem>
-                  <MarketingRevealItem delay={editorialRevealDelay(2)}>
-                    <p className={styles.copy}>
-                      {PRODUCT_NAME} is not currently live clinical monitoring,
-                      a patient CRM, a health record, a messaging platform,
-                      emergency care, or personalised diagnosis or treatment.
-                    </p>
-                    <p className={styles.copy}>
+                  <div className={styles.aboutEditorial}>
+                    <div
+                      className={`${styles.aboutCopy} ${styles.sectionStack}`}
+                    >
+                      <MarketingRevealItem delay={0}>
+                        <p className={styles.eyebrow}>What it is not</p>
+                      </MarketingRevealItem>
+                      <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                        <h2 id="about-not" className={styles.sectionTitle}>
+                          A publishing platform, not a clinical system
+                        </h2>
+                      </MarketingRevealItem>
+                    </div>
+                    <MarketingRevealItem delay={editorialRevealDelay(2)}>
+                      <div className={styles.aboutScopePanel}>
+                        <p className={styles.aboutScopeLabel}>Not currently</p>
+                        <ul className={styles.aboutScopeGrid}>
+                          {SCOPE_EXCLUSIONS.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </MarketingRevealItem>
+                  </div>
+                  <MarketingRevealItem delay={editorialRevealDelay(3)}>
+                    <p className={styles.aboutFootnote}>
+                      <span className={styles.aboutFootnoteLabel}>
+                        Product scope
+                      </span>
                       This page does not claim certification, regulatory
                       approval, customer counts, or health outcomes. Privacy and
                       Terms drafts are published for legal review and are not
                       yet approved.
                     </p>
                   </MarketingRevealItem>
-                  <MarketingRevealItem delay={editorialRevealDelay(3)}>
-                    <p className={styles.copy}>
-                      <MarketingPrimaryLink href="/contact">
-                        Talk to us about a demo
-                      </MarketingPrimaryLink>
-                    </p>
-                  </MarketingRevealItem>
                 </MarketingRevealGroup>
               </section>
             </div>
           </div>
+        </div>
+
+        <div className={styles.marketingClosing} data-mk-chapter="closing">
+          <section
+            className={`${styles.ctaBlock} ${styles.verticalCtaBlock}`}
+            aria-labelledby="about-cta"
+          >
+            <MarketingRevealGroup>
+              <div className={`${styles.inner} ${styles.closingCta}`}>
+                <div className={styles.closingCtaCopy}>
+                  <MarketingRevealItem delay={0}>
+                    <h2 id="about-cta">
+                      Want to see how {PRODUCT_NAME} could fit your clinic?
+                    </h2>
+                  </MarketingRevealItem>
+                </div>
+                <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                  <div className={styles.verticalCtaActions}>
+                    <MarketingPrimaryLink href="/contact">
+                      Request a demo
+                    </MarketingPrimaryLink>
+                    <Link
+                      className={`${styles.textLink} ${styles.verticalCtaSecondary}`}
+                      href="/pricing"
+                    >
+                      View pricing
+                    </Link>
+                  </div>
+                </MarketingRevealItem>
+              </div>
+            </MarketingRevealGroup>
+          </section>
         </div>
       </main>
     </MarketingShell>

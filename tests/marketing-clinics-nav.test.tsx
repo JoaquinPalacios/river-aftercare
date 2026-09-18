@@ -27,6 +27,8 @@ describe("marketing clinics navigation", () => {
     expect(html).toContain('href="/clinics"');
     expect(html).toContain('href="/dental"');
     expect(html).toContain('href="/cosmetic-clinics"');
+    expect(html).toContain("navClinicsKicker");
+    expect(html).toContain("navClinicsList");
     expect(html.indexOf('href="/clinics"')).toBeLessThan(
       html.indexOf('href="/dental"')
     );

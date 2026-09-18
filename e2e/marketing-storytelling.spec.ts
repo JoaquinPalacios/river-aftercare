@@ -274,7 +274,6 @@ test.describe("Phase 1F.11 story clarity", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await showMarketingScheme(page, "light");
     await page.getByRole("button", { name: "Site menu" }).click();
-    await page.getByRole("button", { name: "Theme" }).click();
     await expect(page.getByRole("radio", { name: "Light" })).toBeVisible();
     const mobilePanel = page.locator("[class*='navMenuPanel']");
     await expect(mobilePanel).toBeVisible();

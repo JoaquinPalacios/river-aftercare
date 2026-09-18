@@ -162,7 +162,27 @@ export function MarketingClinicsHub({
                     <h3>{card.label}</h3>
                     <p>{card.body}</p>
                     <span className={styles.clinicsHubCardCta}>
-                      {card.cta} →
+                      {card.cta}
+                      <span
+                        className={styles.clinicsHubCardArrow}
+                        data-mk-card-arrow=""
+                        aria-hidden="true"
+                      >
+                        <svg
+                          viewBox="0 0 16 16"
+                          width="14"
+                          height="14"
+                          focusable="false"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 8h9.5" />
+                          <path d="M8.75 4.25 13 8l-4.25 3.75" />
+                        </svg>
+                      </span>
                     </span>
                   </Link>
                 </MarketingRevealCard>
@@ -177,6 +197,9 @@ export function MarketingClinicsHub({
               <div className={styles.headingBlock}>
                 <MarketingRevealGroup>
                   <MarketingRevealItem delay={0}>
+                    <p className={styles.eyebrow}>{copy.foundation.eyebrow}</p>
+                  </MarketingRevealItem>
+                  <MarketingRevealItem delay={editorialRevealDelay(1)}>
                     <h2 id="clinics-foundation" className={styles.sectionTitle}>
                       {copy.foundation.h2}
                     </h2>

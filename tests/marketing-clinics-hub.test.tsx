@@ -50,6 +50,7 @@ describe("clinics overview hub", () => {
     expect(html).toContain('href="/cosmetic-clinics"');
     expect(html).toContain("Explore dental aftercare");
     expect(html).toContain("What stays consistent across every clinic");
+    expect(html).toContain("Shared foundation");
     expect(html).toContain("Clinic controlled");
     expect(html).toContain("Don&#x27;t see your clinic type?");
     expect(html).toContain("Talk to us");
