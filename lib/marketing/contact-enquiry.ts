@@ -93,5 +93,8 @@ export function sanitizeHeaderValue(value: string): string {
 
 export function enquirySubject(clinicName: string): string {
   const safeClinic = sanitizeHeaderValue(clinicName).slice(0, 80);
-  return `${PRODUCT_NAME} — clinic enquiry — ${safeClinic}`;
+  if (!safeClinic) {
+    return `${PRODUCT_NAME} enquiry`;
+  }
+  return `${PRODUCT_NAME} enquiry — ${safeClinic}`;
 }

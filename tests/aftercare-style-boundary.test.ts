@@ -345,6 +345,7 @@ describe("aftercare style boundary", () => {
       "app/(marketing)/components/marketing-clinics-nav.tsx",
       "app/(marketing)/components/marketing-nav-theme.tsx",
       "app/(marketing)/components/contact-form.tsx",
+      "app/(marketing)/components/contact-turnstile.tsx",
     ]);
     const files = walk("app/(aftercare)").filter((path) =>
       /\.(ts|tsx|css)$/.test(path)
@@ -364,6 +365,9 @@ describe("aftercare style boundary", () => {
       expect(source, file).not.toContain("framer-motion");
       expect(source, file).not.toContain('from "@/app/(staff)');
       expect(source, file).not.toContain("./staff.css");
+      expect(source, file).not.toContain("submitMarketingContactAction");
+      expect(source, file).not.toContain("NEXT_PUBLIC_TURNSTILE_SITE_KEY");
+      expect(source, file).not.toContain("TURNSTILE_SECRET_KEY");
     }
 
     const marketingFiles = walk("app/(marketing)").filter((path) =>
@@ -443,6 +447,21 @@ describe("aftercare style boundary", () => {
     );
     expect(read("app/(marketing)/components/contact-form.tsx")).not.toContain(
       'from "zod"'
+    );
+    expect(read("app/(marketing)/components/contact-turnstile.tsx")).toMatch(
+      /['"]use client['"]/
+    );
+    expect(
+      read("app/(marketing)/components/contact-turnstile.tsx")
+    ).not.toContain("TURNSTILE_SECRET_KEY");
+    expect(
+      read("app/(marketing)/components/contact-turnstile.tsx")
+    ).not.toContain("RESEND_API_KEY");
+    expect(read("app/(marketing)/components/contact-form.tsx")).not.toContain(
+      "TURNSTILE_SECRET_KEY"
+    );
+    expect(read("app/(marketing)/components/contact-form.tsx")).not.toContain(
+      "RESEND_API_KEY"
     );
   });
 });

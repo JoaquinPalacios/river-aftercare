@@ -9,22 +9,21 @@ Architecture: [ADR 0006](../adr/0006-canonical-guide-plus-practice-configuration
 
 ## HIGH PRIORITY — launch-adjacent anti-spam
 
-**Status: not implemented.** Add a bot challenge **before launch or immediately after launch**. This is launch-adjacent work, not vague later polish.
+**Status: marketing Contact implemented.** Login still does **not** have Turnstile.
 
-Recommended direction: **Cloudflare Turnstile**.
+Marketing `/contact` now uses a Cloudflare Turnstile Managed widget plus mandatory server-side Siteverify and Resend delivery. See [MARKETING-CONTACT.md](../architecture/MARKETING-CONTACT.md).
 
-Do **not** provision Cloudflare or add Turnstile from a marketing visual/contact polish pass.
+Do **not** add a global CAPTCHA to tenant patient pages from a Contact task.
 
-When it is implemented:
+When login Turnstile is added later:
 
-| Requirement                    | Why                                                                                                           |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| Server-side token verification | A client widget alone is not protection                                                                       |
-| Graceful failure               | The form must not silently drop legitimate clinic enquiries if the provider is down or the token check errors |
-| Accessibility                  | Turnstile has an accessibility mode. Do not block keyboard or screen-reader users                             |
-| Business enquiry only          | No patient or clinical information is involved                                                                |
+| Requirement                    | Why                                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Server-side token verification | A client widget alone is not protection                                                                   |
+| Graceful failure               | The form must not silently drop legitimate clinic staff if the provider is down or the token check errors |
+| Accessibility                  | Turnstile has an accessibility mode. Do not block keyboard or screen-reader users                         |
 
-Until then, keep the current baseline: server Zod validation, honeypot (`website`), and in-process IP throttle. See [MARKETING-CONTACT.md](../architecture/MARKETING-CONTACT.md).
+Contact already keeps the baseline: server Zod validation, honeypot (`website`), and Turnstile. The in-memory Map throttle was removed because it is not durable on Vercel.
 
 ---
 
@@ -234,7 +233,7 @@ Platform Contact / Pricing live only on the **root marketing domain** (`/pricing
 - clinic phone
 - clinic urgent / emergency instructions
 
-Working published prices (provisional AUD): Essential A$79 / month, Practice A$149 / month, Group custom pricing. Check-ins remain unpriced post-launch premium/add-on work. Contact delivery is a server-side clinic enquiry form (`MARKETING_CONTACT_TO_EMAIL` / SMTP). See [MARKETING-CONTACT.md](../architecture/MARKETING-CONTACT.md).
+Working published prices (provisional AUD): Essential A$79 / month, Practice A$149 / month, Group custom pricing. Check-ins remain unpriced post-launch premium/add-on work. Contact delivery is a server-side clinic enquiry form (`CONTACT_EMAIL_TO` / Resend / Turnstile). See [MARKETING-CONTACT.md](../architecture/MARKETING-CONTACT.md).
 
 ---
 

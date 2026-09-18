@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 import {
   getMarketingContactDeliveryConfig,
@@ -8,10 +8,15 @@ import { composeMarketingContactMessage } from "@/lib/marketing/contact-mail";
 import type { ContactEnquiry } from "@/lib/marketing/contact-enquiry";
 import type { MarketingContactMessage } from "@/lib/marketing/contact-mail";
 
+export const CONTACT_DELIVERY_FAILED =
+  "We couldn't send your message right now. Please try again.";
+
 export type MarketingContactMailerResult =
   { ok: true } | { ok: false; error: string };
 
 const memoryInbox: MarketingContactMessage[] = [];
+
+const RESEND_SEND_TIMEOUT_MS = 8000;
 
 export function getMarketingContactMemoryInbox(): readonly MarketingContactMessage[] {
   return memoryInbox;
@@ -21,12 +26,50 @@ export function clearMarketingContactMemoryInbox(): void {
   memoryInbox.length = 0;
 }
 
+async function sendWithResend({
+  apiKey,
+  message,
+}: {
+  apiKey: string;
+  message: MarketingContactMessage;
+}): Promise<MarketingContactMailerResult> {
+  const resend = new Resend(apiKey);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timed = await Promise.race([
+      resend.emails.send({
+        from: message.from,
+        to: [message.to],
+        replyTo: message.replyTo,
+        subject: message.subject,
+        text: message.text,
+        html: message.html,
+      }),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error("timeout"));
+        }, RESEND_SEND_TIMEOUT_MS);
+      }),
+    ]);
+
+    if (timed.error) {
+      return { ok: false, error: CONTACT_DELIVERY_FAILED };
+    }
+
+    return { ok: true };
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
 export async function deliverMarketingContactEnquiry(
   enquiry: ContactEnquiry,
   config: MarketingContactDeliveryConfig = getMarketingContactDeliveryConfig()
 ): Promise<MarketingContactMailerResult> {
   if (!config.ready) {
-    return { ok: false, error: config.reason };
+    return { ok: false, error: CONTACT_DELIVERY_FAILED };
   }
 
   const message = composeMarketingContactMessage({
@@ -41,33 +84,11 @@ export async function deliverMarketingContactEnquiry(
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: config.smtp.host,
-      port: config.smtp.port,
-      secure: config.smtp.secure,
-      auth:
-        config.smtp.user && config.smtp.password
-          ? {
-              user: config.smtp.user,
-              pass: config.smtp.password,
-            }
-          : undefined,
+    return await sendWithResend({
+      apiKey: config.apiKey,
+      message,
     });
-
-    await transporter.sendMail({
-      to: message.to,
-      from: message.from,
-      replyTo: message.replyTo,
-      subject: message.subject,
-      text: message.text,
-      html: message.html,
-    });
-
-    return { ok: true };
   } catch {
-    return {
-      ok: false,
-      error: "Unable to send your enquiry. Please try again.",
-    };
+    return { ok: false, error: CONTACT_DELIVERY_FAILED };
   }
 }

@@ -11,7 +11,7 @@ This directory is the product and architecture documentation for Care Guide.
 | [adr/](adr/README.md)                                                    | Architecture Decision Records for the aftercare product reset.                                                                  |
 | [product/WORKING-MEMORY.md](product/WORKING-MEMORY.md)                   | Working notes for later implementation sessions. Not a substitute for the PRD.                                                  |
 | [architecture/PERFORMANCE.md](architecture/PERFORMANCE.md)               | Patient-route CSS/JS measurement contract and Phase 1F.1 budget.                                                                |
-| [architecture/MARKETING-CONTACT.md](architecture/MARKETING-CONTACT.md)   | Clinic enquiry delivery, SMTP env, and the recommended public mailbox.                                                          |
+| [architecture/MARKETING-CONTACT.md](architecture/MARKETING-CONTACT.md)   | Clinic enquiry delivery, Resend + Turnstile, and the production mailbox.                                                        |
 | [architecture/CLINIC-PORTAL.md](architecture/CLINIC-PORTAL.md)           | Clinic portal IA, permissions, guide lifecycle, and logo storage blocker.                                                       |
 | [architecture/APPLICATION.md](architecture/APPLICATION.md)               | Next.js monolith launch architecture and future API extraction triggers.                                                        |
 | [architecture/SEO.md](architecture/SEO.md)                               | Launch indexing policy, structured SEO settings, JSON-LD, tenant noindex, and future search visibility.                         |
