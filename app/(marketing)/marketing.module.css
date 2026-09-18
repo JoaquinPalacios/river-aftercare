@@ -1952,7 +1952,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .band {
-  padding: var(--mk-section-pad-y) 0;
+  padding-top: var(--mk-section-pad-top);
 }
 
 .marketingSoft > .band:first-child,

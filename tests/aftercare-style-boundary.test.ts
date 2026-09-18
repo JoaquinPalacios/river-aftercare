@@ -172,11 +172,12 @@ describe("aftercare style boundary", () => {
     expect(styles).not.toContain("100vh");
     expect(styles).toContain("100svh");
     expect(tokens).toContain("--mk-interact-duration");
-    expect(tokens).toContain("--mk-section-pad-y");
+    expect(tokens).toContain("--mk-section-pad-top");
+    expect(styles).toContain("padding-top: var(--mk-section-pad-top)");
     expect(tokens).toContain("--mk-chapter-pad-y");
     expect(tokens).toContain("--mk-chapter-pad-y-mobile");
     expect(tokens).toContain("--mk-card");
-    expect(tokens).toContain("clamp(4rem, 6vw, 6rem)");
+    expect(tokens).toContain("clamp(8rem, 6vw, 6rem)");
     expect(tokens).toContain("clamp(6rem, 8vw, 8rem)");
     expect(tokens).toContain("clamp(4rem, 8vw, 8rem)");
     expect(styles).toContain("padding-top: var(--mk-chapter-pad-y-mobile)");
