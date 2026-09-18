@@ -214,7 +214,7 @@ test.describe("premium marketing UX", () => {
     await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/homepage-phone-mockup-dark-1440.png",
     });
-    await page.locator('[class*="phoneComingNext"]').screenshot({
+    await page.locator('div[class*="phoneComingNext"]').screenshot({
       path: "test-results/artifacts/homepage-phone-mockup-dark-detail.png",
     });
     await page
