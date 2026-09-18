@@ -4960,6 +4960,10 @@ html[data-theme-mode="dark"] .wordmarkName {
     padding-bottom: var(--mk-section-pad-bottom-mobile);
   }
 
+  .band:last-of-type {
+    padding-bottom: var(--mk-section-pad-bottom-last-mobile);
+  }
+
   .marketingSoft > .band:first-child,
   .marketingShowcase > .band:first-child {
     padding-top: var(--mk-chapter-pad-y-mobile);

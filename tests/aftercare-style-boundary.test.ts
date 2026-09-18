@@ -187,6 +187,9 @@ describe("aftercare style boundary", () => {
     expect(styles).toContain(
       "padding-bottom: var(--mk-section-pad-bottom-last)"
     );
+    expect(styles).toContain(
+      "padding-bottom: var(--mk-section-pad-bottom-last-mobile)"
+    );
     expect(tokens).toContain("--mk-chapter-pad-y");
     expect(tokens).toContain("--mk-chapter-pad-y-mobile");
     expect(tokens).toContain("--mk-card");
