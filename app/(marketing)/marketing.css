@@ -94,6 +94,8 @@
   --mk-interact-ease: var(--interaction-easing);
   --mk-section-pad-top: clamp(8rem, 6vw, 6rem);
   --mk-section-pad-bottom: clamp(8rem, 6vw, 6rem);
+  --mk-section-pad-bottom-mobile: clamp(4rem, 6vw, 6rem);
+  --mk-section-pad-bottom-last: clamp(6rem, 6vw, 6rem);
   --mk-chapter-pad-y: clamp(6rem, 8vw, 8rem);
   --mk-chapter-pad-y-mobile: clamp(4rem, 8vw, 8rem);
   --mk-section-space-xl: clamp(4.25rem, 6.2vw, 5.75rem);
@@ -176,7 +178,7 @@
   );
   --mk-hero-bottom-gap: calc(1.35rem + 2.5rem);
   --mk-footer-pad-top: 2rem;
-  --mk-footer-pad-bottom: 2rem;
+  --mk-footer-pad-bottom: 1.25rem;
   --mk-card-shadow: light-dark(
     0 1px 0 rgb(10 13 20 / 3.5%),
     0 1px 0 rgb(255 255 255 / 3%)

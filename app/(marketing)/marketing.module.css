@@ -1959,6 +1959,10 @@ html[data-theme-mode="dark"] .wordmarkName {
   padding-top: var(--mk-section-pad-top);
 }
 
+.band:last-of-type {
+  padding-bottom: var(--mk-section-pad-bottom-last);
+}
+
 .marketingSoft > .band:first-child,
 .marketingShowcase > .band:first-child {
   padding-top: var(--mk-chapter-pad-y);
@@ -4950,6 +4954,10 @@ html[data-theme-mode="dark"] .wordmarkName {
 
   .ctaBlock {
     padding-top: 4rem;
+  }
+
+  .band {
+    padding-bottom: var(--mk-section-pad-bottom-mobile);
   }
 
   .marketingSoft > .band:first-child,
