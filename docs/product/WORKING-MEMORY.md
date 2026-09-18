@@ -1444,7 +1444,7 @@ Tight marketing-illustration pass. No patient-product change, no SEO, no invente
 | Area          | Behaviour                                                                                                                                                    |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Source        | `MARKETING_DEMO_TIMELINE` reads period/title/upcoming summaries from `DEMO_EXTRACTION_CANONICAL_SECTIONS` (`immediate-care`, `days-2-3`, `days-4-7`).        |
-| Today view    | “Coming next” is one card with two stacked stage rows: muted day range, stage title, 2-line clamp of the canonical sample body.                              |
+| Today view    | “Coming next” is one card with two stacked stage rows: muted day range, stage title, and the first sentence of the canonical sample body.                    |
 | Current stage | Existing short marketing summary kept; full Immediate care body remains under “What to do today”.                                                            |
 | Timeline view | Same source data; upcoming rows stay compact (period + title only) so the pane does not overflow.                                                            |
 | Empty region  | Contact/help stays `margin-top: auto` at the bottom of the device. Extra truthful copy reduces the leftover gap; it is not removed by collapsing flex space. |

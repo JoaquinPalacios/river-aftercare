@@ -1656,7 +1656,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 .phoneMain:has(.phoneViewToday:checked) .phoneTodayPane,
 .phoneMain:has(.phoneViewTimeline:checked) .phoneTimelinePane {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.42rem;
 }
 
 .phoneViewKicker {
@@ -1670,7 +1670,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 .phoneComingNext {
   isolation: isolate;
   overflow: hidden;
-  padding: 0.45rem 0.5rem 0.55rem;
+  padding: 0.38rem 0.48rem 0.4rem;
   border: 1px solid
     color-mix(in srgb, var(--cg-border, #ecece8) 75%, transparent);
   border-radius: var(--cg-radius, 0.75rem);
@@ -1716,8 +1716,8 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .phoneComingNextList {
   display: grid;
-  gap: 0.48rem;
-  margin: 0.32rem 0 0;
+  gap: 0.34rem;
+  margin: 0.22rem 0 0;
 }
 
 .phoneComingNextStage {
@@ -1746,15 +1746,10 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .phoneComingNextSummary {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  margin: 0.1rem 0 0;
-  overflow: hidden;
+  margin: 0.08rem 0 0;
   color: var(--cg-text-muted, #6b7280);
   font-size: 0.5rem;
-  line-height: 1.35;
+  line-height: 1.32;
 }
 
 .phoneRecovery {

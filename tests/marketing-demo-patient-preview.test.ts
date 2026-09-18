@@ -39,15 +39,19 @@ describe("marketing demo patient preview fixtures", () => {
       key: "days-2-3",
       period: earlyRecovery.periodLabel,
       title: earlyRecovery.title,
-      summary: earlyRecovery.body,
+      summary: "Swelling often peaks, then eases.",
       status: "upcoming",
     });
     expect(daysFourSeven).toEqual({
       key: "days-4-7",
       period: healingCheck.periodLabel,
       title: healingCheck.title,
-      summary: healingCheck.body,
+      summary: "Discomfort should continue to settle.",
       status: "upcoming",
     });
+    expect(earlyRecovery.body.startsWith(daysTwoThree.summary)).toBe(true);
+    expect(healingCheck.body.startsWith(daysFourSeven.summary)).toBe(true);
+    expect(daysTwoThree.summary).not.toBe(earlyRecovery.body);
+    expect(daysFourSeven.summary).not.toBe(healingCheck.body);
   });
 });

@@ -44,6 +44,12 @@ const DEMO_IMMEDIATE_CARE = demoExtractionSection("immediate-care");
 const DEMO_EARLY_RECOVERY = demoExtractionSection("days-2-3");
 const DEMO_HEALING_CHECK = demoExtractionSection("days-4-7");
 
+function firstSampleSentence(body: string): string {
+  const trimmed = body.trim();
+  const match = trimmed.match(/^.+?[.](?:\s|$)/);
+  return (match?.[0] ?? trimmed).trim();
+}
+
 export const MARKETING_DEMO_TODAY_DO_BODY = DEMO_IMMEDIATE_CARE.body;
 
 export const MARKETING_DEMO_INSTRUCTIONS_LABEL = instructionLabel(
@@ -60,7 +66,8 @@ export const MARKETING_DEMO_THEME_APPEARANCE = "portal";
 /**
  * Current-stage summary stays the existing short marketing preview line.
  * The full Immediate care body is already shown under “What to do today”.
- * Upcoming summaries are the canonical sample bodies, unchanged.
+ * Upcoming summaries are the first sentence of each canonical sample
+ * body, used as a compact preview rather than the full stage copy.
  */
 export const MARKETING_DEMO_CURRENT_STAGE_SUMMARY =
   "Follow the clinic's immediate care notes and take it easy.";
@@ -77,14 +84,14 @@ export const MARKETING_DEMO_TIMELINE = [
     key: DEMO_EARLY_RECOVERY.key,
     period: DEMO_EARLY_RECOVERY.period,
     title: DEMO_EARLY_RECOVERY.title,
-    summary: DEMO_EARLY_RECOVERY.body,
+    summary: firstSampleSentence(DEMO_EARLY_RECOVERY.body),
     status: "upcoming",
   },
   {
     key: DEMO_HEALING_CHECK.key,
     period: DEMO_HEALING_CHECK.period,
     title: DEMO_HEALING_CHECK.title,
-    summary: DEMO_HEALING_CHECK.body,
+    summary: firstSampleSentence(DEMO_HEALING_CHECK.body),
     status: "upcoming",
   },
 ] as const;

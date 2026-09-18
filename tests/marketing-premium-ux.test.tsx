@@ -98,7 +98,8 @@ describe("premium marketing UX contracts", () => {
     expect(html).toContain("Swelling often peaks, then eases.");
     expect(html).toContain("Discomfort should continue to settle.");
     expect(html).not.toContain("Days 2–3 — Early recovery");
-    expect(styles).toContain("-webkit-line-clamp: 2");
+    expect(html).not.toContain("Keep meals soft and avoid strenuous exercise");
+    expect(html).not.toContain("Return to usual food only as comfort allows");
     expect(styles).not.toContain(".phoneComingNextItem");
     expect(styles).not.toMatch(/\.phoneComingNextStage[^{]*::(?:before|after)/);
   });
