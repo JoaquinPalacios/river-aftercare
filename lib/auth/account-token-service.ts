@@ -143,6 +143,26 @@ function evaluateToken(
   return null;
 }
 
+function invitationAcceptanceIsStale(input: {
+  user: {
+    email: string;
+    passwordHash: string | null;
+    platformRole: PlatformRole;
+  } | null;
+  clinic: { id: string } | null;
+  tokenEmail: string;
+  membershipCount: number;
+}): boolean {
+  return (
+    !input.user ||
+    !input.clinic ||
+    input.user.email !== input.tokenEmail ||
+    input.user.passwordHash !== null ||
+    input.user.platformRole !== PlatformRole.NONE ||
+    input.membershipCount !== 0
+  );
+}
+
 function hashRawTokenOrMissing(rawToken: string): string | null {
   try {
     return hashAccountToken(rawToken);
@@ -508,12 +528,14 @@ export async function completeInvitation(input: {
     ]);
 
     if (
+      invitationAcceptanceIsStale({
+        user,
+        clinic,
+        tokenEmail: latest.email,
+        membershipCount,
+      }) ||
       !user ||
-      !clinic ||
-      user.email !== latest.email ||
-      user.passwordHash !== null ||
-      user.platformRole !== PlatformRole.NONE ||
-      membershipCount !== 0
+      !clinic
     ) {
       return { ok: false, reason: "stale_user" };
     }
@@ -565,6 +587,52 @@ export async function completeInvitation(input: {
       role: latest.role,
     };
   });
+}
+
+export async function inspectInvitation(
+  rawToken: string,
+  options?: { now?: Date; prisma?: AccountTokenClient }
+): Promise<{ valid: boolean }> {
+  const lookedUp = await lookupAccountToken(
+    rawToken,
+    AccountTokenType.INVITATION,
+    options
+  );
+  if (!lookedUp.ok || !lookedUp.token.clinicId || !lookedUp.token.role) {
+    return { valid: false };
+  }
+
+  const prisma = options?.prisma ?? getPrisma();
+  const [user, clinic, membershipCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: lookedUp.token.userId },
+      select: {
+        email: true,
+        passwordHash: true,
+        platformRole: true,
+      },
+    }),
+    prisma.clinic.findUnique({
+      where: { id: lookedUp.token.clinicId },
+      select: { id: true },
+    }),
+    prisma.clinicMembership.count({
+      where: { userId: lookedUp.token.userId },
+    }),
+  ]);
+
+  if (
+    invitationAcceptanceIsStale({
+      user,
+      clinic,
+      tokenEmail: lookedUp.token.email,
+      membershipCount,
+    })
+  ) {
+    return { valid: false };
+  }
+
+  return { valid: true };
 }
 
 export async function lookupAccountToken(

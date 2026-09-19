@@ -14,6 +14,7 @@ import {
 } from "@/lib/clinic-portal/role-labels";
 
 const initial: ClinicTeamActionState = {};
+const PENDING_STATUS = "Sending invitation. Please wait.";
 
 export function InviteUserForm({ clinicId }: { clinicId: string }) {
   const [state, action, pending] = useActionState(
@@ -22,7 +23,20 @@ export function InviteUserForm({ clinicId }: { clinicId: string }) {
   );
 
   return (
-    <form action={action} className="flex max-w-lg flex-col gap-4" noValidate>
+    <form
+      action={action}
+      className="flex max-w-lg flex-col gap-4"
+      noValidate
+      aria-busy={pending || undefined}
+    >
+      <div
+        id="invite-user-pending-status"
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+      >
+        {pending ? PENDING_STATUS : ""}
+      </div>
       <input type="hidden" name="clinicId" value={clinicId} />
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium" htmlFor="invite-name">
@@ -94,7 +108,7 @@ export function InviteUserForm({ clinicId }: { clinicId: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="staffBtn staffBtnPrimary w-fit"
+        className="staffBtn staffBtnPrimary staffLoginSubmit h-11 w-fit"
         aria-busy={pending || undefined}
       >
         {pending ? (

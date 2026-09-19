@@ -29,8 +29,13 @@ test.describe("operator clinic invitations", () => {
       page.getByRole("columnheader", { name: "Email" })
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Remove access" })
-    ).toHaveCount(0);
+      page.getByRole("button", { name: /Actions for / })
+    ).not.toHaveCount(0);
+    await page.getByRole("button", { name: /Actions for / }).first().click();
+    await expect(
+      page.getByRole("menuitem", { name: "Remove access" })
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
     await expect(page.getByText("Active").first()).toBeVisible();
     await page.screenshot({
       path: "test-results/artifacts/operator-team-1440.png",
@@ -57,9 +62,8 @@ test.describe("operator clinic invitations", () => {
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Role").selectOption("STAFF");
     await page.getByRole("button", { name: "Send invitation" }).click();
-    await expect(page.getByText(`Invitation sent to ${email}.`)).toBeVisible();
-
-    await page.getByRole("link", { name: "Back to team" }).click();
+    await expect(page).toHaveURL(/\/team(?:\?status=invitation-sent)?$/);
+    await expect(page.getByText("Invitation sent.")).toBeVisible();
     await expect(page.getByText(email)).toBeVisible();
     await expect(page.getByText("Pending").first()).toBeVisible();
     await expect(
@@ -87,7 +91,7 @@ test.describe("operator clinic invitations", () => {
 });
 
 test.describe("accept invitation page", () => {
-  test("staff host shows setup form from the fragment and invalid state without it", async ({
+  test("staff host shows invalid state without a usable invitation", async ({
     page,
   }) => {
     const missing = await page.goto(staffUrl("/accept-invitation"), {
@@ -111,17 +115,25 @@ test.describe("accept invitation page", () => {
       { waitUntil: "load" }
     );
     expect(withToken?.status()).toBe(200);
-    await expect(page.getByLabel("New password")).toBeVisible();
-    await expect(page.getByLabel("Confirm password")).toBeVisible();
+    await expect(page.getByText("Checking invitation…")).toHaveCount(0);
     await expect(
-      page.getByRole("button", { name: "Create password" })
+      page.getByText("This invitation is invalid or has expired.")
     ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Contact your clinic administrator or River Aftercare for a new invitation."
+      )
+    ).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toHaveCount(0);
+    await expect(page).toHaveURL(/#token=/);
     await page.screenshot({
       path: "test-results/artifacts/accept-invitation-1280.png",
     });
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByLabel("New password")).toBeVisible();
+    await expect(
+      page.getByText("This invitation is invalid or has expired.")
+    ).toBeVisible();
     await page.screenshot({
       path: "test-results/artifacts/accept-invitation-390.png",
     });

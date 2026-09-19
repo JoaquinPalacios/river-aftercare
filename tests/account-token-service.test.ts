@@ -12,6 +12,7 @@ import {
   createInvitationToken,
   createPasswordResetToken,
   createPasswordResetTokenIfAllowed,
+  inspectInvitation,
   lookupAccountToken,
   revokeAccountToken,
 } from "@/lib/auth/account-token-service";
@@ -536,11 +537,62 @@ describe("account token service", () => {
     expect(result).toEqual({ ok: false, reason: "wrong_type" });
   });
 
+  it("inspects invitations without consuming them", async () => {
+    await seed();
+    const now = new Date("2026-09-19T12:00:00.000Z");
+    const created = await createInvitationToken({
+      userId: USER_A,
+      clinicId: CLINIC_A,
+      role: ClinicMembershipRole.STAFF,
+      email: `${PREFIX}a@example.test`,
+      invitedByUserId: INVITER,
+      now,
+    });
+
+    expect(await inspectInvitation(created.rawToken, { now })).toEqual({
+      valid: true,
+    });
+    const stored = await prisma.accountToken.findUnique({
+      where: { id: created.token.id },
+    });
+    expect(stored?.consumedAt).toBeNull();
+    expect(JSON.stringify(stored)).not.toContain(created.rawToken);
+
+    expect(await inspectInvitation("not a token", { now })).toEqual({
+      valid: false,
+    });
+    expect(
+      await inspectInvitation(created.rawToken, {
+        now: new Date("2026-09-26T12:00:00.000Z"),
+      })
+    ).toEqual({ valid: false });
+
+    const reset = await createPasswordResetToken({
+      userId: USER_A,
+      email: `${PREFIX}a@example.test`,
+      now,
+    });
+    expect(await inspectInvitation(reset.rawToken, { now })).toEqual({
+      valid: false,
+    });
+
+    await consumeAccountToken(created.token.id, {
+      expectedType: AccountTokenType.INVITATION,
+      now: new Date("2026-09-20T12:00:00.000Z"),
+    });
+    expect(
+      await inspectInvitation(created.rawToken, {
+        now: new Date("2026-09-20T12:00:00.000Z"),
+      })
+    ).toEqual({ valid: false });
+  });
+
   it("keeps the token service free of email sending", () => {
     expect(existsSync("app/(staff)/forgot-password")).toBe(true);
     expect(existsSync("app/(staff)/reset-password")).toBe(true);
     expect(existsSync("app/api/auth/forgot-password")).toBe(true);
     expect(existsSync("app/api/auth/reset-password")).toBe(true);
+    expect(existsSync("app/api/auth/invitation-status")).toBe(true);
     expect(
       readFileSync("lib/auth/account-token-service.ts", "utf8")
     ).not.toMatch(/sendAuthTransactionalEmail|AUTH_EMAIL_FROM/);

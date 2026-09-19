@@ -1,15 +1,22 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
   cancelClinicInvitationAction,
+  removeClinicAccessAction,
   resendClinicInvitationAction,
   type ClinicTeamActionState,
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/team/actions";
+import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
+import { OverflowMenu } from "@/app/(staff)/components/overflow-menu";
 import { teamMembershipRoleLabel } from "@/lib/clinic-portal/role-labels";
-import type { ClinicTeamRow } from "@/lib/operator/list-clinic-team";
+import type {
+  ClinicTeamMember,
+  ClinicTeamRow,
+} from "@/lib/operator/list-clinic-team";
+import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 const empty: ClinicTeamActionState = {};
 
@@ -34,20 +41,35 @@ function statusTone(status: ClinicTeamRow["status"]): "success" | "warning" {
   return status === "active" ? "success" : "warning";
 }
 
+function memberDisplayName(row: ClinicTeamMember): string {
+  return row.name?.trim() || row.email;
+}
+
 export function ClinicTeamTable({
   clinicId,
+  clinicName,
   rows,
 }: {
   clinicId: string;
+  clinicName: string;
   rows: ClinicTeamRow[];
 }) {
   const router = useRouter();
+  const reactId = useId().replace(/:/g, "");
+  const removeFormId = `remove-clinic-access-${reactId}`;
+  const [removeTarget, setRemoveTarget] = useState<ClinicTeamMember | null>(
+    null
+  );
   const [resendState, resendAction, resending] = useActionState(
     resendClinicInvitationAction,
     empty
   );
   const [cancelState, cancelAction, cancelling] = useActionState(
     cancelClinicInvitationAction,
+    empty
+  );
+  const [removeState, removeAction, removing] = useActionState(
+    removeClinicAccessAction,
     empty
   );
 
@@ -57,9 +79,15 @@ export function ClinicTeamTable({
     }
   }, [resendState, cancelState, router]);
 
-  const error = resendState.error ?? cancelState.error;
+  useEffect(() => {
+    if (removeState.error) {
+      setRemoveTarget(null);
+    }
+  }, [removeState]);
+
+  const error = resendState.error ?? cancelState.error ?? removeState.error;
   const success = resendState.success ?? cancelState.success;
-  const pending = resending || cancelling;
+  const pending = resending || cancelling || removing;
 
   if (rows.length === 0) {
     return (
@@ -82,6 +110,14 @@ export function ClinicTeamTable({
           {error}
         </p>
       ) : null}
+      <form id={removeFormId} action={removeAction} className="hidden">
+        <input type="hidden" name="clinicId" value={clinicId} />
+        <input
+          type="hidden"
+          name="membershipId"
+          value={removeTarget?.membershipId ?? ""}
+        />
+      </form>
       <div className="staffOperatorTableWrap">
         <table className="min-w-full text-left text-sm">
           <caption className="sr-only">Clinic team</caption>
@@ -128,7 +164,17 @@ export function ClinicTeamTable({
                 </td>
                 <td className="px-4 py-3">
                   {row.kind === "member" ? (
-                    <span className="text-staff-muted">—</span>
+                    <OverflowMenu label={`Actions for ${memberDisplayName(row)}`}>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="staffOverflowItem staffOverflowItemDanger"
+                        disabled={pending}
+                        onClick={() => setRemoveTarget(row)}
+                      >
+                        Remove access
+                      </button>
+                    </OverflowMenu>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       <form action={resendAction}>
@@ -161,6 +207,25 @@ export function ClinicTeamTable({
           </tbody>
         </table>
       </div>
+      <ConfirmDialog
+        open={removeTarget !== null}
+        title="Remove access?"
+        description={
+          removeTarget
+            ? `${memberDisplayName(removeTarget)} will immediately lose access to ${clinicName}. Their ${PRODUCT_NAME} account and password will be kept, so access can be restored later.`
+            : ""
+        }
+        cancelLabel="Cancel"
+        confirmLabel={removing ? "Removing…" : "Remove access"}
+        confirmTone="danger"
+        onCancel={() => setRemoveTarget(null)}
+        onConfirm={() => {
+          const form = document.getElementById(
+            removeFormId
+          ) as HTMLFormElement | null;
+          form?.requestSubmit();
+        }}
+      />
     </div>
   );
 }

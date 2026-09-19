@@ -196,11 +196,11 @@ Inspection: login/`createDatabaseSession` writes a fixed `expires = now + 30 day
 
 `proxy.ts` remains the host gate. Staff-path prefixes include `/login`, `/forgot-password`, `/reset-password`, `/accept-invitation`, `/account`, `/operator`, and `/api/auth`. Marketing apex and tenant hosts 404 those paths.
 
-Forgot/reset/accept-invitation Route Handlers also require a staff `Host` (and a staff `Origin` when present). Change-password and operator Team mutations are Server Actions with an explicit staff-host check. Login still relies on the proxy boundary alone.
+Forgot/reset/accept-invitation/invitation-status Route Handlers also require a staff `Host` (and a staff `Origin` when present). Change-password and operator Team mutations are Server Actions with an explicit staff-host check. Login still relies on the proxy boundary alone.
 
 ## Security logging
 
-Structured events only: `password_changed`, `password_reset_requested`, `password_reset_email_failed`, `password_reset_completed`, `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`. Prefer user id (and clinic id for invitations). Never log passwords, raw tokens, token hashes, reset/invite URLs, session tokens, API keys, or mail bodies. Unknown emails are not logged.
+Structured events only: `password_changed`, `password_reset_requested`, `password_reset_email_failed`, `password_reset_completed`, `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`. Prefer user id (and clinic id for invitations). Never log passwords, raw tokens, token hashes, reset/invite URLs, session tokens, API keys, or mail bodies. Unknown emails are not logged.
 
 ## AccountToken
 
@@ -264,7 +264,9 @@ Cancelled invitations (revoked, not consumed) are hidden. Re-invite the same ema
 
 Roles in this UI: Administrator / Staff. Initial role is chosen on invite. Operator role editing (ADMIN ↔ STAFF) is **not** implemented.
 
-Active members have no Team mutation in this release. **Remove access is not exposed.** Restoring a passworded user with zero memberships is not implemented, so the product must not create that state.
+Active members expose **Remove access** (overflow menu + confirmation). Removal deletes only that `ClinicMembership` and all database sessions for that User. The User row, email, passwordHash, and AccountToken history are kept so the same credentials can be restored later. There is **no last-admin guard** while Team provisioning remains operator-only; a clinic may have zero members.
+
+Successful invite delivery redirects to Team with `?status=invitation-sent` → “Invitation sent.” The pending person is already in the list. Delivery failure stays on Invite user with the controlled operational error; resend remains available from Team.
 
 ### Invite rules
 
@@ -279,7 +281,7 @@ Mutations are Server Actions. Clinic comes from the operator-authorized route. I
 | Pending same clinic (usable token)     | Direct operator to **Resend invitation**.                                                      |
 | Pending/history tied to another clinic | Blocked. Same multi-clinic limitation.                                                         |
 | Expired/cancelled same-clinic pending  | New invitation token for the same User. Name may be updated.                                   |
-| Active user, zero memberships          | “This account already exists. Restoring access for an existing password is not yet supported.” |
+| Active user, zero memberships          | Restore access: create one `ClinicMembership` with the operator-selected role. Keep password. No invitation token or email. |
 
 A User may have **at most one** active `ClinicMembership`. This change does not add a clinic switcher.
 
@@ -291,17 +293,19 @@ URL origin is `staffAppOrigin()`. Fragment:
 
 `https://app.riveraftercare.com.au/accept-invitation#token=<RAW_TOKEN>`
 
-Client reads the hash, keeps the token in memory, POSTs it in `/api/auth/accept-invitation`. Not stored in localStorage/sessionStorage/cookies. Analytics strips `/accept-invitation` hashes. Raw tokens are never persisted, listed, or logged.
+Client reads the hash, keeps the token in memory, POSTs it to `/api/auth/invitation-status` (non-consuming) before showing the password form, then POSTs it to `/api/auth/accept-invitation` on submit. Not stored in localStorage/sessionStorage/cookies. Analytics strips `/accept-invitation` hashes. Raw tokens are never persisted, listed, or logged. The status endpoint returns only `{ valid: true | false }` and never consumes the token.
 
-If User/token creation succeeds but email delivery fails, the pending invitation is **retained** and the operator sees: “Invitation created, but the email could not be sent. Try resending it.” A provider timeout may still deliver later; keeping the token avoids guaranteeing that a late link is dead. Resend supersedes it.
+If User/token creation succeeds but email delivery fails, the pending invitation is **retained** and the operator sees: “Invitation created, but the email could not be sent. Try resending it.” A provider timeout may still deliver later; keeping the token avoids guaranteeing that a late link is dead. Resend supersedes it. Restoration of a passworded zero-membership User does **not** send mail; the person already owns credentials.
 
 ### Acceptance
 
-`/accept-invitation` (staff host only). Possession of the token is the credential; email is not re-entered. New password 12–256 with confirmation. Generic external failure:
+`/accept-invitation` (staff host only). Possession of the token is the credential; email is not re-entered. The page has explicit states: **CHECKING** (“Checking invitation…”), **VALID** (password setup form), **INVALID** (generic expired copy). A syntactically valid fragment is prevalidated with `POST /api/auth/invitation-status` before the form is shown. Consumed, expired, revoked, malformed, wrong-type, and stale-user tokens all render the same invalid copy. New password 12–256 with confirmation. Generic external failure:
 
 > This invitation is invalid or has expired.
 
 Guidance: contact the clinic administrator or River Aftercare. There is no anonymous resend-by-email endpoint.
+
+Prevalidation is UX only. `completeInvitation` still revalidates and conditionally consumes the token in one transaction. A token that becomes invalid between status check and submit is still rejected, and replay cannot change `passwordHash`, role, or membership count.
 
 `completeInvitation` (one transaction, advisory locks): validate INVITATION token; require matching User email, `passwordHash` null, `platformRole` NONE, zero memberships, clinic exists; consume token; set `passwordHash`; set `emailVerified` to acceptance time; create `ClinicMembership` with **token** clinic and role; revoke other outstanding invitations for that user. Only one concurrent accept succeeds. No session is created.
 
@@ -309,19 +313,24 @@ Guidance: contact the clinic administrator or River Aftercare. There is no anony
 
 Success: `/login?invite=success` (fixed flag → “Your account is ready. Sign in with your new password.”). Then the existing one-membership login path.
 
+### Remove access / restore access
+
+- **Remove access** (operator only, active membership): delete that `ClinicMembership`; delete all database sessions for the User; keep User / passwordHash / email / AccountToken history. Redirect to Team with `?status=access-removed` → “Access removed.” No last-admin guard.
+- **Restore access** (same Invite user form, operator only): passworded User, `platformRole` NONE, zero memberships → create one membership with the selected role. Do not change the password, create a token, or send mail. Redirect to Team with `?status=access-restored` → “Access restored.” Next login is the normal one-membership `/dashboard` path.
+- One clinic per User remains enforced. Platform operators cannot be invited or restored as clinic members.
+
 ### Resend / cancel
 
 - **Resend** (pending or expired, same clinic, still `passwordHash` null, no membership): new token, previous outstanding invite revoked.
 - **Cancel**: revoke outstanding INVITATION tokens for that user+clinic. User row kept. Login still generic 401.
 
-Security logging: `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`. User id + clinic id only. Never passwords, raw tokens, hashes, URLs, or provider errors.
+Security logging: `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`. User id + clinic id only. Never passwords, raw tokens, hashes, URLs, or provider errors.
 
 ## Not yet implemented
 
-- **Remove clinic access + restore existing passworded user access** (immediate next lifecycle work). Removal must invalidate sessions and keep User/password; restoration must not reset or replace the password. Hidden until both ship together.
 - clinic ADMIN / STAFF inviting users
 - operator role change (ADMIN ↔ STAFF) after invite
-- last-admin protection (evaluate with remove/restore; operator retains platform control)
+- last-admin protection (revisit when clinic-admin Team self-service ships; operator retains platform control)
 - multi-clinic picker
 - email-address changes
 - global account disable
