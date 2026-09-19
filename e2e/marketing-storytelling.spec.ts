@@ -1429,8 +1429,12 @@ test.describe("Phase 1F.11 story clarity", () => {
       hero.getByRole("link", { name: "View the dental demo" })
     ).toBeVisible();
     await expect(hero.getByText("Tooth Extraction")).toBeVisible();
-    await expect(hero.getByText("Today")).toBeVisible();
-    await expect(hero.getByText("Timeline")).toBeVisible();
+    await expect(
+      hero.getByText("Today", { exact: true }).first()
+    ).toBeVisible();
+    await expect(
+      hero.getByText("Timeline", { exact: true }).first()
+    ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "See what patients actually receive" })
     ).toHaveCount(0);
@@ -1481,7 +1485,7 @@ test.describe("Phase 1F.11 story clarity", () => {
         workflowsInShowcase: showcase.contains(workflowsSection),
         closingAfter: Boolean(
           workflowsSection.compareDocumentPosition(closing) &
-            Node.DOCUMENT_POSITION_FOLLOWING
+          Node.DOCUMENT_POSITION_FOLLOWING
         ),
       };
     });
@@ -1682,9 +1686,9 @@ test.describe("Phase 1F.11 story clarity", () => {
 
     expect(desktop).not.toBeNull();
     expect(Math.abs(desktop!.headingSize - desktop!.whySize)).toBeLessThan(1);
-    expect(
-      Math.abs(desktop!.headingSize - desktop!.workflowSize)
-    ).toBeLessThan(1);
+    expect(Math.abs(desktop!.headingSize - desktop!.workflowSize)).toBeLessThan(
+      1
+    );
     expect(desktop!.visualLeft).toBe(true);
     expect(desktop!.sourceCopyFirst).toBe(true);
     expect(desktop!.visualTabbables).toBe(0);
@@ -1710,7 +1714,7 @@ test.describe("Phase 1F.11 story clarity", () => {
       const follows = (earlier: Element, later: Element) =>
         Boolean(
           earlier.compareDocumentPosition(later) &
-            Node.DOCUMENT_POSITION_FOLLOWING
+          Node.DOCUMENT_POSITION_FOLLOWING
         );
       return {
         whyBeforeBrand: follows(why, brand),

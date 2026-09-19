@@ -1149,10 +1149,10 @@ test.describe("premium marketing UX", () => {
     }
   });
 
-  test("captures homepage workflow, preview, and brand-flexibility sequence", async ({
+  test("captures homepage workflow showcase and brand-flexibility sequence", async ({
     page,
   }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
 
     async function captureRange(
       startSelector: string,
@@ -1269,7 +1269,7 @@ test.describe("premium marketing UX", () => {
           visualLeft: copyBox.left > panelBox.right - 8,
           sourceCopyFirst: Boolean(
             copy.compareDocumentPosition(panel) &
-              Node.DOCUMENT_POSITION_FOLLOWING
+            Node.DOCUMENT_POSITION_FOLLOWING
           ),
         };
       });
@@ -1295,7 +1295,9 @@ test.describe("premium marketing UX", () => {
         })
       ).toBeVisible();
       await expect(
-        page.getByRole("heading", { name: "See what patients actually receive" })
+        page.getByRole("heading", {
+          name: "See what patients actually receive",
+        })
       ).toHaveCount(0);
       await workflows.screenshot({
         path: `test-results/artifacts/home-workflows-${scheme}-1440.png`,

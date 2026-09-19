@@ -76,10 +76,9 @@ test.describe("marketing homepage", () => {
       page.getByText("Patient aftercare for clinics and practices").first()
     ).toBeVisible();
     await expect(
-      page.getByText(
-        "No login, no feed — just the guidance patients need, with the clinic still one tap away."
-      )
+      page.getByRole("link", { name: "View the dental demo" }).first()
     ).toBeVisible();
+    await expect(page.getByText("Tooth Extraction").first()).toBeVisible();
     await expect(
       page
         .getByRole("contentinfo")
