@@ -12,11 +12,16 @@ describe("sign out row", () => {
       "app/(staff)/components/portal-chrome.tsx",
       "utf8"
     );
+    const panel = readFileSync(
+      "app/(staff)/components/staff-account-panel.tsx",
+      "utf8"
+    );
     const css = readFileSync("app/(staff)/staff.css", "utf8");
 
     expect(logout).toContain("staffNavRow staffSignOut");
     expect(logout).not.toContain("staffBtnDanger");
-    expect(chrome).toContain("staffAccountBlock");
+    expect(chrome).toContain("StaffAccountPanel");
+    expect(panel).toContain("staffAccountBlock");
     expect(css).toContain(".staffSignOut");
     expect(css).toContain("min-height: var(--staff-nav-row-h)");
   });

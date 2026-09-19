@@ -1,6 +1,6 @@
 # Transactional email — shared transport
 
-River Aftercare sends application-generated email through one Resend account. Marketing Contact and future account-lifecycle mail share **transport only**. They keep separate identities, configuration, and call sites.
+River Aftercare sends application-generated email through one Resend account. Marketing Contact and account-lifecycle mail share **transport only**. They keep separate identities, configuration, and call sites.
 
 There is no generic send-email HTTP route.
 
@@ -15,13 +15,13 @@ Marketing Contact
   → To CONTACT_EMAIL_TO (contact@riveraftercare.com.au)
   → Reply-To visitor email
 
-Future account lifecycle (not sent yet)
-  → invitation / password-reset / similar (later PRs)
+Account lifecycle (password reset; invitations later)
   → sendAuthTransactionalEmail
   → sendTransactionalEmail
   → From AUTH_EMAIL_FROM (accounts@mail.riveraftercare.com.au in production)
   → To the user
   → optional Reply-To AUTH_EMAIL_REPLY_TO (contact@riveraftercare.com.au)
+  Invitation mail is still later.
 ```
 
 The verified Resend sending domain is `mail.riveraftercare.com.au`. Do not send from `riveraftercare.com.au` itself.
@@ -39,11 +39,11 @@ The verified Resend sending domain is `mail.riveraftercare.com.au`. Do not send 
 | Concern              | Marketing Contact                                                | Auth email                                       |
 | -------------------- | ---------------------------------------------------------------- | ------------------------------------------------ |
 | From                 | `CONTACT_EMAIL_FROM`                                             | `AUTH_EMAIL_FROM`                                |
-| Recipient            | `CONTACT_EMAIL_TO` (inbox)                                       | the user (later)                                 |
+| Recipient            | `CONTACT_EMAIL_TO` (inbox)                                       | the eligible User.email                          |
 | Reply-To             | sanitised visitor email                                          | optional `AUTH_EMAIL_REPLY_TO`                   |
 | Transport selector   | `CONTACT_MAILER` (`memory` refused when `VERCEL_ENV=production`) | memory locally; Resend only on Vercel production |
 | Turnstile / honeypot | yes                                                              | no                                               |
-| Templates            | clinic enquiry composition                                       | none in this foundation                          |
+| Templates            | clinic enquiry composition                                       | password-reset (invitations later)               |
 
 Do not reuse Contact From/To for invitations or password reset. Do not reuse auth From for Contact.
 
@@ -57,10 +57,10 @@ Server-only. Never prefix with `NEXT_PUBLIC_`. Never commit real keys.
 | `CONTACT_EMAIL_FROM`  | Contact               | Envelope From.                                                                   |
 | `CONTACT_EMAIL_TO`    | Contact               | Destination inbox.                                                               |
 | `CONTACT_MAILER`      | Contact               | `resend` (default) or `memory`. Memory refused in Vercel production.             |
-| `AUTH_EMAIL_FROM`     | Future auth           | Required only when auth delivery is invoked. Lazy; not a build-time requirement. |
-| `AUTH_EMAIL_REPLY_TO` | Future auth           | Optional.                                                                        |
+| `AUTH_EMAIL_FROM`     | Password-reset auth   | Required only when auth delivery is invoked. Lazy; not a build-time requirement. |
+| `AUTH_EMAIL_REPLY_TO` | Password-reset auth   | Optional.                                                                        |
 
-Intended Production auth values (configure in Vercel when those flows land; not hardcoded defaults):
+Intended Production auth values (configure in Vercel; not hardcoded defaults):
 
 ```bash
 AUTH_EMAIL_FROM="River Aftercare <accounts@mail.riveraftercare.com.au>"
@@ -83,4 +83,6 @@ Missing `AUTH_EMAIL_FROM` must not break `pnpm build`. Auth delivery then return
 - Provider error details stay behind `{ ok: false, code: "delivery_failed" | "not_configured" | "invalid_message" }`
 - Contact continues to map those to the generic user-facing Contact copy
 
-Invitation and password-reset HTML templates are intentionally absent until a later PR sends them.
+Invitation HTML templates remain absent until that PR. Password-reset templates are sent from `lib/email/password-reset-mail.ts`.
+
+Reset links use a URL fragment (`#token=`) on the trusted staff origin `https://app.<CARE_GUIDE_ROOT_DOMAIN>`. Do not build reset URLs from `Host` / `x-forwarded-host`. If send fails after a token was created, the token is revoked best-effort so cooldown does not block retry; a timed-out provider call may still have accepted the message.

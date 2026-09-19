@@ -260,7 +260,8 @@ describe("login form pending UX", () => {
     expect(formSource).toContain("Signing in. Please wait.");
     expect(formSource).not.toContain("aria-disabled");
     expect(formSource).toContain('autoComplete="email"');
-    expect(field).toContain('autoComplete="current-password"');
+    expect(field).toContain('autoComplete = "current-password"');
+    expect(field).toContain("autoComplete={autoComplete}");
     expect(field).toContain("disabled={disabled}");
     expect(css).toContain(".staffLoginField:disabled");
     expect(css).toContain(".staffPasswordToggle:disabled");

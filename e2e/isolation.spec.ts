@@ -151,6 +151,9 @@ test.describe("staff isolation", () => {
       "/dashboard",
       "/guides",
       "/display/token-like-value",
+      "/forgot-password",
+      "/reset-password",
+      "/account/security",
     ] as const) {
       const response = await page.goto(tenantUrl(DEMO_TENANT_SLUG, pathname), {
         waitUntil: "domcontentloaded",
@@ -188,6 +191,30 @@ test.describe("staff isolation", () => {
       page.getByRole("heading", { name: "Sign in", exact: true })
     ).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Forgot password?" })
+    ).toBeVisible();
+
+    const forgot = await page.goto(staffUrl("/forgot-password"), {
+      waitUntil: "load",
+    });
+    expect(forgot?.status()).toBe(200);
+    await expect(
+      page.getByRole("heading", { name: "Forgot your password?" })
+    ).toBeVisible();
+
+    const reset = await page.goto(staffUrl("/reset-password"), {
+      waitUntil: "load",
+    });
+    expect(reset?.status()).toBe(200);
+    await expect(
+      page.getByRole("heading", { name: "Reset your password" })
+    ).toBeVisible();
+
+    const account = await page.goto(staffUrl("/account/security"), {
+      waitUntil: "load",
+    });
+    expect(account?.url()).toContain("/login");
 
     const dashboard = await page.goto(staffUrl("/dashboard"), {
       waitUntil: "load",
@@ -255,7 +282,13 @@ test.describe("public marketing host", () => {
   });
 
   test("root domain blocks staff routes", async ({ page }) => {
-    for (const pathname of ["/login", "/dashboard"] as const) {
+    for (const pathname of [
+      "/login",
+      "/dashboard",
+      "/forgot-password",
+      "/reset-password",
+      "/account/security",
+    ] as const) {
       const response = await page.goto(marketingUrl(pathname), {
         waitUntil: "domcontentloaded",
       });

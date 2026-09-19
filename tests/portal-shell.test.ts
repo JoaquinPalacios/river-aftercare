@@ -8,7 +8,10 @@ describe("clinic portal layout roles and shell", () => {
       "app/(staff)/(clinic-portal)/layout.tsx",
       "utf8"
     );
-    const operator = readFileSync("app/(staff)/(operator)/layout.tsx", "utf8");
+    const operator = readFileSync(
+      "app/(staff)/components/operator-account-chrome.tsx",
+      "utf8"
+    );
     const chrome = readFileSync(
       "app/(staff)/components/portal-chrome.tsx",
       "utf8"

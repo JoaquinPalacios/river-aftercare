@@ -1,5 +1,8 @@
 export const STAFF_PATH_PREFIXES = [
   "/login",
+  "/forgot-password",
+  "/reset-password",
+  "/account",
   "/dashboard",
   "/guides",
   "/sessions",

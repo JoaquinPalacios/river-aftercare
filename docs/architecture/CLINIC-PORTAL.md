@@ -26,7 +26,7 @@ Preferences, separated by a divider, above account:
 
 - Appearance — System / Light / Dark for the **staff/operator shell**. Stored as `aftercare-guide-portal-theme` on this device. Does **not** change `ClinicProfile.themeMode` (patient presentation).
 
-Account/sign-out stay below Appearance. Sign out uses the same full-row hit area as other sidebar utility rows (minimum 44px). It is account navigation, not a high-prominence destructive action.
+Account/sign-out stay below Appearance. **Account security** (`/account/security`) is a shared authenticated page for operator, clinic admin, and clinic staff. Sign out uses the same full-row hit area as other sidebar utility rows (minimum 44px). It is account navigation, not a high-prominence destructive action.
 
 ### User-facing role labels
 

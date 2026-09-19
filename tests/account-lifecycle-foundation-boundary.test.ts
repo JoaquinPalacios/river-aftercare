@@ -3,23 +3,31 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const FORBIDDEN_PATHS = [
+const FORBIDDEN_INVITE_PATHS = [
+  "app/(staff)/invite",
+  "app/api/auth/invite",
+  "app/(staff)/(operator)/operator/invite",
+];
+
+const PASSWORD_MANAGEMENT_PATHS = [
   "app/(staff)/forgot-password",
   "app/(staff)/reset-password",
-  "app/(staff)/invite",
-  "app/(staff)/change-password",
+  "app/(staff)/account/security",
   "app/api/auth/forgot-password",
   "app/api/auth/reset-password",
-  "app/api/auth/invite",
-  "app/api/auth/change-password",
 ];
 
 const SERVER_ONLY_FILES = [
   "lib/auth/account-token.ts",
   "lib/auth/account-token-service.ts",
+  "lib/auth/change-password.ts",
+  "lib/auth/request-password-reset.ts",
+  "lib/auth/reset-password.ts",
+  "lib/auth/password-lifecycle-log.ts",
   "lib/email/resend-api-key.ts",
   "lib/email/transactional-mailer.ts",
   "lib/email/auth-email.ts",
+  "lib/email/password-reset-mail.ts",
   "lib/marketing/contact-mailer.ts",
   "lib/marketing/contact-config.ts",
 ];
@@ -28,6 +36,9 @@ const CLIENT_FILES = [
   "app/(marketing)/components/contact-form.tsx",
   "app/(marketing)/components/contact-turnstile.tsx",
   "app/(staff)/login/login-form.tsx",
+  "app/(staff)/forgot-password/forgot-password-form.tsx",
+  "app/(staff)/reset-password/reset-password-form.tsx",
+  "app/(staff)/account/security/change-password-form.tsx",
   "lib/marketing/contact-fields.ts",
   "lib/marketing/contact-turnstile-public.ts",
 ];
@@ -39,39 +50,21 @@ function walk(directory: string): string[] {
   });
 }
 
-describe("account lifecycle foundation boundary", () => {
-  it("does not add user-facing auth lifecycle routes or mutations", () => {
-    for (const path of FORBIDDEN_PATHS) {
+describe("account lifecycle password-management boundary", () => {
+  it("adds password management without invitation UI", () => {
+    for (const path of PASSWORD_MANAGEMENT_PATHS) {
+      expect(existsSync(path), path).toBe(true);
+    }
+    for (const path of FORBIDDEN_INVITE_PATHS) {
       expect(existsSync(path), path).toBe(false);
     }
 
     const files = walk("app").filter((path) => /\.(ts|tsx)$/.test(path));
-
     for (const file of files) {
       const source = readFileSync(file, "utf8");
-      expect(source, file).not.toMatch(/forgot-password/);
-      expect(source, file).not.toMatch(/reset-password/);
-      expect(source, file).not.toMatch(/change-password/);
-      expect(source, file).not.toContain("@/lib/auth/account-token-service");
-      expect(source, file).not.toContain("@/lib/email/auth-email");
       expect(source, file).not.toContain("createInvitationToken");
-      expect(source, file).not.toContain("createPasswordResetToken");
-      expect(source, file).not.toContain("sendAuthTransactionalEmail");
-    }
-
-    const libFiles = walk("lib").filter((path) => /\.(ts|tsx)$/.test(path));
-    for (const file of libFiles) {
-      if (
-        file === "lib/auth/account-token-service.ts" ||
-        file === "lib/email/auth-email.ts"
-      ) {
-        continue;
-      }
-      const source = readFileSync(file, "utf8");
-      expect(source, file).not.toContain("@/lib/auth/account-token-service");
-      expect(source, file).not.toContain("createInvitationToken");
-      expect(source, file).not.toContain("createPasswordResetToken");
-      expect(source, file).not.toContain("sendAuthTransactionalEmail");
+      expect(source, file).not.toContain("Invite user");
+      expect(source, file).not.toMatch(/\/invite\b/);
     }
   });
 

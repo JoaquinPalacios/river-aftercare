@@ -211,7 +211,7 @@ Clinic access is membership-derived (`ClinicMembership`), not a single clinic fi
 - a minimal internal credentials sign-in handler for seeded staff accounts
 - reusable server helpers for the current signed-in user and clinic membership context
 
-The MVP auth flow uses custom `/api/auth/login` and `/api/auth/logout` endpoints layered on top of Auth.js database sessions and shared server-side auth helpers. Login accepts existing non-empty passwords up to 256 characters and emails up to 254 characters; see [docs/architecture/AUTH.md](docs/architecture/AUTH.md).
+The MVP auth flow uses custom `/api/auth/login` and `/api/auth/logout` endpoints layered on top of Auth.js database sessions and shared server-side auth helpers. Login accepts existing non-empty passwords up to 256 characters and emails up to 254 characters. New passwords set through Change Password or Reset Password must be 12–256 characters. See [docs/architecture/AUTH.md](docs/architecture/AUTH.md).
 
 Example login request (use the `LOCAL_ADMIN_*` values from your env file):
 
@@ -224,9 +224,14 @@ curl -X POST http://app.localhost:3000/api/auth/login \
 Related routes:
 
 - `POST /api/auth/login`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
 - `GET /api/auth/me` or `/api/auth/session`
 - `POST /api/auth/logout`
-- `/login` — email/password form; successful sign-in redirects to `/dashboard`
+- `/login` — email/password form; successful sign-in redirects to `/dashboard` or `/operator/clinics`
+- `/forgot-password` — request a reset email (generic response)
+- `/reset-password` — set a new password from a one-time emailed fragment token
+- `/account/security` — authenticated change password for operator, clinic admin, and clinic staff
 - `app/(staff)/(clinic-portal)/layout.tsx` — River Aftercare clinic portal shell via `lib/auth/require-staff-session.ts`
 - `/dashboard` — clinic Overview
 - `/guides` — clinic Guides
@@ -277,7 +282,7 @@ These constraints applied to the parked/staff work as it was built. They remain 
 
 - Treat clinic access as membership-derived.
 - Keep Auth.js on the canonical `Account`, `Session`, and `VerificationToken` models.
-- Do not add password reset, invites, OAuth providers, or extra auth UI without a new product decision.
+- Do not add invites, OAuth providers, or extra auth UI without a new product decision. Password change/reset for existing staff accounts is implemented; invitations are not.
 - Do not repurpose `/dashboard/procedures` for aftercare publishing.
 - Continue deriving clinic context from `requireStaffSession()` on staff routes; do not add a `clinicId` URL param or stash it on the session payload.
 

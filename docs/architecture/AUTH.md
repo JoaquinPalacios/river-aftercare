@@ -24,11 +24,11 @@ Do not change that format or those cost parameters from a login-hardening change
 
 Shared constants: `lib/auth/login-input.ts`.
 
-| Field    | Login rule                   | Notes                                                                                              |
-| -------- | ---------------------------- | -------------------------------------------------------------------------------------------------- |
-| Email    | trim, lowercase, max **254** | Rejected before account lookup when over the limit.                                                |
-| Password | non-empty, max **256**       | Existing short production passwords remain valid. No composition rules.                            |
-| Minimum  | non-empty only               | The future **12–256** set / change / reset policy is **not** login policy and is not in this path. |
+| Field    | Login rule                   | Notes                                                                                                                 |
+| -------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Email    | trim, lowercase, max **254** | Rejected before account lookup when over the limit.                                                                   |
+| Password | non-empty, max **256**       | Existing short production passwords remain valid. No composition rules.                                               |
+| Minimum  | non-empty only               | The **12–256** set / change / reset policy is **not** login policy. Existing short production passwords remain valid. |
 
 The 256-character password maximum is a **resource-safety** bound so attacker-controlled strings never reach scrypt. It is not a complexity policy. `hashPassword` / `verifyPassword` enforce the same maximum as defense in depth. The login route still validates before calling them.
 
@@ -90,21 +90,121 @@ This application hardens the work beneath that rule: bounded inputs, one passwor
 
 Login does **not** use Cloudflare Turnstile. Marketing `/contact` Turnstile is unrelated.
 
-## Explicitly not in this login path
+## Explicitly not in the login path
 
-- invitations, forgot / reset / change password UI or routes
-- consuming or emailing `AccountToken` values
-- account status / `disabledAt`
-- sending auth email
-- Turnstile on login
-- clinic Team UI / multi-clinic login picker
+- invitations / Team management
 - email-address changes
+- account status / `disabledAt`
+- Turnstile on login or forgot-password
+- clinic multi-clinic login picker
 
-Login input bounds, dummy verification, generic 401, and WAF-only rate limiting are unchanged.
+Login input bounds, dummy verification, generic 401, and WAF-only login rate limiting are unchanged.
 
-## AccountToken foundation (not user-facing yet)
+Forgot / reset / change password are implemented on dedicated staff-host routes. They are not part of `POST /api/auth/login`.
 
-`AccountToken` is the account-lifecycle token model. Auth.js `VerificationToken` remains unused and is **not** reused: it has no purpose, `consumedAt`, `clinicId`, `role`, or revocation semantics.
+## New-password policy
+
+Constants: `lib/auth/password-policy.ts`.
+
+| Rule                  | Value                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| New password minimum  | **12**                                                                                            |
+| New password maximum  | **256** (same resource-safety maximum as login)                                                   |
+| Composition           | None. Passphrases, spaces, paste, and password managers are allowed. Passwords are never trimmed. |
+| Applies to            | Change password, reset password. Future invitation acceptance will use the same constants.        |
+| Does **not** apply to | Login, or verifying the user's existing current password.                                         |
+
+257+ new passwords are rejected before `hashPassword` / scrypt.
+
+## Account security
+
+Shared authenticated route: `/account/security`.
+
+Any signed-in `User` can change their own password: platform `OPERATOR` (no clinic membership required), clinic `ADMIN`, and clinic `STAFF`. The page is **not** inside the clinic-membership-only portal layout; the account layout reuses operator chrome or clinic portal chrome based on the signed-in principal.
+
+Change-password Server Action (`changePasswordAction`):
+
+1. Staff-host check + `requireAuthenticatedUser`
+2. Validate current password (non-empty, ≤256) and new password (12–256, confirmation match)
+3. Verify current password with `verifyPassword`
+4. Hash the new password
+5. One Prisma transaction: update `passwordHash`, delete all `Session` rows for that user, create a replacement session via `createDatabaseSession(userId, tx)`
+6. Set the replacement session cookie after commit
+
+Wrong current password returns “Current password is incorrect.” Success keeps the current browser signed in and shows “Password updated.” Other browsers are signed out. Other users' sessions are untouched.
+
+If cookie-setting fails after the transaction commits, the stale cookie is cleared and the user is sent to `/login`. The password change is not rolled back.
+
+## Forgot password
+
+`/forgot-password` and `POST /api/auth/forgot-password` (staff host only). Marketing apex and tenant hosts 404.
+
+The visitor always receives:
+
+> If an account exists for that email, we've sent password reset instructions.
+
+A reset email is sent only when:
+
+- a User exists for the normalized email
+- `passwordHash` is not null
+
+Null-hash users are treated as pending/unestablished credentials: generic response, no token, no email. Unknown emails: no token, no email, no eligible-request log.
+
+Durable cooldown: 10 minutes per user, using outstanding `PASSWORD_RESET` `AccountToken` rows (`createPasswordResetTokenIfAllowed`). Concurrent requests share the existing advisory lock so they cannot both send. After the cooldown, a new request supersedes any leftover outstanding reset.
+
+Application abuse controls: generic response, email max 254, user-level cooldown, no reset for unknown/pending accounts, no raw IP storage, no in-memory limiter, no Turnstile. Login WAF is unchanged.
+
+Timing: unknown users skip Resend. Residual timing differences exist and are not hidden with dummy emails or sleeps.
+
+## Password reset email
+
+`sendAuthTransactionalEmail` + `composePasswordResetEmail`. Recipient is `User.email` from the database record, never an arbitrary submitted mailbox after lookup. From/Reply-To come from `AUTH_EMAIL_FROM` / optional `AUTH_EMAIL_REPLY_TO`.
+
+Subject: `Reset your River Aftercare password`. Body includes a one-time link that expires in 30 minutes, ignore-if-unsolicited copy, and optional reply guidance. Plain text + escaped HTML. No password, hash, session, token hash, or clinic/patient data.
+
+Reset URL origin is `staffAppOrigin()` from `CARE_GUIDE_ROOT_DOMAIN` (`https://app.<root>` in production). Host / `x-forwarded-host` are not used to build the link.
+
+The raw token travels in a **URL fragment**:
+
+`https://app.riveraftercare.com.au/reset-password#token=<RAW_TOKEN>`
+
+Fragments are not sent in the HTTP request, so the raw token is absent from ordinary path/query logs. `/reset-password` reads `window.location.hash` in the client, keeps the token in memory, and submits it only in the reset POST body. It is not written to localStorage, sessionStorage, or cookies. Analytics `beforeSend` strips reset-password hashes.
+
+If auth-email config is missing/malformed when an eligible send is attempted: fail closed, generic visitor response, `password_reset_email_failed` / `not_configured` log with user id. Vercel production never falls back to memory, Contact From, or SMTP.
+
+If delivery definitively fails after a token was created, that token is revoked best-effort so the 10-minute cooldown does not block a retry. Provider timeouts are ambiguous (Resend may have accepted the mail); revocation on failure can leave a mailed link dead, but the visitor can request again. That is preferred over a cooldown with no usable email.
+
+## Reset password
+
+`/reset-password` and `POST /api/auth/reset-password` (staff host + Origin check).
+
+Invalid, expired, consumed, revoked, wrong-type, or malformed tokens share:
+
+> This password reset link is invalid or has expired.
+
+with a link to `/forgot-password`. Identity is not revealed.
+
+`completePasswordReset` runs in a transaction: look up the hashed token, take the existing per-user password-reset advisory lock (the lock key is the user id, not the token hash), conditionally consume, update the password, delete all sessions for that user, and revoke other outstanding resets. Only one concurrent submit can succeed. The new password is hashed after a cheap token-format check and before the transaction. Failed updates roll back consume. Successful reset does **not** create a session. The user signs in at `/login?reset=success` (fixed flag → fixed copy).
+
+## Session lifetime
+
+Unchanged: replacement and login sessions still expire `AUTH_SESSION_MAX_AGE_SECONDS` (**30 days**) from creation. This PR does not add Remember me and does not change Auth.js database-session `maxAge` / `updateAge`.
+
+Inspection: login/`createDatabaseSession` writes a fixed `expires = now + 30 days`. Auth.js database strategy may refresh expiry on subsequent `auth()` reads according to its default `updateAge` (sliding with a throttle). Do not treat that as a product change in this PR.
+
+## Host restriction
+
+`proxy.ts` remains the host gate. Staff-path prefixes include `/login`, `/forgot-password`, `/reset-password`, `/account`, and `/api/auth`. Marketing apex and tenant hosts 404 those paths.
+
+Forgot/reset Route Handlers also require a staff `Host` (and a staff `Origin` when present). Change-password is a Server Action with an explicit staff-host check. Login still relies on the proxy boundary alone.
+
+## Security logging
+
+Structured events only: `password_changed`, `password_reset_requested`, `password_reset_email_failed`, `password_reset_completed`. Prefer user id. Never log passwords, raw tokens, token hashes, reset URLs, session tokens, API keys, or mail bodies. Unknown emails are not logged.
+
+## AccountToken
+
+`AccountToken` remains the account-lifecycle token model. Auth.js `VerificationToken` is unused and is **not** reused.
 
 | Field                                   | Rule                                                                                                                 |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -116,29 +216,28 @@ Login input bounds, dummy verification, generic 401, and WAF-only rate limiting 
 | `expiresAt`                             | Required. Password reset 30 minutes. Invitation 7 days.                                                              |
 | `consumedAt` / `revokedAt`              | Nullable. Outstanding means both null.                                                                               |
 
-Raw token: `crypto.randomBytes(32)` encoded as base64url (256-bit, URL-safe). Hash: SHA-256 hex. Helpers live in `lib/auth/account-token.ts` (server-only).
+Password-reset creation for forgot-password uses `createPasswordResetTokenIfAllowed` (10-minute cooldown inside the existing advisory lock, then supersede + insert). Invitation token primitives exist but have **no** public UI or mail in this PR.
 
-Service primitives in `lib/auth/account-token-service.ts` (server-only):
+## Auth transactional email
 
-- create password-reset token (revoke prior outstanding reset for that user, then insert, 30 minutes)
-- create invitation token (revoke prior outstanding invite for that user+clinic, then insert, 7 days)
-- lookup by raw token + expected type (missing / wrong type / expired / consumed / revoked)
-- consume / revoke outstanding helpers for later transactional flows
+Shared transport: `lib/email/transactional-mailer.ts`. Marketing Contact and auth mail share transport only.
 
-Creation runs in a PostgreSQL transaction: advisory lock, revoke outstanding rows, insert. Partial unique indexes in the additive migration are the concurrency safety net. Expiry is **not** in those indexes (`NOW()` is volatile). Expired outstanding rows are revoked when a replacement is created.
+| Variable              | Purpose                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `RESEND_API_KEY`      | Existing send-only, domain-scoped Resend key. Shared. Never client-bundled.                                               |
+| `AUTH_EMAIL_FROM`     | Password-reset From. Production intended: `River Aftercare <accounts@mail.riveraftercare.com.au>`. Not a runtime default. |
+| `AUTH_EMAIL_REPLY_TO` | Optional. Production intended: `contact@riveraftercare.com.au`.                                                           |
 
-No public route, Server Action, or login code consumes these primitives yet. Forgot-password, reset-password, invitation acceptance, resend/revoke UI, and change-password are later PRs.
-
-## Auth transactional email (not sent yet)
-
-Shared transport: `lib/email/transactional-mailer.ts`. Marketing Contact and future auth mail both send through it. They do **not** share From/To/Reply-To.
-
-| Variable              | Purpose                                                                                                                                                                            |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RESEND_API_KEY`      | Existing send-only, domain-scoped Resend key. Shared. Never client-bundled.                                                                                                        |
-| `AUTH_EMAIL_FROM`     | Future account-lifecycle From. Production intended: `River Aftercare <accounts@mail.riveraftercare.com.au>`. Not a runtime default. Required only when auth mail is actually sent. |
-| `AUTH_EMAIL_REPLY_TO` | Optional. Production intended: `contact@riveraftercare.com.au`.                                                                                                                    |
-
-Config is lazy (`getAuthEmailDeliveryConfig`). Missing `AUTH_EMAIL_FROM` does not fail `next build`. Vercel production never uses the memory transport for auth mail. Local/tests use memory. No invitation or password-reset templates are sent in this foundation.
+Config is lazy (`getAuthEmailDeliveryConfig`). Missing `AUTH_EMAIL_FROM` does not fail `next build`. Vercel production never uses the memory transport for auth mail. Local/tests use memory.
 
 See [TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md).
+
+## Not yet implemented
+
+- invitations, invitation acceptance, resend invitation
+- clinic Team / user management
+- membership creation/removal
+- multi-clinic picker
+- email-address changes
+- global account disable
+- login or forgot-password Turnstile

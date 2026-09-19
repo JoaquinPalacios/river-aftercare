@@ -11,6 +11,7 @@ import {
   generateAccountToken,
   hashAccountToken,
   invitationExpiresAt,
+  passwordResetCooldownSince,
   passwordResetExpiresAt,
 } from "@/lib/auth/account-token";
 import { LOGIN_EMAIL_MAX_LENGTH } from "@/lib/auth/login-input";
@@ -44,6 +45,14 @@ export type CreatedAccountToken = {
   rawToken: string;
   token: AccountTokenRecord;
 };
+
+export type PasswordResetTokenCreateResult =
+  | { created: true; rawToken: string; token: AccountTokenRecord }
+  | { created: false; reason: "cooldown" };
+
+export type CompletePasswordResetResult =
+  | { ok: true; userId: string; tokenId: string }
+  | { ok: false; reason: AccountTokenLookupFailureReason };
 
 export class AccountTokenError extends Error {
   constructor(readonly code: "invalid_email" | "invalid_invitation") {
@@ -201,6 +210,128 @@ export async function createPasswordResetToken(input: {
   });
 
   return { rawToken, token: toRecord(row) };
+}
+
+export async function createPasswordResetTokenIfAllowed(input: {
+  userId: string;
+  email: string;
+  now?: Date;
+  prisma?: PrismaClient;
+}): Promise<PasswordResetTokenCreateResult> {
+  const now = input.now ?? new Date();
+  const email = normalizeAccountTokenEmail(input.email);
+  const prisma = input.prisma ?? getPrisma();
+  const cooldownSince = passwordResetCooldownSince(now);
+
+  return prisma.$transaction(async (tx) => {
+    await lockOutstandingScope(
+      tx,
+      `account-token:${AccountTokenType.PASSWORD_RESET}:${input.userId}`
+    );
+
+    const recentOutstanding = await tx.accountToken.findFirst({
+      where: {
+        userId: input.userId,
+        type: AccountTokenType.PASSWORD_RESET,
+        consumedAt: null,
+        revokedAt: null,
+        createdAt: { gt: cooldownSince },
+      },
+      select: { id: true },
+    });
+
+    if (recentOutstanding) {
+      return { created: false, reason: "cooldown" };
+    }
+
+    await revokeOutstandingPasswordResetTokens(tx, input.userId, now);
+    const rawToken = generateAccountToken();
+    const tokenHash = hashAccountToken(rawToken);
+    const row = await tx.accountToken.create({
+      data: {
+        type: AccountTokenType.PASSWORD_RESET,
+        tokenHash,
+        userId: input.userId,
+        email,
+        expiresAt: passwordResetExpiresAt(now),
+        createdAt: now,
+      },
+    });
+
+    return { created: true, rawToken, token: toRecord(row) };
+  });
+}
+
+export async function completePasswordReset(input: {
+  rawToken: string;
+  passwordHash: string;
+  now?: Date;
+  prisma?: PrismaClient;
+}): Promise<CompletePasswordResetResult> {
+  const tokenHash = hashRawTokenOrMissing(input.rawToken);
+  if (!tokenHash) {
+    return { ok: false, reason: "missing" };
+  }
+
+  const now = input.now ?? new Date();
+  const prisma = input.prisma ?? getPrisma();
+
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.accountToken.findUnique({
+      where: { tokenHash },
+    });
+    const failure = evaluateToken(
+      existing,
+      AccountTokenType.PASSWORD_RESET,
+      now
+    );
+    if (failure || !existing) {
+      return { ok: false, reason: failure ?? "missing" };
+    }
+
+    await lockOutstandingScope(
+      tx,
+      `account-token:${AccountTokenType.PASSWORD_RESET}:${existing.userId}`
+    );
+
+    const consumed = await tx.accountToken.updateMany({
+      where: {
+        id: existing.id,
+        type: AccountTokenType.PASSWORD_RESET,
+        consumedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: now },
+      },
+      data: { consumedAt: now },
+    });
+
+    if (consumed.count !== 1) {
+      const latest = await tx.accountToken.findUnique({
+        where: { id: existing.id },
+      });
+      const latestFailure = evaluateToken(
+        latest,
+        AccountTokenType.PASSWORD_RESET,
+        now
+      );
+      return { ok: false, reason: latestFailure ?? "missing" };
+    }
+
+    await tx.user.update({
+      where: { id: existing.userId },
+      data: { passwordHash: input.passwordHash },
+    });
+    await tx.session.deleteMany({
+      where: { userId: existing.userId },
+    });
+    await revokeOutstandingPasswordResetTokens(tx, existing.userId, now);
+
+    return {
+      ok: true,
+      userId: existing.userId,
+      tokenId: existing.id,
+    };
+  });
 }
 
 export async function createInvitationToken(input: {

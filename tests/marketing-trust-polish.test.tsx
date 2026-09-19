@@ -37,6 +37,10 @@ const contactForm = readFileSync(
   "utf8"
 );
 const loginPage = readFileSync("app/(staff)/login/page.tsx", "utf8");
+const authShell = readFileSync(
+  "app/(staff)/components/staff-auth-shell.tsx",
+  "utf8"
+);
 const staffCss = readFileSync("app/(staff)/staff.css", "utf8");
 const shell = readFileSync(
   "app/(marketing)/components/marketing-shell.tsx",
@@ -139,10 +143,11 @@ describe("marketing + trust polish", () => {
   });
 
   it("adds a root-domain back link on staff login", () => {
-    expect(loginPage).toContain("staffBackLink");
-    expect(loginPage).toContain("Back to {PRODUCT_NAME}");
-    expect(loginPage).toContain("marketingPublicLinks");
-    expect(loginPage).toContain("homeHref");
+    expect(authShell).toContain("staffBackLink");
+    expect(authShell).toContain("Back to ${PRODUCT_NAME}");
+    expect(authShell).toContain("marketingPublicLinks");
+    expect(authShell).toContain("homeHref");
+    expect(loginPage).toContain("StaffAuthShell");
     expect(loginPage).not.toContain("river-aftercare.com");
     expect(staffCss).toContain(".staffBackLink");
     expect(staffCss).toContain("var(--staff-muted)");

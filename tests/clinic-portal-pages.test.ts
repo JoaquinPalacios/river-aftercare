@@ -68,15 +68,23 @@ describe("clinic portal pages", () => {
 
   it("refreshes staff login copy to River Aftercare", () => {
     const login = readFileSync("app/(staff)/login/page.tsx", "utf8");
+    const authShell = readFileSync(
+      "app/(staff)/components/staff-auth-shell.tsx",
+      "utf8"
+    );
     const chrome = readFileSync(
       "app/(staff)/components/portal-chrome.tsx",
       "utf8"
     );
-    const operator = readFileSync("app/(staff)/(operator)/layout.tsx", "utf8");
+    const operator = readFileSync(
+      "app/(staff)/components/operator-account-chrome.tsx",
+      "utf8"
+    );
     expect(login).toContain("PRODUCT_NAME");
     expect(chrome).toContain("PRODUCT_NAME");
     expect(operator).toContain("PRODUCT_NAME");
-    expect(login).toMatch(/<h1[^>]*>\s*Sign in\s*<\/h1>/);
+    expect(login).toContain('title="Sign in"');
+    expect(authShell).toMatch(/<h1[^>]*>\s*\{title\}\s*<\/h1>/);
     expect(login).not.toContain("Staff sign in");
     expect(login).not.toContain("Care Guide");
   });

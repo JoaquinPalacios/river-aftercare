@@ -103,7 +103,8 @@ describe("loginSchema", () => {
     );
 
     expect(form).toContain('autoComplete="email"');
-    expect(field).toContain('autoComplete="current-password"');
+    expect(field).toContain('autoComplete = "current-password"');
+    expect(field).toContain("autoComplete={autoComplete}");
     expect(form).not.toContain("maxLength");
     expect(field).not.toContain("maxLength");
   });

@@ -73,6 +73,15 @@ describe("proxy", () => {
     expect(proxy(requestFor("http://localhost:3000/sessions/new")).status).toBe(
       404
     );
+    expect(
+      proxy(requestFor("http://localhost:3000/forgot-password")).status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://localhost:3000/reset-password")).status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://localhost:3000/account/security")).status
+    ).toBe(404);
   });
 
   it("rewrites marketing pricing, contact, about, privacy, terms, and clinic pages to /_marketing/...", () => {
@@ -175,6 +184,16 @@ describe("proxy", () => {
     );
     expect(loginApi.status).toBe(200);
     expect(rewrittenUrl(loginApi)).toBeNull();
+
+    expect(
+      proxy(requestFor("http://app.localhost:3000/forgot-password")).status
+    ).toBe(200);
+    expect(
+      proxy(requestFor("http://app.localhost:3000/reset-password")).status
+    ).toBe(200);
+    expect(
+      proxy(requestFor("http://app.localhost:3000/account/security")).status
+    ).toBe(200);
   });
 
   it("lets the app staff homepage pass through", () => {
@@ -224,6 +243,18 @@ describe("proxy", () => {
     expect(response.status).toBe(404);
     expect(
       proxy(requestFor("http://demodental.localhost:3000/api/auth/login"))
+        .status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://demodental.localhost:3000/forgot-password"))
+        .status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://demodental.localhost:3000/reset-password"))
+        .status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://demodental.localhost:3000/account/security"))
         .status
     ).toBe(404);
   });
