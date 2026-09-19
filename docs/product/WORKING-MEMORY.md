@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (Vercel Web Analytics beforeSend self-opt-out via localStorage va-disable=1)
+Last updated: 2026-09-19 (production login hardening: email ≤254, password ≤256, dummy verify for unknown/null-hash)
 
 ---
 
@@ -712,7 +712,7 @@ Archive of **published** guides (delete after history exists), QR, invitations/t
 
 - Next.js App Router, React, Tailwind (staff only), CSS Modules (patient + marketing), PostgreSQL **18**, Prisma 7 (`PrismaPg` + `pg`)
 - `Clinic` (`id`, `name`, **`slug`**), `User`, `ClinicMembership`, **`ClinicProfile`** (`primaryColor`, `accentColor`, `neutralColor`, `radiusPreset`, `instructionTerminology`, `themeMode`, `allowPatientThemeToggle`)
-- Staff auth: `auth.ts`, `lib/auth/*`, `/login`, clinic portal `/dashboard` + `/guides` + `/practice` (`requireStaffSession()` / `requireClinicAdmin()`)
+- Staff auth: `auth.ts`, `lib/auth/*`, `/login`, clinic portal `/dashboard` + `/guides` + `/practice` (`requireStaffSession()` / `requireClinicAdmin()`). Production login bounds and dummy verification: [AUTH.md](../architecture/AUTH.md).
 - Platform operator: `User.platformRole`, `/operator/clinics` (`requirePlatformOperator()`)
 - Clinic portal loaders/mutations: `lib/clinic-portal/*` (membership `clinicId` only)
 - Clinic logo storage boundary: `lib/clinic-assets/*` (upload blocked until a bucket exists)
@@ -805,6 +805,7 @@ This temporarily means we do not have the same TypeScript-aware ESLint rule cove
 | `docs/architecture/MARKETING-CONTACT.md` | Clinic enquiry form fields, Resend + Turnstile, and production mailbox          |
 | `docs/architecture/CLINIC-PORTAL.md`     | Clinic portal IA, permissions, publication, logo upload                         |
 | `docs/architecture/APPLICATION.md`       | Next.js monolith launch architecture and extraction triggers                    |
+| `docs/architecture/AUTH.md`              | Production staff login bounds, dummy verification, hosts, and WAF rate limiting |
 | `docs/architecture/CLINIC-ASSETS.md`     | Logo storage interface; Cloudflare R2 production provider                       |
 | `docs/launch/R2-PROVISIONING.md`         | Manual R2 bucket/token/domain steps for Joaquín                                 |
 | `README.md`                              | Repo entry; direction vs implementation                                         |
@@ -1469,6 +1470,25 @@ Follow-up to the homepage phone illustration pass. No copy, SEO, or page redesig
 ## Mobile chapter-start padding (2026-09-18)
 
 Desktop `--mk-chapter-pad-y: clamp(6rem, 8vw, 8rem)` is unchanged. First bands in `.marketingSoft` and `.marketingShowcase` use `--mk-chapter-pad-y-mobile: clamp(4rem, 8vw, 8rem)` below `47.99rem`. Closing CTA mobile `padding-top` stays `4rem`. Inner `.band:first-of-type` uses `--mk-section-pad-top`; every `.band` uses `--mk-section-pad-bottom`, switching to `--mk-section-pad-bottom-mobile: clamp(4rem, 6vw, 6rem)` below `47.99rem`. `.band:last-of-type` uses `--mk-section-pad-bottom-last: clamp(6rem, 6vw, 6rem)`, switching to `--mk-section-pad-bottom-last-mobile: clamp(4rem, 5vw, 5rem)` below `47.99rem`. `--mk-heading-content-gap` switches to `--mk-heading-content-gap-mobile: clamp(2rem, 3.25vw, 3rem)` below `47.99rem`.
+
+---
+
+## Production login hardening (2026-09-19)
+
+Application hardening under the existing Vercel WAF. No invitations, reset/change password, Turnstile, auth email, or schema change.
+
+| Area              | Behaviour                                                                                                                                                                                                |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Host              | `app.riveraftercare.com.au` only, via `proxy.ts`. Apex and tenant hosts 404 `/login` and `/api/auth/*`. Login route does not duplicate host classification.                                              |
+| Email             | trim + lowercase. Max **254**. Oversize rejected before account lookup.                                                                                                                                  |
+| Password          | non-empty, max **256**. Existing short production passwords remain login-compatible. Future 12-character minimum is **not** login policy.                                                                |
+| Resource safety   | 257+ passwords never reach `verifyPassword` / scrypt (route + helper). `hashPassword` throws on oversized input. Resource-safety max ≠ complexity policy.                                                |
+| Timing mitigation | Unknown email and `passwordHash = null` perform one dummy `verifyPassword` against a fixed public dummy scrypt hash. Known hashes verify once against the real hash. Dummy match never grants a session. |
+| Errors            | Unknown / wrong password / null hash stay generic 401 `Invalid credentials.` Post-password 403 (no membership) and 409 (multi-membership) are unchanged.                                                 |
+| Rate limit        | **WAF only**: 15 POST / 10 minutes / IP on `app.riveraftercare.com.au/api/auth/login`. No application limiter. Login Turnstile is **not** implemented.                                                   |
+| Sessions          | Unchanged database sessions + host-only HttpOnly cookie. Hash format remains `scrypt:<saltHex>:<hashHex>`.                                                                                               |
+
+See [AUTH.md](../architecture/AUTH.md).
 
 ---
 

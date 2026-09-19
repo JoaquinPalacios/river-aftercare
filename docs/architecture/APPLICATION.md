@@ -24,12 +24,15 @@ Business rules should not live only inside React components. Current server modu
 | Guide lifecycle         | `lib/clinic-portal/*-practice-guide.ts`                               |
 | Practice configuration  | `lib/clinic-portal/update-practice-settings.ts`                       |
 | Authorization           | `lib/auth/require-*.ts`, `lib/clinic-assets/authorize-clinic-logo.ts` |
+| Staff login             | `lib/auth/password.ts`, `lib/auth/login-input.ts`, [AUTH.md](AUTH.md) |
 | Operator clinic queries | `lib/operator/list-operator-clinics.ts`                               |
 | Platform SEO            | `lib/seo/*`                                                           |
 | Logo storage boundary   | `lib/clinic-assets/*`                                                 |
 | Platform SEO assets     | `lib/platform-assets/*`                                               |
 
 Route handlers and Server Actions should generally: authorize → validate → call the module → map the result.
+
+Staff login is a Route Handler (`POST /api/auth/login`), not a Server Action. Current production login bounds, dummy password verification, host restriction, and WAF-only rate limiting are documented in [AUTH.md](AUTH.md).
 
 ## Extraction triggers
 
