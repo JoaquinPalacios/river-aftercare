@@ -1,8 +1,9 @@
-import { PASSWORD_RESET_URL_TOKEN_KEY } from "@/lib/auth/account-token-format";
+import { ACCOUNT_TOKEN_URL_KEY } from "@/lib/auth/account-token-format";
 import { parseHostname } from "@/lib/tenancy/parse-hostname";
 import { getRootDomain } from "@/lib/tenancy/root-domain";
 
 export const PASSWORD_RESET_PAGE_PATH = "/reset-password";
+export const ACCEPT_INVITATION_PAGE_PATH = "/accept-invitation";
 
 export function staffAppOrigin(env: NodeJS.ProcessEnv = process.env): string {
   const root = getRootDomain(env);
@@ -53,9 +54,24 @@ export function isTrustedStaffAuthMutationRequest(
   return isStaffAppOriginHeader(origin, env);
 }
 
+function buildStaffFragmentTokenUrl(
+  pagePath: string,
+  rawToken: string,
+  env: NodeJS.ProcessEnv = process.env
+): string {
+  return `${staffAppOrigin(env)}${pagePath}#${ACCOUNT_TOKEN_URL_KEY}=${encodeURIComponent(rawToken)}`;
+}
+
 export function buildPasswordResetUrl(
   rawToken: string,
   env: NodeJS.ProcessEnv = process.env
 ): string {
-  return `${staffAppOrigin(env)}${PASSWORD_RESET_PAGE_PATH}#${PASSWORD_RESET_URL_TOKEN_KEY}=${encodeURIComponent(rawToken)}`;
+  return buildStaffFragmentTokenUrl(PASSWORD_RESET_PAGE_PATH, rawToken, env);
+}
+
+export function buildInvitationUrl(
+  rawToken: string,
+  env: NodeJS.ProcessEnv = process.env
+): string {
+  return buildStaffFragmentTokenUrl(ACCEPT_INVITATION_PAGE_PATH, rawToken, env);
 }

@@ -35,15 +35,15 @@ Contact already keeps the baseline: server Zod validation, honeypot (`website`),
 
 ### Team / Users
 
-Do **not** implement invitations or seat enforcement from this note.
+**Operator-managed invitations are implemented** (Operator → Clinics → Team). Do **not** implement clinic-admin Team self-service or seat enforcement from this note.
 
 Later portal capability:
 
-- invite user
-- remove user
-- ADMIN / STAFF role
+- **immediate next lifecycle:** remove clinic access + restore existing passworded user access (session invalidation on removal; no password reset/replacement during restoration)
+- clinic ADMIN inviting users
+- clinic STAFF must not invite
+- operator ADMIN ↔ STAFF role change after invite
 - seat-limit enforcement
-- resend invitation
 - transfer admin
 
 Provisional named-seat policy (documentation only, not billed or enforced):

@@ -17,6 +17,12 @@ export const PASSWORD_RESET_INVALID_LINK_MESSAGE =
   "This password reset link is invalid or has expired.";
 export const FORGOT_PASSWORD_GENERIC_MESSAGE =
   "If an account exists for that email, we've sent password reset instructions.";
+export const INVITATION_INVALID_LINK_MESSAGE =
+  "This invitation is invalid or has expired.";
+export const INVITATION_INVALID_LINK_GUIDANCE =
+  "Contact your clinic administrator or River Aftercare for a new invitation.";
+export const INVITATION_READY_MESSAGE =
+  "Your account is ready. Sign in with your new password.";
 
 export function newPasswordPolicyError(password: string): string | null {
   if (password.length < NEW_PASSWORD_MIN_LENGTH) {

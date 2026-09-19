@@ -3,6 +3,7 @@ import "server-only";
 import {
   AccountTokenType,
   ClinicMembershipRole,
+  PlatformRole,
   Prisma,
   type PrismaClient,
 } from "@prisma/client";
@@ -53,6 +54,19 @@ export type PasswordResetTokenCreateResult =
 export type CompletePasswordResetResult =
   | { ok: true; userId: string; tokenId: string }
   | { ok: false; reason: AccountTokenLookupFailureReason };
+
+export type CompleteInvitationResult =
+  | {
+      ok: true;
+      userId: string;
+      tokenId: string;
+      clinicId: string;
+      role: ClinicMembershipRole;
+    }
+  | {
+      ok: false;
+      reason: AccountTokenLookupFailureReason | "stale_user";
+    };
 
 export class AccountTokenError extends Error {
   constructor(readonly code: "invalid_email" | "invalid_invitation") {
@@ -176,6 +190,51 @@ async function revokeOutstandingInvitationTokens(
     },
     data: { revokedAt: now },
   });
+}
+
+async function revokeAllOutstandingInvitationTokens(
+  client: AccountTokenClient,
+  userId: string,
+  now: Date,
+  exceptTokenId?: string
+): Promise<void> {
+  await client.accountToken.updateMany({
+    where: {
+      userId,
+      type: AccountTokenType.INVITATION,
+      consumedAt: null,
+      revokedAt: null,
+      ...(exceptTokenId ? { id: { not: exceptTokenId } } : {}),
+    },
+    data: { revokedAt: now },
+  });
+}
+
+function hasTransaction(client: AccountTokenClient): client is PrismaClient {
+  return typeof (client as PrismaClient).$transaction === "function";
+}
+
+async function runInvitationMutation<T>(
+  client: AccountTokenClient,
+  userId: string,
+  clinicId: string,
+  fn: (tx: Prisma.TransactionClient) => Promise<T>
+): Promise<T> {
+  if (hasTransaction(client)) {
+    return client.$transaction(async (tx) => {
+      await lockOutstandingScope(
+        tx,
+        `account-token:${AccountTokenType.INVITATION}:${userId}:${clinicId}`
+      );
+      return fn(tx);
+    });
+  }
+
+  await lockOutstandingScope(
+    client,
+    `account-token:${AccountTokenType.INVITATION}:${userId}:${clinicId}`
+  );
+  return fn(client);
 }
 
 export async function createPasswordResetToken(input: {
@@ -341,7 +400,7 @@ export async function createInvitationToken(input: {
   email: string;
   invitedByUserId: string;
   now?: Date;
-  prisma?: PrismaClient;
+  prisma?: AccountTokenClient;
 }): Promise<CreatedAccountToken> {
   if (!input.clinicId || !input.role || !input.invitedByUserId) {
     throw new AccountTokenError("invalid_invitation");
@@ -354,33 +413,158 @@ export async function createInvitationToken(input: {
   const tokenHash = hashAccountToken(rawToken);
   const expiresAt = invitationExpiresAt(now);
 
-  const row = await prisma.$transaction(async (tx) => {
-    await lockOutstandingScope(
-      tx,
-      `account-token:${AccountTokenType.INVITATION}:${input.userId}:${input.clinicId}`
-    );
-    await revokeOutstandingInvitationTokens(
-      tx,
-      input.userId,
-      input.clinicId,
-      now
-    );
-    return tx.accountToken.create({
-      data: {
-        type: AccountTokenType.INVITATION,
-        tokenHash,
-        userId: input.userId,
-        clinicId: input.clinicId,
-        role: input.role,
-        email,
-        invitedByUserId: input.invitedByUserId,
-        expiresAt,
-        createdAt: now,
-      },
-    });
-  });
+  const row = await runInvitationMutation(
+    prisma,
+    input.userId,
+    input.clinicId,
+    async (tx) => {
+      await revokeOutstandingInvitationTokens(
+        tx,
+        input.userId,
+        input.clinicId,
+        now
+      );
+      return tx.accountToken.create({
+        data: {
+          type: AccountTokenType.INVITATION,
+          tokenHash,
+          userId: input.userId,
+          clinicId: input.clinicId,
+          role: input.role,
+          email,
+          invitedByUserId: input.invitedByUserId,
+          expiresAt,
+          createdAt: now,
+        },
+      });
+    }
+  );
 
   return { rawToken, token: toRecord(row) };
+}
+
+export async function completeInvitation(input: {
+  rawToken: string;
+  passwordHash: string;
+  now?: Date;
+  prisma?: PrismaClient;
+}): Promise<CompleteInvitationResult> {
+  const tokenHash = hashRawTokenOrMissing(input.rawToken);
+  if (!tokenHash) {
+    return { ok: false, reason: "missing" };
+  }
+
+  const now = input.now ?? new Date();
+  const prisma = input.prisma ?? getPrisma();
+
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.accountToken.findUnique({
+      where: { tokenHash },
+    });
+    const failure = evaluateToken(existing, AccountTokenType.INVITATION, now);
+    if (failure || !existing) {
+      return { ok: false, reason: failure ?? "missing" };
+    }
+
+    if (!existing.clinicId || !existing.role) {
+      return { ok: false, reason: "stale_user" };
+    }
+
+    await lockOutstandingScope(tx, `clinic-access:${existing.userId}`);
+    await lockOutstandingScope(
+      tx,
+      `account-token:${AccountTokenType.INVITATION}:${existing.userId}:${existing.clinicId}`
+    );
+
+    const latest = await tx.accountToken.findUnique({
+      where: { id: existing.id },
+    });
+    const latestFailure = evaluateToken(
+      latest,
+      AccountTokenType.INVITATION,
+      now
+    );
+    if (latestFailure || !latest || !latest.clinicId || !latest.role) {
+      return { ok: false, reason: latestFailure ?? "missing" };
+    }
+
+    const [user, clinic, membershipCount] = await Promise.all([
+      tx.user.findUnique({
+        where: { id: latest.userId },
+        select: {
+          id: true,
+          email: true,
+          passwordHash: true,
+          platformRole: true,
+        },
+      }),
+      tx.clinic.findUnique({
+        where: { id: latest.clinicId },
+        select: { id: true },
+      }),
+      tx.clinicMembership.count({
+        where: { userId: latest.userId },
+      }),
+    ]);
+
+    if (
+      !user ||
+      !clinic ||
+      user.email !== latest.email ||
+      user.passwordHash !== null ||
+      user.platformRole !== PlatformRole.NONE ||
+      membershipCount !== 0
+    ) {
+      return { ok: false, reason: "stale_user" };
+    }
+
+    const consumed = await tx.accountToken.updateMany({
+      where: {
+        id: latest.id,
+        type: AccountTokenType.INVITATION,
+        consumedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: now },
+      },
+      data: { consumedAt: now },
+    });
+
+    if (consumed.count !== 1) {
+      const after = await tx.accountToken.findUnique({
+        where: { id: latest.id },
+      });
+      const afterFailure = evaluateToken(
+        after,
+        AccountTokenType.INVITATION,
+        now
+      );
+      return { ok: false, reason: afterFailure ?? "missing" };
+    }
+
+    await tx.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: input.passwordHash,
+        emailVerified: now,
+      },
+    });
+    await tx.clinicMembership.create({
+      data: {
+        clinicId: latest.clinicId,
+        userId: user.id,
+        role: latest.role,
+      },
+    });
+    await revokeAllOutstandingInvitationTokens(tx, user.id, now, latest.id);
+
+    return {
+      ok: true,
+      userId: user.id,
+      tokenId: latest.id,
+      clinicId: latest.clinicId,
+      role: latest.role,
+    };
+  });
 }
 
 export async function lookupAccountToken(

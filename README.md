@@ -226,12 +226,15 @@ Related routes:
 - `POST /api/auth/login`
 - `POST /api/auth/forgot-password`
 - `POST /api/auth/reset-password`
+- `POST /api/auth/accept-invitation`
 - `GET /api/auth/me` or `/api/auth/session`
 - `POST /api/auth/logout`
 - `/login` — email/password form; successful sign-in redirects to `/dashboard` or `/operator/clinics`
 - `/forgot-password` — request a reset email (generic response)
 - `/reset-password` — set a new password from a one-time emailed fragment token
+- `/accept-invitation` — invited clinic users set their own password from a one-time fragment token
 - `/account/security` — authenticated change password for operator, clinic admin, and clinic staff
+- `/operator/clinics/[clinicId]/team` — operator-managed clinic invitations (platform operator only)
 - `app/(staff)/(clinic-portal)/layout.tsx` — River Aftercare clinic portal shell via `lib/auth/require-staff-session.ts`
 - `/dashboard` — clinic Overview
 - `/guides` — clinic Guides

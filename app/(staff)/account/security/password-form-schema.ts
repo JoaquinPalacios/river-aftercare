@@ -40,3 +40,5 @@ export const resetPasswordSchema = z
     message: PASSWORDS_DO_NOT_MATCH_MESSAGE,
     path: ["confirmPassword"],
   });
+
+export const acceptInvitationSchema = resetPasswordSchema;

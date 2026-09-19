@@ -44,6 +44,7 @@ export const ROBOTS_DISALLOW_INTERNAL = [
   "/login",
   "/forgot-password",
   "/reset-password",
+  "/accept-invitation",
   "/account",
   "/dashboard",
   "/guides",

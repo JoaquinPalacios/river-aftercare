@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 
 import { StaffAuthShell } from "@/app/(staff)/components/staff-auth-shell";
 import { LoginForm } from "@/app/(staff)/login/login-form";
-import { PASSWORD_RESET_SUCCESS_MESSAGE } from "@/lib/auth/password-policy";
+import {
+  INVITATION_READY_MESSAGE,
+  PASSWORD_RESET_SUCCESS_MESSAGE,
+} from "@/lib/auth/password-policy";
 import { getAuthContext } from "@/lib/auth/session";
 import { signedInHomePath } from "@/lib/auth/signed-in-home";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -19,7 +22,10 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ reset?: string | string[] }>;
+  searchParams?: Promise<{
+    reset?: string | string[];
+    invite?: string | string[];
+  }>;
 }) {
   const authContext = await getAuthContext().catch(() => ({
     user: null,
@@ -34,7 +40,11 @@ export default async function LoginPage({
   const resetParam = Array.isArray(params.reset)
     ? params.reset[0]
     : params.reset;
+  const inviteParam = Array.isArray(params.invite)
+    ? params.invite[0]
+    : params.invite;
   const resetSuccess = resetParam === "success";
+  const inviteSuccess = inviteParam === "success";
 
   const localLogin =
     process.env.NODE_ENV === "development"
@@ -52,6 +62,14 @@ export default async function LoginPage({
           role="status"
         >
           {PASSWORD_RESET_SUCCESS_MESSAGE}
+        </div>
+      ) : null}
+      {inviteSuccess ? (
+        <div
+          className="mb-5 rounded-md border border-staff-line bg-staff-canvas px-3 py-2 text-sm text-staff-ink"
+          role="status"
+        >
+          {INVITATION_READY_MESSAGE}
         </div>
       ) : null}
       <LoginForm />

@@ -141,7 +141,7 @@ ADMIN can upload, replace, or remove a clinic logo when `CLINIC_ASSET_STORAGE_DR
 
 The operator console is the River Aftercare operational control plane. Page identity is **PLATFORM / All Clinics**. Local seed identity may show **Demo Operator** as the account name; that is not a demo product.
 
-Current destinations: **Clinics** and **SEO & Discovery**. Do not add dead navigation. Canonical **Templates** management is the next operator-console capability and is not implemented here.
+Current destinations: **Clinics** and **SEO & Discovery**. Clinic detail includes a **Team** area at `/operator/clinics/[clinicId]/team` for operator-managed invitations. Canonical **Templates** management is the next operator-console capability and is not implemented here.
 
 All Clinics may show real derived counts: total clinics, configured clinics, published guides, needs attention. No invented analytics.
 
@@ -157,7 +157,7 @@ Do not share one clinic login. Named membership accounts are required for accoun
 | Practice  | 5                    |
 | Group     | custom               |
 
-Current roles remain Clinic ADMIN and Clinic STAFF only. Invitations, seat-limit enforcement, and Team / Users management are later portal work.
+Current roles remain Clinic ADMIN and Clinic STAFF only. **Operator-managed** invitations exist: Operator → Clinics → Team → Invite user. Clinic ADMIN/STAFF cannot invite. **Remove access is not available** until restore-access ships with it. Seat-limit enforcement is not implemented. Clinic-admin Team self-service is later portal work. See [AUTH.md](AUTH.md).
 
 ## Application architecture
 

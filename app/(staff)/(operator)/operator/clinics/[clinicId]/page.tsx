@@ -128,20 +128,21 @@ export default async function OperatorClinicDetailPage({
       </section>
 
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
-        <h2 className="text-base font-semibold">Clinic members</h2>
-        {clinic.members.length === 0 ? (
-          <p className="mt-2 text-sm text-staff-muted">
-            No staff memberships yet. Invitation/onboarding is later work.
-          </p>
-        ) : (
-          <ul className="mt-3 divide-y divide-staff-line">
-            {clinic.members.map((member) => (
-              <li key={member.id} className="py-2 text-sm">
-                {member.name || member.email} · {member.role}
-              </li>
-            ))}
-          </ul>
-        )}
+        <h2 className="text-base font-semibold">Team</h2>
+        <p className="mt-2 text-sm text-staff-muted">
+          Manage who can access this clinic.
+        </p>
+        <p className="mt-2 text-sm">
+          {clinic.members.length === 0
+            ? "No active members yet."
+            : `${clinic.members.length} active member${clinic.members.length === 1 ? "" : "s"}.`}
+        </p>
+        <Link
+          href={`/operator/clinics/${clinic.id}/team`}
+          className="mt-3 inline-flex text-sm font-medium text-staff-brand"
+        >
+          Open team
+        </Link>
       </section>
 
       <p>

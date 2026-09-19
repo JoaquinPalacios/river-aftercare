@@ -82,6 +82,12 @@ describe("proxy", () => {
     expect(
       proxy(requestFor("http://localhost:3000/account/security")).status
     ).toBe(404);
+    expect(
+      proxy(requestFor("http://localhost:3000/accept-invitation")).status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://localhost:3000/operator/clinics")).status
+    ).toBe(404);
   });
 
   it("rewrites marketing pricing, contact, about, privacy, terms, and clinic pages to /_marketing/...", () => {
@@ -194,6 +200,12 @@ describe("proxy", () => {
     expect(
       proxy(requestFor("http://app.localhost:3000/account/security")).status
     ).toBe(200);
+    expect(
+      proxy(requestFor("http://app.localhost:3000/accept-invitation")).status
+    ).toBe(200);
+    expect(
+      proxy(requestFor("http://app.localhost:3000/operator/clinics")).status
+    ).toBe(200);
   });
 
   it("lets the app staff homepage pass through", () => {
@@ -255,6 +267,14 @@ describe("proxy", () => {
     ).toBe(404);
     expect(
       proxy(requestFor("http://demodental.localhost:3000/account/security"))
+        .status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://demodental.localhost:3000/accept-invitation"))
+        .status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://demodental.localhost:3000/operator/clinics"))
         .status
     ).toBe(404);
   });
