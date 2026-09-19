@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  buildInvitationUrl,
   buildPasswordResetUrl,
   isStaffAppHost,
   isTrustedStaffAuthMutationRequest,
@@ -27,6 +28,13 @@ describe("staff app origin", () => {
     expect(staffAppOrigin()).toBe("https://app.riveraftercare.com.au");
     expect(buildPasswordResetUrl("abc_token")).toBe(
       "https://app.riveraftercare.com.au/reset-password#token=abc_token"
+    );
+    expect(buildInvitationUrl("abc_token")).toBe(
+      "https://app.riveraftercare.com.au/accept-invitation#token=abc_token"
+    );
+    expect(buildInvitationUrl("abc_token")).not.toContain("?token=");
+    expect(buildInvitationUrl("abc_token")).not.toContain(
+      "/accept-invitation/abc_token"
     );
     expect(buildPasswordResetUrl("abc_token")).not.toContain("?token=");
     expect(buildPasswordResetUrl("abc_token")).not.toContain(

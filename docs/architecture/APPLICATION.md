@@ -26,6 +26,7 @@ Business rules should not live only inside React components. Current server modu
 | Authorization           | `lib/auth/require-*.ts`, `lib/clinic-assets/authorize-clinic-logo.ts`                                                            |
 | Staff login             | `lib/auth/password.ts`, `lib/auth/login-input.ts`, [AUTH.md](AUTH.md)                                                            |
 | Password management     | `lib/auth/password-policy.ts`, `lib/auth/change-password.ts`, `lib/auth/request-password-reset.ts`, `lib/auth/reset-password.ts` |
+| Invitations             | `lib/operator/invite-clinic-user.ts`, `lib/auth/accept-invitation.ts`, `lib/auth/account-token-service.ts`                       |
 | Account tokens          | `lib/auth/account-token.ts`, `lib/auth/account-token-service.ts`                                                                 |
 | Transactional email     | `lib/email/transactional-mailer.ts`, `lib/email/auth-email.ts`, [TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md)                 |
 | Operator clinic queries | `lib/operator/list-operator-clinics.ts`                                                                                          |
@@ -35,7 +36,7 @@ Business rules should not live only inside React components. Current server modu
 
 Route handlers and Server Actions should generally: authorize → validate → call the module → map the result.
 
-Staff login is a Route Handler (`POST /api/auth/login`), not a Server Action. Forgot/reset password are Route Handlers. Change password is a Server Action. Current production login bounds, dummy password verification, host restriction, and WAF-only login rate limiting are documented in [AUTH.md](AUTH.md).
+Staff login is a Route Handler (`POST /api/auth/login`), not a Server Action. Forgot/reset password and invitation acceptance are Route Handlers. Change password and operator Team mutations are Server Actions. Current production login bounds, dummy password verification, host restriction, and WAF-only login rate limiting are documented in [AUTH.md](AUTH.md).
 
 ## Extraction triggers
 

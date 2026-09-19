@@ -154,6 +154,8 @@ test.describe("staff isolation", () => {
       "/forgot-password",
       "/reset-password",
       "/account/security",
+      "/accept-invitation",
+      "/operator/clinics",
     ] as const) {
       const response = await page.goto(tenantUrl(DEMO_TENANT_SLUG, pathname), {
         waitUntil: "domcontentloaded",
@@ -209,6 +211,14 @@ test.describe("staff isolation", () => {
     expect(reset?.status()).toBe(200);
     await expect(
       page.getByRole("heading", { name: "Reset your password" })
+    ).toBeVisible();
+
+    const accept = await page.goto(staffUrl("/accept-invitation"), {
+      waitUntil: "load",
+    });
+    expect(accept?.status()).toBe(200);
+    await expect(
+      page.getByRole("heading", { name: "Set up your River Aftercare account" })
     ).toBeVisible();
 
     const account = await page.goto(staffUrl("/account/security"), {
@@ -288,6 +298,7 @@ test.describe("public marketing host", () => {
       "/forgot-password",
       "/reset-password",
       "/account/security",
+      "/accept-invitation",
     ] as const) {
       const response = await page.goto(marketingUrl(pathname), {
         waitUntil: "domcontentloaded",

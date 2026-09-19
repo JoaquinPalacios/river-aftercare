@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (Privacy Policy and Terms published copy; draft banners removed)
+Last updated: 2026-09-19 (Operator-managed clinic invitations / Team access lifecycle)
 
 ---
 
@@ -691,7 +691,7 @@ Staff `/dashboard` is the River Aftercare clinic portal, not the parked chairsid
 
 ### Next clinic-portal work (not built)
 
-Archive of **published** guides (delete after history exists), QR, invitations/team management, canonical library authoring, production Storage bucket for logos, Check-ins, RecoveryPlan, messaging, PMS integrations, billing.
+Archive of **published** guides (delete after history exists), QR, clinic-admin Team self-service, canonical library authoring, production Storage bucket for logos, Check-ins, RecoveryPlan, messaging, PMS integrations, billing.
 
 ---
 
@@ -868,7 +868,7 @@ Guide editor client island grew from **16,289** to **23,986** raw bytes for the 
 
 ### Next clinic-portal work (not built)
 
-Archive of published guides, QR, invitations/team management, canonical library authoring, production Storage bucket for logos, Check-ins, RecoveryPlan, messaging, PMS integrations, billing.
+Archive of published guides, QR, clinic-admin Team self-service, canonical library authoring, production Storage bucket for logos, Check-ins, RecoveryPlan, messaging, PMS integrations, billing.
 
 ---
 
@@ -1623,3 +1623,23 @@ Replaces the `/terms` draft with the current public Terms & Conditions and remov
 | Legal            | NSW governing law, non-exclusive jurisdiction, Australian Consumer Law, mutual AUD $1,000 / 12-month fees liability cap, mutual third-party indemnities, confidentiality, force majeure.  |
 | Draft banner     | Removed. `TERMS_PAGE_LEGALLY_APPROVED` stays `false`. Source robots remain `noindex, follow`.                                                                                             |
 | Do not overclaim | Not counsel-certified. Do not flip indexing or the operator legal-approval flag without an explicit decision.                                                                             |
+
+---
+
+## Operator clinic invitations (2026-09-19)
+
+Operator-managed clinic provisioning. **Not live until this PR is merged and deployed.** No new Prisma migration. Clinic ADMIN/STAFF cannot invite.
+
+| Area            | Behaviour                                                                                                                                                                                       |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Team            | `/operator/clinics/[clinicId]/team`. Invite user (name, email, ADMIN/STAFF). Statuses derived: Active / Pending / Invitation expired.                                                           |
+| New user        | Create User (`passwordHash` null, `platformRole` NONE). No `ClinicMembership` until acceptance. 7-day `INVITATION` token. Email fragment link.                                                  |
+| Acceptance      | `/accept-invitation#token=`. 12–256 password. Consume token, set hash, set `emailVerified`, create membership from persisted token clinic/role. No auto-login. `/login?invite=success`.         |
+| Guards          | One membership per User. Other-clinic member / pending blocked. Platform operators cannot be invited as clinic members. Existing password + zero memberships: restore access not supported.     |
+| Resend / cancel | Operator only. Resend supersedes outstanding token. Cancel revokes; User kept. Re-invite same-clinic pending/expired/cancelled null-hash users.                                                 |
+| Remove access   | Deletes membership, invalidates that user's sessions, keeps User/password. No last-admin guard (operator retains control; clinics may have zero members). Role change after invite is deferred. |
+| Mail            | `AUTH_EMAIL_FROM` / optional `AUTH_EMAIL_REPLY_TO`. Delivery failure retains the pending token and tells the operator to resend.                                                                |
+| Host            | Staff app only. Marketing and tenant 404 `/accept-invitation` and `/operator`.                                                                                                                  |
+| Not added       | Clinic-admin Team, multi-clinic picker, email change, global disable, restore-access, Turnstile, WAF, schema/migration.                                                                         |
+
+See [AUTH.md](../architecture/AUTH.md).

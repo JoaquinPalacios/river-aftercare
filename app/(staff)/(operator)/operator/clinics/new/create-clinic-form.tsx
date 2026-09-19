@@ -56,7 +56,8 @@ export function CreateClinicForm() {
         {pending ? "Creating…" : "Create clinic"}
       </button>
       <p className="text-sm text-staff-muted">
-        User assignment and clinic invitations are not part of this phase.
+        After creating the clinic, invite users from Team. They choose their own
+        password.
       </p>
     </form>
   );

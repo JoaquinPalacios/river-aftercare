@@ -60,15 +60,17 @@ describe("password management UI contracts", () => {
     expect(page).not.toContain("[token]");
   });
 
-  it("maps a fixed login reset flag rather than arbitrary message query text", () => {
+  it("maps fixed login reset and invite flags rather than arbitrary message query text", () => {
     const login = readFileSync("app/(staff)/login/page.tsx", "utf8");
     expect(login).toContain('resetParam === "success"');
+    expect(login).toContain('inviteParam === "success"');
     expect(login).toContain("PASSWORD_RESET_SUCCESS_MESSAGE");
+    expect(login).toContain("INVITATION_READY_MESSAGE");
     expect(login).not.toContain("params.message");
     expect(login).not.toContain("searchParams.message");
   });
 
-  it("does not add invitation or Turnstile surfaces", () => {
+  it("does not add Turnstile to login or forgot-password", () => {
     const forgot = readFileSync("app/(staff)/forgot-password/page.tsx", "utf8");
     const loginForm = readFileSync("app/(staff)/login/login-form.tsx", "utf8");
     expect(forgot).toContain("Forgot your password?");

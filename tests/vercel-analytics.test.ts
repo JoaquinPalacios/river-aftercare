@@ -72,18 +72,27 @@ describe("vercelWebAnalyticsBeforeSend", () => {
     expect(vercelWebAnalyticsBeforeSend(pageview)).toEqual(pageview);
   });
 
-  it("strips reset-password URL fragments before analytics send", () => {
+  it("strips reset-password and accept-invitation URL fragments before analytics send", () => {
     vi.stubGlobal("localStorage", {
       getItem: () => null,
     });
 
-    const event: BeforeSendEvent = {
+    const reset: BeforeSendEvent = {
       type: "pageview",
       url: "https://app.example.test/reset-password#token=abc",
     };
-    expect(vercelWebAnalyticsBeforeSend(event)).toEqual({
+    expect(vercelWebAnalyticsBeforeSend(reset)).toEqual({
       type: "pageview",
       url: "https://app.example.test/reset-password",
+    });
+
+    const invite: BeforeSendEvent = {
+      type: "pageview",
+      url: "https://app.example.test/accept-invitation#token=abc",
+    };
+    expect(vercelWebAnalyticsBeforeSend(invite)).toEqual({
+      type: "pageview",
+      url: "https://app.example.test/accept-invitation",
     });
   });
 });

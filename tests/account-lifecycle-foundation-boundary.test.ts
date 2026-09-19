@@ -3,31 +3,26 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const FORBIDDEN_INVITE_PATHS = [
-  "app/(staff)/invite",
-  "app/api/auth/invite",
-  "app/(staff)/(operator)/operator/invite",
-];
-
-const PASSWORD_MANAGEMENT_PATHS = [
-  "app/(staff)/forgot-password",
-  "app/(staff)/reset-password",
-  "app/(staff)/account/security",
-  "app/api/auth/forgot-password",
-  "app/api/auth/reset-password",
-];
-
 const SERVER_ONLY_FILES = [
   "lib/auth/account-token.ts",
   "lib/auth/account-token-service.ts",
   "lib/auth/change-password.ts",
   "lib/auth/request-password-reset.ts",
   "lib/auth/reset-password.ts",
+  "lib/auth/accept-invitation.ts",
   "lib/auth/password-lifecycle-log.ts",
+  "lib/auth/invitation-lifecycle-log.ts",
   "lib/email/resend-api-key.ts",
   "lib/email/transactional-mailer.ts",
   "lib/email/auth-email.ts",
   "lib/email/password-reset-mail.ts",
+  "lib/email/invitation-mail.ts",
+  "lib/operator/invite-clinic-user.ts",
+  "lib/operator/resend-clinic-invitation.ts",
+  "lib/operator/cancel-clinic-invitation.ts",
+  "lib/operator/remove-clinic-access.ts",
+  "lib/operator/list-clinic-team.ts",
+  "lib/operator/deliver-clinic-invitation-email.ts",
   "lib/marketing/contact-mailer.ts",
   "lib/marketing/contact-config.ts",
 ];
@@ -38,7 +33,10 @@ const CLIENT_FILES = [
   "app/(staff)/login/login-form.tsx",
   "app/(staff)/forgot-password/forgot-password-form.tsx",
   "app/(staff)/reset-password/reset-password-form.tsx",
+  "app/(staff)/accept-invitation/accept-invitation-form.tsx",
   "app/(staff)/account/security/change-password-form.tsx",
+  "app/(staff)/(operator)/operator/clinics/[clinicId]/team/invite-user-form.tsx",
+  "app/(staff)/(operator)/operator/clinics/[clinicId]/team/team-table.tsx",
   "lib/marketing/contact-fields.ts",
   "lib/marketing/contact-turnstile-public.ts",
 ];
@@ -50,21 +48,22 @@ function walk(directory: string): string[] {
   });
 }
 
-describe("account lifecycle password-management boundary", () => {
-  it("adds password management without invitation UI", () => {
-    for (const path of PASSWORD_MANAGEMENT_PATHS) {
-      expect(existsSync(path), path).toBe(true);
-    }
-    for (const path of FORBIDDEN_INVITE_PATHS) {
-      expect(existsSync(path), path).toBe(false);
-    }
+describe("account lifecycle invitation boundary", () => {
+  it("adds operator invitation UI without clinic-admin Team permissions", () => {
+    expect(existsSync("app/(staff)/accept-invitation")).toBe(true);
+    expect(existsSync("app/api/auth/accept-invitation")).toBe(true);
+    expect(
+      existsSync("app/(staff)/(operator)/operator/clinics/[clinicId]/team")
+    ).toBe(true);
 
-    const files = walk("app").filter((path) => /\.(ts|tsx)$/.test(path));
-    for (const file of files) {
+    const clinicPortal = walk("app/(staff)/(clinic-portal)").filter((path) =>
+      /\.(ts|tsx)$/.test(path)
+    );
+    for (const file of clinicPortal) {
       const source = readFileSync(file, "utf8");
-      expect(source, file).not.toContain("createInvitationToken");
+      expect(source, file).not.toContain("inviteClinicUser");
       expect(source, file).not.toContain("Invite user");
-      expect(source, file).not.toMatch(/\/invite\b/);
+      expect(source, file).not.toContain("createInvitationToken");
     }
   });
 
@@ -84,6 +83,8 @@ describe("account lifecycle password-management boundary", () => {
       expect(source, file).not.toContain("hashAccountToken");
       expect(source, file).not.toContain("account-token-service");
       expect(source, file).not.toContain("transactional-mailer");
+      expect(source, file).not.toContain("passwordHash");
+      expect(source, file).not.toContain("tokenHash");
     }
   });
 

@@ -536,8 +536,7 @@ describe("account token service", () => {
     expect(result).toEqual({ ok: false, reason: "wrong_type" });
   });
 
-  it("does not add invitation UI in this password-management change", () => {
-    expect(existsSync("app/(staff)/invite")).toBe(false);
+  it("keeps the token service free of email sending", () => {
     expect(existsSync("app/(staff)/forgot-password")).toBe(true);
     expect(existsSync("app/(staff)/reset-password")).toBe(true);
     expect(existsSync("app/api/auth/forgot-password")).toBe(true);
