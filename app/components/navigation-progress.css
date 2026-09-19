@@ -9,8 +9,8 @@
   --progress-z-index: 40;
   --progress-height: 2px;
   --progress-width-duration: 180ms;
-  --progress-complete-duration: 140ms;
-  --progress-fade-duration: 150ms;
+  --progress-complete-duration: 70ms;
+  --progress-fade-duration: 70ms;
   --progress-ease: ease;
   --progress-start: #3b4bd1;
   --progress-mid: #3b4bd1;
@@ -41,7 +41,7 @@ html[data-theme-mode="dark"] {
   :root {
     --progress-width-duration: 0ms;
     --progress-complete-duration: 0ms;
-    --progress-fade-duration: 80ms;
+    --progress-fade-duration: 0ms;
   }
 }
 
@@ -84,7 +84,7 @@ html[data-theme-mode="dark"] {
 
 @media (prefers-reduced-motion: reduce) {
   .navigationProgress {
-    transition-duration: 80ms;
+    transition-duration: 0ms;
   }
 
   .navigationProgressBar {

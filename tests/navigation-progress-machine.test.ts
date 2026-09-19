@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { NavigationProgressMachine } from "@/lib/navigation-progress/machine";
 import {
+  NAVIGATION_PROGRESS_COMPLETE_MS,
   NAVIGATION_PROGRESS_FADE_MS,
-  NAVIGATION_PROGRESS_MIN_VISIBLE_MS,
   NAVIGATION_PROGRESS_SHOW_DELAY_MS,
 } from "@/lib/navigation-progress/timing";
 
@@ -42,7 +42,7 @@ describe("navigation progress machine", () => {
     expect(seen.some((entry) => entry.startsWith("running:true"))).toBe(false);
   });
 
-  it("shows after the delay, holds a minimum visible time, then fades out", () => {
+  it("shows after the delay, snaps to 100% on complete, and fades without a minimum-visible hold", () => {
     const machine = createMachine();
     machine.start("http://localhost:3000/", "http://localhost:3000/about");
     vi.advanceTimersByTime(NAVIGATION_PROGRESS_SHOW_DELAY_MS);
@@ -60,10 +60,10 @@ describe("navigation progress machine", () => {
       value: 1,
     });
 
-    vi.advanceTimersByTime(NAVIGATION_PROGRESS_MIN_VISIBLE_MS - 10);
+    vi.advanceTimersByTime(NAVIGATION_PROGRESS_COMPLETE_MS - 1);
     expect(machine.getSnapshot().phase).toBe("completing");
 
-    vi.advanceTimersByTime(10);
+    vi.advanceTimersByTime(1);
     expect(machine.getSnapshot()).toMatchObject({
       phase: "hiding",
       visible: false,
@@ -103,6 +103,8 @@ describe("navigation progress machine", () => {
 
     machine.complete();
     expect(machine.getSnapshot().value).toBe(1);
+    vi.runOnlyPendingTimers();
+    expect(machine.getSnapshot().visible).toBe(false);
   });
 
   it("clears stuck navigations without remaining visible", () => {

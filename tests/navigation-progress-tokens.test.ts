@@ -29,6 +29,18 @@ describe("navigation progress tokens", () => {
     expect(styles).toContain("--progress-z-index: 40");
     expect(styles).toContain("prefers-reduced-motion");
     expect(styles).toContain("--progress-width-duration: 0ms");
+    expect(readFileSync("lib/navigation-progress/timing.ts", "utf8")).toContain(
+      "NAVIGATION_PROGRESS_SHOW_DELAY_MS = 120"
+    );
+    expect(
+      readFileSync("lib/navigation-progress/timing.ts", "utf8")
+    ).not.toContain("MIN_VISIBLE");
+    expect(readFileSync("lib/navigation-progress/timing.ts", "utf8")).toContain(
+      "NAVIGATION_PROGRESS_COMPLETE_MS = 70"
+    );
+    expect(readFileSync("lib/navigation-progress/timing.ts", "utf8")).toContain(
+      "NAVIGATION_PROGRESS_FADE_MS = 70"
+    );
     expect(interaction).not.toContain("--progress-start");
     expect(aftercare).not.toContain("--progress-start");
     expect(aftercare).not.toContain("navigationProgress");
@@ -54,6 +66,9 @@ describe("navigation progress tokens", () => {
     expect(styles).toContain("pointer-events: none");
     expect(styles).toContain("scaleX(var(--progress-value, 0))");
     expect(styles).toContain("prefers-reduced-motion: reduce");
+    expect(styles).toContain("--progress-complete-duration: 70ms");
+    expect(styles).toContain("--progress-fade-duration: 70ms");
+    expect(styles).not.toContain("--progress-complete-duration: 140ms");
     expect(component).toContain('aria-hidden="true"');
     expect(component).not.toContain('role="progressbar"');
   });

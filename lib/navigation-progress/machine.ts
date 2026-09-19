@@ -1,7 +1,6 @@
 import {
   NAVIGATION_PROGRESS_COMPLETE_MS,
   NAVIGATION_PROGRESS_FADE_MS,
-  NAVIGATION_PROGRESS_MIN_VISIBLE_MS,
   NAVIGATION_PROGRESS_REDUCED_VALUE,
   NAVIGATION_PROGRESS_SHOW_DELAY_MS,
   NAVIGATION_PROGRESS_STEPS,
@@ -45,19 +44,15 @@ export class NavigationProgressMachine {
   private readonly listeners = new Set<NavigationProgressListener>();
   private readonly timers: NavigationProgressTimers;
   private readonly pending = new Set<TimerHandle>();
-  private visibleAt: number | null = null;
-  private now: () => number;
 
   constructor(
     timers: NavigationProgressTimers = {
       setTimeout: (callback, ms) =>
         globalThis.setTimeout(callback, ms) as unknown as TimerHandle,
       clearTimeout: (handle) => globalThis.clearTimeout(handle),
-    },
-    now: () => number = () => Date.now()
+    }
   ) {
     this.timers = timers;
-    this.now = now;
   }
 
   subscribe(listener: NavigationProgressListener): () => void {
@@ -98,7 +93,6 @@ export class NavigationProgressMachine {
     this.clearTimers();
 
     if (alreadyVisible) {
-      this.visibleAt = this.now();
       this.patch({
         phase: "running",
         visible: true,
@@ -113,7 +107,6 @@ export class NavigationProgressMachine {
       return;
     }
 
-    this.visibleAt = null;
     this.patch({
       phase: "delaying",
       visible: false,
@@ -145,20 +138,14 @@ export class NavigationProgressMachine {
       value: 1,
     });
 
-    const visibleFor = this.visibleAt ? this.now() - this.visibleAt : 0;
-    const remainVisible = Math.max(
-      0,
-      NAVIGATION_PROGRESS_MIN_VISIBLE_MS - visibleFor
-    );
     const completeWait = this.snapshot.reducedMotion
       ? 0
       : NAVIGATION_PROGRESS_COMPLETE_MS;
-    this.schedule(() => this.hide(), Math.max(remainVisible, completeWait));
+    this.schedule(() => this.hide(), completeWait);
   }
 
   reset(): void {
     this.clearTimers();
-    this.visibleAt = null;
     this.patch({ ...idleSnapshot, reducedMotion: this.snapshot.reducedMotion });
   }
 
@@ -178,7 +165,6 @@ export class NavigationProgressMachine {
       return;
     }
 
-    this.visibleAt = this.now();
     this.patch({
       phase: "running",
       visible: true,
@@ -211,7 +197,7 @@ export class NavigationProgressMachine {
       visible: false,
       value: 1,
     });
-    const fade = this.snapshot.reducedMotion ? 80 : NAVIGATION_PROGRESS_FADE_MS;
+    const fade = this.snapshot.reducedMotion ? 0 : NAVIGATION_PROGRESS_FADE_MS;
     this.schedule(() => this.reset(), fade);
   }
 

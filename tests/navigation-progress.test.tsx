@@ -16,7 +16,11 @@ import {
   resetNavigationProgressForTests,
   startAppNavigation,
 } from "@/lib/navigation-progress";
-import { NAVIGATION_PROGRESS_SHOW_DELAY_MS } from "@/lib/navigation-progress/timing";
+import {
+  NAVIGATION_PROGRESS_COMPLETE_MS,
+  NAVIGATION_PROGRESS_FADE_MS,
+  NAVIGATION_PROGRESS_SHOW_DELAY_MS,
+} from "@/lib/navigation-progress/timing";
 
 describe("NavigationProgress", () => {
   let container: HTMLDivElement;
@@ -103,6 +107,18 @@ describe("NavigationProgress", () => {
     });
 
     expect(bar().getAttribute("data-phase")).toBe("completing");
+    expect(bar().getAttribute("data-visible")).toBe("true");
+
+    act(() => {
+      vi.advanceTimersByTime(NAVIGATION_PROGRESS_COMPLETE_MS);
+    });
+    expect(bar().getAttribute("data-phase")).toBe("hiding");
+    expect(bar().getAttribute("data-visible")).toBe("false");
+
+    act(() => {
+      vi.advanceTimersByTime(NAVIGATION_PROGRESS_FADE_MS);
+    });
+    expect(bar().getAttribute("data-phase")).toBe("idle");
     link.remove();
   });
 

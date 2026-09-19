@@ -213,8 +213,11 @@ describe("login form pending UX", () => {
     await submitForm();
     await flushLoginRequest();
 
-    expect(pushMock).toHaveBeenCalledWith("/dashboard");
     expect(startAppNavigationMock).toHaveBeenCalledWith("/dashboard");
+    expect(pushMock).toHaveBeenCalledWith("/dashboard");
+    expect(startAppNavigationMock.mock.invocationCallOrder[0]).toBeLessThan(
+      pushMock.mock.invocationCallOrder[0]
+    );
     expect(refreshMock).toHaveBeenCalled();
     expect(emailInput().disabled).toBe(true);
     expect(passwordInput().disabled).toBe(true);
@@ -265,6 +268,10 @@ describe("login form pending UX", () => {
     expect(formSource).toContain("disabled={pending}");
     expect(formSource).toContain("Signing in…");
     expect(formSource).toContain("startAppNavigation");
+    expect(formSource).toMatch(
+      /startAppNavigation\(redirectTo\);\s*router\.push\(redirectTo\);/
+    );
+    expect(formSource).not.toContain("await startAppNavigation");
     expect(formSource).toContain("staffLoginSpinner");
     expect(formSource).toContain("aria-busy={pending || undefined}");
     expect(formSource).toContain("Signing in. Please wait.");

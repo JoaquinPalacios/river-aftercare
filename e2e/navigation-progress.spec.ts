@@ -121,6 +121,7 @@ test.describe("navigation progress", () => {
     await expect(progress(page)).toHaveAttribute("aria-hidden", "true");
     await expect(progress(page)).toHaveAttribute("data-phase", "idle");
     await expect(progress(page)).toHaveAttribute("data-visible", "false");
+    await expect(progress(page)).toHaveCSS("pointer-events", "none");
 
     await page.goto(staffUrl("/login"), { waitUntil: "load" });
     await expect(progress(page)).toHaveCount(1);
@@ -149,6 +150,51 @@ test.describe("navigation progress", () => {
       .poll(async () => progress(page).getAttribute("data-phase"))
       .toBe("idle");
     await expect(progress(page)).toHaveAttribute("data-visible", "false");
+  });
+
+  test("fast prefetched navigations never show the bar", async ({ page }) => {
+    await page.goto(marketingUrl("/"), { waitUntil: "load" });
+
+    const about = marketingNav(page).getByRole("link", { name: "About" });
+    await Promise.all([page.waitForURL(marketingUrl("/about")), about.click()]);
+
+    await expect(progress(page)).toHaveAttribute("data-visible", "false");
+    await expect(progress(page)).toHaveAttribute("data-phase", "idle");
+
+    await Promise.all([
+      page.waitForURL(marketingUrl("/pricing")),
+      marketingNav(page).getByRole("link", { name: "Pricing" }).click(),
+    ]);
+    await expect(progress(page)).toHaveAttribute("data-visible", "false");
+  });
+
+  test("destination stays interactive while a slow navigation completes", async ({
+    page,
+  }) => {
+    await delayRouteFlights(page, 500);
+    await page.goto(marketingUrl("/"), { waitUntil: "load" });
+    await marketingNav(page).getByRole("link", { name: "About" }).click();
+    await expect(page).toHaveURL(marketingUrl("/about"));
+    await marketingNav(page).getByRole("link", { name: "Pricing" }).click();
+    await expect(page).toHaveURL(marketingUrl("/pricing"));
+  });
+
+  test("back and forward observe history without remaining stuck", async ({
+    page,
+  }) => {
+    await page.goto(marketingUrl("/"), { waitUntil: "load" });
+    await marketingNav(page).getByRole("link", { name: "About" }).click();
+    await expect(page).toHaveURL(marketingUrl("/about"));
+    await page.goBack();
+    await expect(page).toHaveURL(marketingUrl("/"));
+    await expect
+      .poll(async () => progress(page).getAttribute("data-phase"))
+      .toBe("idle");
+    await page.goForward();
+    await expect(page).toHaveURL(marketingUrl("/about"));
+    await expect
+      .poll(async () => progress(page).getAttribute("data-phase"))
+      .toBe("idle");
   });
 
   test("does not start for same-route, hash, or cross-origin staff sign-in", async ({

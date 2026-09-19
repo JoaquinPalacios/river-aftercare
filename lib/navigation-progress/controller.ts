@@ -85,6 +85,7 @@ export function installNavigationProgressInstrumentation(): () => void {
   committedHref = window.location.href;
 
   const onClick = (event: MouseEvent) => {
+    // Observe only. Do not cancel the event — Next.js Link / the browser navigate.
     const navigation = appNavigationFromClick(event, committedHref);
     if (!navigation) {
       return;
@@ -110,8 +111,9 @@ export function installNavigationProgressInstrumentation(): () => void {
   const patch =
     (original: typeof window.history.pushState) =>
     (data: unknown, unused: string, url?: string | URL | null) => {
-      const from = resolveUrl(window.location.href, window.location.href);
+      const fromHref = window.location.href;
       const result = original(data, unused, url);
+      const from = resolveUrl(fromHref, fromHref);
       const next =
         historyUrl(url) ??
         resolveUrl(window.location.href, window.location.href);
