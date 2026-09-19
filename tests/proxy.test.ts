@@ -64,6 +64,9 @@ describe("proxy", () => {
 
   it("blocks staff paths on the marketing host", () => {
     expect(proxy(requestFor("http://localhost:3000/login")).status).toBe(404);
+    expect(
+      proxy(requestFor("http://localhost:3000/api/auth/login")).status
+    ).toBe(404);
     expect(proxy(requestFor("http://localhost:3000/dashboard")).status).toBe(
       404
     );
@@ -166,6 +169,12 @@ describe("proxy", () => {
     const response = proxy(requestFor("http://app.localhost:3000/login"));
     expect(response.status).toBe(200);
     expect(rewrittenUrl(response)).toBeNull();
+
+    const loginApi = proxy(
+      requestFor("http://app.localhost:3000/api/auth/login")
+    );
+    expect(loginApi.status).toBe(200);
+    expect(rewrittenUrl(loginApi)).toBeNull();
   });
 
   it("lets the app staff homepage pass through", () => {
@@ -213,6 +222,10 @@ describe("proxy", () => {
       requestFor("http://demodental.localhost:3000/login")
     );
     expect(response.status).toBe(404);
+    expect(
+      proxy(requestFor("http://demodental.localhost:3000/api/auth/login"))
+        .status
+    ).toBe(404);
   });
 
   it("blocks tenant /dashboard and /guides", () => {

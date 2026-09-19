@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { PlatformRole } from "@prisma/client";
 
-import { verifyPassword } from "@/lib/auth/password";
+import {
+  LOGIN_EMAIL_MAX_LENGTH,
+  LOGIN_PASSWORD_MAX_LENGTH,
+  normalizeLoginEmail,
+} from "@/lib/auth/login-input";
+import { DUMMY_PASSWORD_HASH, verifyPassword } from "@/lib/auth/password";
 import {
   AUTH_SESSION_COOKIE_NAME,
   authSessionCookieOptions,
@@ -21,14 +26,30 @@ export async function POST(request: Request) {
     );
   }
 
-  const email =
+  const emailInput =
     typeof (body as { email?: unknown })?.email === "string"
-      ? (body as { email: string }).email.trim().toLowerCase()
+      ? (body as { email: string }).email
       : "";
   const password =
     typeof (body as { password?: unknown })?.password === "string"
       ? (body as { password: string }).password
       : "";
+
+  if (password.length > LOGIN_PASSWORD_MAX_LENGTH) {
+    return NextResponse.json(
+      { error: "Password is too long." },
+      { status: 400 }
+    );
+  }
+
+  const email = normalizeLoginEmail(emailInput);
+
+  if (email.length > LOGIN_EMAIL_MAX_LENGTH) {
+    return NextResponse.json(
+      { error: "Email address is too long." },
+      { status: 400 }
+    );
+  }
 
   if (!email || !password) {
     return NextResponse.json(
@@ -48,7 +69,12 @@ export async function POST(request: Request) {
     },
   });
 
-  if (!user?.passwordHash || !verifyPassword(password, user.passwordHash)) {
+  const passwordMatches = verifyPassword(
+    password,
+    user?.passwordHash ?? DUMMY_PASSWORD_HASH
+  );
+
+  if (!user?.passwordHash || !passwordMatches) {
     return NextResponse.json(
       { error: "Invalid credentials." },
       { status: 401 }

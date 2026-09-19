@@ -211,7 +211,7 @@ Clinic access is membership-derived (`ClinicMembership`), not a single clinic fi
 - a minimal internal credentials sign-in handler for seeded staff accounts
 - reusable server helpers for the current signed-in user and clinic membership context
 
-The MVP auth flow uses custom `/api/auth/login` and `/api/auth/logout` endpoints layered on top of Auth.js database sessions and shared server-side auth helpers.
+The MVP auth flow uses custom `/api/auth/login` and `/api/auth/logout` endpoints layered on top of Auth.js database sessions and shared server-side auth helpers. Login accepts existing non-empty passwords up to 256 characters and emails up to 254 characters; see [docs/architecture/AUTH.md](docs/architecture/AUTH.md).
 
 Example login request (use the `LOCAL_ADMIN_*` values from your env file):
 

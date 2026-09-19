@@ -9,7 +9,7 @@ Architecture: [ADR 0006](../adr/0006-canonical-guide-plus-practice-configuration
 
 ## HIGH PRIORITY — launch-adjacent anti-spam
 
-**Status: marketing Contact implemented.** Login still does **not** have Turnstile.
+**Status: marketing Contact implemented.** Login still does **not** have Turnstile. Production login hardening (input bounds + dummy verification) did not add Turnstile or an application rate limiter; WAF remains 15 POST / 10 minutes / IP. See [AUTH.md](../architecture/AUTH.md).
 
 Marketing `/contact` now uses a Cloudflare Turnstile Managed widget plus mandatory server-side Siteverify and Resend delivery. See [MARKETING-CONTACT.md](../architecture/MARKETING-CONTACT.md).
 
