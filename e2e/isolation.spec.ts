@@ -170,17 +170,22 @@ test.describe("staff isolation", () => {
   }) => {
     const home = await page.goto(staffUrl("/"), { waitUntil: "load" });
     expect(home?.status()).toBe(200);
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(
+      page.getByRole("heading", { name: "Sign in", exact: true })
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Clinic portal" })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Staff sign in" })
-    ).toBeVisible();
+    ).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Staff sign in" })).toHaveCount(
+      0
+    );
 
     const login = await page.goto(staffUrl("/login"), { waitUntil: "load" });
     expect(login?.status()).toBe(200);
     await expect(
-      page.getByRole("heading", { name: "Staff sign in" })
+      page.getByRole("heading", { name: "Sign in", exact: true })
     ).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
 
@@ -255,6 +260,9 @@ test.describe("public marketing host", () => {
         waitUntil: "domcontentloaded",
       });
       expect(response?.status(), pathname).toBe(404);
+      await expect(
+        page.getByRole("heading", { name: "Sign in", exact: true })
+      ).toHaveCount(0);
       await expect(
         page.getByRole("heading", { name: "Staff sign in" })
       ).toHaveCount(0);

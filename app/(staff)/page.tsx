@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ProductMark } from "@/lib/branding/product-mark";
 import { getAuthContext } from "@/lib/auth/session";
 import { signedInHomePath } from "@/lib/auth/signed-in-home";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 export const metadata: Metadata = {
   title: PRODUCT_NAME,
-  description: `Staff workspace for ${PRODUCT_NAME}.`,
+  description: `Sign in to ${PRODUCT_NAME}.`,
 };
 
 export default async function Home() {
@@ -17,31 +15,6 @@ export default async function Home() {
     user: null,
     clinicMembership: null,
   }));
-  const home = signedInHomePath(authContext);
-  if (home) {
-    redirect(home);
-  }
 
-  return (
-    <main className="flex flex-1 items-center justify-center bg-staff-canvas px-6 py-16">
-      <section className="w-full max-w-2xl rounded-2xl border border-staff-line bg-staff-panel p-8 shadow-sm">
-        <p className="flex items-center gap-2 text-sm font-semibold text-staff-brand">
-          <ProductMark className="h-5 w-5" />
-          {PRODUCT_NAME}
-        </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-staff-ink">
-          Clinic portal
-        </h1>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-staff-muted">
-          Sign in to manage your practice&apos;s patient aftercare guides.
-        </p>
-
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <Link href="/login" className="staffBtn staffBtnPrimary">
-            Staff sign in
-          </Link>
-        </div>
-      </section>
-    </main>
-  );
+  redirect(signedInHomePath(authContext) ?? "/login");
 }

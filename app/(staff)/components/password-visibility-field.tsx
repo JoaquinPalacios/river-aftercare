@@ -7,11 +7,13 @@ export function PasswordVisibilityField({
   onChange,
   invalid,
   errorId,
+  disabled = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   invalid?: boolean;
   errorId?: string;
+  disabled?: boolean;
 }) {
   const [visible, setVisible] = useState(false);
   const reactId = useId().replace(/:/g, "");
@@ -25,18 +27,25 @@ export function PasswordVisibilityField({
         type={visible ? "text" : "password"}
         autoComplete="current-password"
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={invalid ? "true" : "false"}
         aria-describedby={errorId}
-        className="h-11 w-full rounded-md border border-staff-line bg-staff-panel py-0 pr-12 pl-3 text-base text-staff-ink outline-none transition focus:border-staff-brand focus:ring-2 focus:ring-staff-brand/20"
+        className="staffLoginField staffLoginFieldPassword"
       />
       <button
         id={toggleId}
         type="button"
-        onClick={() => setVisible((current) => !current)}
+        disabled={disabled}
+        onClick={() => {
+          if (disabled) {
+            return;
+          }
+          setVisible((current) => !current);
+        }}
         aria-label={visible ? "Hide password" : "Show password"}
         aria-pressed={visible}
-        className="absolute top-1/2 right-1.5 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-staff-muted transition hover:bg-staff-canvas hover:text-staff-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-staff-brand"
+        className="staffPasswordToggle"
       >
         {visible ? <EyeOffIcon /> : <EyeIcon />}
       </button>

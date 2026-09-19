@@ -334,6 +334,38 @@ html[data-theme-mode="dark"] .staffNavRowMuted {
   opacity: 0.6;
 }
 
+.staffLoginSubmit {
+  gap: 0.5rem;
+  min-width: 11rem;
+  white-space: nowrap;
+}
+
+.staffLoginSpinner {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+  border: 2px solid rgb(255 255 255 / 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: staffLoginSpin 0.65s linear infinite;
+}
+
+@keyframes staffLoginSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staffLoginSpinner {
+    animation: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 0;
+    background: #fff;
+  }
+}
+
 .staffBtnPrimary {
   /* Keep a dark chip + light label in both themes. --staff-brand lightens
      in dark mode for text/accents and fails contrast on filled buttons. */
@@ -1048,7 +1080,97 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
 
 .staffField:disabled,
 .staffSelect:disabled {
+  cursor: not-allowed;
   opacity: 0.6;
+}
+
+.staffLoginField {
+  height: 2.75rem;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.375rem;
+  background: var(--staff-panel);
+  padding: 0 0.75rem;
+  color: var(--staff-ink);
+  font-size: 1rem;
+  outline: none;
+  transition:
+    border-color var(--interaction-duration) var(--interaction-easing),
+    box-shadow var(--interaction-duration) var(--interaction-easing),
+    background-color var(--interaction-duration) var(--interaction-easing);
+}
+
+.staffLoginField:focus {
+  border-color: var(--staff-brand);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--staff-brand) 20%, transparent);
+}
+
+.staffLoginField:disabled {
+  cursor: not-allowed;
+  background: var(--staff-canvas);
+  color: var(--staff-ink);
+  opacity: 1;
+}
+
+.staffLoginField:disabled:hover,
+.staffLoginField:disabled:focus,
+.staffLoginField:disabled:focus-visible {
+  border-color: var(--staff-line);
+  box-shadow: none;
+  outline: none;
+}
+
+.staffLoginFieldPassword {
+  padding-right: 3rem;
+}
+
+.staffPasswordToggle {
+  position: absolute;
+  top: 50%;
+  right: 0.375rem;
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  min-height: 2rem;
+  min-width: 2rem;
+  transform: translateY(-50%);
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--staff-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--interaction-duration) var(--interaction-easing),
+    color var(--interaction-duration) var(--interaction-easing);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .staffPasswordToggle:hover:not(:disabled) {
+    background: var(--staff-canvas);
+    color: var(--staff-ink);
+  }
+}
+
+.staffPasswordToggle:focus-visible {
+  outline: var(--interaction-focus-width) solid var(--staff-brand);
+  outline-offset: var(--interaction-focus-offset);
+}
+
+.staffPasswordToggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  color: var(--staff-muted);
+}
+
+.staffPasswordToggle:disabled:hover,
+.staffPasswordToggle:disabled:focus,
+.staffPasswordToggle:disabled:focus-visible {
+  background: transparent;
+  color: var(--staff-muted);
+  outline: none;
 }
 
 .staffFieldNarrow {
@@ -1343,6 +1465,8 @@ a.staffOverflowItem {
   .staffOverflowItem,
   .staffPreviewBack,
   .staffPreviewEdit,
+  .staffLoginField,
+  .staffPasswordToggle,
   .ptlBtn,
   .ptlOption {
     transition: none;
