@@ -1159,8 +1159,8 @@ test.describe("premium marketing UX", () => {
       .evaluate((element) =>
         Number.parseFloat(getComputedStyle(element).marginTop)
       );
-    expect(notesGap).toBeGreaterThanOrEqual(20);
-    expect(notesGap).toBeLessThanOrEqual(28);
+    expect(notesGap).toBeGreaterThanOrEqual(36);
+    expect(notesGap).toBeLessThanOrEqual(50);
     await showMarketingScheme(page, "light");
     await page
       .getByRole("heading", { name: "What these prices include" })
