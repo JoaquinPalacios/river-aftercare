@@ -187,6 +187,13 @@
   );
   --mk-rail: var(--mk-wave-periwinkle);
   --mk-rail-end: var(--mk-sky);
+  --progress-start: var(--mk-brand-strong);
+  --progress-mid: var(--mk-brand);
+  --progress-end: var(--mk-sky-text);
+  --progress-glow: light-dark(
+    transparent,
+    color-mix(in srgb, var(--mk-brand-strong) 28%, transparent)
+  );
 }
 
 @media (max-width: 47.99rem) {

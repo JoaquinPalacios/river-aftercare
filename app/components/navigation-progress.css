@@ -1,0 +1,93 @@
+/* Master River route-progress tokens. Loaded only with NavigationProgress
+   (marketing + staff). Do not import from aftercare — patient CSS stays
+   on the Phase 1 budget without this overlay.
+
+   Do not use the CSS light-dark function here. Lightning CSS compiles it into
+   --lightningcss-light/dark on :root, which pollutes staff Tailwind colours. */
+:root {
+  /* Route progress sits above marketing nav (4) and staff chrome (30). */
+  --progress-z-index: 40;
+  --progress-height: 2px;
+  --progress-width-duration: 180ms;
+  --progress-complete-duration: 70ms;
+  --progress-fade-duration: 70ms;
+  --progress-ease: ease;
+  --progress-start: #3b4bd1;
+  --progress-mid: #3b4bd1;
+  --progress-end: #146f88;
+  --progress-mid-stop: 72%;
+  --progress-glow: transparent;
+}
+
+html[data-theme-mode="dark"] {
+  --progress-start: #7c8cff;
+  --progress-mid: #a6b8ff;
+  --progress-end: #7ec8e6;
+  --progress-mid-stop: 68%;
+  --progress-glow: color-mix(in srgb, #7c8cff 28%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme-mode="system"] {
+    --progress-start: #7c8cff;
+    --progress-mid: #a6b8ff;
+    --progress-end: #7ec8e6;
+    --progress-mid-stop: 68%;
+    --progress-glow: color-mix(in srgb, #7c8cff 28%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --progress-width-duration: 0ms;
+    --progress-complete-duration: 0ms;
+    --progress-fade-duration: 0ms;
+  }
+}
+
+.navigationProgress {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: var(--progress-z-index);
+  height: var(--progress-height);
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--progress-fade-duration) var(--progress-ease);
+}
+
+.navigationProgress[data-visible="true"] {
+  opacity: 1;
+}
+
+.navigationProgressBar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(var(--progress-value, 0));
+  transform-origin: left center;
+  background: linear-gradient(
+    90deg,
+    var(--progress-start) 0%,
+    var(--progress-mid) var(--progress-mid-stop),
+    var(--progress-end) 100%
+  );
+  box-shadow: 0 0 8px var(--progress-glow);
+  transition: transform var(--progress-width-duration) var(--progress-ease);
+}
+
+.navigationProgress[data-phase="completing"] .navigationProgressBar {
+  transition-duration: var(--progress-complete-duration);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navigationProgress {
+    transition-duration: 0ms;
+  }
+
+  .navigationProgressBar {
+    transition-duration: 0ms;
+  }
+}

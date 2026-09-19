@@ -8,12 +8,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const pushMock = vi.hoisted(() => vi.fn());
 const refreshMock = vi.hoisted(() => vi.fn());
+const startAppNavigationMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: pushMock,
     refresh: refreshMock,
   }),
+}));
+
+vi.mock("@/lib/navigation-progress", () => ({
+  startAppNavigation: startAppNavigationMock,
 }));
 
 import { LoginForm } from "@/app/(staff)/login/login-form";
@@ -36,6 +41,7 @@ describe("login form pending UX", () => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
     pushMock.mockReset();
     refreshMock.mockReset();
+    startAppNavigationMock.mockReset();
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     container = document.createElement("div");
@@ -191,6 +197,7 @@ describe("login form pending UX", () => {
     expect(alert?.textContent).toBe("Invalid email or password.");
     expect(form().getAttribute("aria-busy")).toBeNull();
     expect(pushMock).not.toHaveBeenCalled();
+    expect(startAppNavigationMock).not.toHaveBeenCalled();
   });
 
   it("keeps the form pending after a successful login until navigation is requested", async () => {
@@ -206,7 +213,11 @@ describe("login form pending UX", () => {
     await submitForm();
     await flushLoginRequest();
 
+    expect(startAppNavigationMock).toHaveBeenCalledWith("/dashboard");
     expect(pushMock).toHaveBeenCalledWith("/dashboard");
+    expect(startAppNavigationMock.mock.invocationCallOrder[0]).toBeLessThan(
+      pushMock.mock.invocationCallOrder[0]
+    );
     expect(refreshMock).toHaveBeenCalled();
     expect(emailInput().disabled).toBe(true);
     expect(passwordInput().disabled).toBe(true);
@@ -230,6 +241,7 @@ describe("login form pending UX", () => {
     await flushLoginRequest();
 
     expect(pushMock).toHaveBeenCalledWith("/operator/clinics");
+    expect(startAppNavigationMock).toHaveBeenCalledWith("/operator/clinics");
     expect(emailInput().disabled).toBe(true);
   });
 
@@ -255,6 +267,11 @@ describe("login form pending UX", () => {
 
     expect(formSource).toContain("disabled={pending}");
     expect(formSource).toContain("Signing in…");
+    expect(formSource).toContain("startAppNavigation");
+    expect(formSource).toMatch(
+      /startAppNavigation\(redirectTo\);\s*router\.push\(redirectTo\);/
+    );
+    expect(formSource).not.toContain("await startAppNavigation");
     expect(formSource).toContain("staffLoginSpinner");
     expect(formSource).toContain("aria-busy={pending || undefined}");
     expect(formSource).toContain("Signing in. Please wait.");

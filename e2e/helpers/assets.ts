@@ -174,9 +174,14 @@ export function expectCssWithinPhase1Budget(css: AssetMeasurement[]): void {
   const gzip = sumMetric(css, "gzip");
   const brotli = sumMetric(css, "brotli");
 
+  const inventory = css
+    .map((asset) => `${asset.raw} ${asset.url}`)
+    .sort((a, b) => Number(b.split(" ")[0]) - Number(a.split(" ")[0]))
+    .join("; ");
+
   // Geist @font-face plus the shared interaction contract live in the patient
   // document. Gzip/brotli remain the tighter ceilings.
-  expect(raw, `CSS raw ${raw}`).toBeLessThanOrEqual(26_000);
+  expect(raw, `CSS raw ${raw} from ${inventory}`).toBeLessThanOrEqual(26_000);
   expect(gzip, `CSS gzip ${gzip}`).toBeLessThanOrEqual(6_500);
   expect(brotli, `CSS brotli ${brotli}`).toBeLessThanOrEqual(6_000);
 }
@@ -186,6 +191,13 @@ export function expectNoTailwind(css: AssetMeasurement[]): void {
     expect(asset.body, asset.url).not.toContain("--tw-");
     expect(asset.body, asset.url).not.toContain('@import "tailwindcss"');
     expect(asset.body, asset.url).not.toContain("practice-brand-proof");
+  }
+}
+
+export function expectNoNavigationProgressCss(css: AssetMeasurement[]): void {
+  for (const asset of css) {
+    expect(asset.body, asset.url).not.toContain("navigationProgress");
+    expect(asset.body, asset.url).not.toContain("--progress-start");
   }
 }
 
