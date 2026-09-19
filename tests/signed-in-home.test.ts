@@ -8,16 +8,12 @@ vi.mock("@/lib/auth/session", () => ({
 
 import { signedInHomePath } from "@/lib/auth/signed-in-home";
 
-function context(
-  overrides: Parameters<typeof signedInHomePath>[0] = {
-    user: null,
-    clinicMembership: null,
-  }
-) {
+type AuthContext = Parameters<typeof signedInHomePath>[0];
+
+function context(overrides: Partial<AuthContext> = {}): AuthContext {
   return {
-    user: null,
-    clinicMembership: null,
-    ...overrides,
+    user: overrides.user ?? null,
+    clinicMembership: overrides.clinicMembership ?? null,
   };
 }
 
