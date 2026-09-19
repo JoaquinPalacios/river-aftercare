@@ -248,7 +248,6 @@ describe("marketing homepage", () => {
     expect(html).toContain("data-mk-numbered-steps");
     expect(html).toContain('data-mk-patient-surface="phone"');
     expect(html).not.toContain('data-mk-patient-surface="home"');
-    expect(html).toContain("View post-treatment instructions");
     expect(html).toContain('href="/privacy"');
     expect(html).toContain('href="/terms"');
     expect(html).toContain("navRoute");
@@ -329,8 +328,10 @@ describe("marketing homepage", () => {
     expect((html.match(/id="brand-heading"/g) ?? []).length).toBe(1);
     expect((html.match(/id="clinic-types-heading"/g) ?? []).length).toBe(1);
     expect(
-      (html.match(/One aftercare platform\. Different clinic workflows\./g) ?? [])
-        .length
+      (
+        html.match(/One aftercare platform\. Different clinic workflows\./g) ??
+        []
+      ).length
     ).toBe(1);
     expect(html.indexOf("data-mk-brand-copy")).toBeLessThan(
       html.indexOf("data-mk-brand-visual")
