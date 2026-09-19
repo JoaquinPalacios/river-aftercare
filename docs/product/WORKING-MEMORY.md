@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (homepage Brand Flexibility refined to clinic-owned identity dimensions and moved after Clinic Preview)
+Last updated: 2026-09-19 (Vercel Web Analytics beforeSend self-opt-out via localStorage va-disable=1)
 
 ---
 
@@ -1248,12 +1248,13 @@ Production `POST /practice` returned HTTP 500 while saving ordinary branding. No
 
 Cookieless platform page-view telemetry. This is **not** the PRD operator anonymous-analytics dashboard.
 
-| Area    | Behaviour                                                                                                                                                         |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Package | `@vercel/analytics` 2.0.1 (`latest` stable). Import `Analytics` from `@vercel/analytics/next`.                                                                    |
-| Layouts | Mounted in the three independent root layouts: marketing, staff, aftercare. There is no shared `app/layout.tsx`.                                                  |
-| Privacy | Public draft describes cookieless aggregated page-view stats via the application hosting provider. Do not name Vercel in `/privacy`. Legal review still required. |
-| Product | Operator analytics (views by practice/guide, QR-origin) remain unimplemented.                                                                                     |
+| Area    | Behaviour                                                                                                                                                                     |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Package | `@vercel/analytics` 2.0.1 (`latest` stable). Import `Analytics` from `@vercel/analytics/next` via `lib/telemetry/vercel-web-analytics.tsx`.                                   |
+| Layouts | Mounted in the three independent root layouts: marketing, staff, aftercare, as `<VercelWebAnalytics />`. There is no shared `app/layout.tsx`.                                 |
+| Opt-out | Official `beforeSend`: if `localStorage.getItem("va-disable") === "1"`, return `null`; otherwise return the event unchanged. No UI, cookies, query params, or admin controls. |
+| Privacy | Public draft describes cookieless aggregated page-view stats via the application hosting provider. Do not name Vercel in `/privacy`. Legal review still required.             |
+| Product | Operator analytics (views by practice/guide, QR-origin) remain unimplemented.                                                                                                 |
 
 ---
 

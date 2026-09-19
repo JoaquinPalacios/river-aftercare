@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { geistSans } from "@/lib/branding/fonts";
@@ -11,6 +10,7 @@ import {
   MARKETING_THEME_STORAGE_KEY,
   themePreferenceBootstrapScript,
 } from "@/lib/branding/theme-preference";
+import { VercelWebAnalytics } from "@/lib/telemetry/vercel-web-analytics";
 
 import "./marketing.css";
 
@@ -53,7 +53,7 @@ export default function MarketingRootLayout({
           </style>
         </noscript>
         {children}
-        <Analytics />
+        <VercelWebAnalytics />
         <SpeedInsights />
       </body>
     </html>
