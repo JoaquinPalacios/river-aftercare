@@ -200,7 +200,7 @@ Forgot/reset/accept-invitation/invitation-status Route Handlers also require a s
 
 ## Security logging
 
-Structured events only: `password_changed`, `password_reset_requested`, `password_reset_email_failed`, `password_reset_completed`, `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`. Prefer user id (and clinic id for invitations). Never log passwords, raw tokens, token hashes, reset/invite URLs, session tokens, API keys, or mail bodies. Unknown emails are not logged.
+Structured events only: `password_changed`, `password_reset_requested`, `password_reset_email_failed`, `password_reset_completed`, `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`, `clinic_role_updated`. Prefer user id (and clinic id for invitations). Never log passwords, raw tokens, token hashes, reset/invite URLs, session tokens, API keys, or mail bodies. Unknown emails are not logged.
 
 ## AccountToken
 
@@ -262,25 +262,25 @@ Statuses are derived, not stored:
 
 Cancelled invitations (revoked, not consumed) are hidden. Re-invite the same email from **Invite user** when the person is a same-clinic pending/expired/cancelled `passwordHash`-null user.
 
-Roles in this UI: Administrator / Staff. Initial role is chosen on invite. Operator role editing (ADMIN ↔ STAFF) is **not** implemented.
+Roles in this UI: Administrator / Staff. Initial role is chosen on invite. Active members expose **Change role** (overflow menu + dialog) so the platform operator can switch ADMIN ↔ STAFF. Pending/expired invitations keep Resend / Cancel only; their intended role comes from the invitation token.
 
-Active members expose **Remove access** (overflow menu + confirmation). Removal deletes only that `ClinicMembership` and all database sessions for that User. The User row, email, passwordHash, and AccountToken history are kept so the same credentials can be restored later. There is **no last-admin guard** while Team provisioning remains operator-only; a clinic may have zero members.
+Active members also expose **Remove access** (overflow menu + confirmation). After confirm, the destructive button shows a spinner and “Removing…”, Cancel is disabled, and the row menu cannot be used again until the mutation finishes. Removal deletes only that `ClinicMembership` and all database sessions for that User. The User row, email, passwordHash, and AccountToken history are kept so the same credentials can be restored later. There is **no last-admin guard** while Team provisioning remains operator-only; a clinic may have zero members, and changing the only ADMIN to STAFF is allowed.
 
-Successful invite delivery redirects to Team with `?status=invitation-sent` → “Invitation sent.” The pending person is already in the list. Delivery failure stays on Invite user with the controlled operational error; resend remains available from Team.
+Successful invite delivery redirects to Team with `?status=invitation-sent` → “Invitation sent.” The pending person is already in the list. Delivery failure stays on Invite user with the controlled operational error; resend remains available from Team. Successful role change redirects with `?status=role-updated` → “Role updated.”
 
 ### Invite rules
 
 Mutations are Server Actions. Clinic comes from the operator-authorized route. Inviter is the authenticated OPERATOR. Browser cannot assign `platformRole`, `passwordHash`, token type, or From/To.
 
-| Existing account                       | Result                                                                                         |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| New email                              | Create User (`passwordHash` null, `platformRole` NONE). No membership yet. Send invitation.    |
-| Active member of this clinic           | “This user already has access to this clinic.”                                                 |
-| Active member of another clinic        | “This user already belongs to another clinic. Multi-clinic access is not supported yet.”       |
-| Platform operator                      | “This account is a River Aftercare platform operator.”                                         |
-| Pending same clinic (usable token)     | Direct operator to **Resend invitation**.                                                      |
-| Pending/history tied to another clinic | Blocked. Same multi-clinic limitation.                                                         |
-| Expired/cancelled same-clinic pending  | New invitation token for the same User. Name may be updated.                                   |
+| Existing account                       | Result                                                                                                                      |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| New email                              | Create User (`passwordHash` null, `platformRole` NONE). No membership yet. Send invitation.                                 |
+| Active member of this clinic           | “This user already has access to this clinic.”                                                                              |
+| Active member of another clinic        | “This user already belongs to another clinic. Multi-clinic access is not supported yet.”                                    |
+| Platform operator                      | “This account is a River Aftercare platform operator.”                                                                      |
+| Pending same clinic (usable token)     | Direct operator to **Resend invitation**.                                                                                   |
+| Pending/history tied to another clinic | Blocked. Same multi-clinic limitation.                                                                                      |
+| Expired/cancelled same-clinic pending  | New invitation token for the same User. Name may be updated.                                                                |
 | Active user, zero memberships          | Restore access: create one `ClinicMembership` with the operator-selected role. Keep password. No invitation token or email. |
 
 A User may have **at most one** active `ClinicMembership`. This change does not add a clinic switcher.
@@ -313,6 +313,13 @@ Prevalidation is UX only. `completeInvitation` still revalidates and conditional
 
 Success: `/login?invite=success` (fixed flag → “Your account is ready. Sign in with your new password.”). Then the existing one-membership login path.
 
+### Change role
+
+- **Change role** (operator only, active membership): update that `ClinicMembership.role` to ADMIN or STAFF. Do not change `User.platformRole`, passwordHash, sessions, AccountToken rows, or membership count. Same-role submissions are a safe no-op. Redirect to Team with `?status=role-updated` → “Role updated.”
+- Clinic role is read from `ClinicMembership` on each request (`getCurrentClinicMembership`). Auth.js database sessions store user id, name, and email only. A role change therefore takes effect on the next authorization read without session invalidation.
+- Platform operators cannot be made clinic members and cannot be the target of a role change.
+- No last-admin guard: changing the only ADMIN to STAFF remains allowed while operator provisioning can also remove the only ADMIN or leave a clinic with zero members. Revisit last-admin protection, self-demotion, and self-removal when clinic-admin Team self-service ships.
+
 ### Remove access / restore access
 
 - **Remove access** (operator only, active membership): delete that `ClinicMembership`; delete all database sessions for the User; keep User / passwordHash / email / AccountToken history. Redirect to Team with `?status=access-removed` → “Access removed.” No last-admin guard.
@@ -324,12 +331,11 @@ Success: `/login?invite=success` (fixed flag → “Your account is ready. Sign 
 - **Resend** (pending or expired, same clinic, still `passwordHash` null, no membership): new token, previous outstanding invite revoked.
 - **Cancel**: revoke outstanding INVITATION tokens for that user+clinic. User row kept. Login still generic 401.
 
-Security logging: `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`. User id + clinic id only. Never passwords, raw tokens, hashes, URLs, or provider errors.
+Security logging: `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`, `clinic_role_updated`. User id + clinic id only. Never passwords, raw tokens, hashes, URLs, or provider errors.
 
 ## Not yet implemented
 
 - clinic ADMIN / STAFF inviting users
-- operator role change (ADMIN ↔ STAFF) after invite
 - last-admin protection (revisit when clinic-admin Team self-service ships; operator retains platform control)
 - multi-clinic picker
 - email-address changes

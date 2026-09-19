@@ -19,20 +19,20 @@ Patient tenant rendering, clinic portal, and operator console share this process
 
 Business rules should not live only inside React components. Current server modules include:
 
-| Concern                 | Module area                                                                                                                      |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Guide lifecycle         | `lib/clinic-portal/*-practice-guide.ts`                                                                                          |
-| Practice configuration  | `lib/clinic-portal/update-practice-settings.ts`                                                                                  |
-| Authorization           | `lib/auth/require-*.ts`, `lib/clinic-assets/authorize-clinic-logo.ts`                                                            |
-| Staff login             | `lib/auth/password.ts`, `lib/auth/login-input.ts`, [AUTH.md](AUTH.md)                                                            |
-| Password management     | `lib/auth/password-policy.ts`, `lib/auth/change-password.ts`, `lib/auth/request-password-reset.ts`, `lib/auth/reset-password.ts` |
-| Invitations             | `lib/operator/invite-clinic-user.ts`, `lib/auth/accept-invitation.ts`, `lib/auth/account-token-service.ts`                       |
-| Account tokens          | `lib/auth/account-token.ts`, `lib/auth/account-token-service.ts`                                                                 |
-| Transactional email     | `lib/email/transactional-mailer.ts`, `lib/email/auth-email.ts`, [TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md)                 |
-| Operator clinic queries | `lib/operator/list-operator-clinics.ts`                                                                                          |
-| Platform SEO            | `lib/seo/*`                                                                                                                      |
-| Logo storage boundary   | `lib/clinic-assets/*`                                                                                                            |
-| Platform SEO assets     | `lib/platform-assets/*`                                                                                                          |
+| Concern                 | Module area                                                                                                                                                 |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Guide lifecycle         | `lib/clinic-portal/*-practice-guide.ts`                                                                                                                     |
+| Practice configuration  | `lib/clinic-portal/update-practice-settings.ts`                                                                                                             |
+| Authorization           | `lib/auth/require-*.ts`, `lib/clinic-assets/authorize-clinic-logo.ts`                                                                                       |
+| Staff login             | `lib/auth/password.ts`, `lib/auth/login-input.ts`, [AUTH.md](AUTH.md)                                                                                       |
+| Password management     | `lib/auth/password-policy.ts`, `lib/auth/change-password.ts`, `lib/auth/request-password-reset.ts`, `lib/auth/reset-password.ts`                            |
+| Invitations             | `lib/operator/invite-clinic-user.ts`, `lib/auth/accept-invitation.ts`, `lib/auth/account-token-service.ts`, `lib/operator/change-clinic-membership-role.ts` |
+| Account tokens          | `lib/auth/account-token.ts`, `lib/auth/account-token-service.ts`                                                                                            |
+| Transactional email     | `lib/email/transactional-mailer.ts`, `lib/email/auth-email.ts`, [TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md)                                            |
+| Operator clinic queries | `lib/operator/list-operator-clinics.ts`                                                                                                                     |
+| Platform SEO            | `lib/seo/*`                                                                                                                                                 |
+| Logo storage boundary   | `lib/clinic-assets/*`                                                                                                                                       |
+| Platform SEO assets     | `lib/platform-assets/*`                                                                                                                                     |
 
 Route handlers and Server Actions should generally: authorize → validate → call the module → map the result.
 

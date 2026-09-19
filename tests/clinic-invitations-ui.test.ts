@@ -72,15 +72,89 @@ describe("clinic invitation UI contracts", () => {
       "utf8"
     );
     expect(table).toContain("Remove access");
+    expect(table).toContain("Change role");
     expect(table).toContain("removeClinicAccessAction");
+    expect(table).toContain("changeClinicMembershipRoleAction");
     expect(table).toContain("ConfirmDialog");
     expect(table).toContain("OverflowMenu");
     expect(table).toContain("Resend invitation");
     expect(table).toContain("Cancel invitation");
+    expect(table).not.toContain("last-admin");
     expect(actions).toContain("removeClinicAccessAction");
+    expect(actions).toContain("changeClinicMembershipRoleAction");
     expect(actions).toContain("inviteClinicUserAction");
     expect(actions).toContain("resendClinicInvitationAction");
     expect(actions).toContain("cancelClinicInvitationAction");
+    expect(actions).not.toContain('formData.get("platformRole")');
+    expect(actions).not.toContain("passwordHash");
+  });
+
+  it("shows Change role only for active members and keeps pending Resend/Cancel", () => {
+    const table = readFileSync(
+      "app/(staff)/(operator)/operator/clinics/[clinicId]/team/team-table.tsx",
+      "utf8"
+    );
+    const memberStart = table.indexOf('row.kind === "member"');
+    const invitationStart = table.indexOf("Resend invitation", memberStart);
+    const dialogStart = table.indexOf("<ConfirmDialog", invitationStart);
+    const memberBranch = table.slice(memberStart, invitationStart);
+    const invitationBranch = table.slice(invitationStart, dialogStart);
+    expect(memberBranch).toContain("Change role");
+    expect(memberBranch).toContain("Remove access");
+    expect(invitationBranch).toContain("Resend invitation");
+    expect(invitationBranch).toContain("Cancel invitation");
+    expect(invitationBranch).not.toContain("Change role");
+  });
+
+  it("keeps remove-access pending spinner as a flex sibling of Removing…", () => {
+    const table = readFileSync(
+      "app/(staff)/(operator)/operator/clinics/[clinicId]/team/team-table.tsx",
+      "utf8"
+    );
+    const dialog = readFileSync(
+      "app/(staff)/components/confirm-dialog.tsx",
+      "utf8"
+    );
+    const css = readFileSync("app/(staff)/staff.css", "utf8");
+    expect(table).toContain('pendingLabel="Removing…"');
+    expect(table).toContain("Removing clinic access. Please wait.");
+    expect(table).toContain("disabled={pending}");
+    expect(dialog).toContain("staffLoginSpinner");
+    expect(dialog).toContain("staffLoginSubmit");
+    expect(dialog).toContain("aria-busy={busy || undefined}");
+    expect(dialog).not.toContain("position: absolute");
+    expect(css).toContain(".staffLoginSubmit");
+    expect(css).toContain("gap: 0.5rem");
+    expect(css).toContain(".staffLoginSpinner");
+    expect(css).toContain("flex: 0 0 auto");
+    expect(css).toContain("prefers-reduced-motion: reduce");
+  });
+
+  it("keeps change-role pending spinner as a flex sibling of Saving…", () => {
+    const table = readFileSync(
+      "app/(staff)/(operator)/operator/clinics/[clinicId]/team/team-table.tsx",
+      "utf8"
+    );
+    expect(table).toContain('pendingLabel="Saving…"');
+    expect(table).toContain("Saving role. Please wait.");
+    expect(table).toContain("confirmDisabled={roleUnchanged}");
+    expect(table).toContain("TEAM_ADMIN_ROLE_LABEL");
+    expect(table).toContain("TEAM_STAFF_ROLE_LABEL");
+    expect(table).toContain("Choose the access level for");
+    expect(table).not.toContain("passwordHash");
+    expect(table).not.toContain("platformRole");
+    expect(
+      readFileSync("lib/operator/remove-clinic-access.ts", "utf8")
+    ).toContain("deleteDatabaseSessionsForUser");
+    expect(
+      readFileSync("lib/operator/change-clinic-membership-role.ts", "utf8")
+    ).not.toContain("deleteDatabaseSessionsForUser");
+    expect(
+      readFileSync("lib/operator/change-clinic-membership-role.ts", "utf8")
+    ).toContain("There is no last-admin guard");
+    expect(
+      readFileSync("lib/operator/change-clinic-membership-role.ts", "utf8")
+    ).not.toContain("passwordHash");
   });
 
   it("keeps the send-invitation pending spinner as a flex sibling of Sending…", () => {
@@ -115,7 +189,9 @@ describe("clinic invitation UI contracts", () => {
     expect(actions).toContain("TEAM_STATUS.INVITATION_SENT");
     expect(actions).toContain("TEAM_STATUS.ACCESS_RESTORED");
     expect(actions).toContain("TEAM_STATUS.ACCESS_REMOVED");
+    expect(actions).toContain("TEAM_STATUS.ROLE_UPDATED");
     expect(actions).not.toContain("Invitation sent to");
+    expect(actions).not.toContain("Role updated to");
     expect(teamPage).toContain("teamStatusMessage");
     expect(teamPage).toContain("TeamStatusBanner");
   });
