@@ -17,5 +17,10 @@ describe("staff confirm dialog", () => {
     expect(dialog).not.toContain("window.confirm");
     expect(css).toContain(".staffDialog::backdrop");
     expect(css).toContain("color-scheme: inherit");
+    expect(dialog).toContain("pendingLabel");
+    expect(dialog).toContain("staffLoginSpinner");
+    expect(dialog).toContain("aria-busy={busy || undefined}");
+    expect(dialog).toContain("disabled={busy");
+    expect(dialog).toContain("confirmLockedRef");
   });
 });

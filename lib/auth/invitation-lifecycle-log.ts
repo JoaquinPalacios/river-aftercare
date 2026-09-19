@@ -36,6 +36,11 @@ export type InvitationLifecycleLogEvent =
       event: "clinic_access_restored";
       userId: string;
       clinicId: string;
+    }
+  | {
+      event: "clinic_role_updated";
+      userId: string;
+      clinicId: string;
     };
 
 export function logInvitationLifecycle(
