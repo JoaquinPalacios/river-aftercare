@@ -5,7 +5,19 @@ import {
   ClinicMembershipRole,
   PlatformRole,
 } from "@prisma/client";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+
+vi.mock("@/auth", () => ({
+  auth: vi.fn(),
+}));
 
 import { POST as loginPost } from "@/app/api/auth/login/route";
 import { hashAccountToken } from "@/lib/auth/account-token";
@@ -691,6 +703,21 @@ describe("clinic invitation lifecycle", () => {
     expect(keptUser?.passwordHash).toBeTruthy();
     expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
     expect(await prisma.session.count({ where: { userId: other.id } })).toBe(1);
+
+    const login = await loginPost(
+      new Request("http://app.localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: `${PREFIX}remove@example.test`,
+          password: "remove-pass-12",
+        }),
+      })
+    );
+    expect(login.status).toBe(403);
+    expect(await login.json()).toEqual({
+      error: "Your account does not have staff access yet.",
+    });
   });
 
   it("allows only one concurrent invitation acceptance", async () => {
