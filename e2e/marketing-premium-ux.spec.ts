@@ -1275,6 +1275,11 @@ test.describe("premium marketing UX", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
+    await page.locator("header").evaluate((element) => {
+      if (element instanceof HTMLElement) {
+        element.style.visibility = "hidden";
+      }
+    });
     await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
     await waitForSectionReveal(
       page.locator('[aria-labelledby="brand-heading"]')
@@ -1288,12 +1293,22 @@ test.describe("premium marketing UX", () => {
       path: "test-results/artifacts/home-brand-flexibility-light-390.png",
     });
     await showMarketingScheme(page, "dark");
+    await page.locator("header").evaluate((element) => {
+      if (element instanceof HTMLElement) {
+        element.style.visibility = "hidden";
+      }
+    });
     await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
     await waitForSectionReveal(
       page.locator('[aria-labelledby="brand-heading"]')
     );
     await page.locator('[aria-labelledby="brand-heading"]').screenshot({
       path: "test-results/artifacts/home-brand-flexibility-dark-390.png",
+    });
+    await page.locator("header").evaluate((element) => {
+      if (element instanceof HTMLElement) {
+        element.style.visibility = "";
+      }
     });
     await expectNoHorizontalOverflow(page);
     for (const width of [1728, 1440, 1024, 768, 430, 390] as const) {
