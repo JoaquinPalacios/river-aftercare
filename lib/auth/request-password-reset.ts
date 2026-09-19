@@ -15,6 +15,17 @@ import { composePasswordResetEmail } from "@/lib/email/password-reset-mail";
 import { getPrisma } from "@/lib/prisma";
 import { buildPasswordResetUrl } from "@/lib/tenancy/staff-app-origin";
 
+async function revokeCreatedTokenBestEffort(
+  tokenId: string,
+  now?: Date
+): Promise<void> {
+  try {
+    await revokeAccountToken(tokenId, { now });
+  } catch {
+    // Best-effort: cooldown should not stick if we cannot revoke.
+  }
+}
+
 export async function requestPasswordReset(input: {
   email: string;
   now?: Date;
@@ -79,9 +90,7 @@ export async function requestPasswordReset(input: {
     );
 
     if (!sent.ok) {
-      await revokeAccountToken(created.token.id, { now: input.now }).catch(
-        () => undefined
-      );
+      await revokeCreatedTokenBestEffort(created.token.id, input.now);
       logPasswordLifecycle({
         event: "password_reset_email_failed",
         userId: user.id,
@@ -90,9 +99,7 @@ export async function requestPasswordReset(input: {
       return;
     }
   } catch {
-    await revokeAccountToken(created.token.id, { now: input.now }).catch(
-      () => undefined
-    );
+    await revokeCreatedTokenBestEffort(created.token.id, input.now);
     logPasswordLifecycle({
       event: "password_reset_email_failed",
       userId: user.id,

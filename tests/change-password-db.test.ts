@@ -1,7 +1,14 @@
 import "dotenv/config";
 
 import { PlatformRole } from "@prisma/client";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/auth", () => ({
+  auth: vi.fn(),
+  handlers: {},
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+}));
 
 import { changeAuthenticatedUserPassword } from "@/lib/auth/change-password";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";

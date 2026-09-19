@@ -14,7 +14,7 @@ export function isWellFormedRawAccountToken(rawToken: string): boolean {
 
 export function readPasswordResetTokenFromHash(hash: string): string | null {
   const trimmed = hash.startsWith("#") ? hash.slice(1) : hash;
-  if (!trimmed) {
+  if (!trimmed || trimmed.startsWith("?")) {
     return null;
   }
 

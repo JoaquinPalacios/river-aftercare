@@ -15,7 +15,6 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { ResetPasswordForm } from "@/app/(staff)/reset-password/reset-password-form";
-import { generateAccountToken } from "@/lib/auth/account-token";
 import { PASSWORD_RESET_INVALID_LINK_MESSAGE } from "@/lib/auth/password-policy";
 
 describe("reset password fragment form", () => {
@@ -55,7 +54,7 @@ describe("reset password fragment form", () => {
   });
 
   it("submits the fragment token in the POST body and navigates away", async () => {
-    const token = generateAccountToken();
+    const token = "Aa1-_".repeat(8) + "abcde";
     window.history.replaceState(null, "", `/reset-password#token=${token}`);
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ ok: true }), { status: 200 })
