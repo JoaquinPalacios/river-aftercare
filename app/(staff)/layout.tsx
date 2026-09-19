@@ -9,6 +9,7 @@ import {
   PORTAL_THEME_STORAGE_KEY,
   themePreferenceBootstrapScript,
 } from "@/lib/branding/theme-preference";
+import { NavigationProgress } from "@/app/components/navigation-progress";
 import { VercelWebAnalytics } from "@/lib/telemetry/vercel-web-analytics";
 
 import "./staff.css";
@@ -37,6 +38,7 @@ export default function RootLayout({
             __html: themePreferenceBootstrapScript(PORTAL_THEME_STORAGE_KEY),
           }}
         />
+        <NavigationProgress />
         {children}
         <VercelWebAnalytics />
         <SpeedInsights />

@@ -8,6 +8,7 @@ import {
   loginSchema,
   type LoginFormValues,
 } from "@/app/(staff)/login/login-schema";
+import { startAppNavigation } from "@/lib/navigation-progress";
 
 interface LoginFormErrors {
   email?: string;
@@ -83,7 +84,9 @@ export function LoginForm() {
 
         if (response.ok) {
           const data = (await response.json()) as { redirectTo?: string };
-          router.push(data.redirectTo || "/dashboard");
+          const redirectTo = data.redirectTo || "/dashboard";
+          startAppNavigation(redirectTo);
+          router.push(redirectTo);
           router.refresh();
           return;
         }

@@ -10,6 +10,7 @@ import {
   MARKETING_THEME_STORAGE_KEY,
   themePreferenceBootstrapScript,
 } from "@/lib/branding/theme-preference";
+import { NavigationProgress } from "@/app/components/navigation-progress";
 import { VercelWebAnalytics } from "@/lib/telemetry/vercel-web-analytics";
 
 import "./marketing.css";
@@ -52,6 +53,7 @@ export default function MarketingRootLayout({
             }
           </style>
         </noscript>
+        <NavigationProgress />
         {children}
         <VercelWebAnalytics />
         <SpeedInsights />

@@ -5,10 +5,28 @@
   --interaction-easing: ease;
   --interaction-focus-width: 2px;
   --interaction-focus-offset: 2px;
+  /* Route progress sits above marketing nav (4) and staff chrome (30). */
+  --progress-z-index: 40;
+  --progress-height: 2px;
+  --progress-width-duration: 180ms;
+  --progress-complete-duration: 140ms;
+  --progress-fade-duration: 150ms;
+  --progress-ease: ease;
+  --progress-start: light-dark(#3b4bd1, #7c8cff);
+  --progress-mid: light-dark(#3b4bd1, #a6b8ff);
+  --progress-end: light-dark(#146f88, #7ec8e6);
+  --progress-mid-stop: light-dark(72%, 68%);
+  --progress-glow: light-dark(
+    transparent,
+    color-mix(in srgb, #7c8cff 28%, transparent)
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
     --interaction-duration: 0ms;
+    --progress-width-duration: 0ms;
+    --progress-complete-duration: 0ms;
+    --progress-fade-duration: 80ms;
   }
 }

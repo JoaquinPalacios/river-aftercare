@@ -31,6 +31,11 @@
   --staff-status-warning-surface: #f8f1e7;
   --staff-status-warning-text: #3f280a;
   --staff-status-warning-line: #e6d3b8;
+  --progress-start: #3b4bd1;
+  --progress-mid: #3b4bd1;
+  --progress-end: #146f88;
+  --progress-mid-stop: 72%;
+  --progress-glow: transparent;
 }
 
 html[data-theme-mode="light"] {
@@ -52,6 +57,11 @@ html[data-theme-mode="light"] {
   --staff-status-warning-surface: #f8f1e7;
   --staff-status-warning-text: #3f280a;
   --staff-status-warning-line: #e6d3b8;
+  --progress-start: #3b4bd1;
+  --progress-mid: #3b4bd1;
+  --progress-end: #146f88;
+  --progress-mid-stop: 72%;
+  --progress-glow: transparent;
 }
 
 html[data-theme-mode="dark"] {
@@ -75,6 +85,11 @@ html[data-theme-mode="dark"] {
   --staff-status-warning-surface: #241c12;
   --staff-status-warning-text: #ecd9b8;
   --staff-status-warning-line: #3d3224;
+  --progress-start: #7c8cff;
+  --progress-mid: #a6b8ff;
+  --progress-end: #7ec8e6;
+  --progress-mid-stop: 68%;
+  --progress-glow: color-mix(in srgb, #7c8cff 28%, transparent);
 }
 
 html[data-theme-mode="system"] {
@@ -102,6 +117,11 @@ html[data-theme-mode="system"] {
     --staff-status-warning-surface: #241c12;
     --staff-status-warning-text: #ecd9b8;
     --staff-status-warning-line: #3d3224;
+    --progress-start: #7c8cff;
+    --progress-mid: #a6b8ff;
+    --progress-end: #7ec8e6;
+    --progress-mid-stop: 68%;
+    --progress-glow: color-mix(in srgb, #7c8cff 28%, transparent);
   }
 }
 
