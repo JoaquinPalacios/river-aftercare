@@ -98,7 +98,7 @@
   --mk-section-pad-bottom-last: clamp(6rem, 6vw, 6rem);
   --mk-section-pad-bottom-last-mobile: clamp(4rem, 5vw, 5rem);
   --mk-chapter-pad-y: clamp(6rem, 8vw, 8rem);
-  --mk-chapter-pad-y-mobile: clamp(4rem, 8vw, 8rem);
+  --mk-chapter-pad-y-mobile: clamp(3.5rem, 6vw, 6rem);
   --mk-section-space-xl: clamp(4.25rem, 6.2vw, 5.75rem);
   --mk-section-space-lg: clamp(3.15rem, 4.8vw, 4.5rem);
   --mk-section-space-md: clamp(2.1rem, 3.2vw, 2.85rem);
