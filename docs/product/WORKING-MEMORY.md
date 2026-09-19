@@ -1678,3 +1678,23 @@ Shared top-of-viewport route progress for marketing, staff/dashboard, and auth. 
 | Login        | Existing “Signing in…” pending stays. `startAppNavigation` runs only after a successful login response, immediately before `router.push`. Failed credentials do not start the bar.                                                                                                                                                                                                                                                                                                      |
 | A11y         | `aria-hidden="true"` — no `progressbar` announcements on every click. Reduced motion keeps a static ~40% bar, then 100% on complete.                                                                                                                                                                                                                                                                                                                                                    |
 | Patient CSS  | Tenant CSS raw is **67,658 on both `origin/main` and this branch** (identical three chunks, no `navigationProgress`). Pre-existing clinic typeface catalog `@font-face` vs the 26,000 budget — not a regression from this overlay.                                                                                                                                                                                                                                                      |
+
+### Navigation-progress latency audit (before merge)
+
+**Does this feature introduce any intentional route delay? NO.**
+
+The 120ms timer is a paint gate only. Clicks never `preventDefault`. `history.pushState` / `replaceState` call the original method first, then a cheap observe. On commit the bar snaps to 100% (70ms) and fades (70ms); there is no 200ms minimum-visible hold. Overlay is `pointer-events: none`. Progress steps use `setTimeout` at 0 / 180 / 480 / 860ms — not an interval.
+
+Warm client-side click → URL commit, 20 samples/route, production `next start` (`origin/main` `:4174` vs this branch `:4173`):
+
+| Route                              | main median | branch median | main p95 | branch p95 | Δ median |
+| ---------------------------------- | ----------: | ------------: | -------: | ---------: | -------: |
+| `/` → `/about`                     |         151 |           144 |      158 |        156 |       −7 |
+| `/` → `/pricing`                   |         155 |           145 |      177 |        168 |      −10 |
+| `/` → `/clinics`                   |          49 |            50 |      278 |        277 |       +1 |
+| `/clinics` → `/dental`             |         267 |           267 |      282 |        269 |        0 |
+| `/dental` → `/contact`             |          88 |            89 |       96 |         98 |       +1 |
+| `/dashboard` → `/guides`           |          65 |            64 |       74 |         77 |       −1 |
+| `/dashboard` → `/account/security` |          66 |            64 |       67 |         66 |       −2 |
+
+No systematic regression. Bundle: overlay CSS 1,634 / 561 gzip; overlay JS chunk 13,326 / 4,177 gzip. No new dependency.
