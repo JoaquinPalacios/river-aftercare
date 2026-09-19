@@ -528,7 +528,7 @@ test.describe("marketing homepage", () => {
     ).toBeVisible();
     await expect(
       page.getByRole("heading", {
-        name: "One platform, many clinic identities",
+        name: "Your clinic stays visible after the appointment.",
       })
     ).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute(

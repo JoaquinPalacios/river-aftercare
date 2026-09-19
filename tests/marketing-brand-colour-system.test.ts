@@ -142,8 +142,10 @@ describe("marketing brand colour hierarchy", () => {
     expect(styles).not.toContain("/physiotherapy");
   });
 
-  it("keeps brand-flexibility cards as sample clinic identities, not River verticals", () => {
+  it("keeps brand-flexibility swatches as sample clinic identities, not River verticals", () => {
     expect(styles).toContain("SAMPLE CLINIC IDENTITIES");
+    expect(styles).toContain(".brandIdentity");
+    expect(styles).toContain(".brandSwatch");
     expect(styles).toContain(".brandTeal");
     expect(styles).toContain("background: #14635f");
     expect(styles).toContain(".brandNavy");
@@ -153,6 +155,9 @@ describe("marketing brand colour hierarchy", () => {
     expect(styles).not.toMatch(/\.brandTeal\s*\{[^}]*--mk-brand/);
     expect(styles).not.toMatch(/\.brandNavy\s*\{[^}]*--mk-cobalt/);
     expect(styles).not.toMatch(/\.brandWarm\s*\{[^}]*--mk-sky/);
+    expect(styles).not.toMatch(
+      /\.brandGrid\s*\{[^}]*repeat\(3,\s*minmax\(0,\s*1fr\)\)/
+    );
     expect(contrastRatio("#f4fbfa", "#14635f")).toBeGreaterThanOrEqual(
       TEXT_CONTRAST_RATIO
     );

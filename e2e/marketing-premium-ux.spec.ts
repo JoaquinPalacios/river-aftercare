@@ -630,13 +630,25 @@ test.describe("premium marketing UX", () => {
     });
     await page.locator('label[for="mk-phone-today"]').click();
     await page
-      .getByRole("heading", { name: "One platform, many clinic identities" })
+      .getByRole("heading", {
+        name: "Your clinic stays visible after the appointment.",
+      })
       .scrollIntoViewIfNeeded();
     await page
-      .getByRole("heading", { name: "One platform, many clinic identities" })
+      .getByRole("heading", {
+        name: "Your clinic stays visible after the appointment.",
+      })
       .locator("xpath=ancestor::section[1]")
       .screenshot({
         path: "test-results/artifacts/home-brand-flexibility-light.png",
+      });
+    await page
+      .getByRole("heading", {
+        name: "Your clinic stays visible after the appointment.",
+      })
+      .locator("xpath=ancestor::section[1]")
+      .screenshot({
+        path: "test-results/artifacts/home-brand-flexibility-light-1440.png",
       });
     await page
       .getByRole("navigation", { name: "Marketing" })
@@ -665,10 +677,20 @@ test.describe("premium marketing UX", () => {
       path: "test-results/artifacts/homepage-phone-mockup-dark-detail.png",
     });
     await page
-      .getByRole("heading", { name: "One platform, many clinic identities" })
+      .getByRole("heading", {
+        name: "Your clinic stays visible after the appointment.",
+      })
       .locator("xpath=ancestor::section[1]")
       .screenshot({
         path: "test-results/artifacts/home-brand-flexibility-dark.png",
+      });
+    await page
+      .getByRole("heading", {
+        name: "Your clinic stays visible after the appointment.",
+      })
+      .locator("xpath=ancestor::section[1]")
+      .screenshot({
+        path: "test-results/artifacts/home-brand-flexibility-dark-1440.png",
       });
     await page
       .getByRole("navigation", { name: "Marketing" })
@@ -691,6 +713,12 @@ test.describe("premium marketing UX", () => {
     await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/homepage-phone-light-390.png",
     });
+    await page
+      .locator('[aria-labelledby="brand-heading"]')
+      .scrollIntoViewIfNeeded();
+    await page.locator('[aria-labelledby="brand-heading"]').screenshot({
+      path: "test-results/artifacts/home-brand-flexibility-light-390.png",
+    });
     await page.getByRole("button", { name: "Site menu" }).click();
     await page
       .locator("[class*='navMenuPanel']")
@@ -706,6 +734,12 @@ test.describe("premium marketing UX", () => {
     });
     await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/homepage-phone-dark-390.png",
+    });
+    await page
+      .locator('[aria-labelledby="brand-heading"]')
+      .scrollIntoViewIfNeeded();
+    await page.locator('[aria-labelledby="brand-heading"]').screenshot({
+      path: "test-results/artifacts/home-brand-flexibility-dark-390.png",
     });
     await page.getByRole("button", { name: "Site menu" }).click();
     await page
@@ -1083,6 +1117,87 @@ test.describe("premium marketing UX", () => {
         await page.setViewportSize(viewport);
         await expectNoHorizontalOverflow(page);
       }
+    }
+  });
+
+  test("captures homepage workflow, preview, and brand-flexibility sequence", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+
+    async function captureNarrative(scheme: "light" | "dark") {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(marketingUrl("/"), { waitUntil: "load" });
+      await showMarketingScheme(page, scheme);
+      await waitForPhoneFrame(page);
+
+      const workflows = page.locator(
+        '[aria-labelledby="clinic-types-heading"]'
+      );
+      const preview = page.locator('[aria-labelledby="preview-heading"]');
+      const brand = page.locator('[aria-labelledby="brand-heading"]');
+
+      await workflows.scrollIntoViewIfNeeded();
+      await workflows.screenshot({
+        path: `test-results/artifacts/home-workflows-${scheme}-1440.png`,
+      });
+      await preview.scrollIntoViewIfNeeded();
+      await preview.screenshot({
+        path: `test-results/artifacts/home-preview-${scheme}-1440.png`,
+      });
+      await brand.scrollIntoViewIfNeeded();
+      await brand.screenshot({
+        path: `test-results/artifacts/home-brand-flexibility-${scheme}-1440.png`,
+      });
+
+      await page.setViewportSize({ width: 1440, height: 3600 });
+      await workflows.scrollIntoViewIfNeeded();
+      const clip = await page.evaluate(() => {
+        const types = document.querySelector(
+          '[aria-labelledby="clinic-types-heading"]'
+        );
+        const brandSection = document.querySelector(
+          '[aria-labelledby="brand-heading"]'
+        );
+        if (
+          !(types instanceof HTMLElement) ||
+          !(brandSection instanceof HTMLElement)
+        ) {
+          return null;
+        }
+        const top = types.getBoundingClientRect().top;
+        const bottom = brandSection.getBoundingClientRect().bottom;
+        return {
+          x: 0,
+          y: Math.max(0, Math.floor(top)),
+          width: Math.floor(window.innerWidth),
+          height: Math.max(1, Math.ceil(bottom - Math.max(0, top))),
+        };
+      });
+      expect(clip).not.toBeNull();
+      await page.screenshot({
+        clip: clip!,
+        path: `test-results/artifacts/home-sequence-${scheme}-1440.png`,
+      });
+      await expectNoHorizontalOverflow(page);
+    }
+
+    await captureNarrative("light");
+    await captureNarrative("dark");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(marketingUrl("/"), { waitUntil: "load" });
+    await showMarketingScheme(page, "light");
+    await page
+      .locator('[aria-labelledby="brand-heading"]')
+      .scrollIntoViewIfNeeded();
+    await expectNoHorizontalOverflow(page);
+    for (const width of [1728, 1440, 1024, 768, 430, 390] as const) {
+      await page.setViewportSize({
+        width,
+        height: width >= 1024 ? 900 : 844,
+      });
+      await expectNoHorizontalOverflow(page);
     }
   });
 });

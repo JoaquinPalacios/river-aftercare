@@ -1560,7 +1560,7 @@ test.describe("Phase 1F.11 story clarity", () => {
     });
   });
 
-  test("brand flexibility uses major-section type and equal desktop cards", async ({
+  test("brand flexibility uses an editorial identity panel, not profession cards", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -1569,51 +1569,64 @@ test.describe("Phase 1F.11 story clarity", () => {
     await waitForHeroReveal(page);
 
     const section = page.locator('[aria-labelledby="brand-heading"]');
+    const preview = page.locator('[aria-labelledby="preview-heading"]');
+    const workflows = page.locator('[aria-labelledby="clinic-types-heading"]');
     await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
     await waitForSectionReveal(section);
-    await expect
-      .poll(async () =>
-        section.evaluate((element) => {
-          const cards = [
-            ...element.querySelectorAll<HTMLElement>("[data-mk-card]"),
-          ];
-          if (cards.length === 0) {
-            return false;
-          }
-          return cards.every((card) => {
-            const styles = getComputedStyle(card);
-            const transform = styles.transform;
-            const translateY =
-              transform === "none"
-                ? 0
-                : Number(transform.split(", ").at(5)?.replace(")", "") ?? 0);
-            return styles.opacity === "1" && Math.abs(translateY) < 0.75;
-          });
-        })
-      )
-      .toBe(true);
     await expect(section.getByText("Brand flexibility")).toBeVisible();
+    await expect(
+      section.getByRole("heading", {
+        name: "Your clinic stays visible after the appointment.",
+      })
+    ).toBeVisible();
     await expect(
       section.getByRole("heading", {
         name: "One platform, many clinic identities",
       })
-    ).toBeVisible();
+    ).toHaveCount(0);
     await expect(
       section.getByText("marketing brand stays separate", { exact: false })
     ).toHaveCount(0);
-    await expect(section.getByText("Cosmetic clinic")).toBeVisible();
+    await expect(section.getByText("Cosmetic clinic")).toHaveCount(0);
+    await expect(
+      section.getByText("Dental practice", { exact: true })
+    ).toHaveCount(0);
+    await expect(
+      section.getByText("Physiotherapy clinic", { exact: true })
+    ).toHaveCount(0);
     await expect(section.getByText("Family dental")).toHaveCount(0);
     await expect(section.getByText("Family practice")).toHaveCount(0);
+    await expect(
+      section.getByRole("heading", { name: "Your name" })
+    ).toBeVisible();
+    await expect(
+      section.getByRole("heading", { name: "Your colours" })
+    ).toBeVisible();
+    await expect(
+      section.getByRole("heading", { name: "Your terminology" })
+    ).toBeVisible();
+    await expect(section.getByText("Sample clinic identities")).toBeVisible();
+    await expect(
+      workflows.getByRole("link", { name: /Dental practices/ })
+    ).toBeVisible();
 
     const desktop = await section.evaluate((root) => {
       const heading = root.querySelector("#brand-heading");
       const whyHeading = document.querySelector("#why-heading");
       const previewHeading = document.querySelector("#preview-heading");
-      const cards = [...root.querySelectorAll("article")];
+      const copy = root.querySelector('[class*="brandCopy"]');
+      const panel = root.querySelector("[data-mk-brand-identity]");
+      const rows = [...root.querySelectorAll("article")];
+      const swatches = [
+        ...root.querySelectorAll<HTMLElement>('[class*="brandSwatch"]'),
+      ];
       if (
         !(heading instanceof HTMLElement) ||
         !(whyHeading instanceof HTMLElement) ||
-        cards.length !== 3
+        !(copy instanceof HTMLElement) ||
+        !(panel instanceof HTMLElement) ||
+        rows.length !== 3 ||
+        swatches.length !== 3
       ) {
         return null;
       }
@@ -1622,19 +1635,12 @@ test.describe("Phase 1F.11 story clarity", () => {
       const previewSize = previewHeading
         ? Number.parseFloat(getComputedStyle(previewHeading).fontSize)
         : headingSize;
-      const heights = cards.map((card) =>
-        Math.round(card.getBoundingClientRect().height)
+      const copyBox = copy.getBoundingClientRect();
+      const panelBox = panel.getBoundingClientRect();
+      const rowTops = rows.map((row) =>
+        Math.round(row.getBoundingClientRect().top)
       );
-      const titleTops = cards.map((card) => {
-        const title = card.querySelector("h3");
-        return title ? Math.round(title.getBoundingClientRect().top) : 0;
-      });
-      const copyTops = cards.map((card) => {
-        const copy = card.querySelector("p");
-        return copy ? Math.round(copy.getBoundingClientRect().top) : 0;
-      });
-      const radii = cards.map((card) => getComputedStyle(card).borderRadius);
-      const boxShadows = cards.map((card) => getComputedStyle(card).boxShadow);
+      const panelStyles = getComputedStyle(panel);
       return {
         headingSize,
         whySize,
@@ -1642,18 +1648,16 @@ test.describe("Phase 1F.11 story clarity", () => {
         paddingTop: Math.round(
           Number.parseFloat(getComputedStyle(root).paddingTop)
         ),
-        heightSpread: Math.max(...heights) - Math.min(...heights),
-        titleSpread: Math.max(...titleTops) - Math.min(...titleTops),
-        copySpread: Math.max(...copyTops) - Math.min(...copyTops),
-        radius: radii[0],
-        sameRadius: radii.every((radius) => radius === radii[0]),
-        hasOuterShadow: boxShadows.some(
-          (shadow) => shadow !== "none" && !shadow.includes("inset")
+        split: panelBox.left > copyBox.right - 8,
+        stackedRows: rowTops[1] > rowTops[0] && rowTops[2] > rowTops[1],
+        panelBackground: panelStyles.backgroundColor,
+        swatchBackgrounds: swatches.map(
+          (swatch) => getComputedStyle(swatch).backgroundColor
         ),
-        contrast: cards.map((card) => {
-          const styles = getComputedStyle(card);
-          return { color: styles.color, background: styles.backgroundColor };
-        }),
+        contrast: {
+          color: panelStyles.color,
+          background: panelStyles.backgroundColor,
+        },
       };
     });
 
@@ -1662,21 +1666,45 @@ test.describe("Phase 1F.11 story clarity", () => {
     expect(Math.abs(desktop!.headingSize - desktop!.previewSize)).toBeLessThan(
       1
     );
-    expect(desktop!.heightSpread).toBeLessThanOrEqual(2);
-    expect(desktop!.titleSpread).toBeLessThanOrEqual(2);
-    expect(desktop!.copySpread).toBeLessThanOrEqual(2);
-    expect(desktop!.sameRadius).toBe(true);
-    expect(Number.parseFloat(desktop!.radius)).toBeGreaterThanOrEqual(14);
-    expect(Number.parseFloat(desktop!.radius)).toBeLessThanOrEqual(16);
-    expect(desktop!.hasOuterShadow).toBe(false);
-    expect(desktop!.paddingTop).toBeGreaterThanOrEqual(96);
-    for (const card of desktop!.contrast) {
-      expect(
-        Math.abs(
-          relativeLuminance(card.color) - relativeLuminance(card.background)
-        )
-      ).toBeGreaterThan(0.4);
-    }
+    expect(desktop!.split).toBe(true);
+    expect(desktop!.stackedRows).toBe(true);
+    expect(desktop!.paddingTop).toBe(0);
+    expect(
+      Math.abs(
+        relativeLuminance(desktop!.contrast.color) -
+          relativeLuminance(desktop!.contrast.background)
+      )
+    ).toBeGreaterThan(0.4);
+    expect(desktop!.swatchBackgrounds[0]).not.toBe(desktop!.panelBackground);
+    expect(new Set(desktop!.swatchBackgrounds).size).toBe(3);
+
+    const order = await page.evaluate(() => {
+      const types = document.getElementById("clinic-types-heading");
+      const previewHeading = document.getElementById("preview-heading");
+      const brand = document.getElementById("brand-heading");
+      if (!types || !previewHeading || !brand) {
+        return null;
+      }
+      return {
+        typesBeforePreview: Boolean(
+          types.compareDocumentPosition(previewHeading) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+        ),
+        previewBeforeBrand: Boolean(
+          previewHeading.compareDocumentPosition(brand) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+        ),
+      };
+    });
+    expect(order).toEqual({
+      typesBeforePreview: true,
+      previewBeforeBrand: true,
+    });
+
+    const previewPadding = await preview.evaluate((root) =>
+      Math.round(Number.parseFloat(getComputedStyle(root).paddingTop))
+    );
+    expect(previewPadding).toBeGreaterThanOrEqual(96);
 
     await section.screenshot({
       path: "test-results/artifacts/phase-1f14-brand-1440-light.png",
@@ -1697,17 +1725,17 @@ test.describe("Phase 1F.11 story clarity", () => {
     await expect
       .poll(async () => {
         return section.evaluate((root) => {
-          const cards = [...root.querySelectorAll("article")];
-          const heights = cards.map((card) =>
-            Math.round(card.getBoundingClientRect().height)
-          );
-          const titleTops = cards.map((card) => {
-            const title = card.querySelector("h3");
-            return title ? Math.round(title.getBoundingClientRect().top) : 0;
-          });
+          const copy = root.querySelector('[class*="brandCopy"]');
+          const panel = root.querySelector("[data-mk-brand-identity]");
+          if (
+            !(copy instanceof HTMLElement) ||
+            !(panel instanceof HTMLElement)
+          ) {
+            return false;
+          }
           return (
-            Math.max(...heights) - Math.min(...heights) <= 2 &&
-            Math.max(...titleTops) - Math.min(...titleTops) <= 2
+            panel.getBoundingClientRect().left >
+            copy.getBoundingClientRect().right - 8
           );
         });
       })
@@ -1718,18 +1746,23 @@ test.describe("Phase 1F.11 story clarity", () => {
     await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
     await waitForSectionReveal(section);
     const mobile = await section.evaluate((root) => {
-      const cards = [...root.querySelectorAll("article")];
-      if (cards.length !== 3) {
+      const copy = root.querySelector('[class*="brandCopy"]');
+      const panel = root.querySelector("[data-mk-brand-identity]");
+      const rows = [...root.querySelectorAll("article")];
+      if (
+        !(copy instanceof HTMLElement) ||
+        !(panel instanceof HTMLElement) ||
+        rows.length !== 3
+      ) {
         return null;
       }
-      const first = cards[0].getBoundingClientRect();
-      const second = cards[1].getBoundingClientRect();
-      const heights = cards.map((card) =>
-        Math.round(card.getBoundingClientRect().height)
-      );
+      const copyBox = copy.getBoundingClientRect();
+      const panelBox = panel.getBoundingClientRect();
+      const first = rows[0].getBoundingClientRect();
+      const second = rows[1].getBoundingClientRect();
       return {
-        stacked: second.top > first.bottom - 8,
-        heightSpread: Math.max(...heights) - Math.min(...heights),
+        stacked: panelBox.top > copyBox.bottom - 8,
+        rowsStacked: second.top > first.bottom - 8,
         paddingTop: Math.round(
           Number.parseFloat(getComputedStyle(root).paddingTop)
         ),
@@ -1737,13 +1770,14 @@ test.describe("Phase 1F.11 story clarity", () => {
     });
     expect(mobile).not.toBeNull();
     expect(mobile!.stacked).toBe(true);
-    expect(mobile!.paddingTop).toBe(64);
+    expect(mobile!.rowsStacked).toBe(true);
+    expect(mobile!.paddingTop).toBe(0);
     const problemPadding = await page
       .locator('[aria-labelledby="problem-heading"]')
       .evaluate((root) =>
         Math.round(Number.parseFloat(getComputedStyle(root).paddingTop))
       );
-    expect(problemPadding).toBeGreaterThanOrEqual(96);
+    expect(problemPadding).toBeGreaterThanOrEqual(56);
     await expectNoHorizontalOverflow(page);
     await section.screenshot({
       path: "test-results/artifacts/phase-1f14-brand-390-light.png",
@@ -2125,7 +2159,13 @@ test.describe("Phase 1F.11 story clarity", () => {
         .evaluate((root) =>
           Math.round(Number.parseFloat(getComputedStyle(root).paddingTop))
         );
-      expect(brandPadding).toBe(64);
+      expect(brandPadding).toBe(0);
+      const previewPadding = await page
+        .locator('[aria-labelledby="preview-heading"]')
+        .evaluate((root) =>
+          Math.round(Number.parseFloat(getComputedStyle(root).paddingTop))
+        );
+      expect(previewPadding).toBeGreaterThanOrEqual(56);
       await page.locator('[aria-labelledby="brand-heading"]').screenshot({
         path: `test-results/artifacts/phase-1f15-brand-360-${scheme}.png`,
       });

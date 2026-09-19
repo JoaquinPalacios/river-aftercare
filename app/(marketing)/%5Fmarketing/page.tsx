@@ -44,24 +44,21 @@ const FRICTION = [
   "Generic handouts can feel disconnected from the clinic that provided the care.",
 ] as const;
 
-const BRAND_CARDS = [
+const BRAND_DIMENSIONS = [
   {
-    key: "riverside",
-    className: styles.brandTeal,
-    title: "Dental practice",
-    copy: "A calm clinical presentation for post-treatment guidance.",
+    key: "name",
+    title: "Your name",
+    copy: "The clinic remains recognisable to the patient.",
   },
   {
-    key: "specialist",
-    className: styles.brandNavy,
-    title: "Physiotherapy clinic",
-    copy: "A clear, approachable presentation for recovery and home-care guidance.",
+    key: "colours",
+    title: "Your colours",
+    copy: "The patient experience can reflect the clinic's visual identity.",
   },
   {
-    key: "family",
-    className: styles.brandWarm,
-    title: "Cosmetic clinic",
-    copy: "A refined presentation for post-treatment aftercare.",
+    key: "terminology",
+    title: "Your terminology",
+    copy: "Guidance can use language appropriate to the practice.",
   },
 ] as const;
 
@@ -285,46 +282,6 @@ export default async function MarketingHomePage() {
         </div>
 
         <div className={styles.marketingShowcase} data-mk-chapter="showcase">
-          <section className={styles.band} aria-labelledby="brand-heading">
-            <div className={styles.inner}>
-              <div className={styles.headingBlock}>
-                <MarketingReveal.Group>
-                  <MarketingReveal.Item delay={0}>
-                    <p className={styles.eyebrow}>Brand flexibility</p>
-                  </MarketingReveal.Item>
-                  <MarketingReveal.Item delay={editorialRevealDelay(1)}>
-                    <h2 id="brand-heading" className={styles.sectionTitle}>
-                      One platform, many clinic identities
-                    </h2>
-                  </MarketingReveal.Item>
-                  <MarketingReveal.Item delay={editorialRevealDelay(2)}>
-                    <p className={styles.copy}>
-                      {PRODUCT_NAME} keeps the patient experience consistent
-                      while giving each clinic room to present guidance in a way
-                      that feels recognisably theirs.
-                    </p>
-                  </MarketingReveal.Item>
-                </MarketingReveal.Group>
-              </div>
-              <div className={`${styles.brandGrid} ${styles.headingFollow}`}>
-                {BRAND_CARDS.map((card, index) => (
-                  <MarketingReveal.Card
-                    key={card.key}
-                    index={index}
-                    className={styles.brandRevealSlot}
-                  >
-                    <article
-                      className={`${styles.brandCard} ${card.className}`}
-                    >
-                      <h3>{card.title}</h3>
-                      <p>{card.copy}</p>
-                    </article>
-                  </MarketingReveal.Card>
-                ))}
-              </div>
-            </div>
-          </section>
-
           <section
             id="preview"
             className={styles.band}
@@ -365,6 +322,47 @@ export default async function MarketingHomePage() {
               </div>
             </MarketingReveal.Group>
           </section>
+
+          <section className={styles.band} aria-labelledby="brand-heading">
+            <MarketingReveal.Group>
+              <div className={`${styles.inner} ${styles.brandGrid}`}>
+                <div className={styles.brandCopy}>
+                  <MarketingReveal.Item delay={0}>
+                    <p className={styles.eyebrow}>Brand flexibility</p>
+                  </MarketingReveal.Item>
+                  <MarketingReveal.Item delay={editorialRevealDelay(1)}>
+                    <h2 id="brand-heading">
+                      Your clinic stays visible after the appointment.
+                    </h2>
+                  </MarketingReveal.Item>
+                  <MarketingReveal.Item delay={editorialRevealDelay(2)}>
+                    <p className={styles.copy}>
+                      {PRODUCT_NAME} keeps the patient experience consistent
+                      while giving each clinic room to carry its own identity
+                      into the guidance patients revisit.
+                    </p>
+                  </MarketingReveal.Item>
+                </div>
+                <MarketingReveal.Item delay={editorialRevealDelay(3)} preview>
+                  <div
+                    className={styles.brandIdentity}
+                    data-mk-brand-identity=""
+                  >
+                    {BRAND_DIMENSIONS.map((dimension) => (
+                      <article
+                        key={dimension.key}
+                        className={styles.brandDimension}
+                      >
+                        <h3>{dimension.title}</h3>
+                        <p>{dimension.copy}</p>
+                        <BrandDimensionSample kind={dimension.key} />
+                      </article>
+                    ))}
+                  </div>
+                </MarketingReveal.Item>
+              </div>
+            </MarketingReveal.Group>
+          </section>
         </div>
 
         <div className={styles.marketingClosing} data-mk-chapter="closing">
@@ -400,5 +398,42 @@ export default async function MarketingHomePage() {
         </div>
       </main>
     </MarketingShell>
+  );
+}
+
+function BrandDimensionSample({
+  kind,
+}: {
+  kind: (typeof BRAND_DIMENSIONS)[number]["key"];
+}) {
+  if (kind === "name") {
+    return (
+      <div className={styles.brandSample} aria-hidden="true">
+        <span className={styles.brandName}>
+          <span className={styles.brandNameMark} />
+          Your clinic
+        </span>
+      </div>
+    );
+  }
+
+  if (kind === "colours") {
+    return (
+      <div className={styles.brandSample}>
+        <div className={styles.brandSwatches} aria-hidden="true">
+          <span className={`${styles.brandSwatch} ${styles.brandTeal}`} />
+          <span className={`${styles.brandSwatch} ${styles.brandNavy}`} />
+          <span className={`${styles.brandSwatch} ${styles.brandWarm}`} />
+        </div>
+        <p className={styles.brandSampleCaption}>Sample clinic identities</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.brandSample} aria-hidden="true">
+      <span className={styles.brandTerm}>Post-treatment instructions</span>
+      <span className={styles.brandTerm}>Recovery instructions</span>
+    </div>
   );
 }

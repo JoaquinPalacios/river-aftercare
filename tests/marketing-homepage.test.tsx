@@ -152,11 +152,35 @@ describe("marketing homepage", () => {
       "Branded patient aftercare for clinics and practices."
     );
     expect(html).toContain("See what patients actually receive");
-    expect(html).toContain("Dental practice");
-    expect(html).toContain("Physiotherapy clinic");
-    expect(html).toContain("Cosmetic clinic");
+    expect(html).toContain("Your clinic stays visible after the appointment.");
+    expect(html).toContain("carry its own identity");
+    expect(html).toContain("Your name");
+    expect(html).toContain("Your colours");
+    expect(html).toContain("Your terminology");
+    expect(html).toContain("The clinic remains recognisable to the patient.");
+    expect(html).toContain(
+      "The patient experience can reflect the clinic's visual identity."
+    );
+    expect(html).toContain(
+      "Guidance can use language appropriate to the practice."
+    );
+    expect(html).toContain("Sample clinic identities");
+    expect(html).toContain("data-mk-brand-identity");
+    expect(html).toContain("brandIdentity");
+    expect(html).not.toMatch(/>Dental practice</);
+    expect(html).not.toMatch(/>Physiotherapy clinic</);
+    expect(html).not.toMatch(/>Cosmetic clinic</);
     expect(html).not.toContain("Family dental");
-    expect(html).toContain("feels recognisably theirs");
+    expect(html).not.toContain("One platform, many clinic identities");
+    expect(html).not.toContain("feels recognisably theirs");
+    const clinicTypesAt = html.indexOf('id="clinic-types-heading"');
+    const previewAt = html.indexOf('id="preview-heading"');
+    const brandAt = html.indexOf('id="brand-heading"');
+    const closingAt = html.indexOf('id="closing-heading"');
+    expect(clinicTypesAt).toBeGreaterThan(-1);
+    expect(clinicTypesAt).toBeLessThan(previewAt);
+    expect(previewAt).toBeLessThan(brandAt);
+    expect(brandAt).toBeLessThan(closingAt);
     expect(html).not.toContain("Choose a visual tone that feels at home");
     expect(html).not.toContain("Staff sign in");
     expect((html.match(/>Sign in</g) ?? []).length).toBe(3);
