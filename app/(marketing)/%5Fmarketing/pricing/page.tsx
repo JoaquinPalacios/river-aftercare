@@ -17,6 +17,8 @@ import {
   ONBOARDING_STEPS,
   PRICING_GST_LABEL,
   PRICING_NOTES,
+  PRICING_TYPOGRAPHY_FEATURE_LABEL,
+  PRICING_TYPOGRAPHY_FOOTNOTE_ID,
   PRICING_TYPOGRAPHY_NOTE,
 } from "@/lib/marketing/plans";
 import { marketingPublicLinks } from "@/lib/marketing/public-links";
@@ -120,7 +122,23 @@ export default async function MarketingPricingPage() {
                       <p className={styles.planPosition}>{plan.position}</p>
                       <ul className={styles.planFeatures}>
                         {plan.features.map((feature) => (
-                          <li key={feature}>{feature}</li>
+                          <li key={feature}>
+                            {feature}
+                            {feature === PRICING_TYPOGRAPHY_FEATURE_LABEL ? (
+                              <a
+                                className={styles.planFootnoteRef}
+                                href={`#${PRICING_TYPOGRAPHY_FOOTNOTE_ID}`}
+                                aria-describedby={
+                                  PRICING_TYPOGRAPHY_FOOTNOTE_ID
+                                }
+                              >
+                                <sup aria-hidden="true">*</sup>
+                                <span className={styles.srOnly}>
+                                  Typography availability note
+                                </span>
+                              </a>
+                            ) : null}
+                          </li>
                         ))}
                       </ul>
                       {plan.setupNotes ? (
@@ -151,7 +169,11 @@ export default async function MarketingPricingPage() {
                   </MarketingRevealCard>
                 ))}
               </div>
-              <p className={`${styles.copy} ${styles.headingFollow}`}>
+              <p
+                id={PRICING_TYPOGRAPHY_FOOTNOTE_ID}
+                className={styles.planFootnote}
+                role="note"
+              >
                 {PRICING_TYPOGRAPHY_NOTE}
               </p>
             </div>

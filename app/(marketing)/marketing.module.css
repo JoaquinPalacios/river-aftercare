@@ -3361,8 +3361,8 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .planLocations {
-  margin: 0 0 1rem;
-  padding: 0.75rem 0.85rem;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--mk-card-line);
   border-radius: calc(var(--mk-card-radius) - 0.2rem);
   background: color-mix(in srgb, var(--mk-ink) 3.5%, var(--mk-card));
@@ -3426,6 +3426,42 @@ html[data-theme-mode="dark"] .wordmarkName {
 .planCta {
   margin-top: auto;
   width: 100%;
+}
+
+.planFootnoteRef {
+  display: inline;
+  margin-left: 0.05em;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 400;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .planFootnoteRef:hover {
+    color: var(--mk-brand);
+  }
+}
+
+.planFootnoteRef:focus-visible {
+  outline: 2px solid var(--mk-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.planFootnoteRef sup {
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+  top: -0.25em;
+}
+
+.planFootnote {
+  scroll-margin-top: calc(var(--mk-header-height) + 0.75rem);
+  margin: 0.75rem 0 0;
+  color: var(--mk-muted);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.45;
 }
 
 .contactPoint {
