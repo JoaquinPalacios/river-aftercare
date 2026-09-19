@@ -3231,6 +3231,36 @@ html[data-theme-mode="dark"] .wordmarkName {
   color: var(--mk-ink);
 }
 
+.legalCopy strong,
+.legalAddress strong {
+  color: var(--mk-ink);
+  font-weight: 650;
+}
+
+.legalInlineLink {
+  color: var(--mk-brand);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.legalInlineLink:focus-visible {
+  color: var(--mk-ink);
+}
+
+.legalAddress {
+  margin: 0 0 1.15rem;
+  max-width: 42rem;
+  font-style: normal;
+  color: var(--mk-muted);
+  font-size: 1.08rem;
+  line-height: 1.55;
+}
+
+.legalAddress p {
+  margin: 0;
+}
+
 .planGrid,
 .noteGrid,
 .contactPair {

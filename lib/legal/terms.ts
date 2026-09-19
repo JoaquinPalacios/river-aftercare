@@ -1,14 +1,15 @@
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { legalDocumentMeta, type LegalSection } from "@/lib/legal/document";
 import {
-  LEGAL_PLACEHOLDERS,
-  TERMS_DRAFT_BANNER,
-  legalDocumentMeta,
-  type LegalSection,
-} from "@/lib/legal/document";
-import { LEGAL_GOVERNING_LAW, legalOperatorIdentity } from "@/lib/legal/status";
+  LEGAL_ABN,
+  LEGAL_GOVERNING_LAW,
+  LEGAL_OPERATOR_PERSON_NAME,
+  LEGAL_PRIVACY_EMAIL,
+  LEGAL_PUBLIC_LOCATION,
+  TERMS_LAST_UPDATED_ISO,
+} from "@/lib/legal/status";
 
-const P = LEGAL_PLACEHOLDERS;
-const OPERATOR = legalOperatorIdentity(PRODUCT_NAME);
+const PRIVACY_EMAIL_MARKDOWN = `**[${LEGAL_PRIVACY_EMAIL}](mailto:${LEGAL_PRIVACY_EMAIL})**`;
 
 const SECTIONS: readonly LegalSection[] = [
   {
@@ -16,107 +17,122 @@ const SECTIONS: readonly LegalSection[] = [
     title: "1. About River Aftercare",
     blocks: [
       {
-        type: "placeholder",
-        text: `${PRODUCT_NAME} is operated by ${OPERATOR}.`,
+        type: "p",
+        text: `${PRODUCT_NAME} is operated by **${LEGAL_OPERATOR_PERSON_NAME}**, an Australian sole trader trading as **${PRODUCT_NAME}**, ABN **${LEGAL_ABN}**, based in ${LEGAL_PUBLIC_LOCATION}.`,
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} is an Australian B2B SaaS publishing platform for healthcare practices. Clinics use it to publish clinic-approved treatment, recovery, home-care and post-treatment guidance as branded web pages patients can reopen without an app or patient account.`,
+        text: `${PRODUCT_NAME} is a business-to-business software service for healthcare practices. It enables clinics to create and publish clinic-branded treatment, recovery, home-care and post-treatment guidance as web pages that can be reopened without a patient app or patient account.`,
       },
       {
         type: "p",
-        text: "The platform is designed for treatment-based practices including dental, cosmetic and aesthetic clinics, physiotherapy, chiropractic and allied health. The product is a structured publishing platform. It is not live clinical monitoring, a patient health record, a messaging product or emergency care.",
+        text: `${PRODUCT_NAME} provides publishing and content-management technology. It is not a healthcare provider, patient health record, live clinical-monitoring service, patient-messaging service or emergency-care service.`,
+      },
+    ],
+  },
+  {
+    id: "definitions",
+    title: "2. Definitions",
+    blocks: [
+      {
+        type: "p",
+        text: `In these Terms, **Authorised User** means a person authorised by a Customer to access the staff functions of the Service.`,
+      },
+      {
+        type: "p",
+        text: `**Customer** means the healthcare practice or other organisation that subscribes to or otherwise enters into an agreement to use the Service.`,
+      },
+      {
+        type: "p",
+        text: `**Customer Content** means branding, logos, clinic information, clinic-created or clinic-adapted copy, published instructions and other material supplied or created by or for the Customer through the Service.`,
+      },
+      {
+        type: "p",
+        text: `**Customer Commercial Terms** means an accepted quote, proposal, order form, written onboarding agreement or other written commercial arrangement between ${PRODUCT_NAME} and the Customer identifying matters such as the applicable service, price or subscription period.`,
+      },
+      {
+        type: "p",
+        text: `**Service** means the ${PRODUCT_NAME} software and related services, including the staff portal, clinic configuration, template functionality made available by ${PRODUCT_NAME}, and public clinic-branded aftercare pages.`,
       },
     ],
   },
   {
     id: "agreement",
-    title: "2. Agreement and authority",
+    title: "3. Agreement and authority",
     blocks: [
       {
         type: "p",
-        text: `These Terms govern ${PRODUCT_NAME}'s provision of the Service to a healthcare practice or other organisation that creates a clinic account, accepts an Order Form, accepts a quote or proposal, or otherwise subscribes to the Service (“Customer”).`,
+        text: `These Terms form part of the agreement between ${PRODUCT_NAME} and each Customer.`,
       },
       {
         type: "p",
-        text: "The person accepting these Terms for a Customer represents that they have authority to bind that Customer.",
+        text: `A Customer accepts these Terms by accepting Customer Commercial Terms that incorporate or refer to them, expressly accepting them during onboarding or account creation, or otherwise expressly agreeing to subscribe to the Service on these Terms.`,
       },
       {
         type: "p",
-        text: "People who view clinic-published public aftercare pages are not Customers merely because they view a guide.",
+        text: "A person accepting these Terms on behalf of a Customer represents that they have authority to bind that Customer.",
       },
       {
         type: "p",
-        text: "If you do not agree to these Terms, you must not create an account or subscribe to the Service.",
+        text: "If there is an inconsistency between these Terms and Customer Commercial Terms, the Customer Commercial Terms prevail to the extent of that inconsistency.",
       },
     ],
   },
   {
     id: "customers",
-    title: "3. Customers and authorised users",
+    title: "4. Customers and Authorised Users",
     blocks: [
       {
         type: "p",
-        text: `${PRODUCT_NAME} is offered to healthcare practices and their authorised personnel. It is a business customer product. It is not a consumer health app and does not provide child or patient accounts.`,
+        text: `${PRODUCT_NAME} is offered to healthcare practices and their authorised personnel. It is a business product and does not provide patient accounts.`,
       },
       {
         type: "p",
-        text: "“Authorised Users” are people the Customer permits to manage aftercare content, clinic settings or related staff functions. The Customer is responsible for its Authorised Users and for activity under its accounts.",
+        text: "The Customer is responsible for determining which people may act as Authorised Users and for removing access when it is no longer appropriate.",
       },
-    ],
-  },
-  {
-    id: "accounts",
-    title: "4. Accounts and security",
-    blocks: [
       {
         type: "p",
-        text: "Staff accounts are issued for clinic personnel. The Customer must keep credentials confidential, ensure only authorised people have access, and tell us promptly if it believes an account has been compromised.",
+        text: "Authorised Users must use their own credentials and must not share passwords or other authentication credentials.",
       },
       {
-        type: "ul",
-        items: [
-          "Do not share login credentials.",
-          "Use accounts only for the Customer’s authorised business purposes.",
-          "Keep clinic identity, contact details and emergency instructions reasonably accurate.",
-        ],
+        type: "p",
+        text: `The Customer must promptly tell ${PRODUCT_NAME} if it reasonably believes an account or credential has been compromised.`,
       },
     ],
   },
   {
     id: "service",
-    title: "5. River Aftercare service",
+    title: "5. The Service",
     blocks: [
       {
         type: "p",
-        text: `The “Service” is the ${PRODUCT_NAME} publishing and content-management technology, including the staff portal, clinic configuration, aftercare templates where made available, and the public clinic-branded pages the Customer publishes.`,
+        text: `${PRODUCT_NAME} provides technology through which Customers can manage clinic configuration and publish clinic-branded aftercare information.`,
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} does not currently provide self-service checkout. Commercial details for a Customer may be set in an Order Form, an accepted quote or proposal, an invoice accepted as part of onboarding, or another written agreement (together, “Customer Commercial Terms”).`,
+        text: `Unless Customer Commercial Terms expressly provide otherwise, ${PRODUCT_NAME} does not provide a numerical uptime service level, managed clinical review, patient monitoring or patient-specific healthcare advice.`,
       },
       {
         type: "p",
-        text: "If there is a conflict between Customer Commercial Terms and these public Terms, the Customer Commercial Terms prevail to the extent of the inconsistency.",
+        text: `${PRODUCT_NAME} may release improvements, fixes and reasonable changes to the Service as it develops.`,
       },
     ],
   },
   {
     id: "clinic-responsibilities",
-    title: "6. Customer and clinic responsibilities",
+    title: "6. Customer responsibilities",
     blocks: [
       {
         type: "p",
-        text: "The Customer remains responsible for the aftercare information it publishes, including any edits, local instructions and clinic additions. Publishing a guide is a clinic decision.",
+        text: "The Customer remains responsible for the Customer Content it creates, approves and publishes.",
       },
       {
-        type: "ul",
-        items: [
-          "Have appropriately qualified people review and approve clinical instructions before publication.",
-          "Keep clinic identity, contact details and emergency instructions accurate.",
-          "Unpublish or update content that is no longer appropriate.",
-          `Do not use ${PRODUCT_NAME} to submit identifiable patient health records or personalised patient information through the current product.`,
-        ],
+        type: "p",
+        text: "The Customer must ensure that appropriately qualified personnel review clinical instructions before publication; keep clinic identity, contact information and emergency information reasonably accurate; promptly update or unpublish information that is no longer appropriate; ensure it has the rights required to use any content or branding it provides; and use the Service in accordance with applicable law and these Terms.",
+      },
+      {
+        type: "p",
+        text: "Publishing or continuing to publish a guide is a decision of the Customer.",
       },
     ],
   },
@@ -126,181 +142,287 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: `${PRODUCT_NAME} provides publishing and content-management technology. It is not a healthcare provider. It does not practise medicine, dentistry, physiotherapy, chiropractic or other healthcare. It does not create a practitioner–patient relationship, and it does not diagnose, prescribe, triage or make patient-specific clinical decisions.`,
+        text: `${PRODUCT_NAME} is not a healthcare provider and does not practise medicine, dentistry, physiotherapy, chiropractic or another regulated health profession.`,
       },
       {
         type: "p",
-        text: "Platform templates are general starting points only. Clinics must determine whether published guidance is appropriate for their practice, procedures and patients. Nothing in the Service is a claim of regulatory clinical accreditation, medical-device approval or guaranteed health outcomes.",
+        text: `Use of ${PRODUCT_NAME} does not create a practitioner-patient relationship between ${PRODUCT_NAME} and a reader or patient.`,
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME} does not diagnose, prescribe, triage or make patient-specific clinical decisions.`,
+      },
+      {
+        type: "p",
+        text: `Templates, examples and demo content supplied through the Service are general starting points unless ${PRODUCT_NAME} expressly states otherwise in writing. The Customer must determine whether any material is appropriate for its practice, procedures and patients before publishing it.`,
+      },
+      {
+        type: "p",
+        text: `Nothing in the Service constitutes a representation that a guide is suitable for every patient or circumstance, that a particular clinical outcome will occur, or that ${PRODUCT_NAME} has obtained medical-device approval or clinical accreditation.`,
       },
     ],
   },
   {
     id: "patient-pages",
-    title: "8. Public patient pages",
+    title: "8. Public aftercare pages",
     blocks: [
       {
         type: "p",
-        text: "Public aftercare pages are informational web pages published by the clinic under the clinic’s brand. URLs identify a clinic and a procedure or guide, not a named patient. They do not replace emergency care, an in-person review or practitioner judgement. If a person needs urgent help, they should use the clinic’s published emergency instructions or local emergency services.",
+        text: "A clinic's public aftercare pages are informational web pages published under that clinic's brand.",
       },
       {
         type: "p",
-        text: "Generic public guides do not require a patient account. Sharing a guide URL is like sharing a practice webpage.",
+        text: "Public guide URLs identify a clinic and procedure or guide. The Service is not designed to use those URLs to identify a named patient.",
+      },
+      {
+        type: "p",
+        text: "Generic public guides do not require a patient account.",
+      },
+      {
+        type: "p",
+        text: "A public guide does not replace practitioner judgement, an appropriate clinical review or emergency care. The Customer is responsible for providing appropriate clinic contact and emergency information for its published guides.",
+      },
+    ],
+  },
+  {
+    id: "patient-health",
+    title: "9. Patient and health information",
+    blocks: [
+      {
+        type: "p",
+        text: "The current Service is not designed to collect or manage identifiable patient health records or personalised patient information.",
+      },
+      {
+        type: "p",
+        text: "The Customer and its Authorised Users must not enter into or transmit through the current Service patient names linked to clinical information, dates of birth, Medicare numbers, medical record numbers, diagnoses, clinical histories, treatment records, patient-specific instructions or other identifiable patient health information.",
+      },
+      {
+        type: "p",
+        text: "Free-text fields are intended for business information and generic clinic-approved aftercare content, not patient records.",
+      },
+      {
+        type: "p",
+        text: `If ${PRODUCT_NAME} becomes aware that patient information has been submitted contrary to this clause, ${PRODUCT_NAME} may restrict, remove or, where reasonably practicable and lawful, delete or de-identify that information.`,
+      },
+      {
+        type: "p",
+        text: `If ${PRODUCT_NAME} later introduces functionality specifically designed to process identifiable patient information, that functionality may be subject to additional privacy, security and contractual terms and must not be treated as available until ${PRODUCT_NAME} expressly says so.`,
       },
     ],
   },
   {
     id: "prohibited-use",
-    title: "9. Prohibited use",
+    title: "10. Prohibited use",
     blocks: [
       {
         type: "p",
-        text: "The Customer and its Authorised Users must not use the Service to:",
+        text: `The Customer and its Authorised Users must not use the Service unlawfully; infringe another person's rights; upload malware or malicious code; attempt to bypass access controls or gain unauthorised access; interfere materially with the operation or security of the Service; conduct abusive automated scraping or probing; impersonate ${PRODUCT_NAME} or another person; represent ${PRODUCT_NAME} as the treating healthcare provider or an emergency service; publish material they do not have the right to use; or use the Service as a patient health record contrary to clause 9.`,
       },
       {
-        type: "ul",
-        items: [
-          "break the law or infringe anyone’s rights;",
-          "upload malware, scrape in an abusive way, or attempt unauthorised access;",
-          `misrepresent ${PRODUCT_NAME} as the treating clinic or as emergency care;`,
-          "publish content they do not have the right to publish; or",
-          "submit identifiable patient health records or other personalised patient information that the current product is not designed to support.",
-        ],
+        type: "p",
+        text: `${PRODUCT_NAME} may take proportionate steps to prevent or stop prohibited use, including restricting affected content or access in accordance with clause 20.`,
       },
     ],
   },
   {
     id: "ip",
-    title: "10. Intellectual property",
+    title: "11. River Aftercare intellectual property",
     blocks: [
       {
         type: "p",
-        text: `${PRODUCT_NAME} and its licensors own or licence the platform software, ${PRODUCT_NAME} branding, generic platform documentation, and canonical ${PRODUCT_NAME} templates, subject to any third-party licences. These Terms do not transfer ownership of the platform to the Customer.`,
+        text: `${PRODUCT_NAME} and its licensors retain all rights in the ${PRODUCT_NAME} software, platform design, branding, generic documentation, system functionality and ${PRODUCT_NAME}-created templates, subject to applicable third-party licences.`,
       },
       {
         type: "p",
-        text: "The Customer owns or retains its branding, logos, customer-created copy, and customer-specific additions and configuration.",
+        text: `These Terms do not transfer ownership of the Service or ${PRODUCT_NAME} intellectual property to the Customer.`,
+      },
+      {
+        type: "p",
+        text: "The Customer receives a non-exclusive, non-transferable right to use the Service for its authorised internal business purposes during its subscription.",
       },
     ],
   },
   {
     id: "customer-licence",
-    title: "11. Customer content and branding licence",
+    title: "12. Customer Content and branding",
     blocks: [
       {
         type: "p",
-        text: `The Customer grants ${PRODUCT_NAME} a limited licence to host, process, display, transmit and reproduce Customer content and branding solely as reasonably necessary to provide the Service, including patient pages on the clinic’s tenant hostname.`,
+        text: "The Customer retains its rights in its own branding, logos, clinic-created material, clinic-specific additions and Customer Content.",
       },
       {
         type: "p",
-        text: "That licence ends when it is no longer reasonably needed following termination, subject to backups and any legal retention described in these Terms or the Privacy Policy. The Customer represents that it has the rights needed to use that branding and content.",
+        text: `The Customer grants ${PRODUCT_NAME} a non-exclusive licence to host, store, process, reproduce, transmit and display Customer Content only to the extent reasonably necessary to provide, secure and support the Service.`,
+      },
+      {
+        type: "p",
+        text: "That licence ends when it is no longer reasonably required following termination, subject to limited backup retention, legal obligations and other retention described in the Privacy Policy or these Terms.",
+      },
+      {
+        type: "p",
+        text: `The Customer represents that it has the rights and permissions reasonably required for ${PRODUCT_NAME} to use Customer Content in this way.`,
       },
     ],
   },
   {
     id: "platform-templates",
-    title: "12. River Aftercare templates and content",
+    title: "13. River Aftercare templates",
     blocks: [
       {
         type: "p",
-        text: `${PRODUCT_NAME} may provide canonical templates, such as a Tooth Extraction starting guide. The current Tooth Extraction library entry used by the interactive demo is sample content, not clinically reviewed. Clinics may adapt templates. Additional procedure templates may be enabled during onboarding when they exist.`,
+        text: `${PRODUCT_NAME} may make template or sample aftercare content available as part of the Service.`,
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} does not claim ownership of the Customer’s adaptations more broadly than needed to operate the Service. Templates remain starting points. The clinic remains responsible for published clinical instructions.`,
+        text: "Unless expressly stated otherwise in writing, templates and demo content are provided as starting material rather than patient-specific clinical advice.",
+      },
+      {
+        type: "p",
+        text: "The Customer may adapt available templates for its practice. The Customer remains responsible for reviewing and approving the final version that it publishes.",
+      },
+      {
+        type: "p",
+        text: `Customer-specific adaptations remain Customer Content. ${PRODUCT_NAME} retains its rights in the underlying ${PRODUCT_NAME} template from which an adaptation was made.`,
+      },
+    ],
+  },
+  {
+    id: "confidentiality",
+    title: "14. Confidentiality",
+    blocks: [
+      {
+        type: "p",
+        text: "Each party may receive non-public information relating to the other party's business, technology, security, customers, commercial arrangements or operations.",
+      },
+      {
+        type: "p",
+        text: "A receiving party must use the other party's confidential information only as reasonably necessary for the relationship under these Terms and must take reasonable measures to protect it from unauthorised use or disclosure.",
+      },
+      {
+        type: "p",
+        text: "Information is not confidential to the extent it is already lawfully known without a duty of confidence, becomes public other than through a breach of these Terms, is independently developed without use of the confidential information, or is lawfully received from another person without a confidentiality obligation.",
+      },
+      {
+        type: "p",
+        text: "A party may disclose confidential information where required by law, provided it gives reasonable notice to the other party where lawful and practicable.",
+      },
+      {
+        type: "p",
+        text: `Customer Content intentionally published as a public clinic guide is not confidential merely because it was created through ${PRODUCT_NAME}.`,
       },
     ],
   },
   {
     id: "privacy-data",
-    title: "13. Privacy and data",
+    title: "15. Privacy and data",
     blocks: [
       {
         type: "p",
-        text: `How ${PRODUCT_NAME} handles personal information is described in the Privacy Policy. In summary, marketing visitors, clinic enquiries and clinic staff accounts are in scope. Generic public patient guides are not designed to collect patient personal information.`,
+        text: `${PRODUCT_NAME}'s handling of personal information is described in the ${PRODUCT_NAME} Privacy Policy.`,
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} is not currently designed for users to enter identifiable patient health records or personalised patient information. Clinics must not submit patient names attached to clinical data, dates of birth, Medicare numbers, medical record numbers, diagnoses, clinical histories, treatment records or other identifiable patient health information unless ${PRODUCT_NAME} later introduces functionality designed for that purpose and updates its privacy, security and contractual arrangements.`,
+        text: "The Customer is responsible for ensuring that its own use of the Service complies with privacy, health-record and professional obligations applicable to that Customer.",
       },
       {
         type: "p",
-        text: "Some fields are free text. They are intended for business contact details and generic aftercare instructions, not for patient records.",
+        text: `The Privacy Policy forms part of ${PRODUCT_NAME}'s information-handling arrangements but does not expand the Service into a patient health-record system.`,
       },
     ],
   },
   {
     id: "third-parties",
-    title: "14. Third-party services",
+    title: "16. Third-party services",
     blocks: [
       {
         type: "p",
-        text: "The Service may depend on infrastructure and communications providers, including application hosting, database hosting, object or file storage, DNS and network services, email delivery, and monitoring or security services. The Privacy Policy describes these categories. Named production providers will be identified there once arrangements are finalised.",
+        text: `${PRODUCT_NAME} relies on third-party infrastructure and communications providers to operate the Service, including hosting, database, storage, security, network and email providers.`,
+      },
+      {
+        type: "p",
+        text: `The availability and performance of parts of the Service can therefore depend on systems outside ${PRODUCT_NAME}'s direct control.`,
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME} selects and manages providers using reasonable care but does not control every act, omission or outage of an independent third-party provider.`,
+      },
+      {
+        type: "p",
+        text: "The Privacy Policy provides further information about providers involved in the handling of personal information.",
       },
     ],
   },
   {
     id: "availability",
-    title: "15. Availability and maintenance",
+    title: "17. Availability, maintenance and security",
     blocks: [
       {
         type: "p",
-        text: `We will use reasonable efforts to operate the Service. Maintenance and updates may occur. We do not guarantee uninterrupted or error-free operation, and we do not currently offer a numerical uptime service level. We may suspend access where needed to address urgent security or legal risk.`,
+        text: `${PRODUCT_NAME} will use reasonable care and skill in providing the Service.`,
+      },
+      {
+        type: "p",
+        text: "Maintenance, security work, software changes and infrastructure incidents may occasionally interrupt or affect availability.",
+      },
+      {
+        type: "p",
+        text: `Unless Customer Commercial Terms expressly provide otherwise, ${PRODUCT_NAME} does not guarantee uninterrupted or error-free operation or a particular numerical uptime level.`,
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME} may perform emergency work or temporarily restrict functionality where reasonably necessary to address a material security, legal or operational risk.`,
+      },
+      {
+        type: "p",
+        text: "Each party is responsible for taking reasonable security measures within its own control. The Customer is responsible for its users, devices, credentials and the accuracy and legality of material it publishes.",
       },
     ],
   },
   {
     id: "fees",
-    title: "16. Fees, invoices and GST",
+    title: "18. Fees, invoices and GST",
     blocks: [
       {
         type: "p",
-        text: "Fees are in Australian dollars. GST will be charged where applicable.",
+        text: "Fees are stated in Australian dollars unless Customer Commercial Terms say otherwise. GST will be charged where applicable.",
       },
       {
         type: "p",
-        text: "Unless Customer Commercial Terms say otherwise, the Service is a monthly subscription billed monthly in advance. The Customer is invoiced before or at the beginning of each subscription period. Payment is due 14 calendar days from the invoice date.",
+        text: `Unless Customer Commercial Terms provide otherwise, ${PRODUCT_NAME} subscriptions are billed monthly in advance and payment is due **14 calendar days** after the invoice date.`,
       },
       {
         type: "p",
-        text: "The initial payment method is bank transfer or other manual invoice payment. Additional payment methods may be offered later.",
+        text: `${PRODUCT_NAME} currently accepts bank transfer or other manual invoice-payment methods notified to the Customer. Additional payment methods may be introduced later.`,
       },
       {
         type: "p",
-        text: "The fees payable by a Customer are those set out in the applicable Customer Commercial Terms.",
+        text: "The amount payable is the amount set out in the applicable Customer Commercial Terms.",
+      },
+      {
+        type: "p",
+        text: "The Customer remains responsible for undisputed fees incurred before the effective end of its subscription.",
       },
     ],
   },
   {
     id: "term",
-    title: "17. Subscription term and renewal",
+    title: "19. Subscription term, renewal and cancellation",
     blocks: [
       {
         type: "p",
-        text: "Unless Customer Commercial Terms say otherwise, the subscription is month-to-month and renews monthly until cancelled in accordance with these Terms.",
-      },
-    ],
-  },
-  {
-    id: "pilots",
-    title: "18. Pilots and evaluations",
-    blocks: [
-      {
-        type: "p",
-        text: `${PRODUCT_NAME} does not offer a universal free trial. We may offer an assisted pilot, design-partner arrangement, evaluation period or other trial only where agreed in writing. If no such arrangement is agreed, normal fees apply.`,
-      },
-    ],
-  },
-  {
-    id: "cancellation",
-    title: "19. Cancellation",
-    blocks: [
-      {
-        type: "p",
-        text: "The Customer may cancel at any time. Cancellation takes effect at the end of the current paid billing period. There is no cancellation fee.",
+        text: "Unless Customer Commercial Terms provide otherwise, subscriptions operate month-to-month and renew for successive monthly periods.",
       },
       {
         type: "p",
-        text: "There is no pro-rata refund for voluntary cancellation of an already-paid period, except where required by law or explicitly agreed in Customer Commercial Terms.",
+        text: `The Customer may cancel at any time by giving notice through a method ${PRODUCT_NAME} makes available for cancellation.`,
+      },
+      {
+        type: "p",
+        text: "Cancellation normally takes effect at the end of the current paid subscription period. There is no cancellation fee.",
+      },
+      {
+        type: "p",
+        text: "Amounts already paid for a voluntary cancellation are not refunded on a pro-rata basis, except where required by law or expressly agreed otherwise.",
       },
     ],
   },
@@ -310,25 +432,45 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: `${PRODUCT_NAME} may send reminders once an invoice becomes overdue. If an invoice remains unpaid 14 days after its due date, ${PRODUCT_NAME} may suspend the clinic’s staff access and/or public pages after reasonable notice. Suspension is not automatic.`,
+        text: `${PRODUCT_NAME} may suspend affected access or public pages where reasonably necessary because of a material security risk, unlawful use, a material breach of these Terms or a materially overdue account.`,
       },
       {
         type: "p",
-        text: "Access can be restored once overdue amounts are paid and there is no other reason for suspension.",
+        text: `For overdue invoices, ${PRODUCT_NAME} may send payment reminders after the due date. If an invoice remains unpaid for at least 14 days after its due date, ${PRODUCT_NAME} may suspend affected staff access or public pages after reasonable notice.`,
       },
       {
         type: "p",
-        text: `We may also suspend accounts or published pages to address security issues, legal risk, or material breach. We will aim to notify the clinic when it is reasonable and lawful to do so.`,
+        text: "Suspension for non-payment is not automatic.",
+      },
+      {
+        type: "p",
+        text: `Where practicable, ${PRODUCT_NAME} will limit a suspension to the functionality or account reasonably affected by the relevant issue and will notify the Customer before suspension. Prior notice may not be practicable where immediate action is reasonably necessary to address security, illegality or material harm.`,
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME} will restore access within a reasonable period after the reason for suspension has been resolved, provided there is no separate lawful basis for continuing the suspension.`,
       },
     ],
   },
   {
-    id: "termination-breach",
-    title: "21. Termination for breach",
+    id: "termination",
+    title: "21. Termination",
     blocks: [
       {
         type: "p",
-        text: "Either party may terminate the Service if the other party materially breaches these Terms and does not remedy the breach within a reasonable time after notice, or immediately if the breach is not reasonably remediable. We may also terminate for unlawful use or risk to the Service or other customers.",
+        text: "Either party may terminate the agreement if the other party materially breaches it and, where the breach is capable of remedy, does not remedy the breach within 14 days after written notice describing the breach.",
+      },
+      {
+        type: "p",
+        text: "A party may terminate immediately where a material breach is not reasonably capable of remedy, or where continued performance would require unlawful conduct.",
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME} may also terminate an ongoing month-to-month subscription for convenience by giving at least 30 days' written notice. If ${PRODUCT_NAME} terminates for convenience before the end of a period for which the Customer has prepaid, ${PRODUCT_NAME} will refund the portion of the prepaid subscription attributable to the period after termination.`,
+      },
+      {
+        type: "p",
+        text: "Termination does not affect rights and liabilities accrued before termination.",
       },
     ],
   },
@@ -338,122 +480,191 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "When a subscription ends, public clinic pages may be unpublished.",
+        text: `When a subscription ends, ${PRODUCT_NAME} may unpublish the Customer's public clinic pages and disable staff access.`,
       },
       {
         type: "p",
-        text: `During a 30-day exit period, the Customer may request a reasonable export of available clinic-owned content and configuration. After 30 days, ${PRODUCT_NAME} may delete the active clinic account and operational data where it is no longer required.`,
+        text: "For 30 days after termination, the Customer may request a reasonable export of available Customer-owned content and clinic configuration in a commonly usable form where technically practicable.",
       },
       {
         type: "p",
-        text: "Backups may retain deleted data for a limited further period before normal rotation or overwrite. Information that must be retained for legal or accounting purposes may be retained for the required period.",
-      },
-    ],
-  },
-  {
-    id: "security",
-    title: "23. Security responsibilities",
-    blocks: [
-      {
-        type: "p",
-        text: `We take reasonable technical and organisational measures designed to protect the Service. No method of transmission or storage is completely secure. The Customer must protect its own accounts, devices and the accuracy of the content it publishes.`,
-      },
-    ],
-  },
-  {
-    id: "disclaimers",
-    title: "24. Disclaimers",
-    blocks: [
-      {
-        type: "p",
-        text: `To the extent permitted by law, the Service is provided on an “as is” and “as available” basis. We do not warrant that published aftercare content is clinically complete or suitable for every patient, or that the Service will be free of defects or meet every operational requirement.`,
+        text: `The export obligation does not require ${PRODUCT_NAME} to provide its proprietary software, internal system data or ${PRODUCT_NAME}-owned templates separately from Customer Content.`,
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} does not represent that the product is HIPAA certified, certified under the Australian Privacy Act, a medical device, or clinically accredited.`,
+        text: `After that 30-day exit period, ${PRODUCT_NAME} may delete active clinic account and operational data that is no longer reasonably required.`,
       },
       {
         type: "p",
-        text: "Nothing in these Terms excludes, restricts or modifies any right, liability or remedy that cannot lawfully be excluded, restricted or limited, including rights under the Australian Consumer Law where they apply.",
-      },
-    ],
-  },
-  {
-    id: "liability",
-    title: "25. Liability",
-    blocks: [
-      {
-        type: "p",
-        text: "Subject to liability that cannot lawfully be excluded or limited, including under the Australian Consumer Law where it applies:",
-      },
-      {
-        type: "ul",
-        items: [
-          "neither party is liable for indirect or consequential loss;",
-          "neither party is liable for loss of profit, revenue, opportunity or goodwill to the extent legally permissible;",
-          `${PRODUCT_NAME} is not responsible for clinical outcomes arising from a clinic’s clinical decisions or clinic-published instructions, except to the extent ${PRODUCT_NAME} itself caused or contributed to the relevant loss through conduct for which liability cannot lawfully be excluded; and`,
-          `the aggregate direct liability of ${PRODUCT_NAME} arising from the Service is capped at the greater of (a) AUD $1,000 or (b) the fees paid or payable by the relevant Customer to ${PRODUCT_NAME} in the 12 months immediately preceding the event giving rise to the claim.`,
-        ],
-      },
-      {
-        type: "p",
-        text: "This clause does not exclude liability for fraud, or for deliberate or wilful misconduct where exclusion would be inappropriate. It does not exclude any liability that cannot legally be excluded or limited.",
-      },
-    ],
-  },
-  {
-    id: "indemnity",
-    title: "26. Indemnity",
-    blocks: [
-      {
-        type: "p",
-        text: `The Customer will indemnify ${PRODUCT_NAME} against third-party claims, to the extent those claims arise from:`,
-      },
-      {
-        type: "ul",
-        items: [
-          "clinic-supplied content or branding that infringes someone else’s rights;",
-          "clinical instructions published by the clinic contrary to the clinic’s responsibilities under these Terms; or",
-          `the clinic’s unlawful or deliberately unauthorised use of ${PRODUCT_NAME}.`,
-        ],
-      },
-      {
-        type: "p",
-        text: `The indemnity does not apply to the extent the relevant claim was caused or contributed to by ${PRODUCT_NAME}’s breach of these Terms, negligence, unlawful conduct, fraud or wilful misconduct.`,
+        text: "Deleted information may remain temporarily in provider backup or recovery systems until it expires or is overwritten through normal retention cycles. Information required for legal, accounting, security or dispute-related reasons may be retained for the relevant period.",
       },
     ],
   },
   {
     id: "changes",
-    title: "27. Changes to the service and these Terms",
+    title: "23. Changes to the Service, Terms and pricing",
     blocks: [
       {
         type: "p",
-        text: `We may update the Service and these Terms. Material changes to these Terms will be indicated by updating the “Last updated” date on this page. Where a change is material to an existing Customer, we will give reasonable notice.`,
+        text: `${PRODUCT_NAME} may improve and update the Service over time.`,
       },
       {
         type: "p",
-        text: "For a material change to recurring fees, we will give at least 30 days’ advance notice. The new price applies from the next renewal or billing period after that notice period. The Customer may cancel before the changed price takes effect.",
+        text: `${PRODUCT_NAME} will not intentionally make a material adverse reduction to core paid functionality during a current paid billing period without reasonable notice, except where a change is reasonably necessary for security, legal compliance, prevention of abuse or a third-party infrastructure change outside ${PRODUCT_NAME}'s reasonable control.`,
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME} may update these Terms. Material changes affecting an existing Customer will be notified with reasonable advance notice and will ordinarily take effect from a subsequent renewal period rather than retrospectively.`,
+      },
+      {
+        type: "p",
+        text: `Where a change must take effect sooner because of law, security or an urgent operational requirement, ${PRODUCT_NAME} may apply it sooner to the extent reasonably necessary.`,
+      },
+      {
+        type: "p",
+        text: `For a material increase to recurring subscription fees, ${PRODUCT_NAME} will give at least 30 days' advance notice. The changed price will apply from the first renewal or billing period commencing after that notice period.`,
+      },
+      {
+        type: "p",
+        text: "A Customer that does not accept a material change or price increase may cancel before the change takes effect.",
+      },
+    ],
+  },
+  {
+    id: "acl",
+    title: "24. Australian Consumer Law and non-excludable rights",
+    blocks: [
+      {
+        type: "p",
+        text: "Nothing in these Terms excludes, restricts or modifies a guarantee, right, liability or remedy that cannot lawfully be excluded, restricted or modified, including rights under the **Australian Consumer Law** where they apply.",
+      },
+      {
+        type: "p",
+        text: "A Customer may have rights under the Australian Consumer Law even where it acquires the Service for business purposes.",
+      },
+      {
+        type: "p",
+        text: `Where ${PRODUCT_NAME} supplies services to a Customer as a “consumer” under the Australian Consumer Law, and a statutory guarantee applies that may lawfully be limited under section 64A of that law, ${PRODUCT_NAME}'s liability for a failure to comply with that guarantee is, to the extent permitted and where it is fair and reasonable to do so, limited at ${PRODUCT_NAME}'s option to supplying the relevant services again or paying the reasonable cost of having those services supplied again.`,
+      },
+      {
+        type: "p",
+        text: "This clause takes priority over any inconsistent exclusion or limitation elsewhere in these Terms.",
+      },
+    ],
+  },
+  {
+    id: "disclaimers",
+    title: "25. Disclaimers",
+    blocks: [
+      {
+        type: "p",
+        text: `Subject to clause 24 and any other right or liability that cannot lawfully be excluded, ${PRODUCT_NAME} does not warrant that the Service will operate without interruption or defects, that every feature will meet every Customer workflow, or that clinic-published aftercare information will be clinically suitable for every patient or circumstance.`,
+      },
+      {
+        type: "p",
+        text: "The Service does not replace professional clinical judgement.",
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME} does not represent that the Service is a medical device, a patient health-record system, an emergency-care system, clinically accredited, or certified as compliant with a regulatory or security framework unless ${PRODUCT_NAME} expressly states that certification in writing.`,
+      },
+    ],
+  },
+  {
+    id: "liability",
+    title: "26. Liability",
+    blocks: [
+      {
+        type: "p",
+        text: "This clause is subject to clause 24.",
+      },
+      {
+        type: "p",
+        text: "To the extent permitted by law, neither party is liable to the other for indirect, special or consequential loss arising out of or in connection with the Service.",
+      },
+      {
+        type: "p",
+        text: "Loss of profit, revenue, opportunity or goodwill is excluded only to the extent that the relevant loss is indirect or consequential and the exclusion is legally permissible.",
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME} is not responsible for a clinical outcome to the extent that the outcome arises from the Customer's clinical judgement, Customer Content or clinic-published instructions. This does not exclude liability to the extent ${PRODUCT_NAME} itself caused or contributed to the relevant loss through conduct for which liability cannot lawfully be excluded or through a breach for which ${PRODUCT_NAME} remains liable under these Terms.`,
+      },
+      {
+        type: "p",
+        text: `Subject to the exclusions below, the aggregate liability of either party arising out of or in connection with the Service is capped at the greater of **AUD $1,000** or the fees paid or payable by the Customer to ${PRODUCT_NAME} in the 12 months immediately preceding the event giving rise to the claim.`,
+      },
+      {
+        type: "p",
+        text: "The liability cap does not limit the Customer's obligation to pay properly due fees, liability for fraud or deliberate or wilful misconduct, or liability that cannot lawfully be excluded or limited.",
+      },
+    ],
+  },
+  {
+    id: "indemnity",
+    title: "27. Third-party claims and indemnities",
+    blocks: [
+      {
+        type: "p",
+        text: `The Customer will indemnify ${PRODUCT_NAME} against a third-party claim to the extent the claim is caused by Customer Content or branding infringing that third party's rights, clinical instructions published by the Customer in breach of the Customer's obligations under these Terms, or the Customer's unlawful or deliberately unauthorised use of the Service.`,
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME} will indemnify the Customer against a third-party claim that the Customer's authorised use of the unmodified ${PRODUCT_NAME} Service infringes that third party's Australian intellectual-property rights, except to the extent the claim arises from Customer Content, modifications not made by ${PRODUCT_NAME}, use contrary to these Terms, or combination with material not supplied or approved by ${PRODUCT_NAME} where the claim would otherwise have been avoided.`,
+      },
+      {
+        type: "p",
+        text: "An indemnified party must notify the other party within a reasonable period after becoming aware of a claim and provide reasonable cooperation. The indemnifying party may control the defence and settlement of the claim, but must not agree to a settlement that admits wrongdoing by or imposes a non-monetary obligation on the indemnified party without that party's reasonable consent.",
+      },
+      {
+        type: "p",
+        text: "The indemnities in this clause are subject to clause 26 except to the extent applicable law does not permit the relevant liability to be limited.",
+      },
+    ],
+  },
+  {
+    id: "force-majeure",
+    title: "28. Events beyond reasonable control",
+    blocks: [
+      {
+        type: "p",
+        text: "Neither party is liable for delay or failure to perform an obligation, other than an obligation to pay money already due, to the extent the delay or failure results from circumstances beyond that party's reasonable control.",
+      },
+      {
+        type: "p",
+        text: "The affected party must take reasonable steps to minimise the effect of the event and resume performance when reasonably practicable.",
       },
     ],
   },
   {
     id: "notices",
-    title: "28. Notices and communications",
+    title: "29. Notices and communications",
     blocks: [
       {
         type: "p",
-        text: "Notices under these Terms may be given electronically, including by email to the address associated with the Customer’s account or by publishing an update on this website where that is reasonable for the type of notice.",
+        text: "Operational communications may be sent electronically to the email address associated with the Customer's account.",
+      },
+      {
+        type: "p",
+        text: "Formal notices under these Terms may be sent by email to an address nominated by the receiving party for contractual notices.",
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME}'s legal contact address is ${PRIVACY_EMAIL_MARKDOWN}.`,
+      },
+      {
+        type: "p",
+        text: "A notice sent by email is treated as received when it is capable of being retrieved by the recipient, unless the sender receives an automated notice that delivery failed.",
       },
     ],
   },
   {
     id: "governing-law",
-    title: "29. Governing law",
+    title: "30. Governing law",
     blocks: [
       {
         type: "p",
-        text: `These Terms are governed by the laws of ${LEGAL_GOVERNING_LAW}.`,
+        text: `These Terms and the agreement between ${PRODUCT_NAME} and the Customer are governed by the laws of **${LEGAL_GOVERNING_LAW}**.`,
       },
       {
         type: "p",
@@ -463,34 +674,59 @@ const SECTIONS: readonly LegalSection[] = [
   },
   {
     id: "general",
-    title: "30. General",
+    title: "31. General",
     blocks: [
       {
         type: "p",
-        text: "These Terms, together with any Customer Commercial Terms and the Privacy Policy, are the entire agreement between the parties about their subject matter. Customer Commercial Terms prevail over these public Terms to the extent of any inconsistency.",
+        text: `These Terms, the applicable Customer Commercial Terms and any expressly agreed written addendum form the agreement between ${PRODUCT_NAME} and the Customer about the Service.`,
       },
       {
-        type: "ul",
-        items: [
-          "If a provision is unenforceable, it is to be read down or severed so that the rest of the Terms continue in effect.",
-          "A delay in enforcing a right is not a waiver of that right.",
-          `The Customer must not assign these Terms without ${PRODUCT_NAME}’s reasonable consent. ${PRODUCT_NAME} may assign these Terms as part of a restructuring or sale of the business, subject to applicable law.`,
-          "Neither party is liable for failure or delay caused by events beyond its reasonable control.",
-        ],
+        type: "p",
+        text: "Customer Commercial Terms prevail over these Terms to the extent of an inconsistency.",
+      },
+      {
+        type: "p",
+        text: "If a provision is invalid or unenforceable, it is to be read down to the minimum extent necessary or, if that is not possible, severed without affecting the remaining provisions.",
+      },
+      {
+        type: "p",
+        text: "A failure or delay in exercising a contractual right does not waive that right.",
+      },
+      {
+        type: "p",
+        text: `The Customer may not assign its agreement without ${PRODUCT_NAME}'s prior reasonable consent. ${PRODUCT_NAME} may assign the agreement as part of a genuine sale, transfer or restructuring of its business, provided doing so does not materially reduce the Customer's rights under the agreement.`,
+      },
+      {
+        type: "p",
+        text: `Nothing in these Terms creates a partnership, employment relationship, fiduciary relationship or agency between ${PRODUCT_NAME} and the Customer.`,
+      },
+      {
+        type: "p",
+        text: "Clauses that by their nature are intended to survive termination, including provisions relating to confidentiality, intellectual property, payment obligations, liability, disputes and retained data, continue after termination to the extent necessary to give them effect.",
       },
     ],
   },
   {
     id: "contact",
-    title: "31. Contact",
+    title: "32. Contact",
     blocks: [
       {
         type: "p",
-        text: `Questions about these Terms can be sent through the public Contact page on this website. Please do not include patient or clinical information in an enquiry.`,
+        text: "Questions about these Terms can be sent to:",
       },
       {
-        type: "placeholder",
-        text: `Legal correspondence: ${P.privacyEmail}. ${OPERATOR}.`,
+        type: "address",
+        lines: [
+          `**${LEGAL_OPERATOR_PERSON_NAME}**`,
+          `Sole trader trading as **${PRODUCT_NAME}**`,
+          `ABN **${LEGAL_ABN}**`,
+          LEGAL_PUBLIC_LOCATION,
+          PRIVACY_EMAIL_MARKDOWN,
+        ],
+      },
+      {
+        type: "p",
+        text: "Please do not send patient records or patient clinical information in legal or general enquiries.",
       },
     ],
   },
@@ -499,7 +735,10 @@ const SECTIONS: readonly LegalSection[] = [
 export const TERMS_DOCUMENT = legalDocumentMeta({
   slug: "/terms",
   title: "Terms & Conditions",
-  intro: `${PRODUCT_NAME} is a B2B aftercare publishing platform for healthcare practices. These Terms apply to Customers who subscribe to or otherwise take up the Service. People who only view a clinic’s public aftercare page are not Customers merely because they read that page.`,
-  draftBanner: TERMS_DRAFT_BANNER,
+  intro: `These Terms govern subscriptions to the ${PRODUCT_NAME} business-to-business aftercare publishing platform.`,
+  preamble: [
+    "People who only read a clinic's public aftercare page are not Customers merely because they view that page.",
+  ],
+  lastUpdatedIso: TERMS_LAST_UPDATED_ISO,
   sections: SECTIONS,
 });

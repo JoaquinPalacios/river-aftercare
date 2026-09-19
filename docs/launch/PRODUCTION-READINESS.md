@@ -25,16 +25,16 @@ Do not provision Vercel, Cloudflare, R2, domains, or email from this document. D
 
 ## Discovery
 
-| Item               | Status                                 | Notes                                                                                                   |
-| ------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Marketing SEO      | READY                                  | DB-backed settings with code fallbacks.                                                                 |
-| JSON-LD            | READY                                  | Organization / WebSite / SoftwareApplication without Offer; ContactPage; AboutPage.                     |
-| Sitemap / robots   | READY                                  | Marketing only; staff/operator/tenant noindex preserved.                                                |
-| llms.txt           | READY                                  | `/llms.txt`. `llms-full.txt` skipped (corpus too small).                                                |
-| Agentic readiness  | READY                                  | Architecture audit in [AGENTIC-READINESS.md](AGENTIC-READINESS.md). No numeric Is Agentic score.        |
-| Privacy / Terms    | REQUIRED BEFORE PRODUCTION             | Substantial drafts published at `/privacy` and `/terms`. **Legal review still required.** Not approved. |
-| About              | READY                                  | Factual public page.                                                                                    |
-| Dedicated OG image | RECOMMENDED BEFORE FIRST PAYING CLINIC | Operator upload/replace/remove is implemented. A 1200×630 PNG/JPEG/WebP still needs to be uploaded.     |
+| Item               | Status                                 | Notes                                                                                                                                                                             |
+| ------------------ | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Marketing SEO      | READY                                  | DB-backed settings with code fallbacks.                                                                                                                                           |
+| JSON-LD            | READY                                  | Organization / WebSite / SoftwareApplication without Offer; ContactPage; AboutPage.                                                                                               |
+| Sitemap / robots   | READY                                  | Marketing only; staff/operator/tenant noindex preserved.                                                                                                                          |
+| llms.txt           | READY                                  | `/llms.txt`. `llms-full.txt` skipped (corpus too small).                                                                                                                          |
+| Agentic readiness  | READY                                  | Architecture audit in [AGENTIC-READINESS.md](AGENTIC-READINESS.md). No numeric Is Agentic score.                                                                                  |
+| Privacy / Terms    | REQUIRED BEFORE PRODUCTION             | Privacy Policy and Terms are published at `/privacy` and `/terms` without draft banners. Operator `PRIVACY_PAGE_LEGALLY_APPROVED` and `TERMS_PAGE_LEGALLY_APPROVED` remain false. |
+| About              | READY                                  | Factual public page.                                                                                                                                                              |
+| Dedicated OG image | RECOMMENDED BEFORE FIRST PAYING CLINIC | Operator upload/replace/remove is implemented. A 1200×630 PNG/JPEG/WebP still needs to be uploaded.                                                                               |
 
 ## Infra
 

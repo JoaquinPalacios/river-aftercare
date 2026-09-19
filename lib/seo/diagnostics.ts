@@ -81,7 +81,7 @@ export function buildSeoDiagnostics(input: {
       status: PRIVACY_PAGE_LEGALLY_APPROVED ? "complete" : "attention",
       detail: PRIVACY_PAGE_LEGALLY_APPROVED
         ? "Privacy page is published and legally approved."
-        : "Substantial draft is published at /privacy. Legal review is still required.",
+        : "Privacy Policy is published at /privacy without a draft banner. Operator legal-approval flag is still pending.",
     },
     {
       id: "terms",
@@ -89,7 +89,7 @@ export function buildSeoDiagnostics(input: {
       status: TERMS_PAGE_LEGALLY_APPROVED ? "complete" : "attention",
       detail: TERMS_PAGE_LEGALLY_APPROVED
         ? "Terms page is published and legally approved."
-        : "Substantial draft is published at /terms. Legal review is still required.",
+        : "Terms & Conditions are published at /terms without a draft banner. Operator legal-approval flag is still pending.",
     },
     ...MARKETING_SEO_PATHS.map((path) => {
       const page = pagesByPath.get(path);
