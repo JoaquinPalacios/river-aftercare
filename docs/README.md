@@ -18,6 +18,7 @@ This directory is the product and architecture documentation for Care Guide.
 | [architecture/TRANSACTIONAL-EMAIL.md](architecture/TRANSACTIONAL-EMAIL.md) | Shared Resend transport, Contact vs auth identities, password-reset and invitation mail, and lazy AUTH_EMAIL_* config.          |
 | [architecture/SEO.md](architecture/SEO.md)                                 | Launch indexing policy, structured SEO settings, JSON-LD, tenant noindex, and future search visibility.                         |
 | [launch/PRODUCTION-READINESS.md](launch/PRODUCTION-READINESS.md)           | Current production-readiness gate. Not a provisioning runbook.                                                                  |
+| [launch/PRODUCTION-MIGRATION.md](launch/PRODUCTION-MIGRATION.md)           | Canonical production Prisma preflight/apply/verify workflow and migrate-before-promote policy.                                  |
 | [launch/AGENTIC-READINESS.md](launch/AGENTIC-READINESS.md)                 | Architecture audit vs Is Agentic. No claimed production score.                                                                  |
 | [launch/R2-PROVISIONING.md](launch/R2-PROVISIONING.md)                     | Manual Cloudflare R2 bucket/token/domain steps for Joaquín. Not executed from Cursor.                                           |
 | [development/POSTGRES-18-UPGRADE.md](development/POSTGRES-18-UPGRADE.md)   | Local PostgreSQL 17 → 18 dump/restore runbook. Protects the existing PG17 Docker volume.                                        |

@@ -45,8 +45,8 @@ Examples of **intended** product behaviour that do **not** exist in code yet:
 
 - QR codes for durable aftercare URLs
 - basic anonymous aftercare analytics
-- approved Privacy / Terms pages
-- production Vercel / Neon / Cloudflare provisioning
+- approved Privacy / Terms pages (published drafts exist; counsel approval flags remain false)
+- automatic production schema migration (migrations stay manual; see [docs/launch/PRODUCTION-MIGRATION.md](docs/launch/PRODUCTION-MIGRATION.md))
 
 Phase 1A did add the aftercare **domain model** (canonical template + pinned revision + practice override/addition) and demo seed. That is not the public product.
 
@@ -155,7 +155,7 @@ The expected local connection string for this repo is:
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/care_guide?schema=public"
 ```
 
-Prisma CLI (`migrate` / `seed` / `studio`) uses optional `DIRECT_URL` when set, otherwise `DATABASE_URL`. Local Docker does not need a second URL. Later Neon production should use a **pooled** `DATABASE_URL` for the app and an **unpooled** `DIRECT_URL` for migrations.
+Prisma CLI (`migrate` / `seed` / `studio`) uses optional `DIRECT_URL` when set, otherwise `DATABASE_URL`. Local Docker does not need a second URL. Production Neon uses a **pooled** `DATABASE_URL` for the app and an **unpooled** `DIRECT_URL` for migrations. Production helpers (`pnpm prod:db:status`, `pnpm prod:db:migrate -- --apply`, `pnpm prod:db:verify`) load only gitignored `.env.neon-production` and will not fall back to local `.env`. Vercel does **not** run `migrate deploy`. Schema-touching releases must migrate-before-promote — [docs/launch/PRODUCTION-MIGRATION.md](docs/launch/PRODUCTION-MIGRATION.md).
 
 The app runtime also expects:
 
@@ -188,7 +188,7 @@ Copy the `LOCAL_*` examples from `.env.example`. They are fake local-only values
 
 The seed also creates parked chairside fixtures (room, doctor, procedure templates) and one **sample / non-clinical** aftercare **Tooth Extraction** template plus a demo clinic guide. Chairside templates are **not** the aftercare Guide Template library. Aftercare demo copy is labelled non-clinical. That template is visible only to the `demodental` tenant.
 
-`pnpm db:seed` is **not** safe for production: it upserts the demo clinic, users (when allowed), rooms, doctors, chairside templates, and a published practice guide.
+`pnpm db:seed` is **not** safe for production: it upserts the demo clinic, users (when allowed), rooms, doctors, chairside templates, and a published practice guide. Production migrate helpers never invoke it.
 
 To create **only** the sample Tooth Extraction canonical library rows (1 `GuideTemplate`, 1 published unreviewed revision, 8 sections) against a database:
 
@@ -298,9 +298,22 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out the [Next.js GitHub repository](https://github.com/vercel/next.js).
 
-Hosting for the aftercare product is **not decided** in the PRD. The note below is only the default Next.js template pointer, not a Care Guide infrastructure decision.
+Hosting for the aftercare product in the PRD was left open. Production currently runs on Vercel; that is an operations fact, not a PRD rewrite. Schema releases follow [docs/launch/PRODUCTION-MIGRATION.md](docs/launch/PRODUCTION-MIGRATION.md).
 
 ## Deploy on Vercel
+
+Production hosting is Vercel. Git merge to `main` deploys **application code**. It does not apply Prisma migrations and must not run `db push` or seed.
+
+Schema-touching releases:
+
+1. `pnpm release:check`
+2. Review SQL
+3. `pnpm prod:db:status`
+4. `pnpm prod:db:migrate -- --apply`
+5. `pnpm prod:db:verify`
+6. Only then promote/redeploy the application SHA
+
+See [docs/launch/PRODUCTION-MIGRATION.md](docs/launch/PRODUCTION-MIGRATION.md). The Next.js template pointer below is not a Care Guide infrastructure decision.
 
 The easiest way to deploy a Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 

@@ -50,3 +50,7 @@ Evaluate a separate API service (NestJS or otherwise) only when one of these is 
 - external agents publishing or reading structured guides (MCP / public agent APIs)
 
 Until then, keep extracting **modules**, not processes. Do not add MCP, GraphQL, or a public API solely to look agentic.
+
+## Schema releases
+
+Vercel deploys application code. It does **not** apply Prisma migrations. Production schema changes use unpooled `DIRECT_URL` from a local `.env.neon-production` file (`pnpm prod:db:status` / `pnpm prod:db:migrate -- --apply` / `pnpm prod:db:verify`). Merge-to-main must not outrun that apply step — see [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md) and [ADR 0025](../adr/0025-migrate-before-promote.md).
