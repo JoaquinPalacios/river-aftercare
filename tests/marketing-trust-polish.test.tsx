@@ -153,7 +153,7 @@ describe("marketing + trust polish", () => {
     expect(staffCss).toContain("var(--staff-muted)");
   });
 
-  it("publishes privacy copy and terms draft with noindex metadata", async () => {
+  it("publishes privacy and terms copy with noindex metadata", async () => {
     const privacyHtml = renderToStaticMarkup(await MarketingPrivacyPage());
     const termsHtml = renderToStaticMarkup(await MarketingTermsPage());
 
@@ -178,12 +178,18 @@ describe("marketing + trust polish", () => {
     expect(termsHtml).toContain("not a healthcare provider");
     expect(termsHtml).toContain("New South Wales, Australia");
     expect(termsHtml).toContain("non-exclusive jurisdiction");
-    expect(termsHtml).toContain("[FULL LEGAL NAME]");
+    expect(termsHtml).toContain("Pedro Joaquin Palacios");
+    expect(termsHtml).toContain("admin@riveraftercare.com.au");
+    expect(termsHtml).toContain("mailto:admin@riveraftercare.com.au");
+    expect(termsHtml).not.toContain("[FULL LEGAL NAME]");
+    expect(termsHtml).not.toContain("[PRIVACY EMAIL]");
+    expect(termsHtml).not.toContain("DRAFT FOR LEGAL REVIEW");
     expect(termsHtml).toContain('data-mk-page-hero="legal"');
+    expect(termsHtml).toContain('dateTime="2026-09-19"');
     expect(privacyHtml).toContain("legalArticle");
     expect(privacyHtml).toContain("band");
     expect(privacyHtml).not.toContain("legalBanner");
-    expect(termsHtml).toContain("legalBanner");
+    expect(termsHtml).not.toContain("legalBanner");
     expect(termsHtml).toContain("legalArticle");
     expect(termsHtml).toContain("band");
     expect(marketingCss).toContain(".marketingSoft > .band:first-child");

@@ -1,6 +1,6 @@
 # Legal launch requirements — River Aftercare
 
-Public `/privacy` is the current published Privacy Policy (no draft banner). Public `/terms` remains a **production-facing draft for legal review**. Terms do not complete the production launch gate and have **not** received final legal approval.
+Public `/privacy` and `/terms` are the current published Privacy Policy and Terms & Conditions (no draft banners). Operator legal-approval flags remain `false` until an explicit approval change. Source robots remain `noindex, follow`.
 
 ## About
 
@@ -19,25 +19,20 @@ Unresolved / do not over-claim:
 - GST registration status (not stated in public copy)
 - counsel-approved APP-entity / NDB applicability language beyond the published “where applicable law requires” wording
 - flipping `PRIVACY_PAGE_LEGALLY_APPROVED` or source `noindex` without an explicit decision
-- `/terms` still uses `[FULL LEGAL NAME]` and `[PRIVACY EMAIL]` placeholders
 
 Do not treat the page as Privacy Act certification or HIPAA compliance.
 
 ## Terms
 
-**Status:** Production-facing draft implemented at `/terms`. **LEGAL REVIEW STILL REQUIRED.** Not approved. The draft banner remains.
+**Status:** Published at `/terms` on 19 September 2026. The public draft banner has been removed. `TERMS_PAGE_LEGALLY_APPROVED` remains `false` until an explicit operator/legal-approval change.
 
-The published draft covers B2B Customer definition (public guide readers are not Customers), clinical responsibility, patient-data boundary, invoice billing in AUD (monthly in advance, 14-day payment, bank transfer initially), month-to-month subscription, cancellation at period end, overdue suspension after notice, NSW governing law with non-exclusive jurisdiction, liability cap, and a narrowed third-party indemnity.
+The published terms cover B2B Customer definition (public guide readers are not Customers), Authorised Users, clinical responsibility, the patient-data boundary, confidentiality, invoice billing in AUD (monthly in advance, 14-day payment, bank transfer initially), month-to-month subscription, cancellation at period end, overdue suspension after notice, Australian Consumer Law, NSW governing law with non-exclusive jurisdiction, a mutual liability cap, and mutual third-party indemnities.
 
-Unresolved before production:
+Unresolved / do not over-claim:
 
-- full legal name of the sole trader in the Terms placeholders
-- River Aftercare business-name registration status
-- GST registration status
-- legal/privacy email in the Terms draft (Privacy already uses `admin@riveraftercare.com.au`)
-- counsel review of limitation of liability, indemnity, and Terms generally
-
-Do not treat the draft as a finished contract.
+- GST registration status (public copy says GST will be charged where applicable)
+- flipping `TERMS_PAGE_LEGALLY_APPROVED` or source `noindex` without an explicit decision
+- treating the page as counsel-certified or as a finished substitute for Customer Commercial Terms
 
 ## Medical / content disclaimer
 
@@ -45,13 +40,13 @@ Patient pages already avoid invented clinical authority. A reviewed disclaimer f
 
 ## Launch TODO (do not fabricate)
 
-| Fact                     | Repository truth                                                               |
-| ------------------------ | ------------------------------------------------------------------------------ |
-| Legal entity name        | Privacy names **Pedro Joaquin Palacios**. Terms still show `[FULL LEGAL NAME]` |
-| ABN                      | 32 671 297 130                                                                 |
-| ACN                      | Not applicable — not currently an Australian company                           |
-| Public location          | Tweed Heads South, New South Wales, Australia (no residential street address)  |
-| Governing law            | New South Wales, Australia (non-exclusive jurisdiction)                        |
-| Legal / privacy email    | Privacy uses `admin@riveraftercare.com.au`. Terms still show `[PRIVACY EMAIL]` |
-| GST registration         | Unknown — public copy says GST will be charged where applicable                |
-| Production subprocessors | Named in `/privacy`: Vercel, Neon, Cloudflare, Resend, Hostinger, Google       |
+| Fact                     | Repository truth                                                              |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| Legal entity name        | **Pedro Joaquin Palacios**, sole trader trading as River Aftercare            |
+| ABN                      | 32 671 297 130                                                                |
+| ACN                      | Not applicable — not currently an Australian company                          |
+| Public location          | Tweed Heads South, New South Wales, Australia (no residential street address) |
+| Governing law            | New South Wales, Australia (non-exclusive jurisdiction)                       |
+| Legal / privacy email    | `admin@riveraftercare.com.au`                                                 |
+| GST registration         | Unknown — public copy says GST will be charged where applicable               |
+| Production subprocessors | Named in `/privacy`: Vercel, Neon, Cloudflare, Resend, Hostinger, Google      |

@@ -92,13 +92,13 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
   },
   "/terms": {
     seoTitle: "Terms & Conditions",
-    metaDescription: `Draft terms for using ${PRODUCT_NAME}, a B2B aftercare publishing platform for healthcare practices. Not a substitute for legal advice.`,
+    metaDescription: `Terms for using ${PRODUCT_NAME}, a B2B aftercare publishing platform for healthcare practices.`,
     ogTitle: null,
     ogDescription: null,
     ogImagePath: null,
     index: DRAFT_LEGAL_ROBOTS.index,
     follow: DRAFT_LEGAL_ROBOTS.follow,
-    lastModified: "2026-09-16",
+    lastModified: "2026-09-19",
   },
   "/clinics": {
     seoTitle:

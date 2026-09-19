@@ -31,8 +31,6 @@ export interface LegalDocument {
   sections: readonly LegalSection[];
 }
 
-export const TERMS_DRAFT_BANNER = `DRAFT FOR LEGAL REVIEW. These terms are being prepared for ${PRODUCT_NAME}'s production launch and have not yet received final legal approval.`;
-
 export function legalDocumentMeta(input: {
   slug: LegalDocument["slug"];
   title: string;

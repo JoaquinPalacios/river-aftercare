@@ -6,32 +6,32 @@ Do not implement features solely to game a score. Recommended API/MCP/GraphQL ch
 
 ## Applicable checks
 
-| Check                                     | Result           | Notes                                                                                                                                 |
-| ----------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Server-rendered meaningful content        | PASS             | Marketing, About, tenant guides, and operator SEO are Server Components.                                                              |
-| JavaScript independence for core reading  | PASS             | Marketing and patient documents remain readable with JS disabled. Marketing motion has a noscript fallback.                           |
-| Semantic landmarks                        | PASS             | `header` / `nav` / `main` / `footer` on marketing; staff/operator use `aside` + `main`.                                               |
-| Semantic buttons/links                    | PASS             | Native `a` / `button`; operator copy control is a labelled button.                                                                    |
-| Accessible names                          | PASS             | Logo `aria-label`, nav labels, form labels.                                                                                           |
-| Keyboard usage                            | PASS             | Focus-visible rings; mobile nav popover supports Escape.                                                                              |
-| Real HTTP status codes                    | PASS             | Proxy 404s unknown marketing/tenant hosts; unpublished guides `notFound()`.                                                           |
-| Real 404                                  | PASS             | HTTP 404. Marketing unknown paths currently return an empty 404 body from the proxy (status is still 404).                            |
-| HTTP redirects                            | PASS             | Unauthenticated staff routes redirect to `/login`.                                                                                    |
-| Canonical                                 | PASS             | Derived from origin + route on marketing; tenant canonical mirrors Host.                                                              |
-| `lang`                                    | PASS             | `lang="en"` on marketing, staff, and aftercare roots.                                                                                 |
-| Titles / descriptions                     | PASS             | Configurable marketing metadata with code fallbacks.                                                                                  |
-| Open Graph                                | PASS             | Title/description/url; images only when a dedicated path is configured.                                                               |
-| Structured data                           | PASS             | Generated JSON-LD, factual fields only.                                                                                               |
-| Sitemap                                   | PASS             | Marketing only, real canonical URLs.                                                                                                  |
-| robots.txt                                | PASS             | Allows public marketing; disallows internal prefixes. Metadata noindex remains the authority for private pages.                       |
-| llms.txt                                  | PASS             | `/llms.txt` generated from product identity and public routes.                                                                        |
-| llms-full.txt                             | GAP              | Skipped. Six public pages are still below the threshold for a second full-text dump.                                                  |
-| Clear site/product purpose                | PASS             | Homepage, About, and llms.txt state what River Aftercare is.                                                                          |
-| “When to use” agent guidance              | PASS             | `/llms.txt` includes a when-to-use section.                                                                                           |
-| Trust / contact pages                     | PASS             | About, Contact, Privacy, and Terms exist. Privacy/Terms remain drafts; legal approval is still a launch gate.                         |
-| Authenticated surfaces                    | PASS             | Staff/operator/preview are noindex and behind auth.                                                                                   |
-| Public API / GraphQL / MCP / Agent Skills | N/A              | Not a product capability. Do not add for scoring.                                                                                     |
-| robots/CDN blocking legitimate agents     | POST-DEPLOY TEST | Turnstile, Cloudflare bot fight, and future CDN rules must not block ordinary retrieval of public HTML, sitemap, robots, or llms.txt. |
+| Check                                     | Result           | Notes                                                                                                                                               |
+| ----------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server-rendered meaningful content        | PASS             | Marketing, About, tenant guides, and operator SEO are Server Components.                                                                            |
+| JavaScript independence for core reading  | PASS             | Marketing and patient documents remain readable with JS disabled. Marketing motion has a noscript fallback.                                         |
+| Semantic landmarks                        | PASS             | `header` / `nav` / `main` / `footer` on marketing; staff/operator use `aside` + `main`.                                                             |
+| Semantic buttons/links                    | PASS             | Native `a` / `button`; operator copy control is a labelled button.                                                                                  |
+| Accessible names                          | PASS             | Logo `aria-label`, nav labels, form labels.                                                                                                         |
+| Keyboard usage                            | PASS             | Focus-visible rings; mobile nav popover supports Escape.                                                                                            |
+| Real HTTP status codes                    | PASS             | Proxy 404s unknown marketing/tenant hosts; unpublished guides `notFound()`.                                                                         |
+| Real 404                                  | PASS             | HTTP 404. Marketing unknown paths currently return an empty 404 body from the proxy (status is still 404).                                          |
+| HTTP redirects                            | PASS             | Unauthenticated staff routes redirect to `/login`.                                                                                                  |
+| Canonical                                 | PASS             | Derived from origin + route on marketing; tenant canonical mirrors Host.                                                                            |
+| `lang`                                    | PASS             | `lang="en"` on marketing, staff, and aftercare roots.                                                                                               |
+| Titles / descriptions                     | PASS             | Configurable marketing metadata with code fallbacks.                                                                                                |
+| Open Graph                                | PASS             | Title/description/url; images only when a dedicated path is configured.                                                                             |
+| Structured data                           | PASS             | Generated JSON-LD, factual fields only.                                                                                                             |
+| Sitemap                                   | PASS             | Marketing only, real canonical URLs.                                                                                                                |
+| robots.txt                                | PASS             | Allows public marketing; disallows internal prefixes. Metadata noindex remains the authority for private pages.                                     |
+| llms.txt                                  | PASS             | `/llms.txt` generated from product identity and public routes.                                                                                      |
+| llms-full.txt                             | GAP              | Skipped. Six public pages are still below the threshold for a second full-text dump.                                                                |
+| Clear site/product purpose                | PASS             | Homepage, About, and llms.txt state what River Aftercare is.                                                                                        |
+| “When to use” agent guidance              | PASS             | `/llms.txt` includes a when-to-use section.                                                                                                         |
+| Trust / contact pages                     | PASS             | About, Contact, Privacy, and Terms exist. Public legal copy is published without draft banners; operator legal-approval flags remain a launch gate. |
+| Authenticated surfaces                    | PASS             | Staff/operator/preview are noindex and behind auth.                                                                                                 |
+| Public API / GraphQL / MCP / Agent Skills | N/A              | Not a product capability. Do not add for scoring.                                                                                                   |
+| robots/CDN blocking legitimate agents     | POST-DEPLOY TEST | Turnstile, Cloudflare bot fight, and future CDN rules must not block ordinary retrieval of public HTML, sitemap, robots, or llms.txt.               |
 
 ## Future API / MCP triggers
 

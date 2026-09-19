@@ -32,7 +32,7 @@ async function showMarketingScheme(
 }
 
 test.describe("marketing + trust polish", () => {
-  test("privacy is published and terms remain a noindex draft", async ({
+  test("privacy and terms are published with noindex,follow metadata", async ({
     page,
   }) => {
     const privacy = await page.goto(marketingUrl("/privacy"), {
@@ -73,8 +73,16 @@ test.describe("marketing + trust polish", () => {
     });
     expect(terms?.status()).toBe(200);
     await expectOneH1(page, "Terms & Conditions");
-    await expect(page.getByRole("note")).toContainText(
-      "DRAFT FOR LEGAL REVIEW"
+    await expect(page.getByRole("note")).toHaveCount(0);
+    await expect(
+      page.getByText("Pedro Joaquin Palacios", { exact: false }).first()
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "admin@riveraftercare.com.au" }).first()
+    ).toHaveAttribute("href", "mailto:admin@riveraftercare.com.au");
+    await expect(page.locator("time")).toHaveAttribute(
+      "dateTime",
+      "2026-09-19"
     );
     expect(
       await page.locator('meta[name="robots"]').getAttribute("content")
@@ -308,16 +316,10 @@ test.describe("marketing + trust polish", () => {
       await page
         .locator('[data-mk-page-hero="legal"]')
         .evaluate((element) => element.scrollIntoView());
-      if (pathname === "/terms") {
-        await page.locator('[class*="legalBanner"]').screenshot({
-          path: "test-results/artifacts/public-terms-hero-notice-1440.png",
-        });
-      } else {
-        await expect(page.locator('[class*="legalBanner"]')).toHaveCount(0);
-        await page.locator('[class*="legalUpdated"]').screenshot({
-          path: "test-results/artifacts/public-privacy-updated-1440.png",
-        });
-      }
+      await expect(page.locator('[class*="legalBanner"]')).toHaveCount(0);
+      await page.locator('[class*="legalUpdated"]').screenshot({
+        path: `test-results/artifacts/public-${pathname.slice(1)}-updated-1440.png`,
+      });
       await expectNoSeriousAxeViolations(page);
       await showMarketingScheme(page, "dark");
       await expectNoSeriousAxeViolations(page);
