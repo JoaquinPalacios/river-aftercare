@@ -16,8 +16,9 @@ export type RemoveClinicAccessResult =
   { ok: true; userId: string } | { ok: false; error: string };
 
 /**
- * Not wired to a Server Action or Team UI. Remove and restore must ship
- * together so operators cannot create a passworded zero-membership dead end.
+ * Removes one clinic membership and all database sessions for that user.
+ * Keeps the User row, passwordHash, email, and AccountToken history so
+ * operator restore-access can reuse the same credentials.
  */
 export async function removeClinicAccess(input: {
   clinicId: string;

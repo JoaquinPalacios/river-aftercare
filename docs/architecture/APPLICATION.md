@@ -36,7 +36,7 @@ Business rules should not live only inside React components. Current server modu
 
 Route handlers and Server Actions should generally: authorize → validate → call the module → map the result.
 
-Staff login is a Route Handler (`POST /api/auth/login`), not a Server Action. Forgot/reset password and invitation acceptance are Route Handlers. Change password and operator Team mutations are Server Actions. Current production login bounds, dummy password verification, host restriction, and WAF-only login rate limiting are documented in [AUTH.md](AUTH.md).
+Staff login is a Route Handler (`POST /api/auth/login`), not a Server Action. Forgot/reset password, invitation acceptance, and invitation status are Route Handlers. Change password and operator Team mutations are Server Actions. Current production login bounds, dummy password verification, host restriction, and WAF-only login rate limiting are documented in [AUTH.md](AUTH.md).
 
 ## Extraction triggers
 

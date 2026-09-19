@@ -17,6 +17,14 @@ vi.mock("next/navigation", () => ({
 import { AcceptInvitationForm } from "@/app/(staff)/accept-invitation/accept-invitation-form";
 import { INVITATION_INVALID_LINK_MESSAGE } from "@/lib/auth/password-policy";
 
+function deferredResponse() {
+  let resolve!: (value: Response) => void;
+  const promise = new Promise<Response>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
 describe("accept invitation fragment form", () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -51,17 +59,73 @@ describe("accept invitation fragment form", () => {
       "Contact your clinic administrator or River Aftercare"
     );
     expect(container.querySelector('input[type="password"]')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("checks a well-formed token before showing the password form", async () => {
+    const token = "Aa1-_".repeat(8) + "abcde";
+    window.history.replaceState(null, "", `/accept-invitation#token=${token}`);
+    const pending = deferredResponse();
+    fetchMock.mockReturnValue(pending.promise);
+
+    await act(async () => {
+      root.render(<AcceptInvitationForm />);
+    });
+
+    expect(container.textContent).toContain("Checking invitation…");
+    expect(container.querySelector('input[type="password"]')).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const statusCall = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(statusCall[0]).toBe("/api/auth/invitation-status");
+    expect(JSON.parse(String(statusCall[1]?.body))).toEqual({ token });
+    expect(window.location.hash).toBe(`#token=${token}`);
+
+    await act(async () => {
+      pending.resolve(
+        new Response(JSON.stringify({ valid: true }), { status: 200 })
+      );
+    });
+
+    expect(container.querySelectorAll('input[type="password"]')).toHaveLength(2);
+    expect(container.textContent).not.toContain("Checking invitation…");
+  });
+
+  it("shows the invalid-link state when status says the invitation is unusable", async () => {
+    const token = "Aa1-_".repeat(8) + "abcde";
+    window.history.replaceState(null, "", `/accept-invitation#token=${token}`);
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ valid: false }), { status: 200 })
+    );
+
+    await act(async () => {
+      root.render(<AcceptInvitationForm />);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain(INVITATION_INVALID_LINK_MESSAGE);
+    expect(container.querySelector('input[type="password"]')).toBeNull();
+    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+      "/api/auth/invitation-status",
+    ]);
   });
 
   it("submits the fragment token in the POST body and navigates to login", async () => {
     const token = "Aa1-_".repeat(8) + "abcde";
     window.history.replaceState(null, "", `/accept-invitation#token=${token}`);
-    fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ ok: true }), { status: 200 })
-    );
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === "/api/auth/invitation-status") {
+        return new Response(JSON.stringify({ valid: true }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    });
 
     await act(async () => {
       root.render(<AcceptInvitationForm />);
+    });
+    await act(async () => {
+      await Promise.resolve();
     });
 
     const inputs = container.querySelectorAll('input[type="password"]');
@@ -86,10 +150,10 @@ describe("accept invitation fragment form", () => {
         );
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const call = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(call[0]).toBe("/api/auth/accept-invitation");
-    expect(JSON.parse(String(call[1]?.body))).toEqual({
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const acceptCall = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(acceptCall[0]).toBe("/api/auth/accept-invitation");
+    expect(JSON.parse(String(acceptCall[1]?.body))).toEqual({
       token,
       newPassword: "abcdefghijkl",
       confirmPassword: "abcdefghijkl",

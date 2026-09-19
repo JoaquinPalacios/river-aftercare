@@ -3,23 +3,33 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ClinicTeamTable } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/team/team-table";
+import { TeamStatusBanner } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/team/team-status-banner";
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { teamStatusMessage } from "@/lib/operator/clinic-team-status";
 import { listClinicTeam } from "@/lib/operator/list-clinic-team";
 
 interface ClinicTeamPageProps {
   params: Promise<{ clinicId: string }>;
+  searchParams?: Promise<{
+    status?: string | string[];
+  }>;
 }
 
 export const metadata: Metadata = {
   title: `Team · ${PRODUCT_NAME}`,
 };
 
-export default async function ClinicTeamPage({ params }: ClinicTeamPageProps) {
+export default async function ClinicTeamPage({
+  params,
+  searchParams,
+}: ClinicTeamPageProps) {
   await requirePlatformOperator();
   const { clinicId } = await params;
+  const paramsStatus = searchParams ? await searchParams : {};
+  const statusCopy = teamStatusMessage(paramsStatus.status);
   const team = await listClinicTeam(clinicId);
   if (!team) {
     notFound();
@@ -51,7 +61,12 @@ export default async function ClinicTeamPage({ params }: ClinicTeamPageProps) {
           Invite user
         </Link>
       </header>
-      <ClinicTeamTable clinicId={clinicId} rows={team.rows} />
+      {statusCopy ? <TeamStatusBanner message={statusCopy} /> : null}
+      <ClinicTeamTable
+        clinicId={clinicId}
+        clinicName={team.clinicName}
+        rows={team.rows}
+      />
       <p>
         <Link
           href={`/operator/clinics/${clinicId}`}

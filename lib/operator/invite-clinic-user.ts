@@ -36,8 +36,6 @@ export const PENDING_SAME_CLINIC_MESSAGE =
   "This user already has a pending invitation. Resend it from the team list.";
 export const PENDING_OTHER_CLINIC_MESSAGE =
   "This user already belongs to another clinic. Multi-clinic access is not supported yet.";
-export const EXISTING_ACCOUNT_MESSAGE =
-  "This account already exists. Restoring access for an existing password is not yet supported.";
 export const CLINIC_NOT_FOUND_MESSAGE = "That clinic could not be found.";
 export const INVITATION_DELIVERY_FAILED_MESSAGE =
   "Invitation created, but the email could not be sent. Try resending it.";
@@ -53,13 +51,21 @@ export type InviteClinicUserErrorCode =
   | "other_clinic_member"
   | "platform_operator"
   | "pending_same_clinic"
-  | "pending_other_clinic"
-  | "existing_account";
+  | "pending_other_clinic";
+
+export type InviteClinicUserOutcome = "INVITATION_SENT" | "ACCESS_RESTORED";
 
 export type InviteClinicUserResult =
   | {
       ok: true;
+      outcome: "INVITATION_SENT";
       delivered: boolean;
+      email: string;
+      userId: string;
+    }
+  | {
+      ok: true;
+      outcome: "ACCESS_RESTORED";
       email: string;
       userId: string;
     }
@@ -242,6 +248,7 @@ export async function inviteClinicUser(input: {
 
       return {
         ok: true as const,
+        outcome: "INVITATION_SENT" as const,
         rawToken: createdToken.rawToken,
         userId: user.id,
         email: user.email,
@@ -254,27 +261,58 @@ export async function inviteClinicUser(input: {
 
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`clinic-access:${existing.id}`}))`;
 
-    if (existing.platformRole === PlatformRole.OPERATOR) {
+    const latestUser = await tx.user.findUnique({
+      where: { id: existing.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        passwordHash: true,
+        platformRole: true,
+        memberships: {
+          select: { clinicId: true },
+        },
+      },
+    });
+    if (!latestUser) {
+      return { ok: false as const, code: "clinic_not_found" as const };
+    }
+
+    if (latestUser.platformRole === PlatformRole.OPERATOR) {
       return { ok: false as const, code: "platform_operator" as const };
     }
 
-    const sameClinic = existing.memberships.some(
+    const sameClinic = latestUser.memberships.some(
       (membership) => membership.clinicId === clinic.id
     );
     if (sameClinic) {
       return { ok: false as const, code: "already_member" as const };
     }
-    if (existing.memberships.length > 0) {
+    if (latestUser.memberships.length > 0) {
       return { ok: false as const, code: "other_clinic_member" as const };
     }
 
-    if (existing.passwordHash) {
-      return { ok: false as const, code: "existing_account" as const };
+    if (latestUser.passwordHash) {
+      await tx.clinicMembership.create({
+        data: {
+          clinicId: clinic.id,
+          userId: latestUser.id,
+          role,
+        },
+      });
+
+      return {
+        ok: true as const,
+        outcome: "ACCESS_RESTORED" as const,
+        userId: latestUser.id,
+        email: latestUser.email,
+        clinicId: clinic.id,
+      };
     }
 
     const invitations = await tx.accountToken.findMany({
       where: {
-        userId: existing.id,
+        userId: latestUser.id,
         type: AccountTokenType.INVITATION,
       },
       orderBy: { createdAt: "desc" },
@@ -307,18 +345,18 @@ export async function inviteClinicUser(input: {
       return { ok: false as const, code: "pending_other_clinic" as const };
     }
 
-    if (existing.name !== name) {
+    if (latestUser.name !== name) {
       await tx.user.update({
-        where: { id: existing.id },
+        where: { id: latestUser.id },
         data: { name },
       });
     }
 
     const createdToken = await createInvitationToken({
-      userId: existing.id,
+      userId: latestUser.id,
       clinicId: clinic.id,
       role,
-      email: existing.email,
+      email: latestUser.email,
       invitedByUserId: input.invitedByUserId,
       now,
       prisma: tx,
@@ -326,9 +364,10 @@ export async function inviteClinicUser(input: {
 
     return {
       ok: true as const,
+      outcome: "INVITATION_SENT" as const,
       rawToken: createdToken.rawToken,
-      userId: existing.id,
-      email: existing.email,
+      userId: latestUser.id,
+      email: latestUser.email,
       name,
       clinicId: clinic.id,
       clinicName,
@@ -350,12 +389,25 @@ export async function inviteClinicUser(input: {
       platform_operator: PLATFORM_OPERATOR_INVITE_MESSAGE,
       pending_same_clinic: PENDING_SAME_CLINIC_MESSAGE,
       pending_other_clinic: PENDING_OTHER_CLINIC_MESSAGE,
-      existing_account: EXISTING_ACCOUNT_MESSAGE,
     };
     return {
       ok: false,
       code: created.code,
       error: messages[created.code],
+    };
+  }
+
+  if (created.outcome === "ACCESS_RESTORED") {
+    logInvitationLifecycle({
+      event: "clinic_access_restored",
+      userId: created.userId,
+      clinicId: created.clinicId,
+    });
+    return {
+      ok: true,
+      outcome: "ACCESS_RESTORED",
+      email: created.email,
+      userId: created.userId,
     };
   }
 
@@ -377,6 +429,7 @@ export async function inviteClinicUser(input: {
 
   return {
     ok: true,
+    outcome: "INVITATION_SENT",
     delivered,
     email: created.email,
     userId: created.userId,

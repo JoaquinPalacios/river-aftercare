@@ -13,10 +13,13 @@ import {
 } from "@/lib/auth/password-policy";
 
 const PENDING_STATUS = "Setting up your account. Please wait.";
+const CHECKING_STATUS = "Checking invitation…";
+
+type InvitationView = "CHECKING" | "VALID" | "INVALID";
 
 export function AcceptInvitationForm() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [view, setView] = useState<InvitationView>("CHECKING");
   const [token, setToken] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,11 +34,41 @@ export function AcceptInvitationForm() {
   const pending = isSubmitting || isPending;
 
   useEffect(() => {
-    setToken(readAccountTokenFromHash(window.location.hash));
-    setReady(true);
-  }, []);
+    const rawToken = readAccountTokenFromHash(window.location.hash);
+    if (!rawToken) {
+      setToken(null);
+      setView("INVALID");
+      return;
+    }
 
-  const invalidLink = ready && !token;
+    setToken(rawToken);
+    let cancelled = false;
+
+    async function validateToken(currentToken: string) {
+      try {
+        const response = await fetch("/api/auth/invitation-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: currentToken }),
+        });
+        const data = (await response.json()) as { valid?: boolean };
+        if (cancelled) {
+          return;
+        }
+        setView(response.ok && data.valid === true ? "VALID" : "INVALID");
+      } catch {
+        if (!cancelled) {
+          setView("INVALID");
+        }
+      }
+    }
+
+    void validateToken(rawToken);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -111,6 +144,10 @@ export function AcceptInvitationForm() {
 
         submittingRef.current = false;
         setIsSubmitting(false);
+        if (errorMessage === INVITATION_INVALID_LINK_MESSAGE) {
+          setView("INVALID");
+          return;
+        }
         setErrors({ form: errorMessage });
       } catch {
         submittingRef.current = false;
@@ -122,15 +159,15 @@ export function AcceptInvitationForm() {
     });
   }
 
-  if (!ready) {
+  if (view === "CHECKING") {
     return (
-      <p className="text-sm text-staff-muted" role="status">
-        Loading invitation…
+      <p className="text-center text-sm text-staff-muted" role="status">
+        {CHECKING_STATUS}
       </p>
     );
   }
 
-  if (invalidLink || errors.form === INVITATION_INVALID_LINK_MESSAGE) {
+  if (view === "INVALID" || errors.form === INVITATION_INVALID_LINK_MESSAGE) {
     return (
       <div className="flex flex-col gap-4">
         <div

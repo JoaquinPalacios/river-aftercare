@@ -37,6 +37,7 @@ const CLIENT_FILES = [
   "app/(staff)/account/security/change-password-form.tsx",
   "app/(staff)/(operator)/operator/clinics/[clinicId]/team/invite-user-form.tsx",
   "app/(staff)/(operator)/operator/clinics/[clinicId]/team/team-table.tsx",
+  "app/(staff)/(operator)/operator/clinics/[clinicId]/team/team-status-banner.tsx",
   "lib/marketing/contact-fields.ts",
   "lib/marketing/contact-turnstile-public.ts",
 ];
@@ -52,6 +53,7 @@ describe("account lifecycle invitation boundary", () => {
   it("adds operator invitation UI without clinic-admin Team permissions", () => {
     expect(existsSync("app/(staff)/accept-invitation")).toBe(true);
     expect(existsSync("app/api/auth/accept-invitation")).toBe(true);
+    expect(existsSync("app/api/auth/invitation-status")).toBe(true);
     expect(
       existsSync("app/(staff)/(operator)/operator/clinics/[clinicId]/team")
     ).toBe(true);

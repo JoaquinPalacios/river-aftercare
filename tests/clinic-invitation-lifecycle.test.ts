@@ -22,7 +22,11 @@ vi.mock("@/auth", () => ({
 import { POST as loginPost } from "@/app/api/auth/login/route";
 import { hashAccountToken } from "@/lib/auth/account-token";
 import { lookupAccountToken } from "@/lib/auth/account-token-service";
-import { acceptInvitationWithToken } from "@/lib/auth/accept-invitation";
+import {
+  acceptInvitationWithToken,
+  getInvitationAcceptanceStatus,
+} from "@/lib/auth/accept-invitation";
+import { inspectInvitation } from "@/lib/auth/account-token-service";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import {
   NEW_PASSWORD_MAX_MESSAGE,
@@ -32,7 +36,6 @@ import { clearTransactionalEmailMemoryInbox } from "@/lib/email/transactional-ma
 import { cancelClinicInvitation } from "@/lib/operator/cancel-clinic-invitation";
 import {
   ALREADY_MEMBER_MESSAGE,
-  EXISTING_ACCOUNT_MESSAGE,
   OTHER_CLINIC_MEMBER_MESSAGE,
   PENDING_SAME_CLINIC_MESSAGE,
   PLATFORM_OPERATOR_INVITE_MESSAGE,
@@ -132,7 +135,7 @@ describe("clinic invitation lifecycle", () => {
       role: "STAFF",
     });
     expect(result.ok).toBe(true);
-    if (!result.ok) {
+    if (!result.ok || result.outcome !== "INVITATION_SENT") {
       return;
     }
     expect(result.email).toBe("jane.new@example.test");
@@ -529,7 +532,8 @@ describe("clinic invitation lifecycle", () => {
       where: { id: invited.userId },
     });
     expect(user?.passwordHash).toBeTruthy();
-    expect(verifyPassword("abcdefghijkl", user?.passwordHash)).toBe(true);
+    const acceptedHash = user?.passwordHash;
+    expect(verifyPassword("abcdefghijkl", acceptedHash)).toBe(true);
     expect(user?.emailVerified).toBeTruthy();
     const memberships = await prisma.clinicMembership.findMany({
       where: { userId: invited.userId },
@@ -540,6 +544,10 @@ describe("clinic invitation lifecycle", () => {
     expect(
       await lookupAccountToken(rawToken!, AccountTokenType.INVITATION)
     ).toEqual({ ok: false, reason: "consumed" });
+    expect(await inspectInvitation(rawToken!)).toEqual({ valid: false });
+    expect(
+      await getInvitationAcceptanceStatus({ rawToken: rawToken! })
+    ).toEqual({ valid: false });
     const sessions = await prisma.session.count({
       where: { userId: invited.userId },
     });
@@ -547,10 +555,27 @@ describe("clinic invitation lifecycle", () => {
 
     const replay = await acceptInvitationWithToken({
       rawToken: rawToken!,
-      newPassword: "abcdefghijkl",
-      confirmPassword: "abcdefghijkl",
+      newPassword: "zzabcdefghijk",
+      confirmPassword: "zzabcdefghijk",
     });
     expect(replay.ok).toBe(false);
+    const afterReplay = await prisma.user.findUnique({
+      where: { id: invited.userId },
+    });
+    expect(afterReplay?.passwordHash).toBe(acceptedHash);
+    expect(
+      await prisma.clinicMembership.count({ where: { userId: invited.userId } })
+    ).toBe(1);
+    expect(
+      await prisma.accountToken.count({
+        where: {
+          userId: invited.userId,
+          type: AccountTokenType.INVITATION,
+          consumedAt: null,
+          revokedAt: null,
+        },
+      })
+    ).toBe(0);
 
     const login = await loginPost(
       new Request("http://app.localhost:3000/api/auth/login", {
@@ -639,7 +664,7 @@ describe("clinic invitation lifecycle", () => {
     });
     restore("AUTH_EMAIL_FROM", previous);
     expect(result.ok).toBe(true);
-    if (!result.ok) {
+    if (!result.ok || result.outcome !== "INVITATION_SENT") {
       return;
     }
     expect(result.delivered).toBe(false);
@@ -659,29 +684,102 @@ describe("clinic invitation lifecycle", () => {
     ).toBe(1);
   });
 
-  it("blocks inviting an active zero-membership account", async () => {
+  it("restores a passworded zero-membership account without an invitation", async () => {
+    const originalHash = hashPassword("orphan-pass-12");
     const orphan = await prisma.user.create({
       data: {
         email: `${PREFIX}orphan@example.test`,
         name: "Orphan",
-        passwordHash: hashPassword("orphan-pass-12"),
+        passwordHash: originalHash,
         platformRole: PlatformRole.NONE,
       },
     });
-    await expect(
+    const tokensBefore = await prisma.accountToken.count({
+      where: { userId: orphan.id },
+    });
+    const restored = await inviteClinicUser({
+      clinicId: CLINIC_A,
+      invitedByUserId: OPERATOR_ID,
+      name: "Should Not Overwrite",
+      email: orphan.email,
+      role: "ADMIN",
+    });
+    expect(restored).toMatchObject({
+      ok: true,
+      outcome: "ACCESS_RESTORED",
+      userId: orphan.id,
+    });
+    if (!restored.ok) {
+      return;
+    }
+    expect("delivered" in restored).toBe(false);
+    const after = await prisma.user.findUnique({ where: { id: orphan.id } });
+    expect(after?.passwordHash).toBe(originalHash);
+    expect(after?.name).toBe("Orphan");
+    expect(
+      await prisma.accountToken.count({ where: { userId: orphan.id } })
+    ).toBe(tokensBefore);
+    const memberships = await prisma.clinicMembership.findMany({
+      where: { userId: orphan.id },
+    });
+    expect(memberships).toHaveLength(1);
+    expect(memberships[0]?.clinicId).toBe(CLINIC_A);
+    expect(memberships[0]?.role).toBe(ClinicMembershipRole.ADMIN);
+    const { getTransactionalEmailMemoryInbox } =
+      await import("@/lib/email/transactional-mailer");
+    expect(
+      getTransactionalEmailMemoryInbox().filter(
+        (message) => message.to === orphan.email
+      )
+    ).toHaveLength(0);
+
+    const login = await loginPost(
+      new Request("http://app.localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: orphan.email,
+          password: "orphan-pass-12",
+        }),
+      })
+    );
+    expect(login.status).toBe(200);
+    expect(await login.json()).toMatchObject({ redirectTo: "/dashboard" });
+  });
+
+  it("serializes concurrent restorations to one membership", async () => {
+    const user = await prisma.user.create({
+      data: {
+        email: `${PREFIX}restore_race@example.test`,
+        name: "Race",
+        passwordHash: hashPassword("restore-pass-1"),
+        platformRole: PlatformRole.NONE,
+      },
+    });
+    const [first, second] = await Promise.all([
       inviteClinicUser({
         clinicId: CLINIC_A,
         invitedByUserId: OPERATOR_ID,
-        name: "Orphan",
-        email: orphan.email,
+        name: "Race",
+        email: user.email,
         role: "STAFF",
-      })
-    ).resolves.toMatchObject({
-      ok: false,
-      error: EXISTING_ACCOUNT_MESSAGE,
-    });
-    const after = await prisma.user.findUnique({ where: { id: orphan.id } });
-    expect(after?.passwordHash).toBe(orphan.passwordHash);
+      }),
+      inviteClinicUser({
+        clinicId: CLINIC_A,
+        invitedByUserId: OPERATOR_ID,
+        name: "Race",
+        email: user.email,
+        role: "ADMIN",
+      }),
+    ]);
+    const succeeded = [first, second].filter((result) => result.ok);
+    const failed = [first, second].filter((result) => !result.ok);
+    expect(succeeded).toHaveLength(1);
+    expect(failed).toHaveLength(1);
+    expect(failed[0]).toMatchObject({ error: ALREADY_MEMBER_MESSAGE });
+    expect(
+      await prisma.clinicMembership.count({ where: { userId: user.id } })
+    ).toBe(1);
   });
 
   it("removes active access and invalidates only that user's sessions", async () => {
@@ -756,6 +854,40 @@ describe("clinic invitation lifecycle", () => {
     expect(login.status).toBe(403);
     expect(await login.json()).toEqual({
       error: "Your account does not have staff access yet.",
+    });
+
+    const restored = await inviteClinicUser({
+      clinicId: CLINIC_A,
+      invitedByUserId: OPERATOR_ID,
+      name: "Remove Me",
+      email: `${PREFIX}remove@example.test`,
+      role: "STAFF",
+    });
+    expect(restored).toMatchObject({
+      ok: true,
+      outcome: "ACCESS_RESTORED",
+      userId: user.id,
+    });
+    const restoredUser = await prisma.user.findUnique({
+      where: { id: user.id },
+    });
+    expect(restoredUser?.passwordHash).toBe(keptUser?.passwordHash);
+    expect(
+      await prisma.clinicMembership.count({ where: { userId: user.id } })
+    ).toBe(1);
+    const restoredLogin = await loginPost(
+      new Request("http://app.localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: `${PREFIX}remove@example.test`,
+          password: "remove-pass-12",
+        }),
+      })
+    );
+    expect(restoredLogin.status).toBe(200);
+    expect(await restoredLogin.json()).toMatchObject({
+      redirectTo: "/dashboard",
     });
   });
 
@@ -880,6 +1012,180 @@ describe("clinic invitation lifecycle", () => {
     expect(
       await prisma.clinicMembership.count({ where: { userId: fresh.userId } })
     ).toBe(0);
+  });
+
+  it("prevalidates invitations without consuming them", async () => {
+    const invited = await inviteClinicUser({
+      clinicId: CLINIC_A,
+      invitedByUserId: OPERATOR_ID,
+      name: "Status Person",
+      email: `${PREFIX}status@example.test`,
+      role: "STAFF",
+    });
+    expect(invited.ok).toBe(true);
+    if (!invited.ok) {
+      return;
+    }
+    const tokenRow = await prisma.accountToken.findFirst({
+      where: {
+        userId: invited.userId,
+        consumedAt: null,
+        revokedAt: null,
+      },
+    });
+    const rawToken = await recoverRawTokenForTest(tokenRow!.tokenHash);
+    expect(rawToken).toBeTruthy();
+
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const error = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    expect(await inspectInvitation(rawToken!)).toEqual({ valid: true });
+    expect(
+      await getInvitationAcceptanceStatus({ rawToken: rawToken! })
+    ).toEqual({ valid: true });
+    const afterValid = await prisma.accountToken.findUnique({
+      where: { id: tokenRow!.id },
+    });
+    expect(afterValid?.consumedAt).toBeNull();
+    expect(afterValid?.revokedAt).toBeNull();
+    expect(JSON.stringify(info.mock.calls)).not.toContain(rawToken);
+    expect(JSON.stringify(error.mock.calls)).not.toContain(rawToken);
+    info.mockRestore();
+    error.mockRestore();
+
+    expect(await inspectInvitation("not a token")).toEqual({ valid: false });
+    expect(
+      await getInvitationAcceptanceStatus({ rawToken: "not a token" })
+    ).toEqual({ valid: false });
+
+    const { createPasswordResetToken } =
+      await import("@/lib/auth/account-token-service");
+    const reset = await createPasswordResetToken({
+      userId: invited.userId,
+      email: `${PREFIX}status@example.test`,
+    });
+    expect(await inspectInvitation(reset.rawToken)).toEqual({ valid: false });
+
+    await prisma.accountToken.update({
+      where: { id: tokenRow!.id },
+      data: { expiresAt: new Date("2026-09-01T00:00:00.000Z") },
+    });
+    expect(
+      await inspectInvitation(rawToken!, {
+        now: new Date("2026-09-10T00:00:00.000Z"),
+      })
+    ).toEqual({ valid: false });
+    expect(
+      (
+        await prisma.accountToken.findUnique({ where: { id: tokenRow!.id } })
+      )?.consumedAt
+    ).toBeNull();
+
+    const revokedInvite = await inviteClinicUser({
+      clinicId: CLINIC_A,
+      invitedByUserId: OPERATOR_ID,
+      name: "Revoked Status",
+      email: `${PREFIX}status_revoked@example.test`,
+      role: "STAFF",
+    });
+    expect(revokedInvite.ok).toBe(true);
+    if (!revokedInvite.ok) {
+      return;
+    }
+    const revokedRow = await prisma.accountToken.findFirst({
+      where: {
+        userId: revokedInvite.userId,
+        consumedAt: null,
+        revokedAt: null,
+      },
+    });
+    const revokedRaw = await recoverRawTokenForTest(revokedRow!.tokenHash);
+    await prisma.accountToken.update({
+      where: { id: revokedRow!.id },
+      data: { revokedAt: new Date() },
+    });
+    expect(await inspectInvitation(revokedRaw!)).toEqual({ valid: false });
+
+    const passworded = await inviteClinicUser({
+      clinicId: CLINIC_A,
+      invitedByUserId: OPERATOR_ID,
+      name: "Passworded Status",
+      email: `${PREFIX}status_password@example.test`,
+      role: "STAFF",
+    });
+    expect(passworded.ok).toBe(true);
+    if (!passworded.ok) {
+      return;
+    }
+    const passwordedRow = await prisma.accountToken.findFirst({
+      where: {
+        userId: passworded.userId,
+        consumedAt: null,
+        revokedAt: null,
+      },
+    });
+    const passwordedRaw = await recoverRawTokenForTest(
+      passwordedRow!.tokenHash
+    );
+    await prisma.user.update({
+      where: { id: passworded.userId },
+      data: { passwordHash: hashPassword("already-set-12") },
+    });
+    expect(await inspectInvitation(passwordedRaw!)).toEqual({ valid: false });
+
+    const membered = await inviteClinicUser({
+      clinicId: CLINIC_A,
+      invitedByUserId: OPERATOR_ID,
+      name: "Membered Status",
+      email: `${PREFIX}status_member@example.test`,
+      role: "STAFF",
+    });
+    expect(membered.ok).toBe(true);
+    if (!membered.ok) {
+      return;
+    }
+    const memberedRow = await prisma.accountToken.findFirst({
+      where: {
+        userId: membered.userId,
+        consumedAt: null,
+        revokedAt: null,
+      },
+    });
+    const memberedRaw = await recoverRawTokenForTest(memberedRow!.tokenHash);
+    await prisma.clinicMembership.create({
+      data: {
+        clinicId: CLINIC_A,
+        userId: membered.userId,
+        role: ClinicMembershipRole.STAFF,
+      },
+    });
+    expect(await inspectInvitation(memberedRaw!)).toEqual({ valid: false });
+
+    const operatorInvite = await inviteClinicUser({
+      clinicId: CLINIC_A,
+      invitedByUserId: OPERATOR_ID,
+      name: "Operator Status",
+      email: `${PREFIX}status_operator@example.test`,
+      role: "STAFF",
+    });
+    expect(operatorInvite.ok).toBe(true);
+    if (!operatorInvite.ok) {
+      return;
+    }
+    const operatorRow = await prisma.accountToken.findFirst({
+      where: {
+        userId: operatorInvite.userId,
+        consumedAt: null,
+        revokedAt: null,
+      },
+    });
+    const operatorRaw = await recoverRawTokenForTest(operatorRow!.tokenHash);
+    await prisma.user.update({
+      where: { id: operatorInvite.userId },
+      data: { platformRole: PlatformRole.OPERATOR },
+    });
+    expect(await inspectInvitation(operatorRaw!)).toEqual({ valid: false });
   });
 });
 

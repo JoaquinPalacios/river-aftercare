@@ -2,15 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { cancelClinicInvitation } from "@/lib/operator/cancel-clinic-invitation";
 import { inviteClinicUserFormSchema } from "@/lib/operator/clinic-invitation-input";
 import {
+  clinicTeamStatusPath,
+  TEAM_STATUS,
+} from "@/lib/operator/clinic-team-status";
+import {
   INVITATION_DELIVERY_FAILED_MESSAGE,
   inviteClinicUser,
 } from "@/lib/operator/invite-clinic-user";
+import { removeClinicAccess } from "@/lib/operator/remove-clinic-access";
 import { resendClinicInvitation } from "@/lib/operator/resend-clinic-invitation";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 
@@ -97,10 +102,13 @@ export async function inviteClinicUserAction(
     }
 
     revalidateTeam(clinicId);
+    if (result.outcome === "ACCESS_RESTORED") {
+      redirect(clinicTeamStatusPath(clinicId, TEAM_STATUS.ACCESS_RESTORED));
+    }
     if (!result.delivered) {
       return { error: INVITATION_DELIVERY_FAILED_MESSAGE };
     }
-    return { success: `Invitation sent to ${result.email}.` };
+    redirect(clinicTeamStatusPath(clinicId, TEAM_STATUS.INVITATION_SENT));
   } catch (error) {
     if (isNextControlFlow(error)) {
       throw error;
@@ -133,7 +141,7 @@ export async function resendClinicInvitationAction(
     if (!result.delivered) {
       return { error: INVITATION_DELIVERY_FAILED_MESSAGE };
     }
-    return { success: `Invitation sent to ${result.email}.` };
+    return { success: "Invitation sent." };
   } catch (error) {
     if (isNextControlFlow(error)) {
       throw error;
@@ -165,5 +173,31 @@ export async function cancelClinicInvitationAction(
       throw error;
     }
     return { error: "Could not cancel the invitation." };
+  }
+}
+
+export async function removeClinicAccessAction(
+  _previous: ClinicTeamActionState,
+  formData: FormData
+): Promise<ClinicTeamActionState> {
+  await requireOperatorOnStaffHost();
+  const clinicId = clinicIdFromForm(formData);
+  const membershipId = formData.get("membershipId");
+  if (!clinicId || typeof membershipId !== "string" || !membershipId) {
+    notFound();
+  }
+
+  try {
+    const result = await removeClinicAccess({ clinicId, membershipId });
+    if (!result.ok) {
+      return { error: result.error };
+    }
+    revalidateTeam(clinicId);
+    redirect(clinicTeamStatusPath(clinicId, TEAM_STATUS.ACCESS_REMOVED));
+  } catch (error) {
+    if (isNextControlFlow(error)) {
+      throw error;
+    }
+    return { error: "Could not remove clinic access." };
   }
 }

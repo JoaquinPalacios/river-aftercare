@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const completeMock = vi.hoisted(() => vi.fn());
+const inspectMock = vi.hoisted(() => vi.fn());
 const hashPasswordMock = vi.hoisted(() => vi.fn());
 const logMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth/account-token-service", () => ({
   completeInvitation: completeMock,
+  inspectInvitation: inspectMock,
 }));
 
 vi.mock("@/lib/auth/password", () => ({
@@ -16,7 +18,10 @@ vi.mock("@/lib/auth/invitation-lifecycle-log", () => ({
   logInvitationLifecycle: logMock,
 }));
 
-import { acceptInvitationWithToken } from "@/lib/auth/accept-invitation";
+import {
+  acceptInvitationWithToken,
+  getInvitationAcceptanceStatus,
+} from "@/lib/auth/accept-invitation";
 import {
   INVITATION_INVALID_LINK_MESSAGE,
   NEW_PASSWORD_MAX_MESSAGE,
@@ -27,6 +32,7 @@ import {
 describe("acceptInvitationWithToken", () => {
   beforeEach(() => {
     completeMock.mockReset();
+    inspectMock.mockReset();
     hashPasswordMock.mockReset();
     logMock.mockReset();
   });
@@ -112,5 +118,27 @@ describe("acceptInvitationWithToken", () => {
       error: INVITATION_INVALID_LINK_MESSAGE,
       fieldErrors: { token: INVITATION_INVALID_LINK_MESSAGE },
     });
+  });
+
+  it("treats malformed tokens as invalid without inspecting", async () => {
+    await expect(
+      getInvitationAcceptanceStatus({ rawToken: "not a token" })
+    ).resolves.toEqual({ valid: false });
+    expect(inspectMock).not.toHaveBeenCalled();
+  });
+
+  it("returns only valid/invalid from invitation prevalidation", async () => {
+    inspectMock.mockResolvedValue({ valid: true });
+    await expect(
+      getInvitationAcceptanceStatus({
+        rawToken: "Aa1-_".repeat(8) + "abcde",
+      })
+    ).resolves.toEqual({ valid: true });
+    inspectMock.mockResolvedValue({ valid: false });
+    await expect(
+      getInvitationAcceptanceStatus({
+        rawToken: "Aa1-_".repeat(8) + "abcde",
+      })
+    ).resolves.toEqual({ valid: false });
   });
 });

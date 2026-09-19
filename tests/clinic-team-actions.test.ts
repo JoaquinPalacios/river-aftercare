@@ -7,6 +7,7 @@ const headersMock = vi.hoisted(() => vi.fn());
 const inviteMock = vi.hoisted(() => vi.fn());
 const resendMock = vi.hoisted(() => vi.fn());
 const cancelMock = vi.hoisted(() => vi.fn());
+const removeMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   notFound: notFoundMock,
@@ -44,11 +45,17 @@ vi.mock("@/lib/operator/cancel-clinic-invitation", () => ({
   cancelClinicInvitation: cancelMock,
 }));
 
+vi.mock("@/lib/operator/remove-clinic-access", () => ({
+  removeClinicAccess: removeMock,
+}));
+
 import {
   cancelClinicInvitationAction,
   inviteClinicUserAction,
+  removeClinicAccessAction,
   resendClinicInvitationAction,
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/team/actions";
+import { INVITATION_DELIVERY_FAILED_MESSAGE } from "@/lib/operator/invite-clinic-user";
 
 const operator = {
   id: "user_operator",
@@ -76,11 +83,12 @@ describe("clinic team operator actions", () => {
     inviteMock.mockReset();
     resendMock.mockReset();
     cancelMock.mockReset();
+    removeMock.mockReset();
     notFoundMock.mockImplementation(() => {
       throw new Error("NEXT_HTTP_ERROR_FALLBACK;404");
     });
-    redirectMock.mockImplementation(() => {
-      throw new Error("NEXT_REDIRECT");
+    redirectMock.mockImplementation((url: string) => {
+      throw new Error(`NEXT_REDIRECT:${url}`);
     });
     process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
     headersMock.mockResolvedValue(new Headers({ host: "app.localhost:3000" }));
@@ -94,39 +102,115 @@ describe("clinic team operator actions", () => {
     }
   });
 
-  it("lets an operator invite a user", async () => {
+  it("lets an operator invite a user and redirects to Team", async () => {
     getAuthContextMock.mockResolvedValue({
       user: operator,
       clinicMembership: null,
     });
     inviteMock.mockResolvedValue({
       ok: true,
+      outcome: "INVITATION_SENT",
       delivered: true,
       email: "jane@example.test",
       userId: "user_jane",
     });
 
-    const result = await inviteClinicUserAction(
-      {},
-      form({
-        clinicId: "clinic_1",
-        name: "Jane Example",
-        email: "jane@example.test",
-        role: "STAFF",
-        platformRole: "OPERATOR",
-        passwordHash: "should-be-ignored",
-      })
+    await expect(
+      inviteClinicUserAction(
+        {},
+        form({
+          clinicId: "clinic_1",
+          name: "Jane Example",
+          email: "jane@example.test",
+          role: "STAFF",
+          platformRole: "OPERATOR",
+          passwordHash: "should-be-ignored",
+        })
+      )
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/operator/clinics/clinic_1/team?status=invitation-sent"
     );
-
-    expect(result).toEqual({
-      success: "Invitation sent to jane@example.test.",
-    });
     expect(inviteMock).toHaveBeenCalledWith({
       clinicId: "clinic_1",
       invitedByUserId: operator.id,
       name: "Jane Example",
       email: "jane@example.test",
       role: "STAFF",
+    });
+  });
+
+  it("redirects restored access without claiming an invitation was sent", async () => {
+    getAuthContextMock.mockResolvedValue({
+      user: operator,
+      clinicMembership: null,
+    });
+    inviteMock.mockResolvedValue({
+      ok: true,
+      outcome: "ACCESS_RESTORED",
+      email: "orphan@example.test",
+      userId: "user_orphan",
+    });
+
+    await expect(
+      inviteClinicUserAction(
+        {},
+        form({
+          clinicId: "clinic_1",
+          name: "Orphan",
+          email: "orphan@example.test",
+          role: "ADMIN",
+        })
+      )
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/operator/clinics/clinic_1/team?status=access-restored"
+    );
+  });
+
+  it("stays on Invite user when delivery fails", async () => {
+    getAuthContextMock.mockResolvedValue({
+      user: operator,
+      clinicMembership: null,
+    });
+    inviteMock.mockResolvedValue({
+      ok: true,
+      outcome: "INVITATION_SENT",
+      delivered: false,
+      email: "nomail@example.test",
+      userId: "user_nomail",
+    });
+
+    await expect(
+      inviteClinicUserAction(
+        {},
+        form({
+          clinicId: "clinic_1",
+          name: "No Mail",
+          email: "nomail@example.test",
+          role: "STAFF",
+        })
+      )
+    ).resolves.toEqual({ error: INVITATION_DELIVERY_FAILED_MESSAGE });
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("lets an operator remove access and redirects to Team", async () => {
+    getAuthContextMock.mockResolvedValue({
+      user: operator,
+      clinicMembership: null,
+    });
+    removeMock.mockResolvedValue({ ok: true, userId: "user_jane" });
+
+    await expect(
+      removeClinicAccessAction(
+        {},
+        form({ clinicId: "clinic_1", membershipId: "membership_1" })
+      )
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/operator/clinics/clinic_1/team?status=access-removed"
+    );
+    expect(removeMock).toHaveBeenCalledWith({
+      clinicId: "clinic_1",
+      membershipId: "membership_1",
     });
   });
 
@@ -147,6 +231,13 @@ describe("clinic team operator actions", () => {
       )
     ).rejects.toThrow("NEXT_REDIRECT");
     expect(inviteMock).not.toHaveBeenCalled();
+    await expect(
+      removeClinicAccessAction(
+        {},
+        form({ clinicId: "clinic_1", membershipId: "membership_1" })
+      )
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(removeMock).not.toHaveBeenCalled();
   });
 
   it("rejects clinic ADMIN and STAFF", async () => {
@@ -175,6 +266,13 @@ describe("clinic team operator actions", () => {
       )
     ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
     expect(inviteMock).not.toHaveBeenCalled();
+    await expect(
+      removeClinicAccessAction(
+        {},
+        form({ clinicId: "clinic_1", membershipId: "membership_1" })
+      )
+    ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+    expect(removeMock).not.toHaveBeenCalled();
 
     getAuthContextMock.mockResolvedValue({
       user: {
@@ -201,6 +299,12 @@ describe("clinic team operator actions", () => {
         form({ clinicId: "clinic_1", userId: "user_pending" })
       )
     ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+    await expect(
+      removeClinicAccessAction(
+        {},
+        form({ clinicId: "clinic_1", membershipId: "membership_2" })
+      )
+    ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
   });
 
   it("404s clinic team mutations on a non-staff host", async () => {
@@ -224,5 +328,12 @@ describe("clinic team operator actions", () => {
       )
     ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
     expect(inviteMock).not.toHaveBeenCalled();
+    await expect(
+      removeClinicAccessAction(
+        {},
+        form({ clinicId: "clinic_1", membershipId: "membership_1" })
+      )
+    ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+    expect(removeMock).not.toHaveBeenCalled();
   });
 });

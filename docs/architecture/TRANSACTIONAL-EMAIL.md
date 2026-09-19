@@ -86,4 +86,4 @@ Invitation HTML templates live in `lib/email/invitation-mail.ts`. Password-reset
 
 Invitation and reset links use a URL fragment (`#token=`) on the trusted staff origin `https://app.<CARE_GUIDE_ROOT_DOMAIN>`. Do not build those URLs from `Host` / `x-forwarded-host`.
 
-Password-reset delivery failure revokes the new token best-effort so cooldown does not block retry. Invitation delivery failure **retains** the pending token so a late provider delivery is not guaranteed dead; the operator is told to resend. Resend supersedes the previous outstanding invitation.
+Password-reset delivery failure revokes the new token best-effort so cooldown does not block retry. Invitation delivery failure **retains** the pending token so a late provider delivery is not guaranteed dead; the operator is told to resend. Resend supersedes the previous outstanding invitation. Restoring clinic access for a passworded zero-membership User does **not** send mail.

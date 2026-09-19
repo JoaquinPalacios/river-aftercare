@@ -1628,18 +1628,36 @@ Replaces the `/terms` draft with the current public Terms & Conditions and remov
 
 ## Operator clinic invitations (2026-09-19)
 
-Operator-managed clinic provisioning. **Not live until this PR is merged and deployed.** No new Prisma migration. Clinic ADMIN/STAFF cannot invite.
+Operator-managed clinic provisioning. Live after PR #51. No new Prisma migration. Clinic ADMIN/STAFF cannot invite.
 
-| Area            | Behaviour                                                                                                                                                                                                                                                                    |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Team            | `/operator/clinics/[clinicId]/team`. Invite user (name, email, ADMIN/STAFF). Statuses derived: Active / Pending / Invitation expired.                                                                                                                                        |
-| New user        | Create User (`passwordHash` null, `platformRole` NONE). No `ClinicMembership` until acceptance. 7-day `INVITATION` token. Email fragment link.                                                                                                                               |
-| Acceptance      | `/accept-invitation#token=`. 12–256 password. Consume token, set hash, set `emailVerified`, create membership from persisted token clinic/role. No auto-login. `/login?invite=success`.                                                                                      |
-| Guards          | One membership per User. Other-clinic member / pending blocked. Platform operators cannot be invited as clinic members. Existing password + zero memberships: restore access not supported.                                                                                  |
-| Resend / cancel | Operator only. Resend supersedes outstanding token. Cancel revokes; User kept. Re-invite same-clinic pending/expired/cancelled null-hash users.                                                                                                                              |
-| Remove access   | **Not exposed.** Would leave a passworded zero-membership User that cannot be restored. Next lifecycle PR: remove access + restore existing passworded access + session invalidation on removal; no password reset during restoration. Role change after invite is deferred. |
-| Mail            | `AUTH_EMAIL_FROM` / optional `AUTH_EMAIL_REPLY_TO`. Delivery failure retains the pending token and tells the operator to resend.                                                                                                                                             |
-| Host            | Staff app only. Marketing and tenant 404 `/accept-invitation` and `/operator`.                                                                                                                                                                                               |
-| Not added       | Remove access UI, clinic-admin Team, multi-clinic picker, email change, global disable, restore-access, Turnstile, WAF, schema/migration.                                                                                                                                    |
+| Area            | Behaviour                                                                                                                                                                                                                                                                                                                                 |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Team            | `/operator/clinics/[clinicId]/team`. Invite user (name, email, ADMIN/STAFF). Statuses derived: Active / Pending / Invitation expired. Successful invite delivery redirects to Team (`?status=invitation-sent` → “Invitation sent.”).                                                                                                     |
+| New user        | Create User (`passwordHash` null, `platformRole` NONE). No `ClinicMembership` until acceptance. 7-day `INVITATION` token. Email fragment link.                                                                                                                                                                                            |
+| Acceptance      | `/accept-invitation#token=`. Prevalidate via `POST /api/auth/invitation-status` (CHECKING / VALID / INVALID). 12–256 password. Consume token, set hash, set `emailVerified`, create membership from persisted token clinic/role. Replay remains atomically rejected. No auto-login. `/login?invite=success`.                            |
+| Guards          | One membership per User. Other-clinic member / pending blocked. Platform operators cannot be invited as clinic members.                                                                                                                                                                                                                   |
+| Restore access  | Passworded zero-membership User: create one membership with the operator-selected role. Keep password byte-for-byte. No invitation token or email. `?status=access-restored` → “Access restored.”                                                                                                                                       |
+| Resend / cancel | Operator only. Resend supersedes outstanding token. Cancel revokes; User kept. Re-invite same-clinic pending/expired/cancelled null-hash users.                                                                                                                                                                                           |
+| Remove access   | Operator only. Delete this `ClinicMembership`, delete all target sessions, keep User/password/email/AccountToken history. `?status=access-removed` → “Access removed.” No last-admin guard while provisioning is operator-only.                                                                                                           |
+| Mail            | `AUTH_EMAIL_FROM` / optional `AUTH_EMAIL_REPLY_TO`. Delivery failure retains the pending token and tells the operator to resend. Restoration does not send mail.                                                                                                                                                                          |
+| Host            | Staff app only. Marketing and tenant 404 `/accept-invitation`, `/api/auth/invitation-status`, and `/operator`.                                                                                                                                                                                                                            |
+| Not added       | Role editing, clinic-admin Team, multi-clinic picker, email change, global disable, last-admin guard, Turnstile, WAF, schema/migration.                                                                                                                                                                                                  |
+
+See [AUTH.md](../architecture/AUTH.md).
+
+---
+
+## Team access lifecycle polish (2026-09-19)
+
+UX and lifecycle follow-up after production invitation smoke testing. No new Prisma migration. No production Neon / Vercel / Resend changes from this work.
+
+| Area              | Behaviour                                                                                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Invitation status | `POST /api/auth/invitation-status` hashes the fragment token, never consumes it, returns only `{ valid }`. Accept page states: CHECKING / VALID / INVALID. |
+| Replay            | `completeInvitation` still consumes atomically. A reused link cannot change password, role, or membership.                                                 |
+| Send button       | Pending state uses `staffLoginSubmit` flex + gap so the spinner does not overlap “Sending…”.                                                               |
+| Post-invite       | Successful delivery redirects to Team with a fixed `status` flag. Delivery failure stays on Invite user.                                                   |
+| Remove / restore  | Active rows expose Remove access. Passworded zero-membership Users are restored from Invite user without a new invitation or password change.              |
+| Not added         | Role editing, clinic-admin Team, last-admin guard, access-restored email, schema/migration.                                                                |
 
 See [AUTH.md](../architecture/AUTH.md).

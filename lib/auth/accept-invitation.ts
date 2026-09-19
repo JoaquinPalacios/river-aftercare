@@ -1,6 +1,9 @@
 import "server-only";
 
-import { completeInvitation } from "@/lib/auth/account-token-service";
+import {
+  completeInvitation,
+  inspectInvitation,
+} from "@/lib/auth/account-token-service";
 import { isWellFormedRawAccountToken } from "@/lib/auth/account-token-format";
 import { logInvitationLifecycle } from "@/lib/auth/invitation-lifecycle-log";
 import { hashPassword } from "@/lib/auth/password";
@@ -21,6 +24,17 @@ export type AcceptInvitationResult =
         token?: string;
       };
     };
+
+export async function getInvitationAcceptanceStatus(input: {
+  rawToken: string;
+  now?: Date;
+}): Promise<{ valid: boolean }> {
+  if (!isWellFormedRawAccountToken(input.rawToken)) {
+    return { valid: false };
+  }
+
+  return inspectInvitation(input.rawToken, { now: input.now });
+}
 
 export async function acceptInvitationWithToken(input: {
   rawToken: string;
