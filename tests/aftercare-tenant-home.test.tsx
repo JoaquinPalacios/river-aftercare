@@ -56,6 +56,7 @@ const DEMODENTAL = {
     instructionTerminology: "POST_TREATMENT",
     themeMode: "SYSTEM",
     allowPatientThemeToggle: true,
+    typeface: null,
   },
   guides: [
     {

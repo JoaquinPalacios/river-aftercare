@@ -30,6 +30,7 @@ describe("practice settings schema", () => {
       primaryColor: "#155e75",
       accentColor: "#b45309",
       radiusPreset: "SOFT",
+      typeface: null,
       instructionTerminology: "POST_TREATMENT",
       themeMode: "DARK",
       allowPatientThemeToggle: true,
@@ -71,5 +72,26 @@ describe("practice settings schema", () => {
         contactUrl: "javascript:alert(1)",
       }).success
     ).toBe(false);
+  });
+
+  it("accepts curated typefaces and falls back to the product default", () => {
+    expect(
+      practiceSettingsSchema.parse({
+        ...valid,
+        typeface: "INTER",
+      }).typeface
+    ).toBe("INTER");
+    expect(
+      practiceSettingsSchema.parse({
+        ...valid,
+        typeface: "Comic Sans",
+      }).typeface
+    ).toBeNull();
+    expect(
+      practiceSettingsSchema.parse({
+        ...valid,
+        typeface: "",
+      }).typeface
+    ).toBeNull();
   });
 });

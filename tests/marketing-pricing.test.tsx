@@ -11,7 +11,11 @@ vi.mock("next/headers", () => ({
 }));
 
 import MarketingPricingPage from "@/app/(marketing)/%5Fmarketing/pricing/page";
-import { LAUNCH_PLANS } from "@/lib/marketing/plans";
+import {
+  formatAudInclGst,
+  LAUNCH_PLANS,
+  PLAN_PRICES,
+} from "@/lib/marketing/plans";
 
 describe("marketing pricing page", () => {
   const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
@@ -28,7 +32,7 @@ describe("marketing pricing page", () => {
     }
   });
 
-  it("publishes working launch plans without post-launch check-ins", async () => {
+  it("publishes production launch plans without roadmap or provisional copy", async () => {
     const html = renderToStaticMarkup(await MarketingPricingPage());
 
     expect(html.match(/<h1\b/g)).toHaveLength(1);
@@ -38,47 +42,86 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("mkPageWavePricing");
     expect(html).toContain("headingBlock");
     expect(html).toContain("headingFollow");
-    expect(html).toContain("laterList");
-    expect(html.indexOf("laterList")).toBeGreaterThan(
-      html.indexOf("Coming after launch")
-    );
+    expect(html).toContain("noteCard");
+    expect(html).toContain("Clear pricing, assisted setup");
+    expect(html).toContain("What these prices include");
+    expect(html).not.toContain("laterList");
+    expect(html).not.toContain("Coming after launch");
+    expect(html).not.toContain("Commercial notes");
+    expect(html).not.toContain("working pricing");
+    expect(html).not.toContain("Working Australian pricing");
+    expect(html).not.toContain("provisional");
+    expect(html).not.toContain("still being finalised");
+    expect(html).not.toContain("self-serve billing");
+    expect(html).not.toContain("coming soon");
 
     const styles = readFileSync("app/(marketing)/marketing.module.css", "utf8");
     const tokens = readFileSync("app/(marketing)/marketing.css", "utf8");
     expect(tokens).toContain(
       "--mk-intro-content-gap: clamp(1.25rem, 2vw, 1.5rem)"
     );
-    expect(styles).toContain(".laterList.headingFollow");
-    expect(styles).toContain("margin-top: var(--mk-intro-content-gap)");
-    expect(html).toContain("noteCard");
     expect(styles).toContain(".noteCard");
     expect(styles).toContain("inset 0 1px 0");
     expect(styles).toContain(
       "color-mix(in srgb, var(--mk-brand) 20%, var(--mk-card-line))"
     );
-    expect(html).toContain("A$79");
-    expect(html).toContain("A$149");
+
+    expect(html).toContain(
+      formatAudInclGst(PLAN_PRICES.essential.monthlyAudInclGst)
+    );
+    expect(html).toContain(
+      formatAudInclGst(PLAN_PRICES.essential.annualAudInclGst)
+    );
+    expect(html).toContain(
+      formatAudInclGst(PLAN_PRICES.practice.monthlyAudInclGst)
+    );
+    expect(html).toContain(
+      formatAudInclGst(PLAN_PRICES.practice.annualAudInclGst)
+    );
+    expect(html).not.toContain("Second location:");
+    expect(html).not.toContain("Third and subsequent");
+    expect(html).not.toContain(
+      formatAudInclGst(
+        PLAN_PRICES.practice.additionalLocation.monthlyAudInclGst
+      )
+    );
+    expect(html).not.toContain(
+      formatAudInclGst(PLAN_PRICES.practice.additionalLocation.annualAudInclGst)
+    );
+    expect(html).toContain("All prices include GST.");
+    expect(html).toContain("12 months for the price of 10");
     expect(html).toContain("Custom pricing");
     expect(html).toContain("Recommended");
     expect(html).toContain(LAUNCH_PLANS[0].name);
     expect(html).toContain(LAUNCH_PLANS[1].name);
     expect(html).toContain(LAUNCH_PLANS[2].name);
-    expect(html).toContain("Available River Aftercare guide templates");
+    expect(html).toContain("River Aftercare guide templates");
     expect(html).toContain("Print / Save PDF");
+    expect(html).toContain("Up to 2 custom clinic guides");
+    expect(html).toContain("Up to 30 custom clinic guides");
+    expect(html).not.toContain("active custom");
+    expect(html).toContain(
+      "Multi-location practice? Talk to us about your setup."
+    );
+    expect(html).toContain("Need a larger guide library? Talk to us.");
+    expect(html).not.toContain("Richer branding");
+    expect(html).not.toContain("hide River Aftercare attribution");
+    expect(html).not.toContain("Shared guides");
+    expect(html).toContain(
+      "Choose from a curated set of professional typefaces"
+    );
     expect(html).not.toContain("Curated dental guide library");
     expect(html).not.toContain("Broader dental template library");
-    expect(html).toContain("Coming after launch");
-    expect(html).toContain("Patient check-ins");
-    expect(html).toContain("Choose the plan that fits your practice");
+    expect(html).not.toContain("Patient check-ins");
     expect(html).not.toContain("Choose the shape that matches your practice");
-    expect(html).toContain("Connected aftercare plans");
+    expect(html).toContain("Choose the plan that fits your practice");
+    expect(html).not.toContain("Connected aftercare plans");
     expect(html).not.toContain("Connected recovery plans");
-    expect(html).toContain("Assisted onboarding is available");
-    expect(html).toContain("Start with approved guidance, then make it yours");
-    expect(html).toContain("Where a River Aftercare template exists");
-    expect(html).toContain("template library is still expanding");
+    expect(html).toContain("Start with trusted guidance, then make it yours");
+    expect(html).toContain("Clinics remain responsible for approving");
     expect(html).toContain("numberedStepIndex");
     expect(html).toContain("numberedStepRule");
+    expect(html).toContain("numberedStepTitle");
     expect(html).not.toContain("Wisdom Teeth");
     expect(html).not.toContain("Dental Implant");
     expect(html).not.toContain("Periodontal Deep Cleaning");
@@ -87,11 +130,16 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("frictionIndex");
     expect(html).not.toContain("A$249");
     expect(html).not.toContain("A$499");
+    expect(html).not.toContain("A$298");
+    expect(html).not.toContain("298");
     expect(html).not.toContain("pay for 10 months");
     expect(html).toContain('href="/contact"');
     expect(html).not.toContain("analytics dashboard");
     expect(html).not.toContain("SMS");
     expect(html).not.toContain("custom domain");
+    expect(html).toContain(
+      "monitoring, persisted patient check-ins, CRM, messaging, or PMS integrations"
+    );
     expect(html).toContain("or PMS integrations");
     expect(html).not.toContain("<form");
     expect(html).not.toContain("/_marketing");
@@ -102,8 +150,43 @@ describe("marketing pricing page", () => {
       html.indexOf('id="plan-essential"'),
       html.indexOf('id="plan-practice"')
     );
+    const practiceBlock = html.slice(
+      html.indexOf('id="plan-practice"'),
+      html.indexOf('id="plan-group"')
+    );
+    const groupBlock = html.slice(html.indexOf('id="plan-group"'));
+    expect(essentialBlock).toContain("1 practice / location");
     expect(essentialBlock).not.toContain("Patient check-ins");
     expect(essentialBlock).not.toContain("Connected aftercare");
-    expect(essentialBlock).not.toContain("Connected recovery");
+    expect(essentialBlock).not.toContain("Additional locations");
+    expect(practiceBlock).toContain("Everything in Essential");
+    expect(practiceBlock).toContain("Create and adapt clinic aftercare");
+    expect(practiceBlock).toContain(
+      "Multi-location practice? Talk to us about your setup."
+    );
+    expect(practiceBlock).not.toContain("A$59");
+    expect(practiceBlock).not.toContain("A$590");
+    expect(groupBlock).toContain("Custom pricing");
+    expect(groupBlock).not.toContain("A$");
+    expect(groupBlock).toContain("Talk to us");
+  });
+});
+
+describe("canonical plan prices", () => {
+  it("keeps GST-inclusive production amounts in one source", () => {
+    expect(PLAN_PRICES.essential.monthlyAudInclGst).toBe(79);
+    expect(PLAN_PRICES.essential.annualAudInclGst).toBe(790);
+    expect(PLAN_PRICES.essential.includedLocations).toBe(1);
+    expect(PLAN_PRICES.essential.customGuides).toBe(2);
+    expect(PLAN_PRICES.practice.monthlyAudInclGst).toBe(149);
+    expect(PLAN_PRICES.practice.annualAudInclGst).toBe(1490);
+    expect(PLAN_PRICES.practice.includedLocations).toBe(1);
+    expect(PLAN_PRICES.practice.customGuides).toBe(30);
+    expect(PLAN_PRICES.practice.secondLocation.monthlyAudInclGst).toBe(79);
+    expect(PLAN_PRICES.practice.secondLocation.annualAudInclGst).toBe(790);
+    expect(PLAN_PRICES.practice.additionalLocation.monthlyAudInclGst).toBe(59);
+    expect(PLAN_PRICES.practice.additionalLocation.annualAudInclGst).toBe(590);
+    expect(formatAudInclGst(1490)).toBe("A$1,490");
+    expect(JSON.stringify(PLAN_PRICES)).not.toContain("298");
   });
 });

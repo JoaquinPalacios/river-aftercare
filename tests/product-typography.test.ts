@@ -36,12 +36,22 @@ describe("product typography", () => {
     const nextFontImports = walk("app")
       .concat(walk("lib"))
       .filter((path) => /\.(ts|tsx)$/.test(path))
-      .filter((path) => read(path).includes("next/font"));
+      .filter((path) => read(path).includes("next/font"))
+      .sort();
 
-    expect(nextFontImports).toEqual(["lib/branding/fonts.ts"]);
+    expect(nextFontImports).toEqual(
+      ["lib/branding/clinic-fonts.ts", "lib/branding/fonts.ts"].sort()
+    );
+    expect(read("lib/branding/clinic-fonts.ts")).toContain("preload: false");
+    expect(read("lib/branding/clinic-fonts.ts")).not.toContain(
+      "fonts.googleapis.com"
+    );
+    expect(read("lib/branding/clinic-fonts.ts")).not.toContain(
+      "fonts.gstatic.com"
+    );
   });
 
-  it("uses Geist as the primary family on every product surface", () => {
+  it("keeps Geist as the product typeface and clinic fonts as a patient token", () => {
     const staffCss = read("app/(staff)/staff.css");
     const aftercareCss = read("app/(aftercare)/aftercare.css");
     const marketingCss = read("app/(marketing)/marketing.css");
@@ -52,14 +62,19 @@ describe("product typography", () => {
       "font-family: var(--font-geist-sans), sans-serif;"
     );
     expect(aftercareCss).toContain(
+      "font-family: var(--cg-font-sans, var(--font-geist-sans)), sans-serif;"
+    );
+    expect(aftercareCss).toContain(
       "font-family: var(--font-geist-sans), sans-serif;"
     );
     expect(marketingCss).toContain(
       "font-family: var(--font-geist-sans), sans-serif;"
     );
     expect(patientCss).toContain(
-      "font-family: var(--font-geist-sans), sans-serif;"
+      "font-family: var(--cg-font-sans, var(--font-geist-sans)), sans-serif;"
     );
+    expect(marketingCss).not.toContain("--cg-font-sans");
+    expect(staffCss).not.toContain("--cg-font-sans");
     expect(aftercareCss).not.toContain("system-ui");
     expect(aftercareCss).not.toContain("ui-sans-serif");
     expect(marketingCss).not.toContain("system-ui");

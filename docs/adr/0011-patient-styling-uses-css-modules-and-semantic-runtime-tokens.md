@@ -30,7 +30,7 @@ Do **not**:
 - add arbitrary CSS fields to `ClinicProfile` (`customCss`, `cssOverride`, `stylesheet`, `headerHtml`);
 - load tenant-selected Google Fonts or arbitrary third-party font URLs.
 
-Future commercial font/brand options must be **presets** mapped to predefined tokens, self-hosted via `next/font` or equivalent, and reviewed against the performance budget.
+Commercial clinic typefaces must be **presets** mapped to predefined tokens, self-hosted via `next/font` or equivalent, and reviewed against the performance budget. The current allowlist lives in `lib/branding/clinic-typeface.ts` and is applied on the patient tenant layout only.
 
 ## Consequences
 

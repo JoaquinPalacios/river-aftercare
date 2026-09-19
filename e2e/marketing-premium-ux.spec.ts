@@ -1154,38 +1154,26 @@ test.describe("premium marketing UX", () => {
     });
 
     await page.goto(marketingUrl("/pricing"), { waitUntil: "load" });
-    const plannedGap = await page
-      .locator('[class*="laterList"]')
+    const notesGap = await page
+      .locator('[class*="noteGrid"]')
       .evaluate((element) =>
         Number.parseFloat(getComputedStyle(element).marginTop)
       );
-    expect(plannedGap).toBeGreaterThanOrEqual(20);
-    expect(plannedGap).toBeLessThanOrEqual(28);
+    expect(notesGap).toBeGreaterThanOrEqual(36);
+    expect(notesGap).toBeLessThanOrEqual(50);
     await showMarketingScheme(page, "light");
     await page
-      .getByRole("heading", { name: "What these prices do and do not include" })
+      .getByRole("heading", { name: "What these prices include" })
       .locator("xpath=ancestor::section[1]")
       .screenshot({
         path: "test-results/artifacts/pricing-commercial-notes-light-1440.png",
       });
-    await page
-      .getByRole("heading", { name: "Planned, not in active plans" })
-      .locator("xpath=ancestor::section[1]")
-      .screenshot({
-        path: "test-results/artifacts/pricing-planned-light-1440.png",
-      });
     await showMarketingScheme(page, "dark");
     await page
-      .getByRole("heading", { name: "What these prices do and do not include" })
+      .getByRole("heading", { name: "What these prices include" })
       .locator("xpath=ancestor::section[1]")
       .screenshot({
         path: "test-results/artifacts/pricing-commercial-notes-dark-1440.png",
-      });
-    await page
-      .getByRole("heading", { name: "Planned, not in active plans" })
-      .locator("xpath=ancestor::section[1]")
-      .screenshot({
-        path: "test-results/artifacts/pricing-planned-dark-1440.png",
       });
 
     await page.goto(marketingUrl("/contact"), { waitUntil: "load" });
@@ -1269,10 +1257,10 @@ test.describe("premium marketing UX", () => {
 
     await page.goto(marketingUrl("/pricing"), { waitUntil: "load" });
     await page
-      .getByRole("heading", { name: "Planned, not in active plans" })
+      .getByRole("heading", { name: "What these prices include" })
       .locator("xpath=ancestor::section[1]")
       .screenshot({
-        path: "test-results/artifacts/pricing-planned-390.png",
+        path: "test-results/artifacts/pricing-notes-390.png",
       });
     await expectNoHorizontalOverflow(page);
 

@@ -2,11 +2,26 @@ import { MarketingRevealCard } from "@/app/(marketing)/components/marketing-expe
 
 import styles from "../marketing.module.css";
 
+export type MarketingNumberedStep =
+  | string
+  | {
+      title: string;
+      body: string;
+    };
+
+function stepKey(item: MarketingNumberedStep, index: number): string {
+  return typeof item === "string" ? item : `${index}-${item.title}`;
+}
+
+function stepBody(item: MarketingNumberedStep): string {
+  return typeof item === "string" ? item : item.body;
+}
+
 export function MarketingNumberedSteps({
   items,
   className,
 }: {
-  items: readonly string[];
+  items: readonly MarketingNumberedStep[];
   className?: string;
 }) {
   return (
@@ -18,9 +33,9 @@ export function MarketingNumberedSteps({
       }
       data-mk-numbered-steps=""
     >
-      {items.map((copy, index) => (
+      {items.map((item, index) => (
         <MarketingRevealCard
-          key={copy}
+          key={stepKey(item, index)}
           as="li"
           index={index}
           className={styles.numberedStep}
@@ -29,7 +44,14 @@ export function MarketingNumberedSteps({
             {String(index + 1).padStart(2, "0")}
           </span>
           <span className={styles.numberedStepRule} aria-hidden="true" />
-          <p className={styles.numberedStepCopy}>{copy}</p>
+          {typeof item === "string" ? (
+            <p className={styles.numberedStepCopy}>{item}</p>
+          ) : (
+            <div className={styles.numberedStepCopyBlock}>
+              <p className={styles.numberedStepTitle}>{item.title}</p>
+              <p className={styles.numberedStepCopy}>{stepBody(item)}</p>
+            </div>
+          )}
         </MarketingRevealCard>
       ))}
     </ol>

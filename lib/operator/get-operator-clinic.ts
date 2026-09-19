@@ -14,6 +14,7 @@ export interface OperatorClinicDetail {
     accentColor: string | null;
     neutralColor: string | null;
     radiusPreset: string | null;
+    typeface: string | null;
     instructionTerminology: string | null;
     themeMode: string | null;
     allowPatientThemeToggle: boolean | null;
@@ -100,6 +101,7 @@ export async function getOperatorClinic(
       accentColor: clinic.profile?.accentColor ?? null,
       neutralColor: clinic.profile?.neutralColor ?? null,
       radiusPreset: clinic.profile?.radiusPreset ?? null,
+      typeface: clinic.profile?.typeface ?? null,
       instructionTerminology: clinic.profile?.instructionTerminology ?? null,
       themeMode: clinic.profile?.themeMode ?? null,
       allowPatientThemeToggle: clinic.profile?.allowPatientThemeToggle ?? null,

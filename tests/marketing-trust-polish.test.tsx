@@ -81,10 +81,9 @@ describe("marketing + trust polish", () => {
     expect(home).toContain("data-mk-numbered-steps");
     expect(home.match(/data-mk-numbered-steps/g)).toHaveLength(1);
     expect(pricing).toContain("data-mk-numbered-steps");
-    expect(pricing).toContain(
-      "Choose or prepare the guidance your clinic needs"
-    );
-    expect(pricing).toContain("template library is still expanding");
+    expect(pricing).toContain("Choose an available River Aftercare guide");
+    expect(pricing).toContain("Clinics remain responsible for approving");
+    expect(pricing).not.toContain("template library is still expanding");
     expect(pricing).not.toContain("Additional dental templates are planned");
     expect(pricing).not.toContain("Wisdom Teeth");
     expect(pricing).not.toContain("Dental Implant");

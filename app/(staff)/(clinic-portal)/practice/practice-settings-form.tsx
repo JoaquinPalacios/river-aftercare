@@ -21,6 +21,7 @@ import {
 } from "@/app/(staff)/(clinic-portal)/practice/actions";
 import { formSaveStatus } from "@/lib/clinic-portal/form-save-status";
 import type { PracticeSettingsInput } from "@/lib/clinic-portal/practice-settings-schema";
+import { CLINIC_TYPEFACE_OPTIONS } from "@/lib/branding/clinic-typeface";
 
 const initial: PracticeActionState = {};
 
@@ -281,6 +282,33 @@ export function PracticeSettingsForm({
               <option value="MEDIUM">Medium</option>
               <option value="SOFT">Soft</option>
             </select>
+          </Field>
+          <Field label="Patient typeface" htmlFor="typeface">
+            <select
+              id="typeface"
+              name="typeface"
+              value={form.typeface ?? ""}
+              onChange={(event) =>
+                patch(
+                  "typeface",
+                  (event.target.value ||
+                    null) as PracticeSettingsInput["typeface"]
+                )
+              }
+              disabled={!canEdit}
+              className="staffSelect"
+            >
+              <option value="">River Aftercare default</option>
+              {CLINIC_TYPEFACE_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-sm text-staff-muted">
+              Applies to patient-facing aftercare pages. Staff and marketing
+              screens keep the River Aftercare typeface.
+            </p>
           </Field>
           <Field label="Patient terminology" htmlFor="instructionTerminology">
             <select

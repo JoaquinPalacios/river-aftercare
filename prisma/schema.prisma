@@ -84,6 +84,15 @@ enum ClinicThemeMode {
   SYSTEM
 }
 
+enum ClinicTypeface {
+  OPEN_SANS
+  ROBOTO
+  MONTSERRAT
+  LATO
+  POPPINS
+  INTER
+}
+
 enum PlatformRole {
   NONE
   OPERATOR
@@ -391,7 +400,7 @@ model ProcedureSessionStageTransition {
   @@index([procedureSessionId, occurredAt])
 }
 
-/// Patient-facing practice chrome. Colour, radius, terminology, and theme-policy fields are validated and mapped to semantic tokens. Never add arbitrary CSS injection fields (customCss, stylesheet, headerHtml).
+/// Patient-facing practice chrome. Colour, radius, terminology, typeface, and theme-policy fields are validated and mapped to semantic tokens. Never add arbitrary CSS injection fields (customCss, stylesheet, headerHtml).
 model ClinicProfile {
   clinicId                 String                       @id
   displayName              String
@@ -401,6 +410,7 @@ model ClinicProfile {
   accentColor              String?
   neutralColor             String?
   radiusPreset             ClinicRadiusPreset           @default(MEDIUM)
+  typeface                 ClinicTypeface?
   instructionTerminology   ClinicInstructionTerminology @default(AFTERCARE)
   themeMode                ClinicThemeMode              @default(SYSTEM)
   allowPatientThemeToggle  Boolean                      @default(false)

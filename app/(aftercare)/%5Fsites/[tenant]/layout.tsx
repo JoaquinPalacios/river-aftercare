@@ -3,6 +3,7 @@ import {
   resolveAftercareTheme,
   serializeAftercareThemeCss,
 } from "@/lib/branding/aftercare-theme";
+import { clinicFontPresentation } from "@/lib/branding/clinic-fonts";
 import {
   PATIENT_THEME_STORAGE_KEY,
   themePreferenceBootstrapScript,
@@ -25,6 +26,7 @@ export default async function TenantLayout({
   const { tenant } = await params;
   const clinic = await requireTenantClinic(tenant);
   const theme = resolveAftercareTheme(clinic.profile);
+  const font = clinicFontPresentation(clinic.profile?.typeface);
   const allowPatientThemeToggle =
     clinic.profile?.allowPatientThemeToggle === true;
   const ThemeControl = allowPatientThemeToggle
@@ -48,7 +50,11 @@ export default async function TenantLayout({
           }),
         }}
       />
-      <PatientThemeBoundary themeMode={clinic.profile?.themeMode}>
+      <PatientThemeBoundary
+        themeMode={clinic.profile?.themeMode}
+        fontClassName={font.className}
+        fontCssVariable={font.cssVariable}
+      >
         {ThemeControl ? (
           <div className="patientThemeSlot">
             <ThemeControl />

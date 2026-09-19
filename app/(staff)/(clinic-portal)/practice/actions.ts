@@ -30,6 +30,7 @@ export async function savePracticeSettingsAction(
     accentColor: formData.get("accentColor") ?? "",
     neutralColor: formData.get("neutralColor") ?? "",
     radiusPreset: formData.get("radiusPreset") ?? "MEDIUM",
+    typeface: formData.get("typeface") ?? "",
     instructionTerminology:
       formData.get("instructionTerminology") ?? "AFTERCARE",
     themeMode: formData.get("themeMode") ?? "SYSTEM",
