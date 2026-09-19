@@ -8,7 +8,6 @@ import {
   MarketingRevealPreview,
 } from "@/app/(marketing)/components/marketing-experience";
 import { MarketingNumberedSteps } from "@/app/(marketing)/components/marketing-numbered-steps";
-import { MarketingPatientPreview } from "@/app/(marketing)/components/marketing-patient-preview";
 import { MarketingPillars } from "@/app/(marketing)/components/marketing-pillars";
 import { MarketingProcess } from "@/app/(marketing)/components/marketing-process";
 import { MarketingProductAssembly } from "@/app/(marketing)/components/marketing-product-assembly";
@@ -265,8 +264,15 @@ export default async function MarketingHomePage() {
               </div>
             </MarketingReveal.Group>
           </section>
+        </div>
 
+        <div
+          className={`${styles.marketingShowcase} ${styles.workflowShowcase}`}
+          data-mk-chapter="showcase"
+          data-mk-workflow-showcase=""
+        >
           <section
+            id="clinic-types"
             className={styles.band}
             aria-labelledby="clinic-types-heading"
           >
@@ -281,7 +287,7 @@ export default async function MarketingHomePage() {
                   <MarketingReveal.Item delay={editorialRevealDelay(1)}>
                     <h2
                       id="clinic-types-heading"
-                      className={styles.sectionTitle}
+                      className={`${styles.sectionTitle} ${styles.workflowTitle}`}
                     >
                       One aftercare platform. Different clinic workflows.
                     </h2>
@@ -321,49 +327,6 @@ export default async function MarketingHomePage() {
                 </Link>
               </p>
             </div>
-          </section>
-        </div>
-
-        <div className={styles.marketingShowcase} data-mk-chapter="showcase">
-          <section
-            id="preview"
-            className={styles.band}
-            aria-labelledby="preview-heading"
-          >
-            <MarketingReveal.Group>
-              <div className={`${styles.inner} ${styles.previewGrid}`}>
-                <div className={styles.previewCopy}>
-                  <MarketingReveal.Item delay={0}>
-                    <p className={`${styles.eyebrow} ${styles.eyebrowFlow}`}>
-                      Clinic preview
-                    </p>
-                  </MarketingReveal.Item>
-                  <MarketingReveal.Item delay={editorialRevealDelay(1)}>
-                    <h2 id="preview-heading">
-                      See what patients actually receive
-                    </h2>
-                  </MarketingReveal.Item>
-                  <MarketingReveal.Item delay={editorialRevealDelay(2)}>
-                    <p className={styles.copy}>
-                      The Riverside Dental Demo is one live example of the{" "}
-                      {PRODUCT_NAME} experience: clinic branding, clear
-                      post-treatment guidance and a page patients can return to
-                      without an app or login.
-                    </p>
-                  </MarketingReveal.Item>
-                  <MarketingReveal.Item delay={editorialRevealDelay(3)}>
-                    <div className={styles.actions}>
-                      <MarketingPrimaryAnchor href={demoHref}>
-                        Open Riverside Dental Demo
-                      </MarketingPrimaryAnchor>
-                    </div>
-                  </MarketingReveal.Item>
-                </div>
-                <MarketingReveal.Item delay={editorialRevealDelay(4)} preview>
-                  <MarketingPatientPreview />
-                </MarketingReveal.Item>
-              </div>
-            </MarketingReveal.Group>
           </section>
         </div>
 

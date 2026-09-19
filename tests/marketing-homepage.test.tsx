@@ -78,15 +78,16 @@ describe("marketing homepage", () => {
     expect(html).toContain("Clinic brand");
     expect(html).toContain("A branded patient aftercare home");
     expect(html).toContain("data-mk-product-canvas");
-    expect(html).toContain("data-mk-patient-preview");
-    expect(html).toContain("Patient view");
+    expect(html).not.toContain("data-mk-patient-preview");
+    expect(html).not.toContain(">Patient view<");
+    expect(html).toContain("Patient aftercare view");
     expect(html).toContain("Brand flexibility");
     expect(html).not.toContain("Brand directions");
-    expect(html).toContain(
+    expect(html).not.toContain(
       "No login, no feed — just the guidance patients need, with the clinic still one tap away."
     );
     expect(html).not.toContain("recovery information patients need");
-    expect(html).toContain("No login, no feed");
+    expect(html).not.toContain("No login, no feed");
     expect(html).toContain("riverside.[your-domain]/extraction");
     expect(html).toContain("Call the practice →");
     expect(html).toContain("Call Riverside Dental Demo");
@@ -151,7 +152,10 @@ describe("marketing homepage", () => {
     expect(html).toContain(
       "Branded patient aftercare for clinics and practices."
     );
-    expect(html).toContain("See what patients actually receive");
+    expect(html).not.toContain("See what patients actually receive");
+    expect(html).not.toContain("Clinic preview");
+    expect(html).not.toContain("Open Riverside Dental Demo");
+    expect(html).toContain("View the dental demo");
     expect(html).toContain("Your clinic stays visible after the appointment.");
     expect(html).toContain("carry its own identity");
     expect(html).toContain("Your name");
@@ -177,14 +181,16 @@ describe("marketing homepage", () => {
     const whyAt = html.indexOf('id="why-heading"');
     const brandAt = html.indexOf('id="brand-heading"');
     const clinicTypesAt = html.indexOf('id="clinic-types-heading"');
-    const previewAt = html.indexOf('id="preview-heading"');
     const closingAt = html.indexOf('id="closing-heading"');
     expect(whyAt).toBeGreaterThan(-1);
     expect(whyAt).toBeLessThan(brandAt);
     expect(brandAt).toBeLessThan(clinicTypesAt);
-    expect(clinicTypesAt).toBeLessThan(previewAt);
-    expect(previewAt).toBeLessThan(closingAt);
+    expect(clinicTypesAt).toBeLessThan(closingAt);
     expect((html.match(/id="brand-heading"/g) ?? []).length).toBe(1);
+    expect((html.match(/id="clinic-types-heading"/g) ?? []).length).toBe(1);
+    expect(html).toContain('id="clinic-types"');
+    expect(html).toContain("data-mk-workflow-showcase");
+    expect(html).toContain("workflowShowcase");
     expect(html.indexOf("data-mk-brand-copy")).toBeLessThan(
       html.indexOf("data-mk-brand-identity")
     );
@@ -241,7 +247,7 @@ describe("marketing homepage", () => {
     expect(html).toContain("numberedStepRule");
     expect(html).toContain("data-mk-numbered-steps");
     expect(html).toContain('data-mk-patient-surface="phone"');
-    expect(html).toContain('data-mk-patient-surface="home"');
+    expect(html).not.toContain('data-mk-patient-surface="home"');
     expect(html).toContain("View post-treatment instructions");
     expect(html).toContain('href="/privacy"');
     expect(html).toContain('href="/terms"');
@@ -305,26 +311,34 @@ describe("marketing homepage", () => {
     expect(html).not.toContain("use client");
   });
 
-  it("places brand flexibility after clinic value and before workflows and proof", async () => {
+  it("places brand flexibility after clinic value and workflows as the last chapter before the CTA", async () => {
     const html = renderToStaticMarkup(await MarketingHomePage());
     const whyAt = html.indexOf('id="why-heading"');
     const brandAt = html.indexOf('id="brand-heading"');
     const clinicTypesAt = html.indexOf('id="clinic-types-heading"');
-    const previewAt = html.indexOf('id="preview-heading"');
     const closingAt = html.indexOf('id="closing-heading"');
+    const showcaseAt = html.indexOf("data-mk-workflow-showcase");
 
     expect(whyAt).toBeGreaterThan(-1);
     expect(brandAt).toBeGreaterThan(whyAt);
     expect(clinicTypesAt).toBeGreaterThan(brandAt);
-    expect(previewAt).toBeGreaterThan(clinicTypesAt);
-    expect(closingAt).toBeGreaterThan(previewAt);
+    expect(closingAt).toBeGreaterThan(clinicTypesAt);
+    expect(showcaseAt).toBeGreaterThan(brandAt);
+    expect(showcaseAt).toBeLessThan(clinicTypesAt);
+    expect(html.indexOf('id="preview-heading"')).toBe(-1);
     expect((html.match(/id="brand-heading"/g) ?? []).length).toBe(1);
-    expect((html.match(/id="preview-heading"/g) ?? []).length).toBe(1);
+    expect((html.match(/id="clinic-types-heading"/g) ?? []).length).toBe(1);
+    expect(
+      (html.match(/One aftercare platform\. Different clinic workflows\./g) ?? [])
+        .length
+    ).toBe(1);
     expect(html.indexOf("data-mk-brand-copy")).toBeLessThan(
       html.indexOf("data-mk-brand-visual")
     );
     expect(html.indexOf("data-mk-brand-visual")).toBeLessThan(
       html.indexOf("data-mk-brand-identity")
     );
+    expect(html).toContain('href="/clinics"');
+    expect(html).toContain("Explore all clinic types");
   });
 });

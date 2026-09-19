@@ -123,6 +123,10 @@ describe("aftercare style boundary", () => {
     expect(page).toContain("marketingSoft");
     expect(page).toContain("marketingShowcase");
     expect(page).toContain("marketingClosing");
+    expect(page).toContain("workflowShowcase");
+    expect(page).not.toContain("MarketingPatientPreview");
+    expect(page).not.toContain("preview-heading");
+    expect(page).not.toContain("See what patients actually receive");
     expect(page).not.toContain("surfaceBase");
     expect(page).not.toContain("surfaceSubtle");
     expect(page).not.toContain("surfaceContrast");
@@ -131,6 +135,9 @@ describe("aftercare style boundary", () => {
     expect(styles).toContain(".marketingSoft");
     expect(styles).toContain(".marketingShowcase");
     expect(styles).toContain(".marketingClosing");
+    expect(styles).toContain(".workflowShowcase");
+    expect(styles).not.toContain("patientHomePreview");
+    expect(styles).not.toContain(".previewCaption");
     expect(styles).not.toContain(".surfaceBase");
     expect(styles).not.toContain(".surfaceSubtle");
     expect(styles).not.toContain(".surfaceContrast");
@@ -309,7 +316,7 @@ describe("aftercare style boundary", () => {
     expect(styles).toContain("productVisual");
     expect(styles).toContain("grid-template-areas");
     expect(styles).toContain("processConnector");
-    expect(styles).toContain("patientHomePreview");
+    expect(styles).toContain("workflowShowcase");
     expect(styles).toContain("background: currentColor");
     expect(styles).not.toContain("productEquation");
     expect(styles).not.toContain("bentoGrid");

@@ -484,10 +484,10 @@ test.describe("marketing homepage", () => {
       path: "test-results/artifacts/marketing-mid-scroll-light.png",
     });
 
-    await page.locator("#preview").scrollIntoViewIfNeeded();
+    await page.locator("#clinic-types").scrollIntoViewIfNeeded();
     await expect(
       page.getByRole("heading", {
-        name: "See what patients actually receive",
+        name: "One aftercare platform. Different clinic workflows.",
       })
     ).toBeVisible();
     await page.screenshot({

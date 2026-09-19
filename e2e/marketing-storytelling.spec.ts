@@ -1416,7 +1416,7 @@ test.describe("Phase 1F.11 story clarity", () => {
     expect(hoverReduced.background).not.toBe(restBackground);
   });
 
-  test("clinic preview uses a patient-home panel instead of loose copy", async ({
+  test("keeps hero dental proof and promotes workflows instead of a lower clinic preview", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -1424,90 +1424,92 @@ test.describe("Phase 1F.11 story clarity", () => {
     await showStaticScheme(page, "light");
     await waitForHeroReveal(page);
 
-    const section = page.locator("#preview");
-    await scrollSectionIntoView(page, "#preview");
-    await waitForSectionReveal(section);
+    const hero = page.locator('[data-mk-chapter="hero"]');
     await expect(
-      section.getByRole("heading", {
-        name: "See what patients actually receive",
-      })
+      hero.getByRole("link", { name: "View the dental demo" })
     ).toBeVisible();
+    await expect(hero.getByText("Tooth Extraction")).toBeVisible();
+    await expect(hero.getByText("Today")).toBeVisible();
+    await expect(hero.getByText("Timeline")).toBeVisible();
     await expect(
-      section.getByRole("link", { name: "Open Riverside Dental Demo" })
-    ).toBeVisible();
-    await expect(section.getByText("Patient view")).toBeVisible();
-    await expect(section.locator("[data-mk-patient-preview]")).toHaveAttribute(
-      "aria-hidden",
-      "true"
-    );
-    await expect(
-      section.getByText("no login, no feed", { exact: false })
-    ).toBeVisible();
-    await expect(section.getByText("Not a login. Not a feed.")).toHaveCount(0);
-    await expect(
-      page.getByRole("heading", { name: "Brand directions" })
+      page.getByRole("heading", { name: "See what patients actually receive" })
     ).toHaveCount(0);
-    await expect(page.getByText("Brand flexibility")).toBeVisible();
+    await expect(page.getByText("Clinic preview")).toHaveCount(0);
     await expect(
-      section.getByText("The Riverside Dental Demo is one live example", {
-        exact: false,
-      })
-    ).toBeVisible();
-    await expect(section.locator("[data-mk-patient-preview]")).toContainText(
-      "Riverside Dental Demo"
-    );
-    await expect(
-      section.getByRole("link", { name: "Tooth Extraction" })
+      page.getByRole("link", { name: "Open Riverside Dental Demo" })
     ).toHaveCount(0);
-    await expect(
-      section.getByRole("link", { name: "Call the practice" })
-    ).toHaveCount(0);
+    await expect(page.locator("#preview")).toHaveCount(0);
+    await expect(page.locator("[data-mk-patient-preview]")).toHaveCount(0);
 
-    const desktopLayout = await section.evaluate((root) => {
-      const preview = root.querySelector("[data-mk-patient-preview]");
-      const caption = root.querySelector('[class*="previewCaption"]');
-      const copy = root.querySelector('[class*="previewCopy"]');
-      if (
-        !(preview instanceof HTMLElement) ||
-        !(caption instanceof HTMLElement) ||
-        !(copy instanceof HTMLElement)
-      ) {
+    const workflows = page.locator('[aria-labelledby="clinic-types-heading"]');
+    await scrollSectionIntoView(page, "#clinic-types");
+    await waitForSectionReveal(workflows);
+    await expect(
+      workflows.getByRole("heading", {
+        name: "One aftercare platform. Different clinic workflows.",
+      })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: "One aftercare platform. Different clinic workflows.",
+      })
+    ).toHaveCount(1);
+    await expect(
+      workflows.getByRole("link", { name: /Dental practices/ })
+    ).toBeVisible();
+    await expect(
+      workflows.getByRole("link", { name: /Physiotherapy clinics/ })
+    ).toBeVisible();
+    await expect(
+      workflows.getByRole("link", { name: /Chiropractic practices/ })
+    ).toBeVisible();
+    await expect(
+      workflows.getByRole("link", { name: /Cosmetic & aesthetic clinics/ })
+    ).toBeVisible();
+    await expect(
+      workflows.getByRole("link", { name: "Explore all clinic types →" })
+    ).toHaveAttribute("href", "/clinics");
+
+    const chapter = await page.evaluate(() => {
+      const showcase = document.querySelector("[data-mk-workflow-showcase]");
+      const workflowsSection = document.getElementById("clinic-types");
+      const closing = document.getElementById("see-it");
+      if (!showcase || !workflowsSection || !closing) {
         return null;
       }
-      const previewBox = preview.getBoundingClientRect();
-      const captionBox = caption.getBoundingClientRect();
-      const copyBox = copy.getBoundingClientRect();
       return {
-        previewRightOfCopy: previewBox.left > copyBox.right - 24,
-        captionBelowPreview: captionBox.top > previewBox.bottom - 8,
-        phoneCount: root.querySelectorAll('[class*="phoneShell"]').length,
+        workflowsInShowcase: showcase.contains(workflowsSection),
+        closingAfter: Boolean(
+          workflowsSection.compareDocumentPosition(closing) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+        ),
       };
     });
-    expect(desktopLayout).not.toBeNull();
-    expect(desktopLayout!.previewRightOfCopy).toBe(true);
-    expect(desktopLayout!.captionBelowPreview).toBe(true);
-    expect(desktopLayout!.phoneCount).toBe(0);
+    expect(chapter).toEqual({
+      workflowsInShowcase: true,
+      closingAfter: true,
+    });
 
-    await section.screenshot({
+    await workflows.screenshot({
       path: "test-results/artifacts/phase-1f12-preview-1440-light.png",
     });
     await showStaticScheme(page, "dark");
-    await waitForSectionReveal(section);
-    await section.screenshot({
+    await waitForSectionReveal(workflows);
+    await workflows.screenshot({
       path: "test-results/artifacts/phase-1f12-preview-1440-dark.png",
     });
 
     await page.setViewportSize({ width: 390, height: 844 });
     await showStaticScheme(page, "light");
-    await scrollSectionIntoView(page, "#preview");
-    await waitForSectionReveal(section);
+    await scrollSectionIntoView(page, "#clinic-types");
+    await waitForSectionReveal(workflows);
     await expectNoHorizontalOverflow(page);
-    await section.screenshot({
+    await workflows.screenshot({
       path: "test-results/artifacts/phase-1f12-preview-390-light.png",
     });
     await showStaticScheme(page, "dark");
-    await waitForSectionReveal(section);
-    await section.screenshot({
+    await waitForSectionReveal(workflows);
+    await workflows.screenshot({
       path: "test-results/artifacts/phase-1f12-preview-390-dark.png",
     });
   });
@@ -1579,7 +1581,6 @@ test.describe("Phase 1F.11 story clarity", () => {
     await waitForHeroReveal(page);
 
     const section = page.locator('[aria-labelledby="brand-heading"]');
-    const preview = page.locator('[aria-labelledby="preview-heading"]');
     const workflows = page.locator('[aria-labelledby="clinic-types-heading"]');
     await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
     await waitForSectionReveal(section);
@@ -1623,7 +1624,7 @@ test.describe("Phase 1F.11 story clarity", () => {
     const desktop = await section.evaluate((root) => {
       const heading = root.querySelector("#brand-heading");
       const whyHeading = document.querySelector("#why-heading");
-      const previewHeading = document.querySelector("#preview-heading");
+      const workflowHeading = document.querySelector("#clinic-types-heading");
       const copy = root.querySelector("[data-mk-brand-copy]");
       const panel = root.querySelector("[data-mk-brand-identity]");
       const rows = [...root.querySelectorAll("article")];
@@ -1633,6 +1634,7 @@ test.describe("Phase 1F.11 story clarity", () => {
       if (
         !(heading instanceof HTMLElement) ||
         !(whyHeading instanceof HTMLElement) ||
+        !(workflowHeading instanceof HTMLElement) ||
         !(copy instanceof HTMLElement) ||
         !(panel instanceof HTMLElement) ||
         rows.length !== 3 ||
@@ -1642,9 +1644,9 @@ test.describe("Phase 1F.11 story clarity", () => {
       }
       const headingSize = Number.parseFloat(getComputedStyle(heading).fontSize);
       const whySize = Number.parseFloat(getComputedStyle(whyHeading).fontSize);
-      const previewSize = previewHeading
-        ? Number.parseFloat(getComputedStyle(previewHeading).fontSize)
-        : headingSize;
+      const workflowSize = Number.parseFloat(
+        getComputedStyle(workflowHeading).fontSize
+      );
       const copyBox = copy.getBoundingClientRect();
       const panelBox = panel.getBoundingClientRect();
       const rowTops = rows.map((row) =>
@@ -1657,7 +1659,7 @@ test.describe("Phase 1F.11 story clarity", () => {
       return {
         headingSize,
         whySize,
-        previewSize,
+        workflowSize,
         paddingTop: Math.round(
           Number.parseFloat(getComputedStyle(root).paddingTop)
         ),
@@ -1680,9 +1682,9 @@ test.describe("Phase 1F.11 story clarity", () => {
 
     expect(desktop).not.toBeNull();
     expect(Math.abs(desktop!.headingSize - desktop!.whySize)).toBeLessThan(1);
-    expect(Math.abs(desktop!.headingSize - desktop!.previewSize)).toBeLessThan(
-      1
-    );
+    expect(
+      Math.abs(desktop!.headingSize - desktop!.workflowSize)
+    ).toBeLessThan(1);
     expect(desktop!.visualLeft).toBe(true);
     expect(desktop!.sourceCopyFirst).toBe(true);
     expect(desktop!.visualTabbables).toBe(0);
@@ -1701,34 +1703,31 @@ test.describe("Phase 1F.11 story clarity", () => {
       const why = document.getElementById("why-heading");
       const brand = document.getElementById("brand-heading");
       const types = document.getElementById("clinic-types-heading");
-      const previewHeading = document.getElementById("preview-heading");
       const closing = document.getElementById("closing-heading");
-      if (!why || !brand || !types || !previewHeading || !closing) {
+      if (!why || !brand || !types || !closing) {
         return null;
       }
       const follows = (earlier: Element, later: Element) =>
         Boolean(
           earlier.compareDocumentPosition(later) &
-          Node.DOCUMENT_POSITION_FOLLOWING
+            Node.DOCUMENT_POSITION_FOLLOWING
         );
       return {
         whyBeforeBrand: follows(why, brand),
         brandBeforeTypes: follows(brand, types),
-        typesBeforePreview: follows(types, previewHeading),
-        previewBeforeClosing: follows(previewHeading, closing),
+        typesBeforeClosing: follows(types, closing),
       };
     });
     expect(order).toEqual({
       whyBeforeBrand: true,
       brandBeforeTypes: true,
-      typesBeforePreview: true,
-      previewBeforeClosing: true,
+      typesBeforeClosing: true,
     });
 
-    const previewPadding = await preview.evaluate((root) =>
+    const workflowPadding = await workflows.evaluate((root) =>
       Math.round(Number.parseFloat(getComputedStyle(root).paddingTop))
     );
-    expect(previewPadding).toBeGreaterThanOrEqual(96);
+    expect(workflowPadding).toBeGreaterThanOrEqual(96);
 
     await section.screenshot({
       path: "test-results/artifacts/phase-1f14-brand-1440-light.png",
@@ -2103,8 +2102,13 @@ test.describe("Phase 1F.11 story clarity", () => {
       page.getByText("keeping the patient experience structured and readable")
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "See what patients actually receive" })
+      page.getByRole("heading", {
+        name: "One aftercare platform. Different clinic workflows.",
+      })
     ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "See what patients actually receive" })
+    ).toHaveCount(0);
     await expect(
       page.getByText("Branded patient aftercare for clinics and practices.")
     ).toBeVisible();
@@ -2209,12 +2213,12 @@ test.describe("Phase 1F.11 story clarity", () => {
           Math.round(Number.parseFloat(getComputedStyle(root).paddingTop))
         );
       expect(brandPadding).toBe(0);
-      const previewPadding = await page
-        .locator('[aria-labelledby="preview-heading"]')
+      const workflowPadding = await page
+        .locator('[aria-labelledby="clinic-types-heading"]')
         .evaluate((root) =>
           Math.round(Number.parseFloat(getComputedStyle(root).paddingTop))
         );
-      expect(previewPadding).toBeGreaterThanOrEqual(56);
+      expect(workflowPadding).toBeGreaterThanOrEqual(56);
       await page.locator('[aria-labelledby="brand-heading"]').screenshot({
         path: `test-results/artifacts/phase-1f15-brand-360-${scheme}.png`,
       });
