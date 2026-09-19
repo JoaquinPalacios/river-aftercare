@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (Global navigation progress on marketing, staff, and auth)
+Last updated: 2026-09-19 (Operator Team role editing + remove-access pending UX)
 
 ---
 
@@ -1641,7 +1641,7 @@ Operator-managed clinic provisioning. Live after PR #51. No new Prisma migration
 | Remove access   | Operator only. Delete this `ClinicMembership`, delete all target sessions, keep User/password/email/AccountToken history. `?status=access-removed` → “Access removed.” No last-admin guard while provisioning is operator-only.                                                                              |
 | Mail            | `AUTH_EMAIL_FROM` / optional `AUTH_EMAIL_REPLY_TO`. Delivery failure retains the pending token and tells the operator to resend. Restoration does not send mail.                                                                                                                                             |
 | Host            | Staff app only. Marketing and tenant 404 `/accept-invitation`, `/api/auth/invitation-status`, and `/operator`.                                                                                                                                                                                               |
-| Not added       | Role editing, clinic-admin Team, multi-clinic picker, email change, global disable, last-admin guard, Turnstile, WAF, schema/migration.                                                                                                                                                                      |
+| Not added       | Clinic-admin Team, multi-clinic picker, email change, global disable, last-admin guard, Turnstile, WAF, schema/migration.                                                                                                                                                                                    |
 
 See [AUTH.md](../architecture/AUTH.md).
 
@@ -1658,7 +1658,26 @@ UX and lifecycle follow-up after production invitation smoke testing. No new Pri
 | Send button       | Pending state uses `staffLoginSubmit` flex + gap so the spinner does not overlap “Sending…”.                                                               |
 | Post-invite       | Successful delivery redirects to Team with a fixed `status` flag. Delivery failure stays on Invite user.                                                   |
 | Remove / restore  | Active rows expose Remove access. Passworded zero-membership Users are restored from Invite user without a new invitation or password change.              |
-| Not added         | Role editing, clinic-admin Team, last-admin guard, access-restored email, schema/migration.                                                                |
+| Not added         | Clinic-admin Team, last-admin guard, access-restored email, schema/migration.                                                                              |
+
+See [AUTH.md](../architecture/AUTH.md).
+
+---
+
+## Operator Team role editing + remove pending UX (2026-09-19)
+
+Focused operator Team polish after production smoke testing. No new Prisma migration. No production Neon / Vercel / Resend changes from this work.
+
+| Area                | Behaviour                                                                                                                                                                                                                                                      |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Remove access       | ConfirmDialog pending UX: spinner + “Removing…”, Cancel disabled, row Actions menu disabled, `aria-busy`, screen-reader status, reduced-motion via existing `staffLoginSpinner`. Destructive confirm stays danger.                                             |
+| Change role         | Active members only. Overflow menu: Change role, Remove access. Dialog uses Administrator / Staff labels, current role selected, Save disabled until the value changes. Pending: spinner + “Saving…”. Success: `?status=role-updated` → “Role updated.”        |
+| Authorization       | Staff host + platform operator. Clinic ADMIN/STAFF cannot change roles.                                                                                                                                                                                        |
+| Mutation            | Updates only `ClinicMembership.role` (ADMIN or STAFF). Same-role is a safe no-op. Does not change User, passwordHash, sessions, AccountToken, email, or membership count. Platform operator targets are rejected.                                              |
+| Sessions            | Auth.js sessions store user id only. Clinic role is read from `ClinicMembership` on each request, so the new role takes effect on the next authorization read. Sessions are not invalidated.                                                                   |
+| Last-admin          | **Not added.** Operator provisioning already allows removing the only ADMIN and clinics with zero members, so demoting the only ADMIN to STAFF remains allowed. Revisit last-admin, self-demotion, and self-removal when clinic-admin Team self-service ships. |
+| Pending invitations | No role editing. Intended role stays on the invitation token. Resend / Cancel unchanged.                                                                                                                                                                       |
+| Not added           | Prisma migration, clinic-admin Team permissions, last-admin guard, pending-invite role editing, session-policy / Remember me, billing, WAF, Turnstile.                                                                                                         |
 
 See [AUTH.md](../architecture/AUTH.md).
 

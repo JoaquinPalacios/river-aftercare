@@ -8,6 +8,7 @@ const inviteMock = vi.hoisted(() => vi.fn());
 const resendMock = vi.hoisted(() => vi.fn());
 const cancelMock = vi.hoisted(() => vi.fn());
 const removeMock = vi.hoisted(() => vi.fn());
+const changeRoleMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   notFound: notFoundMock,
@@ -49,8 +50,13 @@ vi.mock("@/lib/operator/remove-clinic-access", () => ({
   removeClinicAccess: removeMock,
 }));
 
+vi.mock("@/lib/operator/change-clinic-membership-role", () => ({
+  changeClinicMembershipRole: changeRoleMock,
+}));
+
 import {
   cancelClinicInvitationAction,
+  changeClinicMembershipRoleAction,
   inviteClinicUserAction,
   removeClinicAccessAction,
   resendClinicInvitationAction,
@@ -84,6 +90,7 @@ describe("clinic team operator actions", () => {
     resendMock.mockReset();
     cancelMock.mockReset();
     removeMock.mockReset();
+    changeRoleMock.mockReset();
     notFoundMock.mockImplementation(() => {
       throw new Error("NEXT_HTTP_ERROR_FALLBACK;404");
     });
@@ -218,6 +225,73 @@ describe("clinic team operator actions", () => {
     });
   });
 
+  it("lets an operator change a clinic role and redirects to Team", async () => {
+    getAuthContextMock.mockResolvedValue({
+      user: operator,
+      clinicMembership: null,
+    });
+    changeRoleMock.mockResolvedValue({
+      ok: true,
+      userId: "user_jane",
+      role: "STAFF",
+      unchanged: false,
+    });
+
+    await expect(
+      changeClinicMembershipRoleAction(
+        {},
+        form({
+          clinicId: "clinic_1",
+          membershipId: "membership_1",
+          role: "STAFF",
+          platformRole: "OPERATOR",
+          passwordHash: "should-be-ignored",
+        })
+      )
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/operator/clinics/clinic_1/team?status=role-updated"
+    );
+    expect(changeRoleMock).toHaveBeenCalledWith({
+      clinicId: "clinic_1",
+      membershipId: "membership_1",
+      role: "STAFF",
+    });
+    expect(changeRoleMock.mock.calls[0]?.[0]).not.toHaveProperty(
+      "platformRole"
+    );
+    expect(changeRoleMock.mock.calls[0]?.[0]).not.toHaveProperty(
+      "passwordHash"
+    );
+  });
+
+  it("returns a validation error for an arbitrary role without redirecting", async () => {
+    getAuthContextMock.mockResolvedValue({
+      user: operator,
+      clinicMembership: null,
+    });
+    changeRoleMock.mockResolvedValue({
+      ok: false,
+      error: "Choose Administrator or Staff.",
+    });
+
+    await expect(
+      changeClinicMembershipRoleAction(
+        {},
+        form({
+          clinicId: "clinic_1",
+          membershipId: "membership_1",
+          role: "OPERATOR",
+        })
+      )
+    ).resolves.toEqual({ error: "Choose Administrator or Staff." });
+    expect(redirectMock).not.toHaveBeenCalled();
+    expect(changeRoleMock).toHaveBeenCalledWith({
+      clinicId: "clinic_1",
+      membershipId: "membership_1",
+      role: "OPERATOR",
+    });
+  });
+
   it("rejects anonymous callers", async () => {
     getAuthContextMock.mockResolvedValue({
       user: null,
@@ -242,6 +316,17 @@ describe("clinic team operator actions", () => {
       )
     ).rejects.toThrow("NEXT_REDIRECT");
     expect(removeMock).not.toHaveBeenCalled();
+    await expect(
+      changeClinicMembershipRoleAction(
+        {},
+        form({
+          clinicId: "clinic_1",
+          membershipId: "membership_1",
+          role: "STAFF",
+        })
+      )
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(changeRoleMock).not.toHaveBeenCalled();
   });
 
   it("rejects clinic ADMIN and STAFF", async () => {
@@ -277,6 +362,17 @@ describe("clinic team operator actions", () => {
       )
     ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
     expect(removeMock).not.toHaveBeenCalled();
+    await expect(
+      changeClinicMembershipRoleAction(
+        {},
+        form({
+          clinicId: "clinic_1",
+          membershipId: "membership_1",
+          role: "STAFF",
+        })
+      )
+    ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+    expect(changeRoleMock).not.toHaveBeenCalled();
 
     getAuthContextMock.mockResolvedValue({
       user: {
@@ -309,6 +405,17 @@ describe("clinic team operator actions", () => {
         form({ clinicId: "clinic_1", membershipId: "membership_2" })
       )
     ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+    await expect(
+      changeClinicMembershipRoleAction(
+        {},
+        form({
+          clinicId: "clinic_1",
+          membershipId: "membership_2",
+          role: "ADMIN",
+        })
+      )
+    ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+    expect(changeRoleMock).not.toHaveBeenCalled();
   });
 
   it("404s clinic team mutations on a non-staff host", async () => {
@@ -339,5 +446,16 @@ describe("clinic team operator actions", () => {
       )
     ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
     expect(removeMock).not.toHaveBeenCalled();
+    await expect(
+      changeClinicMembershipRoleAction(
+        {},
+        form({
+          clinicId: "clinic_1",
+          membershipId: "membership_1",
+          role: "STAFF",
+        })
+      )
+    ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+    expect(changeRoleMock).not.toHaveBeenCalled();
   });
 });

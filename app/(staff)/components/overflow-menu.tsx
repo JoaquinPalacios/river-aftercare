@@ -5,9 +5,11 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 export function OverflowMenu({
   label,
   children,
+  disabled = false,
 }: {
   label: string;
   children: ReactNode;
+  disabled?: boolean;
 }) {
   const reactId = useId().replace(/:/g, "");
   const menuId = `overflow-${reactId}`;
@@ -49,6 +51,13 @@ export function OverflowMenu({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    if (!disabled) {
+      return;
+    }
+    menuRef.current?.hidePopover?.();
+  }, [disabled]);
+
   return (
     <div className="relative">
       <button
@@ -60,6 +69,7 @@ export function OverflowMenu({
         aria-haspopup="menu"
         aria-controls={menuId}
         aria-label={label}
+        disabled={disabled}
       >
         <span aria-hidden="true">⋯</span>
       </button>

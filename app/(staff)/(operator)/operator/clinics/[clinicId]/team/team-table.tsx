@@ -5,13 +5,19 @@ import { useRouter } from "next/navigation";
 
 import {
   cancelClinicInvitationAction,
+  changeClinicMembershipRoleAction,
   removeClinicAccessAction,
   resendClinicInvitationAction,
   type ClinicTeamActionState,
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/team/actions";
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
 import { OverflowMenu } from "@/app/(staff)/components/overflow-menu";
-import { teamMembershipRoleLabel } from "@/lib/clinic-portal/role-labels";
+import {
+  TEAM_ADMIN_ROLE_LABEL,
+  TEAM_STAFF_ROLE_LABEL,
+  teamMembershipRoleLabel,
+} from "@/lib/clinic-portal/role-labels";
+import type { InvitedClinicRole } from "@/lib/operator/clinic-invitation-input";
 import type {
   ClinicTeamMember,
   ClinicTeamRow,
@@ -19,6 +25,8 @@ import type {
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 const empty: ClinicTeamActionState = {};
+const REMOVE_PENDING_STATUS = "Removing clinic access. Please wait.";
+const ROLE_PENDING_STATUS = "Saving role. Please wait.";
 
 function asDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value);
@@ -45,6 +53,13 @@ function memberDisplayName(row: ClinicTeamMember): string {
   return row.name?.trim() || row.email;
 }
 
+function closeOverflowMenu(target: EventTarget | null) {
+  const menu = (target as HTMLElement | null)?.closest("[popover]");
+  if (menu && "hidePopover" in menu && typeof menu.hidePopover === "function") {
+    menu.hidePopover();
+  }
+}
+
 export function ClinicTeamTable({
   clinicId,
   clinicName,
@@ -57,9 +72,13 @@ export function ClinicTeamTable({
   const router = useRouter();
   const reactId = useId().replace(/:/g, "");
   const removeFormId = `remove-clinic-access-${reactId}`;
+  const changeRoleFormId = `change-clinic-role-${reactId}`;
+  const changeRoleFieldId = `change-clinic-role-select-${reactId}`;
   const [removeTarget, setRemoveTarget] = useState<ClinicTeamMember | null>(
     null
   );
+  const [roleTarget, setRoleTarget] = useState<ClinicTeamMember | null>(null);
+  const [selectedRole, setSelectedRole] = useState<InvitedClinicRole>("STAFF");
   const [resendState, resendAction, resending] = useActionState(
     resendClinicInvitationAction,
     empty
@@ -70,6 +89,10 @@ export function ClinicTeamTable({
   );
   const [removeState, removeAction, removing] = useActionState(
     removeClinicAccessAction,
+    empty
+  );
+  const [changeRoleState, changeRoleAction, changingRole] = useActionState(
+    changeClinicMembershipRoleAction,
     empty
   );
 
@@ -85,9 +108,20 @@ export function ClinicTeamTable({
     }
   }, [removeState]);
 
-  const error = resendState.error ?? cancelState.error ?? removeState.error;
+  useEffect(() => {
+    if (changeRoleState.error) {
+      setRoleTarget(null);
+    }
+  }, [changeRoleState]);
+
+  const error =
+    resendState.error ??
+    cancelState.error ??
+    removeState.error ??
+    changeRoleState.error;
   const success = resendState.success ?? cancelState.success;
-  const pending = resending || cancelling || removing;
+  const pending = resending || cancelling || removing || changingRole;
+  const roleUnchanged = roleTarget !== null && selectedRole === roleTarget.role;
 
   if (rows.length === 0) {
     return (
@@ -117,6 +151,15 @@ export function ClinicTeamTable({
           name="membershipId"
           value={removeTarget?.membershipId ?? ""}
         />
+      </form>
+      <form id={changeRoleFormId} action={changeRoleAction} className="hidden">
+        <input type="hidden" name="clinicId" value={clinicId} />
+        <input
+          type="hidden"
+          name="membershipId"
+          value={roleTarget?.membershipId ?? ""}
+        />
+        <input type="hidden" name="role" value={selectedRole} />
       </form>
       <div className="staffOperatorTableWrap">
         <table className="min-w-full text-left text-sm">
@@ -164,13 +207,34 @@ export function ClinicTeamTable({
                 </td>
                 <td className="px-4 py-3">
                   {row.kind === "member" ? (
-                    <OverflowMenu label={`Actions for ${memberDisplayName(row)}`}>
+                    <OverflowMenu
+                      label={`Actions for ${memberDisplayName(row)}`}
+                      disabled={pending}
+                    >
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="staffOverflowItem"
+                        disabled={pending}
+                        onClick={(event) => {
+                          closeOverflowMenu(event.currentTarget);
+                          setRemoveTarget(null);
+                          setRoleTarget(row);
+                          setSelectedRole(row.role);
+                        }}
+                      >
+                        Change role
+                      </button>
                       <button
                         type="button"
                         role="menuitem"
                         className="staffOverflowItem staffOverflowItemDanger"
                         disabled={pending}
-                        onClick={() => setRemoveTarget(row)}
+                        onClick={(event) => {
+                          closeOverflowMenu(event.currentTarget);
+                          setRoleTarget(null);
+                          setRemoveTarget(row);
+                        }}
                       >
                         Remove access
                       </button>
@@ -216,9 +280,17 @@ export function ClinicTeamTable({
             : ""
         }
         cancelLabel="Cancel"
-        confirmLabel={removing ? "Removing…" : "Remove access"}
+        confirmLabel="Remove access"
+        pending={removing}
+        pendingLabel="Removing…"
+        pendingStatus={REMOVE_PENDING_STATUS}
         confirmTone="danger"
-        onCancel={() => setRemoveTarget(null)}
+        onCancel={() => {
+          if (removing) {
+            return;
+          }
+          setRemoveTarget(null);
+        }}
         onConfirm={() => {
           const form = document.getElementById(
             removeFormId
@@ -226,6 +298,54 @@ export function ClinicTeamTable({
           form?.requestSubmit();
         }}
       />
+      <ConfirmDialog
+        open={roleTarget !== null}
+        title="Change role"
+        description={
+          roleTarget
+            ? `Choose the access level for ${memberDisplayName(roleTarget)}.`
+            : ""
+        }
+        cancelLabel="Cancel"
+        confirmLabel="Save role"
+        pending={changingRole}
+        pendingLabel="Saving…"
+        pendingStatus={ROLE_PENDING_STATUS}
+        confirmTone="primary"
+        confirmDisabled={roleUnchanged}
+        onCancel={() => {
+          if (changingRole) {
+            return;
+          }
+          setRoleTarget(null);
+        }}
+        onConfirm={() => {
+          const form = document.getElementById(
+            changeRoleFormId
+          ) as HTMLFormElement | null;
+          form?.requestSubmit();
+        }}
+      >
+        {roleTarget ? (
+          <div className="staffDialogFields">
+            <label className="text-sm font-medium" htmlFor={changeRoleFieldId}>
+              Role
+            </label>
+            <select
+              id={changeRoleFieldId}
+              disabled={changingRole}
+              value={selectedRole}
+              onChange={(event) =>
+                setSelectedRole(event.target.value as InvitedClinicRole)
+              }
+              className="staffSelect h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
+            >
+              <option value="ADMIN">{TEAM_ADMIN_ROLE_LABEL}</option>
+              <option value="STAFF">{TEAM_STAFF_ROLE_LABEL}</option>
+            </select>
+          </div>
+        ) : null}
+      </ConfirmDialog>
     </div>
   );
 }

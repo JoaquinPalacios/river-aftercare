@@ -21,6 +21,7 @@ const SERVER_ONLY_FILES = [
   "lib/operator/resend-clinic-invitation.ts",
   "lib/operator/cancel-clinic-invitation.ts",
   "lib/operator/remove-clinic-access.ts",
+  "lib/operator/change-clinic-membership-role.ts",
   "lib/operator/list-clinic-team.ts",
   "lib/operator/deliver-clinic-invitation-email.ts",
   "lib/marketing/contact-mailer.ts",
