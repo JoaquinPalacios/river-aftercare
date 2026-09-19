@@ -33,7 +33,7 @@ test.describe("clinic portal", () => {
       await page.goto(staffUrl(pathname), { waitUntil: "load" });
       await expect(page).toHaveURL(/\/login/);
       await expect(
-        page.getByRole("heading", { name: "Staff sign in" })
+        page.getByRole("heading", { name: "Sign in", exact: true })
       ).toBeVisible();
       await expect(page.getByText("River Aftercare").first()).toBeVisible();
       await expect(page.getByText("Care Guide", { exact: true })).toHaveCount(

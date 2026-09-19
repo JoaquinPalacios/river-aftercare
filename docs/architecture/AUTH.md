@@ -2,7 +2,7 @@
 
 River Aftercare staff and operator authentication is a custom `POST /api/auth/login` Route Handler plus Auth.js-compatible **database sessions**. It is not a Server Action. Chairside `ProcedureSession` is unrelated.
 
-Production login host: `https://app.riveraftercare.com.au/login`.
+Production login host: `https://app.riveraftercare.com.au/login`. Anonymous requests to `https://app.riveraftercare.com.au/` redirect server-side to `/login`. Authenticated requests reuse `signedInHomePath()` (`/dashboard` or `/operator/clinics`). Clinic and operator users share this one form; role is derived after authentication.
 
 ## Current path
 

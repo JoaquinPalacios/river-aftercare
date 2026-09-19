@@ -32,4 +32,19 @@ describe("auth session regressions", () => {
     expect(proxy).toContain("isStaffPath");
     expect(proxy).toContain('classification.kind === "staff"');
   });
+
+  it("keeps login UX polish free of CAPTCHA, reset links, and application rate limits", () => {
+    const form = readFileSync("app/(staff)/login/login-form.tsx", "utf8");
+    const page = readFileSync("app/(staff)/login/page.tsx", "utf8");
+    const root = readFileSync("app/(staff)/page.tsx", "utf8");
+
+    expect(form).toContain('errorMessage = "Invalid email or password."');
+    expect(form).not.toContain("Turnstile");
+    expect(form).not.toContain("rateLimit");
+    expect(form).not.toContain("Forgot password");
+    expect(page).not.toContain("Turnstile");
+    expect(root).not.toContain("Turnstile");
+    expect(form).not.toContain("hashPassword");
+    expect(form).not.toContain("DUMMY_PASSWORD_HASH");
+  });
 });

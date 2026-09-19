@@ -17,7 +17,21 @@ describe("password visibility field", () => {
     expect(html).toContain('autoComplete="current-password"');
     expect(html).toContain('type="button"');
     expect(html).toContain('aria-label="Show password"');
+    expect(html).toContain("aria-pressed");
     expect(html).not.toContain("Hide password");
+  });
+
+  it("disables the input and visibility toggle while pending", () => {
+    const html = renderToStaticMarkup(
+      <PasswordVisibilityField
+        value="secret"
+        onChange={() => undefined}
+        disabled
+      />
+    );
+
+    expect(html).toContain("disabled");
+    expect(html).toContain('aria-label="Show password"');
   });
 
   it("wires the eye control into staff login without making it the submit button", () => {
@@ -31,7 +45,10 @@ describe("password visibility field", () => {
     expect(source).toContain('method="post"');
     expect(source).toContain("event.preventDefault()");
     expect(source).toContain('type="submit"');
+    expect(source).toContain("disabled={pending}");
     expect(field).toContain('type="button"');
     expect(field).toContain('visible ? "Hide password" : "Show password"');
+    expect(field).toContain("disabled={disabled}");
+    expect(field).toContain("aria-pressed={visible}");
   });
 });

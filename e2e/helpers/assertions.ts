@@ -13,6 +13,9 @@ export async function expectGenericNotFound(page: Page): Promise<void> {
     page.getByRole("link", { name: "Harbor Family Dental", exact: true })
   ).toHaveCount(0);
   await expect(
+    page.getByRole("heading", { name: "Sign in", exact: true })
+  ).toHaveCount(0);
+  await expect(
     page.getByRole("heading", { name: "Staff sign in" })
   ).toHaveCount(0);
   await expect(page.locator('input[type="password"]')).toHaveCount(0);
@@ -33,6 +36,9 @@ export async function expectNoLoginUi(page: Page): Promise<void> {
   expect(html.toLowerCase()).not.toContain("staff sign in");
   expect(html.toLowerCase()).not.toContain("staff sign-in");
   expect(page.locator('input[type="password"]')).toHaveCount(0);
+  expect(
+    page.getByRole("heading", { name: "Sign in", exact: true })
+  ).toHaveCount(0);
   expect(page.getByRole("heading", { name: "Staff sign in" })).toHaveCount(0);
   expect(
     page.locator('form[action*="login"], form[action*="auth"]')

@@ -394,9 +394,13 @@ test.describe("marketing conversion routes", () => {
 
     const appHome = await page.goto(staffUrl("/"), { waitUntil: "load" });
     expect(appHome?.status()).toBe(200);
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(
+      page.getByRole("heading", { name: "Sign in", exact: true })
+    ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Clinic portal" })
-    ).toBeVisible();
+    ).toHaveCount(0);
   });
 
   test("metadata titles match the public routes", async ({ page }) => {

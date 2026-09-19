@@ -76,7 +76,8 @@ describe("clinic portal pages", () => {
     expect(login).toContain("PRODUCT_NAME");
     expect(chrome).toContain("PRODUCT_NAME");
     expect(operator).toContain("PRODUCT_NAME");
-    expect(login).toContain("Staff sign in");
+    expect(login).toMatch(/<h1[^>]*>\s*Sign in\s*<\/h1>/);
+    expect(login).not.toContain("Staff sign in");
     expect(login).not.toContain("Care Guide");
   });
 

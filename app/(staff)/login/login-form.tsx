@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import { PasswordVisibilityField } from "@/app/(staff)/components/password-visibility-field";
 import {
@@ -20,16 +20,25 @@ const initialValues: LoginFormValues = {
   password: "",
 };
 
+const PENDING_STATUS = "Signing in. Please wait.";
+
 export function LoginForm() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<LoginFormErrors>({});
+  const pending = isSubmitting || isPending;
 
   function updateField<K extends keyof LoginFormValues>(
     field: K,
     value: LoginFormValues[K]
   ) {
+    if (submittingRef.current) {
+      return;
+    }
+
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({
       ...current,
@@ -40,6 +49,10 @@ export function LoginForm() {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (submittingRef.current) {
+      return;
+    }
 
     const parsedValues = loginSchema.safeParse(values);
 
@@ -55,6 +68,8 @@ export function LoginForm() {
     }
 
     setErrors({});
+    submittingRef.current = true;
+    setIsSubmitting(true);
 
     startTransition(async () => {
       try {
@@ -93,8 +108,12 @@ export function LoginForm() {
           }
         }
 
+        submittingRef.current = false;
+        setIsSubmitting(false);
         setErrors({ form: errorMessage });
       } catch {
+        submittingRef.current = false;
+        setIsSubmitting(false);
         setErrors({ form: "Unable to sign in right now. Try again." });
       }
     });
@@ -106,7 +125,17 @@ export function LoginForm() {
       method="post"
       onSubmit={handleSubmit}
       noValidate
+      aria-busy={pending || undefined}
     >
+      <div
+        id="login-pending-status"
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+      >
+        {pending ? PENDING_STATUS : ""}
+      </div>
+
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium text-staff-ink" htmlFor="email">
           Email
@@ -118,10 +147,11 @@ export function LoginForm() {
           autoComplete="email"
           inputMode="email"
           value={values.email}
+          disabled={pending}
           onChange={(event) => updateField("email", event.target.value)}
           aria-invalid={errors.email ? "true" : "false"}
           aria-describedby={errors.email ? "email-error" : undefined}
-          className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-base text-staff-ink outline-none transition focus:border-staff-brand focus:ring-2 focus:ring-staff-brand/20"
+          className="staffLoginField"
         />
         {errors.email ? (
           <p id="email-error" className="text-sm text-red-600">
@@ -142,6 +172,7 @@ export function LoginForm() {
           onChange={(value) => updateField("password", value)}
           invalid={Boolean(errors.password)}
           errorId={errors.password ? "password-error" : undefined}
+          disabled={pending}
         />
         {errors.password ? (
           <p id="password-error" className="text-sm text-red-600">
@@ -152,6 +183,7 @@ export function LoginForm() {
 
       {errors.form ? (
         <div
+          id="login-form-error"
           className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
           role="alert"
         >
@@ -161,10 +193,13 @@ export function LoginForm() {
 
       <button
         type="submit"
-        disabled={isPending}
-        className="staffBtn staffBtnPrimary h-11"
+        disabled={pending}
+        className="staffBtn staffBtnPrimary staffLoginSubmit h-11"
       >
-        {isPending ? "Signing in..." : "Sign in"}
+        {pending ? (
+          <span className="staffLoginSpinner" aria-hidden="true" />
+        ) : null}
+        {pending ? "Signing in…" : "Sign in"}
       </button>
     </form>
   );

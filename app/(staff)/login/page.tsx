@@ -8,10 +8,12 @@ import { signedInHomePath } from "@/lib/auth/signed-in-home";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { resolveLocalLoginSeed } from "@/lib/dev/local-login-accounts";
 import { marketingPublicLinks } from "@/lib/marketing/public-links";
+import { PRIVATE_ROBOTS } from "@/lib/seo/robots-policy";
 
 export const metadata: Metadata = {
-  title: `Staff sign in · ${PRODUCT_NAME}`,
-  description: `Sign in to the ${PRODUCT_NAME} clinic portal.`,
+  title: `Sign in · ${PRODUCT_NAME}`,
+  description: `Sign in to ${PRODUCT_NAME}.`,
+  robots: PRIVATE_ROBOTS,
 };
 
 export default async function LoginPage() {
@@ -47,10 +49,10 @@ export default async function LoginPage() {
               {PRODUCT_NAME}
             </p>
             <h1 className="text-3xl font-semibold tracking-tight text-staff-ink">
-              Staff sign in
+              Sign in
             </h1>
             <p className="text-sm leading-6 text-staff-muted">
-              Use your staff email and password to continue to the clinic portal.
+              Use your email and password to continue to {PRODUCT_NAME}.
             </p>
           </div>
 

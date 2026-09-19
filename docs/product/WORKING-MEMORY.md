@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (homepage storytelling sequence: Brand Flexibility after Why clinics, visual-left desktop)
+Last updated: 2026-09-19 (app-host login portal UX: anonymous `/` → `/login`, role-neutral copy, pending form state)
 
 ---
 
@@ -681,7 +681,7 @@ Staff `/dashboard` is the River Aftercare clinic portal, not the parked chairsid
 
 | Area      | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth      | Unchanged `requireStaffSession()`. Unauthenticated `/dashboard` and `/guides` redirect to `/login`. Authenticated `app.` `/` redirects to `/dashboard`.                                                                                                                                                                                                                                                                                         |
+| Auth      | Unchanged `requireStaffSession()`. Unauthenticated `/dashboard` and `/guides` redirect to `/login`. Anonymous `app.` `/` redirects server-side to `/login`. Authenticated `app.` `/` reuses `signedInHomePath()` (`/dashboard` or operator `/operator/clinics`). One shared login; no operator-specific credentials path.                                                                                                                       |
 | Shell     | Platform periwinkle/cobalt. Primary: Overview / Guides / Practice. Utility: View patient site. Preferences: Appearance (System/Light/Dark). Account and Sign out.                                                                                                                                                                                                                                                                               |
 | Overview  | Real published/draft guide counts. Setup checks: identity, branding, contact, emergency, published guide. Statuses are Configured / Needs attention. Patient-site link uses the real tenant renderer.                                                                                                                                                                                                                                           |
 | Guides    | `/guides` lists the authenticated clinic's actual `PracticeGuide` rows. ADMIN can create from a **reviewed** canonical template, or from a **sample** template if the clinic is `demodental`, or as a custom guide. Edit draft, preview, publish, **unpublish**, **delete never-published drafts**, and **discard unpublished draft changes**. STAFF can view and preview. No fake template library. Published-guide deletion remains deferred. |
@@ -1034,7 +1034,7 @@ Local polish on `feature/public-ui-share-polish`. Preserves Phase 2B SEO/trust w
 | Area        | Behaviour                                                                                                                                                                                                                                                                                                                       |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Contact CTA | `.button` resets native `<button>` UA chrome (`appearance: none`, `border: 0`). Rest/hover/focus computed styles match homepage `View the clinic demo`.                                                                                                                                                                         |
-| Primary nav | Desktop and mobile: About, Pricing, Contact, Sign in. Privacy/Terms stay footer-only. Login heading remains **Staff sign in**.                                                                                                                                                                                                  |
+| Primary nav | Desktop and mobile: About, Pricing, Contact, Sign in. Privacy/Terms stay footer-only. Login heading is **Sign in**.                                                                                                                                                                                                             |
 | About       | One first `.band` with two related `headingBlock`s; second uses `.headingFollow`. Copy stays web-first / clinic-branded / dental-first / not CRM, monitoring, or messaging.                                                                                                                                                     |
 | Legal       | Privacy and Terms share Contact’s `.band` top padding after the hero/wave. Body measure remains `max-width: 42rem`. Per-document draft banners remain until counsel review.                                                                                                                                                     |
 | QR          | Derived from the canonical public guide URL (`clinicPatientSiteUrl` + `publicSlug`). Server `qrcode` SVG/PNG, ECC H, dark-on-light, quiet zone 4. Share on published+enabled guides only (ADMIN and STAFF). Draft/unpublished have no Share. Same URL after republish; unpublish is 404. No patient-page QR. No QR image table. |
@@ -1515,3 +1515,20 @@ Reorders the lower homepage without rewriting strategy, SEO, or product claims. 
 | Desktop layout    | Brand Flexibility uses the product-grid pattern: DOM is copy then visual; CSS `grid-template-areas` places visual left / copy right from `64rem`. Visual ~`1.1fr`, copy ~`0.9fr`, `3rem` column gap. |
 | Mobile layout     | Semantic copy-first order: eyebrow, heading, supporting copy, then identity panel. No CSS order tricks.                                                                                              |
 | Copy              | Unchanged. Overlap between “Consistent aftercare, under your clinic's brand” and “Your clinic stays visible after the appointment.” is accepted pending a future copy-only pass.                     |
+
+---
+
+## Login portal UX polish (2026-09-19)
+
+Presentation-only. Production login security (bounds, dummy verification, generic 401, 403/409, database sessions, WAF) is unchanged. No Turnstile, no in-app rate limiter, no password-reset link.
+
+| Area         | Behaviour                                                                                                                                                                                                 |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App host `/` | Server `redirect(signedInHomePath(authContext) ?? "/login")`. Anonymous users land on `/login`. Authenticated users keep existing destinations. No client navigation. No redirect loop with `/login`.     |
+| Shared login | One form for OPERATOR and clinic users. No operator/clinic sign-in split, no role selector. Role is server-derived after credentials.                                                                     |
+| Copy         | Heading **Sign in**. Description: “Use your email and password to continue to River Aftercare.” Metadata `Sign in · River Aftercare`. `noindex, nofollow` retained. Marketing “Sign in” nav is unchanged. |
+| Pending      | Email, password, visibility toggle, and submit are `disabled`. Submit shows spinner + “Signing in…”. `aria-busy` on the form. Screen-reader status: “Signing in. Please wait.” Success stays pending.     |
+| Failure      | Generic “Invalid email or password.” `role="alert"`. Controls re-enable. Entered email and password are kept.                                                                                             |
+| Not added    | Forgot password, invitations, Turnstile, CAPTCHA, application rate limiter, schema/migration.                                                                                                             |
+
+---
