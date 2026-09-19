@@ -1,4 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
 import { expectOneH1 } from "./helpers/assertions";
 import { expectNoHorizontalOverflow } from "./helpers/layout";
@@ -1150,7 +1152,69 @@ test.describe("premium marketing UX", () => {
   test("captures homepage workflow, preview, and brand-flexibility sequence", async ({
     page,
   }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(120_000);
+
+    async function captureRange(
+      startSelector: string,
+      endSelector: string,
+      outputPath: string
+    ) {
+      const sectionHeight = await page.evaluate(
+        ({ start, end }) => {
+          const first = document.querySelector(start);
+          const last = document.querySelector(end);
+          if (
+            !(first instanceof HTMLElement) ||
+            !(last instanceof HTMLElement)
+          ) {
+            return 0;
+          }
+          const top = first.getBoundingClientRect().top + window.scrollY;
+          const bottom = last.getBoundingClientRect().bottom + window.scrollY;
+          return Math.ceil(bottom - top + 48);
+        },
+        { start: startSelector, end: endSelector }
+      );
+      expect(sectionHeight).toBeGreaterThan(700);
+      const viewportHeight = Math.min(
+        Math.max(sectionHeight + 160, 2200),
+        8000
+      );
+      await page.setViewportSize({
+        width: page.viewportSize()?.width ?? 1440,
+        height: viewportHeight,
+      });
+      await scrollSectionIntoView(page, startSelector);
+      const clip = await page.evaluate(
+        ({ start, end }) => {
+          const first = document.querySelector(start);
+          const last = document.querySelector(end);
+          if (
+            !(first instanceof HTMLElement) ||
+            !(last instanceof HTMLElement)
+          ) {
+            return null;
+          }
+          const top = first.getBoundingClientRect().top;
+          const bottom = last.getBoundingClientRect().bottom;
+          return {
+            x: 0,
+            y: Math.max(0, Math.floor(top)),
+            width: Math.floor(window.innerWidth),
+            height: Math.max(1, Math.ceil(bottom - Math.max(0, top))),
+          };
+        },
+        { start: startSelector, end: endSelector }
+      );
+      expect(clip).not.toBeNull();
+      expect(clip!.y + clip!.height).toBeLessThanOrEqual(
+        (await page.viewportSize())!.height + 1
+      );
+      await page.screenshot({
+        clip: clip!,
+        path: outputPath,
+      });
+    }
 
     async function captureNarrative(scheme: "light" | "dark") {
       await page.emulateMedia({
@@ -1162,11 +1226,59 @@ test.describe("premium marketing UX", () => {
       await showMarketingScheme(page, scheme);
       await waitForPhoneFrame(page);
 
+      const why = page.locator('[aria-labelledby="why-heading"]');
+      const brand = page.locator('[aria-labelledby="brand-heading"]');
       const workflows = page.locator(
         '[aria-labelledby="clinic-types-heading"]'
       );
       const preview = page.locator('[aria-labelledby="preview-heading"]');
-      const brand = page.locator('[aria-labelledby="brand-heading"]');
+      const closing = page.locator('[aria-labelledby="closing-heading"]');
+
+      await scrollSectionIntoView(page, '[aria-labelledby="why-heading"]');
+      await waitForSectionReveal(why);
+      await expect(
+        why.getByRole("heading", {
+          name: "Consistent aftercare, under your clinic's brand",
+        })
+      ).toBeVisible();
+      await why.screenshot({
+        path: `test-results/artifacts/home-why-${scheme}-1440.png`,
+      });
+
+      await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
+      await waitForSectionReveal(brand);
+      await expect(
+        brand.getByRole("heading", {
+          name: "Your clinic stays visible after the appointment.",
+        })
+      ).toBeVisible();
+      await expect(brand.locator("[data-mk-brand-identity]")).toBeVisible();
+      const desktopBrand = await brand.evaluate((root) => {
+        const copy = root.querySelector("[data-mk-brand-copy]");
+        const panel = root.querySelector("[data-mk-brand-identity]");
+        if (!(copy instanceof HTMLElement) || !(panel instanceof HTMLElement)) {
+          return null;
+        }
+        const copyBox = copy.getBoundingClientRect();
+        const panelBox = panel.getBoundingClientRect();
+        return {
+          visualLeft: copyBox.left > panelBox.right - 8,
+          sourceCopyFirst: Boolean(
+            copy.compareDocumentPosition(panel) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+          ),
+        };
+      });
+      expect(desktopBrand).toEqual({
+        visualLeft: true,
+        sourceCopyFirst: true,
+      });
+      await brand.screenshot({
+        path: `test-results/artifacts/home-brand-flexibility-${scheme}-1440.png`,
+      });
+      await brand.screenshot({
+        path: `test-results/artifacts/home-brand-flex-${scheme}-1440.png`,
+      });
 
       await scrollSectionIntoView(
         page,
@@ -1192,84 +1304,79 @@ test.describe("premium marketing UX", () => {
       await preview.screenshot({
         path: `test-results/artifacts/home-preview-${scheme}-1440.png`,
       });
-
-      await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
-      await waitForSectionReveal(brand);
-      await expect(
-        brand.getByRole("heading", {
-          name: "Your clinic stays visible after the appointment.",
-        })
-      ).toBeVisible();
-      await expect(brand.locator("[data-mk-brand-identity]")).toBeVisible();
-      await brand.screenshot({
-        path: `test-results/artifacts/home-brand-flexibility-${scheme}-1440.png`,
+      await preview.screenshot({
+        path: `test-results/artifacts/home-patient-proof-${scheme}-1440.png`,
       });
 
-      const sectionHeight = await page.evaluate(() => {
-        const types = document.querySelector(
-          '[aria-labelledby="clinic-types-heading"]'
-        );
-        const brandSection = document.querySelector(
-          '[aria-labelledby="brand-heading"]'
-        );
-        if (
-          !(types instanceof HTMLElement) ||
-          !(brandSection instanceof HTMLElement)
-        ) {
-          return 0;
-        }
-        const top = types.getBoundingClientRect().top + window.scrollY;
-        const bottom =
-          brandSection.getBoundingClientRect().bottom + window.scrollY;
-        return Math.ceil(bottom - top + 48);
+      await scrollSectionIntoView(page, '[aria-labelledby="closing-heading"]');
+      await waitForSectionReveal(closing);
+      await closing.screenshot({
+        path: `test-results/artifacts/home-closing-cta-${scheme}-1440.png`,
       });
-      expect(sectionHeight).toBeGreaterThan(900);
-      await page.setViewportSize({
-        width: 1440,
-        height: Math.min(Math.max(sectionHeight + 120, 2200), 5000),
-      });
-      await scrollSectionIntoView(
-        page,
-        '[aria-labelledby="clinic-types-heading"]'
+
+      await captureRange(
+        '[aria-labelledby="why-heading"]',
+        '[aria-labelledby="preview-heading"]',
+        `test-results/artifacts/home-why-brand-flex-workflows-proof-${scheme}-1440.png`
       );
+      await waitForSectionReveal(why);
+      await waitForSectionReveal(brand);
       await waitForSectionReveal(workflows);
       await waitForSectionReveal(preview);
-      await waitForSectionReveal(brand);
-      const clip = await page.evaluate(() => {
-        const types = document.querySelector(
-          '[aria-labelledby="clinic-types-heading"]'
-        );
-        const brandSection = document.querySelector(
-          '[aria-labelledby="brand-heading"]'
-        );
-        if (
-          !(types instanceof HTMLElement) ||
-          !(brandSection instanceof HTMLElement)
-        ) {
-          return null;
-        }
-        const top = types.getBoundingClientRect().top;
-        const bottom = brandSection.getBoundingClientRect().bottom;
-        return {
-          x: 0,
-          y: Math.max(0, Math.floor(top)),
-          width: Math.floor(window.innerWidth),
-          height: Math.max(1, Math.ceil(bottom - Math.max(0, top))),
-        };
-      });
-      expect(clip).not.toBeNull();
-      expect(clip!.y + clip!.height).toBeLessThanOrEqual(
-        (await page.viewportSize())!.height + 1
+      await waitForSectionReveal(closing);
+      await captureRange(
+        '[aria-labelledby="why-heading"]',
+        '[aria-labelledby="closing-heading"]',
+        `test-results/artifacts/home-sequence-${scheme}-1440.png`
       );
-      await page.screenshot({
-        clip: clip!,
-        path: `test-results/artifacts/home-sequence-${scheme}-1440.png`,
-      });
       await expectNoHorizontalOverflow(page);
     }
 
     await captureNarrative("light");
     await captureNarrative("dark");
+
+    const sheet = await page.context().newPage();
+    const panels = [
+      ["Why clinics use it", "home-why-dark-1440.png"],
+      ["Brand Flexibility", "home-brand-flex-dark-1440.png"],
+      ["Different clinic workflows", "home-workflows-dark-1440.png"],
+      ["Patient Preview", "home-patient-proof-dark-1440.png"],
+      ["Final CTA", "home-closing-cta-dark-1440.png"],
+    ] as const;
+    const figures = panels
+      .map(([label, file]) => {
+        const bytes = readFileSync(
+          path.join("test-results/artifacts", file)
+        ).toString("base64");
+        return `<figure><figcaption>${label}</figcaption><img alt="${label}" src="data:image/png;base64,${bytes}" /></figure>`;
+      })
+      .join("");
+    await sheet.setContent(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Homepage narrative contact sheet</title>
+    <style>
+      body { margin: 0; padding: 32px; background: #11161c; color: #e8eef2; font: 600 18px/1.3 ui-sans-serif, system-ui; }
+      h1 { margin: 0 0 8px; font-size: 28px; }
+      p { margin: 0 0 28px; color: #9aa7b2; font-weight: 500; }
+      figure { margin: 0 0 28px; }
+      figcaption { margin: 0 0 10px; letter-spacing: 0.04em; text-transform: uppercase; font-size: 13px; color: #c5d0d6; }
+      img { display: block; width: 100%; border: 1px solid #2a3440; }
+    </style>
+  </head>
+  <body>
+    <h1>Homepage storytelling sequence</h1>
+    <p>Why clinics use it → Brand Flexibility → Different clinic workflows → Patient Preview → Final CTA</p>
+    ${figures}
+  </body>
+</html>`);
+    await sheet.setViewportSize({ width: 1440, height: 900 });
+    await sheet.screenshot({
+      fullPage: true,
+      path: "test-results/artifacts/home-story-contact-sheet-dark-1440.png",
+    });
+    await sheet.close();
 
     await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1289,8 +1396,33 @@ test.describe("premium marketing UX", () => {
         name: "Your clinic stays visible after the appointment.",
       })
     ).toBeVisible();
+    const mobileBrand = await page
+      .locator('[aria-labelledby="brand-heading"]')
+      .evaluate((root) => {
+        const copy = root.querySelector("[data-mk-brand-copy]");
+        const panel = root.querySelector("[data-mk-brand-identity]");
+        if (!(copy instanceof HTMLElement) || !(panel instanceof HTMLElement)) {
+          return null;
+        }
+        return {
+          stacked:
+            panel.getBoundingClientRect().top >
+            copy.getBoundingClientRect().bottom - 8,
+          sourceCopyFirst: Boolean(
+            copy.compareDocumentPosition(panel) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+          ),
+        };
+      });
+    expect(mobileBrand).toEqual({
+      stacked: true,
+      sourceCopyFirst: true,
+    });
     await page.locator('[aria-labelledby="brand-heading"]').screenshot({
       path: "test-results/artifacts/home-brand-flexibility-light-390.png",
+    });
+    await page.locator('[aria-labelledby="brand-heading"]').screenshot({
+      path: "test-results/artifacts/home-brand-flex-light-390.png",
     });
     await showMarketingScheme(page, "dark");
     await page.locator("header").evaluate((element) => {
@@ -1305,13 +1437,21 @@ test.describe("premium marketing UX", () => {
     await page.locator('[aria-labelledby="brand-heading"]').screenshot({
       path: "test-results/artifacts/home-brand-flexibility-dark-390.png",
     });
+    await page.locator('[aria-labelledby="brand-heading"]').screenshot({
+      path: "test-results/artifacts/home-brand-flex-dark-390.png",
+    });
+    await captureRange(
+      '[aria-labelledby="why-heading"]',
+      '[aria-labelledby="closing-heading"]',
+      "test-results/artifacts/home-sequence-dark-390.png"
+    );
     await page.locator("header").evaluate((element) => {
       if (element instanceof HTMLElement) {
         element.style.visibility = "";
       }
     });
     await expectNoHorizontalOverflow(page);
-    for (const width of [1728, 1440, 1024, 768, 430, 390] as const) {
+    for (const width of [1728, 1440, 1280, 1024, 768, 430, 390] as const) {
       await page.setViewportSize({
         width,
         height: width >= 1024 ? 900 : 844,

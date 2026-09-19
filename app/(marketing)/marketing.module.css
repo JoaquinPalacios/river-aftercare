@@ -2811,11 +2811,21 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .brandGrid {
   display: grid;
-  gap: 2.2rem;
+  grid-template-areas:
+    "copy"
+    "visual";
+  row-gap: 2.2rem;
+  column-gap: 3rem;
 }
 
 .brandCopy {
+  grid-area: copy;
   max-width: 38rem;
+  min-width: 0;
+}
+
+.brandVisual {
+  grid-area: visual;
   min-width: 0;
 }
 
@@ -5293,7 +5303,8 @@ html[data-theme-mode="dark"] .wordmarkName {
   }
 
   .brandGrid {
-    grid-template-columns: 1.05fr 0.95fr;
+    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-areas: "visual copy";
     align-items: center;
     column-gap: 3rem;
   }
