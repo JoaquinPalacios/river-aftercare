@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+import "server-only";
 
 import {
   getMarketingContactDeliveryConfig,
@@ -6,7 +6,10 @@ import {
 } from "@/lib/marketing/contact-config";
 import { composeMarketingContactMessage } from "@/lib/marketing/contact-mail";
 import type { ContactEnquiry } from "@/lib/marketing/contact-enquiry";
-import type { MarketingContactMessage } from "@/lib/marketing/contact-mail";
+import {
+  sendTransactionalEmail,
+  type TransactionalEmailMessage,
+} from "@/lib/email/transactional-mailer";
 
 export const CONTACT_DELIVERY_FAILED =
   "We couldn't send your message right now. Please try again.";
@@ -14,54 +17,14 @@ export const CONTACT_DELIVERY_FAILED =
 export type MarketingContactMailerResult =
   { ok: true } | { ok: false; error: string };
 
-const memoryInbox: MarketingContactMessage[] = [];
+const memoryInbox: TransactionalEmailMessage[] = [];
 
-const RESEND_SEND_TIMEOUT_MS = 8000;
-
-export function getMarketingContactMemoryInbox(): readonly MarketingContactMessage[] {
+export function getMarketingContactMemoryInbox(): readonly TransactionalEmailMessage[] {
   return memoryInbox;
 }
 
 export function clearMarketingContactMemoryInbox(): void {
   memoryInbox.length = 0;
-}
-
-async function sendWithResend({
-  apiKey,
-  message,
-}: {
-  apiKey: string;
-  message: MarketingContactMessage;
-}): Promise<MarketingContactMailerResult> {
-  const resend = new Resend(apiKey);
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    const timed = await Promise.race([
-      resend.emails.send({
-        from: message.from,
-        to: [message.to],
-        replyTo: message.replyTo,
-        subject: message.subject,
-        text: message.text,
-        html: message.html,
-      }),
-      new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(() => {
-          reject(new Error("timeout"));
-        }, RESEND_SEND_TIMEOUT_MS);
-      }),
-    ]);
-
-    if (timed.error) {
-      return { ok: false, error: CONTACT_DELIVERY_FAILED };
-    }
-
-    return { ok: true };
-  } finally {
-    if (timer) {
-      clearTimeout(timer);
-    }
-  }
 }
 
 export async function deliverMarketingContactEnquiry(
@@ -78,17 +41,16 @@ export async function deliverMarketingContactEnquiry(
     fromEmail: config.fromEmail,
   });
 
-  if (config.kind === "memory") {
-    memoryInbox.push(message);
-    return { ok: true };
-  }
+  const result = await sendTransactionalEmail(
+    message,
+    config.kind === "memory"
+      ? { kind: "memory", inbox: memoryInbox }
+      : { kind: "resend", apiKey: config.apiKey }
+  );
 
-  try {
-    return await sendWithResend({
-      apiKey: config.apiKey,
-      message,
-    });
-  } catch {
+  if (!result.ok) {
     return { ok: false, error: CONTACT_DELIVERY_FAILED };
   }
+
+  return { ok: true };
 }

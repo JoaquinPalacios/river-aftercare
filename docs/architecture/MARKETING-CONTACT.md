@@ -113,5 +113,8 @@ ContactForm
   → submitMarketingContactAction (marketing host only)
   → Siteverify
   → ContactEnquiry (Zod, server-only) + honeypot
-  → MarketingContactMailer (Resend or memory)
+  → MarketingContactMailer
+  → sendTransactionalEmail (Resend or memory)
 ```
+
+Transport is shared with future account-lifecycle mail. Identities are not: Contact keeps `CONTACT_EMAIL_FROM` / `CONTACT_EMAIL_TO` / visitor Reply-To. Auth mail will use `AUTH_EMAIL_FROM` / optional `AUTH_EMAIL_REPLY_TO`. See [TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md) and [AUTH.md](AUTH.md). `AUTH_EMAIL_*` must not be used for Contact.

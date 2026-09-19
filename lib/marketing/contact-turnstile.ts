@@ -1,4 +1,4 @@
-import { isVercelProduction } from "@/lib/marketing/contact-config";
+import { isVercelProduction } from "@/lib/runtime/vercel-production";
 import {
   CONTACT_TURNSTILE_TOKEN_MAX_LENGTH,
   TURNSTILE_DUMMY_PASS_SITE_KEY,
