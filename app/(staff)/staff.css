@@ -542,6 +542,13 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
   color: var(--staff-muted);
 }
 
+.staffDialogFields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem 0;
+}
+
 .staffDialogActions {
   display: flex;
   flex-wrap: wrap;

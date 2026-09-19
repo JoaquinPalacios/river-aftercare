@@ -31,7 +31,13 @@ test.describe("operator clinic invitations", () => {
     await expect(
       page.getByRole("button", { name: /Actions for / })
     ).not.toHaveCount(0);
-    await page.getByRole("button", { name: /Actions for / }).first().click();
+    await page
+      .getByRole("button", { name: /Actions for / })
+      .first()
+      .click();
+    await expect(
+      page.getByRole("menuitem", { name: "Change role" })
+    ).toBeVisible();
     await expect(
       page.getByRole("menuitem", { name: "Remove access" })
     ).toBeVisible();
@@ -72,6 +78,16 @@ test.describe("operator clinic invitations", () => {
     await expect(
       page.getByRole("button", { name: "Cancel invitation" }).first()
     ).toBeVisible();
+    const pendingRow = page.getByRole("row").filter({ hasText: email });
+    await expect(
+      pendingRow.getByRole("button", { name: "Resend invitation" })
+    ).toBeVisible();
+    await expect(
+      pendingRow.getByRole("button", { name: /Actions for / })
+    ).toHaveCount(0);
+    await expect(
+      pendingRow.getByRole("menuitem", { name: "Change role" })
+    ).toHaveCount(0);
 
     await page.context().clearCookies();
     await page.goto(clinicTeamUrl, { waitUntil: "load" });
@@ -87,6 +103,43 @@ test.describe("operator clinic invitations", () => {
     await signInAsLocalAdmin(page);
     const response = await page.goto(teamUrl, { waitUntil: "load" });
     expect(response?.status()).toBe(404);
+  });
+
+  test("operator can change an active member role", async ({ page }) => {
+    await signInAsLocalOperator(page);
+    await page.getByRole("link", { name: "Riverside Dental Demo" }).click();
+    await page.getByRole("link", { name: "Open team" }).click();
+    await expect(page.getByRole("heading", { name: "Team" })).toBeVisible();
+
+    const staffActions = page.getByRole("button", {
+      name: "Actions for Demo Staff",
+    });
+    await staffActions.click();
+    await page.getByRole("menuitem", { name: "Change role" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Change role" })
+    ).toBeVisible();
+    await expect(
+      page.getByText("Choose the access level for Demo Staff.")
+    ).toBeVisible();
+    const role = page.getByLabel("Role");
+    await expect(role).toHaveValue("STAFF");
+    await expect(
+      page.getByRole("button", { name: "Save role" })
+    ).toBeDisabled();
+    await role.selectOption("ADMIN");
+    await page.getByRole("button", { name: "Save role" }).click();
+    await expect(page.getByText("Role updated.")).toBeVisible();
+    const staffRow = page.getByRole("row").filter({ hasText: "Demo Staff" });
+    await expect(staffRow.getByText("Administrator")).toBeVisible();
+
+    await staffActions.click();
+    await page.getByRole("menuitem", { name: "Change role" }).click();
+    await expect(role).toHaveValue("ADMIN");
+    await role.selectOption("STAFF");
+    await page.getByRole("button", { name: "Save role" }).click();
+    await expect(page.getByText("Role updated.")).toBeVisible();
+    await expect(staffRow.getByText("Staff", { exact: true })).toBeVisible();
   });
 });
 

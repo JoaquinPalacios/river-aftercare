@@ -41,10 +41,11 @@ Later portal capability:
 
 - clinic ADMIN inviting users
 - clinic STAFF must not invite
-- operator ADMIN ↔ STAFF role change after invite
 - last-admin protection when clinic-admin Team self-service exists
 - seat-limit enforcement
 - transfer admin
+
+**Operator ADMIN ↔ STAFF role change after invite is implemented** on operator Team. Do **not** add last-admin protection, self-demotion rules, or clinic-admin Team management from this note.
 
 Provisional named-seat policy (documentation only, not billed or enforced):
 

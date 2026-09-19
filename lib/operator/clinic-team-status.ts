@@ -2,6 +2,7 @@ export const TEAM_STATUS = {
   INVITATION_SENT: "invitation-sent",
   ACCESS_RESTORED: "access-restored",
   ACCESS_REMOVED: "access-removed",
+  ROLE_UPDATED: "role-updated",
 } as const;
 
 export type TeamStatusFlag = (typeof TEAM_STATUS)[keyof typeof TEAM_STATUS];
@@ -10,6 +11,7 @@ const TEAM_STATUS_MESSAGES: Record<TeamStatusFlag, string> = {
   [TEAM_STATUS.INVITATION_SENT]: "Invitation sent.",
   [TEAM_STATUS.ACCESS_RESTORED]: "Access restored.",
   [TEAM_STATUS.ACCESS_REMOVED]: "Access removed.",
+  [TEAM_STATUS.ROLE_UPDATED]: "Role updated.",
 };
 
 export function clinicTeamPath(clinicId: string): string {
