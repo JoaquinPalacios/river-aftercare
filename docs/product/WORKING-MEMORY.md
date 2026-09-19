@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (password change / forgot / reset)
+Last updated: 2026-09-19 (Privacy Policy published copy; draft banner removed)
 
 ---
 
@@ -17,7 +17,7 @@ Last updated: 2026-09-19 (password change / forgot / reset)
 | **Current implementation**     | Staff auth + parked chairside sessions + Phase 1A–1C aftercare + **Phase 1E browser/performance acceptance** + **Phase 1F public marketing face** through **1F.16 / reveal timing** + **Phase 1G interactive patient demo** + **Phase 1G.1 launch-scope cleanup** + **marketing completion** (`/`, `/pricing`, `/contact`, `/about` on the root host) + **marketing conversion polish** + **marketing final polish** + **UX polish + clinic portal foundation** + **Phase 2A clinic self-service foundation** + **Phase 2A.4** + **Phase 2A.5** (portal shell, launch SEO indexing policy, unpublish, Geist, River Aftercare brand pack) + **Phase 2B** (operator SEO & Discovery, structured SEO settings, JSON-LD, llms.txt, production-readiness audit) + **public UI + published-guide QR share** + **public legal copy rewrite** + **R2 clinic-asset application support** + **marketing master-brand repositioning** + **clinic vertical acquisition pages** (`/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics`). Motion is approved for marketing presentation only. Patient clinical content remains motion-light and document-first. Check-in is post-launch only — see [POST-LAUNCH-ROADMAP.md](POST-LAUNCH-ROADMAP.md). Logo **application** upload is implemented against Cloudflare R2; production still needs Joaquín to provision the bucket. Marketing `/contact` uses Cloudflare Turnstile (server-side Siteverify) and Resend. Do not add Turnstile to tenant patient pages. |
 | **Aftercare MVP implemented?** | **No** — Phase 1 technical vertical slice is implemented and hardened. Commercial MVP is after Phase 3.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
-Published-guide QR sharing is implemented for clinic staff (durable public URL, SVG/PNG). Vercel Web Analytics (`@vercel/analytics`) and Speed Insights (`@vercel/speed-insights`) are installed as cookieless platform telemetry in the three root layouts. Do not claim the PRD operator anonymous-analytics dashboard, approved Privacy/Terms, or production infra exist until they are built. Public `/privacy` and `/terms` are production-facing drafts and still require legal review. Hostname routing (Phase 1B) and branded patient pages (Phase 1C) are implemented. Operator now has All Clinics plus SEO & Discovery; it still does not have a template CMS. Phase 1E added Playwright + axe browser acceptance; it did not add product features.
+Published-guide QR sharing is implemented for clinic staff (durable public URL, SVG/PNG). Vercel Web Analytics (`@vercel/analytics`) and Speed Insights (`@vercel/speed-insights`) are installed as cookieless platform telemetry in the three root layouts. Do not claim the PRD operator anonymous-analytics dashboard, approved Terms, or production infra exist until they are built. Public `/privacy` is published without a draft banner; `/terms` remains a production-facing draft and still requires legal review. Hostname routing (Phase 1B) and branded patient pages (Phase 1C) are implemented. Operator now has All Clinics plus SEO & Discovery; it still does not have a template CMS. Phase 1E added Playwright + axe browser acceptance; it did not add product features.
 
 ---
 
@@ -64,7 +64,7 @@ Published-guide QR sharing is implemented for clinic staff (durable public URL, 
 | 2B                        | LOCAL — SEO / DISCOVERY / LAUNCH AUDIT READY FOR JOAQUÍN REVIEW                                                                           |
 | Marketing + trust polish  | LOCAL — LISTS, PREVIEWS, LEGAL DRAFTS READY FOR JOAQUÍN REVIEW                                                                            |
 | Public UI + share polish  | LOCAL — NAV, SPACING, CONTACT CTA, PUBLISHED QR READY FOR REVIEW                                                                          |
-| Public legal copy rewrite | LOCAL — PRODUCTION-FACING PRIVACY/TERMS DRAFTS READY FOR REVIEW                                                                           |
+| Public legal copy rewrite | LOCAL — PRIVACY PUBLISHED; TERMS REMAIN A DRAFT                                                                                           |
 | Clinic vertical pages     | LOCAL — shared editorial design system for `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics` plus `/clinics` overview hub |
 | Marketing FAQ + copy QA   | LOCAL — vertical FAQ accordion + final pre-index copy                                                                                     |
 | Marketing premium UX      | LOCAL — nav, phone mock, FAQ states, `/clinics` interaction, About editorial layout                                                       |
@@ -995,7 +995,7 @@ Local phase on `feature/phase-2b-seo-discovery-launch`. Starts from current main
 | Operator         | `/operator/seo` — SEO & Discovery. Platform OPERATOR only. Nav: Clinics, SEO & Discovery.                                                                                                                                                                                                                                                                                                                                                                                                  |
 | SEO data         | `PlatformSeoSettings` + `MarketingPageSeo`. Code fallbacks if the row is absent. Canonical URLs derived, not editable. No `seo.json`, no raw JSON-LD editing.                                                                                                                                                                                                                                                                                                                              |
 | JSON-LD          | Server-generated Organization / WebSite / SoftwareApplication (no Offer — pricing remains provisional) / ContactPage / AboutPage.                                                                                                                                                                                                                                                                                                                                                          |
-| Public pages     | `/about`, `/privacy`, and `/terms` published. Privacy/Terms are **production-facing drafts — legal review still required, not approved.**                                                                                                                                                                                                                                                                                                                                                  |
+| Public pages     | `/about`, `/privacy`, and `/terms` published. Privacy Policy is live at `/privacy` **without a draft banner**. Terms remain a **production-facing draft — legal review still required, not approved.**                                                                                                                                                                                                                                                                                     |
 | Discovery        | `/llms.txt` generated from identity + public routes, including `/clinics` and clinic vertical pages. `llms-full.txt` skipped until a governed corpus exists. Sitemap includes `/about`, `/clinics`, and `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics`. Tenant guides remain noindex and off the sitemap.                                                                                                                                                               |
 | OG image         | Operator upload/replace/remove for a dedicated 1200×630 PNG/JPEG/WebP. Stored in `PlatformSeoSettings.defaultOgImagePath` as `/platform/seo/<uuid>.<ext>`. Logo is not used as a social card.                                                                                                                                                                                                                                                                                              |
 | Docs             | [../architecture/SEO.md](../architecture/SEO.md), [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READINESS.md), [../launch/AGENTIC-READINESS.md](../launch/AGENTIC-READINESS.md), [ADR 0020](../adr/0020-platform-seo-is-structured-database-configuration.md), [ADR 0021](../adr/0021-clinic-patient-guides-stay-noindex-by-default.md), [ADR 0023](../adr/0023-platform-seo-assets-use-a-distinct-private-r2-namespace.md). Visuals: [artifacts/phase-2b](artifacts/phase-2b). |
@@ -1011,17 +1011,17 @@ Date: 2026-09-13
 
 Visual consistency and trust-page completion on current main (Phase 2B). No pricing, infra, lifecycle, PII, or UI-library changes.
 
-| Area                 | Behaviour                                                                                                                                                                                                                                                                              |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Numbered lists       | One `[01] [rule] [copy]` pattern (`MarketingNumberedSteps`) for the homepage problem list and pricing onboarding.                                                                                                                                                                      |
-| Onboarding copy      | Riverside Dental Demo uses a Tooth Extraction **sample** template. Other procedures are planned/onboarding, not advertised as available.                                                                                                                                               |
-| Phone + Patient View | Lightweight marketing replicas using shared `--cg-*` tokens and `data-patient-theme="portal"` so Light/Dark follow marketing appearance. Riverside Dental Demo brand stays teal, not River cobalt.                                                                                     |
-| Coming after launch  | Existing card system; bullets use first-line offset, not `align-items: center`.                                                                                                                                                                                                        |
-| Contact              | Submit uses `MarketingPrimaryButton` (canonical `.button.primary`).                                                                                                                                                                                                                    |
-| Login                | `← Back to River Aftercare` via `apexPublicUrl` / `marketingPublicLinks().homeHref`.                                                                                                                                                                                                   |
-| Legal                | `/privacy` and `/terms` are production-facing drafts. Operator is a sole trader trading as River Aftercare, ABN 32 671 297 130, Tweed Heads South NSW. Remaining placeholders: `[FULL LEGAL NAME]`, `[PRIVACY EMAIL]`. Invoice/AUD commercial terms encoded. **Not legally approved.** |
-| Footer               | For clinics (Dental, Physiotherapy, Chiropractic, Cosmetic & aesthetic), Product (About, Pricing, Contact), Legal (Privacy, Terms), Account (Sign in). Homepage anchors removed.                                                                                                       |
-| SEO                  | Privacy/Terms are `index,follow`, in sitemap and `llms.txt`. Operator SEO form includes the known paths.                                                                                                                                                                               |
+| Area                 | Behaviour                                                                                                                                                                                                                                                                                                      |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Numbered lists       | One `[01] [rule] [copy]` pattern (`MarketingNumberedSteps`) for the homepage problem list and pricing onboarding.                                                                                                                                                                                              |
+| Onboarding copy      | Riverside Dental Demo uses a Tooth Extraction **sample** template. Other procedures are planned/onboarding, not advertised as available.                                                                                                                                                                       |
+| Phone + Patient View | Lightweight marketing replicas using shared `--cg-*` tokens and `data-patient-theme="portal"` so Light/Dark follow marketing appearance. Riverside Dental Demo brand stays teal, not River cobalt.                                                                                                             |
+| Coming after launch  | Existing card system; bullets use first-line offset, not `align-items: center`.                                                                                                                                                                                                                                |
+| Contact              | Submit uses `MarketingPrimaryButton` (canonical `.button.primary`).                                                                                                                                                                                                                                            |
+| Login                | `← Back to River Aftercare` via `apexPublicUrl` / `marketingPublicLinks().homeHref`.                                                                                                                                                                                                                           |
+| Legal                | `/privacy` is published (Pedro Joaquin Palacios, ABN 32 671 297 130, `admin@riveraftercare.com.au`, named production providers). `/terms` remains a production-facing draft with `[FULL LEGAL NAME]` and `[PRIVACY EMAIL]` placeholders. Invoice/AUD commercial terms encoded. **Terms not legally approved.** |
+| Footer               | For clinics (Dental, Physiotherapy, Chiropractic, Cosmetic & aesthetic), Product (About, Pricing, Contact), Legal (Privacy, Terms), Account (Sign in). Homepage anchors removed.                                                                                                                               |
+| SEO                  | Privacy/Terms are `index,follow`, in sitemap and `llms.txt`. Operator SEO form includes the known paths.                                                                                                                                                                                                       |
 
 ---
 
@@ -1036,26 +1036,26 @@ Local polish on `feature/public-ui-share-polish`. Preserves Phase 2B SEO/trust w
 | Contact CTA | `.button` resets native `<button>` UA chrome (`appearance: none`, `border: 0`). Rest/hover/focus computed styles match homepage `View the clinic demo`.                                                                                                                                                                         |
 | Primary nav | Desktop and mobile: About, Pricing, Contact, Sign in. Privacy/Terms stay footer-only. Login heading is **Sign in**.                                                                                                                                                                                                             |
 | About       | One first `.band` with two related `headingBlock`s; second uses `.headingFollow`. Copy stays web-first / clinic-branded / dental-first / not CRM, monitoring, or messaging.                                                                                                                                                     |
-| Legal       | Privacy and Terms share Contact’s `.band` top padding after the hero/wave. Body measure remains `max-width: 42rem`. Per-document draft banners remain until counsel review.                                                                                                                                                     |
+| Legal       | Privacy and Terms share Contact’s `.band` top padding after the hero/wave. Body measure remains `max-width: 42rem`. Privacy no longer shows a draft banner; the Terms draft banner remains until counsel review.                                                                                                                |
 | QR          | Derived from the canonical public guide URL (`clinicPatientSiteUrl` + `publicSlug`). Server `qrcode` SVG/PNG, ECC H, dark-on-light, quiet zone 4. Share on published+enabled guides only (ADMIN and STAFF). Draft/unpublished have no Share. Same URL after republish; unpublish is 404. No patient-page QR. No QR image table. |
 
 ---
 
 ## Public legal copy rewrite (2026-09-14)
 
-Production-facing Privacy Policy and Terms & Conditions. Still **DRAFT FOR LEGAL REVIEW**.
+Historical rewrite of production-facing Privacy Policy and Terms & Conditions. Privacy was later republished on 2026-09-19 without the draft banner; see **Privacy Policy published copy** below. Terms remain **DRAFT FOR LEGAL REVIEW**.
 
-| Fact                   | Public copy                                                                       |
+| Fact                   | Public copy (as of 2026-09-14 rewrite)                                            |
 | ---------------------- | --------------------------------------------------------------------------------- |
 | Operator               | Sole trader trading as River Aftercare, ABN 32 671 297 130, Tweed Heads South NSW |
-| Remaining placeholders | `[FULL LEGAL NAME]`, `[PRIVACY EMAIL]`                                            |
+| Remaining placeholders | Terms still: `[FULL LEGAL NAME]`, `[PRIVACY EMAIL]`. Privacy now names both.      |
 | Billing                | AUD, monthly in advance, 14-day invoices, bank transfer initially, month-to-month |
 | Law                    | NSW, non-exclusive jurisdiction                                                   |
 | Patient data           | Current product is not designed for identifiable patient health records           |
 | Export                 | Customer may request a reasonable export — no self-service export in the app yet  |
-| Backups                | Intended 90-day rotation; not an implemented production control                   |
+| Backups                | Privacy now describes provider backup rotation rather than a 90-day app control   |
 
-Do not remove the draft banners until counsel review and the remaining launch blockers are resolved. Do not invent GST status, subprocessors, or a privacy email.
+Do not invent GST status. Named production providers now appear in `/privacy`. Terms draft banner remains until counsel review.
 
 ---
 
@@ -1178,15 +1178,15 @@ Do not claim production is ready because the Neon project exists.
 
 Public marketing copy and SEO defaults present River Aftercare as **patient aftercare software for clinics and practices**, not a dental-first / mobile-first product that may broaden later. Dental remains the live demo example (Riverside Dental Demo / Tooth Extraction). Clinic vertical acquisition pages sit on top of this master-brand positioning.
 
-| Area            | Behaviour                                                                                                                                                                                                                                              |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Master brand    | Patient aftercare for clinics and practices. Core H1 remains **Aftercare that still feels like your clinic.**                                                                                                                                          |
-| Demo CTA        | **View the dental demo** (Riverside Dental Demo). Closing / contact CTA remains **Request a demo**.                                                                                                                                                    |
-| Pricing         | Essential / Practice / Group prices unchanged. Plan copy no longer claims a dental-only library. Templates are “available River Aftercare guide templates”.                                                                                            |
-| SEO titles      | Operator `seoTitle` is the complete document title. If it already contains the site name, do **not** append `— River Aftercare`. Marketing metadata always uses `{ absolute }`. Layout has a default title and **no** `%s — River Aftercare` template. |
-| JSON-LD         | `WebPage.name` uses the page SEO title. OG title/description overrides are social-only.                                                                                                                                                                |
-| Privacy / Terms | Still drafts. Source defaults are `noindex, follow`. Sitemap and `llms.txt` still list them. Production operator rows are **not** mutated; uncheck Allow indexing on `/privacy` and `/terms` after deploy if those rows already exist.                 |
-| Group plan      | Copy is commercial/onboarding (“coordinated rollout”), not a claim that multi-location centralised management UI exists.                                                                                                                               |
+| Area            | Behaviour                                                                                                                                                                                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Master brand    | Patient aftercare for clinics and practices. Core H1 remains **Aftercare that still feels like your clinic.**                                                                                                                                                                  |
+| Demo CTA        | **View the dental demo** (Riverside Dental Demo). Closing / contact CTA remains **Request a demo**.                                                                                                                                                                            |
+| Pricing         | Essential / Practice / Group prices unchanged. Plan copy no longer claims a dental-only library. Templates are “available River Aftercare guide templates”.                                                                                                                    |
+| SEO titles      | Operator `seoTitle` is the complete document title. If it already contains the site name, do **not** append `— River Aftercare`. Marketing metadata always uses `{ absolute }`. Layout has a default title and **no** `%s — River Aftercare` template.                         |
+| JSON-LD         | `WebPage.name` uses the page SEO title. OG title/description overrides are social-only.                                                                                                                                                                                        |
+| Privacy / Terms | `/privacy` published copy, `/terms` still a draft. Source defaults remain `noindex, follow`. Sitemap and `llms.txt` still list them. Production operator rows are **not** mutated; uncheck Allow indexing on `/privacy` and `/terms` after deploy if those rows already exist. |
+| Group plan      | Copy is commercial/onboarding (“coordinated rollout”), not a claim that multi-location centralised management UI exists.                                                                                                                                                       |
 
 ---
 
@@ -1249,13 +1249,13 @@ Production `POST /practice` returned HTTP 500 while saving ordinary branding. No
 
 Cookieless platform page-view telemetry. This is **not** the PRD operator anonymous-analytics dashboard.
 
-| Area    | Behaviour                                                                                                                                                                     |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Package | `@vercel/analytics` 2.0.1 (`latest` stable). Import `Analytics` from `@vercel/analytics/next` via `lib/telemetry/vercel-web-analytics.tsx`.                                   |
-| Layouts | Mounted in the three independent root layouts: marketing, staff, aftercare, as `<VercelWebAnalytics />`. There is no shared `app/layout.tsx`.                                 |
-| Opt-out | Official `beforeSend`: if `localStorage.getItem("va-disable") === "1"`, return `null`; otherwise return the event unchanged. No UI, cookies, query params, or admin controls. |
-| Privacy | Public draft describes cookieless aggregated page-view stats via the application hosting provider. Do not name Vercel in `/privacy`. Legal review still required.             |
-| Product | Operator analytics (views by practice/guide, QR-origin) remain unimplemented.                                                                                                 |
+| Area    | Behaviour                                                                                                                                                                          |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Package | `@vercel/analytics` 2.0.1 (`latest` stable). Import `Analytics` from `@vercel/analytics/next` via `lib/telemetry/vercel-web-analytics.tsx`.                                        |
+| Layouts | Mounted in the three independent root layouts: marketing, staff, aftercare, as `<VercelWebAnalytics />`. There is no shared `app/layout.tsx`.                                      |
+| Opt-out | Official `beforeSend`: if `localStorage.getItem("va-disable") === "1"`, return `null`; otherwise return the event unchanged. No UI, cookies, query params, or admin controls.      |
+| Privacy | `/privacy` names Vercel as the application-hosting/measurement provider, plus aggregated page-view and performance measurement. Do not claim the PRD operator analytics dashboard. |
+| Product | Operator analytics (views by practice/guide, QR-origin) remain unimplemented.                                                                                                      |
 
 ---
 
@@ -1263,11 +1263,11 @@ Cookieless platform page-view telemetry. This is **not** the PRD operator anonym
 
 Cookieless Core Web Vitals / page-load telemetry. Same three root layouts as Web Analytics.
 
-| Area    | Behaviour                                                                                                                                                  |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Package | `@vercel/speed-insights` 2.0.0 (`latest` stable). Import `SpeedInsights` from `@vercel/speed-insights/next`.                                               |
-| Layouts | Mounted beside `<Analytics />` in marketing, staff, and aftercare root layouts.                                                                            |
-| Privacy | Public draft covers aggregated performance measurement through the application hosting provider, still without naming Vercel. Legal review still required. |
+| Area    | Behaviour                                                                                                                                                          |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Package | `@vercel/speed-insights` 2.0.0 (`latest` stable). Import `SpeedInsights` from `@vercel/speed-insights/next`.                                                       |
+| Layouts | Mounted beside `<Analytics />` in marketing, staff, and aftercare root layouts.                                                                                    |
+| Privacy | `/privacy` covers aggregated performance measurement through the application hosting provider and names Vercel. Do not claim the PRD operator analytics dashboard. |
 
 ---
 
@@ -1592,4 +1592,19 @@ Focused copy and composition pass on `/about`. Routes, SEO metadata, JSON-LD, an
 | Who it is for | DOM stays copy → clinic list. Desktop grid areas place the clinic module left (~0.92fr) and copy right (~1.08fr) with a 3.2rem gap. Mobile keeps natural reading order.            |
 | Clinic list   | Five-row grid, 0.5rem gap, slightly taller rows. First four remain vertical links; “Other appropriate allied health” stays a muted non-link.                                       |
 | Product scope | Eyebrow **Product scope**, heading **Focused on aftercare publishing.** Scope module label **Not a replacement for**. Complements-not-replaces positioning; no integration claims. |
-| Removed       | About-only legal-status footnote (certification / legal-review sentence). Privacy and Terms draft banners stay on those pages.                                                     |
+| Removed       | About-only legal-status footnote (certification / legal-review sentence). The Privacy draft banner was later removed; the Terms draft banner remains.                              |
+
+---
+
+## Privacy Policy published copy (2026-09-19)
+
+Replaces the `/privacy` draft with the current public Privacy Policy and removes the Draft for Legal Review card. `/terms` is unchanged.
+
+| Area             | Behaviour                                                                                                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Copy             | 21 numbered sections plus a short hero lede and preamble. Last updated **19 September 2026**.                                                                                        |
+| Identity         | **Pedro Joaquin Palacios**, sole trader trading as River Aftercare, ABN **32 671 297 130**, Tweed Heads South NSW. Privacy email **admin@riveraftercare.com.au** as `mailto:` links. |
+| Providers        | Names Vercel, Neon (Sydney), Cloudflare (R2 + Turnstile), Resend, Hostinger, and Google. Overseas processing: United States and Europe, plus distributed network infrastructure.     |
+| Draft banner     | Removed on `/privacy` only. Terms keep `DRAFT FOR LEGAL REVIEW`. `PRIVACY_PAGE_LEGALLY_APPROVED` stays `false`. Source robots remain `noindex, follow`.                              |
+| Markup           | Legal body copy supports `**bold**` and `[label](mailto:…)` via `lib/legal/inline-markup.ts`. Contact block is an `<address>`.                                                       |
+| Do not overclaim | Not Privacy Act certification, HIPAA, or counsel-approved Terms. Do not flip indexing or the operator legal-approval flag without an explicit decision.                              |

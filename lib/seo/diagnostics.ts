@@ -81,7 +81,7 @@ export function buildSeoDiagnostics(input: {
       status: PRIVACY_PAGE_LEGALLY_APPROVED ? "complete" : "attention",
       detail: PRIVACY_PAGE_LEGALLY_APPROVED
         ? "Privacy page is published and legally approved."
-        : "Substantial draft is published at /privacy. Legal review is still required.",
+        : "Privacy Policy is published at /privacy without a draft banner. Operator legal-approval flag is still pending.",
     },
     {
       id: "terms",

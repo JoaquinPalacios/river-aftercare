@@ -9,7 +9,8 @@ import {
 export type LegalBlock =
   | { type: "p"; text: string }
   | { type: "ul"; items: readonly string[] }
-  | { type: "placeholder"; text: string };
+  | { type: "placeholder"; text: string }
+  | { type: "address"; lines: readonly string[] };
 
 export interface LegalSection {
   id: string;
@@ -22,7 +23,8 @@ export interface LegalDocument {
   eyebrow: string;
   title: string;
   intro: string;
-  draftBanner: string;
+  preamble: readonly string[];
+  draftBanner: string | null;
   status: typeof LEGAL_DOCUMENT_STATUS;
   lastUpdatedIso: string;
   lastUpdatedLabel: string;
@@ -31,24 +33,26 @@ export interface LegalDocument {
 
 export const TERMS_DRAFT_BANNER = `DRAFT FOR LEGAL REVIEW. These terms are being prepared for ${PRODUCT_NAME}'s production launch and have not yet received final legal approval.`;
 
-export const PRIVACY_DRAFT_BANNER = `DRAFT FOR LEGAL REVIEW. This policy reflects the current ${PRODUCT_NAME} product and intended launch operations but has not yet received final legal approval.`;
-
 export function legalDocumentMeta(input: {
   slug: LegalDocument["slug"];
   title: string;
   intro: string;
-  draftBanner: string;
+  preamble?: readonly string[];
+  draftBanner?: string | null;
+  lastUpdatedIso?: string;
   sections: readonly LegalSection[];
 }): LegalDocument {
+  const lastUpdatedIso = input.lastUpdatedIso ?? LEGAL_LAST_UPDATED_ISO;
   return {
     slug: input.slug,
     eyebrow: "Legal",
     title: input.title,
     intro: input.intro,
-    draftBanner: input.draftBanner,
+    preamble: input.preamble ?? [],
+    draftBanner: input.draftBanner ?? null,
     status: LEGAL_DOCUMENT_STATUS,
-    lastUpdatedIso: LEGAL_LAST_UPDATED_ISO,
-    lastUpdatedLabel: formatLegalLastUpdated(),
+    lastUpdatedIso,
+    lastUpdatedLabel: formatLegalLastUpdated(lastUpdatedIso),
     sections: input.sections,
   };
 }

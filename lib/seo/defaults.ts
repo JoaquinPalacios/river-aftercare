@@ -82,13 +82,13 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
   },
   "/privacy": {
     seoTitle: "Privacy Policy",
-    metaDescription: `How ${PRODUCT_NAME} handles information on the public website, clinic accounts, and patient aftercare pages. Draft for legal review.`,
+    metaDescription: `How ${PRODUCT_NAME} handles personal information on the public website, clinic and staff accounts, business communications, and clinic-branded aftercare pages.`,
     ogTitle: null,
     ogDescription: null,
     ogImagePath: null,
     index: DRAFT_LEGAL_ROBOTS.index,
     follow: DRAFT_LEGAL_ROBOTS.follow,
-    lastModified: "2026-09-17",
+    lastModified: "2026-09-19",
   },
   "/terms": {
     seoTitle: "Terms & Conditions",

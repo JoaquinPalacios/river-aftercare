@@ -153,20 +153,25 @@ describe("marketing + trust polish", () => {
     expect(staffCss).toContain("var(--staff-muted)");
   });
 
-  it("publishes privacy and terms drafts with noindex metadata", async () => {
+  it("publishes privacy copy and terms draft with noindex metadata", async () => {
     const privacyHtml = renderToStaticMarkup(await MarketingPrivacyPage());
     const termsHtml = renderToStaticMarkup(await MarketingTermsPage());
 
     expect(privacyHtml).toContain("Privacy Policy");
-    expect(privacyHtml).toContain("DRAFT FOR LEGAL REVIEW");
-    expect(privacyHtml).toContain("[FULL LEGAL NAME]");
-    expect(privacyHtml).toContain("[PRIVACY EMAIL]");
+    expect(privacyHtml).not.toContain("DRAFT FOR LEGAL REVIEW");
+    expect(privacyHtml).toContain("Pedro Joaquin Palacios");
+    expect(privacyHtml).toContain("admin@riveraftercare.com.au");
+    expect(privacyHtml).toContain("mailto:admin@riveraftercare.com.au");
     expect(privacyHtml).toContain("ABN 32 671 297 130");
+    expect(privacyHtml).not.toContain("[FULL LEGAL NAME]");
+    expect(privacyHtml).not.toContain("[PRIVACY EMAIL]");
     expect(privacyHtml).not.toContain("HIPAA compliant");
     expect(privacyHtml).not.toContain("We store all information with Neon");
+    expect(privacyHtml).toContain("Vercel");
+    expect(privacyHtml).toContain("Cloudflare Turnstile");
     expect(privacyHtml).toContain('data-mk-page-hero="legal"');
     expect(privacyHtml).toContain("<time");
-    expect(privacyHtml).toContain('dateTime="2026-09-17"');
+    expect(privacyHtml).toContain('dateTime="2026-09-19"');
 
     expect(termsHtml).toContain("Terms &amp; Conditions");
     expect(termsHtml).toContain("not a healthcare provider");
@@ -176,6 +181,8 @@ describe("marketing + trust polish", () => {
     expect(termsHtml).toContain('data-mk-page-hero="legal"');
     expect(privacyHtml).toContain("legalArticle");
     expect(privacyHtml).toContain("band");
+    expect(privacyHtml).not.toContain("legalBanner");
+    expect(termsHtml).toContain("legalBanner");
     expect(termsHtml).toContain("legalArticle");
     expect(termsHtml).toContain("band");
     expect(marketingCss).toContain(".marketingSoft > .band:first-child");
