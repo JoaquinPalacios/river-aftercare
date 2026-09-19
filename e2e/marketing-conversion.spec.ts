@@ -44,13 +44,18 @@ test.describe("marketing conversion routes", () => {
     ).toBeVisible();
     await expect(page.getByText("Connected aftercare plans")).toHaveCount(0);
     await expect(page.getByText("Connected recovery plans")).toHaveCount(0);
-    await expect(page.getByText("A$79")).toBeVisible();
-    await expect(page.getByText("A$149")).toBeVisible();
-    await expect(page.getByText("A$790")).toBeVisible();
-    await expect(page.getByText("A$1,490")).toBeVisible();
-    await expect(page.getByText("A$59")).toBeVisible();
-    await expect(page.getByText("A$590")).toBeVisible();
-    await expect(page.getByText("2 months free").first()).toBeVisible();
+    await expect(page.getByText("A$79", { exact: true })).toBeVisible();
+    await expect(page.getByText("A$149", { exact: true })).toBeVisible();
+    await expect(page.getByText("A$790/year — 2 months free")).toBeVisible();
+    await expect(page.getByText("A$1,490/year — 2 months free")).toBeVisible();
+    await expect(
+      page.getByText("Second location: A$79/month or A$790/year")
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Third and subsequent locations: A$59/month or A$590/year each"
+      )
+    ).toBeVisible();
     await expect(page.getByText("Custom pricing")).toBeVisible();
     await expect(page.getByText("Recommended")).toBeVisible();
     await expect(page.getByText("Coming after launch")).toHaveCount(0);
@@ -694,7 +699,8 @@ test.describe("marketing conversion routes", () => {
       const item = page
         .locator("ol")
         .filter({
-          hasText: "Choose or prepare the guidance your clinic needs",
+          hasText:
+            "Choose an available River Aftercare guide or provide clinic-approved aftercare content.",
         })
         .locator("li")
         .first();
