@@ -223,6 +223,49 @@ export default async function MarketingHomePage() {
             </div>
           </section>
 
+          <section className={styles.band} aria-labelledby="brand-heading">
+            <MarketingReveal.Group>
+              <div className={`${styles.inner} ${styles.brandGrid}`}>
+                <div className={styles.brandCopy} data-mk-brand-copy="">
+                  <MarketingReveal.Item delay={0}>
+                    <p className={styles.eyebrow}>Brand flexibility</p>
+                  </MarketingReveal.Item>
+                  <MarketingReveal.Item delay={editorialRevealDelay(1)}>
+                    <h2 id="brand-heading">
+                      Your clinic stays visible after the appointment.
+                    </h2>
+                  </MarketingReveal.Item>
+                  <MarketingReveal.Item delay={editorialRevealDelay(2)}>
+                    <p className={styles.copy}>
+                      {PRODUCT_NAME} keeps the patient experience consistent
+                      while giving each clinic room to carry its own identity
+                      into the guidance patients revisit.
+                    </p>
+                  </MarketingReveal.Item>
+                </div>
+                <div className={styles.brandVisual} data-mk-brand-visual="">
+                  <MarketingReveal.Item delay={editorialRevealDelay(3)} preview>
+                    <div
+                      className={styles.brandIdentity}
+                      data-mk-brand-identity=""
+                    >
+                      {BRAND_DIMENSIONS.map((dimension) => (
+                        <article
+                          key={dimension.key}
+                          className={styles.brandDimension}
+                        >
+                          <h3>{dimension.title}</h3>
+                          <p>{dimension.copy}</p>
+                          <BrandDimensionSample kind={dimension.key} />
+                        </article>
+                      ))}
+                    </div>
+                  </MarketingReveal.Item>
+                </div>
+              </div>
+            </MarketingReveal.Group>
+          </section>
+
           <section
             className={styles.band}
             aria-labelledby="clinic-types-heading"
@@ -318,47 +361,6 @@ export default async function MarketingHomePage() {
                 </div>
                 <MarketingReveal.Item delay={editorialRevealDelay(4)} preview>
                   <MarketingPatientPreview />
-                </MarketingReveal.Item>
-              </div>
-            </MarketingReveal.Group>
-          </section>
-
-          <section className={styles.band} aria-labelledby="brand-heading">
-            <MarketingReveal.Group>
-              <div className={`${styles.inner} ${styles.brandGrid}`}>
-                <div className={styles.brandCopy} data-mk-brand-copy="">
-                  <MarketingReveal.Item delay={0}>
-                    <p className={styles.eyebrow}>Brand flexibility</p>
-                  </MarketingReveal.Item>
-                  <MarketingReveal.Item delay={editorialRevealDelay(1)}>
-                    <h2 id="brand-heading">
-                      Your clinic stays visible after the appointment.
-                    </h2>
-                  </MarketingReveal.Item>
-                  <MarketingReveal.Item delay={editorialRevealDelay(2)}>
-                    <p className={styles.copy}>
-                      {PRODUCT_NAME} keeps the patient experience consistent
-                      while giving each clinic room to carry its own identity
-                      into the guidance patients revisit.
-                    </p>
-                  </MarketingReveal.Item>
-                </div>
-                <MarketingReveal.Item delay={editorialRevealDelay(3)} preview>
-                  <div
-                    className={styles.brandIdentity}
-                    data-mk-brand-identity=""
-                  >
-                    {BRAND_DIMENSIONS.map((dimension) => (
-                      <article
-                        key={dimension.key}
-                        className={styles.brandDimension}
-                      >
-                        <h3>{dimension.title}</h3>
-                        <p>{dimension.copy}</p>
-                        <BrandDimensionSample kind={dimension.key} />
-                      </article>
-                    ))}
-                  </div>
                 </MarketingReveal.Item>
               </div>
             </MarketingReveal.Group>

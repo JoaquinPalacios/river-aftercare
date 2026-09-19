@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (production login hardening: email ≤254, password ≤256, dummy verify for unknown/null-hash)
+Last updated: 2026-09-19 (homepage storytelling sequence: Brand Flexibility after Why clinics, visual-left desktop)
 
 ---
 
@@ -520,7 +520,7 @@ The public Early Access / Design Partner section was removed because founder-led
 | Reduced motion          | Bootstrap `reduce`; pending CSS does not apply; MotionConfig `reducedMotion="user"`; content is immediately visible with no translation/scale/rail delay.                                                                                                                                                               |
 | Closing                 | Compact `#see-it` CTA: “See it in practice” / “See the patient experience for yourself.” / Riverside Dental Demo copy / **View the clinic demo**. Desktop copy left, button right. Footer atmosphere from 1F.14/1F.15 preserved.                                                                                        |
 
-Public landing narrative at 1F.16: Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Brand Flexibility → Clinic Preview → compact demo CTA → Footer. Current order (2026-09-19): vertical discovery → Clinic Preview → Brand Flexibility — see Homepage Brand Flexibility identity panel below.
+Public landing narrative at 1F.16: Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Brand Flexibility → Clinic Preview → compact demo CTA → Footer. Current order (2026-09-19): Why Clinics Use It → Brand Flexibility → Built for different kinds of care → Clinic Preview → Get started — see Homepage storytelling sequence below.
 
 See [PERFORMANCE.md](../architecture/PERFORMANCE.md) for the 1F.16 bundle table.
 
@@ -1499,8 +1499,19 @@ Removes profession-card repetition between vertical discovery and Brand Flexibil
 | Area               | Behaviour                                                                                                                                                                                             |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Vertical discovery | Unchanged. `BUILT FOR DIFFERENT KINDS OF CARE` / four profession cards / Explore all clinic types → `/clinics`. River vertical accents stay periwinkle / sky / cobalt / lavender.                     |
-| Section order      | Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Built for different kinds of care → Clinic Preview → Brand Flexibility → Get started / Footer.                                |
 | Brand Flexibility  | Answers “what remains recognisably mine?”. Eyebrow kept. H2: “Your clinic stays visible after the appointment.” Body: consistent patient experience, clinic identity carried into revisited guidance. |
-| Visual             | Editorial split (copy left, one River-neutral identity panel right). Three rows: Your name / Your colours / Your terminology. Not a second profession grid.                                           |
+| Visual             | One River-neutral identity panel. Three rows: Your name / Your colours / Your terminology. Not a second profession grid.                                                                              |
 | Sample colours     | Teal `#14635f`, navy `#2a3446`, clay `#5a3f44` remain as small swatches labelled “Sample clinic identities”. Not Dental / Physio / Cosmetic. Not River vertical accents.                              |
-| Patient demo       | Riverside Dental phone mockup and Clinic Preview content unchanged. Brand Flexibility now follows that patient-experience section.                                                                    |
+| Patient demo       | Riverside Dental phone mockup and Clinic Preview content unchanged.                                                                                                                                   |
+
+## Homepage storytelling sequence (2026-09-19)
+
+Reorders the lower homepage without rewriting strategy, SEO, or product claims. Brand Flexibility is the identity bridge between clinic value and workflow discovery. Patient Preview remains the last substantial proof before the closing CTA.
+
+| Area              | Behaviour                                                                                                                                                                                            |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Section order     | Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Brand Flexibility → Built for different kinds of care → Clinic Preview → Get started / Footer.                               |
+| Chapter placement | Brand Flexibility lives in `marketingSoft` after Why Clinics. Clinic Preview is the only `marketingShowcase` band. Closing CTA unchanged.                                                            |
+| Desktop layout    | Brand Flexibility uses the product-grid pattern: DOM is copy then visual; CSS `grid-template-areas` places visual left / copy right from `64rem`. Visual ~`1.1fr`, copy ~`0.9fr`, `3rem` column gap. |
+| Mobile layout     | Semantic copy-first order: eyebrow, heading, supporting copy, then identity panel. No CSS order tricks.                                                                                              |
+| Copy              | Unchanged. Overlap between “Consistent aftercare, under your clinic's brand” and “Your clinic stays visible after the appointment.” is accepted pending a future copy-only pass.                     |

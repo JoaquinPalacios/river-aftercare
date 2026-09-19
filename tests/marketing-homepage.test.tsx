@@ -165,6 +165,7 @@ describe("marketing homepage", () => {
     expect(html).toContain("Sample clinic identities");
     expect(html).toContain("data-mk-brand-identity");
     expect(html).toContain("data-mk-brand-copy");
+    expect(html).toContain("data-mk-brand-visual");
     expect(html).toContain("data-mk-brand-swatch");
     expect(html).toContain("brandIdentity");
     expect(html).not.toMatch(/>Dental practice</);
@@ -173,14 +174,20 @@ describe("marketing homepage", () => {
     expect(html).not.toContain("Family dental");
     expect(html).not.toContain("One platform, many clinic identities");
     expect(html).not.toContain("feels recognisably theirs");
+    const whyAt = html.indexOf('id="why-heading"');
+    const brandAt = html.indexOf('id="brand-heading"');
     const clinicTypesAt = html.indexOf('id="clinic-types-heading"');
     const previewAt = html.indexOf('id="preview-heading"');
-    const brandAt = html.indexOf('id="brand-heading"');
     const closingAt = html.indexOf('id="closing-heading"');
-    expect(clinicTypesAt).toBeGreaterThan(-1);
+    expect(whyAt).toBeGreaterThan(-1);
+    expect(whyAt).toBeLessThan(brandAt);
+    expect(brandAt).toBeLessThan(clinicTypesAt);
     expect(clinicTypesAt).toBeLessThan(previewAt);
-    expect(previewAt).toBeLessThan(brandAt);
-    expect(brandAt).toBeLessThan(closingAt);
+    expect(previewAt).toBeLessThan(closingAt);
+    expect((html.match(/id="brand-heading"/g) ?? []).length).toBe(1);
+    expect(html.indexOf("data-mk-brand-copy")).toBeLessThan(
+      html.indexOf("data-mk-brand-identity")
+    );
     expect(html).not.toContain("Choose a visual tone that feels at home");
     expect(html).not.toContain("Staff sign in");
     expect((html.match(/>Sign in</g) ?? []).length).toBe(3);
@@ -296,5 +303,28 @@ describe("marketing homepage", () => {
     expect(html).not.toContain("framer-motion");
     expect(html).not.toContain('from "motion');
     expect(html).not.toContain("use client");
+  });
+
+  it("places brand flexibility after clinic value and before workflows and proof", async () => {
+    const html = renderToStaticMarkup(await MarketingHomePage());
+    const whyAt = html.indexOf('id="why-heading"');
+    const brandAt = html.indexOf('id="brand-heading"');
+    const clinicTypesAt = html.indexOf('id="clinic-types-heading"');
+    const previewAt = html.indexOf('id="preview-heading"');
+    const closingAt = html.indexOf('id="closing-heading"');
+
+    expect(whyAt).toBeGreaterThan(-1);
+    expect(brandAt).toBeGreaterThan(whyAt);
+    expect(clinicTypesAt).toBeGreaterThan(brandAt);
+    expect(previewAt).toBeGreaterThan(clinicTypesAt);
+    expect(closingAt).toBeGreaterThan(previewAt);
+    expect((html.match(/id="brand-heading"/g) ?? []).length).toBe(1);
+    expect((html.match(/id="preview-heading"/g) ?? []).length).toBe(1);
+    expect(html.indexOf("data-mk-brand-copy")).toBeLessThan(
+      html.indexOf("data-mk-brand-visual")
+    );
+    expect(html.indexOf("data-mk-brand-visual")).toBeLessThan(
+      html.indexOf("data-mk-brand-identity")
+    );
   });
 });

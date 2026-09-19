@@ -1651,6 +1651,9 @@ test.describe("Phase 1F.11 story clarity", () => {
         Math.round(row.getBoundingClientRect().top)
       );
       const panelStyles = getComputedStyle(panel);
+      const tabbables = panel.querySelectorAll(
+        'a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
       return {
         headingSize,
         whySize,
@@ -1658,8 +1661,12 @@ test.describe("Phase 1F.11 story clarity", () => {
         paddingTop: Math.round(
           Number.parseFloat(getComputedStyle(root).paddingTop)
         ),
-        split: panelBox.left > copyBox.right - 8,
+        visualLeft: copyBox.left > panelBox.right - 8,
+        sourceCopyFirst: Boolean(
+          copy.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING
+        ),
         stackedRows: rowTops[1] > rowTops[0] && rowTops[2] > rowTops[1],
+        visualTabbables: tabbables.length,
         panelBackground: panelStyles.backgroundColor,
         swatchBackgrounds: swatches.map(
           (swatch) => getComputedStyle(swatch).backgroundColor
@@ -1676,7 +1683,9 @@ test.describe("Phase 1F.11 story clarity", () => {
     expect(Math.abs(desktop!.headingSize - desktop!.previewSize)).toBeLessThan(
       1
     );
-    expect(desktop!.split).toBe(true);
+    expect(desktop!.visualLeft).toBe(true);
+    expect(desktop!.sourceCopyFirst).toBe(true);
+    expect(desktop!.visualTabbables).toBe(0);
     expect(desktop!.stackedRows).toBe(true);
     expect(desktop!.paddingTop).toBe(0);
     expect(
@@ -1689,26 +1698,31 @@ test.describe("Phase 1F.11 story clarity", () => {
     expect(new Set(desktop!.swatchBackgrounds).size).toBe(3);
 
     const order = await page.evaluate(() => {
+      const why = document.getElementById("why-heading");
+      const brand = document.getElementById("brand-heading");
       const types = document.getElementById("clinic-types-heading");
       const previewHeading = document.getElementById("preview-heading");
-      const brand = document.getElementById("brand-heading");
-      if (!types || !previewHeading || !brand) {
+      const closing = document.getElementById("closing-heading");
+      if (!why || !brand || !types || !previewHeading || !closing) {
         return null;
       }
+      const follows = (earlier: Element, later: Element) =>
+        Boolean(
+          earlier.compareDocumentPosition(later) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+        );
       return {
-        typesBeforePreview: Boolean(
-          types.compareDocumentPosition(previewHeading) &
-          Node.DOCUMENT_POSITION_FOLLOWING
-        ),
-        previewBeforeBrand: Boolean(
-          previewHeading.compareDocumentPosition(brand) &
-          Node.DOCUMENT_POSITION_FOLLOWING
-        ),
+        whyBeforeBrand: follows(why, brand),
+        brandBeforeTypes: follows(brand, types),
+        typesBeforePreview: follows(types, previewHeading),
+        previewBeforeClosing: follows(previewHeading, closing),
       };
     });
     expect(order).toEqual({
+      whyBeforeBrand: true,
+      brandBeforeTypes: true,
       typesBeforePreview: true,
-      previewBeforeBrand: true,
+      previewBeforeClosing: true,
     });
 
     const previewPadding = await preview.evaluate((root) =>
@@ -1744,12 +1758,33 @@ test.describe("Phase 1F.11 story clarity", () => {
             return false;
           }
           return (
-            panel.getBoundingClientRect().left >
-            copy.getBoundingClientRect().right - 8
+            copy.getBoundingClientRect().left >
+            panel.getBoundingClientRect().right - 8
           );
         });
       })
       .toBe(true);
+
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await showStaticScheme(page, "light");
+    await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
+    await waitForSectionReveal(section);
+    const tablet = await section.evaluate((root) => {
+      const copy = root.querySelector("[data-mk-brand-copy]");
+      const panel = root.querySelector("[data-mk-brand-identity]");
+      if (!(copy instanceof HTMLElement) || !(panel instanceof HTMLElement)) {
+        return null;
+      }
+      return {
+        stacked:
+          panel.getBoundingClientRect().top >
+          copy.getBoundingClientRect().bottom - 8,
+        sourceCopyFirst: Boolean(
+          copy.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING
+        ),
+      };
+    });
+    expect(tablet).toEqual({ stacked: true, sourceCopyFirst: true });
 
     await page.setViewportSize({ width: 390, height: 844 });
     await showStaticScheme(page, "light");
@@ -1772,6 +1807,9 @@ test.describe("Phase 1F.11 story clarity", () => {
       const second = rows[1].getBoundingClientRect();
       return {
         stacked: panelBox.top > copyBox.bottom - 8,
+        sourceCopyFirst: Boolean(
+          copy.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING
+        ),
         rowsStacked: second.top > first.bottom - 8,
         paddingTop: Math.round(
           Number.parseFloat(getComputedStyle(root).paddingTop)
@@ -1780,6 +1818,7 @@ test.describe("Phase 1F.11 story clarity", () => {
     });
     expect(mobile).not.toBeNull();
     expect(mobile!.stacked).toBe(true);
+    expect(mobile!.sourceCopyFirst).toBe(true);
     expect(mobile!.rowsStacked).toBe(true);
     expect(mobile!.paddingTop).toBe(0);
     const problemPadding = await page

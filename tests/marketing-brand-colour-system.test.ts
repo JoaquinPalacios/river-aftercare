@@ -158,6 +158,11 @@ describe("marketing brand colour hierarchy", () => {
     expect(styles).not.toMatch(
       /\.brandGrid\s*\{[^}]*repeat\(3,\s*minmax\(0,\s*1fr\)\)/
     );
+    expect(styles).toMatch(
+      /\.brandGrid\s*\{[^}]*grid-template-areas:\s*"copy"\s*"visual"/
+    );
+    expect(styles).toMatch(/grid-template-areas:\s*"visual copy"/);
+    expect(styles).toContain(".brandVisual");
     expect(contrastRatio("#f4fbfa", "#14635f")).toBeGreaterThanOrEqual(
       TEXT_CONTRAST_RATIO
     );
