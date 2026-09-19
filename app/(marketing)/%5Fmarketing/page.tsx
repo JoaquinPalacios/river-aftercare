@@ -326,7 +326,7 @@ export default async function MarketingHomePage() {
           <section className={styles.band} aria-labelledby="brand-heading">
             <MarketingReveal.Group>
               <div className={`${styles.inner} ${styles.brandGrid}`}>
-                <div className={styles.brandCopy}>
+                <div className={styles.brandCopy} data-mk-brand-copy="">
                   <MarketingReveal.Item delay={0}>
                     <p className={styles.eyebrow}>Brand flexibility</p>
                   </MarketingReveal.Item>
@@ -421,9 +421,18 @@ function BrandDimensionSample({
     return (
       <div className={styles.brandSample}>
         <div className={styles.brandSwatches} aria-hidden="true">
-          <span className={`${styles.brandSwatch} ${styles.brandTeal}`} />
-          <span className={`${styles.brandSwatch} ${styles.brandNavy}`} />
-          <span className={`${styles.brandSwatch} ${styles.brandWarm}`} />
+          <span
+            className={`${styles.brandSwatch} ${styles.brandTeal}`}
+            data-mk-brand-swatch=""
+          />
+          <span
+            className={`${styles.brandSwatch} ${styles.brandNavy}`}
+            data-mk-brand-swatch=""
+          />
+          <span
+            className={`${styles.brandSwatch} ${styles.brandWarm}`}
+            data-mk-brand-swatch=""
+          />
         </div>
         <p className={styles.brandSampleCaption}>Sample clinic identities</p>
       </div>

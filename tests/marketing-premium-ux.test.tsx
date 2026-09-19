@@ -32,7 +32,7 @@ describe("premium marketing UX contracts", () => {
   });
 
   it("uses a shared section stack for heading-to-body and body-to-body rhythm", () => {
-    expect(tokens).toContain("--mk-heading-intro-gap: 1.35rem");
+    expect(tokens).toContain("--mk-heading-intro-gap: 1.25rem");
     expect(tokens).toContain("--mk-body-gap: 1rem");
     expect(tokens).toContain(
       "--mk-intro-content-gap: clamp(1.25rem, 2vw, 1.5rem)"

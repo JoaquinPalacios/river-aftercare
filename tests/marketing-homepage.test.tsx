@@ -158,14 +158,14 @@ describe("marketing homepage", () => {
     expect(html).toContain("Your colours");
     expect(html).toContain("Your terminology");
     expect(html).toContain("The clinic remains recognisable to the patient.");
-    expect(html).toContain(
-      "The patient experience can reflect the clinic's visual identity."
-    );
+    expect(html).toContain("clinic&#x27;s visual identity");
     expect(html).toContain(
       "Guidance can use language appropriate to the practice."
     );
     expect(html).toContain("Sample clinic identities");
     expect(html).toContain("data-mk-brand-identity");
+    expect(html).toContain("data-mk-brand-copy");
+    expect(html).toContain("data-mk-brand-swatch");
     expect(html).toContain("brandIdentity");
     expect(html).not.toMatch(/>Dental practice</);
     expect(html).not.toMatch(/>Physiotherapy clinic</);

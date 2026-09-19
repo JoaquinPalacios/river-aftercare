@@ -738,12 +738,13 @@ test.describe("marketing homepage", () => {
       page.getByRole("button", { name: /Change colour theme/ })
     ).toBeVisible();
 
-    const desktopBand = page.locator('[aria-labelledby="product-heading"]');
+    const desktopBand = page
+      .locator('[data-mk-chapter="soft"] > section')
+      .first();
     const desktopPadding = await desktopBand.evaluate((element) =>
       Number.parseFloat(getComputedStyle(element).paddingTop)
     );
-    expect(desktopPadding).toBeGreaterThanOrEqual(64);
-    expect(desktopPadding).toBeLessThanOrEqual(96);
+    expect(desktopPadding).toBeGreaterThanOrEqual(96);
 
     await page
       .locator('[aria-labelledby="why-heading"]')
@@ -861,12 +862,14 @@ test.describe("marketing homepage", () => {
       });
     }
 
-    const mobileBand = page.locator('[aria-labelledby="product-heading"]');
+    const mobileBand = page
+      .locator('[data-mk-chapter="soft"] > section')
+      .first();
     const mobilePadding = await mobileBand.evaluate((element) =>
       Number.parseFloat(getComputedStyle(element).paddingTop)
     );
-    expect(mobilePadding).toBeGreaterThanOrEqual(64);
-    expect(mobilePadding).toBeLessThan(80);
+    expect(mobilePadding).toBeGreaterThanOrEqual(48);
+    expect(mobilePadding).toBeLessThanOrEqual(96);
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page

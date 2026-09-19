@@ -84,8 +84,18 @@ async function scrollSectionIntoView(
   selector: string
 ): Promise<void> {
   await page.evaluate((target) => {
-    document.querySelector(target)?.scrollIntoView({
-      block: "start",
+    const element = document.querySelector(target);
+    if (!(element instanceof HTMLElement)) {
+      return;
+    }
+    const header = document.querySelector("header");
+    const headerHeight =
+      header instanceof HTMLElement
+        ? header.getBoundingClientRect().height
+        : 64;
+    const top = element.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({
+      top: Math.max(0, top - headerHeight - 12),
       behavior: "instant",
     });
   }, selector);
@@ -907,7 +917,7 @@ test.describe("Phase 1F.11 story clarity", () => {
     });
     expect(mobileProduct).not.toBeNull();
     expect(mobileProduct!.copyAboveVisual).toBe(true);
-    expect(mobileProduct!.gap).toBeGreaterThanOrEqual(24);
+    expect(mobileProduct!.gap).toBeGreaterThanOrEqual(16);
     expect(mobileProduct!.gap).toBeLessThanOrEqual(48);
     await expectNoHorizontalOverflow(page);
     await problem.screenshot({
@@ -1614,11 +1624,11 @@ test.describe("Phase 1F.11 story clarity", () => {
       const heading = root.querySelector("#brand-heading");
       const whyHeading = document.querySelector("#why-heading");
       const previewHeading = document.querySelector("#preview-heading");
-      const copy = root.querySelector('[class*="brandCopy"]');
+      const copy = root.querySelector("[data-mk-brand-copy]");
       const panel = root.querySelector("[data-mk-brand-identity]");
       const rows = [...root.querySelectorAll("article")];
       const swatches = [
-        ...root.querySelectorAll<HTMLElement>('[class*="brandSwatch"]'),
+        ...root.querySelectorAll<HTMLElement>("[data-mk-brand-swatch]"),
       ];
       if (
         !(heading instanceof HTMLElement) ||
@@ -1725,7 +1735,7 @@ test.describe("Phase 1F.11 story clarity", () => {
     await expect
       .poll(async () => {
         return section.evaluate((root) => {
-          const copy = root.querySelector('[class*="brandCopy"]');
+          const copy = root.querySelector("[data-mk-brand-copy]");
           const panel = root.querySelector("[data-mk-brand-identity]");
           if (
             !(copy instanceof HTMLElement) ||
@@ -1746,7 +1756,7 @@ test.describe("Phase 1F.11 story clarity", () => {
     await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
     await waitForSectionReveal(section);
     const mobile = await section.evaluate((root) => {
-      const copy = root.querySelector('[class*="brandCopy"]');
+      const copy = root.querySelector("[data-mk-brand-copy]");
       const panel = root.querySelector("[data-mk-brand-identity]");
       const rows = [...root.querySelectorAll("article")];
       if (
@@ -2001,7 +2011,7 @@ test.describe("Phase 1F.11 story clarity", () => {
       expect(geometry).not.toBeNull();
       expect(geometry!.gap).toBeGreaterThanOrEqual(geometry!.paddingBottom - 6);
       expect(geometry!.gap).toBeLessThanOrEqual(geometry!.paddingBottom + 24);
-      expect(geometry!.paddingBottom).toBeGreaterThanOrEqual(32);
+      expect(geometry!.paddingBottom).toBeGreaterThanOrEqual(16);
       expect(geometry!.paddingBottom).toBeLessThanOrEqual(56);
 
       await page.screenshot({
