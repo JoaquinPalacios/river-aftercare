@@ -1,15 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState } from "react";
+import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import {
   cancelClinicInvitationAction,
-  removeClinicAccessAction,
   resendClinicInvitationAction,
   type ClinicTeamActionState,
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/team/actions";
-import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
 import { teamMembershipRoleLabel } from "@/lib/clinic-portal/role-labels";
 import type { ClinicTeamRow } from "@/lib/operator/list-clinic-team";
 
@@ -44,8 +42,6 @@ export function ClinicTeamTable({
   rows: ClinicTeamRow[];
 }) {
   const router = useRouter();
-  const reactId = useId().replace(/:/g, "");
-  const [removeTarget, setRemoveTarget] = useState<ClinicTeamRow | null>(null);
   const [resendState, resendAction, resending] = useActionState(
     resendClinicInvitationAction,
     empty
@@ -54,22 +50,16 @@ export function ClinicTeamTable({
     cancelClinicInvitationAction,
     empty
   );
-  const [removeState, removeAction, removing] = useActionState(
-    removeClinicAccessAction,
-    empty
-  );
 
   useEffect(() => {
-    if (resendState.success || cancelState.success || removeState.success) {
-      setRemoveTarget(null);
+    if (resendState.success || cancelState.success) {
       router.refresh();
     }
-  }, [resendState, cancelState, removeState, router]);
+  }, [resendState, cancelState, router]);
 
-  const error = resendState.error ?? cancelState.error ?? removeState.error;
-  const success =
-    resendState.success ?? cancelState.success ?? removeState.success;
-  const pending = resending || cancelling || removing;
+  const error = resendState.error ?? cancelState.error;
+  const success = resendState.success ?? cancelState.success;
+  const pending = resending || cancelling;
 
   if (rows.length === 0) {
     return (
@@ -138,14 +128,7 @@ export function ClinicTeamTable({
                 </td>
                 <td className="px-4 py-3">
                   {row.kind === "member" ? (
-                    <button
-                      type="button"
-                      className="staffBtn staffBtnQuiet"
-                      disabled={pending}
-                      onClick={() => setRemoveTarget(row)}
-                    >
-                      Remove access
-                    </button>
+                    <span className="text-staff-muted">—</span>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       <form action={resendAction}>
@@ -178,39 +161,6 @@ export function ClinicTeamTable({
           </tbody>
         </table>
       </div>
-      <form
-        id={`remove-access-${reactId}`}
-        action={removeAction}
-        className="hidden"
-      >
-        <input type="hidden" name="clinicId" value={clinicId} />
-        <input
-          type="hidden"
-          name="membershipId"
-          value={
-            removeTarget?.kind === "member" ? removeTarget.membershipId : ""
-          }
-        />
-      </form>
-      <ConfirmDialog
-        open={removeTarget?.kind === "member"}
-        title="Remove clinic access?"
-        description={
-          removeTarget
-            ? `${removeTarget.name || removeTarget.email} will lose access to this clinic immediately. Their account and password are kept. Restoring access is not yet supported from this screen.`
-            : ""
-        }
-        cancelLabel="Keep access"
-        confirmLabel={removing ? "Removing…" : "Remove access"}
-        confirmTone="danger"
-        onCancel={() => setRemoveTarget(null)}
-        onConfirm={() => {
-          const form = document.getElementById(
-            `remove-access-${reactId}`
-          ) as HTMLFormElement | null;
-          form?.requestSubmit();
-        }}
-      />
     </div>
   );
 }

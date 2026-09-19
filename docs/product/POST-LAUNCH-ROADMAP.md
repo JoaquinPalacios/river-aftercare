@@ -39,9 +39,9 @@ Contact already keeps the baseline: server Zod validation, honeypot (`website`),
 
 Later portal capability:
 
+- **immediate next lifecycle:** remove clinic access + restore existing passworded user access (session invalidation on removal; no password reset/replacement during restoration)
 - clinic ADMIN inviting users
 - clinic STAFF must not invite
-- restore access for an existing password-bearing user
 - operator ADMIN ↔ STAFF role change after invite
 - seat-limit enforcement
 - transfer admin

@@ -11,7 +11,6 @@ import {
   INVITATION_DELIVERY_FAILED_MESSAGE,
   inviteClinicUser,
 } from "@/lib/operator/invite-clinic-user";
-import { removeClinicAccess } from "@/lib/operator/remove-clinic-access";
 import { resendClinicInvitation } from "@/lib/operator/resend-clinic-invitation";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 
@@ -166,31 +165,5 @@ export async function cancelClinicInvitationAction(
       throw error;
     }
     return { error: "Could not cancel the invitation." };
-  }
-}
-
-export async function removeClinicAccessAction(
-  _previous: ClinicTeamActionState,
-  formData: FormData
-): Promise<ClinicTeamActionState> {
-  await requireOperatorOnStaffHost();
-  const clinicId = clinicIdFromForm(formData);
-  const membershipId = formData.get("membershipId");
-  if (!clinicId || typeof membershipId !== "string" || !membershipId) {
-    notFound();
-  }
-
-  try {
-    const result = await removeClinicAccess({ clinicId, membershipId });
-    if (!result.ok) {
-      return { error: result.error };
-    }
-    revalidateTeam(clinicId);
-    return { success: "Clinic access removed." };
-  } catch (error) {
-    if (isNextControlFlow(error)) {
-      throw error;
-    }
-    return { error: "Could not remove clinic access." };
   }
 }

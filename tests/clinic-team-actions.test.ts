@@ -7,7 +7,6 @@ const headersMock = vi.hoisted(() => vi.fn());
 const inviteMock = vi.hoisted(() => vi.fn());
 const resendMock = vi.hoisted(() => vi.fn());
 const cancelMock = vi.hoisted(() => vi.fn());
-const removeMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   notFound: notFoundMock,
@@ -45,14 +44,9 @@ vi.mock("@/lib/operator/cancel-clinic-invitation", () => ({
   cancelClinicInvitation: cancelMock,
 }));
 
-vi.mock("@/lib/operator/remove-clinic-access", () => ({
-  removeClinicAccess: removeMock,
-}));
-
 import {
   cancelClinicInvitationAction,
   inviteClinicUserAction,
-  removeClinicAccessAction,
   resendClinicInvitationAction,
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/team/actions";
 
@@ -82,7 +76,6 @@ describe("clinic team operator actions", () => {
     inviteMock.mockReset();
     resendMock.mockReset();
     cancelMock.mockReset();
-    removeMock.mockReset();
     notFoundMock.mockImplementation(() => {
       throw new Error("NEXT_HTTP_ERROR_FALLBACK;404");
     });
@@ -206,12 +199,6 @@ describe("clinic team operator actions", () => {
       cancelClinicInvitationAction(
         {},
         form({ clinicId: "clinic_1", userId: "user_pending" })
-      )
-    ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
-    await expect(
-      removeClinicAccessAction(
-        {},
-        form({ clinicId: "clinic_1", membershipId: "membership_1" })
       )
     ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
   });

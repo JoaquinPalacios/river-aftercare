@@ -28,6 +28,10 @@ test.describe("operator clinic invitations", () => {
     await expect(
       page.getByRole("columnheader", { name: "Email" })
     ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Remove access" })
+    ).toHaveCount(0);
+    await expect(page.getByText("Active").first()).toBeVisible();
     await page.screenshot({
       path: "test-results/artifacts/operator-team-1440.png",
       fullPage: true,

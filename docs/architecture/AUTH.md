@@ -264,6 +264,8 @@ Cancelled invitations (revoked, not consumed) are hidden. Re-invite the same ema
 
 Roles in this UI: Administrator / Staff. Initial role is chosen on invite. Operator role editing (ADMIN ↔ STAFF) is **not** implemented.
 
+Active members have no Team mutation in this release. **Remove access is not exposed.** Restoring a passworded user with zero memberships is not implemented, so the product must not create that state.
+
 ### Invite rules
 
 Mutations are Server Actions. Clinic comes from the operator-authorized route. Inviter is the authenticated OPERATOR. Browser cannot assign `platformRole`, `passwordHash`, token type, or From/To.
@@ -307,22 +309,19 @@ Guidance: contact the clinic administrator or River Aftercare. There is no anony
 
 Success: `/login?invite=success` (fixed flag → “Your account is ready. Sign in with your new password.”). Then the existing one-membership login path.
 
-### Resend / cancel / remove access
+### Resend / cancel
 
 - **Resend** (pending or expired, same clinic, still `passwordHash` null, no membership): new token, previous outstanding invite revoked.
 - **Cancel**: revoke outstanding INVITATION tokens for that user+clinic. User row kept. Login still generic 401.
-- **Remove access** (active membership, ConfirmDialog): delete that membership only, delete all sessions for that User, keep User and `passwordHash`. Next login hits the existing no-membership 403. Restoring access is not implemented.
 
-A clinic may have zero ADMIN members. Operator retains platform control, and clinics can be created with no members, so this change does **not** block removing the last clinic administrator.
-
-Security logging: `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`. User id + clinic id only. Never passwords, raw tokens, hashes, URLs, or provider errors.
+Security logging: `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`. User id + clinic id only. Never passwords, raw tokens, hashes, URLs, or provider errors.
 
 ## Not yet implemented
 
+- **Remove clinic access + restore existing passworded user access** (immediate next lifecycle work). Removal must invalidate sessions and keep User/password; restoration must not reset or replace the password. Hidden until both ship together.
 - clinic ADMIN / STAFF inviting users
-- restoring access for an existing password-bearing User with zero memberships
 - operator role change (ADMIN ↔ STAFF) after invite
-- last-admin protection (intentionally omitted; see above)
+- last-admin protection (evaluate with remove/restore; operator retains platform control)
 - multi-clinic picker
 - email-address changes
 - global account disable

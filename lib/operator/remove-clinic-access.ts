@@ -15,6 +15,10 @@ export const CANNOT_REMOVE_OPERATOR_ACCESS_MESSAGE =
 export type RemoveClinicAccessResult =
   { ok: true; userId: string } | { ok: false; error: string };
 
+/**
+ * Not wired to a Server Action or Team UI. Remove and restore must ship
+ * together so operators cannot create a passworded zero-membership dead end.
+ */
 export async function removeClinicAccess(input: {
   clinicId: string;
   membershipId: string;

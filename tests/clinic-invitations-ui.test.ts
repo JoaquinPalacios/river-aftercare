@@ -51,4 +51,28 @@ describe("clinic invitation UI contracts", () => {
     expect(list).toContain("expired");
     expect(list).toContain("pending");
   });
+
+  it("does not expose Remove access until restore-access exists", () => {
+    const table = readFileSync(
+      "app/(staff)/(operator)/operator/clinics/[clinicId]/team/team-table.tsx",
+      "utf8"
+    );
+    const actions = readFileSync(
+      "app/(staff)/(operator)/operator/clinics/[clinicId]/team/actions.ts",
+      "utf8"
+    );
+    const inviteForm = readFileSync(
+      "app/(staff)/(operator)/operator/clinics/[clinicId]/team/invite-user-form.tsx",
+      "utf8"
+    );
+    expect(table).not.toContain("Remove access");
+    expect(table).not.toContain("removeClinicAccessAction");
+    expect(table).not.toContain("ConfirmDialog");
+    expect(actions).not.toContain("removeClinicAccess");
+    expect(actions).not.toContain("removeClinicAccessAction");
+    expect(inviteForm).not.toContain("Remove access");
+    expect(actions).toContain("inviteClinicUserAction");
+    expect(actions).toContain("resendClinicInvitationAction");
+    expect(actions).toContain("cancelClinicInvitationAction");
+  });
 });

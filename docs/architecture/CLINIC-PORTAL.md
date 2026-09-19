@@ -157,7 +157,7 @@ Do not share one clinic login. Named membership accounts are required for accoun
 | Practice  | 5                    |
 | Group     | custom               |
 
-Current roles remain Clinic ADMIN and Clinic STAFF only. **Operator-managed** invitations exist: Operator → Clinics → Team → Invite user. Clinic ADMIN/STAFF cannot invite. Seat-limit enforcement is not implemented. Clinic-admin Team self-service is later portal work. See [AUTH.md](AUTH.md).
+Current roles remain Clinic ADMIN and Clinic STAFF only. **Operator-managed** invitations exist: Operator → Clinics → Team → Invite user. Clinic ADMIN/STAFF cannot invite. **Remove access is not available** until restore-access ships with it. Seat-limit enforcement is not implemented. Clinic-admin Team self-service is later portal work. See [AUTH.md](AUTH.md).
 
 ## Application architecture
 
