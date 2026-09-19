@@ -88,7 +88,11 @@ describe("clinic team operator actions", () => {
       throw new Error("NEXT_HTTP_ERROR_FALLBACK;404");
     });
     redirectMock.mockImplementation((url: string) => {
-      throw new Error(`NEXT_REDIRECT:${url}`);
+      const error = new Error(`NEXT_REDIRECT:${url}`) as Error & {
+        digest: string;
+      };
+      error.digest = `NEXT_REDIRECT;replace;${url};303`;
+      throw error;
     });
     process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
     headersMock.mockResolvedValue(new Headers({ host: "app.localhost:3000" }));

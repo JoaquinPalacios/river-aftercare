@@ -533,7 +533,9 @@ export async function completeInvitation(input: {
         clinic,
         tokenEmail: latest.email,
         membershipCount,
-      })
+      }) ||
+      !user ||
+      !clinic
     ) {
       return { ok: false, reason: "stale_user" };
     }
