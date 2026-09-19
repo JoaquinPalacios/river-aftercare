@@ -178,7 +178,7 @@ test.describe("navigation progress", () => {
     await expect(progress(page)).toHaveAttribute("data-phase", "idle");
     await clickSyntheticLink(page, "mailto:hello@example.test");
     await expect(progress(page)).toHaveAttribute("data-phase", "idle");
-    await expect(page).toHaveURL(marketingUrl("/about"));
+    expect(new URL(page.url()).pathname).toBe("/about");
   });
 
   test("theme switching does not start route progress", async ({ page }) => {

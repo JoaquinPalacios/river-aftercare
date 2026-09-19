@@ -18,9 +18,13 @@ describe("navigation progress tokens", () => {
   );
 
   it("defines one master River progress token layer", () => {
-    expect(styles).toContain("--progress-start: light-dark(#3b4bd1, #7c8cff)");
-    expect(styles).toContain("--progress-mid: light-dark(#3b4bd1, #a6b8ff)");
-    expect(styles).toContain("--progress-end: light-dark(#146f88, #7ec8e6)");
+    expect(styles).toContain("--progress-start: #3b4bd1");
+    expect(styles).toContain("--progress-mid: #3b4bd1");
+    expect(styles).toContain("--progress-end: #146f88");
+    expect(styles).toContain("--progress-start: #7c8cff");
+    expect(styles).toContain("--progress-mid: #a6b8ff");
+    expect(styles).toContain("--progress-end: #7ec8e6");
+    expect(styles).not.toContain("light-dark(");
     expect(styles).toContain("--progress-height: 2px");
     expect(styles).toContain("--progress-z-index: 40");
     expect(styles).toContain("prefers-reduced-motion");

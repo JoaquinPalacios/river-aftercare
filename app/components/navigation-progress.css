@@ -1,6 +1,9 @@
 /* Master River route-progress tokens. Loaded only with NavigationProgress
    (marketing + staff). Do not import from aftercare — patient CSS stays
-   on the Phase 1 budget without this overlay. */
+   on the Phase 1 budget without this overlay.
+
+   Do not use light-dark() here. Lightning CSS compiles that function into
+   --lightningcss-light/dark on :root, which pollutes staff Tailwind colours. */
 :root {
   /* Route progress sits above marketing nav (4) and staff chrome (30). */
   --progress-z-index: 40;
@@ -9,14 +12,29 @@
   --progress-complete-duration: 140ms;
   --progress-fade-duration: 150ms;
   --progress-ease: ease;
-  --progress-start: light-dark(#3b4bd1, #7c8cff);
-  --progress-mid: light-dark(#3b4bd1, #a6b8ff);
-  --progress-end: light-dark(#146f88, #7ec8e6);
-  --progress-mid-stop: light-dark(72%, 68%);
-  --progress-glow: light-dark(
-    transparent,
-    color-mix(in srgb, #7c8cff 28%, transparent)
-  );
+  --progress-start: #3b4bd1;
+  --progress-mid: #3b4bd1;
+  --progress-end: #146f88;
+  --progress-mid-stop: 72%;
+  --progress-glow: transparent;
+}
+
+html[data-theme-mode="dark"] {
+  --progress-start: #7c8cff;
+  --progress-mid: #a6b8ff;
+  --progress-end: #7ec8e6;
+  --progress-mid-stop: 68%;
+  --progress-glow: color-mix(in srgb, #7c8cff 28%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme-mode="system"] {
+    --progress-start: #7c8cff;
+    --progress-mid: #a6b8ff;
+    --progress-end: #7ec8e6;
+    --progress-mid-stop: 68%;
+    --progress-glow: color-mix(in srgb, #7c8cff 28%, transparent);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
