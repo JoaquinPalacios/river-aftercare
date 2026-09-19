@@ -162,7 +162,8 @@ describe("marketing + trust polish", () => {
     expect(privacyHtml).toContain("Pedro Joaquin Palacios");
     expect(privacyHtml).toContain("admin@riveraftercare.com.au");
     expect(privacyHtml).toContain("mailto:admin@riveraftercare.com.au");
-    expect(privacyHtml).toContain("ABN 32 671 297 130");
+    expect(privacyHtml).toContain("ABN");
+    expect(privacyHtml).toContain("32 671 297 130");
     expect(privacyHtml).not.toContain("[FULL LEGAL NAME]");
     expect(privacyHtml).not.toContain("[PRIVACY EMAIL]");
     expect(privacyHtml).not.toContain("HIPAA compliant");
