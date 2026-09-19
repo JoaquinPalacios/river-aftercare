@@ -72,10 +72,6 @@ describe("marketing JSON-LD", () => {
       resolveMarketingSeo({ path: "/about", origin: "https://example.test" }),
       "https://example.test"
     );
-    const pricing = buildMarketingJsonLdGraph(
-      resolveMarketingSeo({ path: "/pricing", origin: "https://example.test" }),
-      "https://example.test"
-    );
 
     const privacy = buildMarketingJsonLdGraph(
       resolveMarketingSeo({ path: "/privacy", origin: "https://example.test" }),
@@ -92,8 +88,8 @@ describe("marketing JSON-LD", () => {
     expect(about["@graph"].some((node) => node["@type"] === "AboutPage")).toBe(
       true
     );
-    expect(jsonLdContainsOffer(pricing)).toBe(false);
-    expect(JSON.stringify(pricing)).not.toContain("priceCurrency");
+    expect(jsonLdContainsOffer(contact)).toBe(false);
+    expect(jsonLdContainsOffer(about)).toBe(false);
     expect(privacy["@graph"].some((node) => node["@type"] === "WebPage")).toBe(
       true
     );
@@ -102,6 +98,52 @@ describe("marketing JSON-LD", () => {
     );
     expect(JSON.stringify(privacy)).not.toContain("HIPAA");
     expect(JSON.stringify(terms)).not.toContain("MedicalWebPage");
+  });
+
+  it("publishes GST-inclusive Essential and Practice offers on the pricing page only", () => {
+    const pricing = buildMarketingJsonLdGraph(
+      resolveMarketingSeo({ path: "/pricing", origin: "https://example.test" }),
+      "https://example.test"
+    );
+    const home = buildMarketingJsonLdGraph(
+      resolveMarketingSeo({ path: "/", origin: "https://example.test" }),
+      "https://example.test"
+    );
+    const serialized = JSON.stringify(pricing);
+    const application = pricing["@graph"].find(
+      (node) => node["@type"] === "SoftwareApplication"
+    );
+    const offers = application?.offers as Array<Record<string, unknown>>;
+
+    expect(jsonLdContainsOffer(pricing)).toBe(true);
+    expect(jsonLdContainsOffer(home)).toBe(false);
+    expect(offers).toHaveLength(4);
+    expect(offers.map((offer) => offer.name)).toEqual([
+      "Essential monthly",
+      "Essential yearly",
+      "Practice monthly",
+      "Practice yearly",
+    ]);
+    expect(offers.map((offer) => offer.price)).toEqual([
+      "79",
+      "790",
+      "149",
+      "1490",
+    ]);
+    expect(offers.every((offer) => offer.priceCurrency === "AUD")).toBe(true);
+    expect(
+      offers.every((offer) => {
+        const spec = offer.priceSpecification as Record<string, unknown>;
+        return spec.valueAddedTaxIncluded === true;
+      })
+    ).toBe(true);
+    expect(serialized).not.toContain("298");
+    expect(offers.some((offer) => String(offer.name).includes("Group"))).toBe(
+      false
+    );
+    expect(serialized).not.toContain("priceValidUntil");
+    expect(serialized).not.toContain("InStock");
+    expect(serialized).not.toContain("provisional");
   });
 
   it("uses the SEO title for WebPage.name, not an OG title override", () => {

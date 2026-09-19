@@ -401,6 +401,7 @@ describe("practice guide lifecycle and isolation", () => {
         accentColor: "#b45309",
         neutralColor: "#f7f7f5",
         radiusPreset: "SHARP",
+        typeface: null,
         instructionTerminology: "RECOVERY",
         themeMode: "LIGHT",
         allowPatientThemeToggle: true,

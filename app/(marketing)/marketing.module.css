@@ -2075,6 +2075,20 @@ html[data-theme-mode="dark"] .wordmarkName {
   background: var(--mk-brand);
 }
 
+.numberedStepCopyBlock {
+  min-width: 0;
+  max-width: 32rem;
+}
+
+.numberedStepTitle {
+  margin: 0 0 0.2rem;
+  color: var(--mk-ink);
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.45;
+}
+
 .numberedStepCopy {
   margin: 0;
   color: var(--mk-muted);
@@ -3318,6 +3332,11 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .planPrice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.35rem;
+  row-gap: 0.2rem;
   margin: 0.15rem 0 0;
 }
 
@@ -3331,6 +3350,51 @@ html[data-theme-mode="dark"] .wordmarkName {
   color: var(--mk-muted);
   font-size: 0.92rem;
   font-weight: 600;
+}
+
+.planAnnual {
+  flex-basis: 100%;
+  color: var(--mk-muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.planLocations {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--mk-card-line);
+  border-radius: calc(var(--mk-card-radius) - 0.2rem);
+  background: color-mix(in srgb, var(--mk-ink) 3.5%, var(--mk-card));
+}
+
+.planLocationsHeading {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.planLocations ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.planLocations li {
+  color: var(--mk-ink);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.planLocationsNote {
+  margin: 0.55rem 0 0;
+  color: var(--mk-muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
 }
 
 .planPosition {
@@ -5474,7 +5538,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   }
 
   .noteGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .contactFormRow {

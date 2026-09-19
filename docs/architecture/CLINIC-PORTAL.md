@@ -94,7 +94,7 @@ One route with internal sections: Practice identity, Branding, Contact, Emergenc
 
 Header uses portal spacing (eyebrow / title / description, then ~2.25rem before the form). Desktop has a section index with consistent row height, hover/focus, and `aria-current` for the section in view (IntersectionObserver). Section-nav clicks smooth-scroll unless `prefers-reduced-motion: reduce`. Sections use `scroll-margin-top`.
 
-Colour fields are one native colour control plus a hex input. Portal selects use extra padding for the chevron (`staffSelect`). Save status and Save changes sit compactly at the top of the form column (sticky within the scrolling document, not a full-bleed marketing bar). The form column is width-capped so large screens do not stretch fields unnecessarily. Grid/flex children use `min-width: 0` so the page does not overflow horizontally. Logo upload/replace/remove is shown when object storage is configured; otherwise Practice states that storage is not configured in this environment.
+Colour fields are one native colour control plus a hex input. Patient typeface is a curated allowlist (Open Sans, Roboto, Montserrat, Lato, Poppins, Inter) plus the River Aftercare default (Geist). Portal selects use extra padding for the chevron (`staffSelect`). Save status and Save changes sit compactly at the top of the form column (sticky within the scrolling document, not a full-bleed marketing bar). The form column is width-capped so large screens do not stretch fields unnecessarily. Grid/flex children use `min-width: 0` so the page does not overflow horizontally. Logo upload/replace/remove is shown when object storage is configured; otherwise Practice states that storage is not configured in this environment.
 
 ### Permissions
 

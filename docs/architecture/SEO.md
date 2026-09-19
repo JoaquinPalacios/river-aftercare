@@ -98,10 +98,10 @@ Server-rendered, serialized with `<` escaped. Homepage graph:
 
 - `Organization` `@id: <origin>/#organization`
 - `WebSite` `@id: <origin>/#website` → `publisher` `#organization`
-- `SoftwareApplication` `@id: <origin>/#application` — **no Offer**, no ratings
+- `SoftwareApplication` `@id: <origin>/#application` — no ratings. Pricing page only attaches GST-inclusive `Offer` nodes for Essential and Practice (monthly and yearly AUD). Group remains custom and is not a numeric public offer.
 - `WebPage`
 
-Pricing uses `WebPage` + the same SoftwareApplication identity **without** `Offer`, because Essential A$79 / Practice A$149 remain **provisional**.
+Pricing uses `WebPage` + the shared SoftwareApplication identity. Essential and Practice offers use `priceCurrency: AUD` and `priceSpecification.valueAddedTaxIncluded: true`. Do not publish a Group floor price, availability dates, or `InStock` inventively.
 
 The `/clinics` hub and clinic acquisition pages (`/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics`) use `WebPage` with `mainEntity` pointing at the shared SoftwareApplication. They do not create per-profession organizations, ratings, FAQPage, or MedicalWebPage.
 

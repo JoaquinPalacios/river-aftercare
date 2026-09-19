@@ -123,7 +123,39 @@ test.describe("Phase 2B SEO and discovery", () => {
       .locator('script[type="application/ld+json"]')
       .first()
       .textContent();
-    expect(pricingLd).not.toContain('"Offer"');
+    expect(pricingLd).toBeTruthy();
+    const pricingGraph = JSON.parse(pricingLd!);
+    const application = pricingGraph["@graph"].find(
+      (node: { "@type"?: string }) => node["@type"] === "SoftwareApplication"
+    );
+    const offers = application?.offers as Array<{
+      name?: string;
+      price?: string;
+      priceCurrency?: string;
+      priceSpecification?: { valueAddedTaxIncluded?: boolean };
+    }>;
+    expect(offers?.map((offer) => offer.name)).toEqual([
+      "Essential monthly",
+      "Essential yearly",
+      "Practice monthly",
+      "Practice yearly",
+    ]);
+    expect(offers?.map((offer) => offer.price)).toEqual([
+      "79",
+      "790",
+      "149",
+      "1490",
+    ]);
+    expect(offers?.every((offer) => offer.priceCurrency === "AUD")).toBe(true);
+    expect(
+      offers?.every(
+        (offer) => offer.priceSpecification?.valueAddedTaxIncluded === true
+      )
+    ).toBe(true);
+    expect(pricingLd).not.toContain("298");
+    expect(offers?.some((offer) => String(offer.name).includes("Group"))).toBe(
+      false
+    );
 
     await page.goto(marketingUrl("/contact"), {
       waitUntil: "domcontentloaded",

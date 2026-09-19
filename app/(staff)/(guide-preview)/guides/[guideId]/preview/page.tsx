@@ -11,6 +11,7 @@ import {
   resolveAftercareTheme,
   serializeAftercareThemeCss,
 } from "@/lib/branding/aftercare-theme";
+import { clinicFontPresentation } from "@/lib/branding/clinic-fonts";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { isClinicPortalError } from "@/lib/clinic-portal/errors";
 import { loadPracticeGuideEditor } from "@/lib/clinic-portal/load-practice-guide-editor";
@@ -62,6 +63,7 @@ export default async function GuidePreviewPage({
       profile: clinic.profile,
     });
     const theme = resolveAftercareTheme(clinic.profile);
+    const font = clinicFontPresentation(clinic.profile?.typeface);
 
     return (
       <>
@@ -82,6 +84,8 @@ export default async function GuidePreviewPage({
           editHref={canEdit ? `/guides/${guide.id}/edit` : undefined}
           lifecycle={guide.lifecycle}
           clinicThemeMode={clinic.profile?.themeMode}
+          fontClassName={font.className}
+          fontCssVariable={font.cssVariable}
         >
           <PatientPage chrome={chrome}>
             <header className={styles.hero}>

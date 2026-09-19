@@ -13,6 +13,7 @@ import {
   resolveAftercareTheme,
   serializeAftercareThemeCss,
 } from "@/lib/branding/aftercare-theme";
+import { clinicFontPresentation } from "@/lib/branding/clinic-fonts";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { getPrisma } from "@/lib/prisma";
 
@@ -49,6 +50,7 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
       requestHeaders.get("x-forwarded-proto") ??
       (host.includes("localhost") ? "http" : "https");
     const theme = resolveAftercareTheme(clinic?.profile);
+    const font = clinicFontPresentation(clinic?.profile?.typeface);
     const clinicSlug = overview?.slug;
     const patientUrlExample =
       (clinicSlug
@@ -75,6 +77,8 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
           patientUrlExample={patientUrlExample}
           canEdit={clinicMembership.role === ClinicMembershipRole.ADMIN}
           clinicThemeMode={clinic?.profile?.themeMode}
+          fontClassName={font.className}
+          fontCssVariable={font.cssVariable}
         />
       </>
     );

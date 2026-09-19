@@ -54,6 +54,7 @@ export default async function PracticePage() {
           accentColor: profile?.accentColor ?? null,
           neutralColor: profile?.neutralColor ?? null,
           radiusPreset: profile?.radiusPreset ?? "MEDIUM",
+          typeface: profile?.typeface ?? null,
           instructionTerminology:
             profile?.instructionTerminology ?? "AFTERCARE",
           themeMode: profile?.themeMode ?? "SYSTEM",

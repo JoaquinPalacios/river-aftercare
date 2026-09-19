@@ -209,16 +209,16 @@ test.describe("marketing + trust polish", () => {
     await page.locator('[aria-labelledby="onboarding-heading"]').screenshot({
       path: "test-results/artifacts/trust-onboarding-1440.png",
     });
-    await page.locator('[aria-labelledby="later-heading"]').screenshot({
-      path: "test-results/artifacts/trust-coming-after-launch-1440.png",
+    await page.locator('[aria-labelledby="notes-heading"]').screenshot({
+      path: "test-results/artifacts/trust-pricing-notes-1440.png",
     });
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.locator('[aria-labelledby="onboarding-heading"]').screenshot({
       path: "test-results/artifacts/trust-onboarding-390.png",
     });
-    await page.locator('[aria-labelledby="later-heading"]').screenshot({
-      path: "test-results/artifacts/trust-coming-after-launch-390.png",
+    await page.locator('[aria-labelledby="notes-heading"]').screenshot({
+      path: "test-results/artifacts/trust-pricing-notes-390.png",
     });
 
     for (const scheme of ["light", "dark"] as const) {

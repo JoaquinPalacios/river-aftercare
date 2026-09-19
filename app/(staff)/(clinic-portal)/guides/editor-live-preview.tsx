@@ -17,6 +17,8 @@ import styles from "./editor-live-preview.module.css";
 export function EditorLivePreview({
   stages,
   clinicThemeMode,
+  fontClassName,
+  fontCssVariable,
 }: {
   stages: Array<{
     key: string;
@@ -27,6 +29,8 @@ export function EditorLivePreview({
     endDay: string;
   }>;
   clinicThemeMode?: string | null;
+  fontClassName?: string;
+  fontCssVariable?: `--font-clinic-${string}` | null;
 }) {
   const [appearance, setAppearance] =
     useState<PreviewAppearanceChoice>("portal");
@@ -48,7 +52,11 @@ export function EditorLivePreview({
 
   if (sections.length === 0) {
     return (
-      <PatientThemeBoundary appearance={patientTheme}>
+      <PatientThemeBoundary
+        appearance={patientTheme}
+        fontClassName={fontClassName}
+        fontCssVariable={fontCssVariable}
+      >
         <div
           className={`${styles.preview} ${styles.emptyState}`}
           data-live-preview=""
@@ -68,7 +76,11 @@ export function EditorLivePreview({
   }
 
   return (
-    <PatientThemeBoundary appearance={patientTheme}>
+    <PatientThemeBoundary
+      appearance={patientTheme}
+      fontClassName={fontClassName}
+      fontCssVariable={fontCssVariable}
+    >
       <div className={styles.preview} data-live-preview="">
         <div className={styles.toolbar}>
           <p className="sr-only">

@@ -42,16 +42,22 @@ test.describe("marketing conversion routes", () => {
         name: "Choose the plan that fits your practice",
       })
     ).toBeVisible();
-    await expect(page.getByText("Connected aftercare plans")).toBeVisible();
+    await expect(page.getByText("Connected aftercare plans")).toHaveCount(0);
     await expect(page.getByText("Connected recovery plans")).toHaveCount(0);
     await expect(page.getByText("A$79")).toBeVisible();
     await expect(page.getByText("A$149")).toBeVisible();
+    await expect(page.getByText("A$790")).toBeVisible();
+    await expect(page.getByText("A$1,490")).toBeVisible();
+    await expect(page.getByText("A$59")).toBeVisible();
+    await expect(page.getByText("A$590")).toBeVisible();
+    await expect(page.getByText("2 months free").first()).toBeVisible();
     await expect(page.getByText("Custom pricing")).toBeVisible();
     await expect(page.getByText("Recommended")).toBeVisible();
-    await expect(page.getByText("Coming after launch")).toBeVisible();
-    await expect(page.locator('[class*="laterList"]')).toContainText(
-      "Patient check-ins"
-    );
+    await expect(page.getByText("Coming after launch")).toHaveCount(0);
+    await expect(page.getByText("All prices include GST.")).toBeVisible();
+    await expect(page.getByText("Additional locations")).toBeVisible();
+    await expect(page.getByText("working pricing")).toHaveCount(0);
+    await expect(page.getByText("provisional")).toHaveCount(0);
     await expect(
       page.locator('[class*="planFeatures"]', { hasText: "Patient check-ins" })
     ).toHaveCount(0);

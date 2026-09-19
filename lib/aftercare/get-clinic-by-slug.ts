@@ -29,6 +29,7 @@ export interface ClinicBySlugRecord {
     contactEmail: string | null;
     emergencyInstructions: string | null;
     showCareGuideAttribution: boolean;
+    typeface: string | null;
   } | null;
 }
 
@@ -59,6 +60,7 @@ export const clinicBySlugSelect = {
       contactEmail: true,
       emergencyInstructions: true,
       showCareGuideAttribution: true,
+      typeface: true,
     },
   },
 } as const;

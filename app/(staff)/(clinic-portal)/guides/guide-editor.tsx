@@ -84,11 +84,15 @@ export function GuideEditor({
   patientUrlExample,
   canEdit,
   clinicThemeMode,
+  fontClassName,
+  fontCssVariable,
 }: {
   guide: PracticeGuideEditorRecord;
   patientUrlExample: string;
   canEdit: boolean;
   clinicThemeMode?: string | null;
+  fontClassName?: string;
+  fontCssVariable?: `--font-clinic-${string}` | null;
 }) {
   const router = useRouter();
   const errorSummaryRef = useRef<HTMLParagraphElement>(null);
@@ -302,7 +306,12 @@ export function GuideEditor({
   );
 
   const preview = (
-    <EditorLivePreview stages={timeline} clinicThemeMode={clinicThemeMode} />
+    <EditorLivePreview
+      stages={timeline}
+      clinicThemeMode={clinicThemeMode}
+      fontClassName={fontClassName}
+      fontCssVariable={fontCssVariable}
+    />
   );
 
   const saveFeedback = (

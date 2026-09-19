@@ -9,10 +9,14 @@ import {
 export function PatientThemeBoundary({
   themeMode,
   appearance,
+  fontClassName,
+  fontCssVariable,
   children,
 }: {
   themeMode?: string | null;
   appearance?: AftercareThemeAppearance | "portal";
+  fontClassName?: string;
+  fontCssVariable?: `--font-clinic-${string}` | null;
   children: ReactNode;
 }) {
   const patientTheme = appearance ?? clinicThemeModeToAppearance(themeMode);
@@ -24,12 +28,21 @@ export function PatientThemeBoundary({
         : patientTheme === "dark"
           ? "dark"
           : "light dark";
+  const className = fontClassName
+    ? `${AFTERCARE_THEME_SCOPE} ${fontClassName}`
+    : AFTERCARE_THEME_SCOPE;
+  const style = {
+    ...(colorScheme ? { colorScheme } : {}),
+    ...(fontCssVariable
+      ? ({ "--cg-font-sans": `var(${fontCssVariable})` } as const)
+      : {}),
+  };
 
   return (
     <div
-      className={AFTERCARE_THEME_SCOPE}
+      className={className}
       data-patient-theme={patientTheme}
-      style={colorScheme ? { colorScheme } : undefined}
+      style={Object.keys(style).length > 0 ? style : undefined}
     >
       {children}
     </div>

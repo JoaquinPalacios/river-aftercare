@@ -37,6 +37,7 @@ const CLINIC_A = {
     contactEmail: "hello@example.test",
     emergencyInstructions: "Call 000 in an emergency.",
     showCareGuideAttribution: true,
+    typeface: null,
   },
 };
 

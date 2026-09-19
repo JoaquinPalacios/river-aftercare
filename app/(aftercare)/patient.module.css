@@ -709,7 +709,7 @@
   .printPage {
     background: #ffffff;
     color: #111318;
-    font-family: var(--font-geist-sans), sans-serif;
+    font-family: var(--cg-font-sans, var(--font-geist-sans)), sans-serif;
     font-size: 11pt;
     line-height: 1.4;
   }

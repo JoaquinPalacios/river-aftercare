@@ -29,7 +29,7 @@
   --cg-notice-muted: light-dark(#1f2933, #c5cbd3);
   background: var(--cg-surface);
   color: var(--cg-text);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--cg-font-sans, var(--font-geist-sans)), sans-serif;
 }
 
 html.aftercareDocument[data-theme-mode="light"] {
@@ -228,10 +228,15 @@ html.aftercareDocument body {
   }
 
   html.aftercareDocument,
-  html.aftercareDocument body,
-  .aftercareTheme {
+  html.aftercareDocument body {
     background: #ffffff;
     color: #111318;
     font-family: var(--font-geist-sans), sans-serif;
+  }
+
+  .aftercareTheme {
+    background: #ffffff;
+    color: #111318;
+    font-family: var(--cg-font-sans, var(--font-geist-sans)), sans-serif;
   }
 }

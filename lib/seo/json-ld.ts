@@ -1,5 +1,6 @@
 import { marketingSiteOrigin } from "@/lib/marketing/site";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { PLAN_PRICES, PRICING_CURRENCY } from "@/lib/marketing/plans";
 import { ORGANIZATION_LOGO } from "@/lib/seo/og-policy";
 import type {
   PlatformSeoIdentity,
@@ -87,11 +88,66 @@ export function buildWebsiteJsonLd(
   };
 }
 
+function gstInclusiveOffer(input: {
+  name: string;
+  price: number;
+  billingDuration: "P1M" | "P1Y";
+  origin: string;
+}): JsonLdNode {
+  const price = String(input.price);
+  return {
+    "@type": "Offer",
+    name: input.name,
+    url: `${input.origin}/pricing`,
+    price,
+    priceCurrency: PRICING_CURRENCY,
+    priceSpecification: {
+      "@type": "UnitPriceSpecification",
+      price,
+      priceCurrency: PRICING_CURRENCY,
+      valueAddedTaxIncluded: true,
+      billingDuration: input.billingDuration,
+    },
+  };
+}
+
+export function buildPricingOffers(
+  origin = marketingSiteOrigin()
+): JsonLdNode[] {
+  return [
+    gstInclusiveOffer({
+      name: "Essential monthly",
+      price: PLAN_PRICES.essential.monthlyAudInclGst,
+      billingDuration: "P1M",
+      origin,
+    }),
+    gstInclusiveOffer({
+      name: "Essential yearly",
+      price: PLAN_PRICES.essential.annualAudInclGst,
+      billingDuration: "P1Y",
+      origin,
+    }),
+    gstInclusiveOffer({
+      name: "Practice monthly",
+      price: PLAN_PRICES.practice.monthlyAudInclGst,
+      billingDuration: "P1M",
+      origin,
+    }),
+    gstInclusiveOffer({
+      name: "Practice yearly",
+      price: PLAN_PRICES.practice.annualAudInclGst,
+      billingDuration: "P1Y",
+      origin,
+    }),
+  ];
+}
+
 export function buildSoftwareApplicationJsonLd(
   identity: PlatformSeoIdentity,
-  origin = marketingSiteOrigin()
+  origin = marketingSiteOrigin(),
+  options?: { includePricingOffers?: boolean }
 ): JsonLdNode {
-  return {
+  const node: JsonLdNode = {
     "@type": "SoftwareApplication",
     "@id": softwareApplicationId(origin),
     name: identity.siteName || PRODUCT_NAME,
@@ -101,6 +157,12 @@ export function buildSoftwareApplicationJsonLd(
     url: `${origin}/`,
     publisher: { "@id": organizationId(origin) },
   };
+
+  if (options?.includePricingOffers) {
+    node.offers = buildPricingOffers(origin);
+  }
+
+  return node;
 }
 
 function webPageNode(input: {
@@ -130,7 +192,9 @@ export function buildMarketingJsonLdGraph(
   const graph: JsonLdNode[] = [
     buildOrganizationJsonLd(identity, origin),
     buildWebsiteJsonLd(identity, origin),
-    buildSoftwareApplicationJsonLd(identity, origin),
+    buildSoftwareApplicationJsonLd(identity, origin, {
+      includePricingOffers: resolved.path === "/pricing",
+    }),
   ];
 
   if (resolved.path === "/") {

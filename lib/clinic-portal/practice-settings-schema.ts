@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { parseCssHexColor } from "@/lib/branding/aftercare-theme";
+import { parseClinicTypeface } from "@/lib/branding/clinic-typeface";
 import { INSTRUCTION_TERMINOLOGY } from "@/lib/aftercare/instruction-terminology";
 import { toSafeHttpHref, toTelHref } from "@/lib/aftercare/safe-href";
 import { isClinicLogoStoredReference } from "@/lib/clinic-assets/public-url";
@@ -41,6 +42,10 @@ export const practiceSettingsSchema = z.object({
   accentColor: hexColor("Enter a valid hex colour such as #b45309."),
   neutralColor: hexColor("Enter a valid hex colour such as #f7f7f5."),
   radiusPreset: z.enum(["SHARP", "MEDIUM", "SOFT"] as const),
+  typeface: z.preprocess(
+    (value) => (typeof value === "string" ? value : ""),
+    z.string().transform((value) => parseClinicTypeface(value))
+  ),
   instructionTerminology: z.enum(INSTRUCTION_TERMINOLOGY),
   themeMode: z.enum(["LIGHT", "DARK", "SYSTEM"] as const),
   allowPatientThemeToggle: z.boolean(),

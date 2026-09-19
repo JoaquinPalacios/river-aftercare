@@ -107,11 +107,11 @@ Do not provision Vercel, Cloudflare, R2, domains, or email from this document. D
 
 ## Commercial
 
-| Item                     | Status                                 | Notes                                                                     |
-| ------------------------ | -------------------------------------- | ------------------------------------------------------------------------- |
-| Final pricing            | REQUIRED BEFORE PRODUCTION             | Essential A$79 / Practice A$149 remain **provisional**. No Offer JSON-LD. |
-| Manual invoice vs Stripe | RECOMMENDED BEFORE FIRST PAYING CLINIC | Billing not implemented. Design partners can be invoiced manually.        |
-| Seat policy              | POST-LAUNCH                            |                                                                           |
+| Item                     | Status                                 | Notes                                                                                                                                                                                         |
+| ------------------------ | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Final pricing            | READY                                  | Production GST-inclusive AUD: Essential A$79 / A$790, Practice A$149 / A$1,490. Additional Practice locations priced. Group is custom with no public floor. Offer JSON-LD on `/pricing` only. |
+| Manual invoice vs Stripe | RECOMMENDED BEFORE FIRST PAYING CLINIC | Billing not implemented. Design partners can be invoiced manually.                                                                                                                            |
+| Seat policy              | POST-LAUNCH                            |                                                                                                                                                                                               |
 
 ## QA
 
@@ -166,6 +166,6 @@ Cloudflare as authoritative DNS plus `_acme-challenge` delegation to Vercel must
 | MUST BEFORE PRODUCTION     | Dedicated OG image optional for go-live                          | No                    | Upload workflow exists; 1200×630 asset still needs to be uploaded                                                                            |
 | BEFORE FIRST PAYING CLINIC | Reviewed multi-template dental library                           | Yes for paid          | Clinical review of Extraction + additional procedures                                                                                        |
 | BEFORE FIRST PAYING CLINIC | QR + copy URL                                                    | No for design partner | Implement share kit                                                                                                                          |
-| BEFORE FIRST PAYING CLINIC | Final commercial pricing / Stripe                                | Yes for paid          | Replace provisional A$79 / A$149                                                                                                             |
+| BEFORE FIRST PAYING CLINIC | Billing / Stripe                                                 | Yes for paid          | Self-serve billing is still not implemented. Public prices are final; invoicing can remain manual until Stripe exists.                       |
 | BEFORE FIRST PAYING CLINIC | Device QA (iPhone/Android/Safari)                                | Recommended           | Real devices                                                                                                                                 |
 | POST-LAUNCH                | Analytics, Check-ins, RecoveryPlan, editorial `/guides`, MCP/API | No                    | Roadmap                                                                                                                                      |

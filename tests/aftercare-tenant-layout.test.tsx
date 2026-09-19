@@ -44,6 +44,7 @@ describe("tenant layout branding", () => {
     expect(html).toContain("html{color-scheme:light dark}");
     expect(html).toContain("light-dark(");
     expect(html).toContain("child");
+    expect(html).not.toContain("--cg-font-sans");
     expect(html).not.toContain("ThemeProvider");
     expect(html).not.toContain("Change colour theme");
   });
@@ -126,5 +127,56 @@ describe("tenant layout branding", () => {
     expect(html).toContain("--cg-brand:#7c3aed");
     expect(html).not.toContain("#0f766e");
     expect(requireTenantClinic).toHaveBeenCalledWith("otherclinic");
+  });
+
+  it("applies the selected clinic typeface token on the patient surface", async () => {
+    requireTenantClinic.mockResolvedValue({
+      id: "clinic_demo_rivers",
+      slug: "demodental",
+      name: "Rivers Care Demo Clinic",
+      profile: {
+        displayName: "Riverside Dental Demo",
+        primaryColor: "#0f766e",
+        accentColor: "#f59e0b",
+        themeMode: "SYSTEM",
+        allowPatientThemeToggle: false,
+        typeface: "INTER",
+      },
+    });
+
+    const html = renderToStaticMarkup(
+      await TenantLayout({
+        params: Promise.resolve({ tenant: "demodental" }),
+        children: <p>child</p>,
+      })
+    );
+
+    expect(html).toContain("--cg-font-sans");
+    expect(html).toContain("--font-clinic-inter");
+    expect(html).toContain("aftercareTheme");
+  });
+
+  it("ignores an invalid stored typeface and keeps the product default", async () => {
+    requireTenantClinic.mockResolvedValue({
+      id: "clinic_demo_rivers",
+      slug: "demodental",
+      name: "Rivers Care Demo Clinic",
+      profile: {
+        displayName: "Riverside Dental Demo",
+        primaryColor: "#0f766e",
+        accentColor: "#f59e0b",
+        typeface: "Comic Sans",
+      },
+    });
+
+    const html = renderToStaticMarkup(
+      await TenantLayout({
+        params: Promise.resolve({ tenant: "demodental" }),
+        children: <p>child</p>,
+      })
+    );
+
+    expect(html).not.toContain("--cg-font-sans");
+    expect(html).not.toContain("Comic Sans");
   });
 });

@@ -50,6 +50,7 @@ const PROFILE_A = {
   instructionTerminology: "POST_TREATMENT",
   themeMode: "SYSTEM",
   allowPatientThemeToggle: true,
+  typeface: null,
 };
 
 const GUIDE_A = {

@@ -76,6 +76,7 @@ describe("aftercare style boundary", () => {
     expect(layout).not.toMatch(/['"]use client['"]/);
     expect(layout).toContain("resolveAftercareTheme");
     expect(layout).toContain("serializeAftercareThemeCss");
+    expect(layout).toContain("clinicFontPresentation");
     expect(layout).not.toContain("ThemeProvider");
     expect(layout).not.toContain("localStorage");
     expect(layout).not.toContain("useContext");

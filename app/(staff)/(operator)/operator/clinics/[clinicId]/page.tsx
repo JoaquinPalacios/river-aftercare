@@ -8,6 +8,7 @@ import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import { getOperatorClinic } from "@/lib/operator/get-operator-clinic";
+import { clinicTypefaceLabel } from "@/lib/branding/clinic-typeface";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 interface OperatorClinicPageProps {
@@ -87,6 +88,13 @@ export default async function OperatorClinicDetailPage({
           <div>
             <dt className="text-staff-muted">Radius</dt>
             <dd>{clinic.branding.radiusPreset ?? "Not set"}</dd>
+          </div>
+          <div>
+            <dt className="text-staff-muted">Typeface</dt>
+            <dd>
+              {clinicTypefaceLabel(clinic.branding.typeface) ??
+                "River Aftercare default"}
+            </dd>
           </div>
           <div>
             <dt className="text-staff-muted">Theme</dt>

@@ -13,7 +13,7 @@ Authoritative styling decision: [ADR 0011](../adr/0011-patient-styling-uses-css-
 5. No arbitrary tenant CSS. `ClinicProfile` must not grow `customCss`, `cssOverride`, `stylesheet`, or `headerHtml` fields. Future options (typography preset, corner style, logo placement) map to predefined tokens.
 6. Tailwind is isolated to the staff/admin (and parked chairside) root layout. Do not `@import "tailwindcss"` from the aftercare root.
 7. Route CSS payload is measured from a **production** `next build` + `next start`, not from `next dev`.
-8. Custom fonts and other third-party assets require an explicit performance review. Phase 1 patient pages use a system font stack.
+8. Custom fonts and other third-party assets require an explicit performance review. Clinic typefaces are a curated `next/font` allowlist, self-hosted, loaded from the patient tenant layout with `preload: false`. Marketing and staff keep Geist. Do not load `fonts.googleapis.com` / `fonts.gstatic.com` at runtime.
 9. Performance regressions should be measured before acceptance. Do not optimise from assumptions alone.
 
 Staff Tailwind `@theme` is **build-time**. Tenant tokens are **runtime CSS custom properties**. Do not put tenant colours in Tailwind `@theme`.

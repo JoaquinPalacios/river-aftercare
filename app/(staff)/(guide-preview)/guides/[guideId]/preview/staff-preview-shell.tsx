@@ -18,6 +18,8 @@ export function StaffPreviewShell({
   editHref,
   lifecycle,
   clinicThemeMode,
+  fontClassName,
+  fontCssVariable,
   children,
 }: {
   backHref: string;
@@ -25,6 +27,8 @@ export function StaffPreviewShell({
   editHref?: string;
   lifecycle?: ClinicGuideLifecycleStatus;
   clinicThemeMode?: string | null;
+  fontClassName?: string;
+  fontCssVariable?: `--font-clinic-${string}` | null;
   children: ReactNode;
 }) {
   const [appearance, setAppearance] =
@@ -52,7 +56,11 @@ export function StaffPreviewShell({
           />
         }
       />
-      <PatientThemeBoundary appearance={previewTheme}>
+      <PatientThemeBoundary
+        appearance={previewTheme}
+        fontClassName={fontClassName}
+        fontCssVariable={fontCssVariable}
+      >
         {children}
       </PatientThemeBoundary>
     </div>
