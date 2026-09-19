@@ -3,35 +3,46 @@
 import { useId, useState } from "react";
 
 export function PasswordVisibilityField({
+  id = "password",
+  name = "password",
+  autoComplete = "current-password",
   value,
   onChange,
   invalid,
   errorId,
+  describedBy,
   disabled = false,
 }: {
+  id?: string;
+  name?: string;
+  autoComplete?: string;
   value: string;
   onChange: (value: string) => void;
   invalid?: boolean;
   errorId?: string;
+  describedBy?: string;
   disabled?: boolean;
 }) {
   const [visible, setVisible] = useState(false);
   const reactId = useId().replace(/:/g, "");
   const toggleId = `password-visibility-${reactId}`;
+  const description =
+    [describedBy, errorId].filter(Boolean).join(" ") || undefined;
 
   return (
     <div className="relative">
       <input
-        id="password"
-        name="password"
+        id={id}
+        name={name}
         type={visible ? "text" : "password"}
-        autoComplete="current-password"
+        autoComplete={autoComplete}
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={invalid ? "true" : "false"}
-        aria-describedby={errorId}
+        aria-describedby={description}
         className="staffLoginField staffLoginFieldPassword"
+        spellCheck={false}
       />
       <button
         id={toggleId}

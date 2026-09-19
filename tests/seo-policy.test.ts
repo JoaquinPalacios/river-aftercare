@@ -176,7 +176,10 @@ describe("launch SEO policy", () => {
 
   it("keeps staff, operator, and draft preview metadata private in source", () => {
     const staff = readFileSync("app/(staff)/layout.tsx", "utf8");
-    const operator = readFileSync("app/(staff)/(operator)/layout.tsx", "utf8");
+    const operator = readFileSync(
+      "app/(staff)/components/operator-account-chrome.tsx",
+      "utf8"
+    );
     const operatorSeo = readFileSync(
       "app/(staff)/(operator)/operator/seo/actions.ts",
       "utf8"

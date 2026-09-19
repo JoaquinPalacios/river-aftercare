@@ -10,7 +10,9 @@ import {
   hashAccountToken,
   invitationExpiresAt,
   INVITATION_TOKEN_TTL_DAYS,
+  PASSWORD_RESET_REQUEST_COOLDOWN_MINUTES,
   PASSWORD_RESET_TOKEN_TTL_MINUTES,
+  passwordResetCooldownSince,
   passwordResetExpiresAt,
 } from "@/lib/auth/account-token";
 
@@ -62,6 +64,10 @@ describe("account token crypto", () => {
     );
     expect(invitationExpiresAt(now).toISOString()).toBe(
       "2026-09-26T12:00:00.000Z"
+    );
+    expect(PASSWORD_RESET_REQUEST_COOLDOWN_MINUTES).toBe(10);
+    expect(passwordResetCooldownSince(now).toISOString()).toBe(
+      "2026-09-19T11:50:00.000Z"
     );
   });
 });

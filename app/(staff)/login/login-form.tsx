@@ -201,6 +201,11 @@ export function LoginForm() {
         ) : null}
         {pending ? "Signing in…" : "Sign in"}
       </button>
+      <p className="text-sm text-staff-muted">
+        <a href="/forgot-password" className="font-medium text-staff-brand">
+          Forgot password?
+        </a>
+      </p>
     </form>
   );
 }

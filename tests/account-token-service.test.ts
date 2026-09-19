@@ -8,8 +8,10 @@ import { afterAll, describe, expect, it } from "vitest";
 import { hashAccountToken } from "@/lib/auth/account-token";
 import {
   consumeAccountToken,
+  completePasswordReset,
   createInvitationToken,
   createPasswordResetToken,
+  createPasswordResetTokenIfAllowed,
   lookupAccountToken,
   revokeAccountToken,
 } from "@/lib/auth/account-token-service";
@@ -361,14 +363,187 @@ describe("account token service", () => {
     expect([first.token.id, second.token.id]).toContain(outstanding[0]?.id);
   });
 
-  it("does not add public auth-lifecycle routes in this foundation", () => {
-    expect(existsSync("app/(staff)/forgot-password")).toBe(false);
-    expect(existsSync("app/(staff)/reset-password")).toBe(false);
+  it("does not create a second reset token inside the 10-minute cooldown", async () => {
+    await seed();
+    const now = new Date("2026-09-19T12:00:00.000Z");
+    const first = await createPasswordResetTokenIfAllowed({
+      userId: USER_A,
+      email: "a@example.test",
+      now,
+    });
+    expect(first.created).toBe(true);
+
+    const second = await createPasswordResetTokenIfAllowed({
+      userId: USER_A,
+      email: "a@example.test",
+      now: new Date("2026-09-19T12:09:59.000Z"),
+    });
+    expect(second).toEqual({ created: false, reason: "cooldown" });
+
+    const outstanding = await prisma.accountToken.findMany({
+      where: {
+        userId: USER_A,
+        type: AccountTokenType.PASSWORD_RESET,
+        consumedAt: null,
+        revokedAt: null,
+      },
+    });
+    expect(outstanding).toHaveLength(1);
+    if (first.created) {
+      expect(outstanding[0]?.id).toBe(first.token.id);
+    }
+  });
+
+  it("supersedes an outstanding reset after the cooldown window", async () => {
+    await seed();
+    const first = await createPasswordResetTokenIfAllowed({
+      userId: USER_A,
+      email: "a@example.test",
+      now: new Date("2026-09-19T12:00:00.000Z"),
+    });
+    const second = await createPasswordResetTokenIfAllowed({
+      userId: USER_A,
+      email: "a@example.test",
+      now: new Date("2026-09-19T12:10:00.000Z"),
+    });
+
+    expect(first.created).toBe(true);
+    expect(second.created).toBe(true);
+    if (first.created && second.created) {
+      const firstRow = await prisma.accountToken.findUnique({
+        where: { id: first.token.id },
+      });
+      expect(firstRow?.revokedAt).toBeTruthy();
+      expect(second.token.id).not.toBe(first.token.id);
+    }
+  });
+
+  it("serializes concurrent cooldown-aware reset creation", async () => {
+    await seed();
+    const now = new Date("2026-09-19T12:00:00.000Z");
+    const results = await Promise.all([
+      createPasswordResetTokenIfAllowed({
+        userId: USER_A,
+        email: "a@example.test",
+        now,
+      }),
+      createPasswordResetTokenIfAllowed({
+        userId: USER_A,
+        email: "a@example.test",
+        now,
+      }),
+    ]);
+
+    const created = results.filter((result) => result.created);
+    const cooled = results.filter((result) => !result.created);
+    expect(created).toHaveLength(1);
+    expect(cooled).toHaveLength(1);
+  });
+
+  it("consumes a reset token once, updates the password, and deletes sessions", async () => {
+    await seed();
+    await prisma.user.update({
+      where: { id: USER_A },
+      data: { passwordHash: "scrypt:old" },
+    });
+    await prisma.session.create({
+      data: {
+        sessionToken: `${PREFIX}session_a`,
+        userId: USER_A,
+        expires: new Date("2026-10-19T12:00:00.000Z"),
+      },
+    });
+    await prisma.session.create({
+      data: {
+        sessionToken: `${PREFIX}session_b`,
+        userId: USER_B,
+        expires: new Date("2026-10-19T12:00:00.000Z"),
+      },
+    });
+
+    const created = await createPasswordResetToken({
+      userId: USER_A,
+      email: "a@example.test",
+    });
+    const first = await completePasswordReset({
+      rawToken: created.rawToken,
+      passwordHash: "scrypt:new",
+    });
+    const second = await completePasswordReset({
+      rawToken: created.rawToken,
+      passwordHash: "scrypt:other",
+    });
+
+    expect(first).toEqual({
+      ok: true,
+      userId: USER_A,
+      tokenId: created.token.id,
+    });
+    expect(second.ok).toBe(false);
+    const user = await prisma.user.findUnique({ where: { id: USER_A } });
+    expect(user?.passwordHash).toBe("scrypt:new");
+    expect(
+      await prisma.session.findMany({ where: { userId: USER_A } })
+    ).toEqual([]);
+    expect(
+      await prisma.session.findMany({ where: { userId: USER_B } })
+    ).toHaveLength(1);
+  });
+
+  it("lets only one concurrent reset consume the token", async () => {
+    await seed();
+    await prisma.user.update({
+      where: { id: USER_A },
+      data: { passwordHash: "scrypt:old" },
+    });
+    const created = await createPasswordResetToken({
+      userId: USER_A,
+      email: "a@example.test",
+    });
+    const results = await Promise.all([
+      completePasswordReset({
+        rawToken: created.rawToken,
+        passwordHash: "scrypt:first",
+      }),
+      completePasswordReset({
+        rawToken: created.rawToken,
+        passwordHash: "scrypt:second",
+      }),
+    ]);
+
+    const succeeded = results.filter((result) => result.ok);
+    const failed = results.filter((result) => !result.ok);
+    expect(succeeded).toHaveLength(1);
+    expect(failed).toHaveLength(1);
+    const user = await prisma.user.findUnique({ where: { id: USER_A } });
+    expect(["scrypt:first", "scrypt:second"]).toContain(user?.passwordHash);
+    expect(user?.passwordHash).not.toBe("scrypt:old");
+  });
+
+  it("rejects invitation tokens for password reset completion", async () => {
+    await seed();
+    const created = await createInvitationToken({
+      userId: USER_A,
+      clinicId: CLINIC_A,
+      role: ClinicMembershipRole.STAFF,
+      email: "a@example.test",
+      invitedByUserId: INVITER,
+    });
+    const result = await completePasswordReset({
+      rawToken: created.rawToken,
+      passwordHash: "scrypt:new",
+    });
+    expect(result).toEqual({ ok: false, reason: "wrong_type" });
+  });
+
+  it("does not add invitation UI in this password-management change", () => {
     expect(existsSync("app/(staff)/invite")).toBe(false);
-    expect(existsSync("app/api/auth/forgot-password")).toBe(false);
-    expect(existsSync("app/api/auth/reset-password")).toBe(false);
+    expect(existsSync("app/(staff)/forgot-password")).toBe(true);
+    expect(existsSync("app/(staff)/reset-password")).toBe(true);
+    expect(existsSync("app/api/auth/forgot-password")).toBe(true);
+    expect(existsSync("app/api/auth/reset-password")).toBe(true);
     expect(
       readFileSync("lib/auth/account-token-service.ts", "utf8")
-    ).not.toMatch(/sendAuthTransactionalEmail|forgot-password|reset-password/);
+    ).not.toMatch(/sendAuthTransactionalEmail|AUTH_EMAIL_FROM/);
   });
 });

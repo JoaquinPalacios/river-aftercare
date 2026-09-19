@@ -41,7 +41,8 @@ describe("auth session regressions", () => {
     expect(form).toContain('errorMessage = "Invalid email or password."');
     expect(form).not.toContain("Turnstile");
     expect(form).not.toContain("rateLimit");
-    expect(form).not.toContain("Forgot password");
+    expect(form).toContain("Forgot password?");
+    expect(form).toContain('href="/forgot-password"');
     expect(page).not.toContain("Turnstile");
     expect(root).not.toContain("Turnstile");
     expect(form).not.toContain("hashPassword");

@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (About page audience reversal + product-scope reframing)
+Last updated: 2026-09-19 (password change / forgot / reset)
 
 ---
 
@@ -1531,7 +1531,7 @@ Removes the redundant homepage Clinic Preview and promotes Different clinic work
 
 ## Login portal UX polish (2026-09-19)
 
-Presentation-only. Production login security (bounds, dummy verification, generic 401, 403/409, database sessions, WAF) is unchanged. No Turnstile, no in-app rate limiter, no password-reset link.
+Presentation-only. Production login security (bounds, dummy verification, generic 401, 403/409, database sessions, WAF) is unchanged. No Turnstile, no in-app rate limiter. Forgot-password is in a later section.
 
 | Area         | Behaviour                                                                                                                                                                                                 |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1540,13 +1540,13 @@ Presentation-only. Production login security (bounds, dummy verification, generi
 | Copy         | Heading **Sign in**. Description: “Use your email and password to continue to River Aftercare.” Metadata `Sign in · River Aftercare`. `noindex, nofollow` retained. Marketing “Sign in” nav is unchanged. |
 | Pending      | Email, password, visibility toggle, and submit are `disabled`. Submit shows spinner + “Signing in…”. `aria-busy` on the form. Screen-reader status: “Signing in. Please wait.” Success stays pending.     |
 | Failure      | Generic “Invalid email or password.” `role="alert"`. Controls re-enable. Entered email and password are kept.                                                                                             |
-| Not added    | Forgot password, invitations, Turnstile, CAPTCHA, application rate limiter, schema/migration.                                                                                                             |
+| Not added    | Invitations, Turnstile, CAPTCHA, application rate limiter, schema/migration. Forgot-password lives in a later section.                                                                                    |
 
 ---
 
 ## AccountToken + transactional auth-email foundation (2026-09-19)
 
-Foundation only. No user-facing invite, forgot-password, reset-password, or change-password capability.
+Foundation only for invitations. Password change / forgot / reset now consume these primitives (see the next section).
 
 | Area             | Behaviour                                                                                                                                                                                     |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1557,11 +1557,29 @@ Foundation only. No user-facing invite, forgot-password, reset-password, or chan
 | Email snapshot   | `AccountToken.email` trim + lowercase, max 254. `User.email` rows are not rewritten.                                                                                                          |
 | Deletes          | Subject user and clinic cascade. Inviter `ON DELETE SET NULL`.                                                                                                                                |
 | Mail transport   | Shared `sendTransactionalEmail` (Resend + memory). Contact From/To/Reply-To/Turnstile unchanged.                                                                                              |
-| Auth mail config | Lazy `AUTH_EMAIL_FROM` / optional `AUTH_EMAIL_REPLY_TO`. Missing From does not fail `next build`. Vercel production never uses memory for auth mail. No templates sent.                       |
+| Auth mail config | Lazy `AUTH_EMAIL_FROM` / optional `AUTH_EMAIL_REPLY_TO`. Missing From does not fail `next build`. Vercel production never uses memory for auth mail.                                          |
 | Key              | Reuses existing `RESEND_API_KEY`. No second vendor.                                                                                                                                           |
-| Not added        | Forgot/reset/invite routes, operator invite action, membership mutations, Turnstile on login, production env/Vercel/Neon changes.                                                             |
 
 See [AUTH.md](../architecture/AUTH.md), [TRANSACTIONAL-EMAIL.md](../architecture/TRANSACTIONAL-EMAIL.md), [ADR 0024](../adr/0024-account-lifecycle-tokens-and-shared-transactional-email.md).
+
+---
+
+## Password change / forgot / reset (2026-09-19)
+
+User-facing password management on the staff host. **Not live until this PR is merged and deployed.** No invitation UI. No new Prisma migration.
+
+| Area                | Behaviour                                                                                                                                                                                                      |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New-password policy | 12–256, length only. No composition rules. Spaces preserved. Current/login passwords stay non-empty ≤256 so existing short hashes still sign in. Constants in `lib/auth/password-policy.ts`.                   |
+| Account security    | `/account/security` for any authenticated User (OPERATOR without membership, clinic ADMIN, clinic STAFF). Shared page; chrome follows operator vs clinic shell.                                                |
+| Change password     | Server Action. Verifies current password, hashes new password, one transaction: update hash, delete all sessions, create replacement session, then set cookie. Current browser stays signed in.                |
+| Forgot password     | `/forgot-password` + `POST /api/auth/forgot-password`. Generic success always. Eligible (`passwordHash` present) only. Null-hash and unknown: no token, no email. 10-minute durable `AccountToken` cooldown.   |
+| Reset password      | Email link `https://app.<root>/reset-password#token=`. Client reads fragment. POST body only. 30-minute TTL, single-use, concurrent consume-safe. Deletes all sessions. No auto-login. `/login?reset=success`. |
+| Mail                | `AUTH_EMAIL_FROM` / optional `AUTH_EMAIL_REPLY_TO`. Recipient is `User.email`. Trusted origin from `CARE_GUIDE_ROOT_DOMAIN`. Delivery failure revokes the new token best-effort.                               |
+| Host                | Staff app only. Marketing and tenant 404 `/forgot-password`, `/reset-password`, `/account`.                                                                                                                    |
+| Not added           | Invitations, Team UI, Turnstile, WAF changes, IP storage, Redis, schema/migration.                                                                                                                             |
+
+See [AUTH.md](../architecture/AUTH.md).
 
 ---
 

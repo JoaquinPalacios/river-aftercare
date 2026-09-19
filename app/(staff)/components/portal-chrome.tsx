@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
-import { LogoutButton } from "@/app/(staff)/components/logout-button";
 import { PortalAppearanceControl } from "@/app/(staff)/components/portal-appearance-control";
+import { StaffAccountPanel } from "@/app/(staff)/components/staff-account-panel";
 import { ProductMark } from "@/lib/branding/product-mark";
 import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -76,7 +76,7 @@ export function PortalChrome({
               <PortalAppearanceControl />
             </div>
             <div className="staffNavRule" role="presentation" />
-            <PortalAccount userLabel={userLabel} roleLabel={roleLabel} />
+            <StaffAccountPanel userLabel={userLabel} roleLabel={roleLabel} />
           </div>
         </div>
       </aside>
@@ -119,7 +119,7 @@ export function PortalChrome({
               <PortalAppearanceControl />
             </div>
             <div className="staffNavRule" role="presentation" />
-            <PortalAccount userLabel={userLabel} roleLabel={roleLabel} />
+            <StaffAccountPanel userLabel={userLabel} roleLabel={roleLabel} />
           </div>
         </header>
         <main className="staffAppScroller">
@@ -206,25 +206,5 @@ function PortalNav({
         </>
       ) : null}
     </nav>
-  );
-}
-
-function PortalAccount({
-  userLabel,
-  roleLabel,
-}: {
-  userLabel: string;
-  roleLabel: string;
-}) {
-  return (
-    <div className="staffAccountBlock">
-      <div className="staffAccountMeta">
-        <p className="truncate text-sm font-medium text-staff-ink">
-          {userLabel}
-        </p>
-        <p className="staffAccountRole">{roleLabel}</p>
-      </div>
-      <LogoutButton />
-    </div>
   );
 }

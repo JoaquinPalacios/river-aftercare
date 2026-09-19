@@ -2,12 +2,19 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { ClinicMembershipRole, PlatformRole } from "@prisma/client";
+import {
+  ClinicMembershipRole,
+  PlatformRole,
+  Prisma,
+  type PrismaClient,
+} from "@prisma/client";
 import { cache } from "react";
 
 import { auth } from "@/auth";
 import { AUTH_SESSION_MAX_AGE_SECONDS } from "@/lib/auth/session-cookie";
 import { getPrisma } from "@/lib/prisma";
+
+type SessionClient = PrismaClient | Prisma.TransactionClient;
 
 export interface AuthenticatedUser {
   id: string;
@@ -65,9 +72,10 @@ export function postLoginPath(input: {
 }
 
 export async function createDatabaseSession(
-  userId: string
+  userId: string,
+  client: SessionClient = getPrisma()
 ): Promise<DatabaseSessionRecord> {
-  return getPrisma().session.create({
+  return client.session.create({
     data: {
       sessionToken: randomUUID(),
       userId,
@@ -83,6 +91,15 @@ export async function createDatabaseSession(
 export async function deleteDatabaseSession(sessionToken: string) {
   await getPrisma().session.deleteMany({
     where: { sessionToken },
+  });
+}
+
+export async function deleteDatabaseSessionsForUser(
+  userId: string,
+  client: SessionClient = getPrisma()
+) {
+  await client.session.deleteMany({
+    where: { userId },
   });
 }
 

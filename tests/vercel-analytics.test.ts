@@ -71,4 +71,19 @@ describe("vercelWebAnalyticsBeforeSend", () => {
     });
     expect(vercelWebAnalyticsBeforeSend(pageview)).toEqual(pageview);
   });
+
+  it("strips reset-password URL fragments before analytics send", () => {
+    vi.stubGlobal("localStorage", {
+      getItem: () => null,
+    });
+
+    const event: BeforeSendEvent = {
+      type: "pageview",
+      url: "https://app.example.test/reset-password#token=abc",
+    };
+    expect(vercelWebAnalyticsBeforeSend(event)).toEqual({
+      type: "pageview",
+      url: "https://app.example.test/reset-password",
+    });
+  });
 });

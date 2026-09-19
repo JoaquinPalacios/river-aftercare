@@ -9,6 +9,17 @@ export function vercelWebAnalyticsBeforeSend(
   if (localStorage.getItem("va-disable") === "1") {
     return null;
   }
+
+  try {
+    const url = new URL(event.url);
+    if (url.pathname === "/reset-password" && url.hash) {
+      url.hash = "";
+      return { ...event, url: url.toString() };
+    }
+  } catch {
+    return event;
+  }
+
   return event;
 }
 
