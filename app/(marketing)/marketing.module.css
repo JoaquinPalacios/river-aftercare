@@ -458,16 +458,8 @@
       color-mix(in srgb, var(--mk-wave-periwinkle) 22%, transparent),
       transparent 74%
     ),
-    radial-gradient(
-      38% 32% at 86% 12%,
-      var(--mk-hero-glow),
-      transparent 72%
-    ),
-    radial-gradient(
-      46% 38% at 78% 88%,
-      var(--mk-sky-glow),
-      transparent 76%
-    ),
+    radial-gradient(38% 32% at 86% 12%, var(--mk-hero-glow), transparent 72%),
+    radial-gradient(46% 38% at 78% 88%, var(--mk-sky-glow), transparent 76%),
     radial-gradient(
       26% 22% at 46% 100%,
       var(--mk-closing-cobalt),
@@ -4821,6 +4813,20 @@ html[data-theme-mode="dark"] .wordmarkName {
   gap: var(--mk-heading-content-gap);
 }
 
+.aboutWho > [data-mk-section] {
+  grid-template-areas:
+    "copy"
+    "module";
+}
+
+.aboutWho .aboutCopy {
+  grid-area: copy;
+}
+
+.aboutWho .aboutClinicModule {
+  grid-area: module;
+}
+
 .aboutEditorial + .aboutEditorial {
   margin-top: var(--mk-section-space-lg);
 }
@@ -4868,17 +4874,31 @@ html[data-theme-mode="dark"] .wordmarkName {
   min-width: 0;
 }
 
+.aboutClinicModule nav,
+.aboutClinicList {
+  height: 100%;
+}
+
 .aboutClinicList {
   display: grid;
-  gap: 0.65rem;
+  grid-template-rows: repeat(5, minmax(3.2rem, auto));
+  gap: 0.5rem;
+  align-content: start;
+}
+
+.aboutClinicList > li {
+  display: flex;
+  min-height: 0;
 }
 
 .aboutClinicLink,
 .aboutClinicMuted {
   display: flex;
   align-items: center;
-  min-height: 2.95rem;
-  padding: 0.5rem 0.85rem;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 3.2rem;
+  padding: 0.7rem 0.95rem;
   border-radius: 0.7rem;
   color: var(--mk-ink);
   font-weight: 650;
@@ -4965,24 +4985,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   color: var(--mk-ink);
   font-weight: 650;
   letter-spacing: -0.02em;
-}
-
-.aboutFootnote {
-  margin: 0;
-  max-width: 42rem;
-  color: var(--mk-muted);
-  font-size: 0.92rem;
-  line-height: 1.5;
-}
-
-.aboutFootnoteLabel {
-  display: block;
-  margin-bottom: 0.35rem;
-  color: var(--mk-ink);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -5355,6 +5357,24 @@ html[data-theme-mode="dark"] .wordmarkName {
     grid-template-columns: minmax(0, 1.35fr) minmax(16rem, 1fr);
     column-gap: 2.75rem;
     align-items: start;
+  }
+
+  .aboutWho > [data-mk-section] {
+    grid-template-columns: minmax(16rem, 0.92fr) minmax(0, 1.08fr);
+    grid-template-areas: "module copy";
+    column-gap: 3.2rem;
+    align-items: stretch;
+  }
+
+  .aboutWho .aboutClinicModule,
+  .aboutWho .aboutClinicModule nav,
+  .aboutWho .aboutClinicList {
+    height: 100%;
+  }
+
+  .aboutWho .aboutClinicList {
+    grid-template-rows: repeat(5, minmax(3.2rem, 1fr));
+    align-content: stretch;
   }
 
   .aboutScopeGrid {

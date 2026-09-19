@@ -43,30 +43,32 @@ describe("marketing about page", () => {
     expect(html).toContain("Aftercare should feel like part of the care.");
     expect(html).toContain('data-mk-page-hero="about"');
     expect(html).toContain("aboutEditorial");
+    expect(html).toContain("aboutWho");
     expect(html).toContain("aboutOwnership");
     expect(html).toContain("What it is");
     expect(html).toContain("Who it is for");
     expect(html).toContain("Clinic ownership");
-    expect(html).toContain("What it is not");
+    expect(html).toContain("Product scope");
+    expect(html).not.toContain("What it is not");
     expect(html).toContain(
       "A branded home for the guidance patients need afterwards"
     );
     expect(html).toContain("Built for treatment-based practices");
     expect(html).toContain("Your clinic remains responsible for the care");
+    expect(html).toContain("Focused on aftercare publishing.");
     expect(html).not.toContain("The first vertical is dental");
     expect(html).not.toContain("mobile-first aftercare pages");
     expect(html).toContain("No patient app");
     expect(html).toContain("No patient login");
     expect(html).toContain("No PDF to hunt down");
-    expect(html).toContain("Not currently");
+    expect(html).toContain("Not a replacement for");
+    expect(html).not.toContain("Not currently");
     expect(html).toContain("Live clinical monitoring");
     expect(html).toContain("Patient CRM");
     expect(html).toContain("Health record");
     expect(html).toContain("Messaging platform");
     expect(html).toContain("Emergency care");
     expect(html).toContain("Personalised diagnosis or treatment");
-    expect(html).toContain("Product scope");
-    expect(html).toContain("certification");
     expect(html).toContain("Request a demo");
     expect(html).toContain("View pricing");
     expect(html).toContain('href="/dental"');
@@ -86,7 +88,9 @@ describe("marketing about page", () => {
     expect(marketingCss).toContain("margin-top: var(--mk-heading-intro-gap)");
     expect(marketingCss).toContain("margin-top: var(--mk-heading-content-gap)");
     expect(marketingCss).toContain(".aboutClinicList");
-    expect(marketingCss).toMatch(/\.aboutClinicList\s*\{[^}]*gap:\s*0\.65rem/);
+    expect(marketingCss).toMatch(/\.aboutClinicList\s*\{[^}]*gap:\s*0\.5rem/);
+    expect(marketingCss).toContain("grid-template-rows: repeat(5");
+    expect(marketingCss).toContain('grid-template-areas: "module copy"');
     expect(html).toContain("aboutClinicList");
     expect(html).toContain("aboutClinicLink");
     expect(html).toContain("aboutClinicMuted");
@@ -109,5 +113,53 @@ describe("marketing about page", () => {
     expect(marketingCss).toContain(".aboutEditorial");
     expect(marketingCss).toContain(".aboutValuePanel");
     expect(marketingCss).toContain(".aboutScopeGrid");
+  });
+
+  it("keeps copy-first DOM order for Who it is for", async () => {
+    const html = renderToStaticMarkup(await MarketingAboutPage());
+    const whoHeading = html.indexOf('id="about-who"');
+    const audienceCopy = html.indexOf(
+      `${PRODUCT_NAME} is built for clinics where care continues after the appointment`
+    );
+    const clinicNav = html.indexOf('aria-label="Clinic types"');
+
+    expect(whoHeading).toBeGreaterThan(-1);
+    expect(audienceCopy).toBeGreaterThan(whoHeading);
+    expect(clinicNav).toBeGreaterThan(audienceCopy);
+  });
+
+  it("uses the approved audience and product-scope copy", async () => {
+    const html = renderToStaticMarkup(await MarketingAboutPage());
+
+    expect(html).toContain(
+      `${PRODUCT_NAME} is built for clinics where care continues after the appointment — including dental, physiotherapy, chiropractic, cosmetic and other appropriate allied-health settings.`
+    );
+    expect(html).toContain(
+      "The language and guidance may differ by profession. The job is the same: give patients clear, clinic-branded information they can return to after they leave."
+    );
+    expect(html).not.toContain(
+      `${PRODUCT_NAME} is designed for clinics where important guidance continues after the appointment`
+    );
+    expect(html).not.toContain("The underlying job is the same");
+    expect(html).toContain(
+      `${PRODUCT_NAME} is built to publish clear, clinic-approved guidance patients can return to after care. It complements clinical systems rather than replacing them.`
+    );
+    expect(html).not.toContain("A publishing platform, not a clinical system");
+    expect(html).not.toContain("integrates with");
+    expect(html).not.toContain("connects to");
+    expect(html).not.toContain("works inside");
+  });
+
+  it("does not present internal legal-status copy on About", async () => {
+    const html = renderToStaticMarkup(await MarketingAboutPage());
+
+    expect(html).not.toContain("certification");
+    expect(html).not.toContain("regulatory approval");
+    expect(html).not.toContain("customer counts");
+    expect(html).not.toContain("health outcomes");
+    expect(html).not.toContain("legal review");
+    expect(html).not.toContain("not yet approved");
+    expect(html).not.toContain("aboutFootnote");
+    expect(marketingCss).not.toContain(".aboutFootnote");
   });
 });

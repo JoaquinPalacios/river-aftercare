@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (homepage lower-story hierarchy: Clinic Preview removed; workflows on master showcase)
+Last updated: 2026-09-19 (About page audience reversal + product-scope reframing)
 
 ---
 
@@ -1393,17 +1393,17 @@ Tight production-design pass. No copy, SEO, or architecture change.
 
 Focused experience-design pass. Brand architecture, SEO, and route IA were left in place.
 
-| Area                | Behaviour                                                                                                                                                                                                                          |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phone mock          | Decorative Riverside Dental preview now includes a CSS-only Today / Timeline toggle using existing demo sample copy. Today is default. No client island, no product API. Contact CTA remains at the bottom of the device.          |
-| Sample clinic cards | Brand flexibility palettes stay outside the River vertical family: clinical teal `#14635F`, slate navy `#2A3446`, muted clay/aubergine `#5A3F44`.                                                                                  |
-| Desktop nav         | For clinics panel is a floating editorial menu. Overview is the parent row. Verticals use tiny accent dots from the established River vertical family. Underline offset is `0.5rem`. Enter animation is 180ms, reduced-motion off. |
-| Mobile nav          | Sheet uses `max-height: calc(100dvh - header)` with scroll and a sticky compact Theme segmented control so Theme stays reachable on short viewports.                                                                               |
-| Footer              | Link underline offset is `0` and does not inherit the nav offset.                                                                                                                                                                  |
-| `/clinics`          | Cards tint and advance the arrow (`translateX(0.28rem)`) without lifting. Shared foundation has the `SHARED FOUNDATION` eyebrow and uses `--mk-heading-content-gap`.                                                               |
-| Vertical pages      | Secondary CTA border mixes `--vertical-accent` at 26%. Shared `.sectionStack` plus `--mk-heading-intro-gap` / `--mk-body-gap` separate heading-to-body from paragraph rhythm.                                                      |
-| FAQ                 | Native details/summary. Accordion stays overflow-visible; items clip to nested radius. Open rail is inset on first/last. Focus ring is inset (`outline-offset: -3px`) so it is not clipped.                                        |
-| About               | Editorial two-column modules, clinic-type links, responsibility panel, “Not currently” scope grid, product-scope footnote, standard closing CTA. No metadata/schema changes.                                                       |
+| Area                | Behaviour                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phone mock          | Decorative Riverside Dental preview now includes a CSS-only Today / Timeline toggle using existing demo sample copy. Today is default. No client island, no product API. Contact CTA remains at the bottom of the device.                                                                                                                                   |
+| Sample clinic cards | Brand flexibility palettes stay outside the River vertical family: clinical teal `#14635F`, slate navy `#2A3446`, muted clay/aubergine `#5A3F44`.                                                                                                                                                                                                           |
+| Desktop nav         | For clinics panel is a floating editorial menu. Overview is the parent row. Verticals use tiny accent dots from the established River vertical family. Underline offset is `0.5rem`. Enter animation is 180ms, reduced-motion off.                                                                                                                          |
+| Mobile nav          | Sheet uses `max-height: calc(100dvh - header)` with scroll and a sticky compact Theme segmented control so Theme stays reachable on short viewports.                                                                                                                                                                                                        |
+| Footer              | Link underline offset is `0` and does not inherit the nav offset.                                                                                                                                                                                                                                                                                           |
+| `/clinics`          | Cards tint and advance the arrow (`translateX(0.28rem)`) without lifting. Shared foundation has the `SHARED FOUNDATION` eyebrow and uses `--mk-heading-content-gap`.                                                                                                                                                                                        |
+| Vertical pages      | Secondary CTA border mixes `--vertical-accent` at 26%. Shared `.sectionStack` plus `--mk-heading-intro-gap` / `--mk-body-gap` separate heading-to-body from paragraph rhythm.                                                                                                                                                                               |
+| FAQ                 | Native details/summary. Accordion stays overflow-visible; items clip to nested radius. Open rail is inset on first/last. Focus ring is inset (`outline-offset: -3px`) so it is not clipped.                                                                                                                                                                 |
+| About               | Editorial two-column modules with **Who it is for reversed on desktop** (clinic module left / copy right via grid areas; copy-first DOM). Clinic rows use a 5-row grid and 0.5rem gap. **PRODUCT SCOPE** replaces “What it is not”; label is **Not a replacement for**. Internal legal-status footnote removed from About only. No metadata/schema changes. |
 
 ---
 
@@ -1502,7 +1502,7 @@ Removes profession-card repetition between vertical discovery and Brand Flexibil
 | Brand Flexibility  | Answers “what remains recognisably mine?”. Eyebrow kept. H2: “Your clinic stays visible after the appointment.” Body: consistent patient experience, clinic identity carried into revisited guidance. |
 | Visual             | One River-neutral identity panel. Three rows: Your name / Your colours / Your terminology. Not a second profession grid.                                                                              |
 | Sample colours     | Teal `#14635f`, navy `#2a3446`, clay `#5a3f44` remain as small swatches labelled “Sample clinic identities”. Not Dental / Physio / Cosmetic. Not River vertical accents.                              |
-| Patient demo       | Riverside Dental phone mockup in the hero remains the homepage’s patient-experience proof. The lower Clinic Preview panel was removed.                                                                   |
+| Patient demo       | Riverside Dental phone mockup in the hero remains the homepage’s patient-experience proof. The lower Clinic Preview panel was removed.                                                                |
 
 ## Homepage storytelling sequence (2026-09-19)
 
@@ -1520,12 +1520,12 @@ Reorders the lower homepage without rewriting strategy, SEO, or product claims. 
 
 Removes the redundant homepage Clinic Preview and promotes Different clinic workflows onto the master-brand showcase surface.
 
-| Area                 | Behaviour                                                                                                                                                                                                 |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Area                 | Behaviour                                                                                                                                                                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Clinic Preview       | Removed from the homepage. Not relocated. Shared demo fixtures, hero phone mockup, `View the dental demo` CTA, and `/dental` “Open Riverside Dental Demo” remain. `MarketingPatientPreview` was homepage-only and was deleted. |
-| Workflows chapter    | Final substantive chapter before the closing CTA. Lives in `marketingShowcase` + `workflowShowcase`. Copy, four vertical cards, and Explore all clinic types → `/clinics` unchanged.                      |
-| Master-brand surface | Pale periwinkle/cobalt/sky wash in Light; deeper cobalt atmosphere in Dark. Cards keep River vertical identities (dental cobalt, physio teal, chiropractic periwinkle, cosmetic cyan) with a clearer border and tint. |
-| Transitions          | Soft → showcase background change marks Brand Flexibility → Workflows. Workflows → existing closing CTA with no extra proof chapter.                                                                      |
+| Workflows chapter    | Final substantive chapter before the closing CTA. Lives in `marketingShowcase` + `workflowShowcase`. Copy, four vertical cards, and Explore all clinic types → `/clinics` unchanged.                                           |
+| Master-brand surface | Pale periwinkle/cobalt/sky wash in Light; deeper cobalt atmosphere in Dark. Cards keep River vertical identities (dental cobalt, physio teal, chiropractic periwinkle, cosmetic cyan) with a clearer border and tint.          |
+| Transitions          | Soft → showcase background change marks Brand Flexibility → Workflows. Workflows → existing closing CTA with no extra proof chapter.                                                                                           |
 
 ---
 
@@ -1562,3 +1562,16 @@ Foundation only. No user-facing invite, forgot-password, reset-password, or chan
 | Not added        | Forgot/reset/invite routes, operator invite action, membership mutations, Turnstile on login, production env/Vercel/Neon changes.                                                             |
 
 See [AUTH.md](../architecture/AUTH.md), [TRANSACTIONAL-EMAIL.md](../architecture/TRANSACTIONAL-EMAIL.md), [ADR 0024](../adr/0024-account-lifecycle-tokens-and-shared-transactional-email.md).
+
+---
+
+## About editorial refinement (2026-09-19)
+
+Focused copy and composition pass on `/about`. Routes, SEO metadata, JSON-LD, and product capabilities unchanged.
+
+| Area          | Behaviour                                                                                                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Who it is for | DOM stays copy → clinic list. Desktop grid areas place the clinic module left (~0.92fr) and copy right (~1.08fr) with a 3.2rem gap. Mobile keeps natural reading order.            |
+| Clinic list   | Five-row grid, 0.5rem gap, slightly taller rows. First four remain vertical links; “Other appropriate allied health” stays a muted non-link.                                       |
+| Product scope | Eyebrow **Product scope**, heading **Focused on aftercare publishing.** Scope module label **Not a replacement for**. Complements-not-replaces positioning; no integration claims. |
+| Removed       | About-only legal-status footnote (certification / legal-review sentence). Privacy and Terms draft banners stay on those pages.                                                     |

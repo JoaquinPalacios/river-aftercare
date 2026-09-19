@@ -51,6 +51,13 @@ const SCOPE_EXCLUSIONS = [
   "Personalised diagnosis or treatment",
 ] as const;
 
+const WHO_COPY = [
+  `${PRODUCT_NAME} is built for clinics where care continues after the appointment — including dental, physiotherapy, chiropractic, cosmetic and other appropriate allied-health settings.`,
+  "The language and guidance may differ by profession. The job is the same: give patients clear, clinic-branded information they can return to after they leave.",
+] as const;
+
+const SCOPE_COPY = `${PRODUCT_NAME} is built to publish clear, clinic-approved guidance patients can return to after care. It complements clinical systems rather than replacing them.`;
+
 export default async function MarketingAboutPage() {
   const [{ staffHref }, jsonLd] = await Promise.all([
     marketingPublicLinks(),
@@ -107,7 +114,7 @@ export default async function MarketingAboutPage() {
               </section>
 
               <section
-                className={styles.aboutEditorial}
+                className={`${styles.aboutEditorial} ${styles.aboutWho}`}
                 aria-labelledby="about-who"
               >
                 <MarketingRevealGroup>
@@ -121,25 +128,15 @@ export default async function MarketingAboutPage() {
                       </h2>
                     </MarketingRevealItem>
                     <MarketingRevealItem delay={editorialRevealDelay(2)}>
-                      <p className={styles.copy}>
-                        {PRODUCT_NAME} is designed for clinics where important
-                        guidance continues after the appointment — including
-                        dental practices, physiotherapy clinics, chiropractic
-                        practices, cosmetic and aesthetic clinics, and other
-                        appropriate allied-health settings.
-                      </p>
-                      <p className={styles.copy}>
-                        The language and guidance may differ by profession. The
-                        underlying job is the same: help the clinic deliver
-                        clear information after the patient leaves.
-                      </p>
+                      <p className={styles.copy}>{WHO_COPY[0]}</p>
+                      <p className={styles.copy}>{WHO_COPY[1]}</p>
                     </MarketingRevealItem>
                   </div>
-                  <MarketingRevealItem delay={editorialRevealDelay(2)}>
-                    <nav
-                      className={styles.aboutClinicModule}
-                      aria-label="Clinic types"
-                    >
+                  <MarketingRevealItem
+                    className={styles.aboutClinicModule}
+                    delay={editorialRevealDelay(2)}
+                  >
+                    <nav aria-label="Clinic types">
                       <ul className={styles.aboutClinicList}>
                         {CLINIC_VERTICAL_NAV.map((item) => (
                           <li key={item.path}>
@@ -218,7 +215,7 @@ export default async function MarketingAboutPage() {
             <div className={styles.inner}>
               <section
                 className={styles.aboutScope}
-                aria-labelledby="about-not"
+                aria-labelledby="about-scope"
               >
                 <MarketingRevealGroup>
                   <div className={styles.aboutEditorial}>
@@ -226,17 +223,22 @@ export default async function MarketingAboutPage() {
                       className={`${styles.aboutCopy} ${styles.sectionStack}`}
                     >
                       <MarketingRevealItem delay={0}>
-                        <p className={styles.eyebrow}>What it is not</p>
+                        <p className={styles.eyebrow}>Product scope</p>
                       </MarketingRevealItem>
                       <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                        <h2 id="about-not" className={styles.sectionTitle}>
-                          A publishing platform, not a clinical system
+                        <h2 id="about-scope" className={styles.sectionTitle}>
+                          Focused on aftercare publishing.
                         </h2>
+                      </MarketingRevealItem>
+                      <MarketingRevealItem delay={editorialRevealDelay(2)}>
+                        <p className={styles.copy}>{SCOPE_COPY}</p>
                       </MarketingRevealItem>
                     </div>
                     <MarketingRevealItem delay={editorialRevealDelay(2)}>
                       <div className={styles.aboutScopePanel}>
-                        <p className={styles.aboutScopeLabel}>Not currently</p>
+                        <p className={styles.aboutScopeLabel}>
+                          Not a replacement for
+                        </p>
                         <ul className={styles.aboutScopeGrid}>
                           {SCOPE_EXCLUSIONS.map((item) => (
                             <li key={item}>{item}</li>
@@ -245,17 +247,6 @@ export default async function MarketingAboutPage() {
                       </div>
                     </MarketingRevealItem>
                   </div>
-                  <MarketingRevealItem delay={editorialRevealDelay(3)}>
-                    <p className={styles.aboutFootnote}>
-                      <span className={styles.aboutFootnoteLabel}>
-                        Product scope
-                      </span>
-                      This page does not claim certification, regulatory
-                      approval, customer counts, or health outcomes. Privacy and
-                      Terms drafts are published for legal review and are not
-                      yet approved.
-                    </p>
-                  </MarketingRevealItem>
                 </MarketingRevealGroup>
               </section>
             </div>
