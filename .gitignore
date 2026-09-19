@@ -50,4 +50,8 @@ next-env.d.ts
 .vscode
 
 # cursor
-.cursor
+.cursor/*
+!.cursor/environment.json
+!.cursor/install.sh
+!.cursor/start.sh
+!.cursor/db-up.sh
