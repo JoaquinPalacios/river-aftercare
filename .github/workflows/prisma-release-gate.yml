@@ -1,0 +1,30 @@
+name: Prisma release gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  release-check:
+    name: Detect Prisma schema/migration release risk
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Run Prisma release check
+        env:
+          RELEASE_CHECK_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: node scripts/release-check.mjs

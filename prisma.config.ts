@@ -10,8 +10,11 @@ export default defineConfig({
     seed: "node prisma/seed.mjs",
   },
   datasource: {
-    // Local Docker: DATABASE_URL only. Later Neon: DIRECT_URL = unpooled
-    // migrate/seed connection; runtime PrismaPg still uses DATABASE_URL.
+    // Local Docker: DATABASE_URL only. Production CLI prefers DIRECT_URL
+    // (unpooled Neon) when set; runtime PrismaPg still uses DATABASE_URL.
+    // Production migrate helpers unset ambient URLs and load only
+    // .env.neon-production — never rely on this config to select production
+    // by itself. See docs/launch/PRODUCTION-MIGRATION.md.
     url: prismaCliDatabaseUrl(),
   },
 });

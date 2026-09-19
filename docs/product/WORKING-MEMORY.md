@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (Operator Team role editing + remove-access pending UX)
+Last updated: 2026-09-19 (Production Prisma migrate-before-promote release gate; includes operator Team role editing from main)
 
 ---
 
@@ -1156,19 +1156,19 @@ Hero-attributed client JS added: **0**. Nav still uses the existing Client Compo
 
 Local/test compatibility upgrade. **Neon production was not contacted.** Production schema is not migrated. Vercel `DATABASE_URL` is unchanged.
 
-| Surface            | Contract                                                                                                                                                                                                            |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Local Docker       | `postgres:18-alpine`, port **5432**, DB `care_guide`, volume `postgres18_data` → `/var/lib/postgresql`, `PGDATA=/var/lib/postgresql/18/docker`                                                                      |
-| Legacy PG17 volume | Compose key `postgres_data` (mount `/var/lib/postgresql/data`) is **unused**. Do not `docker compose down -v`. Dump/restore runbook: [../development/POSTGRES-18-UPGRADE.md](../development/POSTGRES-18-UPGRADE.md) |
-| Vitest DB tests    | Same `DATABASE_URL` server; assert `SHOW server_version` major 18                                                                                                                                                   |
-| Playwright         | `care_guide_e2e` on the same PG18 server. Global setup fails if major ≠ 18. Does not write the development DB                                                                                                       |
-| GitHub Actions     | **None.** Automated tests assume a reachable PG18 at `DATABASE_URL`                                                                                                                                                 |
-| Production Neon    | Project **River Aftercare Production**, branch `production`, AWS Asia Pacific 2 (Sydney), PostgreSQL 18. Empty of River Aftercare schema until Joaquín migrates                                                     |
-| Prisma             | 7.10.x + `@prisma/adapter-pg` + `pg`. No Prisma 8 RC. No `@neondatabase/serverless`                                                                                                                                 |
-| CLI URL            | `prisma.config.ts` uses `DIRECT_URL` when set, else `DATABASE_URL`. Runtime `getPrisma()` always uses `DATABASE_URL`                                                                                                |
-| Later Vercel       | Pooled Neon URL (`-pooler`, `sslmode=require`) as `DATABASE_URL`; unpooled as `DIRECT_URL` for `prisma migrate deploy`                                                                                              |
-| Extensions         | Default `plpgsql` only. No `pgcrypto` / `uuid-ossp` / `citext`                                                                                                                                                      |
-| Generated columns  | None                                                                                                                                                                                                                |
+| Surface            | Contract                                                                                                                                                                                                                                                          |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local Docker       | `postgres:18-alpine`, port **5432**, DB `care_guide`, volume `postgres18_data` → `/var/lib/postgresql`, `PGDATA=/var/lib/postgresql/18/docker`                                                                                                                    |
+| Legacy PG17 volume | Compose key `postgres_data` (mount `/var/lib/postgresql/data`) is **unused**. Do not `docker compose down -v`. Dump/restore runbook: [../development/POSTGRES-18-UPGRADE.md](../development/POSTGRES-18-UPGRADE.md)                                               |
+| Vitest DB tests    | Same `DATABASE_URL` server; assert `SHOW server_version` major 18                                                                                                                                                                                                 |
+| Playwright         | `care_guide_e2e` on the same PG18 server. Global setup fails if major ≠ 18. Does not write the development DB                                                                                                                                                     |
+| GitHub Actions     | Prisma path/pairing check only (`.github/workflows/prisma-release-gate.yml`). No production credentials. No PostgreSQL service. Automated DB tests still assume a reachable PG18 at `DATABASE_URL`                                                                |
+| Production Neon    | Project **River Aftercare Production**, branch `production`, AWS Asia Pacific 2 (Sydney), PostgreSQL 18. Application is connected. Migrations are applied manually with `DIRECT_URL` — see [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md) |
+| Prisma             | 7.10.x + `@prisma/adapter-pg` + `pg`. No Prisma 8 RC. No `@neondatabase/serverless`                                                                                                                                                                               |
+| CLI URL            | `prisma.config.ts` uses `DIRECT_URL` when set, else `DATABASE_URL`. Runtime `getPrisma()` always uses `DATABASE_URL`. Production helpers load only `.env.neon-production`                                                                                         |
+| Later Vercel       | Pooled Neon URL (`-pooler`, `sslmode=require`) as `DATABASE_URL`; unpooled as `DIRECT_URL` for `prisma migrate deploy`. Vercel build must not run `migrate deploy`, seed, or `db push`                                                                            |
+| Extensions         | Default `plpgsql` only. No `pgcrypto` / `uuid-ossp` / `citext`                                                                                                                                                                                                    |
+| Generated columns  | None                                                                                                                                                                                                                                                              |
 
 Do not claim production is ready because the Neon project exists.
 
@@ -1717,3 +1717,20 @@ Warm client-side click → URL commit, 20 samples/route, production `next start`
 | `/dashboard` → `/account/security` |          66 |            64 |       67 |         66 |       −2 |
 
 No systematic regression. Bundle: overlay CSS 1,634 / 561 gzip; overlay JS chunk 13,326 / 4,177 gzip. No new dependency.
+
+---
+
+## Production Prisma migrate-before-promote (2026-09-19)
+
+Release safety after production P2022 (`ClinicProfile.typeface` missing because `20260919140000_add_clinic_typeface` was on `main` before Neon `migrate deploy`).
+
+| Surface                                      | Behaviour                                                                                                                                         |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Policy                                       | [ADR 0025](../adr/0025-migrate-before-promote.md). Canonical commands: [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md)     |
+| `pnpm release:check`                         | Git diff vs `origin/main`. No DB. Fails schema-without-migration, missing SQL, rewritten history, unreviewed destructive SQL                      |
+| GitHub Action                                | `.github/workflows/prisma-release-gate.yml` — contents:read, no secrets, no migrate                                                               |
+| `pnpm prod:db:status` / `migrate` / `verify` | Require `.env.neon-production`, `DIRECT_URL` + `DATABASE_URL`, refuse localhost / `.env` fallback / seed / `db push`. `migrate` needs `--apply`   |
+| Vercel Production build                      | `scripts/vercel-production-schema-gate.mjs` runs `migrate status` only when `VERCEL_ENV=production`. Pending → fail build. Never `migrate deploy` |
+| Vercel Preview / PR                          | Gate does not run. Must not receive production credentials                                                                                        |
+
+Do not claim Production auto-deploy was disabled from this change. Joaquín can still turn off Production auto-deploy and promote after migrate.

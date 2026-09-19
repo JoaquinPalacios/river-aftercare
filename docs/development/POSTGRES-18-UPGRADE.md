@@ -223,19 +223,14 @@ Leave `*_postgres_data` on disk until Joaquín confirms the restored PG18 databa
 
 ---
 
-## Neon / Vercel (later — do not do this from the upgrade branch)
+## Neon / Vercel (production migrate is not part of this local upgrade)
 
 The repository stays on **PostgreSQL protocol + Prisma 7 + `PrismaPg` + `pg`**. Do not add `@neondatabase/serverless` or `@prisma/adapter-neon` unless the runtime moves to an edge environment that cannot open TCP.
 
-When Joaquín wires production:
+Production Neon is wired. Application runtime uses pooled `DATABASE_URL`. Migrations use unpooled `DIRECT_URL` from gitignored `.env.neon-production` via `pnpm prod:db:*`. Vercel does not run `migrate deploy`. See [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md).
 
-1. In the Neon console, copy the **pooled** connection string (`-pooler` in the hostname). Use that as Vercel `DATABASE_URL`. Keep `sslmode=require` (Neon may also add `channel_binding=require`).
-2. Copy the **direct / unpooled** connection string (no `-pooler`). Use that as Vercel / local-prod-ops `DIRECT_URL` for `prisma migrate deploy`.
-3. Local Docker continues to work with `DATABASE_URL` only. `prisma.config.ts` uses `DIRECT_URL` when set, otherwise `DATABASE_URL`.
-4. Runtime `getPrisma()` always uses `DATABASE_URL` (pooled in production).
-
-Do not mark production ready merely because the Neon project exists.
+Local Docker continues to work with `DATABASE_URL` only. `prisma.config.ts` uses `DIRECT_URL` when set, otherwise `DATABASE_URL`. Runtime `getPrisma()` always uses `DATABASE_URL`.
 
 ## CI
 
-This repository has **no GitHub Actions workflow** that starts PostgreSQL. Vitest DB tests and Playwright e2e expect a PostgreSQL **18** server already reachable at `DATABASE_URL` / `E2E_DATABASE_URL` (local Compose, or an equivalent disposable server). Playwright creates `care_guide_e2e` on that same major and refuses to use `care_guide`.
+This repository has **no GitHub Actions workflow that starts PostgreSQL**. `.github/workflows/prisma-release-gate.yml` diffs Prisma paths only and does not receive database credentials. Vitest DB tests and Playwright e2e expect a PostgreSQL **18** server already reachable at `DATABASE_URL` / `E2E_DATABASE_URL` (local Compose, or an equivalent disposable server). Playwright creates `care_guide_e2e` on that same major and refuses to use `care_guide`.
