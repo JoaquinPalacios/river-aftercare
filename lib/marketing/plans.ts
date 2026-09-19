@@ -47,6 +47,14 @@ const practiceAnnual = formatAudInclGst(PLAN_PRICES.practice.annualAudInclGst);
 
 export const PRICING_GST_LABEL = "All prices include GST.";
 
+export const PRICING_TYPOGRAPHY_FEATURE_LABEL =
+  "Logo, colours and curated typography";
+
+export const PRICING_TYPOGRAPHY_FOOTNOTE_ID = "pricing-typography-note";
+
+export const PRICING_TYPOGRAPHY_NOTE =
+  "* Choose from six curated professional typefaces. Need another? Ask us — additional options can be reviewed subject to availability.";
+
 export const LAUNCH_PLANS = [
   {
     id: "essential",
@@ -65,7 +73,7 @@ export const LAUNCH_PLANS = [
       `${PRODUCT_NAME} guide templates`,
       `Up to ${PLAN_PRICES.essential.customGuides} custom clinic guides`,
       "Branded patient aftercare pages",
-      "Logo, colours and curated typography",
+      PRICING_TYPOGRAPHY_FEATURE_LABEL,
       "Permanent guide URLs",
       "QR-ready sharing",
       "Print / Save PDF",
@@ -89,15 +97,12 @@ export const LAUNCH_PLANS = [
     features: [
       "Everything in Essential",
       `Up to ${PLAN_PRICES.practice.customGuides} custom clinic guides`,
-      "Create and adapt clinic aftercare",
-      "Guide and section controls",
-      "Local clinic instructions",
+      "Create and edit your own aftercare guides",
+      "Adapt River Aftercare templates to suit your clinic",
+      "Add clinic-specific instructions",
       "Assisted setup",
     ],
-    setupNotes: [
-      "Multi-location practice? Talk to us about your setup.",
-      "Need a larger guide library? Talk to us.",
-    ],
+    setupNotes: ["Multi-location practice? Talk to us about your setup."],
   },
   {
     id: "group",
@@ -140,9 +145,6 @@ export const PRICING_NOTES = [
     body: `${PRODUCT_NAME}'s current plans cover branded aftercare publishing, guide management and clinic presentation according to plan. They do not currently include monitoring, persisted patient check-ins, CRM, messaging, or PMS integrations.`,
   },
 ] as const;
-
-export const PRICING_TYPOGRAPHY_NOTE =
-  "Choose from a curated set of professional typefaces. Need another? Ask us — additional options can be reviewed subject to availability.";
 
 export const GUIDE_AVAILABILITY_NOTE = `Where an appropriate ${PRODUCT_NAME} template exists, the clinic can use it as a starting point. Clinic-specific content remains subject to the clinic's approval. Clinics remain responsible for approving the clinical guidance they publish.`;
 

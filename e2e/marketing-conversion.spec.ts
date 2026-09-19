@@ -51,6 +51,31 @@ test.describe("marketing conversion routes", () => {
     await expect(
       page.getByText("Multi-location practice? Talk to us about your setup.")
     ).toBeVisible();
+    await expect(
+      page.getByText("Need a larger guide library? Talk to us.")
+    ).toHaveCount(0);
+    await expect(
+      page.getByText("Create and adapt clinic aftercare")
+    ).toHaveCount(0);
+    await expect(page.getByText("Guide and section controls")).toHaveCount(0);
+    await expect(page.getByText("Local clinic instructions")).toHaveCount(0);
+    await expect(
+      page.getByText("Create and edit your own aftercare guides")
+    ).toBeVisible();
+    await expect(
+      page.getByText("Adapt River Aftercare templates to suit your clinic")
+    ).toBeVisible();
+    await expect(
+      page.getByText("Add clinic-specific instructions")
+    ).toBeVisible();
+    await expect(
+      page.getByText("Logo, colours and curated typography")
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "* Choose from six curated professional typefaces. Need another? Ask us — additional options can be reviewed subject to availability."
+      )
+    ).toBeVisible();
     await expect(page.getByText("Custom pricing")).toBeVisible();
     await expect(page.getByText("Recommended")).toBeVisible();
     await expect(page.getByText("Coming after launch")).toHaveCount(0);
@@ -129,6 +154,42 @@ test.describe("marketing conversion routes", () => {
     expect(sitemapBody).not.toContain("/_sites");
     expect(sitemapBody).not.toContain("/dashboard");
     expect(sitemapBody).not.toContain("/operator");
+  });
+
+  test("pricing cards keep copy hierarchy across viewports", async ({
+    page,
+  }) => {
+    await page.goto(marketingUrl("/pricing"), { waitUntil: "load" });
+
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 768, height: 1024 },
+      { width: 390, height: 844 },
+    ] as const) {
+      await page.setViewportSize(viewport);
+      await expect(page.getByText("Recommended")).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Practice", exact: true })
+      ).toBeVisible();
+      await expect(
+        page.getByText("Create and edit your own aftercare guides")
+      ).toBeVisible();
+      await expect(
+        page.getByText("Need a larger guide library? Talk to us.")
+      ).toHaveCount(0);
+      const footnote = page.locator("#pricing-typography-note");
+      await expect(footnote).toBeVisible();
+      const footnoteStyle = await footnote.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          fontSize: style.fontSize,
+          fontWeight: style.fontWeight,
+        };
+      });
+      expect(footnoteStyle.fontSize).toBe("16px");
+      expect(Number.parseInt(footnoteStyle.fontWeight, 10)).toBe(400);
+      await expectNoHorizontalOverflow(page);
+    }
   });
 
   test("desktop nav includes pricing, contact, staff, and theme", async ({

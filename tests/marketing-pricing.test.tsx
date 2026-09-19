@@ -61,6 +61,8 @@ describe("marketing pricing page", () => {
       "--mk-intro-content-gap: clamp(1.25rem, 2vw, 1.5rem)"
     );
     expect(styles).toContain(".noteCard");
+    expect(styles).toContain(".planFootnote");
+    expect(styles).toContain("font-size: 1rem");
     expect(styles).toContain("inset 0 1px 0");
     expect(styles).toContain(
       "color-mix(in srgb, var(--mk-brand) 20%, var(--mk-card-line))"
@@ -103,13 +105,29 @@ describe("marketing pricing page", () => {
     expect(html).toContain(
       "Multi-location practice? Talk to us about your setup."
     );
-    expect(html).toContain("Need a larger guide library? Talk to us.");
+    expect(html).not.toContain("Need a larger guide library? Talk to us.");
+    expect(html).not.toContain("Create and adapt clinic aftercare");
+    expect(html).not.toContain("Guide and section controls");
+    expect(html).not.toContain("Local clinic instructions");
+    expect(html).toContain("Create and edit your own aftercare guides");
+    expect(html).toContain(
+      "Adapt River Aftercare templates to suit your clinic"
+    );
+    expect(html).toContain("Add clinic-specific instructions");
     expect(html).not.toContain("Richer branding");
     expect(html).not.toContain("hide River Aftercare attribution");
     expect(html).not.toContain("Shared guides");
+    expect(html).toContain("Logo, colours and curated typography");
+    expect(html).toContain('id="pricing-typography-note"');
+    expect(html).toContain("planFootnote");
+    expect(html).toContain("planFootnoteRef");
     expect(html).toContain(
-      "Choose from a curated set of professional typefaces"
+      "* Choose from six curated professional typefaces. Need another? Ask us — additional options can be reviewed subject to availability."
     );
+    expect(html).not.toContain("Choose from a curated set of professional");
+    expect(html).not.toContain("Open Sans");
+    expect(html).not.toContain("Montserrat");
+    expect(html).not.toContain("Poppins");
     expect(html).not.toContain("Curated dental guide library");
     expect(html).not.toContain("Broader dental template library");
     expect(html).not.toContain("Patient check-ins");
@@ -156,14 +174,26 @@ describe("marketing pricing page", () => {
     );
     const groupBlock = html.slice(html.indexOf('id="plan-group"'));
     expect(essentialBlock).toContain("1 practice / location");
+    expect(essentialBlock).toContain("Logo, colours and curated typography");
+    expect(essentialBlock).toContain("<sup aria-hidden=\"true\">*</sup>");
+    expect(essentialBlock).toContain('href="#pricing-typography-note"');
     expect(essentialBlock).not.toContain("Patient check-ins");
     expect(essentialBlock).not.toContain("Connected aftercare");
     expect(essentialBlock).not.toContain("Additional locations");
     expect(practiceBlock).toContain("Everything in Essential");
-    expect(practiceBlock).toContain("Create and adapt clinic aftercare");
+    expect(practiceBlock).toContain("Create and edit your own aftercare guides");
+    expect(practiceBlock).toContain(
+      "Adapt River Aftercare templates to suit your clinic"
+    );
+    expect(practiceBlock).toContain("Add clinic-specific instructions");
+    expect(practiceBlock).not.toContain("Create and adapt clinic aftercare");
+    expect(practiceBlock).not.toContain("Guide and section controls");
+    expect(practiceBlock).not.toContain("Local clinic instructions");
+    expect(practiceBlock).not.toContain("Logo, colours and curated typography");
     expect(practiceBlock).toContain(
       "Multi-location practice? Talk to us about your setup."
     );
+    expect(practiceBlock).not.toContain("Need a larger guide library");
     expect(practiceBlock).not.toContain("A$59");
     expect(practiceBlock).not.toContain("A$590");
     expect(groupBlock).toContain("Custom pricing");
