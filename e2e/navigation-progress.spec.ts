@@ -42,6 +42,46 @@ function progress(page: Page) {
   return page.locator("[data-navigation-progress]");
 }
 
+function marketingNav(page: Page) {
+  return page.getByRole("navigation", { name: "Marketing" });
+}
+
+function mobileNavPanel(page: Page) {
+  return page.locator("[class*='navMenuPanel']");
+}
+
+async function clickMobileNavLink(page: Page, name: string): Promise<void> {
+  await page.getByRole("button", { name: "Site menu" }).click();
+  await mobileNavPanel(page).getByRole("link", { name }).click();
+}
+
+async function clickSyntheticLink(
+  page: Page,
+  href: string,
+  preventDefault = true
+): Promise<void> {
+  await page.evaluate(
+    ({ nextHref, shouldPreventDefault }) => {
+      const anchor = document.createElement("a");
+      anchor.href = nextHref;
+      anchor.textContent = "Synthetic";
+      document.body.append(anchor);
+      if (shouldPreventDefault) {
+        anchor.addEventListener(
+          "click",
+          (event) => {
+            event.preventDefault();
+          },
+          { once: true }
+        );
+      }
+      anchor.click();
+      anchor.remove();
+    },
+    { nextHref: href, shouldPreventDefault: preventDefault }
+  );
+}
+
 async function progressTokens(page: Page) {
   return page.evaluate(() => {
     const root = document.querySelector("[data-navigation-progress]");
@@ -94,9 +134,7 @@ test.describe("navigation progress", () => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await showMarketingScheme(page, "dark");
 
-    const about = page
-      .getByRole("navigation", { name: "Marketing" })
-      .getByRole("link", { name: "About" });
+    const about = marketingNav(page).getByRole("link", { name: "About" });
     await about.click();
 
     await expect
@@ -118,28 +156,29 @@ test.describe("navigation progress", () => {
   }) => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await page
-      .getByRole("navigation", { name: "Marketing" })
+      .getByRole("banner")
       .getByRole("link", { name: "River Aftercare" })
       .click();
     await expect(progress(page)).toHaveAttribute("data-phase", "idle");
 
-    await page
-      .getByRole("navigation", { name: "Marketing" })
-      .getByRole("link", { name: "Sign in" })
-      .click();
+    const signIn = marketingNav(page)
+      .getByRole("link", { name: "Sign in", exact: true })
+      .filter({ visible: true });
+    await expect(signIn).toHaveAttribute("href", staffUrl("/login"));
+    await signIn.click({ noWaitAfter: true });
+    await expect(progress(page)).toHaveAttribute("data-phase", "idle");
     await expect(page).toHaveURL(staffUrl("/login"));
     await expect(progress(page)).toHaveAttribute("data-phase", "idle");
 
     await page.goto(marketingUrl("/about"), { waitUntil: "load" });
-    await page.evaluate(() => {
-      const anchor = document.createElement("a");
-      anchor.href = "#content";
-      anchor.textContent = "On this page";
-      document.body.append(anchor);
-      anchor.click();
-      anchor.remove();
-    });
+    await clickSyntheticLink(page, "#content", false);
     await expect(progress(page)).toHaveAttribute("data-phase", "idle");
+
+    await clickSyntheticLink(page, "https://example.com/docs");
+    await expect(progress(page)).toHaveAttribute("data-phase", "idle");
+    await clickSyntheticLink(page, "mailto:hello@example.test");
+    await expect(progress(page)).toHaveAttribute("data-phase", "idle");
+    await expect(page).toHaveURL(marketingUrl("/about"));
   });
 
   test("theme switching does not start route progress", async ({ page }) => {
@@ -182,14 +221,10 @@ test.describe("navigation progress", () => {
     await page.goto(marketingUrl("/clinics"), { waitUntil: "load" });
     await showMarketingScheme(page, "dark");
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page
-      .getByRole("navigation", { name: "Marketing" })
+    await marketingNav(page)
       .getByRole("button", { name: "For clinics" })
       .click();
-    await page
-      .getByRole("navigation", { name: "Marketing" })
-      .getByRole("link", { name: "Dental" })
-      .click();
+    await marketingNav(page).getByRole("link", { name: "Dental" }).click();
     await expect
       .poll(async () => progress(page).getAttribute("data-visible"))
       .toBe("true");
@@ -200,10 +235,7 @@ test.describe("navigation progress", () => {
 
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
-    await page
-      .getByRole("navigation", { name: "Marketing" })
-      .getByRole("link", { name: "Pricing" })
-      .click();
+    await marketingNav(page).getByRole("link", { name: "Pricing" }).click();
     await expect
       .poll(async () => progress(page).getAttribute("data-visible"))
       .toBe("true");
@@ -220,8 +252,7 @@ test.describe("navigation progress", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await showMarketingScheme(page, "dark");
-    await page.getByRole("button", { name: "Site menu" }).click();
-    await page.getByRole("link", { name: "About" }).click();
+    await clickMobileNavLink(page, "About");
     await expect
       .poll(async () => progress(page).getAttribute("data-visible"))
       .toBe("true");
@@ -234,8 +265,7 @@ test.describe("navigation progress", () => {
 
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
-    await page.getByRole("button", { name: "Site menu" }).click();
-    await page.getByRole("link", { name: "Pricing" }).click();
+    await clickMobileNavLink(page, "Pricing");
     await expect
       .poll(async () => progress(page).getAttribute("data-visible"))
       .toBe("true");
@@ -292,7 +322,7 @@ test.describe("navigation progress", () => {
     await page.getByLabel("Email").fill("nobody@example.test");
     await page.getByLabel("Password", { exact: true }).fill("wrong-password");
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page.getByRole("alert")).toContainText(
+    await expect(page.locator("#login-form-error")).toContainText(
       "Invalid email or password."
     );
     await expect(progress(page)).toHaveAttribute("data-phase", "idle");
@@ -333,10 +363,7 @@ test.describe("navigation progress", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await delayRouteFlights(page, 500);
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
-    await page
-      .getByRole("navigation", { name: "Marketing" })
-      .getByRole("link", { name: "About" })
-      .click();
+    await marketingNav(page).getByRole("link", { name: "About" }).click();
     await expect
       .poll(async () => progress(page).getAttribute("data-visible"))
       .toBe("true");

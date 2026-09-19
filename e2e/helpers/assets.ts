@@ -189,6 +189,13 @@ export function expectNoTailwind(css: AssetMeasurement[]): void {
   }
 }
 
+export function expectNoNavigationProgressCss(css: AssetMeasurement[]): void {
+  for (const asset of css) {
+    expect(asset.body, asset.url).not.toContain("navigationProgress");
+    expect(asset.body, asset.url).not.toContain("--progress-start");
+  }
+}
+
 export function expectStaffCssHasTailwind(css: AssetMeasurement[]): void {
   const combined = css.map((asset) => asset.body).join("\n");
   expect(combined).toContain("--tw-");

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 import {
   expectCssWithinPhase1Budget,
+  expectNoNavigationProgressCss,
   expectNoTailwind,
   expectStaffCssHasTailwind,
   measurePageAssets,
@@ -29,10 +30,12 @@ test.describe("Phase 1 performance and asset contracts", () => {
     const home = await measurePageAssets(page, HOME);
     expectCssWithinPhase1Budget(home.css);
     expectNoTailwind(home.css);
+    expectNoNavigationProgressCss(home.css);
 
     const guide = await measurePageAssets(page, EXTRACTION);
     expectCssWithinPhase1Budget(guide.css);
     expectNoTailwind(guide.css);
+    expectNoNavigationProgressCss(guide.css);
 
     expect(
       patientSpecificJs(home.js)
@@ -133,6 +136,7 @@ test.describe("Phase 1 performance and asset contracts", () => {
       tenantUrl(DEMO_TENANT_SLUG, "/")
     );
     expectNoTailwind(tenant.css);
+    expectNoNavigationProgressCss(tenant.css);
     expect(motionLibraryJs(tenant.js)).toEqual([]);
   });
 });

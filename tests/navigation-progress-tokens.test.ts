@@ -6,6 +6,7 @@ describe("navigation progress tokens", () => {
   const interaction = readFileSync("app/interaction.css", "utf8");
   const marketing = readFileSync("app/(marketing)/marketing.css", "utf8");
   const staff = readFileSync("app/(staff)/staff.css", "utf8");
+  const aftercare = readFileSync("app/(aftercare)/aftercare.css", "utf8");
   const styles = readFileSync("app/components/navigation-progress.css", "utf8");
   const packageJson = readFileSync("package.json", "utf8");
   const marketingLayout = readFileSync("app/(marketing)/layout.tsx", "utf8");
@@ -17,19 +18,16 @@ describe("navigation progress tokens", () => {
   );
 
   it("defines one master River progress token layer", () => {
-    expect(interaction).toContain(
-      "--progress-start: light-dark(#3b4bd1, #7c8cff)"
-    );
-    expect(interaction).toContain(
-      "--progress-mid: light-dark(#3b4bd1, #a6b8ff)"
-    );
-    expect(interaction).toContain(
-      "--progress-end: light-dark(#146f88, #7ec8e6)"
-    );
-    expect(interaction).toContain("--progress-height: 2px");
-    expect(interaction).toContain("--progress-z-index: 40");
-    expect(interaction).toContain("prefers-reduced-motion");
-    expect(interaction).toContain("--progress-width-duration: 0ms");
+    expect(styles).toContain("--progress-start: light-dark(#3b4bd1, #7c8cff)");
+    expect(styles).toContain("--progress-mid: light-dark(#3b4bd1, #a6b8ff)");
+    expect(styles).toContain("--progress-end: light-dark(#146f88, #7ec8e6)");
+    expect(styles).toContain("--progress-height: 2px");
+    expect(styles).toContain("--progress-z-index: 40");
+    expect(styles).toContain("prefers-reduced-motion");
+    expect(styles).toContain("--progress-width-duration: 0ms");
+    expect(interaction).not.toContain("--progress-start");
+    expect(aftercare).not.toContain("--progress-start");
+    expect(aftercare).not.toContain("navigationProgress");
 
     expect(marketing).toContain("--progress-start: var(--mk-brand-strong)");
     expect(marketing).toContain("--progress-mid: var(--mk-brand)");
