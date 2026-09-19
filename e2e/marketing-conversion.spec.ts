@@ -49,18 +49,16 @@ test.describe("marketing conversion routes", () => {
     await expect(page.getByText("A$790/year — 2 months free")).toBeVisible();
     await expect(page.getByText("A$1,490/year — 2 months free")).toBeVisible();
     await expect(
-      page.getByText("Second location: A$79/month or A$790/year")
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        "Third and subsequent locations: A$59/month or A$590/year each"
-      )
+      page.getByText("Multi-location practice? Talk to us about your setup.")
     ).toBeVisible();
     await expect(page.getByText("Custom pricing")).toBeVisible();
     await expect(page.getByText("Recommended")).toBeVisible();
     await expect(page.getByText("Coming after launch")).toHaveCount(0);
     await expect(page.getByText("All prices include GST.")).toBeVisible();
-    await expect(page.getByText("Additional locations")).toBeVisible();
+    await expect(page.getByText("Second location:")).toHaveCount(0);
+    await expect(page.getByText("A$59")).toHaveCount(0);
+    await expect(page.getByText("A$590")).toHaveCount(0);
+    await expect(page.getByText("active custom")).toHaveCount(0);
     await expect(page.getByText("working pricing")).toHaveCount(0);
     await expect(page.getByText("provisional")).toHaveCount(0);
     await expect(

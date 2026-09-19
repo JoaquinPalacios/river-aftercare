@@ -123,21 +123,13 @@ export default async function MarketingPricingPage() {
                           <li key={feature}>{feature}</li>
                         ))}
                       </ul>
-                      {plan.locationPricing ? (
+                      {plan.setupNotes ? (
                         <div className={styles.planLocations}>
-                          <p className={styles.planLocationsHeading}>
-                            {plan.locationPricing.heading}
-                          </p>
-                          <ul>
-                            {plan.locationPricing.lines.map((line) => (
-                              <li key={line}>{line}</li>
-                            ))}
-                          </ul>
-                          {plan.locationPricing.note ? (
-                            <p className={styles.planLocationsNote}>
-                              {plan.locationPricing.note}
+                          {plan.setupNotes.map((note) => (
+                            <p key={note} className={styles.planLocationsNote}>
+                              {note}
                             </p>
-                          ) : null}
+                          ))}
                         </div>
                       ) : null}
                       {plan.recommended ? (

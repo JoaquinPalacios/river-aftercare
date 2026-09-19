@@ -3368,33 +3368,15 @@ html[data-theme-mode="dark"] .wordmarkName {
   background: color-mix(in srgb, var(--mk-ink) 3.5%, var(--mk-card));
 }
 
-.planLocationsHeading {
-  margin: 0 0 0.4rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.planLocations ul {
+.planLocationsNote {
   margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 0.35rem;
-}
-
-.planLocations li {
-  color: var(--mk-ink);
+  color: var(--mk-muted);
   font-size: 0.92rem;
   line-height: 1.4;
 }
 
-.planLocationsNote {
-  margin: 0.55rem 0 0;
-  color: var(--mk-muted);
-  font-size: 0.88rem;
-  line-height: 1.4;
+.planLocationsNote + .planLocationsNote {
+  margin-top: 0.55rem;
 }
 
 .planPosition {

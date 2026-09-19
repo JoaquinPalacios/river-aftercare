@@ -130,6 +130,8 @@ describe("marketing JSON-LD", () => {
       "149",
       "1490",
     ]);
+    expect(offers.map((offer) => offer.price)).not.toContain("59");
+    expect(offers.map((offer) => offer.price)).not.toContain("590");
     expect(offers.every((offer) => offer.priceCurrency === "AUD")).toBe(true);
     expect(
       offers.every((offer) => {

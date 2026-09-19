@@ -8,13 +8,17 @@ export const PLAN_PRICES = {
     monthlyAudInclGst: 79,
     annualAudInclGst: 790,
     includedLocations: 1,
-    activeCustomGuides: 2,
+    customGuides: 2,
   },
   practice: {
     monthlyAudInclGst: 149,
     annualAudInclGst: 1490,
     includedLocations: 1,
-    activeCustomGuides: 30,
+    customGuides: 30,
+    /**
+     * Internal commercial reference only. There is no Location model yet.
+     * Do not format these amounts into public UI, metadata, or JSON-LD.
+     */
     secondLocation: {
       monthlyAudInclGst: 79,
       annualAudInclGst: 790,
@@ -40,18 +44,6 @@ const practiceMonthly = formatAudInclGst(
   PLAN_PRICES.practice.monthlyAudInclGst
 );
 const practiceAnnual = formatAudInclGst(PLAN_PRICES.practice.annualAudInclGst);
-const secondLocationMonthly = formatAudInclGst(
-  PLAN_PRICES.practice.secondLocation.monthlyAudInclGst
-);
-const secondLocationAnnual = formatAudInclGst(
-  PLAN_PRICES.practice.secondLocation.annualAudInclGst
-);
-const additionalLocationMonthly = formatAudInclGst(
-  PLAN_PRICES.practice.additionalLocation.monthlyAudInclGst
-);
-const additionalLocationAnnual = formatAudInclGst(
-  PLAN_PRICES.practice.additionalLocation.annualAudInclGst
-);
 
 export const PRICING_GST_LABEL = "All prices include GST.";
 
@@ -71,7 +63,7 @@ export const LAUNCH_PLANS = [
     features: [
       "1 practice / location",
       `${PRODUCT_NAME} guide templates`,
-      `Up to ${PLAN_PRICES.essential.activeCustomGuides} active custom clinic guides`,
+      `Up to ${PLAN_PRICES.essential.customGuides} custom clinic guides`,
       "Branded patient aftercare pages",
       "Logo, colours and curated typography",
       "Permanent guide URLs",
@@ -80,7 +72,7 @@ export const LAUNCH_PLANS = [
       "Clinic contact and emergency information",
       "Light, Dark and System patient presentation",
     ],
-    locationPricing: null,
+    setupNotes: null,
   },
   {
     id: "practice",
@@ -96,22 +88,16 @@ export const LAUNCH_PLANS = [
     ctaHref: "/contact",
     features: [
       "Everything in Essential",
-      `Up to ${PLAN_PRICES.practice.activeCustomGuides} active custom clinic guides`,
+      `Up to ${PLAN_PRICES.practice.customGuides} custom clinic guides`,
       "Create and adapt clinic aftercare",
       "Guide and section controls",
       "Local clinic instructions",
-      "Richer branding controls",
       "Assisted setup",
-      `Option to hide ${PRODUCT_NAME} attribution`,
     ],
-    locationPricing: {
-      heading: "Additional locations",
-      lines: [
-        `Second location: ${secondLocationMonthly}/month or ${secondLocationAnnual}/year`,
-        `Third and subsequent locations: ${additionalLocationMonthly}/month or ${additionalLocationAnnual}/year each`,
-      ],
-      note: "Need a larger guide library? Talk to us.",
-    },
+    setupNotes: [
+      "Multi-location practice? Talk to us about your setup.",
+      "Need a larger guide library? Talk to us.",
+    ],
   },
   {
     id: "group",
@@ -132,7 +118,7 @@ export const LAUNCH_PLANS = [
       "Priority support",
       "Tailored account setup",
     ],
-    locationPricing: null,
+    setupNotes: null,
   },
 ] as const;
 
@@ -151,7 +137,7 @@ export const PRICING_NOTES = [
   },
   {
     title: "Current product scope",
-    body: `${PRODUCT_NAME}'s current plans cover branded aftercare publishing, guide management and clinic presentation according to plan. They do not currently include patient monitoring, persisted patient check-ins, CRM functionality, messaging or PMS integrations.`,
+    body: `${PRODUCT_NAME}'s current plans cover branded aftercare publishing, guide management and clinic presentation according to plan. They do not currently include monitoring, persisted patient check-ins, CRM, messaging, or PMS integrations.`,
   },
 ] as const;
 

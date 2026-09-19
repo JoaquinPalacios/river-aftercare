@@ -28,7 +28,7 @@ Do not provision Vercel, Cloudflare, R2, domains, or email from this document. D
 | Item               | Status                                 | Notes                                                                                                                                                                             |
 | ------------------ | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Marketing SEO      | READY                                  | DB-backed settings with code fallbacks.                                                                                                                                           |
-| JSON-LD            | READY                                  | Organization / WebSite / SoftwareApplication without Offer; ContactPage; AboutPage.                                                                                               |
+| JSON-LD            | READY                                  | Organization / WebSite / SoftwareApplication; `/pricing` adds GST-inclusive Essential and Practice Offers only. ContactPage; AboutPage.                                           |
 | Sitemap / robots   | READY                                  | Marketing only; staff/operator/tenant noindex preserved.                                                                                                                          |
 | llms.txt           | READY                                  | `/llms.txt`. `llms-full.txt` skipped (corpus too small).                                                                                                                          |
 | Agentic readiness  | READY                                  | Architecture audit in [AGENTIC-READINESS.md](AGENTIC-READINESS.md). No numeric Is Agentic score.                                                                                  |
@@ -107,11 +107,11 @@ Do not provision Vercel, Cloudflare, R2, domains, or email from this document. D
 
 ## Commercial
 
-| Item                     | Status                                 | Notes                                                                                                                                                                                         |
-| ------------------------ | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Final pricing            | READY                                  | Production GST-inclusive AUD: Essential A$79 / A$790, Practice A$149 / A$1,490. Additional Practice locations priced. Group is custom with no public floor. Offer JSON-LD on `/pricing` only. |
-| Manual invoice vs Stripe | RECOMMENDED BEFORE FIRST PAYING CLINIC | Billing not implemented. Design partners can be invoiced manually.                                                                                                                            |
-| Seat policy              | POST-LAUNCH                            |                                                                                                                                                                                               |
+| Item                     | Status                                 | Notes                                                                                                                                                                                                                     |
+| ------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Final pricing            | READY                                  | Public GST-inclusive AUD: Essential A$79 / A$790, Practice A$149 / A$1,490. Group is custom with no public floor. Additional-location dollar rates stay internal until Location exists. Offer JSON-LD on `/pricing` only. |
+| Manual invoice vs Stripe | RECOMMENDED BEFORE FIRST PAYING CLINIC | Billing not implemented. Design partners can be invoiced manually.                                                                                                                                                        |
+| Seat policy              | POST-LAUNCH                            |                                                                                                                                                                                                                           |
 
 ## QA
 
