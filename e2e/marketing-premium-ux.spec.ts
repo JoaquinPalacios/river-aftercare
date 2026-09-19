@@ -421,9 +421,17 @@ test.describe("premium marketing UX", () => {
     await expect(
       page.getByText("Other appropriate allied health")
     ).toBeVisible();
-    await expect(page.getByText("Not currently")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Focused on aftercare publishing." })
+    ).toBeVisible();
+    await expect(page.getByText("Not a replacement for")).toBeVisible();
     await expect(page.getByText("Live clinical monitoring")).toBeVisible();
     await expect(page.getByText("Product scope")).toBeVisible();
+    await expect(page.getByText("What it is not")).toHaveCount(0);
+    await expect(
+      page.getByText("This page does not claim certification")
+    ).toHaveCount(0);
+    await expect(page.getByText("legal review")).toHaveCount(0);
     await expect(
       page.getByRole("link", { name: "Request a demo" }).first()
     ).toHaveAttribute("href", "/contact");
@@ -433,6 +441,150 @@ test.describe("premium marketing UX", () => {
     await expect(
       page.getByRole("link", { name: "Talk to us about a demo" })
     ).toHaveCount(0);
+  });
+
+  test("about who and product-scope keep copy-first DOM with editorial desktop reversal", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(marketingUrl("/about"), { waitUntil: "load" });
+    await showMarketingScheme(page, "light");
+
+    const who = page.locator("section[aria-labelledby='about-who']");
+    const scope = page.locator("section[aria-labelledby='about-scope']");
+    const clinicNav = page.getByRole("navigation", { name: "Clinic types" });
+
+    await expect(who.getByText("Who it is for")).toBeVisible();
+    await expect(
+      who.getByText(
+        "River Aftercare is built for clinics where care continues after the appointment — including dental, physiotherapy, chiropractic, cosmetic and other appropriate allied-health settings."
+      )
+    ).toBeVisible();
+    await expect(
+      who.getByText(
+        "The language and guidance may differ by profession. The job is the same: give patients clear, clinic-branded information they can return to after they leave."
+      )
+    ).toBeVisible();
+    await expect(
+      clinicNav.getByRole("link", { name: "Dental", exact: true })
+    ).toHaveAttribute("href", "/dental");
+    await expect(
+      clinicNav.getByRole("link", { name: "Physiotherapy", exact: true })
+    ).toHaveAttribute("href", "/physiotherapy");
+    await expect(
+      clinicNav.getByRole("link", { name: "Chiropractic", exact: true })
+    ).toHaveAttribute("href", "/chiropractic");
+    await expect(
+      clinicNav.getByRole("link", {
+        name: "Cosmetic & aesthetic",
+        exact: true,
+      })
+    ).toHaveAttribute("href", "/cosmetic-clinics");
+    await expect(
+      clinicNav.getByRole("link", { name: "Other appropriate allied health" })
+    ).toHaveCount(0);
+    await expect(
+      clinicNav.getByText("Other appropriate allied health")
+    ).toBeVisible();
+
+    await expect(scope.getByText("Product scope")).toBeVisible();
+    await expect(
+      scope.getByRole("heading", { name: "Focused on aftercare publishing." })
+    ).toBeVisible();
+    await expect(
+      scope.getByText(
+        "River Aftercare is built to publish clear, clinic-approved guidance patients can return to after care. It complements clinical systems rather than replacing them."
+      )
+    ).toBeVisible();
+    await expect(scope.getByText("Not a replacement for")).toBeVisible();
+    await expect(scope.getByText("Live clinical monitoring")).toBeVisible();
+    await expect(
+      scope.getByText("Personalised diagnosis or treatment")
+    ).toBeVisible();
+    await expect(page.getByText("integrates with")).toHaveCount(0);
+
+    const desktopLayout = await who.evaluate((section) => {
+      const heading = section.querySelector("#about-who");
+      const copy = [...section.querySelectorAll("p")].find((node) =>
+        node.textContent?.includes("built for clinics where care continues")
+      );
+      const nav = section.querySelector("nav");
+      if (
+        !(heading instanceof HTMLElement) ||
+        !(copy instanceof HTMLElement) ||
+        !(nav instanceof HTMLElement)
+      ) {
+        return null;
+      }
+      const headingBox = heading.getBoundingClientRect();
+      const copyBox = copy.getBoundingClientRect();
+      const navBox = nav.getBoundingClientRect();
+      const source = section.innerHTML;
+      return {
+        copyBeforeNavInDom:
+          source.indexOf("built for clinics where care continues") <
+          source.indexOf('aria-label="Clinic types"'),
+        moduleLeftOfCopy: navBox.left < headingBox.left - 24,
+        copyRightOfModule: copyBox.left > navBox.right - 8,
+        aligned: Math.abs(navBox.top - headingBox.top) < 80,
+      };
+    });
+    expect(desktopLayout).not.toBeNull();
+    expect(desktopLayout!.copyBeforeNavInDom).toBe(true);
+    expect(desktopLayout!.moduleLeftOfCopy).toBe(true);
+    expect(desktopLayout!.copyRightOfModule).toBe(true);
+
+    await who.screenshot({
+      path: "test-results/artifacts/about-who-light-1440.png",
+    });
+    await scope.screenshot({
+      path: "test-results/artifacts/about-scope-light-1440.png",
+    });
+    await showMarketingScheme(page, "dark");
+    await who.screenshot({
+      path: "test-results/artifacts/about-who-dark-1440.png",
+    });
+    await scope.screenshot({
+      path: "test-results/artifacts/about-scope-dark-1440.png",
+    });
+
+    for (const viewport of [
+      { width: 430, height: 932 },
+      { width: 390, height: 844 },
+      { width: 375, height: 812 },
+    ] as const) {
+      await page.setViewportSize(viewport);
+      await showMarketingScheme(page, "light");
+      const mobileLayout = await who.evaluate((section) => {
+        const heading = section.querySelector("#about-who");
+        const copy = [...section.querySelectorAll("p")].find((node) =>
+          node.textContent?.includes("built for clinics where care continues")
+        );
+        const nav = section.querySelector("nav");
+        if (
+          !(heading instanceof HTMLElement) ||
+          !(copy instanceof HTMLElement) ||
+          !(nav instanceof HTMLElement)
+        ) {
+          return null;
+        }
+        const headingBox = heading.getBoundingClientRect();
+        const copyBox = copy.getBoundingClientRect();
+        const navBox = nav.getBoundingClientRect();
+        return {
+          copyAboveNav: copyBox.bottom <= navBox.top + 8,
+          headingAboveCopy: headingBox.bottom <= copyBox.top + 8,
+          stacked: Math.abs(copyBox.left - navBox.left) < 24,
+        };
+      });
+      expect(mobileLayout, `${viewport.width} who order`).not.toBeNull();
+      expect(mobileLayout!.headingAboveCopy, `${viewport.width}`).toBe(true);
+      expect(mobileLayout!.copyAboveNav, `${viewport.width}`).toBe(true);
+      expect(mobileLayout!.stacked, `${viewport.width}`).toBe(true);
+      await expectNoHorizontalOverflow(page);
+    }
   });
 
   test("homepage phone Coming next uses sample stages without clipping", async ({
@@ -895,8 +1047,18 @@ test.describe("premium marketing UX", () => {
       fullPage: true,
     });
     await page.setViewportSize({ width: 390, height: 844 });
+    await showMarketingScheme(page, "light");
+    await page.screenshot({
+      path: "test-results/artifacts/about-full-light-390.png",
+      fullPage: true,
+    });
     await page.screenshot({
       path: "test-results/artifacts/about-390.png",
+      fullPage: true,
+    });
+    await showMarketingScheme(page, "dark");
+    await page.screenshot({
+      path: "test-results/artifacts/about-full-dark-390.png",
       fullPage: true,
     });
   });
