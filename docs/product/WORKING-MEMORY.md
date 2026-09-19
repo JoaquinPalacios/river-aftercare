@@ -520,7 +520,7 @@ The public Early Access / Design Partner section was removed because founder-led
 | Reduced motion          | Bootstrap `reduce`; pending CSS does not apply; MotionConfig `reducedMotion="user"`; content is immediately visible with no translation/scale/rail delay.                                                                                                                                                               |
 | Closing                 | Compact `#see-it` CTA: “See it in practice” / “See the patient experience for yourself.” / Riverside Dental Demo copy / **View the clinic demo**. Desktop copy left, button right. Footer atmosphere from 1F.14/1F.15 preserved.                                                                                        |
 
-Public landing narrative: Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Brand Flexibility → Clinic Preview → compact demo CTA → Footer.
+Public landing narrative at 1F.16: Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Brand Flexibility → Clinic Preview → compact demo CTA → Footer. Current order (2026-09-19): vertical discovery → Clinic Preview → Brand Flexibility — see Homepage Brand Flexibility identity panel below.
 
 See [PERFORMANCE.md](../architecture/PERFORMANCE.md) for the 1F.16 bundle table.
 

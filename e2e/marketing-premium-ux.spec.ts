@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { expectOneH1 } from "./helpers/assertions";
 import { expectNoHorizontalOverflow } from "./helpers/layout";
@@ -16,7 +16,55 @@ async function showMarketingScheme(
       // Ignore storage failures in restricted contexts.
     }
     document.documentElement.setAttribute("data-theme-mode", mode);
+    document.documentElement.setAttribute("data-mk-motion", "reduce");
   }, scheme);
+}
+
+async function waitForSectionReveal(root: Locator): Promise<void> {
+  await expect
+    .poll(async () =>
+      root.evaluate((element) => {
+        if (
+          document.documentElement.getAttribute("data-mk-motion") !== "enhance"
+        ) {
+          const reveals = [
+            ...element.querySelectorAll<HTMLElement>(".mkReveal"),
+          ];
+          return (
+            reveals.length === 0 ||
+            reveals.every((node) => getComputedStyle(node).opacity === "1")
+          );
+        }
+        const reveals = [...element.querySelectorAll<HTMLElement>(".mkReveal")];
+        return (
+          reveals.length > 0 &&
+          reveals.every((node) => getComputedStyle(node).opacity === "1")
+        );
+      })
+    )
+    .toBe(true);
+}
+
+async function scrollSectionIntoView(
+  page: Page,
+  selector: string
+): Promise<void> {
+  await page.evaluate((target) => {
+    const element = document.querySelector(target);
+    if (!(element instanceof HTMLElement)) {
+      return;
+    }
+    const header = document.querySelector("header");
+    const headerHeight =
+      header instanceof HTMLElement
+        ? header.getBoundingClientRect().height
+        : 64;
+    const top = element.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({
+      top: Math.max(0, top - headerHeight - 12),
+      behavior: "instant",
+    });
+  }, selector);
 }
 
 async function waitForPhoneFrame(page: Page): Promise<void> {
@@ -629,27 +677,13 @@ test.describe("premium marketing UX", () => {
       path: "test-results/artifacts/timeline-preview-detail.png",
     });
     await page.locator('label[for="mk-phone-today"]').click();
-    await page
-      .getByRole("heading", {
-        name: "Your clinic stays visible after the appointment.",
-      })
-      .scrollIntoViewIfNeeded();
-    await page
-      .getByRole("heading", {
-        name: "Your clinic stays visible after the appointment.",
-      })
-      .locator("xpath=ancestor::section[1]")
-      .screenshot({
-        path: "test-results/artifacts/home-brand-flexibility-light.png",
-      });
-    await page
-      .getByRole("heading", {
-        name: "Your clinic stays visible after the appointment.",
-      })
-      .locator("xpath=ancestor::section[1]")
-      .screenshot({
-        path: "test-results/artifacts/home-brand-flexibility-light-1440.png",
-      });
+    await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
+    await waitForSectionReveal(
+      page.locator('[aria-labelledby="brand-heading"]')
+    );
+    await page.locator('[aria-labelledby="brand-heading"]').screenshot({
+      path: "test-results/artifacts/home-brand-flexibility-light.png",
+    });
     await page
       .getByRole("navigation", { name: "Marketing" })
       .screenshot({ path: "test-results/artifacts/nav-desktop-light.png" });
@@ -676,22 +710,13 @@ test.describe("premium marketing UX", () => {
     await page.locator("[data-mk-phone-coming-next]").screenshot({
       path: "test-results/artifacts/homepage-phone-mockup-dark-detail.png",
     });
-    await page
-      .getByRole("heading", {
-        name: "Your clinic stays visible after the appointment.",
-      })
-      .locator("xpath=ancestor::section[1]")
-      .screenshot({
-        path: "test-results/artifacts/home-brand-flexibility-dark.png",
-      });
-    await page
-      .getByRole("heading", {
-        name: "Your clinic stays visible after the appointment.",
-      })
-      .locator("xpath=ancestor::section[1]")
-      .screenshot({
-        path: "test-results/artifacts/home-brand-flexibility-dark-1440.png",
-      });
+    await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
+    await waitForSectionReveal(
+      page.locator('[aria-labelledby="brand-heading"]')
+    );
+    await page.locator('[aria-labelledby="brand-heading"]').screenshot({
+      path: "test-results/artifacts/home-brand-flexibility-dark.png",
+    });
     await page
       .getByRole("navigation", { name: "Marketing" })
       .screenshot({ path: "test-results/artifacts/nav-desktop-dark.png" });
@@ -713,11 +738,12 @@ test.describe("premium marketing UX", () => {
     await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/homepage-phone-light-390.png",
     });
-    await page
-      .locator('[aria-labelledby="brand-heading"]')
-      .scrollIntoViewIfNeeded();
+    await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
+    await waitForSectionReveal(
+      page.locator('[aria-labelledby="brand-heading"]')
+    );
     await page.locator('[aria-labelledby="brand-heading"]').screenshot({
-      path: "test-results/artifacts/home-brand-flexibility-light-390.png",
+      path: "test-results/artifacts/home-brand-flexibility-mobile-light.png",
     });
     await page.getByRole("button", { name: "Site menu" }).click();
     await page
@@ -735,11 +761,12 @@ test.describe("premium marketing UX", () => {
     await page.locator('[class*="phoneShell"]').screenshot({
       path: "test-results/artifacts/homepage-phone-dark-390.png",
     });
-    await page
-      .locator('[aria-labelledby="brand-heading"]')
-      .scrollIntoViewIfNeeded();
+    await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
+    await waitForSectionReveal(
+      page.locator('[aria-labelledby="brand-heading"]')
+    );
     await page.locator('[aria-labelledby="brand-heading"]').screenshot({
-      path: "test-results/artifacts/home-brand-flexibility-dark-390.png",
+      path: "test-results/artifacts/home-brand-flexibility-mobile-dark.png",
     });
     await page.getByRole("button", { name: "Site menu" }).click();
     await page
@@ -1123,9 +1150,13 @@ test.describe("premium marketing UX", () => {
   test("captures homepage workflow, preview, and brand-flexibility sequence", async ({
     page,
   }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(90_000);
 
     async function captureNarrative(scheme: "light" | "dark") {
+      await page.emulateMedia({
+        colorScheme: scheme,
+        reducedMotion: "reduce",
+      });
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(marketingUrl("/"), { waitUntil: "load" });
       await showMarketingScheme(page, scheme);
@@ -1137,21 +1168,73 @@ test.describe("premium marketing UX", () => {
       const preview = page.locator('[aria-labelledby="preview-heading"]');
       const brand = page.locator('[aria-labelledby="brand-heading"]');
 
-      await workflows.scrollIntoViewIfNeeded();
+      await scrollSectionIntoView(
+        page,
+        '[aria-labelledby="clinic-types-heading"]'
+      );
+      await waitForSectionReveal(workflows);
+      await expect(
+        workflows.getByRole("heading", {
+          name: "One aftercare platform. Different clinic workflows.",
+        })
+      ).toBeVisible();
       await workflows.screenshot({
         path: `test-results/artifacts/home-workflows-${scheme}-1440.png`,
       });
-      await preview.scrollIntoViewIfNeeded();
+
+      await scrollSectionIntoView(page, '[aria-labelledby="preview-heading"]');
+      await waitForSectionReveal(preview);
+      await expect(
+        preview.getByRole("heading", {
+          name: "See what patients actually receive",
+        })
+      ).toBeVisible();
       await preview.screenshot({
         path: `test-results/artifacts/home-preview-${scheme}-1440.png`,
       });
-      await brand.scrollIntoViewIfNeeded();
+
+      await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
+      await waitForSectionReveal(brand);
+      await expect(
+        brand.getByRole("heading", {
+          name: "Your clinic stays visible after the appointment.",
+        })
+      ).toBeVisible();
+      await expect(brand.locator("[data-mk-brand-identity]")).toBeVisible();
       await brand.screenshot({
         path: `test-results/artifacts/home-brand-flexibility-${scheme}-1440.png`,
       });
 
-      await page.setViewportSize({ width: 1440, height: 3600 });
-      await workflows.scrollIntoViewIfNeeded();
+      const sectionHeight = await page.evaluate(() => {
+        const types = document.querySelector(
+          '[aria-labelledby="clinic-types-heading"]'
+        );
+        const brandSection = document.querySelector(
+          '[aria-labelledby="brand-heading"]'
+        );
+        if (
+          !(types instanceof HTMLElement) ||
+          !(brandSection instanceof HTMLElement)
+        ) {
+          return 0;
+        }
+        const top = types.getBoundingClientRect().top + window.scrollY;
+        const bottom =
+          brandSection.getBoundingClientRect().bottom + window.scrollY;
+        return Math.ceil(bottom - top + 48);
+      });
+      expect(sectionHeight).toBeGreaterThan(900);
+      await page.setViewportSize({
+        width: 1440,
+        height: Math.min(Math.max(sectionHeight + 120, 2200), 5000),
+      });
+      await scrollSectionIntoView(
+        page,
+        '[aria-labelledby="clinic-types-heading"]'
+      );
+      await waitForSectionReveal(workflows);
+      await waitForSectionReveal(preview);
+      await waitForSectionReveal(brand);
       const clip = await page.evaluate(() => {
         const types = document.querySelector(
           '[aria-labelledby="clinic-types-heading"]'
@@ -1175,6 +1258,9 @@ test.describe("premium marketing UX", () => {
         };
       });
       expect(clip).not.toBeNull();
+      expect(clip!.y + clip!.height).toBeLessThanOrEqual(
+        (await page.viewportSize())!.height + 1
+      );
       await page.screenshot({
         clip: clip!,
         path: `test-results/artifacts/home-sequence-${scheme}-1440.png`,
@@ -1185,12 +1271,30 @@ test.describe("premium marketing UX", () => {
     await captureNarrative("light");
     await captureNarrative("dark");
 
+    await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
-    await page
-      .locator('[aria-labelledby="brand-heading"]')
-      .scrollIntoViewIfNeeded();
+    await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
+    await waitForSectionReveal(
+      page.locator('[aria-labelledby="brand-heading"]')
+    );
+    await expect(
+      page.getByRole("heading", {
+        name: "Your clinic stays visible after the appointment.",
+      })
+    ).toBeVisible();
+    await page.locator('[aria-labelledby="brand-heading"]').screenshot({
+      path: "test-results/artifacts/home-brand-flexibility-light-390.png",
+    });
+    await showMarketingScheme(page, "dark");
+    await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
+    await waitForSectionReveal(
+      page.locator('[aria-labelledby="brand-heading"]')
+    );
+    await page.locator('[aria-labelledby="brand-heading"]').screenshot({
+      path: "test-results/artifacts/home-brand-flexibility-dark-390.png",
+    });
     await expectNoHorizontalOverflow(page);
     for (const width of [1728, 1440, 1024, 768, 430, 390] as const) {
       await page.setViewportSize({
