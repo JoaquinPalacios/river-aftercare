@@ -155,7 +155,23 @@ describe("clinic invitation lifecycle", () => {
     expect(token?.clinicId).toBe(CLINIC_A);
     expect(token?.role).toBe(ClinicMembershipRole.STAFF);
     expect(token?.tokenHash).toHaveLength(64);
-    expect(JSON.stringify(token)).not.toContain(result.ok ? "rawToken" : "");
+
+    const { getTransactionalEmailMemoryInbox } =
+      await import("@/lib/email/transactional-mailer");
+    const mail = getTransactionalEmailMemoryInbox().find(
+      (message) => message.to === "jane.new@example.test"
+    );
+    expect(mail?.from).toBe("River Aftercare <accounts@example.test>");
+    expect(mail?.replyTo).toBe("hello@example.test");
+    expect(mail?.subject).toBe("Set up your River Aftercare account");
+    expect(mail?.text).toContain("/accept-invitation#token=");
+    expect(mail?.text).not.toContain("?token=");
+    expect(mail?.text).toContain("7 days");
+    expect(mail?.html).not.toContain("passwordHash");
+    expect(mail?.html).not.toContain("temporary password");
+    const rawFromMail = mail?.text.match(/#token=([A-Za-z0-9_-]+)/)?.[1];
+    expect(rawFromMail).toBeTruthy();
+    expect(JSON.stringify(token)).not.toContain(rawFromMail);
 
     const team = await listClinicTeam(CLINIC_A);
     expect(JSON.stringify(team)).not.toContain("scrypt:");
@@ -367,6 +383,19 @@ describe("clinic invitation lifecycle", () => {
       where: { id: invited.userId },
     });
     expect(user?.passwordHash).toBeNull();
+
+    const firstRaw = await recoverRawTokenForTest(firstToken!.tokenHash);
+    expect(firstRaw).toBeTruthy();
+    await expect(
+      acceptInvitationWithToken({
+        rawToken: firstRaw!,
+        newPassword: "abcdefghijkl",
+        confirmPassword: "abcdefghijkl",
+      })
+    ).resolves.toMatchObject({ ok: false });
+    expect(
+      await prisma.clinicMembership.count({ where: { userId: invited.userId } })
+    ).toBe(0);
   });
 
   it("cancels a pending invitation and allows a later reinvite", async () => {
@@ -388,6 +417,7 @@ describe("clinic invitation lifecycle", () => {
         revokedAt: null,
       },
     });
+    const cancelledRaw = await recoverRawTokenForTest(outstanding!.tokenHash);
     const cancelled = await cancelClinicInvitation({
       clinicId: CLINIC_A,
       userId: invited.userId,
@@ -407,6 +437,15 @@ describe("clinic invitation lifecycle", () => {
 
     const team = await listClinicTeam(CLINIC_A);
     expect(team?.rows.find((row) => row.email === user?.email)).toBeUndefined();
+
+    await expect(
+      acceptInvitationWithToken({
+        rawToken: cancelledRaw!,
+        newPassword: "abcdefghijkl",
+        confirmPassword: "abcdefghijkl",
+      })
+    ).resolves.toMatchObject({ ok: false });
+    expect(user?.passwordHash).toBeNull();
 
     const reinvited = await inviteClinicUser({
       clinicId: CLINIC_A,
@@ -767,6 +806,80 @@ describe("clinic invitation lifecycle", () => {
     const secondPass = verifyPassword("mnopqrstuvwx", user?.passwordHash);
     expect(firstPass || secondPass).toBe(true);
     expect(firstPass && secondPass).toBe(false);
+  });
+
+  it("rejects expired invitations and stale password-bearing users", async () => {
+    const expiredAt = new Date("2026-09-01T00:00:00.000Z");
+    const invited = await inviteClinicUser({
+      clinicId: CLINIC_A,
+      invitedByUserId: OPERATOR_ID,
+      name: "Late Person",
+      email: `${PREFIX}late@example.test`,
+      role: "STAFF",
+      now: expiredAt,
+    });
+    expect(invited.ok).toBe(true);
+    if (!invited.ok) {
+      return;
+    }
+    const tokenRow = await prisma.accountToken.findFirst({
+      where: { userId: invited.userId, type: AccountTokenType.INVITATION },
+    });
+    const rawToken = await recoverRawTokenForTest(tokenRow!.tokenHash);
+    const later = new Date("2026-09-10T00:00:00.000Z");
+    await expect(
+      acceptInvitationWithToken({
+        rawToken: rawToken!,
+        newPassword: "abcdefghijkl",
+        confirmPassword: "abcdefghijkl",
+        now: later,
+      })
+    ).resolves.toMatchObject({ ok: false });
+    const afterExpiry = await prisma.user.findUnique({
+      where: { id: invited.userId },
+    });
+    expect(afterExpiry?.passwordHash).toBeNull();
+    expect(
+      await prisma.clinicMembership.count({ where: { userId: invited.userId } })
+    ).toBe(0);
+
+    await prisma.user.update({
+      where: { id: invited.userId },
+      data: { passwordHash: hashPassword("already-set-12") },
+    });
+    const fresh = await inviteClinicUser({
+      clinicId: CLINIC_A,
+      invitedByUserId: OPERATOR_ID,
+      name: "Late Person",
+      email: `${PREFIX}staleaccept@example.test`,
+      role: "STAFF",
+    });
+    expect(fresh.ok).toBe(true);
+    if (!fresh.ok) {
+      return;
+    }
+    await prisma.user.update({
+      where: { id: fresh.userId },
+      data: { passwordHash: hashPassword("already-set-12") },
+    });
+    const freshRow = await prisma.accountToken.findFirst({
+      where: {
+        userId: fresh.userId,
+        consumedAt: null,
+        revokedAt: null,
+      },
+    });
+    const freshRaw = await recoverRawTokenForTest(freshRow!.tokenHash);
+    await expect(
+      acceptInvitationWithToken({
+        rawToken: freshRaw!,
+        newPassword: "abcdefghijkl",
+        confirmPassword: "abcdefghijkl",
+      })
+    ).resolves.toMatchObject({ ok: false });
+    expect(
+      await prisma.clinicMembership.count({ where: { userId: fresh.userId } })
+    ).toBe(0);
   });
 });
 
