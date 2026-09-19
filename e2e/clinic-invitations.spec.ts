@@ -116,19 +116,20 @@ test.describe("operator clinic invitations", () => {
     });
     await staffActions.click();
     await page.getByRole("menuitem", { name: "Change role" }).click();
+    const dialog = page.getByRole("dialog", { name: "Change role" });
     await expect(
-      page.getByRole("heading", { name: "Change role" })
+      dialog.getByRole("heading", { name: "Change role" })
     ).toBeVisible();
     await expect(
-      page.getByText("Choose the access level for Demo Staff.")
+      dialog.getByText("Choose the access level for Demo Staff.")
     ).toBeVisible();
-    const role = page.getByLabel("Role");
+    const role = dialog.getByLabel("Role", { exact: true });
     await expect(role).toHaveValue("STAFF");
     await expect(
-      page.getByRole("button", { name: "Save role" })
+      dialog.getByRole("button", { name: "Save role" })
     ).toBeDisabled();
     await role.selectOption("ADMIN");
-    await page.getByRole("button", { name: "Save role" }).click();
+    await dialog.getByRole("button", { name: "Save role" }).click();
     await expect(page.getByText("Role updated.")).toBeVisible();
     const staffRow = page.getByRole("row").filter({ hasText: "Demo Staff" });
     await expect(staffRow.getByText("Administrator")).toBeVisible();
@@ -137,7 +138,7 @@ test.describe("operator clinic invitations", () => {
     await page.getByRole("menuitem", { name: "Change role" }).click();
     await expect(role).toHaveValue("ADMIN");
     await role.selectOption("STAFF");
-    await page.getByRole("button", { name: "Save role" }).click();
+    await dialog.getByRole("button", { name: "Save role" }).click();
     await expect(page.getByText("Role updated.")).toBeVisible();
     await expect(staffRow.getByText("Staff", { exact: true })).toBeVisible();
   });
