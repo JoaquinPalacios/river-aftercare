@@ -89,6 +89,11 @@ enum PlatformRole {
   OPERATOR
 }
 
+enum AccountTokenType {
+  INVITATION
+  PASSWORD_RESET
+}
+
 enum PracticeSectionProvenance {
   CANONICAL
   PRACTICE_OVERRIDE
@@ -107,6 +112,7 @@ model Clinic {
   procedureSessions  ProcedureSession[]
   profile            ClinicProfile?
   practiceGuides     PracticeGuide[]
+  accountTokens      AccountToken[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }
@@ -123,6 +129,8 @@ model User {
   accounts                        Account[]
   sessions                        Session[]
   authoredPracticeGuideRevisions  PracticeGuideRevision[]
+  accountTokens                   AccountToken[]             @relation("AccountTokenSubject")
+  invitedAccountTokens            AccountToken[]             @relation("AccountTokenInviter")
   createdAt                       DateTime                   @default(now())
   updatedAt                       DateTime                   @updatedAt
 }
@@ -180,6 +188,34 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("auth_verification_tokens")
+}
+
+/// Account lifecycle tokens (invitations, password reset). Auth.js
+/// `VerificationToken` is unused and is not suitable for these flows.
+/// Raw tokens are never persisted; only SHA-256(`tokenHash`) is stored.
+/// Outstanding uniqueness is a service transaction plus SQL partial unique
+/// indexes in the additive migration (Prisma cannot express those predicates).
+model AccountToken {
+  id              String                @id @default(cuid())
+  type            AccountTokenType
+  tokenHash       String                @unique
+  userId          String
+  clinicId        String?
+  role            ClinicMembershipRole?
+  email           String
+  invitedByUserId String?
+  expiresAt       DateTime
+  consumedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime              @default(now())
+
+  user      User    @relation("AccountTokenSubject", fields: [userId], references: [id], onDelete: Cascade)
+  clinic    Clinic? @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  invitedBy User?   @relation("AccountTokenInviter", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, type])
+  @@index([clinicId])
+  @@index([invitedByUserId])
 }
 
 model ProcedureTemplate {

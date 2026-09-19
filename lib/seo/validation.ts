@@ -1,4 +1,4 @@
-import { EMAIL_PATTERN } from "@/lib/marketing/contact-config";
+import { EMAIL_PATTERN } from "@/lib/email/mailbox";
 import {
   DESCRIPTION_MAX_LENGTH,
   ORGANIZATION_DESCRIPTION_MAX_LENGTH,

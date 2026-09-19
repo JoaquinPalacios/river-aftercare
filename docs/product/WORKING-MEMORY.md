@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (app-host login portal UX: anonymous `/` → `/login`, role-neutral copy, pending form state)
+Last updated: 2026-09-19 (AccountToken + transactional auth-email foundation; no public invite/reset flows)
 
 ---
 
@@ -1532,3 +1532,22 @@ Presentation-only. Production login security (bounds, dummy verification, generi
 | Not added    | Forgot password, invitations, Turnstile, CAPTCHA, application rate limiter, schema/migration.                                                                                                             |
 
 ---
+
+## AccountToken + transactional auth-email foundation (2026-09-19)
+
+Foundation only. No user-facing invite, forgot-password, reset-password, or change-password capability.
+
+| Area             | Behaviour                                                                                                                                                                                     |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Model            | Additive `AccountToken` (`INVITATION` \| `PASSWORD_RESET`). Auth.js `VerificationToken` unused and not reused.                                                                                |
+| Storage          | SHA-256 hex of a 256-bit base64url raw token. Raw token never persisted or logged.                                                                                                            |
+| Outstanding      | Create transaction revokes prior unconsumed/unrevoked equivalent, then inserts. Partial unique indexes: one reset per user; one invite per user+clinic. Expiry is not in the index predicate. |
+| TTL              | Password reset 30 minutes. Invitation 7 days. Injected `now` in tests.                                                                                                                        |
+| Email snapshot   | `AccountToken.email` trim + lowercase, max 254. `User.email` rows are not rewritten.                                                                                                          |
+| Deletes          | Subject user and clinic cascade. Inviter `ON DELETE SET NULL`.                                                                                                                                |
+| Mail transport   | Shared `sendTransactionalEmail` (Resend + memory). Contact From/To/Reply-To/Turnstile unchanged.                                                                                              |
+| Auth mail config | Lazy `AUTH_EMAIL_FROM` / optional `AUTH_EMAIL_REPLY_TO`. Missing From does not fail `next build`. Vercel production never uses memory for auth mail. No templates sent.                       |
+| Key              | Reuses existing `RESEND_API_KEY`. No second vendor.                                                                                                                                           |
+| Not added        | Forgot/reset/invite routes, operator invite action, membership mutations, Turnstile on login, production env/Vercel/Neon changes.                                                             |
+
+See [AUTH.md](../architecture/AUTH.md), [TRANSACTIONAL-EMAIL.md](../architecture/TRANSACTIONAL-EMAIL.md), [ADR 0024](../adr/0024-account-lifecycle-tokens-and-shared-transactional-email.md).

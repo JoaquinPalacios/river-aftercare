@@ -92,10 +92,53 @@ Login does **not** use Cloudflare Turnstile. Marketing `/contact` Turnstile is u
 
 ## Explicitly not in this login path
 
-- invitations, forgot / reset / change password, `AccountToken`
+- invitations, forgot / reset / change password UI or routes
+- consuming or emailing `AccountToken` values
 - account status / `disabledAt`
-- auth email (`AUTH_EMAIL_FROM`, Resend auth mail)
+- sending auth email
 - Turnstile on login
 - clinic Team UI / multi-clinic login picker
 - email-address changes
-- Prisma schema changes for auth
+
+Login input bounds, dummy verification, generic 401, and WAF-only rate limiting are unchanged.
+
+## AccountToken foundation (not user-facing yet)
+
+`AccountToken` is the account-lifecycle token model. Auth.js `VerificationToken` remains unused and is **not** reused: it has no purpose, `consumedAt`, `clinicId`, `role`, or revocation semantics.
+
+| Field                                   | Rule                                                                                                                 |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `tokenHash`                             | Unique SHA-256 of the raw token. Raw tokens are never stored.                                                        |
+| `type`                                  | `PASSWORD_RESET` or `INVITATION`                                                                                     |
+| `userId`                                | Required. Cascade delete with the subject user.                                                                      |
+| `email`                                 | Invitation/reset identity snapshot. Service normalizes trim + lowercase, max 254. Does **not** rewrite `User.email`. |
+| `clinicId` / `role` / `invitedByUserId` | Invitation only. Password reset stores nulls.                                                                        |
+| `expiresAt`                             | Required. Password reset 30 minutes. Invitation 7 days.                                                              |
+| `consumedAt` / `revokedAt`              | Nullable. Outstanding means both null.                                                                               |
+
+Raw token: `crypto.randomBytes(32)` encoded as base64url (256-bit, URL-safe). Hash: SHA-256 hex. Helpers live in `lib/auth/account-token.ts` (server-only).
+
+Service primitives in `lib/auth/account-token-service.ts` (server-only):
+
+- create password-reset token (revoke prior outstanding reset for that user, then insert, 30 minutes)
+- create invitation token (revoke prior outstanding invite for that user+clinic, then insert, 7 days)
+- lookup by raw token + expected type (missing / wrong type / expired / consumed / revoked)
+- consume / revoke outstanding helpers for later transactional flows
+
+Creation runs in a PostgreSQL transaction: advisory lock, revoke outstanding rows, insert. Partial unique indexes in the additive migration are the concurrency safety net. Expiry is **not** in those indexes (`NOW()` is volatile). Expired outstanding rows are revoked when a replacement is created.
+
+No public route, Server Action, or login code consumes these primitives yet. Forgot-password, reset-password, invitation acceptance, resend/revoke UI, and change-password are later PRs.
+
+## Auth transactional email (not sent yet)
+
+Shared transport: `lib/email/transactional-mailer.ts`. Marketing Contact and future auth mail both send through it. They do **not** share From/To/Reply-To.
+
+| Variable              | Purpose                                                                                                                                                                            |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RESEND_API_KEY`      | Existing send-only, domain-scoped Resend key. Shared. Never client-bundled.                                                                                                        |
+| `AUTH_EMAIL_FROM`     | Future account-lifecycle From. Production intended: `River Aftercare <accounts@mail.riveraftercare.com.au>`. Not a runtime default. Required only when auth mail is actually sent. |
+| `AUTH_EMAIL_REPLY_TO` | Optional. Production intended: `contact@riveraftercare.com.au`.                                                                                                                    |
+
+Config is lazy (`getAuthEmailDeliveryConfig`). Missing `AUTH_EMAIL_FROM` does not fail `next build`. Vercel production never uses the memory transport for auth mail. Local/tests use memory. No invitation or password-reset templates are sent in this foundation.
+
+See [TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md).

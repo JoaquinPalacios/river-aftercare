@@ -1,12 +1,26 @@
+import "server-only";
+
+import {
+  EMAIL_PATTERN,
+  parseEmailAddress,
+  parseMailboxAddress,
+} from "@/lib/email/mailbox";
+import {
+  RESEND_API_KEY_ENV,
+  getResendApiKey,
+} from "@/lib/email/resend-api-key";
 import { TURNSTILE_DUMMY_PASS_SITE_KEY } from "@/lib/marketing/contact-turnstile-public";
+import { isVercelProduction } from "@/lib/runtime/vercel-production";
 import { parseHostname } from "@/lib/tenancy/parse-hostname";
 import { getRootDomain } from "@/lib/tenancy/root-domain";
 
 export const CONTACT_EMAIL_TO_ENV = "CONTACT_EMAIL_TO";
 export const CONTACT_EMAIL_FROM_ENV = "CONTACT_EMAIL_FROM";
 export const CONTACT_MAILER_ENV = "CONTACT_MAILER";
-export const RESEND_API_KEY_ENV = "RESEND_API_KEY";
+export { RESEND_API_KEY_ENV, getResendApiKey };
 export const TURNSTILE_SITE_KEY_ENV = "NEXT_PUBLIC_TURNSTILE_SITE_KEY";
+export { EMAIL_PATTERN, parseEmailAddress, parseMailboxAddress };
+export { isVercelProduction };
 
 /** @deprecated Prefer CONTACT_EMAIL_TO. Local fallback only. */
 export const MARKETING_CONTACT_TO_EMAIL_ENV = "MARKETING_CONTACT_TO_EMAIL";
@@ -17,13 +31,7 @@ export const MARKETING_CONTACT_EMAIL_ENV = "MARKETING_CONTACT_EMAIL";
 /** @deprecated Prefer CONTACT_MAILER. Local fallback only. */
 export const MARKETING_CONTACT_MAILER_ENV = "MARKETING_CONTACT_MAILER";
 
-export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 type Env = Record<string, string | undefined>;
-
-export function isVercelProduction(env: Env = process.env): boolean {
-  return env.VERCEL_ENV === "production";
-}
 
 export type MarketingMailerKind = "resend" | "memory";
 
@@ -47,50 +55,6 @@ export type MarketingContactDeliveryConfig =
       reason: string;
     };
 
-export function parseEmailAddress(value: string | undefined): string | null {
-  const trimmed = value?.trim();
-  if (!trimmed || trimmed.length > 254 || /[\r\n]/.test(trimmed)) {
-    return null;
-  }
-  if (!EMAIL_PATTERN.test(trimmed)) {
-    return null;
-  }
-
-  return trimmed;
-}
-
-export function parseMailboxAddress(value: string | undefined): string | null {
-  const trimmed = value?.trim();
-  if (!trimmed || trimmed.length > 200 || /[\r\n]/.test(trimmed)) {
-    return null;
-  }
-
-  const angled = trimmed.match(/^(?:"([^"]+)"|([^<]*?))\s*<([^<>]+)>$/);
-  if (angled) {
-    const name = (angled[1] ?? angled[2] ?? "").trim();
-    const email = parseEmailAddress(angled[3]);
-    if (!email) {
-      return null;
-    }
-    if (!name) {
-      return email;
-    }
-    if (/[<>]/.test(name)) {
-      return null;
-    }
-    const safeName = name
-      .replace(/[\u0000-\u001f\u007f]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (!safeName) {
-      return email;
-    }
-    return `${safeName} <${email}>`;
-  }
-
-  return parseEmailAddress(trimmed);
-}
-
 export function getMarketingContactToEmail(
   env: Env = process.env
 ): string | null {
@@ -108,11 +72,6 @@ export function getMarketingContactFromEmail(
     parseMailboxAddress(env[CONTACT_EMAIL_FROM_ENV]) ??
     parseMailboxAddress(env[MARKETING_CONTACT_FROM_EMAIL_ENV])
   );
-}
-
-export function getResendApiKey(env: Env = process.env): string | null {
-  const key = env[RESEND_API_KEY_ENV]?.trim();
-  return key && key.length > 0 ? key : null;
 }
 
 export function getTurnstileSiteKey(env: Env = process.env): string {

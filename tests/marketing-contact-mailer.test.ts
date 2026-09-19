@@ -57,6 +57,8 @@ describe("marketing contact mailer", () => {
     legacy: process.env.MARKETING_CONTACT_EMAIL,
     resend: process.env.RESEND_API_KEY,
     vercelEnv: process.env.VERCEL_ENV,
+    authFrom: process.env.AUTH_EMAIL_FROM,
+    authReplyTo: process.env.AUTH_EMAIL_REPLY_TO,
   };
 
   afterEach(() => {
@@ -68,6 +70,8 @@ describe("marketing contact mailer", () => {
     restore("MARKETING_CONTACT_EMAIL", previous.legacy);
     restore("RESEND_API_KEY", previous.resend);
     restore("VERCEL_ENV", previous.vercelEnv);
+    restore("AUTH_EMAIL_FROM", previous.authFrom);
+    restore("AUTH_EMAIL_REPLY_TO", previous.authReplyTo);
     clearMarketingContactMemoryInbox();
     resendState.send.mockReset();
     resendState.keys.length = 0;
@@ -169,6 +173,22 @@ describe("marketing contact mailer", () => {
     }
     expect(result.error).toBe(CONTACT_DELIVERY_FAILED);
     expect(result.error).not.toMatch(/resend|rate limited|re_test_key/i);
+  });
+
+  it("ignores AUTH_EMAIL_FROM for marketing Contact delivery", async () => {
+    process.env.CONTACT_EMAIL_TO = "hello@example.test";
+    process.env.CONTACT_EMAIL_FROM = "River Aftercare <website@example.test>";
+    process.env.CONTACT_MAILER = "memory";
+    process.env.AUTH_EMAIL_FROM = "River Aftercare <accounts@example.test>";
+    process.env.AUTH_EMAIL_REPLY_TO = "noreply@example.test";
+
+    const result = await deliverMarketingContactEnquiry(enquiry);
+    expect(result).toEqual({ ok: true });
+    const message = getMarketingContactMemoryInbox()[0];
+    expect(message?.from).toBe("River Aftercare <website@example.test>");
+    expect(message?.to).toBe("hello@example.test");
+    expect(message?.from).not.toContain("accounts@");
+    expect(resendState.send).not.toHaveBeenCalled();
   });
 
   it("refuses the memory mailer on Vercel production", () => {
