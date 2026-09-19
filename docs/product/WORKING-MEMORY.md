@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (AccountToken + transactional auth-email foundation; no public invite/reset flows)
+Last updated: 2026-09-19 (homepage lower-story hierarchy: Clinic Preview removed; workflows on master showcase)
 
 ---
 
@@ -520,7 +520,7 @@ The public Early Access / Design Partner section was removed because founder-led
 | Reduced motion          | Bootstrap `reduce`; pending CSS does not apply; MotionConfig `reducedMotion="user"`; content is immediately visible with no translation/scale/rail delay.                                                                                                                                                               |
 | Closing                 | Compact `#see-it` CTA: “See it in practice” / “See the patient experience for yourself.” / Riverside Dental Demo copy / **View the clinic demo**. Desktop copy left, button right. Footer atmosphere from 1F.14/1F.15 preserved.                                                                                        |
 
-Public landing narrative at 1F.16: Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Brand Flexibility → Clinic Preview → compact demo CTA → Footer. Current order (2026-09-19): Why Clinics Use It → Brand Flexibility → Built for different kinds of care → Clinic Preview → Get started — see Homepage storytelling sequence below.
+Public landing narrative at 1F.16: Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Brand Flexibility → Clinic Preview → compact demo CTA → Footer. Current order (2026-09-19): Hero → Problem → Product → How It Works → Why Clinics Use It → Brand Flexibility → Different clinic workflows → Get started / Footer. The lower Clinic Preview is removed; the hero remains the patient-experience proof. See Homepage storytelling sequence below.
 
 See [PERFORMANCE.md](../architecture/PERFORMANCE.md) for the 1F.16 bundle table.
 
@@ -1502,19 +1502,30 @@ Removes profession-card repetition between vertical discovery and Brand Flexibil
 | Brand Flexibility  | Answers “what remains recognisably mine?”. Eyebrow kept. H2: “Your clinic stays visible after the appointment.” Body: consistent patient experience, clinic identity carried into revisited guidance. |
 | Visual             | One River-neutral identity panel. Three rows: Your name / Your colours / Your terminology. Not a second profession grid.                                                                              |
 | Sample colours     | Teal `#14635f`, navy `#2a3446`, clay `#5a3f44` remain as small swatches labelled “Sample clinic identities”. Not Dental / Physio / Cosmetic. Not River vertical accents.                              |
-| Patient demo       | Riverside Dental phone mockup and Clinic Preview content unchanged.                                                                                                                                   |
+| Patient demo       | Riverside Dental phone mockup in the hero remains the homepage’s patient-experience proof. The lower Clinic Preview panel was removed.                                                                   |
 
 ## Homepage storytelling sequence (2026-09-19)
 
-Reorders the lower homepage without rewriting strategy, SEO, or product claims. Brand Flexibility is the identity bridge between clinic value and workflow discovery. Patient Preview remains the last substantial proof before the closing CTA.
+Reorders the lower homepage without rewriting strategy, SEO, or product claims. Brand Flexibility is the identity bridge between clinic value and workflow discovery.
 
 | Area              | Behaviour                                                                                                                                                                                            |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Section order     | Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Brand Flexibility → Built for different kinds of care → Clinic Preview → Get started / Footer.                               |
-| Chapter placement | Brand Flexibility lives in `marketingSoft` after Why Clinics. Clinic Preview is the only `marketingShowcase` band. Closing CTA unchanged.                                                            |
+| Section order     | Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Brand Flexibility → Different clinic workflows → Get started / Footer.                                                       |
+| Chapter placement | Brand Flexibility lives in `marketingSoft` after Why Clinics. Different clinic workflows is the `marketingShowcase` / `workflowShowcase` band. Closing CTA follows immediately.                      |
 | Desktop layout    | Brand Flexibility uses the product-grid pattern: DOM is copy then visual; CSS `grid-template-areas` places visual left / copy right from `64rem`. Visual ~`1.1fr`, copy ~`0.9fr`, `3rem` column gap. |
 | Mobile layout     | Semantic copy-first order: eyebrow, heading, supporting copy, then identity panel. No CSS order tricks.                                                                                              |
 | Copy              | Unchanged. Overlap between “Consistent aftercare, under your clinic's brand” and “Your clinic stays visible after the appointment.” is accepted pending a future copy-only pass.                     |
+
+## Homepage lower-story hierarchy (2026-09-19)
+
+Removes the redundant homepage Clinic Preview and promotes Different clinic workflows onto the master-brand showcase surface.
+
+| Area                 | Behaviour                                                                                                                                                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Clinic Preview       | Removed from the homepage. Not relocated. Shared demo fixtures, hero phone mockup, `View the dental demo` CTA, and `/dental` “Open Riverside Dental Demo” remain. `MarketingPatientPreview` was homepage-only and was deleted. |
+| Workflows chapter    | Final substantive chapter before the closing CTA. Lives in `marketingShowcase` + `workflowShowcase`. Copy, four vertical cards, and Explore all clinic types → `/clinics` unchanged.                      |
+| Master-brand surface | Pale periwinkle/cobalt/sky wash in Light; deeper cobalt atmosphere in Dark. Cards keep River vertical identities (dental cobalt, physio teal, chiropractic periwinkle, cosmetic cyan) with a clearer border and tint. |
+| Transitions          | Soft → showcase background change marks Brand Flexibility → Workflows. Workflows → existing closing CTA with no extra proof chapter.                                                                      |
 
 ---
 

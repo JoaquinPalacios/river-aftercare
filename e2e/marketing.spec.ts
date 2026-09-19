@@ -76,10 +76,9 @@ test.describe("marketing homepage", () => {
       page.getByText("Patient aftercare for clinics and practices").first()
     ).toBeVisible();
     await expect(
-      page.getByText(
-        "No login, no feed — just the guidance patients need, with the clinic still one tap away."
-      )
+      page.getByRole("link", { name: "View the dental demo" }).first()
     ).toBeVisible();
+    await expect(page.getByText("Tooth Extraction").first()).toBeVisible();
     await expect(
       page
         .getByRole("contentinfo")
@@ -484,10 +483,10 @@ test.describe("marketing homepage", () => {
       path: "test-results/artifacts/marketing-mid-scroll-light.png",
     });
 
-    await page.locator("#preview").scrollIntoViewIfNeeded();
+    await page.locator("#clinic-types").scrollIntoViewIfNeeded();
     await expect(
       page.getByRole("heading", {
-        name: "See what patients actually receive",
+        name: "One aftercare platform. Different clinic workflows.",
       })
     ).toBeVisible();
     await page.screenshot({

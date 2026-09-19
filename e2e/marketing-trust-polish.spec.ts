@@ -159,7 +159,7 @@ test.describe("marketing + trust polish", () => {
     await page.locator('[class*="deviceStage"]').screenshot({
       path: "test-results/artifacts/trust-phone-1440-light.png",
     });
-    await page.locator("[data-mk-patient-preview]").screenshot({
+    await page.locator('[data-mk-patient-surface="phone"]').screenshot({
       path: "test-results/artifacts/trust-patient-view-1440-light.png",
     });
     await page.locator("footer").screenshot({
@@ -174,7 +174,7 @@ test.describe("marketing + trust polish", () => {
     await page.locator('[class*="deviceStage"]').screenshot({
       path: "test-results/artifacts/trust-phone-1440-dark.png",
     });
-    await page.locator("[data-mk-patient-preview]").screenshot({
+    await page.locator('[data-mk-patient-surface="phone"]').screenshot({
       path: "test-results/artifacts/trust-patient-view-1440-dark.png",
     });
 

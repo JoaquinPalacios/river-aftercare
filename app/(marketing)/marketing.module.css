@@ -436,6 +436,79 @@
   color: var(--mk-ink);
 }
 
+.workflowShowcase {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  background: light-dark(
+    color-mix(in srgb, var(--mk-wave-periwinkle) 10%, var(--mk-showcase)),
+    color-mix(in srgb, var(--mk-cobalt) 16%, var(--mk-showcase))
+  );
+}
+
+.workflowShowcase::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      56% 46% at 14% 16%,
+      color-mix(in srgb, var(--mk-wave-periwinkle) 22%, transparent),
+      transparent 74%
+    ),
+    radial-gradient(
+      38% 32% at 86% 12%,
+      var(--mk-hero-glow),
+      transparent 72%
+    ),
+    radial-gradient(
+      46% 38% at 78% 88%,
+      var(--mk-sky-glow),
+      transparent 76%
+    ),
+    radial-gradient(
+      26% 22% at 46% 100%,
+      var(--mk-closing-cobalt),
+      transparent 70%
+    );
+  opacity: light-dark(0.48, 0.7);
+}
+
+.workflowShowcase > * {
+  position: relative;
+  z-index: 1;
+}
+
+.workflowTitle {
+  max-width: 22ch;
+}
+
+.workflowShowcase .headingBlock {
+  max-width: 42rem;
+}
+
+.workflowShowcase .headingFollow {
+  margin-top: var(--mk-section-space-md);
+}
+
+.workflowShowcase .clinicTypeMore {
+  margin-top: var(--mk-heading-content-gap);
+}
+
+.workflowShowcase .clinicTypeCard[data-vertical] {
+  background: light-dark(
+    color-mix(in srgb, var(--vertical-accent) 7%, var(--mk-card)),
+    color-mix(in srgb, var(--vertical-accent) 12%, var(--mk-card))
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--vertical-accent) 42%,
+    var(--mk-card-line)
+  );
+}
+
 .top {
   position: sticky;
   top: 0;
@@ -1218,8 +1291,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   justify-content: center;
 }
 
-.problemGrid,
-.previewGrid {
+.problemGrid {
   display: grid;
   gap: 2.2rem;
 }
@@ -2171,8 +2243,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   color: var(--cg-text, #0a0d14);
 }
 
-.productResultTerm,
-.patientHomeTerm {
+.productResultTerm {
   margin: 0.15rem 0 0.7rem;
   color: var(--cg-brand, #0f766e);
   font-size: 0.62rem;
@@ -2181,8 +2252,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   text-transform: uppercase;
 }
 
-.productResultGuide,
-.patientHomeGuide {
+.productResultGuide {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2203,22 +2273,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   letter-spacing: -0.02em;
 }
 
-.patientHomeGuideBody {
-  display: grid;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.patientHomeHint {
-  color: var(--cg-text-muted, #4b5563);
-  font-size: 0.68rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.productResultArrow,
-.patientHomeArrow {
+.productResultArrow {
   color: var(--cg-brand, #0f766e);
   font-weight: 700;
 }
@@ -2234,7 +2289,6 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .productCopy h2,
-.previewCopy h2,
 .brandCopy h2 {
   margin: 0 0 var(--mk-heading-intro-gap);
   font-size: clamp(1.7rem, 3.4vw, 2.6rem);
@@ -2748,65 +2802,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.previewStage {
-  display: grid;
-  gap: 0.85rem;
-  max-width: 26rem;
-}
-
-.patientHomePreview {
-  display: grid;
-  gap: 0.55rem;
-}
-
-.patientViewKicker {
-  margin: 0;
-  color: var(--mk-brand);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.patientHomeCard {
-  padding: 1.15rem 1.15rem 1.05rem;
-  border: 1px solid var(--cg-border, var(--mk-card-line));
-  border-radius: var(--cg-radius, 0.9rem);
-  background: var(--cg-surface, #ffffff);
-  color: var(--cg-text, #0a0d14);
-  box-shadow: var(--mk-card-shadow);
-}
-
-.patientHomeClinic {
-  margin: 0;
-  color: var(--cg-text, #0a0d14);
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: -0.035em;
-}
-
-.patientHomeContact {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0.85rem 0 0;
-  min-height: 2.2rem;
-  padding: 0.4rem 0.85rem;
-  border-radius: calc(var(--cg-radius, 0.75rem) * 0.85);
-  background: var(--cg-brand, #0f766e);
-  color: var(--cg-on-brand, #ffffff);
-  font-size: 0.78rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-}
-
-.previewCaption {
-  margin: 0;
-  color: var(--mk-muted);
-  font-size: 0.95rem;
-  max-width: 28rem;
 }
 
 .brandGrid {
@@ -5056,6 +5051,14 @@ html[data-theme-mode="dark"] .wordmarkName {
     padding-top: var(--mk-chapter-pad-y-mobile);
   }
 
+  .workflowShowcase::before {
+    opacity: light-dark(0.36, 0.52);
+  }
+
+  .workflowShowcase .headingFollow {
+    margin-top: var(--mk-heading-content-gap);
+  }
+
   .page[data-vertical] .ctaBlock {
     padding-top: var(--mk-section-space-lg);
   }
@@ -5124,8 +5127,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 @media (min-width: 64rem) {
-  .problemGrid,
-  .previewGrid {
+  .problemGrid {
     grid-template-columns: 1.05fr 0.95fr;
     align-items: start;
   }
@@ -5297,8 +5299,7 @@ html[data-theme-mode="dark"] .wordmarkName {
     padding: 1.55rem 1.4rem 1.65rem;
   }
 
-  .productResult,
-  .previewStage {
+  .productResult {
     max-width: none;
   }
 

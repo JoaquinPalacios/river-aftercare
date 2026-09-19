@@ -1149,10 +1149,10 @@ test.describe("premium marketing UX", () => {
     }
   });
 
-  test("captures homepage workflow, preview, and brand-flexibility sequence", async ({
+  test("captures homepage workflow showcase and brand-flexibility sequence", async ({
     page,
   }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
 
     async function captureRange(
       startSelector: string,
@@ -1231,8 +1231,12 @@ test.describe("premium marketing UX", () => {
       const workflows = page.locator(
         '[aria-labelledby="clinic-types-heading"]'
       );
-      const preview = page.locator('[aria-labelledby="preview-heading"]');
       const closing = page.locator('[aria-labelledby="closing-heading"]');
+
+      await page.screenshot({
+        fullPage: true,
+        path: `test-results/artifacts/home-full-${scheme}-1440.png`,
+      });
 
       await scrollSectionIntoView(page, '[aria-labelledby="why-heading"]');
       await waitForSectionReveal(why);
@@ -1290,22 +1294,16 @@ test.describe("premium marketing UX", () => {
           name: "One aftercare platform. Different clinic workflows.",
         })
       ).toBeVisible();
+      await expect(
+        page.getByRole("heading", {
+          name: "See what patients actually receive",
+        })
+      ).toHaveCount(0);
       await workflows.screenshot({
         path: `test-results/artifacts/home-workflows-${scheme}-1440.png`,
       });
-
-      await scrollSectionIntoView(page, '[aria-labelledby="preview-heading"]');
-      await waitForSectionReveal(preview);
-      await expect(
-        preview.getByRole("heading", {
-          name: "See what patients actually receive",
-        })
-      ).toBeVisible();
-      await preview.screenshot({
-        path: `test-results/artifacts/home-preview-${scheme}-1440.png`,
-      });
-      await preview.screenshot({
-        path: `test-results/artifacts/home-patient-proof-${scheme}-1440.png`,
+      await page.locator("[data-mk-workflow-showcase]").screenshot({
+        path: `test-results/artifacts/home-workflows-showcase-${scheme}-1440.png`,
       });
 
       await scrollSectionIntoView(page, '[aria-labelledby="closing-heading"]');
@@ -1314,20 +1312,35 @@ test.describe("premium marketing UX", () => {
         path: `test-results/artifacts/home-closing-cta-${scheme}-1440.png`,
       });
 
-      await captureRange(
-        '[aria-labelledby="why-heading"]',
-        '[aria-labelledby="preview-heading"]',
-        `test-results/artifacts/home-why-brand-flex-workflows-proof-${scheme}-1440.png`
-      );
       await waitForSectionReveal(why);
       await waitForSectionReveal(brand);
       await waitForSectionReveal(workflows);
-      await waitForSectionReveal(preview);
       await waitForSectionReveal(closing);
+      await scrollSectionIntoView(page, '[aria-labelledby="why-heading"]');
       await captureRange(
         '[aria-labelledby="why-heading"]',
         '[aria-labelledby="closing-heading"]',
         `test-results/artifacts/home-sequence-${scheme}-1440.png`
+      );
+      await captureRange(
+        '[aria-labelledby="why-heading"]',
+        '[aria-labelledby="closing-heading"]',
+        `test-results/artifacts/home-why-brand-workflows-cta-${scheme}.png`
+      );
+      await scrollSectionIntoView(page, '[aria-labelledby="brand-heading"]');
+      await captureRange(
+        '[aria-labelledby="brand-heading"]',
+        '[aria-labelledby="clinic-types-heading"]',
+        `test-results/artifacts/home-brand-to-workflows-${scheme}.png`
+      );
+      await scrollSectionIntoView(
+        page,
+        '[aria-labelledby="clinic-types-heading"]'
+      );
+      await captureRange(
+        '[aria-labelledby="clinic-types-heading"]',
+        '[aria-labelledby="closing-heading"]',
+        `test-results/artifacts/home-workflows-to-cta-${scheme}.png`
       );
       await expectNoHorizontalOverflow(page);
     }
@@ -1339,8 +1352,7 @@ test.describe("premium marketing UX", () => {
     const panels = [
       ["Why clinics use it", "home-why-dark-1440.png"],
       ["Brand Flexibility", "home-brand-flex-dark-1440.png"],
-      ["Different clinic workflows", "home-workflows-dark-1440.png"],
-      ["Patient Preview", "home-patient-proof-dark-1440.png"],
+      ["Different clinic workflows", "home-workflows-showcase-dark-1440.png"],
       ["Final CTA", "home-closing-cta-dark-1440.png"],
     ] as const;
     const figures = panels
@@ -1367,7 +1379,7 @@ test.describe("premium marketing UX", () => {
   </head>
   <body>
     <h1>Homepage storytelling sequence</h1>
-    <p>Why clinics use it → Brand Flexibility → Different clinic workflows → Patient Preview → Final CTA</p>
+    <p>Why clinics use it → Brand Flexibility → Different clinic workflows → Closing CTA</p>
     ${figures}
   </body>
 </html>`);
@@ -1424,6 +1436,18 @@ test.describe("premium marketing UX", () => {
     await page.locator('[aria-labelledby="brand-heading"]').screenshot({
       path: "test-results/artifacts/home-brand-flex-light-390.png",
     });
+    await page.locator("[data-mk-workflow-showcase]").screenshot({
+      path: "test-results/artifacts/home-workflows-showcase-light-390.png",
+    });
+    await page.locator("header").evaluate((element) => {
+      if (element instanceof HTMLElement) {
+        element.style.visibility = "";
+      }
+    });
+    await page.screenshot({
+      fullPage: true,
+      path: "test-results/artifacts/home-full-light-390.png",
+    });
     await showMarketingScheme(page, "dark");
     await page.locator("header").evaluate((element) => {
       if (element instanceof HTMLElement) {
@@ -1440,6 +1464,9 @@ test.describe("premium marketing UX", () => {
     await page.locator('[aria-labelledby="brand-heading"]').screenshot({
       path: "test-results/artifacts/home-brand-flex-dark-390.png",
     });
+    await page.locator("[data-mk-workflow-showcase]").screenshot({
+      path: "test-results/artifacts/home-workflows-showcase-dark-390.png",
+    });
     await captureRange(
       '[aria-labelledby="why-heading"]',
       '[aria-labelledby="closing-heading"]',
@@ -1449,6 +1476,10 @@ test.describe("premium marketing UX", () => {
       if (element instanceof HTMLElement) {
         element.style.visibility = "";
       }
+    });
+    await page.screenshot({
+      fullPage: true,
+      path: "test-results/artifacts/home-full-dark-390.png",
     });
     await expectNoHorizontalOverflow(page);
     for (const width of [1728, 1440, 1280, 1024, 768, 430, 390] as const) {
