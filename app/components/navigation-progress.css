@@ -2,7 +2,7 @@
    (marketing + staff). Do not import from aftercare — patient CSS stays
    on the Phase 1 budget without this overlay.
 
-   Do not use light-dark() here. Lightning CSS compiles that function into
+   Do not use the CSS light-dark function here. Lightning CSS compiles it into
    --lightningcss-light/dark on :root, which pollutes staff Tailwind colours. */
 :root {
   /* Route progress sits above marketing nav (4) and staff chrome (30). */

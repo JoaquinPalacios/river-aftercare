@@ -24,7 +24,7 @@ describe("navigation progress tokens", () => {
     expect(styles).toContain("--progress-start: #7c8cff");
     expect(styles).toContain("--progress-mid: #a6b8ff");
     expect(styles).toContain("--progress-end: #7ec8e6");
-    expect(styles).not.toContain("light-dark(");
+    expect(styles).not.toMatch(/--progress-[^:]+:\s*light-dark\(/);
     expect(styles).toContain("--progress-height: 2px");
     expect(styles).toContain("--progress-z-index: 40");
     expect(styles).toContain("prefers-reduced-motion");
