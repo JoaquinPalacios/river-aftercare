@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { geistMono, geistSans } from "@/lib/branding/fonts";
@@ -10,6 +9,7 @@ import {
   PORTAL_THEME_STORAGE_KEY,
   themePreferenceBootstrapScript,
 } from "@/lib/branding/theme-preference";
+import { VercelWebAnalytics } from "@/lib/telemetry/vercel-web-analytics";
 
 import "./staff.css";
 
@@ -38,7 +38,7 @@ export default function RootLayout({
           }}
         />
         {children}
-        <Analytics />
+        <VercelWebAnalytics />
         <SpeedInsights />
       </body>
     </html>

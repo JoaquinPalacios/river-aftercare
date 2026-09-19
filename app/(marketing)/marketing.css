@@ -400,16 +400,6 @@ body {
     scroll-behavior: auto;
   }
 
-  html[data-mk-motion="enhance"] .mkReveal[data-mk-pending] {
-    opacity: 1;
-    transform: none;
-    animation: none;
-  }
-
-  html[data-mk-motion="enhance"] .mkReveal[data-mk-pending][data-mk-rail] {
-    transform: none;
-  }
-
   .mtcBtn,
   .mtcOption {
     transition: none;
@@ -441,6 +431,20 @@ html[data-mk-motion="enhance"] .mkReveal[data-mk-pending][data-mk-rail] {
 html[data-mk-motion="enhance"] .mkReveal[data-mk-pending][data-mk-preview] {
   opacity: 0;
   transform: translateY(10px) scale(0.985);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-mk-motion="enhance"] .mkReveal[data-mk-pending],
+  html[data-mk-motion="enhance"] .mkReveal[data-mk-pending][data-mk-card],
+  html[data-mk-motion="enhance"] .mkReveal[data-mk-pending][data-mk-preview] {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  html[data-mk-motion="enhance"] .mkReveal[data-mk-pending][data-mk-rail] {
+    transform: none;
+  }
 }
 
 @media (scripting: none) {

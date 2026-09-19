@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { geistSans } from "@/lib/branding/fonts";
 import { PRODUCT_HEAD_METADATA } from "@/lib/seo/icons";
 import { TENANT_LAUNCH_ROBOTS } from "@/lib/seo/robots-policy";
+import { VercelWebAnalytics } from "@/lib/telemetry/vercel-web-analytics";
 
 import "./aftercare.css";
 
@@ -29,7 +29,7 @@ export default function AftercareRootLayout({
     >
       <body>
         {children}
-        <Analytics />
+        <VercelWebAnalytics />
         <SpeedInsights />
       </body>
     </html>

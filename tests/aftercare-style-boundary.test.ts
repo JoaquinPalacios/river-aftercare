@@ -196,7 +196,7 @@ describe("aftercare style boundary", () => {
     expect(tokens).toContain("clamp(8rem, 6vw, 6rem)");
     expect(tokens).toContain("clamp(6rem, 8vw, 8rem)");
     expect(tokens).toContain("clamp(6rem, 6vw, 6rem)");
-    expect(tokens).toContain("clamp(4rem, 8vw, 8rem)");
+    expect(tokens).toContain("clamp(3.5rem, 6vw, 6rem)");
     expect(tokens).toContain("clamp(4rem, 6vw, 6rem)");
     expect(tokens).toContain("clamp(4rem, 5vw, 5rem)");
     expect(styles).toContain("padding-top: var(--mk-chapter-pad-y-mobile)");

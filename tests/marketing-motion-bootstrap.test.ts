@@ -26,5 +26,14 @@ describe("marketing motion bootstrap", () => {
       'html[data-mk-motion="enhance"] .mkReveal[data-mk-pending]'
     );
     expect(css).toContain("prefers-reduced-motion: reduce");
+
+    const pendingHide = css.search(
+      /html\[data-mk-motion="enhance"\] \.mkReveal\[data-mk-pending\] \{[\s\S]*?opacity:\s*0/
+    );
+    const reduceOverride = css.lastIndexOf(
+      "@media (prefers-reduced-motion: reduce)"
+    );
+    expect(pendingHide).toBeGreaterThan(-1);
+    expect(reduceOverride).toBeGreaterThan(pendingHide);
   });
 });

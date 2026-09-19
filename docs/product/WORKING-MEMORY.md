@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-18 (mobile last-band bottom pad; mobile heading-content gap; mobile product grid row-gap 1.75rem; last-band bottom pad token; mobile section bottom pad; band pad split top/bottom; chapter bottom pad token; section pad is top-only; mobile chapter-start padding token; mobile nav clinic-row cadence + stacked hero CTAs full-width on mobile; homepage phone Coming next uses real Tooth Extraction sample summaries; marketing finish polish: phone mockup, link offset, About list, Pricing notes, /clinics heading gap, FAQ overflow; marketing Contact: Resend + Cloudflare Turnstile; marketing UI polish; premium marketing UX refinement; River spectrum + vertical marketing accents; `/clinics` hub; design system v2)
+Last updated: 2026-09-19 (Vercel Web Analytics beforeSend self-opt-out via localStorage va-disable=1)
 
 ---
 
@@ -520,7 +520,7 @@ The public Early Access / Design Partner section was removed because founder-led
 | Reduced motion          | Bootstrap `reduce`; pending CSS does not apply; MotionConfig `reducedMotion="user"`; content is immediately visible with no translation/scale/rail delay.                                                                                                                                                               |
 | Closing                 | Compact `#see-it` CTA: “See it in practice” / “See the patient experience for yourself.” / Riverside Dental Demo copy / **View the clinic demo**. Desktop copy left, button right. Footer atmosphere from 1F.14/1F.15 preserved.                                                                                        |
 
-Public landing narrative: Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Brand Flexibility → Clinic Preview → compact demo CTA → Footer.
+Public landing narrative at 1F.16: Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Brand Flexibility → Clinic Preview → compact demo CTA → Footer. Current order (2026-09-19): vertical discovery → Clinic Preview → Brand Flexibility — see Homepage Brand Flexibility identity panel below.
 
 See [PERFORMANCE.md](../architecture/PERFORMANCE.md) for the 1F.16 bundle table.
 
@@ -1248,12 +1248,13 @@ Production `POST /practice` returned HTTP 500 while saving ordinary branding. No
 
 Cookieless platform page-view telemetry. This is **not** the PRD operator anonymous-analytics dashboard.
 
-| Area    | Behaviour                                                                                                                                                         |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Package | `@vercel/analytics` 2.0.1 (`latest` stable). Import `Analytics` from `@vercel/analytics/next`.                                                                    |
-| Layouts | Mounted in the three independent root layouts: marketing, staff, aftercare. There is no shared `app/layout.tsx`.                                                  |
-| Privacy | Public draft describes cookieless aggregated page-view stats via the application hosting provider. Do not name Vercel in `/privacy`. Legal review still required. |
-| Product | Operator analytics (views by practice/guide, QR-origin) remain unimplemented.                                                                                     |
+| Area    | Behaviour                                                                                                                                                                     |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Package | `@vercel/analytics` 2.0.1 (`latest` stable). Import `Analytics` from `@vercel/analytics/next` via `lib/telemetry/vercel-web-analytics.tsx`.                                   |
+| Layouts | Mounted in the three independent root layouts: marketing, staff, aftercare, as `<VercelWebAnalytics />`. There is no shared `app/layout.tsx`.                                 |
+| Opt-out | Official `beforeSend`: if `localStorage.getItem("va-disable") === "1"`, return `null`; otherwise return the event unchanged. No UI, cookies, query params, or admin controls. |
+| Privacy | Public draft describes cookieless aggregated page-view stats via the application hosting provider. Do not name Vercel in `/privacy`. Legal review still required.             |
+| Product | Operator analytics (views by practice/guide, QR-origin) remain unimplemented.                                                                                                 |
 
 ---
 
@@ -1468,3 +1469,18 @@ Follow-up to the homepage phone illustration pass. No copy, SEO, or page redesig
 ## Mobile chapter-start padding (2026-09-18)
 
 Desktop `--mk-chapter-pad-y: clamp(6rem, 8vw, 8rem)` is unchanged. First bands in `.marketingSoft` and `.marketingShowcase` use `--mk-chapter-pad-y-mobile: clamp(4rem, 8vw, 8rem)` below `47.99rem`. Closing CTA mobile `padding-top` stays `4rem`. Inner `.band:first-of-type` uses `--mk-section-pad-top`; every `.band` uses `--mk-section-pad-bottom`, switching to `--mk-section-pad-bottom-mobile: clamp(4rem, 6vw, 6rem)` below `47.99rem`. `.band:last-of-type` uses `--mk-section-pad-bottom-last: clamp(6rem, 6vw, 6rem)`, switching to `--mk-section-pad-bottom-last-mobile: clamp(4rem, 5vw, 5rem)` below `47.99rem`. `--mk-heading-content-gap` switches to `--mk-heading-content-gap-mobile: clamp(2rem, 3.25vw, 3rem)` below `47.99rem`.
+
+---
+
+## Homepage Brand Flexibility identity panel (2026-09-19)
+
+Removes profession-card repetition between vertical discovery and Brand Flexibility without changing vertical acquisition or the patient demo.
+
+| Area               | Behaviour                                                                                                                                                                                             |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vertical discovery | Unchanged. `BUILT FOR DIFFERENT KINDS OF CARE` / four profession cards / Explore all clinic types → `/clinics`. River vertical accents stay periwinkle / sky / cobalt / lavender.                     |
+| Section order      | Header → Hero → Problem → Product → How It Works → Why Clinics Use It → Built for different kinds of care → Clinic Preview → Brand Flexibility → Get started / Footer.                                |
+| Brand Flexibility  | Answers “what remains recognisably mine?”. Eyebrow kept. H2: “Your clinic stays visible after the appointment.” Body: consistent patient experience, clinic identity carried into revisited guidance. |
+| Visual             | Editorial split (copy left, one River-neutral identity panel right). Three rows: Your name / Your colours / Your terminology. Not a second profession grid.                                           |
+| Sample colours     | Teal `#14635f`, navy `#2a3446`, clay `#5a3f44` remain as small swatches labelled “Sample clinic identities”. Not Dental / Physio / Cosmetic. Not River vertical accents.                              |
+| Patient demo       | Riverside Dental phone mockup and Clinic Preview content unchanged. Brand Flexibility now follows that patient-experience section.                                                                    |
