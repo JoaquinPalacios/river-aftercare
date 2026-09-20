@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 
 import { pngBytes } from "../tests/helpers/og-image-bytes";
 import { e2ePrisma } from "./helpers/prisma";
@@ -192,6 +192,14 @@ test.describe("clinic Dark branding and favicon", () => {
     expect(html).toContain("--cg-brand:#22d3ee");
     expect(html).toContain(faviconPath);
     expect(html).toMatch(/name=["']theme-color["']/);
+    const iconLinks =
+      html.match(/<link[^>]+rel=["'][^"']*icon[^"']*["'][^>]*>/gi) ?? [];
+    const themeColor =
+      html.match(/<meta[^>]+name=["']theme-color["'][^>]*>/gi) ?? [];
+    writeFileSync(
+      `${ARTIFACT_DIR}/patient-clinic-favicon-head.txt`,
+      [...iconLinks, ...themeColor].join("\n") + "\n"
+    );
     await page.screenshot({
       path: `${ARTIFACT_DIR}/patient-custom-dark-logo.png`,
       fullPage: true,
