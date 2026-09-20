@@ -75,17 +75,23 @@ test.describe("marketing conversion routes", () => {
     await expect(
       page.getByText("Adapt River Aftercare templates to suit your clinic")
     ).toBeVisible();
-    const essentialCard = page.locator('[data-plan-card="essential"]');
-    const practiceCard = page.locator('[data-plan-card="practice"]');
-    const groupCard = page.locator('[data-plan-card="group"]');
+    const essentialCard = page.getByRole("article", {
+      name: "Essential",
+      exact: true,
+    });
+    const practiceCard = page.getByRole("article", {
+      name: "Practice",
+      exact: true,
+    });
+    const groupCard = page.getByRole("article", { name: "Group", exact: true });
     await expect(
-      practiceCard.getByRole("listitem", { name: "Assisted setup" })
+      practiceCard.getByText("Assisted setup", { exact: true })
     ).toBeVisible();
     await expect(
-      essentialCard.getByRole("listitem", { name: "Assisted setup" })
+      essentialCard.getByText("Assisted setup", { exact: true })
     ).toHaveCount(0);
     await expect(
-      groupCard.getByRole("listitem", { name: "Assisted setup" })
+      groupCard.getByText("Assisted setup", { exact: true })
     ).toHaveCount(0);
     await expect(practiceCard.getByText("Priority support")).toBeVisible();
     await expect(groupCard.getByText("Priority support")).toBeVisible();
@@ -221,13 +227,13 @@ test.describe("marketing conversion routes", () => {
       ).toBeVisible();
       await expect(
         page
-          .locator('[data-plan-card="practice"]')
-          .getByRole("listitem", { name: "Assisted setup" })
+          .getByRole("article", { name: "Practice", exact: true })
+          .getByText("Assisted setup", { exact: true })
       ).toBeVisible();
       await expect(
         page
-          .locator('[data-plan-card="essential"]')
-          .getByRole("listitem", { name: "Assisted setup" })
+          .getByRole("article", { name: "Essential", exact: true })
+          .getByText("Assisted setup", { exact: true })
       ).toHaveCount(0);
       await expect(
         page
