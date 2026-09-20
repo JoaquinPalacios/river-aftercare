@@ -13,9 +13,8 @@ export function StaffAccountPanel({
   roleLabel: string;
 }) {
   const pathname = usePathname();
-  const securityCurrent =
-    pathname === "/account/security" ||
-    pathname.startsWith("/account/security/");
+  const accountCurrent =
+    pathname === "/account" || pathname.startsWith("/account/");
 
   return (
     <div className="staffAccountBlock">
@@ -26,11 +25,11 @@ export function StaffAccountPanel({
         <p className="staffAccountRole">{roleLabel}</p>
       </div>
       <Link
-        href="/account/security"
+        href="/account"
         className="staffNavRow"
-        aria-current={securityCurrent ? "page" : undefined}
+        aria-current={accountCurrent ? "page" : undefined}
       >
-        Account security
+        Account
       </Link>
       <LogoutButton />
     </div>
