@@ -9,7 +9,9 @@ import {
   clinicLogoStorageKeyFromStoredValue,
   isOwnedClinicBrandingKey,
   validateClinicLogo,
+  type ClinicLogoExtension,
 } from "@/lib/clinic-assets/clinic-logo";
+import { validateClinicFavicon } from "@/lib/clinic-assets/clinic-favicon";
 import {
   ClinicAssetStorageUnavailableError,
   clinicAssetErrorClass,
@@ -17,35 +19,105 @@ import {
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { getPrisma } from "@/lib/prisma";
 
+export type ClinicBrandingAssetField = "logoUrl" | "darkLogoUrl" | "faviconUrl";
+
+const BRANDING_ASSET_FIELDS = [
+  "logoUrl",
+  "darkLogoUrl",
+  "faviconUrl",
+] as const satisfies readonly ClinicBrandingAssetField[];
+
+const FIELD_COPY: Record<
+  ClinicBrandingAssetField,
+  { permission: string; store: string; update: string; missing: string }
+> = {
+  logoUrl: {
+    permission: "You do not have permission to change this clinic logo.",
+    store: "Could not store the clinic logo.",
+    update: "Could not update the clinic logo.",
+    missing: "Practice profile is missing.",
+  },
+  darkLogoUrl: {
+    permission: "You do not have permission to change this clinic logo.",
+    store: "Could not store the Dark-mode logo.",
+    update: "Could not update the Dark-mode logo.",
+    missing: "Practice profile is missing.",
+  },
+  faviconUrl: {
+    permission: "You do not have permission to change this clinic favicon.",
+    store: "Could not store the clinic favicon.",
+    update: "Could not update the clinic favicon.",
+    missing: "Practice profile is missing.",
+  },
+};
+
 function logClinicAsset(
   event: string,
   details: {
     clinicId?: string;
     storageKey?: string;
+    field?: ClinicBrandingAssetField;
     class?: string;
   }
 ): void {
   console.warn("[clinic-assets]", event, details);
 }
 
-export async function uploadClinicLogo(input: {
+type BrandingAssetProfile = {
+  logoUrl: string | null;
+  darkLogoUrl: string | null;
+  faviconUrl: string | null;
+};
+
+function storedKeyForField(
+  profile: BrandingAssetProfile,
+  field: ClinicBrandingAssetField
+): string | null {
+  return clinicLogoStorageKeyFromStoredValue(profile[field]);
+}
+
+function otherFieldsStillUseKey(
+  profile: BrandingAssetProfile,
+  field: ClinicBrandingAssetField,
+  storageKey: string
+): boolean {
+  return BRANDING_ASSET_FIELDS.some(
+    (candidate) =>
+      candidate !== field &&
+      storedKeyForField(profile, candidate) === storageKey
+  );
+}
+
+async function loadBrandingProfile(
+  clinicId: string
+): Promise<BrandingAssetProfile | null> {
+  return getPrisma().clinicProfile.findUnique({
+    where: { clinicId },
+    select: {
+      logoUrl: true,
+      darkLogoUrl: true,
+      faviconUrl: true,
+    },
+  });
+}
+
+export async function uploadClinicBrandingAsset(input: {
+  field: ClinicBrandingAssetField;
   actorRole: "ADMIN" | "STAFF";
   actorClinicId: string;
   targetClinicId: string;
   bytes: Uint8Array;
   mimeType: string;
   fileName?: string;
-}): Promise<{ logoUrl: string; logoSrc: string }> {
+}): Promise<{ storageKey: string; publicSrc: string }> {
+  const copy = FIELD_COPY[input.field];
   const authorized = authorizeClinicLogoMutation({
     role: input.actorRole,
     actorClinicId: input.actorClinicId,
     targetClinicId: input.targetClinicId,
   });
   if (!authorized.ok) {
-    throw new ClinicPortalError(
-      "You do not have permission to change this clinic logo.",
-      "forbidden"
-    );
+    throw new ClinicPortalError(copy.permission, "forbidden");
   }
 
   const storage = getClinicAssetStorage();
@@ -55,40 +127,53 @@ export async function uploadClinicLogo(input: {
     );
   }
 
-  const validated = validateClinicLogo({
-    bytes: input.bytes,
-    mimeType: input.mimeType,
-    fileName: input.fileName,
-  });
-  if (!validated.ok) {
-    throw new ClinicPortalError(validated.error, "invalid");
-  }
-
+  let extension: ClinicLogoExtension;
+  let mimeType: string;
   let bytes = input.bytes;
-  let mimeType = validated.mimeType;
-  if (validated.kind === "svg") {
-    const { sanitizeClinicLogoSvg } =
-      await import("@/lib/clinic-assets/sanitize-clinic-logo-svg");
-    const sanitized = sanitizeClinicLogoSvg(input.bytes);
-    if (!sanitized.ok) {
-      throw new ClinicPortalError(sanitized.error, "invalid");
+
+  if (input.field === "faviconUrl") {
+    const validated = validateClinicFavicon({
+      bytes: input.bytes,
+      mimeType: input.mimeType,
+      fileName: input.fileName,
+    });
+    if (!validated.ok) {
+      throw new ClinicPortalError(validated.error, "invalid");
     }
-    bytes = sanitized.bytes;
-    mimeType = sanitized.mimeType;
+    extension = validated.extension;
+    mimeType = validated.mimeType;
+  } else {
+    const validated = validateClinicLogo({
+      bytes: input.bytes,
+      mimeType: input.mimeType,
+      fileName: input.fileName,
+    });
+    if (!validated.ok) {
+      throw new ClinicPortalError(validated.error, "invalid");
+    }
+    extension = validated.extension;
+    mimeType = validated.mimeType;
+    if (validated.kind === "svg") {
+      const { sanitizeClinicLogoSvg } =
+        await import("@/lib/clinic-assets/sanitize-clinic-logo-svg");
+      const sanitized = sanitizeClinicLogoSvg(input.bytes);
+      if (!sanitized.ok) {
+        throw new ClinicPortalError(sanitized.error, "invalid");
+      }
+      bytes = sanitized.bytes;
+      mimeType = sanitized.mimeType;
+    }
   }
 
-  const previous = await getPrisma().clinicProfile.findUnique({
-    where: { clinicId: input.targetClinicId },
-    select: { logoUrl: true, displayName: true },
-  });
+  const previous = await loadBrandingProfile(input.targetClinicId);
   if (!previous) {
-    throw new ClinicPortalError("Practice profile is missing.", "not_found");
+    throw new ClinicPortalError(copy.missing, "not_found");
   }
 
   const storageKey = clinicLogoObjectKey({
     clinicId: input.targetClinicId,
     objectId: randomUUID(),
-    extension: validated.extension,
+    extension,
   });
 
   let uploaded;
@@ -103,20 +188,22 @@ export async function uploadClinicLogo(input: {
     logClinicAsset("upload_failed", {
       clinicId: input.targetClinicId,
       storageKey,
+      field: input.field,
       class: clinicAssetErrorClass(error),
     });
-    throw new ClinicPortalError("Could not store the clinic logo.", "invalid");
+    throw new ClinicPortalError(copy.store, "invalid");
   }
 
   try {
     await getPrisma().clinicProfile.update({
       where: { clinicId: input.targetClinicId },
-      data: { logoUrl: uploaded.storageKey },
+      data: { [input.field]: uploaded.storageKey },
     });
   } catch (error) {
     logClinicAsset("db_update_failed_after_upload", {
       clinicId: input.targetClinicId,
       storageKey: uploaded.storageKey,
+      field: input.field,
       class: clinicAssetErrorClass(error),
     });
     try {
@@ -128,16 +215,18 @@ export async function uploadClinicLogo(input: {
       logClinicAsset("orphan_cleanup_failed", {
         clinicId: input.targetClinicId,
         storageKey: uploaded.storageKey,
+        field: input.field,
         class: clinicAssetErrorClass(cleanupError),
       });
     }
-    throw new ClinicPortalError("Could not update the clinic logo.", "invalid");
+    throw new ClinicPortalError(copy.update, "invalid");
   }
 
-  const previousKey = clinicLogoStorageKeyFromStoredValue(previous.logoUrl);
+  const previousKey = storedKeyForField(previous, input.field);
   if (
     isOwnedClinicBrandingKey(input.targetClinicId, previousKey) &&
-    previousKey !== uploaded.storageKey
+    previousKey !== uploaded.storageKey &&
+    !otherFieldsStillUseKey(previous, input.field, previousKey)
   ) {
     try {
       await storage.deleteLogo({
@@ -148,6 +237,7 @@ export async function uploadClinicLogo(input: {
       logClinicAsset("previous_object_delete_failed", {
         clinicId: input.targetClinicId,
         storageKey: previousKey,
+        field: input.field,
         class: clinicAssetErrorClass(error),
       });
     }
@@ -156,32 +246,32 @@ export async function uploadClinicLogo(input: {
   logClinicAsset("upload_succeeded", {
     clinicId: input.targetClinicId,
     storageKey: uploaded.storageKey,
+    field: input.field,
   });
 
   return {
-    logoUrl: uploaded.storageKey,
-    logoSrc: storage.getPublicLogoUrl({
+    storageKey: uploaded.storageKey,
+    publicSrc: storage.getPublicLogoUrl({
       clinicId: input.targetClinicId,
       storageKey: uploaded.storageKey,
     }),
   };
 }
 
-export async function removeClinicLogo(input: {
+export async function removeClinicBrandingAsset(input: {
+  field: ClinicBrandingAssetField;
   actorRole: "ADMIN" | "STAFF";
   actorClinicId: string;
   targetClinicId: string;
 }): Promise<void> {
+  const copy = FIELD_COPY[input.field];
   const authorized = authorizeClinicLogoMutation({
     role: input.actorRole,
     actorClinicId: input.actorClinicId,
     targetClinicId: input.targetClinicId,
   });
   if (!authorized.ok) {
-    throw new ClinicPortalError(
-      "You do not have permission to change this clinic logo.",
-      "forbidden"
-    );
+    throw new ClinicPortalError(copy.permission, "forbidden");
   }
 
   const storage = getClinicAssetStorage();
@@ -191,21 +281,21 @@ export async function removeClinicLogo(input: {
     );
   }
 
-  const previous = await getPrisma().clinicProfile.findUnique({
-    where: { clinicId: input.targetClinicId },
-    select: { logoUrl: true },
-  });
+  const previous = await loadBrandingProfile(input.targetClinicId);
   if (!previous) {
-    throw new ClinicPortalError("Practice profile is missing.", "not_found");
+    throw new ClinicPortalError(copy.missing, "not_found");
   }
 
   await getPrisma().clinicProfile.update({
     where: { clinicId: input.targetClinicId },
-    data: { logoUrl: null },
+    data: { [input.field]: null },
   });
 
-  const previousKey = clinicLogoStorageKeyFromStoredValue(previous.logoUrl);
-  if (isOwnedClinicBrandingKey(input.targetClinicId, previousKey)) {
+  const previousKey = storedKeyForField(previous, input.field);
+  if (
+    isOwnedClinicBrandingKey(input.targetClinicId, previousKey) &&
+    !otherFieldsStillUseKey(previous, input.field, previousKey)
+  ) {
     try {
       await storage.deleteLogo({
         clinicId: input.targetClinicId,
@@ -215,6 +305,7 @@ export async function removeClinicLogo(input: {
       logClinicAsset("previous_object_delete_failed", {
         clinicId: input.targetClinicId,
         storageKey: previousKey,
+        field: input.field,
         class: clinicAssetErrorClass(error),
       });
     }
@@ -222,6 +313,94 @@ export async function removeClinicLogo(input: {
 
   logClinicAsset("remove_succeeded", {
     clinicId: input.targetClinicId,
+    field: input.field,
     ...(previousKey ? { storageKey: previousKey } : {}),
+  });
+}
+
+export async function uploadClinicLogo(input: {
+  actorRole: "ADMIN" | "STAFF";
+  actorClinicId: string;
+  targetClinicId: string;
+  bytes: Uint8Array;
+  mimeType: string;
+  fileName?: string;
+}): Promise<{ logoUrl: string; logoSrc: string }> {
+  const uploaded = await uploadClinicBrandingAsset({
+    ...input,
+    field: "logoUrl",
+  });
+  return {
+    logoUrl: uploaded.storageKey,
+    logoSrc: uploaded.publicSrc,
+  };
+}
+
+export async function removeClinicLogo(input: {
+  actorRole: "ADMIN" | "STAFF";
+  actorClinicId: string;
+  targetClinicId: string;
+}): Promise<void> {
+  await removeClinicBrandingAsset({
+    ...input,
+    field: "logoUrl",
+  });
+}
+
+export async function uploadClinicDarkLogo(input: {
+  actorRole: "ADMIN" | "STAFF";
+  actorClinicId: string;
+  targetClinicId: string;
+  bytes: Uint8Array;
+  mimeType: string;
+  fileName?: string;
+}): Promise<{ logoUrl: string; logoSrc: string }> {
+  const uploaded = await uploadClinicBrandingAsset({
+    ...input,
+    field: "darkLogoUrl",
+  });
+  return {
+    logoUrl: uploaded.storageKey,
+    logoSrc: uploaded.publicSrc,
+  };
+}
+
+export async function removeClinicDarkLogo(input: {
+  actorRole: "ADMIN" | "STAFF";
+  actorClinicId: string;
+  targetClinicId: string;
+}): Promise<void> {
+  await removeClinicBrandingAsset({
+    ...input,
+    field: "darkLogoUrl",
+  });
+}
+
+export async function uploadClinicFavicon(input: {
+  actorRole: "ADMIN" | "STAFF";
+  actorClinicId: string;
+  targetClinicId: string;
+  bytes: Uint8Array;
+  mimeType: string;
+  fileName?: string;
+}): Promise<{ faviconUrl: string; faviconSrc: string }> {
+  const uploaded = await uploadClinicBrandingAsset({
+    ...input,
+    field: "faviconUrl",
+  });
+  return {
+    faviconUrl: uploaded.storageKey,
+    faviconSrc: uploaded.publicSrc,
+  };
+}
+
+export async function removeClinicFavicon(input: {
+  actorRole: "ADMIN" | "STAFF";
+  actorClinicId: string;
+  targetClinicId: string;
+}): Promise<void> {
+  await removeClinicBrandingAsset({
+    ...input,
+    field: "faviconUrl",
   });
 }

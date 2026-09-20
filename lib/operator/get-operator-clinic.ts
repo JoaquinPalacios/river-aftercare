@@ -10,8 +10,13 @@ export interface OperatorClinicDetail {
   slug: string;
   branding: {
     logoUrl: string | null;
+    darkLogoUrl: string | null;
+    faviconUrl: string | null;
     primaryColor: string | null;
     accentColor: string | null;
+    darkPrimaryColor: string | null;
+    darkAccentColor: string | null;
+    useCustomDarkBranding: boolean;
     neutralColor: string | null;
     radiusPreset: string | null;
     typeface: string | null;
@@ -97,8 +102,13 @@ export async function getOperatorClinic(
     slug: clinic.slug,
     branding: {
       logoUrl: clinic.profile?.logoUrl ?? null,
+      darkLogoUrl: clinic.profile?.darkLogoUrl ?? null,
+      faviconUrl: clinic.profile?.faviconUrl ?? null,
       primaryColor: clinic.profile?.primaryColor ?? null,
       accentColor: clinic.profile?.accentColor ?? null,
+      darkPrimaryColor: clinic.profile?.darkPrimaryColor ?? null,
+      darkAccentColor: clinic.profile?.darkAccentColor ?? null,
+      useCustomDarkBranding: clinic.profile?.useCustomDarkBranding ?? false,
       neutralColor: clinic.profile?.neutralColor ?? null,
       radiusPreset: clinic.profile?.radiusPreset ?? null,
       typeface: clinic.profile?.typeface ?? null,

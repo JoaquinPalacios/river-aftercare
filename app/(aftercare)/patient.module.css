@@ -36,11 +36,67 @@
   text-decoration: none;
 }
 
+.logoStack {
+  position: relative;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+}
+
 .logo {
   width: 2.25rem;
   height: 2.25rem;
   flex-shrink: 0;
   object-fit: contain;
+}
+
+.logoStack .logo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.logoDark {
+  display: none;
+}
+
+:global(html.aftercareDocument[data-theme-mode="dark"]) .logoLight {
+  display: none;
+}
+
+:global(html.aftercareDocument[data-theme-mode="dark"]) .logoDark {
+  display: block;
+}
+
+:global(html.aftercareDocument[data-theme-mode="light"]) .logoDark {
+  display: none;
+}
+
+:global(.aftercareTheme[data-patient-theme="dark"]) .logoLight {
+  display: none;
+}
+
+:global(.aftercareTheme[data-patient-theme="dark"]) .logoDark {
+  display: block;
+}
+
+:global(.aftercareTheme[data-patient-theme="light"]) .logoDark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(html.aftercareDocument:not([data-theme-mode])) .logoLight,
+  :global(html.aftercareDocument[data-theme-mode="system"]) .logoLight,
+  :global(.aftercareTheme[data-patient-theme="system"]) .logoLight {
+    display: none;
+  }
+
+  :global(html.aftercareDocument:not([data-theme-mode])) .logoDark,
+  :global(html.aftercareDocument[data-theme-mode="system"]) .logoDark,
+  :global(.aftercareTheme[data-patient-theme="system"]) .logoDark {
+    display: block;
+  }
 }
 
 .name {
@@ -681,6 +737,14 @@
 }
 
 @media print {
+  .logoLight {
+    display: block !important;
+  }
+
+  .logoDark {
+    display: none !important;
+  }
+
   .demoNav,
   .demoExperience,
   .printHide,

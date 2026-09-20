@@ -1,9 +1,17 @@
 import "dotenv/config";
 
+import path from "node:path";
+
 import { defineConfig } from "@playwright/test";
 
 import { e2eDatabaseUrl } from "./e2e/helpers/database";
 import { E2E_PORT, staffOrigin } from "./e2e/helpers/origins";
+
+const e2eClinicAssetRoot = path.join(
+  process.cwd(),
+  ".data",
+  "clinic-assets-e2e"
+);
 
 const staffUrl = staffOrigin();
 const e2eUrl = e2eDatabaseUrl();
@@ -40,7 +48,8 @@ export default defineConfig({
     env: {
       ...process.env,
       DATABASE_URL: e2eUrl,
-      CLINIC_ASSET_STORAGE_DRIVER: "memory",
+      CLINIC_ASSET_STORAGE_DRIVER: "filesystem",
+      CLINIC_ASSET_FILESYSTEM_ROOT: e2eClinicAssetRoot,
       CONTACT_EMAIL_TO: process.env.CONTACT_EMAIL_TO ?? "hello@example.test",
       CONTACT_EMAIL_FROM:
         process.env.CONTACT_EMAIL_FROM ??
@@ -62,5 +71,17 @@ export default defineConfig({
         viewport: { width: 1280, height: 800 },
       },
     },
+    ...(process.env.PLAYWRIGHT_WEBKIT === "1"
+      ? [
+          {
+            name: "webkit",
+            testMatch: "**/clinic-favicon.spec.ts",
+            use: {
+              browserName: "webkit" as const,
+              viewport: { width: 1280, height: 800 },
+            },
+          },
+        ]
+      : []),
   ],
 });

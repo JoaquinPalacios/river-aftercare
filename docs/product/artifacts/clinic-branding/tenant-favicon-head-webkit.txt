@@ -1,0 +1,5 @@
+<link rel="icon" href="/clinic-branding/clinic_demo_rivers/b353504e-676b-4d34-abea-86c718e0e69e.png" type="image/png">
+<link rel="apple-touch-icon" href="/clinic-branding/clinic_demo_rivers/b353504e-676b-4d34-abea-86c718e0e69e.png" type="image/png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<meta name="theme-color" content="#0f766e" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f766e" media="(prefers-color-scheme: dark)">

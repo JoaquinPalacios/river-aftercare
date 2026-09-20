@@ -419,6 +419,7 @@ describe("practice guide lifecycle and isolation", () => {
         instructionTerminology: "RECOVERY",
         themeMode: "LIGHT",
         allowPatientThemeToggle: true,
+        useCustomDarkBranding: false,
         phone: "0255500199",
         contactUrl: "https://a.example.test/help",
         addressLine1: "1 Test Street",

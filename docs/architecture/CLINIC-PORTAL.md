@@ -94,7 +94,11 @@ One route with internal sections: Practice identity, Branding, Contact, Emergenc
 
 Header uses portal spacing (eyebrow / title / description, then ~2.25rem before the form). Desktop has a section index with consistent row height, hover/focus, and `aria-current` for the section in view (IntersectionObserver). Section-nav clicks smooth-scroll unless `prefers-reduced-motion: reduce`. Sections use `scroll-margin-top`.
 
-Colour fields are one native colour control plus a hex input. Patient typeface is a curated allowlist (Open Sans, Roboto, Montserrat, Lato, Poppins, Inter) plus the River Aftercare default (Geist). Portal selects use extra padding for the chevron (`staffSelect`). Save status and Save changes sit compactly at the top of the form column (sticky within the scrolling document, not a full-bleed marketing bar). The form column is width-capped so large screens do not stretch fields unnecessarily. Grid/flex children use `min-width: 0` so the page does not overflow horizontally. Logo upload/replace/remove is shown when object storage is configured; otherwise Practice states that storage is not configured in this environment.
+Colour fields are one native colour control plus a hex input. Light primary/accent remain the default brand. Optional custom Dark branding (`useCustomDarkBranding` plus `darkPrimaryColor` / `darkAccentColor`) is an explicit toggle; both Dark colours are required when it is on. Turning it off leaves saved Dark values in place but the patient Dark theme keeps using Light brand colours with River Aftercare dark surfaces. Clinics do not force patient Light/Dark — `themeMode` in Patient presentation remains the default appearance (System / Light / Dark). The Branding section includes a preview-only Light/Dark switch that does not persist `themeMode` or the staff portal theme.
+
+Optional Dark logo and favicon uploads reuse the clinic branding asset control (choose, then upload, cancel, confirm-remove). Favicon copy: shown in the browser tab for patient aftercare pages.
+
+Patient tenant layouts emit `theme-color` from `generateViewport` using the clinic Light/Dark brand tokens (SYSTEM uses `prefers-color-scheme` media). Marketing, staff, login, and operator keep the River Aftercare favicon pack.
 
 ### Permissions
 
@@ -145,7 +149,7 @@ Public generic guides have no patient-specific treatment date. Timeline copy sta
 
 ## Logo
 
-ADMIN can upload, replace, or remove a clinic logo when `CLINIC_ASSET_STORAGE_DRIVER=r2` (or the test `memory` driver) is configured. Practice Identity uses a choose-then-upload control: **Choose logo** / **Choose replacement** selects a local file, **Upload logo** / **Upload replacement** persists it, and **Remove logo** asks for confirmation. STAFF cannot open Practice (404) and cannot call logo mutations. Production still needs Joaquín to set R2 env; the bucket stays private and is read through the Vercel `assets.` route — see [ADR 0022](../adr/0022-cloudflare-r2-is-clinic-asset-provider.md), [CLINIC-ASSETS.md](CLINIC-ASSETS.md), and [../launch/R2-PROVISIONING.md](../launch/R2-PROVISIONING.md). When storage is unconfigured, Practice shows the current mark and an explicit unavailable state.
+ADMIN can upload, replace, or remove a clinic logo when `CLINIC_ASSET_STORAGE_DRIVER` is `r2` (production), `filesystem` (local / Playwright), or `memory` (Vitest). Practice Identity uses a choose-then-upload control: **Choose logo** / **Choose replacement** selects a local file, **Upload logo** / **Upload replacement** persists it, and **Remove logo** asks for confirmation. STAFF cannot open Practice (404) and cannot call logo mutations. Production still needs Joaquín to set R2 env; the bucket stays private and is read through the Vercel `assets.` route — see [ADR 0022](../adr/0022-cloudflare-r2-is-clinic-asset-provider.md), [CLINIC-ASSETS.md](CLINIC-ASSETS.md), and [../launch/R2-PROVISIONING.md](../launch/R2-PROVISIONING.md). When storage is unconfigured, Practice shows the current mark and an explicit unavailable state.
 
 ## Operator console
 

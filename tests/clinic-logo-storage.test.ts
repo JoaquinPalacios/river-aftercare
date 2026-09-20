@@ -178,6 +178,9 @@ describe("clinic asset storage configuration", () => {
     access: process.env.R2_ACCESS_KEY_ID,
     secret: process.env.R2_SECRET_ACCESS_KEY,
     origin: process.env.CLINIC_ASSET_PUBLIC_ORIGIN,
+    filesystemRoot: process.env.CLINIC_ASSET_FILESYSTEM_ROOT,
+    vercel: process.env.VERCEL,
+    vercelEnv: process.env.VERCEL_ENV,
   };
 
   afterEach(() => {
@@ -188,6 +191,9 @@ describe("clinic asset storage configuration", () => {
       R2_ACCESS_KEY_ID: previous.access,
       R2_SECRET_ACCESS_KEY: previous.secret,
       CLINIC_ASSET_PUBLIC_ORIGIN: previous.origin,
+      CLINIC_ASSET_FILESYSTEM_ROOT: previous.filesystemRoot,
+      VERCEL: previous.vercel,
+      VERCEL_ENV: previous.vercelEnv,
     })) {
       if (value === undefined) {
         delete process.env[key];
@@ -227,6 +233,25 @@ describe("clinic asset storage configuration", () => {
       available: true,
       driver: "r2",
       bucket: "clinic-branding-assets",
+    });
+  });
+
+  it("selects the filesystem driver locally and keeps memory for unit tests", () => {
+    delete process.env.VERCEL;
+    delete process.env.VERCEL_ENV;
+    process.env.CLINIC_ASSET_STORAGE_DRIVER = "filesystem";
+    process.env.CLINIC_ASSET_FILESYSTEM_ROOT = ".data/clinic-assets-e2e";
+    expect(clinicAssetStorageStatus()).toEqual({
+      available: true,
+      driver: "filesystem",
+      bucket: ".data/clinic-assets-e2e",
+    });
+
+    process.env.CLINIC_ASSET_STORAGE_DRIVER = "memory";
+    expect(clinicAssetStorageStatus()).toEqual({
+      available: true,
+      driver: "memory",
+      bucket: "memory",
     });
   });
 

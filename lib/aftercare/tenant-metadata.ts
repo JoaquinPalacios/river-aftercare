@@ -1,10 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 
 import {
   instructionLabel,
   parseInstructionTerminology,
 } from "@/lib/aftercare/instruction-terminology";
+import {
+  resolveAftercareTheme,
+  type AftercareThemeInput,
+} from "@/lib/branding/aftercare-theme";
+import { parseThemeMode } from "@/lib/branding/theme-preference";
+import { resolveClinicLogoSrc } from "@/lib/clinic-assets/public-url";
+import { PRODUCT_HEAD_METADATA } from "@/lib/seo/icons";
 import { sanitizeMetadataText } from "@/lib/seo/metadata-text";
 import { TENANT_LAUNCH_ROBOTS } from "@/lib/seo/robots-policy";
 
@@ -64,17 +71,102 @@ export function tenantGuideDescription(
   return `${instructionLabel(terminology)} for ${title} from ${practice}.`;
 }
 
+export function clinicFaviconMetadata(
+  faviconUrl: string | null | undefined
+): Pick<Metadata, "icons"> {
+  const src = resolveClinicLogoSrc(faviconUrl);
+  if (!src) {
+    return { icons: PRODUCT_HEAD_METADATA.icons };
+  }
+
+  return {
+    icons: {
+      icon: [{ url: src, type: "image/png" }],
+      apple: [{ url: src, type: "image/png" }],
+    },
+  };
+}
+
+export function clinicThemeColorViewport(
+  input: AftercareThemeInput | null | undefined
+): Pick<Viewport, "themeColor"> {
+  const theme = resolveAftercareTheme(input);
+  const light = theme.light["--cg-brand"];
+  const dark = theme.dark["--cg-brand"];
+  const mode = parseThemeMode(input?.themeMode);
+
+  if (mode === "LIGHT") {
+    return { themeColor: light };
+  }
+  if (mode === "DARK") {
+    return { themeColor: dark };
+  }
+
+  return {
+    themeColor: [
+      { media: "(prefers-color-scheme: light)", color: light },
+      { media: "(prefers-color-scheme: dark)", color: dark },
+    ],
+  };
+}
+
+export function aftercareThemeFromProfile(
+  profile:
+    | {
+        primaryColor?: string | null;
+        accentColor?: string | null;
+        darkPrimaryColor?: string | null;
+        darkAccentColor?: string | null;
+        useCustomDarkBranding?: boolean | null;
+        neutralColor?: string | null;
+        radiusPreset?: string | null;
+        themeMode?: string | null;
+        faviconUrl?: string | null;
+      }
+    | null
+    | undefined
+): AftercareThemeInput & { faviconUrl?: string | null } {
+  return {
+    primaryColor: profile?.primaryColor ?? null,
+    accentColor: profile?.accentColor ?? null,
+    darkPrimaryColor: profile?.darkPrimaryColor ?? null,
+    darkAccentColor: profile?.darkAccentColor ?? null,
+    useCustomDarkBranding: profile?.useCustomDarkBranding ?? false,
+    neutralColor: profile?.neutralColor ?? null,
+    radiusPreset: profile?.radiusPreset ?? null,
+    themeMode: profile?.themeMode ?? null,
+    faviconUrl: profile?.faviconUrl ?? null,
+  };
+}
+
+export function aftercareTenantBrandMetadata(
+  profile:
+    | (AftercareThemeInput & {
+        faviconUrl?: string | null;
+      })
+    | null
+    | undefined
+): Pick<Metadata, "icons"> {
+  return clinicFaviconMetadata(profile?.faviconUrl);
+}
+
 export function aftercarePageMetadata(input: {
   title: string;
   description: string;
   canonicalUrl?: string;
   siteName?: string;
+  faviconUrl?: string | null;
+  theme?: AftercareThemeInput | null;
 }): Metadata {
   const title = sanitizeMetadataText(input.title, 70);
   const description = sanitizeMetadataText(input.description, 180);
   const siteName = input.siteName
     ? sanitizeMetadataText(input.siteName, 80)
     : undefined;
+  const brand = aftercareTenantBrandMetadata({
+    ...aftercareThemeFromProfile(input.theme),
+    faviconUrl: input.faviconUrl,
+  });
 
   return {
     title,
@@ -96,5 +188,6 @@ export function aftercarePageMetadata(input: {
       title,
       description,
     },
+    ...brand,
   };
 }

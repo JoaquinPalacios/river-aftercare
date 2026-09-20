@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs";
+import { rm } from "node:fs/promises";
+import path from "node:path";
 
 import {
   DEV_GUIDE_SNAPSHOT_PATH,
@@ -9,9 +11,12 @@ import { developmentDatabaseUrl } from "./helpers/database";
 import { cleanupPhase1eFixtures } from "./fixtures/phase1e-data";
 import { e2ePrisma } from "./helpers/prisma";
 
+const E2E_ASSET_ROOT = path.join(process.cwd(), ".data", "clinic-assets-e2e");
+
 export default async function globalTeardown(): Promise<void> {
   await cleanupPhase1eFixtures();
   await e2ePrisma.$disconnect();
+  await rm(E2E_ASSET_ROOT, { recursive: true, force: true });
 
   const before = JSON.parse(
     readFileSync(DEV_GUIDE_SNAPSHOT_PATH, "utf8")

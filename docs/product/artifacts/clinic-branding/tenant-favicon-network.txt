@@ -1,0 +1,8 @@
+browser=chromium
+clinicFaviconPath=/clinic-branding/clinic_demo_rivers/4edc48bf-cdfa-47ea-b301-4b5b64b786c9.png
+clinicFaviconStatus=200
+clinicFaviconContentType=image/png
+targetInfo.faviconUrl=(null or unavailable)
+pageRequests:
+(none captured)
+explicitGET http://demodental.localhost:4173/clinic-branding/clinic_demo_rivers/4edc48bf-cdfa-47ea-b301-4b5b64b786c9.png 200

@@ -1,0 +1,4 @@
+<link rel="icon" href="/clinic-branding/clinic_demo_rivers/8b3d92fb-0232-424a-9d24-b5a1b9ecefa6.png" type="image/png">
+<link rel="apple-touch-icon" href="/clinic-branding/clinic_demo_rivers/8b3d92fb-0232-424a-9d24-b5a1b9ecefa6.png" type="image/png">
+<meta name="theme-color" content="#0f766e" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#22d3ee" media="(prefers-color-scheme: dark)">

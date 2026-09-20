@@ -147,6 +147,41 @@ describe("resolvePracticeChrome", () => {
     expect(chrome.allowPatientThemeToggle).toBe(true);
   });
 
+  it("resolves an optional Dark logo and clinic favicon without leaking other clinics", () => {
+    const chrome = resolvePracticeChrome({
+      slug: "demodental",
+      name: "Rivers Care Demo Clinic",
+      profile: {
+        ...PROFILE,
+        darkLogoUrl:
+          "clinics/clinic_demo_rivers/branding/22222222-2222-4222-8222-222222222222.png",
+        faviconUrl:
+          "clinics/clinic_demo_rivers/branding/33333333-3333-4333-8333-333333333333.png",
+      },
+    });
+
+    expect(chrome.logoSrc).toBe("/demo/riverside-mark.svg");
+    expect(chrome.darkLogoSrc).toBe(
+      "/clinic-branding/clinic_demo_rivers/22222222-2222-4222-8222-222222222222.png"
+    );
+    expect(chrome.faviconSrc).toBe(
+      "/clinic-branding/clinic_demo_rivers/33333333-3333-4333-8333-333333333333.png"
+    );
+    expect(chrome.darkLogoSrc).not.toContain("clinic_b");
+    expect(chrome.faviconSrc).not.toContain("clinic_b");
+  });
+
+  it("falls back to the standard logo and no clinic favicon when Dark/favicon assets are missing", () => {
+    const chrome = resolvePracticeChrome({
+      slug: "demodental",
+      name: "Rivers Care Demo Clinic",
+      profile: PROFILE,
+    });
+
+    expect(chrome.darkLogoSrc).toBeNull();
+    expect(chrome.faviconSrc).toBeNull();
+  });
+
   it("keeps bookingHref for later configuration even though the CTA is not rendered", () => {
     const chrome = resolvePracticeChrome({
       slug: "demodental",

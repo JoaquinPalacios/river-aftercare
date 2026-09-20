@@ -34,9 +34,64 @@ describe("practice settings schema", () => {
       instructionTerminology: "POST_TREATMENT",
       themeMode: "DARK",
       allowPatientThemeToggle: true,
+      useCustomDarkBranding: false,
       phone: "02 5550 0100",
       contactUrl: "https://www.example.com/contact",
       emergencyInstructions: "Call the clinic or emergency services.",
+    });
+  });
+
+  it("requires both Dark colours when custom Dark branding is enabled", () => {
+    expect(
+      practiceSettingsSchema.safeParse({
+        ...valid,
+        useCustomDarkBranding: true,
+      }).success
+    ).toBe(false);
+    expect(
+      practiceSettingsSchema.safeParse({
+        ...valid,
+        useCustomDarkBranding: true,
+        darkPrimaryColor: "#0f766e",
+      }).success
+    ).toBe(false);
+    expect(
+      practiceSettingsSchema.parse({
+        ...valid,
+        useCustomDarkBranding: true,
+        darkPrimaryColor: "#0f766e",
+        darkAccentColor: "#f59e0b",
+      })
+    ).toMatchObject({
+      useCustomDarkBranding: true,
+      darkPrimaryColor: "#0f766e",
+      darkAccentColor: "#f59e0b",
+    });
+  });
+
+  it("rejects invalid Dark hex colours even when the toggle is on", () => {
+    expect(
+      practiceSettingsSchema.safeParse({
+        ...valid,
+        useCustomDarkBranding: true,
+        darkPrimaryColor: "navy",
+        darkAccentColor: "#f59e0b",
+      }).success
+    ).toBe(false);
+  });
+
+  it("ignores leftover Dark colours when the custom Dark toggle is off", () => {
+    expect(
+      practiceSettingsSchema.parse({
+        ...valid,
+        useCustomDarkBranding: false,
+        darkPrimaryColor: "#0f766e",
+        darkAccentColor: "#f59e0b",
+      })
+    ).toMatchObject({
+      useCustomDarkBranding: false,
+      darkPrimaryColor: "#0f766e",
+      darkAccentColor: "#f59e0b",
     });
   });
 

@@ -8,8 +8,14 @@ import {
   PATIENT_THEME_STORAGE_KEY,
   themePreferenceBootstrapScript,
 } from "@/lib/branding/theme-preference";
+import {
+  aftercareTenantBrandMetadata,
+  aftercareThemeFromProfile,
+  clinicThemeColorViewport,
+} from "@/lib/aftercare/tenant-metadata";
 import { requireTenantClinic } from "@/lib/tenancy/require-tenant-clinic";
 
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 interface TenantLayoutProps {
@@ -18,6 +24,24 @@ interface TenantLayoutProps {
 }
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: TenantLayoutProps): Promise<Metadata> {
+  const { tenant } = await params;
+  const clinic = await requireTenantClinic(tenant);
+  return aftercareTenantBrandMetadata(
+    aftercareThemeFromProfile(clinic.profile)
+  );
+}
+
+export async function generateViewport({
+  params,
+}: TenantLayoutProps): Promise<Viewport> {
+  const { tenant } = await params;
+  const clinic = await requireTenantClinic(tenant);
+  return clinicThemeColorViewport(aftercareThemeFromProfile(clinic.profile));
+}
 
 export default async function TenantLayout({
   children,

@@ -10,8 +10,13 @@ export interface ClinicBySlugRecord {
   profile: {
     displayName: string;
     logoUrl: string | null;
+    darkLogoUrl?: string | null;
+    faviconUrl?: string | null;
     primaryColor: string | null;
     accentColor: string | null;
+    darkPrimaryColor?: string | null;
+    darkAccentColor?: string | null;
+    useCustomDarkBranding?: boolean;
     neutralColor: string | null;
     radiusPreset: string;
     instructionTerminology: string;
@@ -41,8 +46,13 @@ export const clinicBySlugSelect = {
     select: {
       displayName: true,
       logoUrl: true,
+      darkLogoUrl: true,
+      faviconUrl: true,
       primaryColor: true,
       accentColor: true,
+      darkPrimaryColor: true,
+      darkAccentColor: true,
+      useCustomDarkBranding: true,
       neutralColor: true,
       radiusPreset: true,
       instructionTerminology: true,

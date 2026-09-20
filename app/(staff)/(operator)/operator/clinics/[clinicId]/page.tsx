@@ -86,6 +86,26 @@ export default async function OperatorClinicDetailPage({
             <dd>{clinic.branding.accentColor ?? "Not set"}</dd>
           </div>
           <div>
+            <dt className="text-staff-muted">Custom Dark branding</dt>
+            <dd>{clinic.branding.useCustomDarkBranding ? "Enabled" : "Off"}</dd>
+          </div>
+          <div>
+            <dt className="text-staff-muted">Dark primary</dt>
+            <dd>{clinic.branding.darkPrimaryColor ?? "Not set"}</dd>
+          </div>
+          <div>
+            <dt className="text-staff-muted">Favicon</dt>
+            <dd>
+              {clinic.branding.faviconUrl ? "Configured" : "River fallback"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-staff-muted">Dark logo</dt>
+            <dd>
+              {clinic.branding.darkLogoUrl ? "Configured" : "Standard logo"}
+            </dd>
+          </div>
+          <div>
             <dt className="text-staff-muted">Radius</dt>
             <dd>{clinic.branding.radiusPreset ?? "Not set"}</dd>
           </div>

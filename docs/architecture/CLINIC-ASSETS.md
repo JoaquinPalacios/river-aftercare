@@ -15,7 +15,8 @@ The repository now has:
 
 - `ClinicAssetStorage` (`uploadLogo`, `deleteLogo`, `readLogo`, `headLogo`, `getPublicLogoUrl`)
 - `R2ClinicAssetStorage` adapter (`@aws-sdk/client-s3`, server-only, S3-compatible R2 API)
-- In-memory driver for automated tests only (`CLINIC_ASSET_STORAGE_DRIVER=memory`) — not a filesystem and not for production
+- `memory` driver for Vitest (`CLINIC_ASSET_STORAGE_DRIVER=memory`) — in-process Map, not durable across Next.js bundles
+- `filesystem` driver for local `next start` / Playwright (`CLINIC_ASSET_STORAGE_DRIVER=filesystem`) — gitignored `.data/clinic-assets` (or `CLINIC_ASSET_FILESYSTEM_ROOT`)
 - Validation: PNG / JPEG / WebP (2 MB) and SVG (1 MB); MIME, extension, and magic/markup checked independently
 - Server-only SVG sanitization (`jsdom` XML parse + DOMPurify SVG profile), loaded **only** on the SVG upload path
 - ADMIN-only, same-clinic mutation (`uploadClinicLogo` / `removeClinicLogo`)
@@ -68,9 +69,19 @@ Rationale:
 
 Cloudflare DNS / R2 is **not** the application runtime. Next.js remains on Vercel. Parked chairside **Supabase Realtime** is unrelated and stays in the repo.
 
-Do not use Vercel Blob, the local filesystem, or `public/uploads`. The previous Supabase Storage clinic-asset adapter is removed.
+Do not use Vercel Blob or `public/uploads` for clinic branding. Production stays on private R2. The previous Supabase Storage clinic-asset adapter is removed.
 
-The `memory` driver exists so unit and Playwright tests can exercise upload/replace/remove without Cloudflare. It is not a production fallback. Optional real-R2 credentials may be pointed at a development bucket for manual checks. MinIO / Docker S3 are not required.
+`CLINIC_ASSET_STORAGE_DRIVER` selects the adapter:
+
+| Driver       | Where                             | Persistence                                          |
+| ------------ | --------------------------------- | ---------------------------------------------------- |
+| `r2`         | Production (Vercel)               | Private Cloudflare R2 bucket                         |
+| `filesystem` | Local `next start` and Playwright | Gitignored directory (default `.data/clinic-assets`) |
+| `memory`     | Vitest unit tests                 | In-process `Map`                                     |
+
+The `memory` driver cannot share bytes between the Next.js server-action bundle and the route-handler bundle. Playwright therefore uses `filesystem`. Filesystem is refused when `VERCEL=1` or `VERCEL_ENV` is `production` / `preview`. Optional real-R2 credentials may be pointed at a development bucket for manual checks. MinIO / Docker S3 are not required.
+
+Object keys remain `clinics/<clinicId>/branding/<uuid>.<ext>`. The filesystem adapter resolves those keys under one configured root, rejects absolute paths and `..`, and never serves a file outside that root.
 
 ## Required provisioning (human / infra)
 
@@ -87,6 +98,10 @@ R2_SECRET_ACCESS_KEY=<r2-secret-access-key>
 CLINIC_ASSET_PUBLIC_ORIGIN=https://assets.riveraftercare.com.au
 # Optional. When unset, derived as https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com
 # R2_S3_ENDPOINT=
+
+# Local / E2E only — never on Vercel:
+# CLINIC_ASSET_STORAGE_DRIVER=filesystem
+# CLINIC_ASSET_FILESYSTEM_ROOT=.data/clinic-assets
 ```
 
 `CLINIC_ASSET_PUBLIC_ORIGIN` is used when the server renders `<img src>`. It is not a credential. Do not prefix R2 keys with `NEXT_PUBLIC_`.
@@ -106,6 +121,12 @@ Never trust original filenames. Never store Cloudflare, R2.dev, or other provide
 No schema migration: the existing `logoUrl` column already stored provider-independent paths, not full Supabase URLs. Uploaded values now store the object key instead of the same-origin proxy path so production can serve from the asset domain without rewriting the database when the hostname changes.
 
 Replace uploads write a new object, then update Prisma, then delete the previous **clinic branding** key only. Demo paths such as `/demo/riverside-mark.svg` are never deleted from object storage.
+
+Optional **Dark logo** (`ClinicProfile.darkLogoUrl`) and **favicon** (`ClinicProfile.faviconUrl`) use the same object namespace, UUID keys, headers, and ADMIN/same-clinic authorization as the standard logo. Favicons are PNG-only, square, 32–1024px, max 512 KB. The uploaded PNG is served as-is (no extra image-processing dependency) for both `rel="icon"` and `apple-touch-icon`. Replacing either asset writes a new key so patient metadata URLs change.
+
+Dark logo is used only when the resolved patient appearance is Dark. Missing Dark logo falls back to the standard logo. Missing favicon falls back to the explicit River Aftercare pack (`PRODUCT_HEAD_METADATA` → `public/favicons/*`) on patient guides. Marketing, staff, login, and operator keep that same pack. River icons are **not** injected from a root Next.js `app/favicon.ico` file convention, so a clinic `rel="icon"` is not competing with a hashed global ICO. There is no root `public/favicon.ico`; `GET /favicon.ico` is not part of the product icon contract.
+
+Patient tenant HTML may still reference the River-branded `/favicons/site.webmanifest`. That manifest is for add-to-home-screen / PWA naming, not tab-icon selection. Dynamic per-clinic manifests are out of scope.
 
 If the new object uploads but the database update fails, the application attempts to delete the new orphan and shows a safe error. If the database update succeeds but the old-object delete fails, the clinic sees success and the failure is logged for later cleanup.
 
@@ -131,7 +152,7 @@ browser
 
 The route only serves when `Host` matches `CLINIC_ASSET_PUBLIC_ORIGIN`. Successful responses set `Content-Type` from the validated file extension (never arbitrary R2 metadata), `Cache-Control: public, max-age=31536000, immutable`, `X-Content-Type-Options: nosniff`, and `Cross-Origin-Resource-Policy: same-site`. Do not send `Cross-Origin-Resource-Policy: same-origin` — clinic, staff, and marketing hosts load the image from the `assets.` subdomain. CORS is not required. A Cloudflare Worker is not required.
 
-The `/clinic-branding/...` route remains for the memory driver / unconfigured origin and still sets `nosniff`, a restrictive CSP, and `Cross-Origin-Resource-Policy: same-origin` for that same-origin localhost fallback path.
+The `/clinic-branding/...` route remains for the memory and filesystem drivers / unconfigured origin and still sets `nosniff`, a restrictive CSP, and `Cross-Origin-Resource-Policy: same-origin` for that same-origin localhost fallback path.
 
 ## Authorization
 

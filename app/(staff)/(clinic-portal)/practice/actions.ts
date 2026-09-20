@@ -26,8 +26,13 @@ export async function savePracticeSettingsAction(
   const parsed = practiceSettingsSchema.safeParse({
     displayName: formData.get("displayName") ?? "",
     logoUrl: formData.get("logoUrl") ?? "",
+    darkLogoUrl: formData.get("darkLogoUrl") ?? "",
+    faviconUrl: formData.get("faviconUrl") ?? "",
     primaryColor: formData.get("primaryColor") ?? "",
     accentColor: formData.get("accentColor") ?? "",
+    darkPrimaryColor: formData.get("darkPrimaryColor") ?? "",
+    darkAccentColor: formData.get("darkAccentColor") ?? "",
+    useCustomDarkBranding: formData.get("useCustomDarkBranding") === "on",
     neutralColor: formData.get("neutralColor") ?? "",
     radiusPreset: formData.get("radiusPreset") ?? "MEDIUM",
     typeface: formData.get("typeface") ?? "",

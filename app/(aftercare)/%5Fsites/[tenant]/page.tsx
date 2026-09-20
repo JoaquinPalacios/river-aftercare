@@ -44,6 +44,8 @@ export async function generateMetadata({
     description: `${instructionLabel(listed.profile?.instructionTerminology)} from ${displayName}.`,
     siteName: displayName,
     canonicalUrl: await publicTenantCanonicalUrl("/"),
+    faviconUrl: listed.profile?.faviconUrl,
+    theme: listed.profile,
   });
 }
 

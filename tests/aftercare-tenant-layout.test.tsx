@@ -9,7 +9,10 @@ vi.mock("@/lib/tenancy/require-tenant-clinic", () => ({
   requireTenantClinic,
 }));
 
-import TenantLayout from "@/app/(aftercare)/%5Fsites/[tenant]/layout";
+import TenantLayout, {
+  generateMetadata,
+  generateViewport,
+} from "@/app/(aftercare)/%5Fsites/[tenant]/layout";
 
 describe("tenant layout branding", () => {
   beforeEach(() => {
@@ -76,6 +79,104 @@ describe("tenant layout branding", () => {
 
     expect(html).toContain(`html{color-scheme:${scheme}}`);
     expect(html).not.toContain("Change colour theme");
+  });
+
+  it("emits clinic theme-color from generateViewport, not page markup", async () => {
+    requireTenantClinic.mockResolvedValue({
+      id: "clinic_b",
+      slug: "otherclinic",
+      name: "Other Clinic",
+      profile: {
+        displayName: "Other Clinic Patient Brand",
+        primaryColor: "#0f766e",
+        accentColor: "#f59e0b",
+        darkPrimaryColor: "#22d3ee",
+        darkAccentColor: "#fde68a",
+        useCustomDarkBranding: true,
+        themeMode: "SYSTEM",
+        allowPatientThemeToggle: false,
+      },
+    });
+
+    await expect(
+      generateViewport({
+        params: Promise.resolve({ tenant: "otherclinic" }),
+        children: <p>child</p>,
+      })
+    ).resolves.toEqual({
+      themeColor: [
+        { media: "(prefers-color-scheme: light)", color: "#0f766e" },
+        { media: "(prefers-color-scheme: dark)", color: "#22d3ee" },
+      ],
+    });
+  });
+
+  it("emits clinic icons without the River pack when a favicon is configured", async () => {
+    requireTenantClinic.mockResolvedValue({
+      id: "clinic_a",
+      slug: "demodental",
+      name: "Harbor",
+      profile: {
+        faviconUrl:
+          "clinics/clinic_a/branding/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png",
+      },
+    });
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ tenant: "demodental" }),
+      children: <p>child</p>,
+    });
+    const json = JSON.stringify(metadata);
+    expect(json).toContain(
+      "/clinic-branding/clinic_a/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
+    );
+    expect(json).not.toContain("/favicons/");
+    expect(json).not.toContain("/favicon.ico");
+  });
+
+  it("emits the River icon pack when the clinic has no favicon", async () => {
+    requireTenantClinic.mockResolvedValue({
+      id: "clinic_a",
+      slug: "demodental",
+      name: "Harbor",
+      profile: { faviconUrl: null },
+    });
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ tenant: "demodental" }),
+      children: <p>child</p>,
+    });
+    expect(JSON.stringify(metadata)).toContain("/favicons/favicon-32x32.png");
+    expect(JSON.stringify(metadata)).not.toContain("/clinic-branding/");
+  });
+
+  it("applies custom Dark brand tokens while leaving Light tokens unchanged", async () => {
+    requireTenantClinic.mockResolvedValue({
+      id: "clinic_b",
+      slug: "otherclinic",
+      name: "Other Clinic",
+      profile: {
+        displayName: "Other Clinic Patient Brand",
+        primaryColor: "#0f766e",
+        accentColor: "#f59e0b",
+        darkPrimaryColor: "#22d3ee",
+        darkAccentColor: "#fde68a",
+        useCustomDarkBranding: true,
+        themeMode: "SYSTEM",
+        allowPatientThemeToggle: false,
+      },
+    });
+
+    const html = renderToStaticMarkup(
+      await TenantLayout({
+        params: Promise.resolve({ tenant: "otherclinic" }),
+        children: <p>child</p>,
+      })
+    );
+
+    expect(html).toContain("--cg-brand:light-dark(#0f766e,#22d3ee)");
+    expect(html).toContain("--cg-accent:light-dark(#f59e0b,#fde68a)");
+    expect(html).not.toContain("customCss");
   });
 
   it("renders the patient theme control only when the clinic allows it", async () => {

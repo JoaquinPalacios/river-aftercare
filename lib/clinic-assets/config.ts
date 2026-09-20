@@ -9,6 +9,7 @@ export const CLINIC_ASSET_CACHE_CONTROL = "public, max-age=31536000, immutable";
 export type ClinicAssetStorageStatus =
   | { available: true; driver: "r2"; bucket: string }
   | { available: true; driver: "memory"; bucket: string }
+  | { available: true; driver: "filesystem"; bucket: string }
   | { available: false; reason: "unconfigured" };
 
 export interface R2ClinicAssetConfig {
@@ -141,8 +142,25 @@ export function r2ClinicAssetConfig(): R2ClinicAssetConfig | null {
   };
 }
 
+function isVercelDeployment(): boolean {
+  return (
+    process.env.VERCEL === "1" ||
+    process.env.VERCEL_ENV === "production" ||
+    process.env.VERCEL_ENV === "preview"
+  );
+}
+
 export function clinicAssetStorageStatus(): ClinicAssetStorageStatus {
   const driver = readEnv("CLINIC_ASSET_STORAGE_DRIVER");
+
+  if (driver === "filesystem") {
+    if (isVercelDeployment()) {
+      return { available: false, reason: "unconfigured" };
+    }
+    const root =
+      readEnv("CLINIC_ASSET_FILESYSTEM_ROOT") ?? ".data/clinic-assets";
+    return { available: true, driver: "filesystem", bucket: root };
+  }
 
   if (driver === "memory") {
     return { available: true, driver: "memory", bucket: "memory" };

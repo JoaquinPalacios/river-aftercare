@@ -25,6 +25,9 @@
 # production
 /build
 
+# local / E2E clinic branding object storage (filesystem driver)
+.data/
+
 # misc
 .DS_Store
 *.pem

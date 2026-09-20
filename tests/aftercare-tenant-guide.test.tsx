@@ -293,6 +293,29 @@ describe("tenant guide page", () => {
     expect(JSON.stringify(metadata)).not.toContain("/_sites");
   });
 
+  it("points patient guide metadata at the clinic favicon when configured", async () => {
+    getPublishedPracticeGuide.mockResolvedValue({
+      ...GUIDE_A,
+      profile: {
+        ...PROFILE_A,
+        faviconUrl:
+          "clinics/clinic_demo_rivers/branding/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png",
+      },
+    });
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({
+        tenant: "demodental",
+        guideSlug: "extraction",
+      }),
+    });
+
+    expect(JSON.stringify(metadata.icons)).toContain(
+      "/clinic-branding/clinic_demo_rivers/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
+    );
+    expect(JSON.stringify(metadata.icons)).not.toContain("clinic_b");
+  });
+
   it("renders a heading when a composed section has an empty body", async () => {
     getPublishedPracticeGuide.mockResolvedValue({
       ...GUIDE_A,
