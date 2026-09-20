@@ -132,71 +132,75 @@ export function MarketingClinicsHub({
           </section>
         </div>
 
-        <section
-          id="clinic-types"
-          className={`${styles.band} ${styles.clinicsHubDiscovery}`}
-          aria-labelledby="clinics-discovery"
-        >
-          <div className={styles.inner}>
-            <div className={styles.headingBlock}>
-              <MarketingRevealGroup>
-                <MarketingRevealItem delay={0}>
-                  <p className={styles.eyebrow}>{copy.discovery.eyebrow}</p>
-                </MarketingRevealItem>
-                <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                  <h2 id="clinics-discovery" className={styles.sectionTitle}>
-                    {copy.discovery.h2}
-                  </h2>
-                </MarketingRevealItem>
-              </MarketingRevealGroup>
-            </div>
-            <div className={`${styles.clinicsHubGrid} ${styles.headingFollow}`}>
-              {CLINICS_HUB_CARDS.map((card, index) => (
-                <MarketingRevealCard
-                  key={card.path}
-                  index={index}
-                  className={styles.clinicsHubCardSlot}
-                >
-                  <Link
-                    className={styles.clinicsHubCard}
-                    href={card.path}
-                    data-vertical={card.themeId}
+        <div className={styles.marketingShowcase} data-mk-chapter="showcase">
+          <section
+            id="clinic-types"
+            className={`${styles.band} ${styles.clinicsHubDiscovery}`}
+            aria-labelledby="clinics-discovery"
+          >
+            <div className={styles.inner}>
+              <div className={styles.headingBlock}>
+                <MarketingRevealGroup>
+                  <MarketingRevealItem delay={0}>
+                    <p className={styles.eyebrow}>{copy.discovery.eyebrow}</p>
+                  </MarketingRevealItem>
+                  <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                    <h2 id="clinics-discovery" className={styles.sectionTitle}>
+                      {copy.discovery.h2}
+                    </h2>
+                  </MarketingRevealItem>
+                </MarketingRevealGroup>
+              </div>
+              <div
+                className={`${styles.clinicsHubGrid} ${styles.headingFollow}`}
+              >
+                {CLINICS_HUB_CARDS.map((card, index) => (
+                  <MarketingRevealCard
+                    key={card.path}
+                    index={index}
+                    className={styles.clinicsHubCardSlot}
                   >
-                    <span
-                      className={styles.clinicsHubCardRail}
-                      aria-hidden="true"
-                    />
-                    <h3>{card.label}</h3>
-                    <p>{card.body}</p>
-                    <span className={styles.clinicsHubCardCta}>
-                      {card.cta}
+                    <Link
+                      className={styles.clinicsHubCard}
+                      href={card.path}
+                      data-vertical={card.themeId}
+                    >
                       <span
-                        className={styles.clinicsHubCardArrow}
-                        data-mk-card-arrow=""
+                        className={styles.clinicsHubCardRail}
                         aria-hidden="true"
-                      >
-                        <svg
-                          viewBox="0 0 16 16"
-                          width="14"
-                          height="14"
-                          focusable="false"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+                      />
+                      <h3>{card.label}</h3>
+                      <p>{card.body}</p>
+                      <span className={styles.clinicsHubCardCta}>
+                        {card.cta}
+                        <span
+                          className={styles.clinicsHubCardArrow}
+                          data-mk-card-arrow=""
+                          aria-hidden="true"
                         >
-                          <path d="M3 8h9.5" />
-                          <path d="M8.75 4.25 13 8l-4.25 3.75" />
-                        </svg>
+                          <svg
+                            viewBox="0 0 16 16"
+                            width="14"
+                            height="14"
+                            focusable="false"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 8h9.5" />
+                            <path d="M8.75 4.25 13 8l-4.25 3.75" />
+                          </svg>
+                        </span>
                       </span>
-                    </span>
-                  </Link>
-                </MarketingRevealCard>
-              ))}
+                    </Link>
+                  </MarketingRevealCard>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
         <div className={styles.marketingSoft} data-mk-chapter="soft">
           <section className={styles.band} aria-labelledby="clinics-foundation">

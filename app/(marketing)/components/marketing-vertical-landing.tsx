@@ -251,43 +251,45 @@ export function MarketingVerticalLanding({
               aria-labelledby={`${id}-demo`}
             >
               <div className={styles.inner}>
-                <div
-                  className={`${styles.verticalProofLayout} ${styles.sectionStack}`}
-                >
-                  <MarketingRevealGroup>
-                    <MarketingRevealItem delay={0}>
-                      <p className={styles.eyebrow}>{extra.eyebrow}</p>
-                    </MarketingRevealItem>
-                    <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                      <h2 id={`${id}-demo`} className={styles.sectionTitle}>
-                        {extra.h2}
-                      </h2>
-                    </MarketingRevealItem>
+                <MarketingRevealGroup>
+                  <div
+                    className={`${styles.verticalProofLayout} ${styles.sectionStack}`}
+                  >
+                    <div>
+                      <MarketingRevealItem delay={0}>
+                        <p className={styles.eyebrow}>{extra.eyebrow}</p>
+                      </MarketingRevealItem>
+                      <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                        <h2 id={`${id}-demo`} className={styles.sectionTitle}>
+                          {extra.h2}
+                        </h2>
+                      </MarketingRevealItem>
+                      <MarketingRevealItem delay={editorialRevealDelay(2)}>
+                        <p className={styles.copy}>{extra.body}</p>
+                        <div className={styles.actions}>
+                          <MarketingPrimaryAnchor href={demoHref}>
+                            {extra.ctaLabel}
+                          </MarketingPrimaryAnchor>
+                        </div>
+                      </MarketingRevealItem>
+                    </div>
                     <MarketingRevealItem delay={editorialRevealDelay(2)}>
-                      <p className={styles.copy}>{extra.body}</p>
-                      <div className={styles.actions}>
-                        <MarketingPrimaryAnchor href={demoHref}>
-                          {extra.ctaLabel}
-                        </MarketingPrimaryAnchor>
+                      <div className={styles.verticalProofPanel}>
+                        <p className={styles.verticalProofKicker}>
+                          {extra.preview.kicker}
+                        </p>
+                        <p className={styles.verticalProofTitle}>
+                          {extra.preview.title}
+                        </p>
+                        <ul className={styles.verticalProofFacts}>
+                          {extra.preview.facts.map((fact) => (
+                            <li key={fact}>{fact}</li>
+                          ))}
+                        </ul>
                       </div>
                     </MarketingRevealItem>
-                  </MarketingRevealGroup>
-                  <MarketingRevealItem delay={editorialRevealDelay(2)}>
-                    <div className={styles.verticalProofPanel}>
-                      <p className={styles.verticalProofKicker}>
-                        {extra.preview.kicker}
-                      </p>
-                      <p className={styles.verticalProofTitle}>
-                        {extra.preview.title}
-                      </p>
-                      <ul className={styles.verticalProofFacts}>
-                        {extra.preview.facts.map((fact) => (
-                          <li key={fact}>{fact}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </MarketingRevealItem>
-                </div>
+                  </div>
+                </MarketingRevealGroup>
               </div>
             </section>
           ) : (

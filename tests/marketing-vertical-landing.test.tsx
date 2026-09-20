@@ -132,6 +132,14 @@ describe("clinic vertical landing pages", () => {
       physio.slice(Math.max(0, physioNoteAt - 280), physioNoteAt)
     ).toContain("mkReveal");
     expect(dental).toContain("Live example");
+    const demoHtml = dental.slice(
+      dental.indexOf('aria-labelledby="dental-demo"'),
+      dental.indexOf('aria-labelledby="dental-faq"')
+    );
+    const demoGroupAt = demoHtml.indexOf('data-mk-section=""');
+    const proofPanelAt = demoHtml.indexOf("verticalProofPanel");
+    expect(demoGroupAt).toBeGreaterThan(-1);
+    expect(proofPanelAt).toBeGreaterThan(demoGroupAt);
     expect(dental).toContain("View pricing");
     expect(dental).not.toContain("About River Aftercare");
     expect(dental).not.toContain("footer-account");
@@ -209,6 +217,19 @@ describe("clinic vertical landing pages", () => {
     expect(css).toContain(".verticalProblemGrid");
     expect(css).toContain(".verticalRail");
     expect(css).toContain(".verticalProofPanel");
+    expect(css).toMatch(
+      /\.verticalProofLayout\.sectionStack\s+\.copy\s*\{[^}]*margin-bottom:\s*2rem/
+    );
+    const demoBlock = landing.slice(
+      landing.indexOf('extra.kind === "demo"'),
+      landing.indexOf("verticalFitLayout")
+    );
+    const groupStart = demoBlock.indexOf("<MarketingRevealGroup>");
+    const groupEnd = demoBlock.indexOf("</MarketingRevealGroup>");
+    const panelAt = demoBlock.indexOf("verticalProofPanel");
+    expect(groupStart).toBeGreaterThan(-1);
+    expect(panelAt).toBeGreaterThan(groupStart);
+    expect(panelAt).toBeLessThan(groupEnd);
     expect(css).toContain("--vertical-surface-soft");
     expect(css).toContain("--vertical-surface-emphasis");
     expect(css).toContain("--vertical-hero-canvas");

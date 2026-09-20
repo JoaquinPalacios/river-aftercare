@@ -78,4 +78,30 @@ test.describe("marketing reveal sequence consistency", () => {
       })
     );
   });
+
+  test("dental live example proof card reveals with the copy group", async ({
+    page,
+  }) => {
+    await page.goto(marketingUrl("/dental"), { waitUntil: "load" });
+    const section = page.locator('[aria-labelledby="dental-demo"]');
+    await section.scrollIntoViewIfNeeded();
+    await expect
+      .poll(async () =>
+        section.evaluate((root) => {
+          const group = root.querySelector("[data-mk-section]");
+          const panel = root.querySelector('[class*="verticalProofPanel"]');
+          const reveal = panel?.closest(".mkReveal");
+          if (!group || !(reveal instanceof HTMLElement)) {
+            return false;
+          }
+
+          return (
+            group.contains(reveal) &&
+            getComputedStyle(reveal).opacity === "1" &&
+            !reveal.hasAttribute("data-mk-pending")
+          );
+        })
+      )
+      .toBe(true);
+  });
 });

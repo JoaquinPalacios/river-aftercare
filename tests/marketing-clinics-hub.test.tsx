@@ -108,5 +108,13 @@ describe("clinics overview hub", () => {
     expect(shell).not.toContain("Services");
     expect(hub).not.toContain("Services");
     expect(hub).toContain('currentPath="/clinics"');
+    const discoveryAt = hub.indexOf('id="clinic-types"');
+    expect(discoveryAt).toBeGreaterThan(-1);
+    expect(hub.lastIndexOf("marketingShowcase", discoveryAt)).toBeGreaterThan(
+      hub.lastIndexOf("marketingSoft", discoveryAt)
+    );
+    expect(
+      hub.lastIndexOf('data-mk-chapter="showcase"', discoveryAt)
+    ).toBeGreaterThan(-1);
   });
 });

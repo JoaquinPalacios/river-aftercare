@@ -4459,6 +4459,10 @@ html[data-theme-mode="dark"] .wordmarkName {
   max-width: 38rem;
 }
 
+.verticalProofLayout.sectionStack .copy {
+  margin-bottom: 2rem;
+}
+
 .verticalBenefitList,
 .verticalFitList {
   display: grid;

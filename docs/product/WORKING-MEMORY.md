@@ -1815,6 +1815,17 @@ Merge-gate at HEAD `408bc67` (2026-09-20): full `pnpm test:e2e` **215 passed / 1
 
 ---
 
+## Clinics discovery chapter + dental proof reveal (2026-09-20)
+
+Tight marketing spacing/motion fix. No copy, SEO, or route changes.
+
+| Area                   | Behaviour                                                                                                                                                                                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/clinics` discovery   | `#clinic-types` is a showcase chapter (`marketingShowcase` + `data-mk-chapter="showcase"`), so the band uses `--mk-chapter-pad-y` / `--mk-chapter-pad-y-mobile` like homepage clinic-types. Dark `--mk-hero` surface stays on `.clinicsHubDiscovery`. |
+| `/dental` live example | Proof copy keeps `margin-bottom: 2rem` above the CTA. The preview card is inside the same `MarketingRevealGroup` as the copy so staggered Motion can leave `opacity: 0` / `data-mk-pending`.                                                          |
+
+---
+
 ## Privacy-minimal server error tracking (2026-09-20)
 
 Better Stack Error Tracking for production Node exceptions. No Prisma migration. No Production/Vercel/Neon changes in this PR. DSN is not in the repo.
