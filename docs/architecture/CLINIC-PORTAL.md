@@ -149,7 +149,7 @@ Public generic guides have no patient-specific treatment date. Timeline copy sta
 
 ## Logo
 
-ADMIN can upload, replace, or remove a clinic logo when `CLINIC_ASSET_STORAGE_DRIVER=r2` (or the test `memory` driver) is configured. Practice Identity uses a choose-then-upload control: **Choose logo** / **Choose replacement** selects a local file, **Upload logo** / **Upload replacement** persists it, and **Remove logo** asks for confirmation. STAFF cannot open Practice (404) and cannot call logo mutations. Production still needs Joaquín to set R2 env; the bucket stays private and is read through the Vercel `assets.` route — see [ADR 0022](../adr/0022-cloudflare-r2-is-clinic-asset-provider.md), [CLINIC-ASSETS.md](CLINIC-ASSETS.md), and [../launch/R2-PROVISIONING.md](../launch/R2-PROVISIONING.md). When storage is unconfigured, Practice shows the current mark and an explicit unavailable state.
+ADMIN can upload, replace, or remove a clinic logo when `CLINIC_ASSET_STORAGE_DRIVER` is `r2` (production), `filesystem` (local / Playwright), or `memory` (Vitest). Practice Identity uses a choose-then-upload control: **Choose logo** / **Choose replacement** selects a local file, **Upload logo** / **Upload replacement** persists it, and **Remove logo** asks for confirmation. STAFF cannot open Practice (404) and cannot call logo mutations. Production still needs Joaquín to set R2 env; the bucket stays private and is read through the Vercel `assets.` route — see [ADR 0022](../adr/0022-cloudflare-r2-is-clinic-asset-provider.md), [CLINIC-ASSETS.md](CLINIC-ASSETS.md), and [../launch/R2-PROVISIONING.md](../launch/R2-PROVISIONING.md). When storage is unconfigured, Practice shows the current mark and an explicit unavailable state.
 
 ## Operator console
 

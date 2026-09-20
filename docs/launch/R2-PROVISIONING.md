@@ -197,10 +197,11 @@ Infrastructure rollback:
 
 ## Local development
 
-- Automated tests: `CLINIC_ASSET_STORAGE_DRIVER=memory` (Playwright webServer and Vitest). Never hits Cloudflare.
-- Same-origin fallback route: `/clinic-branding/<clinicId>/<filename>` for memory/test when `CLINIC_ASSET_PUBLIC_ORIGIN` is unset. Platform SEO uses `/platform-seo/<filename>`.
+- Vitest: `CLINIC_ASSET_STORAGE_DRIVER=memory`. Never hits Cloudflare.
+- Playwright / local `next start`: `CLINIC_ASSET_STORAGE_DRIVER=filesystem` with gitignored `.data/clinic-assets` (or `CLINIC_ASSET_FILESYSTEM_ROOT`). This is required because the in-memory Map does not survive the Next.js server-action vs route-handler bundle split.
+- Same-origin fallback route: `/clinic-branding/<clinicId>/<filename>` when `CLINIC_ASSET_PUBLIC_ORIGIN` is unset. Platform SEO uses `/platform-seo/<filename>`.
 - Manual real-R2: optional development bucket + the same env names. Do not commit values.
-- Do not require MinIO or a local filesystem fake of production.
+- Do not require MinIO. Do not use filesystem on Vercel.
 
 ## Storage class
 
