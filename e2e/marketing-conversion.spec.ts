@@ -6,6 +6,8 @@ import { expectNoSeriousAxeViolations } from "./helpers/axe";
 import { expectGenericNotFound, expectOneH1 } from "./helpers/assertions";
 import { expectNoHorizontalOverflow } from "./helpers/layout";
 import { measurePageAssets, expectNoTailwind } from "./helpers/assets";
+import { PRICING_METADATA } from "@/lib/marketing/metadata";
+
 import {
   DEMO_TENANT_SLUG,
   marketingUrl,
@@ -73,10 +75,24 @@ test.describe("marketing conversion routes", () => {
     await expect(
       page.getByText("Adapt River Aftercare templates to suit your clinic")
     ).toBeVisible();
-    await expect(page.getByText("Assisted setup")).toBeVisible();
-    const essentialCard = page.locator('[data-plan-card="essential"]');
-    const practiceCard = page.locator('[data-plan-card="practice"]');
-    const groupCard = page.locator('[data-plan-card="group"]');
+    const essentialCard = page.getByRole("article", {
+      name: "Essential",
+      exact: true,
+    });
+    const practiceCard = page.getByRole("article", {
+      name: "Practice",
+      exact: true,
+    });
+    const groupCard = page.getByRole("article", { name: "Group", exact: true });
+    await expect(
+      practiceCard.getByText("Assisted setup", { exact: true })
+    ).toBeVisible();
+    await expect(
+      essentialCard.getByText("Assisted setup", { exact: true })
+    ).toHaveCount(0);
+    await expect(
+      groupCard.getByText("Assisted setup", { exact: true })
+    ).toHaveCount(0);
     await expect(practiceCard.getByText("Priority support")).toBeVisible();
     await expect(groupCard.getByText("Priority support")).toBeVisible();
     await expect(essentialCard.getByText("Standard support")).toHaveCount(0);
@@ -209,9 +225,20 @@ test.describe("marketing conversion routes", () => {
       await expect(
         page.getByText("Adapt River Aftercare templates to suit your clinic")
       ).toBeVisible();
-      await expect(page.getByText("Assisted setup")).toBeVisible();
       await expect(
-        page.locator('[data-plan-card="practice"]').getByText("Priority support")
+        page
+          .getByRole("article", { name: "Practice", exact: true })
+          .getByText("Assisted setup", { exact: true })
+      ).toBeVisible();
+      await expect(
+        page
+          .getByRole("article", { name: "Essential", exact: true })
+          .getByText("Assisted setup", { exact: true })
+      ).toHaveCount(0);
+      await expect(
+        page
+          .locator('[data-plan-card="practice"]')
+          .getByText("Priority support")
       ).toBeVisible();
       await expect(
         page.locator('[data-plan-card="group"]').getByText("Priority support")
@@ -340,15 +367,15 @@ test.describe("marketing conversion routes", () => {
     ).toBeVisible();
     const supportRow = panel.locator('[data-comparison-row="support"]');
     await expect(supportRow.getByRole("rowheader")).toHaveText("Support");
-    await expect(
-      supportRow.locator('[data-plan="essential"]')
-    ).toContainText("Standard support");
-    await expect(
-      supportRow.locator('[data-plan="practice"]')
-    ).toContainText("Priority support");
-    await expect(
-      supportRow.locator('[data-plan="group"]')
-    ).toContainText("Priority support");
+    await expect(supportRow.locator('[data-plan="essential"]')).toContainText(
+      "Standard support"
+    );
+    await expect(supportRow.locator('[data-plan="practice"]')).toContainText(
+      "Priority support"
+    );
+    await expect(supportRow.locator('[data-plan="group"]')).toContainText(
+      "Priority support"
+    );
     await expect(supportRow.locator("svg")).toHaveCount(0);
     await expect(
       panel.locator('[data-comparison-row="priority-support"]')
@@ -709,12 +736,10 @@ test.describe("marketing conversion routes", () => {
     await page.goto(marketingUrl("/pricing"), {
       waitUntil: "domcontentloaded",
     });
-    await expect(page).toHaveTitle(
-      "Patient Aftercare Software Pricing | River Aftercare"
-    );
+    await expect(page).toHaveTitle(PRICING_METADATA.title);
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(
       "content",
-      /clinics and practices/
+      PRICING_METADATA.description
     );
 
     await page.goto(marketingUrl("/contact"), {

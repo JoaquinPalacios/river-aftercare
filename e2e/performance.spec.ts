@@ -8,9 +8,11 @@ import {
   expectStaffCssHasTailwind,
   measurePageAssets,
   motionLibraryJs,
+  partitionPatientCss,
   patientDemoJs,
   patientSpecificJs,
   patientThemeToggleJs,
+  requestedFontFiles,
   sumMetric,
 } from "./helpers/assets";
 import {
@@ -27,15 +29,40 @@ test.describe("Phase 1 performance and asset contracts", () => {
   test("tenant CSS stays under budget without Tailwind or patient Client Components", async ({
     page,
   }, testInfo) => {
+    const fontUrls: string[] = [];
+    page.on("request", (request) => {
+      const url = request.url();
+      if (request.resourceType() === "font" || /\.woff2?(\?|$)/i.test(url)) {
+        fontUrls.push(url);
+      }
+    });
+
     const home = await measurePageAssets(page, HOME);
     expectNoTailwind(home.css);
     expectNoNavigationProgressCss(home.css);
     expectCssWithinPhase1Budget(home.css);
+    const homeParts = partitionPatientCss(home.css);
+    expect(homeParts.catalogueFamilies).toEqual([
+      "Inter",
+      "Lato",
+      "Montserrat",
+      "Open Sans",
+      "Poppins",
+      "Roboto",
+    ]);
+    expect(
+      requestedFontFiles(fontUrls).filter((file) =>
+        homeParts.catalogueFontFiles.includes(file)
+      ),
+      "default Geist tenant must not download unused clinic typeface files"
+    ).toEqual([]);
 
     const guide = await measurePageAssets(page, EXTRACTION);
     expectNoTailwind(guide.css);
     expectNoNavigationProgressCss(guide.css);
     expectCssWithinPhase1Budget(guide.css);
+    const guideParts = partitionPatientCss(guide.css);
+    expect(guideParts.catalogueFamilies).toEqual(homeParts.catalogueFamilies);
 
     expect(
       patientSpecificJs(home.js)
@@ -59,6 +86,12 @@ test.describe("Phase 1 performance and asset contracts", () => {
             cssRaw: sumMetric(home.css, "raw"),
             cssGzip: sumMetric(home.css, "gzip"),
             cssBrotli: sumMetric(home.css, "brotli"),
+            coreCssRaw: homeParts.coreRaw,
+            coreCssGzip: homeParts.coreGzip,
+            coreCssBrotli: homeParts.coreBrotli,
+            catalogueCssRaw: homeParts.catalogueRaw,
+            catalogueFamilies: homeParts.catalogueFamilies,
+            requestedFontFiles: requestedFontFiles(fontUrls),
             jsRequests: home.js.length,
             jsRaw: sumMetric(home.js, "raw"),
             jsGzip: sumMetric(home.js, "gzip"),
@@ -81,6 +114,8 @@ test.describe("Phase 1 performance and asset contracts", () => {
             cssRaw: sumMetric(guide.css, "raw"),
             cssGzip: sumMetric(guide.css, "gzip"),
             cssBrotli: sumMetric(guide.css, "brotli"),
+            coreCssRaw: guideParts.coreRaw,
+            catalogueCssRaw: guideParts.catalogueRaw,
             jsRequests: guide.js.length,
             jsRaw: sumMetric(guide.js, "raw"),
             jsGzip: sumMetric(guide.js, "gzip"),
