@@ -245,8 +245,31 @@ describe("prod-db CLI", () => {
     expect(output).not.toContain("postgresql://");
   });
 
+  it("help documents pnpm prod:db:migrate --apply without a literal --", () => {
+    const result = spawnSync(
+      process.execPath,
+      [join(process.cwd(), "scripts/prod-db.mjs"), "--help"],
+      { encoding: "utf8", env: { ...process.env } }
+    );
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("pnpm prod:db:migrate --apply");
+    expect(result.stdout).not.toContain("pnpm prod:db:migrate -- --apply");
+  });
+
+  it("rejects a literal -- before --apply", () => {
+    const result = spawnSync(
+      process.execPath,
+      [join(process.cwd(), "scripts/prod-db.mjs"), "migrate", "--", "--apply"],
+      { encoding: "utf8", env: { ...process.env } }
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Unknown argument: --");
+  });
+
   it("source never invokes seed or db push", () => {
     const source = readFileSync("scripts/prod-db.mjs", "utf8");
+    expect(source).toContain("pnpm prod:db:migrate --apply");
+    expect(source).not.toContain("pnpm prod:db:migrate -- --apply");
     expect(source).toContain('spawnSync("pnpm", ["exec", "prisma", ...args]');
     expect(source).toContain("assertProductionPrismaArgs(args)");
     expect(source).toContain("productionPrismaArgs(prismaAction)");

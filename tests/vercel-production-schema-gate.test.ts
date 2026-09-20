@@ -77,6 +77,8 @@ describe("vercel production schema gate script", () => {
     expect(source).not.toMatch(/\["db", "push"\]/);
     expect(source).not.toMatch(/\["db", "seed"\]/);
     expect(source).toContain("This build does not run migrate deploy");
+    expect(source).toContain("pnpm prod:db:migrate --apply");
+    expect(source).not.toContain("pnpm prod:db:migrate -- --apply");
   });
 });
 

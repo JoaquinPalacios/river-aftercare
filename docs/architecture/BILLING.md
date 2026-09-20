@@ -30,7 +30,7 @@ There is **no Location model**. One `Clinic` is one practice/location and one te
 
 ### A.2 Prisma domain (relevant)
 
-Canonical schema: [`prisma/schema.prisma`](../../prisma/schema.prisma). PostgreSQL 18, Prisma 7.10 (`PrismaPg` + `pg`). Migrations are timestamped SQL under `prisma/migrations/`. Production apply is human-approved `pnpm prod:db:migrate -- --apply` via `DIRECT_URL`, then same-SHA redeploy ([ADR 0025](../adr/0025-migrate-before-promote.md)). Vercel never runs `migrate deploy`.
+Canonical schema: [`prisma/schema.prisma`](../../prisma/schema.prisma). PostgreSQL 18, Prisma 7.10 (`PrismaPg` + `pg`). Migrations are timestamped SQL under `prisma/migrations/`. Production apply is human-approved `pnpm prod:db:migrate --apply` via `DIRECT_URL`, then same-SHA redeploy ([ADR 0025](../adr/0025-migrate-before-promote.md)). Vercel never runs `migrate deploy`.
 
 **Clinic / users / roles**
 

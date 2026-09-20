@@ -112,6 +112,8 @@ describe("evaluatePrismaReleaseChange", () => {
     expect(report).toContain(
       "review and apply the production migration using the trusted prod:db:* workflow, verify it, then redeploy the same merged SHA."
     );
+    expect(report).toContain("pnpm prod:db:migrate --apply");
+    expect(report).not.toContain("pnpm prod:db:migrate -- --apply");
     expect(report).not.toMatch(/migrate-before-promote/i);
     expect(report).not.toMatch(/promote application code/i);
   });

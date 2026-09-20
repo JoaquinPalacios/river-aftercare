@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-20 (public GST-inclusive pricing claims withdrawn; GST registration pending accountant confirmation)
+Last updated: 2026-09-20 (canonical production migrate apply is `pnpm prod:db:migrate --apply`; public GST-inclusive pricing claims withdrawn)
 
 ## Durable production release rule
 
@@ -1784,7 +1784,7 @@ Release safety after production P2022 (`ClinicProfile.typeface` missing because 
 | Schema-changing PR                           | Merge → schema gate **fails** while pending → current Production stays live → `prod:db:*` on a trusted machine → redeploy the **same SHA**                                                                               |
 | `pnpm release:check`                         | Git diff vs `origin/main`. No DB. Fails schema-without-migration, missing SQL, rewritten history, unreviewed destructive SQL. Operator copy describes failed-build → `prod:db:*` → redeploy same SHA, not manual Promote |
 | GitHub Action                                | `.github/workflows/prisma-release-gate.yml` — contents:read, no secrets, no migrate                                                                                                                                      |
-| `pnpm prod:db:status` / `migrate` / `verify` | Require `.env.neon-production`, `DIRECT_URL` + `DATABASE_URL`, refuse localhost / `.env` fallback / seed / `db push`. `migrate` needs `--apply`                                                                          |
+| `pnpm prod:db:status` / `migrate` / `verify` | Require `.env.neon-production`, `DIRECT_URL` + `DATABASE_URL`, refuse localhost / `.env` fallback / seed / `db push`. Canonical apply is `pnpm prod:db:migrate --apply` (do not insert `--` before `--apply`; the helper rejects a literal `--`) |
 | Vercel Production build                      | `scripts/vercel-production-schema-gate.mjs` runs `migrate status` only when `VERCEL_ENV=production` (via runtime `DATABASE_URL`). Pending → fail build. Never `migrate deploy`                                           |
 | Vercel Preview / PR                          | Gate does not run. Must not receive production credentials or `DIRECT_URL`                                                                                                                                               |
 

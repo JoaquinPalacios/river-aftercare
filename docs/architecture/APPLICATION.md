@@ -56,7 +56,7 @@ Until then, keep extracting **modules**, not processes. Do not add MCP, GraphQL,
 
 ## Schema releases
 
-Vercel automatic Production deployments from `main` stay **enabled**. Vercel deploys application code. It does **not** apply Prisma migrations. On Production builds the schema gate runs `prisma migrate status` (through runtime `DATABASE_URL`) and fails if migrations are pending; that is intentional. Human-approved schema apply uses unpooled `DIRECT_URL` from a local `.env.neon-production` file (`pnpm prod:db:status` / `pnpm prod:db:migrate -- --apply` / `pnpm prod:db:verify`), then the **same SHA** is redeployed. Do not add `DIRECT_URL` to Vercel for ordinary runtime. See [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md) and [ADR 0025](../adr/0025-migrate-before-promote.md).
+Vercel automatic Production deployments from `main` stay **enabled**. Vercel deploys application code. It does **not** apply Prisma migrations. On Production builds the schema gate runs `prisma migrate status` (through runtime `DATABASE_URL`) and fails if migrations are pending; that is intentional. Human-approved schema apply uses unpooled `DIRECT_URL` from a local `.env.neon-production` file (`pnpm prod:db:status` / `pnpm prod:db:migrate --apply` / `pnpm prod:db:verify`), then the **same SHA** is redeployed. Do not add `DIRECT_URL` to Vercel for ordinary runtime. See [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md) and [ADR 0025](../adr/0025-migrate-before-promote.md).
 
 ## Errors, 404s, and health
 

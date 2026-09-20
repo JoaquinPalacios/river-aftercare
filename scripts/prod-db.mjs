@@ -28,7 +28,7 @@ Usage:
   pnpm prod:db:status
   pnpm prod:db:verify
   pnpm prod:db:migrate
-  pnpm prod:db:migrate -- --apply
+  pnpm prod:db:migrate --apply
 
 Equivalent manual commands (trusted machine only):
 

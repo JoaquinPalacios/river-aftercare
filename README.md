@@ -155,7 +155,7 @@ The expected local connection string for this repo is:
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/care_guide?schema=public"
 ```
 
-Prisma CLI (`migrate` / `seed` / `studio`) uses optional `DIRECT_URL` when set, otherwise `DATABASE_URL`. Local Docker does not need a second URL. Production Neon uses a **pooled** `DATABASE_URL` for the app and an **unpooled** `DIRECT_URL` for trusted-machine migrations. Production helpers (`pnpm prod:db:status`, `pnpm prod:db:migrate -- --apply`, `pnpm prod:db:verify`) load only gitignored `.env.neon-production` and will not fall back to local `.env`. Vercel automatic Production deploys from `main` stay enabled and do **not** run `migrate deploy`. Schema-touching releases are expected to fail the Production schema gate until the same SHA is redeployed after `prod:db:*` — [docs/launch/PRODUCTION-MIGRATION.md](docs/launch/PRODUCTION-MIGRATION.md).
+Prisma CLI (`migrate` / `seed` / `studio`) uses optional `DIRECT_URL` when set, otherwise `DATABASE_URL`. Local Docker does not need a second URL. Production Neon uses a **pooled** `DATABASE_URL` for the app and an **unpooled** `DIRECT_URL` for trusted-machine migrations. Production helpers (`pnpm prod:db:status`, `pnpm prod:db:migrate --apply`, `pnpm prod:db:verify`) load only gitignored `.env.neon-production` and will not fall back to local `.env`. Vercel automatic Production deploys from `main` stay enabled and do **not** run `migrate deploy`. Schema-touching releases are expected to fail the Production schema gate until the same SHA is redeployed after `prod:db:*` — [docs/launch/PRODUCTION-MIGRATION.md](docs/launch/PRODUCTION-MIGRATION.md).
 
 The app runtime also expects:
 
@@ -312,7 +312,7 @@ Schema-changing merges:
 2. Review SQL
 3. Merge to `main` (the Production schema gate is expected to fail while migrations are pending; current Production stays live)
 4. `pnpm prod:db:status`
-5. `pnpm prod:db:migrate -- --apply`
+5. `pnpm prod:db:migrate --apply`
 6. `pnpm prod:db:verify`
 7. Redeploy the **same** merged SHA in Vercel
 
