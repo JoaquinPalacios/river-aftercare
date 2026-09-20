@@ -1,5 +1,8 @@
 -- EMAIL_CHANGE outstanding uniqueness and token shape.
 -- Additive. Existing INVITATION and PASSWORD_RESET rows remain valid.
+-- river-aftercare:destructive-reviewed
+-- DROP CONSTRAINT only widens AccountToken_type_shape_check to allow EMAIL_CHANGE.
+-- No tables, columns, or rows are removed. Old production code ignores the new enum value.
 
 CREATE UNIQUE INDEX "AccountToken_outstandingEmailChange_userId_key"
 ON "AccountToken" ("userId")
