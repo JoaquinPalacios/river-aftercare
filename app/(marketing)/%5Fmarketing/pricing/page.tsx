@@ -8,6 +8,7 @@ import {
 } from "@/app/(marketing)/components/marketing-experience";
 import { MarketingNumberedSteps } from "@/app/(marketing)/components/marketing-numbered-steps";
 import { MarketingPageHero } from "@/app/(marketing)/components/marketing-page-hero";
+import { MarketingPlanComparison } from "@/app/(marketing)/components/marketing-plan-comparison";
 import { MarketingPrimaryLink } from "@/app/(marketing)/components/marketing-primary-link";
 import { MarketingShell } from "@/app/(marketing)/components/marketing-shell";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -176,6 +177,7 @@ export default async function MarketingPricingPage() {
               >
                 {PRICING_TYPOGRAPHY_NOTE}
               </p>
+              <MarketingPlanComparison />
             </div>
           </section>
 

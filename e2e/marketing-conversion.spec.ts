@@ -74,11 +74,13 @@ test.describe("marketing conversion routes", () => {
       page.getByText("Adapt River Aftercare templates to suit your clinic")
     ).toBeVisible();
     await expect(page.getByText("Assisted setup")).toBeVisible();
+    await expect(page.getByText("Up to 2 clinic team members")).toBeVisible();
+    await expect(page.getByText("Up to 5 clinic team members")).toBeVisible();
     await expect(
       page.getByText("Add clinic-specific instructions")
     ).toHaveCount(0);
     await expect(
-      page.getByText("Logo, colours and curated typography")
+      page.getByText("Clinic branding and curated typography")
     ).toBeVisible();
     await expect(
       page.getByText(
@@ -201,6 +203,8 @@ test.describe("marketing conversion routes", () => {
         page.getByText("Adapt River Aftercare templates to suit your clinic")
       ).toBeVisible();
       await expect(page.getByText("Assisted setup")).toBeVisible();
+      await expect(page.getByText("Up to 2 clinic team members")).toBeVisible();
+      await expect(page.getByText("Up to 5 clinic team members")).toBeVisible();
       await expect(
         page.getByText("Add clinic-specific instructions")
       ).toHaveCount(0);
@@ -219,6 +223,152 @@ test.describe("marketing conversion routes", () => {
       expect(footnoteStyle.fontSize).toBe("16px");
       expect(Number.parseInt(footnoteStyle.fontWeight, 10)).toBe(400);
       await expectNoHorizontalOverflow(page);
+    }
+  });
+
+  test("plan comparison stays collapsed and expands below the pricing cards", async ({
+    page,
+  }) => {
+    await page.goto(marketingUrl("/pricing"), { waitUntil: "load" });
+    const control = page.getByRole("button", {
+      name: "Compare all plan features",
+    });
+    const panel = page.locator("#plan-comparison-panel");
+    const essentialCard = page.locator("#plan-essential");
+    const practiceCard = page.locator("#plan-practice");
+
+    await expect(control).toBeVisible();
+    await expect(control).toHaveAttribute("aria-expanded", "false");
+    await expect(control).toHaveAttribute(
+      "aria-controls",
+      "plan-comparison-panel"
+    );
+    await expect(panel).toBeHidden();
+    await expect(page.getByText("Permanent guide URLs")).toHaveCount(0);
+    await expect(
+      essentialCard.getByText("QR sharing, PDF and durable patient guide URLs")
+    ).toBeVisible();
+    await expect(essentialCard.getByText("Print / Save PDF")).toHaveCount(0);
+    await expect(essentialCard.getByText("QR-ready sharing")).toHaveCount(0);
+
+    const essentialHeightClosed = await essentialCard.evaluate(
+      (element) => element.getBoundingClientRect().height
+    );
+    const practiceHeightClosed = await practiceCard.evaluate(
+      (element) => element.getBoundingClientRect().height
+    );
+    const essentialCtaTopClosed = await essentialCard
+      .getByRole("link", { name: "Request a demo" })
+      .evaluate((element) => element.getBoundingClientRect().top);
+    const practiceCtaTopClosed = await practiceCard
+      .getByRole("link", { name: "Request a demo" })
+      .evaluate((element) => element.getBoundingClientRect().top);
+
+    await control.click();
+    await expect(control).toHaveAttribute("aria-expanded", "true");
+    await expect(panel).toBeVisible();
+    await page.screenshot({
+      path: "test-results/artifacts/pricing-comparison-open-1440.png",
+      fullPage: true,
+    });
+    await expect(panel.getByText("Custom clinic guides")).toBeVisible();
+    await expect(
+      panel.locator(
+        '[data-comparison-row="custom-guides"] [data-plan="essential"]'
+      )
+    ).toContainText("Up to 2");
+    await expect(
+      panel.locator(
+        '[data-comparison-row="custom-guides"] [data-plan="practice"]'
+      )
+    ).toContainText("Up to 30");
+    await expect(
+      panel.locator(
+        '[data-comparison-row="clinic-team-members"] [data-plan="essential"]'
+      )
+    ).toContainText("Up to 2");
+    await expect(
+      panel.locator(
+        '[data-comparison-row="clinic-team-members"] [data-plan="practice"]'
+      )
+    ).toContainText("Up to 5");
+    await expect(
+      panel.locator(
+        '[data-comparison-row="adapt-templates"] [data-plan="essential"]'
+      )
+    ).toContainText("Not included");
+    await expect(
+      panel.locator(
+        '[data-comparison-row="adapt-templates"] [data-plan="practice"]'
+      )
+    ).toContainText("Included");
+    await expect(panel.getByText("Durable patient guide URLs")).toBeVisible();
+    await expect(panel.getByText("QR sharing")).toBeVisible();
+    await expect(panel.getByText("Print / Save PDF")).toBeVisible();
+    await expect(
+      panel.getByText("Clinic contact and emergency information")
+    ).toBeVisible();
+    await expect(
+      panel.getByText("Light / Dark / System patient presentation")
+    ).toBeVisible();
+    await expect(panel.getByText("central permissions")).toHaveCount(0);
+    await expect(panel.getByText("master guide governance")).toHaveCount(0);
+
+    const essentialHeightOpen = await essentialCard.evaluate(
+      (element) => element.getBoundingClientRect().height
+    );
+    const practiceHeightOpen = await practiceCard.evaluate(
+      (element) => element.getBoundingClientRect().height
+    );
+    expect(essentialHeightOpen).toBe(essentialHeightClosed);
+    expect(practiceHeightOpen).toBe(practiceHeightClosed);
+    const essentialCtaTopOpen = await essentialCard
+      .getByRole("link", { name: "Request a demo" })
+      .evaluate((element) => element.getBoundingClientRect().top);
+    const practiceCtaTopOpen = await practiceCard
+      .getByRole("link", { name: "Request a demo" })
+      .evaluate((element) => element.getBoundingClientRect().top);
+    expect(essentialCtaTopOpen).toBe(essentialCtaTopClosed);
+    expect(practiceCtaTopOpen).toBe(practiceCtaTopClosed);
+
+    await control.press("Enter");
+    await expect(control).toHaveAttribute("aria-expanded", "false");
+    await expect(panel).toBeHidden();
+
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 768, height: 1024 },
+      { width: 390, height: 844 },
+    ] as const) {
+      await page.setViewportSize(viewport);
+      await control.click();
+      await expect(panel).toBeVisible();
+      const controlBox = await control.boundingBox();
+      expect(controlBox, "comparison control should be visible").not.toBeNull();
+      expect(controlBox!.height).toBeGreaterThanOrEqual(44);
+      if (viewport.width >= 1024) {
+        await expect(panel.locator("thead")).toBeVisible();
+        await expect(
+          panel.locator('[data-plan-label="Essential"]').first()
+        ).toBeHidden();
+      } else {
+        await expect(
+          panel.locator('[data-plan-label="Essential"]').first()
+        ).toBeVisible();
+        await expect(
+          panel.locator('[data-plan-label="Practice"]').first()
+        ).toBeVisible();
+        await expect(
+          panel.locator('[data-plan-label="Group"]').first()
+        ).toBeVisible();
+      }
+      await expectNoHorizontalOverflow(page);
+      await page.screenshot({
+        path: `test-results/artifacts/pricing-comparison-open-${viewport.width}.png`,
+        fullPage: true,
+      });
+      await control.click();
+      await expect(panel).toBeHidden();
     }
   });
 

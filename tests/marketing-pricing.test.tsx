@@ -14,8 +14,13 @@ import MarketingPricingPage from "@/app/(marketing)/%5Fmarketing/pricing/page";
 import {
   formatAudInclGst,
   LAUNCH_PLANS,
+  PLAN_COMPARISON_CONTROL_LABEL,
+  PLAN_COMPARISON_PANEL_ID,
+  PLAN_COMPARISON_ROWS,
   PLAN_PRICES,
   PRICING_NOTES,
+  PRICING_SHARING_FEATURE_LABEL,
+  PRICING_TYPOGRAPHY_FEATURE_LABEL,
 } from "@/lib/marketing/plans";
 
 describe("marketing pricing page", () => {
@@ -70,6 +75,16 @@ describe("marketing pricing page", () => {
       "grid-template-columns: repeat(3, minmax(0, 1fr))"
     );
     expect(styles).toContain(".planFootnote");
+    expect(styles).toContain(".planCompare");
+    expect(styles).toContain(".planCompareTrigger");
+    expect(styles).toContain("min-height: 2.75rem");
+    const compareCss = styles.slice(
+      styles.indexOf(".planCompare {"),
+      styles.indexOf(".noteCard,")
+    );
+    expect(compareCss).not.toContain("overflow-x: auto");
+    expect(compareCss).not.toContain("overflow-x: scroll");
+    expect(compareCss).toContain("@media (min-width: 64rem)");
     const planFeaturesRule = styles.slice(
       styles.indexOf(".planFeatures {"),
       styles.indexOf(".planFeatures li")
@@ -133,6 +148,8 @@ describe("marketing pricing page", () => {
     expect(html).toContain("Create and edit up to 2 custom clinic guides");
     expect(html).not.toContain(">Up to 2 custom clinic guides<");
     expect(html).toContain("Up to 30 custom clinic guides");
+    expect(html).toContain("Up to 2 clinic team members");
+    expect(html).toContain("Up to 5 clinic team members");
     expect(html).not.toContain("active custom");
     expect(html).toContain(
       "Multi-location practice? Talk to us about your setup."
@@ -149,7 +166,14 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("Richer branding");
     expect(html).not.toContain("hide River Aftercare attribution");
     expect(html).not.toContain("Shared guides");
-    expect(html).toContain("Logo, colours and curated typography");
+    expect(html).toContain(PRICING_TYPOGRAPHY_FEATURE_LABEL);
+    expect(html).toContain(PRICING_SHARING_FEATURE_LABEL);
+    expect(html).toContain("Durable patient guide URLs");
+    expect(html).not.toContain("Permanent guide URLs");
+    expect(html).not.toContain("named seats");
+    expect(html).not.toContain("per-seat");
+    expect(html).not.toContain("extra seat");
+    expect(html).not.toContain("users billed separately");
     expect(html).toContain('id="pricing-typography-note"');
     expect(html).toContain("planFootnote");
     expect(html).toContain("planFootnoteRef");
@@ -204,15 +228,32 @@ describe("marketing pricing page", () => {
       html.indexOf('id="plan-practice"'),
       html.indexOf('id="plan-group"')
     );
-    const groupBlock = html.slice(html.indexOf('id="plan-group"'));
+    const groupBlock = html.slice(
+      html.indexOf('id="plan-group"'),
+      html.indexOf('id="pricing-typography-note"')
+    );
+    const comparisonBlock = html.slice(html.indexOf("data-mk-plan-comparison"));
     expect(essentialBlock).toContain("1 practice / location");
+    expect(essentialBlock).toContain("River Aftercare guide templates");
     expect(essentialBlock).toContain(
       "Create and edit up to 2 custom clinic guides"
     );
     expect(essentialBlock).not.toContain(">Up to 2 custom clinic guides<");
-    expect(essentialBlock).toContain("Logo, colours and curated typography");
+    expect(essentialBlock).toContain("Up to 2 clinic team members");
+    expect(essentialBlock).toContain(PRICING_TYPOGRAPHY_FEATURE_LABEL);
+    expect(essentialBlock).toContain(PRICING_SHARING_FEATURE_LABEL);
     expect(essentialBlock).toContain('<sup aria-hidden="true">*</sup>');
     expect(essentialBlock).toContain('href="#pricing-typography-note"');
+    expect(essentialBlock).not.toContain("Permanent guide URLs");
+    expect(essentialBlock).not.toContain("QR-ready sharing");
+    expect(essentialBlock).not.toContain("Print / Save PDF");
+    expect(essentialBlock).not.toContain(
+      "Clinic contact and emergency information"
+    );
+    expect(essentialBlock).not.toContain(
+      "Light, Dark and System patient presentation"
+    );
+    expect(essentialBlock).not.toContain("Branded patient aftercare pages");
     expect(essentialBlock).not.toContain("Patient check-ins");
     expect(essentialBlock).not.toContain("Connected aftercare");
     expect(essentialBlock).not.toContain("Additional locations");
@@ -221,6 +262,7 @@ describe("marketing pricing page", () => {
     expect(practiceBlock).toContain(
       "Adapt River Aftercare templates to suit your clinic"
     );
+    expect(practiceBlock).toContain("Up to 5 clinic team members");
     expect(practiceBlock).toContain("Assisted setup");
     expect(practiceBlock).not.toContain(
       "Create and edit your own aftercare guides"
@@ -229,7 +271,7 @@ describe("marketing pricing page", () => {
     expect(practiceBlock).not.toContain("Create and adapt clinic aftercare");
     expect(practiceBlock).not.toContain("Guide and section controls");
     expect(practiceBlock).not.toContain("Local clinic instructions");
-    expect(practiceBlock).not.toContain("Logo, colours and curated typography");
+    expect(practiceBlock).not.toContain(PRICING_TYPOGRAPHY_FEATURE_LABEL);
     expect(practiceBlock).toContain(
       "Multi-location practice? Talk to us about your setup."
     );
@@ -239,6 +281,38 @@ describe("marketing pricing page", () => {
     expect(groupBlock).toContain("Custom pricing");
     expect(groupBlock).not.toContain("A$");
     expect(groupBlock).toContain("Talk to us");
+    expect(groupBlock).toContain("Coordinated rollout across practices");
+    expect(groupBlock).toContain("Custom onboarding");
+    expect(groupBlock).toContain("Priority support");
+    expect(groupBlock).toContain("Tailored account setup");
+    expect(groupBlock).not.toContain("central permissions");
+    expect(groupBlock).not.toContain("master guide governance");
+    expect(html).toContain(PLAN_COMPARISON_CONTROL_LABEL);
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain(`aria-controls="${PLAN_COMPARISON_PANEL_ID}"`);
+    expect(html).toMatch(
+      new RegExp(`id="${PLAN_COMPARISON_PANEL_ID}"[^>]*\\bhidden\\b`)
+    );
+    expect(comparisonBlock).toContain("Custom clinic guides");
+    expect(comparisonBlock).toContain("Clinic team members");
+    expect(comparisonBlock).toContain("Up to 2");
+    expect(comparisonBlock).toContain("Up to 30");
+    expect(comparisonBlock).toContain("Up to 5");
+    expect(comparisonBlock).toContain("Not included");
+    expect(comparisonBlock).toContain("Print / Save PDF");
+    expect(comparisonBlock).toContain("QR sharing");
+    expect(comparisonBlock).toContain(
+      "Clinic contact and emergency information"
+    );
+    expect(comparisonBlock).toContain(
+      "Light / Dark / System patient presentation"
+    );
+    expect(comparisonBlock).toContain("Branded patient aftercare pages");
+    expect(comparisonBlock).toContain("Durable patient guide URLs");
+    expect(comparisonBlock).not.toContain("Permanent guide URLs");
+    expect(comparisonBlock).not.toContain("central permissions");
+    expect(comparisonBlock).not.toContain("master guide governance");
+    expect(comparisonBlock).not.toContain("named-seat");
   });
 
   it("includes the onboarding product-truth note as the final reveal item", async () => {
@@ -260,10 +334,12 @@ describe("canonical plan prices", () => {
     expect(PLAN_PRICES.essential.annualAudInclGst).toBe(790);
     expect(PLAN_PRICES.essential.includedLocations).toBe(1);
     expect(PLAN_PRICES.essential.customGuides).toBe(2);
+    expect(PLAN_PRICES.essential.clinicTeamMembers).toBe(2);
     expect(PLAN_PRICES.practice.monthlyAudInclGst).toBe(149);
     expect(PLAN_PRICES.practice.annualAudInclGst).toBe(1490);
     expect(PLAN_PRICES.practice.includedLocations).toBe(1);
     expect(PLAN_PRICES.practice.customGuides).toBe(30);
+    expect(PLAN_PRICES.practice.clinicTeamMembers).toBe(5);
     expect(PLAN_PRICES.practice.secondLocation.monthlyAudInclGst).toBe(79);
     expect(PLAN_PRICES.practice.secondLocation.annualAudInclGst).toBe(790);
     expect(PLAN_PRICES.practice.additionalLocation.monthlyAudInclGst).toBe(59);
@@ -283,13 +359,9 @@ describe("canonical plan prices", () => {
       "1 practice / location",
       "River Aftercare guide templates",
       "Create and edit up to 2 custom clinic guides",
-      "Branded patient aftercare pages",
-      "Logo, colours and curated typography",
-      "Permanent guide URLs",
-      "QR-ready sharing",
-      "Print / Save PDF",
-      "Clinic contact and emergency information",
-      "Light, Dark and System patient presentation",
+      "Up to 2 clinic team members",
+      "Clinic branding and curated typography",
+      "QR sharing, PDF and durable patient guide URLs",
     ]);
     expect(LAUNCH_PLANS[0].features).not.toContain(
       "Up to 2 custom clinic guides"
@@ -298,6 +370,7 @@ describe("canonical plan prices", () => {
       "Everything in Essential",
       "Up to 30 custom clinic guides",
       "Adapt River Aftercare templates to suit your clinic",
+      "Up to 5 clinic team members",
       "Assisted setup",
     ]);
     expect(LAUNCH_PLANS[1].features).not.toContain(
@@ -315,5 +388,72 @@ describe("canonical plan prices", () => {
       "Priority support",
       "Tailored account setup",
     ]);
+  });
+
+  it("keeps comparison rows aligned with advertised plan limits", () => {
+    const guides = PLAN_COMPARISON_ROWS.find(
+      (row) => row.id === "custom-guides"
+    );
+    const team = PLAN_COMPARISON_ROWS.find(
+      (row) => row.id === "clinic-team-members"
+    );
+    const adapt = PLAN_COMPARISON_ROWS.find(
+      (row) => row.id === "adapt-templates"
+    );
+    const locations = PLAN_COMPARISON_ROWS.find(
+      (row) => row.id === "locations"
+    );
+    const urls = PLAN_COMPARISON_ROWS.find((row) => row.id === "durable-urls");
+    const qr = PLAN_COMPARISON_ROWS.find((row) => row.id === "qr-sharing");
+    const pdf = PLAN_COMPARISON_ROWS.find((row) => row.id === "print-pdf");
+    const contact = PLAN_COMPARISON_ROWS.find(
+      (row) => row.id === "clinic-contact"
+    );
+    const theme = PLAN_COMPARISON_ROWS.find(
+      (row) => row.id === "patient-presentation"
+    );
+    const groupCopy = PLAN_COMPARISON_ROWS.map((row) => row.group.label).join(
+      "\n"
+    );
+
+    expect(guides?.essential.label).toBe(
+      `Up to ${PLAN_PRICES.essential.customGuides}`
+    );
+    expect(guides?.practice.label).toBe(
+      `Up to ${PLAN_PRICES.practice.customGuides}`
+    );
+    expect(team?.essential.label).toBe(
+      `Up to ${PLAN_PRICES.essential.clinicTeamMembers}`
+    );
+    expect(team?.practice.label).toBe(
+      `Up to ${PLAN_PRICES.practice.clinicTeamMembers}`
+    );
+    expect(locations?.essential.label).toBe(
+      String(PLAN_PRICES.essential.includedLocations)
+    );
+    expect(locations?.practice.label).toBe(
+      String(PLAN_PRICES.practice.includedLocations)
+    );
+    expect(adapt?.essential).toEqual({
+      kind: "not-included",
+      label: "Not included",
+    });
+    expect(adapt?.practice).toEqual({
+      kind: "included",
+      label: "Included",
+    });
+    expect(urls?.feature).toBe("Durable patient guide URLs");
+    expect(qr?.feature).toBe("QR sharing");
+    expect(pdf?.feature).toBe("Print / Save PDF");
+    expect(contact?.feature).toBe("Clinic contact and emergency information");
+    expect(theme?.feature).toBe("Light / Dark / System patient presentation");
+    expect(JSON.stringify(LAUNCH_PLANS)).not.toContain("Permanent guide URLs");
+    expect(JSON.stringify(PLAN_COMPARISON_ROWS)).not.toContain(
+      "Permanent guide URLs"
+    );
+    expect(groupCopy).not.toMatch(/central permissions/i);
+    expect(groupCopy).not.toMatch(/master guide governance/i);
+    expect(groupCopy).not.toMatch(/hierarchy/i);
+    expect(groupCopy).not.toMatch(/named-seat|per-seat|seats/i);
   });
 });
