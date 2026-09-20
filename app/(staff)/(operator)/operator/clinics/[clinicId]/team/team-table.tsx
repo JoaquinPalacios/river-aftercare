@@ -8,6 +8,7 @@ import {
   changeClinicMembershipRoleAction,
   removeClinicAccessAction,
   resendClinicInvitationAction,
+  updateClinicStaffMembershipStatusAction,
   type ClinicTeamActionState,
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/team/actions";
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
@@ -22,19 +23,21 @@ import type {
   ClinicTeamMember,
   ClinicTeamRow,
 } from "@/lib/operator/list-clinic-team";
+import { ClinicMembershipRole } from "@prisma/client";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 const empty: ClinicTeamActionState = {};
 const REMOVE_PENDING_STATUS = "Removing clinic access. Please wait.";
 const ROLE_PENDING_STATUS = "Saving role. Please wait.";
+const STATUS_PENDING_STATUS = "Updating membership status. Please wait.";
 
 function asDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value);
 }
 
 function statusLabel(row: ClinicTeamRow): string {
-  if (row.status === "active") {
-    return "Active";
+  if (row.kind === "member") {
+    return row.status === "active" ? "Active" : "Inactive";
   }
   if (row.status === "expired") {
     return "Invitation expired";
@@ -45,8 +48,16 @@ function statusLabel(row: ClinicTeamRow): string {
   return `Invitation pending · expires ${expires}`;
 }
 
-function statusTone(status: ClinicTeamRow["status"]): "success" | "warning" {
-  return status === "active" ? "success" : "warning";
+function statusTone(
+  status: ClinicTeamRow["status"]
+): "success" | "warning" | "inactive" {
+  if (status === "active") {
+    return "success";
+  }
+  if (status === "inactive") {
+    return "inactive";
+  }
+  return "warning";
 }
 
 function memberDisplayName(row: ClinicTeamMember): string {
@@ -73,11 +84,16 @@ export function ClinicTeamTable({
   const reactId = useId().replace(/:/g, "");
   const removeFormId = `remove-clinic-access-${reactId}`;
   const changeRoleFormId = `change-clinic-role-${reactId}`;
+  const statusFormId = `clinic-staff-status-${reactId}`;
   const changeRoleFieldId = `change-clinic-role-select-${reactId}`;
   const [removeTarget, setRemoveTarget] = useState<ClinicTeamMember | null>(
     null
   );
   const [roleTarget, setRoleTarget] = useState<ClinicTeamMember | null>(null);
+  const [statusTarget, setStatusTarget] = useState<ClinicTeamMember | null>(
+    null
+  );
+  const [statusActive, setStatusActive] = useState(false);
   const [selectedRole, setSelectedRole] = useState<InvitedClinicRole>("STAFF");
   const [resendState, resendAction, resending] = useActionState(
     resendClinicInvitationAction,
@@ -93,6 +109,10 @@ export function ClinicTeamTable({
   );
   const [changeRoleState, changeRoleAction, changingRole] = useActionState(
     changeClinicMembershipRoleAction,
+    empty
+  );
+  const [statusState, statusAction, changingStatus] = useActionState(
+    updateClinicStaffMembershipStatusAction,
     empty
   );
 
@@ -114,13 +134,21 @@ export function ClinicTeamTable({
     }
   }, [changeRoleState]);
 
+  useEffect(() => {
+    if (statusState.error) {
+      setStatusTarget(null);
+    }
+  }, [statusState]);
+
   const error =
     resendState.error ??
     cancelState.error ??
     removeState.error ??
-    changeRoleState.error;
+    changeRoleState.error ??
+    statusState.error;
   const success = resendState.success ?? cancelState.success;
-  const pending = resending || cancelling || removing || changingRole;
+  const pending =
+    resending || cancelling || removing || changingRole || changingStatus;
   const roleUnchanged = roleTarget !== null && selectedRole === roleTarget.role;
 
   if (rows.length === 0) {
@@ -161,6 +189,19 @@ export function ClinicTeamTable({
         />
         <input type="hidden" name="role" value={selectedRole} />
       </form>
+      <form id={statusFormId} action={statusAction} className="hidden">
+        <input type="hidden" name="clinicId" value={clinicId} />
+        <input
+          type="hidden"
+          name="membershipId"
+          value={statusTarget?.membershipId ?? ""}
+        />
+        <input
+          type="hidden"
+          name="active"
+          value={statusActive ? "true" : "false"}
+        />
+      </form>
       <div className="staffOperatorTableWrap">
         <table className="min-w-full text-left text-sm">
           <caption className="sr-only">Clinic team</caption>
@@ -178,6 +219,11 @@ export function ClinicTeamTable({
               <tr
                 key={`${row.kind}-${row.userId}`}
                 className="border-b border-staff-line last:border-0"
+                data-active={
+                  row.kind === "member" && row.status === "inactive"
+                    ? "false"
+                    : "true"
+                }
               >
                 <td className="max-w-[12rem] truncate px-4 py-3">
                   {row.name || "—"}
@@ -195,9 +241,11 @@ export function ClinicTeamTable({
                   >
                     {row.status === "active"
                       ? "Active"
-                      : row.status === "expired"
-                        ? "Invitation expired"
-                        : "Pending"}
+                      : row.status === "inactive"
+                        ? "Inactive"
+                        : row.status === "expired"
+                          ? "Invitation expired"
+                          : "Pending"}
                   </span>
                   {row.kind === "invitation" ? (
                     <p className="mt-1 text-xs text-staff-muted">
@@ -225,6 +273,23 @@ export function ClinicTeamTable({
                       >
                         Change role
                       </button>
+                      {row.role === ClinicMembershipRole.STAFF ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="staffOverflowItem"
+                          disabled={pending}
+                          onClick={(event) => {
+                            closeOverflowMenu(event.currentTarget);
+                            setRemoveTarget(null);
+                            setRoleTarget(null);
+                            setStatusActive(row.status !== "active");
+                            setStatusTarget(row);
+                          }}
+                        >
+                          {row.status === "active" ? "Deactivate" : "Activate"}
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         role="menuitem"
@@ -346,6 +411,64 @@ export function ClinicTeamTable({
           </div>
         ) : null}
       </ConfirmDialog>
+      <ConfirmDialog
+        open={statusTarget !== null && !statusActive}
+        title={
+          statusTarget ? `Deactivate ${memberDisplayName(statusTarget)}?` : ""
+        }
+        description={
+          statusTarget
+            ? `They will lose access to ${clinicName} until reactivated. Their ${PRODUCT_NAME} account is not deleted.`
+            : ""
+        }
+        cancelLabel="Cancel"
+        confirmLabel="Deactivate"
+        pending={changingStatus}
+        pendingLabel="Deactivating…"
+        pendingStatus={STATUS_PENDING_STATUS}
+        confirmTone="danger"
+        onCancel={() => {
+          if (changingStatus) {
+            return;
+          }
+          setStatusTarget(null);
+        }}
+        onConfirm={() => {
+          const form = document.getElementById(
+            statusFormId
+          ) as HTMLFormElement | null;
+          form?.requestSubmit();
+        }}
+      />
+      <ConfirmDialog
+        open={statusTarget !== null && statusActive}
+        title={
+          statusTarget ? `Activate ${memberDisplayName(statusTarget)}?` : ""
+        }
+        description={
+          statusTarget
+            ? `They will regain access to ${clinicName} with their existing membership.`
+            : ""
+        }
+        cancelLabel="Cancel"
+        confirmLabel="Activate"
+        pending={changingStatus}
+        pendingLabel="Activating…"
+        pendingStatus={STATUS_PENDING_STATUS}
+        confirmTone="primary"
+        onCancel={() => {
+          if (changingStatus) {
+            return;
+          }
+          setStatusTarget(null);
+        }}
+        onConfirm={() => {
+          const form = document.getElementById(
+            statusFormId
+          ) as HTMLFormElement | null;
+          form?.requestSubmit();
+        }}
+      />
     </div>
   );
 }

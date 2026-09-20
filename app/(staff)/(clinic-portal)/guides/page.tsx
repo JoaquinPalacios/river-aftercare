@@ -18,7 +18,9 @@ export const metadata: Metadata = {
 export default async function ClinicGuidesPage() {
   const { clinicMembership } = await requireStaffSession();
   const clinicId = clinicMembership.clinic.id;
-  const canManage = clinicMembership.role === ClinicMembershipRole.ADMIN;
+  const canManage =
+    clinicMembership.source === "operator_support" ||
+    clinicMembership.role === ClinicMembershipRole.ADMIN;
   const [overview, guides] = await Promise.all([
     getClinicPortalOverview(clinicId),
     listClinicPortalGuides(clinicId),

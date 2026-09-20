@@ -76,7 +76,10 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
         <GuideEditor
           guide={guide}
           patientUrlExample={patientUrlExample}
-          canEdit={clinicMembership.role === ClinicMembershipRole.ADMIN}
+          canEdit={
+            clinicMembership.source === "operator_support" ||
+            clinicMembership.role === ClinicMembershipRole.ADMIN
+          }
           requiresReviewAttestation={!isDemoTenant(overview?.slug ?? "")}
           clinicThemeMode={clinic?.profile?.themeMode}
           fontClassName={font.className}

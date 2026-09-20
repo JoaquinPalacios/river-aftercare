@@ -35,7 +35,9 @@ export default async function GuidePreviewPage({
 }: GuidePreviewPageProps) {
   const { guideId } = await params;
   const { clinicMembership } = await requireStaffSession();
-  const canEdit = clinicMembership.role === ClinicMembershipRole.ADMIN;
+  const canEdit =
+    clinicMembership.source === "operator_support" ||
+    clinicMembership.role === ClinicMembershipRole.ADMIN;
 
   try {
     const [guide, clinic] = await Promise.all([

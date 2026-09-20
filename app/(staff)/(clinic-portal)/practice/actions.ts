@@ -1,6 +1,8 @@
 "use server";
 
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
+import { isPlatformOperator } from "@/lib/auth/session";
+import { logInvitationLifecycle } from "@/lib/auth/invitation-lifecycle-log";
 import { isClinicPortalError } from "@/lib/clinic-portal/errors";
 import { practiceSettingsSchema } from "@/lib/clinic-portal/practice-settings-schema";
 import { updatePracticeSettings } from "@/lib/clinic-portal/update-practice-settings";
@@ -22,7 +24,7 @@ export async function savePracticeSettingsAction(
   _previous: PracticeActionState,
   formData: FormData
 ): Promise<PracticeActionState> {
-  const { clinicMembership } = await requireClinicAdmin();
+  const { user, clinicMembership } = await requireClinicAdmin();
   const parsed = practiceSettingsSchema.safeParse({
     displayName: formData.get("displayName") ?? "",
     logoUrl: formData.get("logoUrl") ?? "",
@@ -66,6 +68,13 @@ export async function savePracticeSettingsAction(
       clinicId: clinicMembership.clinic.id,
       values: parsed.data,
     });
+    if (isPlatformOperator(user)) {
+      logInvitationLifecycle({
+        event: "operator_clinic_settings_updated",
+        userId: user.id,
+        clinicId: clinicMembership.clinic.id,
+      });
+    }
     return { saved: true };
   } catch (error) {
     return { error: practiceError(error) };

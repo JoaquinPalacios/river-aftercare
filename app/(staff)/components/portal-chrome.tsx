@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { PortalAppearanceControl } from "@/app/(staff)/components/portal-appearance-control";
 import { StaffAccountPanel } from "@/app/(staff)/components/staff-account-panel";
+import { stopOperatorClinicSupportAction } from "@/app/(staff)/(operator)/operator/support-actions";
 import { ProductMark } from "@/lib/branding/product-mark";
 import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -16,6 +17,7 @@ export function PortalChrome({
   roleLabel,
   patientSiteHref,
   canManagePractice,
+  assistingClinicName = null,
   children,
 }: {
   displayName: string;
@@ -23,6 +25,7 @@ export function PortalChrome({
   roleLabel: string;
   patientSiteHref: string | null;
   canManagePractice: boolean;
+  assistingClinicName?: string | null;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -123,7 +126,22 @@ export function PortalChrome({
           </div>
         </header>
         <main className="staffAppScroller">
-          <div className="staffAppContent">{children}</div>
+          <div className="staffAppContent">
+            {assistingClinicName ? (
+              <div className="staffOperatorAssistBanner" role="status">
+                <p>
+                  Assisting {assistingClinicName} as a platform operator. Clinic
+                  data changes apply to this client only.
+                </p>
+                <form action={stopOperatorClinicSupportAction}>
+                  <button type="submit" className="staffBtn staffBtnQuiet">
+                    Back to All Clinics
+                  </button>
+                </form>
+              </div>
+            ) : null}
+            {children}
+          </div>
         </main>
       </div>
     </div>

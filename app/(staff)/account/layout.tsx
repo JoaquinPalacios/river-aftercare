@@ -5,12 +5,15 @@ import { PortalChrome } from "@/app/(staff)/components/portal-chrome";
 import { StaffAccountPanel } from "@/app/(staff)/components/staff-account-panel";
 import { requireAuthenticatedUser } from "@/lib/auth/require-authenticated-user";
 import {
-  getCurrentClinicMembership,
+  getAuthContext,
   isPlatformOperator,
   MultipleClinicMembershipsError,
 } from "@/lib/auth/session";
 import { getClinicPortalOverview } from "@/lib/clinic-portal/get-clinic-portal";
-import { clinicMembershipRoleLabel } from "@/lib/clinic-portal/role-labels";
+import {
+  clinicMembershipRoleLabel,
+  PLATFORM_OPERATOR_ROLE_LABEL,
+} from "@/lib/clinic-portal/role-labels";
 import { ProductMark } from "@/lib/branding/product-mark";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { PortalAppearanceControl } from "@/app/(staff)/components/portal-appearance-control";
@@ -25,7 +28,7 @@ export default async function AccountLayout({
 
   let clinicMembership = null;
   try {
-    clinicMembership = await getCurrentClinicMembership();
+    clinicMembership = (await getAuthContext()).clinicMembership;
   } catch (error) {
     if (!(error instanceof MultipleClinicMembershipsError)) {
       throw error;
@@ -35,13 +38,19 @@ export default async function AccountLayout({
   if (clinicMembership) {
     const overview = await getClinicPortalOverview(clinicMembership.clinic.id);
     const displayName = overview?.displayName ?? clinicMembership.clinic.name;
+    const assisting = clinicMembership.source === "operator_support";
     return (
       <PortalChrome
         displayName={displayName}
         userLabel={userLabel}
-        roleLabel={clinicMembershipRoleLabel(clinicMembership.role)}
+        roleLabel={
+          assisting
+            ? PLATFORM_OPERATOR_ROLE_LABEL
+            : clinicMembershipRoleLabel(clinicMembership.role)
+        }
         patientSiteHref={overview?.patientSiteHref ?? null}
-        canManagePractice={clinicMembership.role === "ADMIN"}
+        canManagePractice={assisting || clinicMembership.role === "ADMIN"}
+        assistingClinicName={assisting ? displayName : null}
       >
         {children}
       </PortalChrome>

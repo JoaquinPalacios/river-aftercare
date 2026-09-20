@@ -2,6 +2,8 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
+import type { PlatformRole } from "@prisma/client";
+
 import { authorizeClinicLogoMutation } from "@/lib/clinic-assets/authorize-clinic-logo";
 import { getClinicAssetStorage } from "@/lib/clinic-assets/get-clinic-asset-storage";
 import {
@@ -106,6 +108,7 @@ export async function uploadClinicBrandingAsset(input: {
   actorRole: "ADMIN" | "STAFF";
   actorClinicId: string;
   targetClinicId: string;
+  platformRole?: PlatformRole | "NONE" | "OPERATOR";
   bytes: Uint8Array;
   mimeType: string;
   fileName?: string;
@@ -115,6 +118,7 @@ export async function uploadClinicBrandingAsset(input: {
     role: input.actorRole,
     actorClinicId: input.actorClinicId,
     targetClinicId: input.targetClinicId,
+    platformRole: input.platformRole,
   });
   if (!authorized.ok) {
     throw new ClinicPortalError(copy.permission, "forbidden");
@@ -263,12 +267,14 @@ export async function removeClinicBrandingAsset(input: {
   actorRole: "ADMIN" | "STAFF";
   actorClinicId: string;
   targetClinicId: string;
+  platformRole?: PlatformRole | "NONE" | "OPERATOR";
 }): Promise<void> {
   const copy = FIELD_COPY[input.field];
   const authorized = authorizeClinicLogoMutation({
     role: input.actorRole,
     actorClinicId: input.actorClinicId,
     targetClinicId: input.targetClinicId,
+    platformRole: input.platformRole,
   });
   if (!authorized.ok) {
     throw new ClinicPortalError(copy.permission, "forbidden");
@@ -322,6 +328,7 @@ export async function uploadClinicLogo(input: {
   actorRole: "ADMIN" | "STAFF";
   actorClinicId: string;
   targetClinicId: string;
+  platformRole?: PlatformRole | "NONE" | "OPERATOR";
   bytes: Uint8Array;
   mimeType: string;
   fileName?: string;
@@ -340,6 +347,7 @@ export async function removeClinicLogo(input: {
   actorRole: "ADMIN" | "STAFF";
   actorClinicId: string;
   targetClinicId: string;
+  platformRole?: PlatformRole | "NONE" | "OPERATOR";
 }): Promise<void> {
   await removeClinicBrandingAsset({
     ...input,
@@ -351,6 +359,7 @@ export async function uploadClinicDarkLogo(input: {
   actorRole: "ADMIN" | "STAFF";
   actorClinicId: string;
   targetClinicId: string;
+  platformRole?: PlatformRole | "NONE" | "OPERATOR";
   bytes: Uint8Array;
   mimeType: string;
   fileName?: string;
@@ -369,6 +378,7 @@ export async function removeClinicDarkLogo(input: {
   actorRole: "ADMIN" | "STAFF";
   actorClinicId: string;
   targetClinicId: string;
+  platformRole?: PlatformRole | "NONE" | "OPERATOR";
 }): Promise<void> {
   await removeClinicBrandingAsset({
     ...input,
@@ -380,6 +390,7 @@ export async function uploadClinicFavicon(input: {
   actorRole: "ADMIN" | "STAFF";
   actorClinicId: string;
   targetClinicId: string;
+  platformRole?: PlatformRole | "NONE" | "OPERATOR";
   bytes: Uint8Array;
   mimeType: string;
   fileName?: string;
@@ -398,6 +409,7 @@ export async function removeClinicFavicon(input: {
   actorRole: "ADMIN" | "STAFF";
   actorClinicId: string;
   targetClinicId: string;
+  platformRole?: PlatformRole | "NONE" | "OPERATOR";
 }): Promise<void> {
   await removeClinicBrandingAsset({
     ...input,
