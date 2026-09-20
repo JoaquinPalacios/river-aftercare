@@ -1,8 +1,8 @@
 browser=webkit
-clinicFaviconPath=/clinic-branding/clinic_demo_rivers/1d8fa456-2fe8-4f2c-88d2-40f549f9cad3.png
+clinicFaviconPath=/clinic-branding/clinic_demo_rivers/b353504e-676b-4d34-abea-86c718e0e69e.png
 clinicFaviconStatus=200
 clinicFaviconContentType=image/png
 targetInfo.faviconUrl=(null or unavailable)
 pageRequests:
 http://demodental.localhost:4173/favicons/site.webmanifest
-explicitGET http://demodental.localhost:4173/clinic-branding/clinic_demo_rivers/1d8fa456-2fe8-4f2c-88d2-40f549f9cad3.png 200
+explicitGET http://demodental.localhost:4173/clinic-branding/clinic_demo_rivers/b353504e-676b-4d34-abea-86c718e0e69e.png 200
