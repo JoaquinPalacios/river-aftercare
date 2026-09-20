@@ -74,6 +74,13 @@ test.describe("marketing conversion routes", () => {
       page.getByText("Adapt River Aftercare templates to suit your clinic")
     ).toBeVisible();
     await expect(page.getByText("Assisted setup")).toBeVisible();
+    const essentialCard = page.locator('[data-plan-card="essential"]');
+    const practiceCard = page.locator('[data-plan-card="practice"]');
+    const groupCard = page.locator('[data-plan-card="group"]');
+    await expect(practiceCard.getByText("Priority support")).toBeVisible();
+    await expect(groupCard.getByText("Priority support")).toBeVisible();
+    await expect(essentialCard.getByText("Standard support")).toHaveCount(0);
+    await expect(essentialCard.getByText("Priority support")).toHaveCount(0);
     await expect(page.getByText("Up to 2 clinic team members")).toBeVisible();
     await expect(page.getByText("Up to 5 clinic team members")).toBeVisible();
     await expect(
@@ -203,6 +210,17 @@ test.describe("marketing conversion routes", () => {
         page.getByText("Adapt River Aftercare templates to suit your clinic")
       ).toBeVisible();
       await expect(page.getByText("Assisted setup")).toBeVisible();
+      await expect(
+        page.locator('[data-plan-card="practice"]').getByText("Priority support")
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-plan-card="group"]').getByText("Priority support")
+      ).toBeVisible();
+      await expect(
+        page
+          .locator('[data-plan-card="essential"]')
+          .getByText("Standard support")
+      ).toHaveCount(0);
       await expect(page.getByText("Up to 2 clinic team members")).toBeVisible();
       await expect(page.getByText("Up to 5 clinic team members")).toBeVisible();
       await expect(
@@ -320,6 +338,21 @@ test.describe("marketing conversion routes", () => {
     await expect(
       panel.getByText("Light / Dark / System patient presentation")
     ).toBeVisible();
+    const supportRow = panel.locator('[data-comparison-row="support"]');
+    await expect(supportRow.getByRole("rowheader")).toHaveText("Support");
+    await expect(
+      supportRow.locator('[data-plan="essential"]')
+    ).toContainText("Standard support");
+    await expect(
+      supportRow.locator('[data-plan="practice"]')
+    ).toContainText("Priority support");
+    await expect(
+      supportRow.locator('[data-plan="group"]')
+    ).toContainText("Priority support");
+    await expect(supportRow.locator("svg")).toHaveCount(0);
+    await expect(
+      panel.locator('[data-comparison-row="priority-support"]')
+    ).toHaveCount(0);
     await expect(panel.getByText("central permissions")).toHaveCount(0);
     await expect(panel.getByText("master guide governance")).toHaveCount(0);
 
@@ -368,6 +401,15 @@ test.describe("marketing conversion routes", () => {
         ).toBeVisible();
       }
       await expectNoHorizontalOverflow(page);
+      await expect(
+        panel.locator('[data-comparison-row="support"] [data-plan="essential"]')
+      ).toContainText("Standard support");
+      await expect(
+        panel.locator('[data-comparison-row="support"] [data-plan="practice"]')
+      ).toContainText("Priority support");
+      await expect(
+        panel.locator('[data-comparison-row="support"] [data-plan="group"]')
+      ).toContainText("Priority support");
       await page.screenshot({
         path: `test-results/artifacts/pricing-comparison-open-${viewport.width}.png`,
         fullPage: true,
