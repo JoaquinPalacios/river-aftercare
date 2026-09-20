@@ -12,6 +12,7 @@ export const STAFF_PATH_PREFIXES = [
   "/display",
   "/api/auth",
   "/api/ui-theme",
+  "/api/health",
 ] as const;
 
 export const MARKETING_PAGE_PATHS = [
@@ -60,12 +61,22 @@ export function isMarketingCrawlPath(pathname: string): boolean {
   return (MARKETING_CRAWL_PATHS as readonly string[]).includes(pathname);
 }
 
+export function isMarketingBlockedPath(pathname: string): boolean {
+  return (
+    isStaffPath(pathname) || pathname === "/api" || pathname.startsWith("/api/")
+  );
+}
+
 export function marketingRewritePath(pathname: string): string | null {
-  if (!isMarketingPagePath(pathname)) {
+  if (isMarketingPagePath(pathname)) {
+    return pathname === "/" ? "/_marketing" : `/_marketing${pathname}`;
+  }
+
+  if (isMarketingCrawlPath(pathname) || isMarketingBlockedPath(pathname)) {
     return null;
   }
 
-  return pathname === "/" ? "/_marketing" : `/_marketing${pathname}`;
+  return `/_marketing${pathname}`;
 }
 
 export function normalizePathname(pathname: string): string {

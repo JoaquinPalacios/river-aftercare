@@ -183,6 +183,29 @@ describe("proxy", () => {
     expect(rewrittenUrl(contact)).toBeNull();
   });
 
+  it("rewrites unknown marketing pages so Next.js can render a branded 404", () => {
+    const response = proxy(
+      requestFor("http://localhost:3000/this-does-not-exist")
+    );
+    expect(response.status).toBe(200);
+    expect(rewrittenUrl(response)?.pathname).toBe(
+      "/_marketing/this-does-not-exist"
+    );
+  });
+
+  it("lets the app staff host reach /api/health and blocks it elsewhere", () => {
+    const staff = proxy(requestFor("http://app.localhost:3000/api/health"));
+    expect(staff.status).toBe(200);
+    expect(rewrittenUrl(staff)).toBeNull();
+
+    expect(proxy(requestFor("http://localhost:3000/api/health")).status).toBe(
+      404
+    );
+    expect(
+      proxy(requestFor("http://demodental.localhost:3000/api/health")).status
+    ).toBe(404);
+  });
+
   it("lets the app staff host pass through", () => {
     const response = proxy(requestFor("http://app.localhost:3000/login"));
     expect(response.status).toBe(200);

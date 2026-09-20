@@ -54,3 +54,9 @@ Until then, keep extracting **modules**, not processes. Do not add MCP, GraphQL,
 ## Schema releases
 
 Vercel automatic Production deployments from `main` stay **enabled**. Vercel deploys application code. It does **not** apply Prisma migrations. On Production builds the schema gate runs `prisma migrate status` (through runtime `DATABASE_URL`) and fails if migrations are pending; that is intentional. Human-approved schema apply uses unpooled `DIRECT_URL` from a local `.env.neon-production` file (`pnpm prod:db:status` / `pnpm prod:db:migrate -- --apply` / `pnpm prod:db:verify`), then the **same SHA** is redeployed. Do not add `DIRECT_URL` to Vercel for ordinary runtime. See [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md) and [ADR 0025](../adr/0025-migrate-before-promote.md).
+
+## Errors, 404s, and health
+
+Host-aware fallbacks live next to each root layout: `error.tsx`, `not-found.tsx`, and `global-error.tsx` under `(marketing)`, `(staff)`, and `(aftercare)`. Copy is generic. Pages do not render Prisma/Neon/Vercel detail or error digests. Fallback components must not call `getPrisma`, clinic profile, R2, or membership lookup.
+
+`GET` / `HEAD` `/api/health` is staff-host only (`isStaffAppHost`). Healthy: HTTP 200 `{ "status": "ok" }`. Unhealthy: HTTP 503 `{ "status": "unavailable" }` plus a `health_database_unavailable` log event without connection text. The probe is `SELECT 1` through `getPrisma()` (pooled `DATABASE_URL`). It is not a schema-drift check. See [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READINESS.md).
