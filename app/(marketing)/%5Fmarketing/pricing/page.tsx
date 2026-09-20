@@ -15,7 +15,7 @@ import {
   GUIDE_AVAILABILITY_NOTE,
   LAUNCH_PLANS,
   ONBOARDING_STEPS,
-  PRICING_GST_LABEL,
+  PRICING_CURRENCY_LABEL,
   PRICING_NOTES,
   PRICING_TYPOGRAPHY_FEATURE_LABEL,
   PRICING_TYPOGRAPHY_FOOTNOTE_ID,
@@ -67,7 +67,7 @@ export default async function MarketingPricingPage() {
                     <p className={styles.copy}>
                       Durable aftercare URLs under the clinic brand, so staff
                       are not left maintaining awkward PDFs and scattered web
-                      pages. {PRICING_GST_LABEL}
+                      pages. {PRICING_CURRENCY_LABEL}
                     </p>
                   </MarketingRevealItem>
                 </MarketingRevealGroup>

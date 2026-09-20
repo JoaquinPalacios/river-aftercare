@@ -28,4 +28,4 @@ A raw `seo.json` file or an operator JSON-LD textarea would turn the control pla
 ## Notes for later implementation
 
 - A dedicated 1200×630 OG image is still required; do not stretch brand marks. Operators upload it through SEO & Discovery into `PlatformSeoSettings.defaultOgImagePath`.
-- Production pricing is now final. `/pricing` may emit GST-inclusive Essential and Practice `Offer` markup in AUD. Do not emit a numeric Group offer or an internal Group floor.
+- Production pricing is now final. `/pricing` may emit Essential and Practice `Offer` markup in AUD. Do not emit `valueAddedTaxIncluded: true` while GST registration is unconfirmed. Do not emit a numeric Group offer or an internal Group floor.

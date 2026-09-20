@@ -100,7 +100,7 @@ describe("marketing JSON-LD", () => {
     expect(JSON.stringify(terms)).not.toContain("MedicalWebPage");
   });
 
-  it("publishes GST-inclusive Essential and Practice offers on the pricing page only", () => {
+  it("publishes Essential and Practice offers on the pricing page only without a GST-included claim", () => {
     const pricing = buildMarketingJsonLdGraph(
       resolveMarketingSeo({ path: "/pricing", origin: "https://example.test" }),
       "https://example.test"
@@ -134,11 +134,19 @@ describe("marketing JSON-LD", () => {
     expect(offers.map((offer) => offer.price)).not.toContain("590");
     expect(offers.every((offer) => offer.priceCurrency === "AUD")).toBe(true);
     expect(
+      offers.map((offer) => {
+        const spec = offer.priceSpecification as Record<string, unknown>;
+        return spec.billingDuration;
+      })
+    ).toEqual(["P1M", "P1Y", "P1M", "P1Y"]);
+    expect(
       offers.every((offer) => {
         const spec = offer.priceSpecification as Record<string, unknown>;
-        return spec.valueAddedTaxIncluded === true;
+        return spec.valueAddedTaxIncluded === undefined;
       })
     ).toBe(true);
+    expect(serialized).not.toContain("valueAddedTaxIncluded");
+    expect(serialized).not.toContain("taxRate");
     expect(serialized).not.toContain("298");
     expect(offers.some((offer) => String(offer.name).includes("Group"))).toBe(
       false

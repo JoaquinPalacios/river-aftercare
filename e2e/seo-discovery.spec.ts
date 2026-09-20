@@ -147,9 +147,10 @@ test.describe("Phase 2B SEO and discovery", () => {
       "1490",
     ]);
     expect(offers?.every((offer) => offer.priceCurrency === "AUD")).toBe(true);
+    expect(pricingLd).not.toContain("valueAddedTaxIncluded");
     expect(
       offers?.every(
-        (offer) => offer.priceSpecification?.valueAddedTaxIncluded === true
+        (offer) => offer.priceSpecification?.valueAddedTaxIncluded === undefined
       )
     ).toBe(true);
     expect(pricingLd).not.toContain("298");

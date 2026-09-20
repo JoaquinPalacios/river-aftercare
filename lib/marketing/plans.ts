@@ -2,7 +2,12 @@ import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 export const PRICING_CURRENCY = "AUD";
 
-/** Canonical GST-inclusive Australian dollar amounts. Do not copy these literals elsewhere. */
+/**
+ * Canonical advertised Australian dollar amounts. Do not copy these literals
+ * elsewhere. These amounts are not a GST-inclusive claim: GST registration is
+ * pending accountant confirmation, and public copy must not say prices include
+ * GST.
+ */
 export const PLAN_PRICES = {
   essential: {
     monthlyAudInclGst: 79,
@@ -45,7 +50,7 @@ const practiceMonthly = formatAudInclGst(
 );
 const practiceAnnual = formatAudInclGst(PLAN_PRICES.practice.annualAudInclGst);
 
-export const PRICING_GST_LABEL = "All prices include GST.";
+export const PRICING_CURRENCY_LABEL = "All prices are in Australian dollars.";
 
 export const PRICING_TYPOGRAPHY_FEATURE_LABEL =
   "Logo, colours and curated typography";
@@ -126,10 +131,6 @@ export const LAUNCH_PLANS = [
 ] as const;
 
 export const PRICING_NOTES = [
-  {
-    title: "GST included",
-    body: "All advertised prices are in Australian dollars and include GST.",
-  },
   {
     title: "Annual billing",
     body: "Annual plans include 12 months for the price of 10.",

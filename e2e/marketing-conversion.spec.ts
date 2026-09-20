@@ -88,7 +88,11 @@ test.describe("marketing conversion routes", () => {
     await expect(page.getByText("Custom pricing")).toBeVisible();
     await expect(page.getByText("Recommended")).toBeVisible();
     await expect(page.getByText("Coming after launch")).toHaveCount(0);
-    await expect(page.getByText("All prices include GST.")).toBeVisible();
+    await expect(
+      page.getByText("All prices are in Australian dollars.")
+    ).toBeVisible();
+    await expect(page.getByText("All prices include GST.")).toHaveCount(0);
+    await expect(page.getByText("GST included")).toHaveCount(0);
     await expect(page.getByText("Second location:")).toHaveCount(0);
     await expect(page.getByText("A$59")).toHaveCount(0);
     await expect(page.getByText("A$590")).toHaveCount(0);

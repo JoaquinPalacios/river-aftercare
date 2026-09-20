@@ -15,6 +15,7 @@ import {
   formatAudInclGst,
   LAUNCH_PLANS,
   PLAN_PRICES,
+  PRICING_NOTES,
 } from "@/lib/marketing/plans";
 
 describe("marketing pricing page", () => {
@@ -61,6 +62,13 @@ describe("marketing pricing page", () => {
       "--mk-intro-content-gap: clamp(1.25rem, 2vw, 1.5rem)"
     );
     expect(styles).toContain(".noteCard");
+    const noteGridRule = styles.slice(
+      styles.indexOf("  .noteGrid {"),
+      styles.indexOf("  .contactFormRow {")
+    );
+    expect(noteGridRule).toContain(
+      "grid-template-columns: repeat(3, minmax(0, 1fr))"
+    );
     expect(styles).toContain(".planFootnote");
     const planFeaturesRule = styles.slice(
       styles.indexOf(".planFeatures {"),
@@ -106,7 +114,14 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain(
       formatAudInclGst(PLAN_PRICES.practice.additionalLocation.annualAudInclGst)
     );
-    expect(html).toContain("All prices include GST.");
+    expect(html).toContain("All prices are in Australian dollars.");
+    expect(html).not.toContain("All prices include GST.");
+    expect(html).not.toContain("GST included");
+    expect(html).not.toContain("include GST");
+    expect(html).not.toContain("includes GST");
+    expect(html).not.toContain("plus GST");
+    expect(html).not.toMatch(/\bGST\b/);
+    expect(html).toContain("2 months free");
     expect(html).toContain("12 months for the price of 10");
     expect(html).toContain("Custom pricing");
     expect(html).toContain("Recommended");
@@ -240,7 +255,7 @@ describe("marketing pricing page", () => {
 });
 
 describe("canonical plan prices", () => {
-  it("keeps GST-inclusive production amounts in one source", () => {
+  it("keeps advertised production amounts in one source", () => {
     expect(PLAN_PRICES.essential.monthlyAudInclGst).toBe(79);
     expect(PLAN_PRICES.essential.annualAudInclGst).toBe(790);
     expect(PLAN_PRICES.essential.includedLocations).toBe(1);
@@ -255,6 +270,12 @@ describe("canonical plan prices", () => {
     expect(PLAN_PRICES.practice.additionalLocation.annualAudInclGst).toBe(590);
     expect(formatAudInclGst(1490)).toBe("A$1,490");
     expect(JSON.stringify(PLAN_PRICES)).not.toContain("298");
+    expect(PRICING_NOTES.map((note) => note.title)).toEqual([
+      "Annual billing",
+      "Assisted onboarding",
+      "Current product scope",
+    ]);
+    expect(JSON.stringify(PRICING_NOTES)).not.toMatch(/GST/i);
   });
 
   it("describes Essential custom-guide authoring and Practice template adaptation", () => {

@@ -88,7 +88,7 @@ export function buildWebsiteJsonLd(
   };
 }
 
-function gstInclusiveOffer(input: {
+function pricingOffer(input: {
   name: string;
   price: number;
   billingDuration: "P1M" | "P1Y";
@@ -105,7 +105,6 @@ function gstInclusiveOffer(input: {
       "@type": "UnitPriceSpecification",
       price,
       priceCurrency: PRICING_CURRENCY,
-      valueAddedTaxIncluded: true,
       billingDuration: input.billingDuration,
     },
   };
@@ -115,25 +114,25 @@ export function buildPricingOffers(
   origin = marketingSiteOrigin()
 ): JsonLdNode[] {
   return [
-    gstInclusiveOffer({
+    pricingOffer({
       name: "Essential monthly",
       price: PLAN_PRICES.essential.monthlyAudInclGst,
       billingDuration: "P1M",
       origin,
     }),
-    gstInclusiveOffer({
+    pricingOffer({
       name: "Essential yearly",
       price: PLAN_PRICES.essential.annualAudInclGst,
       billingDuration: "P1Y",
       origin,
     }),
-    gstInclusiveOffer({
+    pricingOffer({
       name: "Practice monthly",
       price: PLAN_PRICES.practice.monthlyAudInclGst,
       billingDuration: "P1M",
       origin,
     }),
-    gstInclusiveOffer({
+    pricingOffer({
       name: "Practice yearly",
       price: PLAN_PRICES.practice.annualAudInclGst,
       billingDuration: "P1Y",
