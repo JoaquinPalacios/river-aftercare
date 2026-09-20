@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-20 (verify-first email change, operator support-context safety)
+Last updated: 2026-09-20 (E2E baseline: scoped pricing locators, patient CSS core vs typeface catalogue)
 
 ## Durable production release rule
 
@@ -1952,3 +1952,19 @@ Authenticated staff/operator work only. No marketing, branding, or pricing chang
 | Login              | Counts `active: true` memberships only. 1 active + 1 inactive can sign in. 2 active still 409.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 See [AUTH.md](../architecture/AUTH.md), [CLINIC-PORTAL.md](../architecture/CLINIC-PORTAL.md), [PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md).
+
+---
+
+## E2E baseline repair (2026-09-20)
+
+Main `a7164f1` full Playwright: **241 tests, 237 passed, 4 failed**. No production copy changes.
+
+| Failure                                                          | Cause                                                                                                                                                               | Fix                                                                                                                                                          |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `e2e/marketing-conversion.spec.ts` pricing host + viewport cards | `getByText("Assisted setup")` strict-mode match of Practice card `<li>`, comparison `<th>`, and eyebrow “Clear pricing, assisted setup”                             | Scope to `data-plan-card="practice"` `getByRole("listitem", { name: "Assisted setup" })`. Essential/Group cards must not have that bullet.                   |
+| Same spec, metadata titles                                       | Description regex `/clinics and practices/` vs approved Pricing meta                                                                                                | Exact `PRICING_METADATA.description` from `lib/marketing/metadata.ts` (canonical `lib/seo/defaults.ts`). Do not change production metadata.                  |
+| `e2e/performance.spec.ts` tenant CSS raw 70,410 vs 26,000        | 26,000 was Geist + patient UI. Clinic typeface `@font-face` catalogue is ~41,965 of the inventory. Dark-logo CSS is ~1.3 KB inside core UI, not the dominant delta. | Split the assertion: core patient CSS ≤ 31,000 raw / 6,500 gzip / 6,000 Brotli; catalogue ≤ 46,000 raw. Assert unused clinic WOFF2 files are not downloaded. |
+
+Typeface architecture: six allow-listed `next/font` families in `lib/branding/clinic-fonts.ts`, `preload: false`. The tenant layout selects one family at request time. Next.js still emits every statically reachable `@font-face` into the tenant CSS graph, so per-family dynamic import still `<link>`s the whole catalogue and adds stylesheet requests. Font _files_ are fetched only for the applied family (Geist default: 1 WOFF2; Inter selected: 1 Inter WOFF2). Do not drop supported fonts to pass the budget.
+
+Canonical performance write-up: [PERFORMANCE.md](../architecture/PERFORMANCE.md) “Patient CSS budget after clinic typefaces”.

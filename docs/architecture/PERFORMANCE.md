@@ -1161,3 +1161,41 @@ Practice/editor grew from logo-upload UI and editor More actions. Patient demo i
 No new UI library. Patient still does not import Tailwind. Shared `app/interaction.css` is a small duration/easing/focus token sheet imported by marketing, staff, and aftercare.
 
 Patient CSS grew for hover/focus/active rules that match the staff/marketing interaction contract while keeping clinic `--cg-*` colours. Playwright tenant CSS budget is now **26,000** raw (was 22,500). Gzip ≤ 6,500 and Brotli ≤ 6,000 are unchanged.
+
+## Patient CSS budget after clinic typefaces — 2026-09-20
+
+The Phase 2A.5 **26,000 raw** ceiling measured Geist + aftercare tokens + patient UI. It did not include the later curated clinic typeface catalogue (`ClinicProfile.typeface`, six `next/font` families, `preload: false`).
+
+On main `a7164f1` (`next build` + tenant `demodental/`):
+
+| Part                                                                                                                                  |        Raw | gzip-9 | Brotli q11 |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ---------: | -----: | ---------: |
+| Core patient CSS (Geist `@font-face`, aftercare/interaction tokens, `patient.module.css` including Dark-logo rules)                   |     28,445 |  5,358 |      4,725 |
+| Clinic typeface catalogue (`@font-face` + `--font-clinic-*` variable classes for Open Sans, Roboto, Montserrat, Lato, Poppins, Inter) |     41,965 |  3,483 |      2,764 |
+| **Total stylesheet inventory**                                                                                                        | **70,410** |        |            |
+
+Chunks: `1zdc5e_fqikvm.css` 58,933 (patient UI mixed with the catalogue), `0mtpzbiufqvi7.css` 7,764 (aftercare/interaction), `1gwx4mw96cj4_.css` 3,713 (Geist).
+
+Why the historical 26,000 metric stopped matching its intent:
+
+- It summed every stylesheet on the tenant document.
+- The catalogue is `@font-face` declarations, not patient layout rules.
+- Next.js collects CSS from every `next/font` loader statically reachable from the tenant layout. A runtime `clinicFontPresentation()` switch cannot omit unused family CSS from that layout's stylesheet graph without leaving `next/font`.
+- Dynamic per-family modules still `<link>` every family CSS file, and add extra stylesheet requests, so that split was not shipped.
+
+Network for a Geist default tenant (Playwright Chromium, `networkidle`):
+
+- Stylesheet inventory: 70,410 raw (three files).
+- Font files requested: **one** Geist latin WOFF2. Unselected clinic WOFF2 files are not fetched.
+- Inter-selected tenant: **one** Inter latin WOFF2. Other catalogue binaries stay unused.
+
+Playwright now enforces:
+
+| Metric                      | Ceiling | Rationale                                                                                                                   |
+| --------------------------- | ------: | --------------------------------------------------------------------------------------------------------------------------- |
+| Core patient CSS raw        |  31,000 | Measured 28,445 plus modest headroom for Dark-logo / UI CSS. Fails if patient layout CSS bloats.                            |
+| Core patient CSS gzip-9     |   6,500 | Historical compressed ceiling, still valid for core.                                                                        |
+| Core patient CSS Brotli q11 |   6,000 | Historical compressed ceiling, still valid for core.                                                                        |
+| Typeface catalogue CSS raw  |  46,000 | Measured 41,965 plus modest headroom. Fails if the allow-list grows without review. Do not drop supported families to pass. |
+
+The test also asserts the six curated families remain in the catalogue CSS and that the default Geist tenant does not download those font files. Gzip/Brotli are applied to **core** CSS, not to the combined 70 KB inventory.
