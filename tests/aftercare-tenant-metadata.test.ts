@@ -15,7 +15,11 @@ import {
   clinicThemeColorViewport,
   publicTenantCanonicalUrl,
 } from "@/lib/aftercare/tenant-metadata";
-import { PRODUCT_FAVICON_32_SRC } from "@/lib/branding/product-assets";
+import {
+  PRODUCT_FAVICON_32_SRC,
+  PRODUCT_FAVICON_ICO_SRC,
+} from "@/lib/branding/product-assets";
+import { PRODUCT_ICON_HREFS } from "@/lib/seo/icons";
 
 describe("tenant metadata helpers", () => {
   it("builds a public hostname canonical URL", async () => {
@@ -39,19 +43,20 @@ describe("tenant metadata helpers", () => {
       "clinics/clinic_a/branding/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
     );
     const fallback = clinicFaviconMetadata(null);
-    const icons = Array.isArray(clinic.icons)
-      ? clinic.icons
-      : clinic.icons &&
-          typeof clinic.icons === "object" &&
-          "icon" in clinic.icons
-        ? clinic.icons.icon
-        : [];
-    const urls = JSON.stringify(clinic);
-    expect(urls).toContain(
+    const clinicJson = JSON.stringify(clinic);
+    const fallbackJson = JSON.stringify(fallback);
+
+    expect(clinicJson).toContain(
       "/clinic-branding/clinic_a/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
     );
-    expect(urls).not.toContain("clinic_b");
-    expect(JSON.stringify(fallback)).toContain(PRODUCT_FAVICON_32_SRC);
+    expect(clinicJson).not.toContain("clinic_b");
+    expect(clinicJson).not.toContain("/favicon.ico");
+    for (const href of PRODUCT_ICON_HREFS) {
+      expect(clinicJson).not.toContain(href);
+    }
+    expect(clinicJson).toContain("apple");
+    expect(fallbackJson).toContain(PRODUCT_FAVICON_32_SRC);
+    expect(fallbackJson).toContain(PRODUCT_FAVICON_ICO_SRC);
 
     const replaced = clinicFaviconMetadata(
       "clinics/clinic_a/branding/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.png"
@@ -62,7 +67,6 @@ describe("tenant metadata helpers", () => {
     expect(JSON.stringify(replaced)).not.toContain(
       "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
     );
-    expect(icons).toBeTruthy();
   });
 
   it("adds clinic theme-color and favicon to patient page metadata", () => {

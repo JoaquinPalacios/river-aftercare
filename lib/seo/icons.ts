@@ -47,3 +47,17 @@ export const PRODUCT_HEAD_METADATA = {
   icons: PRODUCT_ICONS,
   manifest: PRODUCT_WEB_MANIFEST_SRC,
 } as const satisfies Pick<Metadata, "icons" | "manifest">;
+
+export const PRODUCT_ICON_HREFS = [
+  PRODUCT_FAVICON_ICO_SRC,
+  PRODUCT_FAVICON_16_SRC,
+  PRODUCT_FAVICON_32_SRC,
+  PRODUCT_ANDROID_CHROME_192_SRC,
+  PRODUCT_ANDROID_CHROME_512_SRC,
+  PRODUCT_APPLE_TOUCH_ICON_SRC,
+] as const;
+
+export function isProductIconHref(href: string): boolean {
+  const path = href.split("?")[0];
+  return PRODUCT_ICON_HREFS.some((src) => path === src || path.endsWith(src));
+}

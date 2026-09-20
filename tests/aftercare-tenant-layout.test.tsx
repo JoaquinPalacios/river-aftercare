@@ -10,6 +10,7 @@ vi.mock("@/lib/tenancy/require-tenant-clinic", () => ({
 }));
 
 import TenantLayout, {
+  generateMetadata,
   generateViewport,
 } from "@/app/(aftercare)/%5Fsites/[tenant]/layout";
 
@@ -108,6 +109,45 @@ describe("tenant layout branding", () => {
         { media: "(prefers-color-scheme: dark)", color: "#22d3ee" },
       ],
     });
+  });
+
+  it("emits clinic icons without the River pack when a favicon is configured", async () => {
+    requireTenantClinic.mockResolvedValue({
+      id: "clinic_a",
+      slug: "demodental",
+      name: "Harbor",
+      profile: {
+        faviconUrl:
+          "clinics/clinic_a/branding/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png",
+      },
+    });
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ tenant: "demodental" }),
+      children: <p>child</p>,
+    });
+    const json = JSON.stringify(metadata);
+    expect(json).toContain(
+      "/clinic-branding/clinic_a/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
+    );
+    expect(json).not.toContain("/favicons/");
+    expect(json).not.toContain("/favicon.ico");
+  });
+
+  it("emits the River icon pack when the clinic has no favicon", async () => {
+    requireTenantClinic.mockResolvedValue({
+      id: "clinic_a",
+      slug: "demodental",
+      name: "Harbor",
+      profile: { faviconUrl: null },
+    });
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ tenant: "demodental" }),
+      children: <p>child</p>,
+    });
+    expect(JSON.stringify(metadata)).toContain("/favicons/favicon-32x32.png");
+    expect(JSON.stringify(metadata)).not.toContain("/clinic-branding/");
   });
 
   it("applies custom Dark brand tokens while leaving Light tokens unchanged", async () => {

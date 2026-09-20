@@ -38,9 +38,9 @@ describe("product brand assets", () => {
     expect(
       files.map((src) => publicPath(src)).filter((path) => !existsSync(path))
     ).toEqual([]);
-    expect(existsSync("app/favicon.ico")).toBe(true);
-    expect(existsSync("app/icon.png")).toBe(true);
-    expect(existsSync("app/apple-icon.png")).toBe(true);
+    expect(existsSync("app/favicon.ico")).toBe(false);
+    expect(existsSync("app/icon.png")).toBe(false);
+    expect(existsSync("app/apple-icon.png")).toBe(false);
   });
 
   it("wires the favicon pack, apple icon, and the web manifest", () => {
@@ -60,6 +60,18 @@ describe("product brand assets", () => {
       PRODUCT_APPLE_TOUCH_ICON_SRC,
     ]);
     expect(PRODUCT_HEAD_METADATA.manifest).toBe(PRODUCT_WEB_MANIFEST_SRC);
+  });
+
+  it("emits River icons from layout metadata instead of app file conventions", () => {
+    expect(readFileSync("app/(marketing)/layout.tsx", "utf8")).toContain(
+      "PRODUCT_HEAD_METADATA"
+    );
+    expect(readFileSync("app/(staff)/layout.tsx", "utf8")).toContain(
+      "PRODUCT_HEAD_METADATA"
+    );
+    expect(readFileSync("app/(aftercare)/layout.tsx", "utf8")).toContain(
+      "PRODUCT_HEAD_METADATA"
+    );
   });
 
   it("keeps logo and isologo intrinsic sizes aligned with SEO logo metadata", () => {
