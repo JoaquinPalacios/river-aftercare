@@ -62,6 +62,22 @@ describe("marketing pricing page", () => {
     );
     expect(styles).toContain(".noteCard");
     expect(styles).toContain(".planFootnote");
+    const planFeaturesRule = styles.slice(
+      styles.indexOf(".planFeatures {"),
+      styles.indexOf(".planFeatures li")
+    );
+    expect(planFeaturesRule).toContain("align-content: start");
+    expect(planFeaturesRule).toContain("gap: 1rem");
+    expect(planFeaturesRule).toContain("flex: none");
+    expect(planFeaturesRule).not.toContain("flex: 1");
+    expect(planFeaturesRule).not.toContain("space-between");
+    expect(planFeaturesRule).not.toContain("space-around");
+    expect(planFeaturesRule).not.toContain("space-evenly");
+    const planCtaRule = styles.slice(
+      styles.indexOf(".planCta {"),
+      styles.indexOf(".planFootnoteRef {")
+    );
+    expect(planCtaRule).toContain("margin-top: auto");
     expect(styles).toContain("font-size: 1rem");
     expect(styles).toContain("inset 0 1px 0");
     expect(styles).toContain(

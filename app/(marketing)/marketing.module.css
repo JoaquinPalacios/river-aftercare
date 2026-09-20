@@ -3396,9 +3396,10 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .planFeatures {
   display: grid;
-  gap: 0.45rem;
+  align-content: start;
+  gap: 1rem;
   margin: 0.4rem 0 1rem;
-  flex: 1 1 auto;
+  flex: none;
 }
 
 .planFeatures li,
