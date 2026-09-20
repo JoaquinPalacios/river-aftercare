@@ -9,6 +9,10 @@ import {
   staffUrl,
   tenantUrl,
 } from "./helpers/origins";
+import {
+  acquireDemoBrandingLock,
+  releaseDemoBrandingLock,
+} from "./helpers/demo-branding-lock";
 import { signInAsLocalAdmin } from "./helpers/staff-auth";
 
 const DEMO_CLINIC_ID = "clinic_demo_rivers";
@@ -40,12 +44,17 @@ async function restoreDemoBranding(): Promise<void> {
 test.describe("clinic Dark branding and favicon", () => {
   test.describe.configure({ mode: "serial" });
 
+  test.beforeAll(async () => {
+    await acquireDemoBrandingLock();
+  });
+
   test.afterEach(async () => {
     await restoreDemoBranding();
   });
 
   test.afterAll(async () => {
     await restoreDemoBranding();
+    await releaseDemoBrandingLock();
     await e2ePrisma.$disconnect();
   });
 

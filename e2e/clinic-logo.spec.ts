@@ -3,6 +3,10 @@ import { mkdirSync } from "node:fs";
 
 import { e2ePrisma } from "./helpers/prisma";
 import { DEMO_TENANT_SLUG, staffUrl, tenantUrl } from "./helpers/origins";
+import {
+  acquireDemoBrandingLock,
+  releaseDemoBrandingLock,
+} from "./helpers/demo-branding-lock";
 import { signInAsLocalAdmin, signInAsLocalStaff } from "./helpers/staff-auth";
 
 const DEMO_CLINIC_ID = "clinic_demo_rivers";
@@ -28,12 +32,17 @@ async function restoreDemoLogo(): Promise<void> {
 test.describe("clinic logo upload", () => {
   test.describe.configure({ mode: "serial" });
 
+  test.beforeAll(async () => {
+    await acquireDemoBrandingLock();
+  });
+
   test.afterEach(async () => {
     await restoreDemoLogo();
   });
 
   test.afterAll(async () => {
     await restoreDemoLogo();
+    await releaseDemoBrandingLock();
     await e2ePrisma.$disconnect();
   });
 
