@@ -60,14 +60,23 @@ test.describe("marketing conversion routes", () => {
     await expect(page.getByText("Guide and section controls")).toHaveCount(0);
     await expect(page.getByText("Local clinic instructions")).toHaveCount(0);
     await expect(
-      page.getByText("Create and edit your own aftercare guides")
+      page.getByText("Create and edit up to 2 custom clinic guides")
     ).toBeVisible();
+    await expect(
+      page.getByText("Up to 2 custom clinic guides", { exact: true })
+    ).toHaveCount(0);
+    await expect(
+      page.getByText("Create and edit your own aftercare guides")
+    ).toHaveCount(0);
+    await expect(page.getByText("Everything in Essential")).toBeVisible();
+    await expect(page.getByText("Up to 30 custom clinic guides")).toBeVisible();
     await expect(
       page.getByText("Adapt River Aftercare templates to suit your clinic")
     ).toBeVisible();
+    await expect(page.getByText("Assisted setup")).toBeVisible();
     await expect(
       page.getByText("Add clinic-specific instructions")
-    ).toBeVisible();
+    ).toHaveCount(0);
     await expect(
       page.getByText("Logo, colours and curated typography")
     ).toBeVisible();
@@ -172,8 +181,25 @@ test.describe("marketing conversion routes", () => {
         page.getByRole("heading", { name: "Practice", exact: true })
       ).toBeVisible();
       await expect(
-        page.getByText("Create and edit your own aftercare guides")
+        page.getByText("Create and edit up to 2 custom clinic guides")
       ).toBeVisible();
+      await expect(
+        page.getByText("Up to 2 custom clinic guides", { exact: true })
+      ).toHaveCount(0);
+      await expect(
+        page.getByText("Create and edit your own aftercare guides")
+      ).toHaveCount(0);
+      await expect(page.getByText("Everything in Essential")).toBeVisible();
+      await expect(
+        page.getByText("Up to 30 custom clinic guides")
+      ).toBeVisible();
+      await expect(
+        page.getByText("Adapt River Aftercare templates to suit your clinic")
+      ).toBeVisible();
+      await expect(page.getByText("Assisted setup")).toBeVisible();
+      await expect(
+        page.getByText("Add clinic-specific instructions")
+      ).toHaveCount(0);
       await expect(
         page.getByText("Need a larger guide library? Talk to us.")
       ).toHaveCount(0);
