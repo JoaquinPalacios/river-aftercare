@@ -344,7 +344,7 @@ test.describe("navigation progress", () => {
     await setPortalColorScheme(page, "light");
     await page
       .locator(".staffAppSidebar")
-      .getByRole("link", { name: "Account security" })
+      .getByRole("link", { name: "Account" })
       .click();
     await expect
       .poll(async () => progress(page).getAttribute("data-visible"))
@@ -355,7 +355,7 @@ test.describe("navigation progress", () => {
     await page.screenshot({
       path: "test-results/artifacts/progress-dashboard-light.png",
     });
-    await expect(page).toHaveURL(staffUrl("/account/security"));
+    await expect(page).toHaveURL(staffUrl("/account"));
   });
 
   test("keeps login pending local and only starts route progress after success", async ({

@@ -63,4 +63,25 @@ describe("requireClinicAdmin", () => {
     );
     expect(notFoundMock).toHaveBeenCalledOnce();
   });
+
+  it("allows a platform operator assisting a clinic", async () => {
+    const session = {
+      user: {
+        id: "user_operator",
+        email: "operator@care-guide.test",
+        name: "Demo Operator",
+        platformRole: "OPERATOR",
+      },
+      clinicMembership: {
+        membershipId: "operator-support",
+        role: ClinicMembershipRole.ADMIN,
+        clinic: { id: "clinic_1", name: "Riverside" },
+        source: "operator_support" as const,
+      },
+    };
+    requireStaffSessionMock.mockResolvedValue(session);
+
+    await expect(requireClinicAdmin()).resolves.toEqual(session);
+    expect(notFoundMock).not.toHaveBeenCalled();
+  });
 });

@@ -58,6 +58,7 @@ describe("clinic invitation UI contracts", () => {
     expect(list).not.toContain("tokenHash");
     expect(list).not.toContain("rawToken");
     expect(list).toContain('status: "active"');
+    expect(list).toContain("inactive");
     expect(list).toContain("expired");
     expect(list).toContain("pending");
   });
@@ -71,10 +72,13 @@ describe("clinic invitation UI contracts", () => {
       "app/(staff)/(operator)/operator/clinics/[clinicId]/team/actions.ts",
       "utf8"
     );
-    expect(table).toContain("Remove access");
     expect(table).toContain("Change role");
+    expect(table).toContain("Deactivate");
+    expect(table).toContain("Activate");
+    expect(table).toContain("Remove access");
     expect(table).toContain("removeClinicAccessAction");
     expect(table).toContain("changeClinicMembershipRoleAction");
+    expect(table).toContain("updateClinicStaffMembershipStatusAction");
     expect(table).toContain("ConfirmDialog");
     expect(table).toContain("OverflowMenu");
     expect(table).toContain("Resend invitation");
@@ -82,6 +86,7 @@ describe("clinic invitation UI contracts", () => {
     expect(table).not.toContain("last-admin");
     expect(actions).toContain("removeClinicAccessAction");
     expect(actions).toContain("changeClinicMembershipRoleAction");
+    expect(actions).toContain("updateClinicStaffMembershipStatusAction");
     expect(actions).toContain("inviteClinicUserAction");
     expect(actions).toContain("resendClinicInvitationAction");
     expect(actions).toContain("cancelClinicInvitationAction");
@@ -100,6 +105,7 @@ describe("clinic invitation UI contracts", () => {
     const memberBranch = table.slice(memberStart, invitationStart);
     const invitationBranch = table.slice(invitationStart, dialogStart);
     expect(memberBranch).toContain("Change role");
+    expect(memberBranch).toContain("Deactivate");
     expect(memberBranch).toContain("Remove access");
     expect(invitationBranch).toContain("Resend invitation");
     expect(invitationBranch).toContain("Cancel invitation");
