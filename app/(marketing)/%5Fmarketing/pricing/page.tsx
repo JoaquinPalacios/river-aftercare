@@ -206,9 +206,12 @@ export default async function MarketingPricingPage() {
                 className={styles.headingFollow}
                 items={ONBOARDING_STEPS}
               />
-              <p className={`${styles.copy} ${styles.headingFollow}`}>
-                {GUIDE_AVAILABILITY_NOTE}
-              </p>
+              <MarketingRevealCard
+                index={ONBOARDING_STEPS.length}
+                className={styles.headingFollow}
+              >
+                <p className={styles.copy}>{GUIDE_AVAILABILITY_NOTE}</p>
+              </MarketingRevealCard>
             </div>
           </section>
         </div>

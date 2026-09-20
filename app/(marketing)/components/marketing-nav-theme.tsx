@@ -26,15 +26,22 @@ export function MarketingNavTheme() {
     const stored = parseThemePreference(
       localStorage.getItem(MARKETING_THEME_STORAGE_KEY)
     );
+    const fromDom = parseThemePreference(
+      document.documentElement.getAttribute("data-theme-mode")
+    );
     if (stored) {
       setPreference(stored);
+      return;
+    }
+    if (fromDom) {
+      setPreference(fromDom);
     }
   }, []);
 
   function selectPreference(next: ThemePreference) {
     setPreference(next);
-    applyThemePreference(next);
     localStorage.setItem(MARKETING_THEME_STORAGE_KEY, next);
+    void applyThemePreference(next, { productCookie: true });
   }
 
   return (

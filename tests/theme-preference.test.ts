@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 
 import {
   MARKETING_THEME_STORAGE_KEY,
   PATIENT_THEME_STORAGE_KEY,
   PORTAL_THEME_STORAGE_KEY,
+  PRODUCT_THEME_COOKIE_NAME,
+  PRODUCT_THEME_QUERY_PARAM,
+  PRODUCT_THEME_SYNC_PATH,
   parseThemeMode,
   parseThemePreference,
+  productThemeCookieDomain,
   themePreferenceBootstrapScript,
 } from "@/lib/branding/theme-preference";
 
@@ -44,5 +49,37 @@ describe("theme preference", () => {
     expect(PORTAL_THEME_STORAGE_KEY).toBe("aftercare-guide-portal-theme");
     expect(PORTAL_THEME_STORAGE_KEY).not.toBe(MARKETING_THEME_STORAGE_KEY);
     expect(PORTAL_THEME_STORAGE_KEY).not.toBe(PATIENT_THEME_STORAGE_KEY);
+  });
+
+  it("keeps product theme cookies on the platform root, including localhost", () => {
+    expect(PRODUCT_THEME_COOKIE_NAME).toBe("aftercare-guide-ui-theme");
+    expect(PRODUCT_THEME_SYNC_PATH).toBe("/api/ui-theme");
+    expect(productThemeCookieDomain("localhost")).toBe(".localhost");
+    expect(productThemeCookieDomain("riveraftercare.com.au")).toBe(
+      ".riveraftercare.com.au"
+    );
+    const source = readFileSync("lib/branding/theme-preference.ts", "utf8");
+    expect(source).toContain("app.localhost");
+    expect(source).toContain("iframe");
+    expect(source).toContain("stampStaffLoginLinks");
+  });
+
+  it("lets staff bootstrap fall back to marketing storage, cookie, then system", () => {
+    const script = themePreferenceBootstrapScript(PORTAL_THEME_STORAGE_KEY, {
+      fallbackStorageKey: MARKETING_THEME_STORAGE_KEY,
+      cookieName: PRODUCT_THEME_COOKIE_NAME,
+      queryParam: PRODUCT_THEME_QUERY_PARAM,
+      defaultPreference: "system",
+    });
+
+    expect(script).toContain(PORTAL_THEME_STORAGE_KEY);
+    expect(script).toContain(MARKETING_THEME_STORAGE_KEY);
+    expect(script).toContain(PRODUCT_THEME_COOKIE_NAME);
+    expect(script).toContain(PRODUCT_THEME_QUERY_PARAM);
+    expect(script).toContain("document.cookie");
+    expect(script).toContain('"system"');
+    expect(script).toContain("URLSearchParams");
+    expect(script).not.toContain("<");
+    expect(script).not.toContain("ThemeProvider");
   });
 });

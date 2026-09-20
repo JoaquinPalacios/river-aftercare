@@ -112,6 +112,25 @@ describe("clinic vertical landing pages", () => {
     expect(chiro).not.toContain('data-brand-scope="master"');
     expect(dental).toContain("data-mk-vertical-hero");
     expect(dental).toContain("Current starting template");
+    const templateAt = dental.indexOf("Current starting template");
+    expect(templateAt).toBeGreaterThan(-1);
+    expect(dental.slice(Math.max(0, templateAt - 280), templateAt)).toContain(
+      "mkReveal"
+    );
+    const dentalNoteAt = dental.indexOf(
+      "Riverside Dental Demo currently uses a Tooth Extraction sample template."
+    );
+    expect(dentalNoteAt).toBeGreaterThan(templateAt);
+    expect(
+      dental.slice(Math.max(0, dentalNoteAt - 280), dentalNoteAt)
+    ).toContain("mkReveal");
+    const physioNoteAt = physio.indexOf(
+      "Physiotherapy template availability is confirmed during onboarding."
+    );
+    expect(physioNoteAt).toBeGreaterThan(-1);
+    expect(
+      physio.slice(Math.max(0, physioNoteAt - 280), physioNoteAt)
+    ).toContain("mkReveal");
     expect(dental).toContain("Live example");
     expect(dental).toContain("View pricing");
     expect(dental).not.toContain("About River Aftercare");
@@ -197,6 +216,11 @@ describe("clinic vertical landing pages", () => {
     expect(css).not.toContain(".dentalHero");
     expect(css).not.toContain(".physioHero");
     expect(landing).toContain("MarketingVerticalHero");
+    expect(landing).toContain("verticalGuidanceAside");
+    expect(landing).toContain("MarketingRevealItem");
+    expect(landing.indexOf("verticalGuidanceAside")).toBeLessThan(
+      landing.indexOf("verticalStatus")
+    );
     expect(landing).not.toContain("VERTICAL_RELATED_LINKS");
     expect(landing).not.toContain("About River Aftercare");
     expect(VERTICAL_ACCENT_FAMILY).toEqual({

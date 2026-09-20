@@ -342,4 +342,15 @@ describe("marketing homepage", () => {
     expect(html).toContain('href="/clinics"');
     expect(html).toContain("Explore all clinic types");
   });
+
+  it("includes Explore all clinic types as the final workflow reveal item", async () => {
+    const html = renderToStaticMarkup(await MarketingHomePage());
+    const marker = "Explore all clinic types";
+    const at = html.indexOf(marker);
+    expect(at).toBeGreaterThan(-1);
+    const around = html.slice(Math.max(0, at - 280), at + marker.length);
+    expect(around).toContain("mkReveal");
+    expect(around).toContain('href="/clinics"');
+    expect(around).toContain("clinicTypeMore");
+  });
 });

@@ -57,18 +57,12 @@ export default async function LoginPage({
       description={`Use your email and password to continue to ${PRODUCT_NAME}.`}
     >
       {resetSuccess ? (
-        <div
-          className="mb-5 rounded-md border border-staff-line bg-staff-canvas px-3 py-2 text-sm text-staff-ink"
-          role="status"
-        >
+        <div className="staffFormStatus" role="status">
           {PASSWORD_RESET_SUCCESS_MESSAGE}
         </div>
       ) : null}
       {inviteSuccess ? (
-        <div
-          className="mb-5 rounded-md border border-staff-line bg-staff-canvas px-3 py-2 text-sm text-staff-ink"
-          role="status"
-        >
+        <div className="staffFormStatus" role="status">
           {INVITATION_READY_MESSAGE}
         </div>
       ) : null}

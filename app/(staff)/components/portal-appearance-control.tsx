@@ -24,8 +24,15 @@ export function PortalAppearanceControl() {
     const stored = parseThemePreference(
       localStorage.getItem(PORTAL_THEME_STORAGE_KEY)
     );
+    const fromDom = parseThemePreference(
+      document.documentElement.getAttribute("data-theme-mode")
+    );
     if (stored) {
       setPreference(stored);
+      return;
+    }
+    if (fromDom) {
+      setPreference(fromDom);
     }
   }, []);
 
@@ -34,9 +41,9 @@ export function PortalAppearanceControl() {
 
   function selectPreference(next: ThemePreference) {
     setPreference(next);
-    applyThemePreference(next);
     localStorage.setItem(PORTAL_THEME_STORAGE_KEY, next);
     setExpanded(false);
+    void applyThemePreference(next, { productCookie: true });
   }
 
   return (

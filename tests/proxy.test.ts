@@ -67,6 +67,9 @@ describe("proxy", () => {
     expect(
       proxy(requestFor("http://localhost:3000/api/auth/login")).status
     ).toBe(404);
+    expect(proxy(requestFor("http://localhost:3000/api/ui-theme")).status).toBe(
+      404
+    );
     expect(proxy(requestFor("http://localhost:3000/dashboard")).status).toBe(
       404
     );
@@ -191,6 +194,12 @@ describe("proxy", () => {
     expect(loginApi.status).toBe(200);
     expect(rewrittenUrl(loginApi)).toBeNull();
 
+    const themeSync = proxy(
+      requestFor("http://app.localhost:3000/api/ui-theme?preference=dark")
+    );
+    expect(themeSync.status).toBe(200);
+    expect(rewrittenUrl(themeSync)).toBeNull();
+
     expect(
       proxy(requestFor("http://app.localhost:3000/forgot-password")).status
     ).toBe(200);
@@ -256,6 +265,9 @@ describe("proxy", () => {
     expect(
       proxy(requestFor("http://demodental.localhost:3000/api/auth/login"))
         .status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://demodental.localhost:3000/api/ui-theme")).status
     ).toBe(404);
     expect(
       proxy(requestFor("http://demodental.localhost:3000/forgot-password"))

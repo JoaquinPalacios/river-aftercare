@@ -8,6 +8,7 @@ export function MarketingThemeControl() {
     <AppearanceMenu
       storageKey={MARKETING_THEME_STORAGE_KEY}
       classPrefix="mtc"
+      shareProductCookie
     />
   );
 }
