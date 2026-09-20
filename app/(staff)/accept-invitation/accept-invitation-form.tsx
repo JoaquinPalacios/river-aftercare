@@ -170,10 +170,7 @@ export function AcceptInvitationForm() {
   if (view === "INVALID" || errors.form === INVITATION_INVALID_LINK_MESSAGE) {
     return (
       <div className="flex flex-col gap-4">
-        <div
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-          role="alert"
-        >
+        <div className="staffFormAlert" role="alert">
           {INVITATION_INVALID_LINK_MESSAGE}
         </div>
         <p className="text-sm text-staff-muted">
@@ -232,7 +229,7 @@ export function AcceptInvitationForm() {
           {NEW_PASSWORD_MIN_MESSAGE}
         </p>
         {errors.newPassword ? (
-          <p id="new-password-error" className="text-sm text-red-600">
+          <p id="new-password-error" className="staffFieldError">
             {errors.newPassword}
           </p>
         ) : null}
@@ -268,17 +265,14 @@ export function AcceptInvitationForm() {
           disabled={pending}
         />
         {errors.confirmPassword ? (
-          <p id="confirm-password-error" className="text-sm text-red-600">
+          <p id="confirm-password-error" className="staffFieldError">
             {errors.confirmPassword}
           </p>
         ) : null}
       </div>
 
       {errors.form ? (
-        <div
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-          role="alert"
-        >
+        <div className="staffFormAlert" role="alert">
           {errors.form}
         </div>
       ) : null}

@@ -157,7 +157,7 @@ export function LoginForm() {
           className="staffLoginField"
         />
         {errors.email ? (
-          <p id="email-error" className="text-sm text-red-600">
+          <p id="email-error" className="staffFieldError">
             {errors.email}
           </p>
         ) : null}
@@ -178,18 +178,14 @@ export function LoginForm() {
           disabled={pending}
         />
         {errors.password ? (
-          <p id="password-error" className="text-sm text-red-600">
+          <p id="password-error" className="staffFieldError">
             {errors.password}
           </p>
         ) : null}
       </div>
 
       {errors.form ? (
-        <div
-          id="login-form-error"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-          role="alert"
-        >
+        <div id="login-form-error" className="staffFormAlert" role="alert">
           {errors.form}
         </div>
       ) : null}

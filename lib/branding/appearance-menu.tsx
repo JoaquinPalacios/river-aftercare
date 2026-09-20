@@ -17,9 +17,11 @@ const OPTIONS: { value: ThemePreference; label: string }[] = [
 export function AppearanceMenu({
   storageKey,
   classPrefix,
+  shareProductCookie = false,
 }: {
   storageKey: string;
   classPrefix: string;
+  shareProductCookie?: boolean;
 }) {
   const reactId = useId().replace(/:/g, "");
   const menuId = `${classPrefix}-menu-${reactId}`;
@@ -29,8 +31,15 @@ export function AppearanceMenu({
 
   useEffect(() => {
     const stored = parseThemePreference(localStorage.getItem(storageKey));
+    const fromDom = parseThemePreference(
+      document.documentElement.getAttribute("data-theme-mode")
+    );
     if (stored) {
       setPreference(stored);
+      return;
+    }
+    if (fromDom) {
+      setPreference(fromDom);
     }
   }, [storageKey]);
 
@@ -83,7 +92,9 @@ export function AppearanceMenu({
               style={{ alignItems: "center", gap: "0.5rem" }}
               onClick={() => {
                 setPreference(option.value);
-                applyThemePreference(option.value);
+                applyThemePreference(option.value, {
+                  productCookie: shareProductCookie,
+                });
                 localStorage.setItem(storageKey, option.value);
                 menuRef.current?.hidePopover();
               }}
