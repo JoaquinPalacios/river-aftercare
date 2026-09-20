@@ -726,11 +726,13 @@ test.describe("clinic portal UX polish", () => {
       page.getByText("Practice logo", { exact: true }).first()
     ).toBeVisible();
     await expect(page.locator("#clinic-logo-file")).toHaveCount(1);
+    await expect(page.locator("#clinic-dark-logo-file")).toHaveCount(1);
+    await expect(page.locator("#clinic-favicon-file")).toHaveCount(1);
     await expect(page.getByText("Choose replacement")).toBeVisible();
     await expect(
-      page.getByText("SVG, PNG, JPEG or WebP", { exact: false })
+      page.getByText("SVG, PNG, JPEG or WebP", { exact: false }).first()
     ).toBeVisible();
-    await expect(page.locator('input[type="file"]')).toHaveCount(1);
+    await expect(page.locator('input[type="file"]')).toHaveCount(3);
     await expect(page.locator('input[type="color"]')).toHaveCount(3);
     await page.getByLabel("Display name").fill("Riverside Dental Demo ");
     await expect(page.locator("[data-save-state=unsaved]")).toBeVisible();

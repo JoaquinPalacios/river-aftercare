@@ -107,6 +107,10 @@ No schema migration: the existing `logoUrl` column already stored provider-indep
 
 Replace uploads write a new object, then update Prisma, then delete the previous **clinic branding** key only. Demo paths such as `/demo/riverside-mark.svg` are never deleted from object storage.
 
+Optional **Dark logo** (`ClinicProfile.darkLogoUrl`) and **favicon** (`ClinicProfile.faviconUrl`) use the same object namespace, UUID keys, headers, and ADMIN/same-clinic authorization as the standard logo. Favicons are PNG-only, square, 32–1024px, max 512 KB. The uploaded PNG is served as-is (no extra image-processing dependency) for both `rel="icon"` and `apple-touch-icon`. Replacing either asset writes a new key so patient metadata URLs change.
+
+Dark logo is used only when the resolved patient appearance is Dark. Missing Dark logo falls back to the standard logo. Missing favicon falls back to the River Aftercare pack on patient guides. Marketing, staff, login, and operator keep River icons.
+
 If the new object uploads but the database update fails, the application attempts to delete the new orphan and shows a safe error. If the database update succeeds but the old-object delete fails, the clinic sees success and the failure is logged for later cleanup.
 
 ## Object metadata

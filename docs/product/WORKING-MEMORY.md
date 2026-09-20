@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-20 (public pricing cards are concise; full plan comparison sits below them; clinic team member allowances 2/5 are public copy only; patient URLs are durable, not permanent)
+Last updated: 2026-09-20 (optional clinic Dark branding + patient-guide favicon; public pricing cards remain concise)
 
 ## Durable production release rule
 
@@ -759,7 +759,7 @@ Archive of **published** guides (delete after history exists), QR, clinic-admin 
 ## Reusable foundation
 
 - Next.js App Router, React, Tailwind (staff only), CSS Modules (patient + marketing), PostgreSQL **18**, Prisma 7 (`PrismaPg` + `pg`)
-- `Clinic` (`id`, `name`, **`slug`**), `User`, `ClinicMembership`, **`ClinicProfile`** (`primaryColor`, `accentColor`, `neutralColor`, `radiusPreset`, `instructionTerminology`, `themeMode`, `allowPatientThemeToggle`)
+- `Clinic` (`id`, `name`, **`slug`**), `User`, `ClinicMembership`, **`ClinicProfile`** (`primaryColor`, `accentColor`, optional `darkPrimaryColor` / `darkAccentColor` / `useCustomDarkBranding`, `neutralColor`, `radiusPreset`, `instructionTerminology`, `themeMode`, `allowPatientThemeToggle`, `logoUrl`, optional `darkLogoUrl` / `faviconUrl`)
 - Staff auth: `auth.ts`, `lib/auth/*`, `/login`, clinic portal `/dashboard` + `/guides` + `/practice` (`requireStaffSession()` / `requireClinicAdmin()`). Production login bounds and dummy verification: [AUTH.md](../architecture/AUTH.md).
 - Platform operator: `User.platformRole`, `/operator/clinics` (`requirePlatformOperator()`)
 - Clinic portal loaders/mutations: `lib/clinic-portal/*` (membership `clinicId` only)
@@ -1118,13 +1118,32 @@ Application support for production clinic logos on **Cloudflare R2**. The bucket
 | Area         | Behaviour                                                                                                                                                                                                                                                                                                                                                         |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Provider     | `CLINIC_ASSET_STORAGE_DRIVER=r2` + `@aws-sdk/client-s3` server-only. Supabase Storage clinic-asset adapter removed. Parked chairside Realtime unchanged.                                                                                                                                                                                                          |
-| DB contract  | `ClinicProfile.logoUrl` stores a demo path or object key `clinics/<clinicId>/branding/<uuid>.<ext>`. No migration. Resolve with `resolveClinicLogoSrc`.                                                                                                                                                                                                           |
+| DB contract  | `ClinicProfile.logoUrl`, optional `darkLogoUrl`, and optional `faviconUrl` store a demo path or object key `clinics/<clinicId>/branding/<uuid>.<ext>`. Resolve with `resolveClinicLogoSrc`. Favicon replacement always writes a new key so patient metadata URLs change.                                                                                          |
 | Upload       | ADMIN server action: validate → sanitize SVG → PutObject → DB key update → best-effort old delete. STAFF 404 on Practice; mutations forbidden. Cross-clinic forbidden. No browser-direct uploads.                                                                                                                                                                 |
 | Public URL   | `CLINIC_ASSET_PUBLIC_ORIGIN` + key. Production: `https://assets.riveraftercare.com.au/...` → Vercel route → private `GetObject`/`HeadObject`. Tests/memory use `/clinic-branding/<clinicId>/<file>`.                                                                                                                                                              |
 | Host         | Public route serves only when `Host` matches `CLINIC_ASSET_PUBLIC_ORIGIN`. Apex, `app.`, tenants, and arbitrary hosts get a generic 404. `assets` is a reserved tenant slug.                                                                                                                                                                                      |
 | Headers      | Public `/clinics/.../branding/...` success: `Content-Type`, `Cache-Control: public, max-age=31536000, immutable`, `X-Content-Type-Options: nosniff`, `Cross-Origin-Resource-Policy: same-site`. Never `same-origin` on that route (subdomain-to-`assets.` `<img>` loads). No CORS. Fallback `/clinic-branding/...` keeps `same-origin` + CSP for localhost/tests. |
 | Tests        | Memory driver. Playwright e2e uses memory. No live Cloudflare.                                                                                                                                                                                                                                                                                                    |
 | Provisioning | [R2-PROVISIONING.md](../launch/R2-PROVISIONING.md) for Joaquín (env only). Worker not required. Vercel remains authoritative DNS.                                                                                                                                                                                                                                 |
+
+---
+
+## Clinic Dark branding and patient favicon (implemented)
+
+Date: 2026-09-20
+
+Optional clinic branding for patient aftercare only. Not a theme builder, not arbitrary CSS, and not a clinic setting that forces Light or Dark.
+
+| Area                  | Contract                                                                                                                                                                                                                                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Light/default palette | Existing `primaryColor` / `accentColor` remain required-as-today. Existing clinics need no action.                                                                                                                                                                                             |
+| Custom Dark           | `useCustomDarkBranding` (default false) + nullable `darkPrimaryColor` / `darkAccentColor`. Enabled only when the toggle is on **and** both colours are valid hex. Runtime otherwise keeps today's Dark fallback: Light brand colours on River Aftercare dark surfaces.                         |
+| Patient appearance    | Unchanged `themeMode` (`SYSTEM` / `LIGHT` / `DARK`) plus optional patient toggle. Clinic branding supplies palettes; the user agent / existing appearance system chooses Light vs Dark.                                                                                                        |
+| Dark logo             | Optional `darkLogoUrl`. Same upload/storage/authorization as the standard logo. Used only when resolved appearance is Dark; otherwise the standard logo.                                                                                                                                       |
+| Favicon               | Optional `faviconUrl`. PNG, square, 32–1024px, max 512 KB. Served as the uploaded PNG (no Sharp/derivatives). Patient tenant metadata `icons` points at the versioned branding URL. Missing favicon keeps the River Aftercare pack. Marketing, staff, login, and operator stay on River icons. |
+| theme-color           | Patient guides emit `theme-color` from the resolved Light/Dark brand token. SYSTEM uses `prefers-color-scheme` media queries.                                                                                                                                                                  |
+| Preview               | Practice Branding has a preview-only Light/Dark switch. It does not write `themeMode` or the staff portal theme.                                                                                                                                                                               |
+| Migration             | `20260920180000_add_clinic_dark_branding_and_favicon` — nullable columns + boolean default false. Do not apply to production from this PR.                                                                                                                                                     |
 
 ---
 

@@ -19,7 +19,7 @@ Split the App Router into two root layouts:
 - `app/(staff)/` owns Tailwind and the existing staff/chairside UI.
 - `app/(aftercare)/` owns a minimal native CSS base, CSS Modules, and server-resolved semantic CSS custom properties.
 
-Patient branding is resolved on the server from `ClinicProfile` (`primaryColor`, `accentColor`) into semantic tokens such as `--cg-brand` and `--cg-on-brand`. Components style against purpose, not database field names.
+Patient branding is resolved on the server from `ClinicProfile` (`primaryColor`, `accentColor`, and optional `darkPrimaryColor` / `darkAccentColor` when `useCustomDarkBranding` is true) into semantic tokens such as `--cg-brand` and `--cg-on-brand`. Light and Dark share one token set. Missing Dark overrides keep using the Light brand colours with River Aftercare dark surfaces. Components style against purpose, not database field names. Clinics do not supply arbitrary CSS, and they do not force the patient’s Light/Dark appearance.
 
 Do **not**:
 

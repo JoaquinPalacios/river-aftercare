@@ -14,6 +14,10 @@ const removeMock = vi.hoisted(() => vi.fn());
 vi.mock("@/app/(staff)/(clinic-portal)/practice/logo-actions", () => ({
   uploadClinicLogoAction: uploadMock,
   removeClinicLogoAction: removeMock,
+  uploadClinicDarkLogoAction: vi.fn(),
+  removeClinicDarkLogoAction: vi.fn(),
+  uploadClinicFaviconAction: vi.fn(),
+  removeClinicFaviconAction: vi.fn(),
 }));
 
 import { PracticeLogoField } from "@/app/(staff)/(clinic-portal)/practice/practice-logo-field";
@@ -164,6 +168,9 @@ describe("practice logo field", () => {
     const field = source(
       "app/(staff)/(clinic-portal)/practice/practice-logo-field.tsx"
     );
+    const shared = source(
+      "app/(staff)/(clinic-portal)/practice/practice-branding-asset-field.tsx"
+    );
     const trigger = source("app/(staff)/components/staff-file-trigger.tsx");
     const css = source("app/(staff)/staff.css");
     const sanitizer = source("lib/clinic-assets/sanitize-clinic-logo-svg.ts");
@@ -172,8 +179,8 @@ describe("practice logo field", () => {
       "app/(staff)/components/use-asset-file-selection.ts"
     );
 
-    expect(field).toContain("StaffFileTrigger");
-    expect(field).toContain("useAssetFileSelection");
+    expect(shared).toContain("StaffFileTrigger");
+    expect(shared).toContain("useAssetFileSelection");
     expect(field).toContain("image/svg+xml");
     expect(field).toContain(".svg");
     expect(field).toContain("Choose replacement");
@@ -181,16 +188,17 @@ describe("practice logo field", () => {
     expect(field).toContain("Upload replacement");
     expect(field).toContain("Upload logo");
     expect(field).toContain("Remove logo");
-    expect(field).toContain("Cancel");
+    expect(shared).toContain("Cancel");
     expect(field).not.toContain("Replace logo");
-    expect(field).toContain("ConfirmDialog");
+    expect(shared).toContain("ConfirmDialog");
     expect(field).toContain("Remove practice logo?");
     expect(field).toContain("practice name and default presentation");
     expect(field).not.toContain("R2");
     expect(field).not.toContain("bucket");
     expect(field).not.toContain("object key");
-    expect(field).toContain("<img");
+    expect(shared).toContain("<img");
     expect(field).not.toContain("dangerouslySetInnerHTML");
+    expect(shared).not.toContain("dangerouslySetInnerHTML");
     expect(trigger).toContain('type="file"');
     expect(trigger).toContain("staffFileInput");
     expect(css).toContain(".staffFileInput");
@@ -204,8 +212,8 @@ describe("practice logo field", () => {
     expect(css).toContain("object-fit: contain");
     expect(field).toContain("Current logo");
     expect(field).toContain("Selected replacement");
-    expect(field).toContain("selectedPreviewSrc");
-    expect(field).toContain('aria-hidden="true"');
+    expect(shared).toContain("selectedPreviewSrc");
+    expect(shared).toContain('aria-hidden="true"');
     expect(field).not.toContain("jsdom");
     expect(field).not.toContain("sanitize-clinic-logo-svg");
     expect(selection).toContain("createLocalAssetPreviewUrl");

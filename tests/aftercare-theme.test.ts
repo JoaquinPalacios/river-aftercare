@@ -44,6 +44,51 @@ describe("resolveAftercareTheme", () => {
     );
   });
 
+  it("keeps Dark brand tokens on the Light palette when custom Dark branding is off", () => {
+    const theme = resolveAftercareTheme({
+      primaryColor: "#0f766e",
+      accentColor: "#f59e0b",
+      darkPrimaryColor: "#22d3ee",
+      darkAccentColor: "#fde68a",
+      useCustomDarkBranding: false,
+    });
+
+    expect(theme.light["--cg-brand"]).toBe("#0f766e");
+    expect(theme.dark["--cg-brand"]).toBe("#0f766e");
+    expect(theme.light["--cg-accent"]).toBe("#f59e0b");
+    expect(theme.dark["--cg-accent"]).toBe("#f59e0b");
+  });
+
+  it("uses custom Dark brand and accent only when the toggle and both colours are valid", () => {
+    const theme = resolveAftercareTheme({
+      primaryColor: "#0f766e",
+      accentColor: "#f59e0b",
+      darkPrimaryColor: "#22d3ee",
+      darkAccentColor: "#fde68a",
+      useCustomDarkBranding: true,
+    });
+
+    expect(theme.light["--cg-brand"]).toBe("#0f766e");
+    expect(theme.light["--cg-accent"]).toBe("#f59e0b");
+    expect(theme.dark["--cg-brand"]).toBe("#22d3ee");
+    expect(theme.dark["--cg-accent"]).toBe("#fde68a");
+    expect(theme.dark["--cg-on-brand"]).toBe("#0f172a");
+    expect(theme.dark["--cg-surface"]).toBe("#111318");
+  });
+
+  it("falls back when custom Dark branding is incomplete", () => {
+    const theme = resolveAftercareTheme({
+      primaryColor: "#0f766e",
+      accentColor: "#f59e0b",
+      darkPrimaryColor: "#22d3ee",
+      darkAccentColor: null,
+      useCustomDarkBranding: true,
+    });
+
+    expect(theme.dark["--cg-brand"]).toBe("#0f766e");
+    expect(theme.dark["--cg-accent"]).toBe("#f59e0b");
+  });
+
   it("maps a valid clinic accent onto the accent token", () => {
     const theme = resolveAftercareTheme({
       primaryColor: null,

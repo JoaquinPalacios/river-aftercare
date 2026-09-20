@@ -78,6 +78,35 @@ describe("tenant layout branding", () => {
     expect(html).not.toContain("Change colour theme");
   });
 
+  it("applies custom Dark brand tokens while leaving Light tokens unchanged", async () => {
+    requireTenantClinic.mockResolvedValue({
+      id: "clinic_b",
+      slug: "otherclinic",
+      name: "Other Clinic",
+      profile: {
+        displayName: "Other Clinic Patient Brand",
+        primaryColor: "#0f766e",
+        accentColor: "#f59e0b",
+        darkPrimaryColor: "#22d3ee",
+        darkAccentColor: "#fde68a",
+        useCustomDarkBranding: true,
+        themeMode: "SYSTEM",
+        allowPatientThemeToggle: false,
+      },
+    });
+
+    const html = renderToStaticMarkup(
+      await TenantLayout({
+        params: Promise.resolve({ tenant: "otherclinic" }),
+        children: <p>child</p>,
+      })
+    );
+
+    expect(html).toContain("--cg-brand:light-dark(#0f766e,#22d3ee)");
+    expect(html).toContain("--cg-accent:light-dark(#f59e0b,#fde68a)");
+    expect(html).not.toContain("customCss");
+  });
+
   it("renders the patient theme control only when the clinic allows it", async () => {
     requireTenantClinic.mockResolvedValue({
       id: "clinic_demo_rivers",

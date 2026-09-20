@@ -207,4 +207,35 @@ describe("savePracticeSettingsAction", () => {
       }),
     });
   });
+
+  it("saves custom Dark branding when both colours are present", async () => {
+    const result = await savePracticeSettingsAction(
+      {},
+      settingsData({
+        useCustomDarkBranding: "on",
+        darkPrimaryColor: "#0f172a",
+        darkAccentColor: "#fbbf24",
+      })
+    );
+    expect(result).toEqual({ saved: true });
+    expect(updatePracticeSettingsMock).toHaveBeenCalledWith({
+      clinicId: "clinic_1",
+      values: expect.objectContaining({
+        useCustomDarkBranding: true,
+        darkPrimaryColor: "#0f172a",
+        darkAccentColor: "#fbbf24",
+      }),
+    });
+  });
+
+  it("rejects custom Dark branding when a colour is missing", async () => {
+    const data = settingsData({
+      darkPrimaryColor: "#0f172a",
+    });
+    data.set("useCustomDarkBranding", "on");
+    const result = await savePracticeSettingsAction({}, data);
+    expect(result.saved).toBeUndefined();
+    expect(result.fieldErrors?.darkAccentColor).toMatch(/Dark accent/i);
+    expect(updatePracticeSettingsMock).not.toHaveBeenCalled();
+  });
 });
