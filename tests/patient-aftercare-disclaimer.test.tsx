@@ -10,9 +10,12 @@ import {
   canRenderPatientAftercareDisclaimer,
   patientAftercareDisclaimerBody,
 } from "@/lib/aftercare/patient-aftercare-disclaimer";
-import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
+import {
+  resolvePracticeChrome,
+  type PracticeChromeProfile,
+} from "@/lib/aftercare/practice-chrome";
 
-const REAL_PROFILE = {
+const REAL_PROFILE: PracticeChromeProfile = {
   displayName: "Harbor Family Dental",
   logoUrl: null,
   phone: "03 5550 0199",
@@ -44,7 +47,7 @@ const GUIDE_SECTIONS = [
 ];
 
 function realChrome(
-  profile: Partial<typeof REAL_PROFILE> | null = REAL_PROFILE
+  profile: Partial<PracticeChromeProfile> | null = REAL_PROFILE
 ) {
   return resolvePracticeChrome({
     slug: "harbordental",
