@@ -14,6 +14,7 @@ This directory is the product and architecture documentation for Care Guide.
 | [architecture/MARKETING-CONTACT.md](architecture/MARKETING-CONTACT.md)     | Clinic enquiry delivery, Resend + Turnstile, and the production mailbox.                                                        |
 | [architecture/CLINIC-PORTAL.md](architecture/CLINIC-PORTAL.md)             | Clinic portal IA, permissions, guide lifecycle, and logo storage blocker.                                                       |
 | [architecture/APPLICATION.md](architecture/APPLICATION.md)                 | Next.js monolith launch architecture and future API extraction triggers.                                                        |
+| [architecture/BILLING.md](architecture/BILLING.md)                         | Proposed Stripe Billing + plan entitlement architecture. Investigation only — not implemented.                              |
 | [architecture/AUTH.md](architecture/AUTH.md)                               | Production staff login, password change/reset, operator invitations, AccountToken, and auth-email.                              |
 | [architecture/TRANSACTIONAL-EMAIL.md](architecture/TRANSACTIONAL-EMAIL.md) | Shared Resend transport, Contact vs auth identities, password-reset and invitation mail, and lazy AUTH_EMAIL_* config.          |
 | [architecture/SEO.md](architecture/SEO.md)                                 | Launch indexing policy, structured SEO settings, JSON-LD, tenant noindex, and future search visibility.                         |
