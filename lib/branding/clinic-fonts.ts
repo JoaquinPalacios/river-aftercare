@@ -84,6 +84,17 @@ export interface ClinicFontPresentation {
   cssVariable: `--font-clinic-${string}` | null;
 }
 
+/**
+ * Apply the allow-listed self-hosted family selected for this clinic.
+ * Geist remains the patient default when typeface is null or unknown.
+ *
+ * All six families are initialized in this module because the tenant layout
+ * chooses a preset at request time. Next.js collects CSS from every font
+ * loader statically reachable from that layout, so a dynamic import does not
+ * omit unused `@font-face` rules from the document. `preload: false` keeps
+ * unused font *files* off the network; browsers fetch only the selected
+ * family's WOFF2.
+ */
 export function clinicFontPresentation(
   typeface: string | null | undefined
 ): ClinicFontPresentation {
