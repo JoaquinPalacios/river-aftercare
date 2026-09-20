@@ -1,5 +1,5 @@
 -- Additive first-clinic governance fields.
--- Does not drop, delete, truncate, or rewrite published snapshot bodies.
+-- Does not drop tables or columns, and does not rewrite published snapshot bodies.
 -- Does not populate GuideTemplateRevision.reviewedAt / reviewedBy.
 -- Does not backfill PracticeGuideRevision attestation on historical rows.
 
