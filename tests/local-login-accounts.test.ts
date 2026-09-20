@@ -81,7 +81,18 @@ describe("local login accounts", () => {
       id: create.id,
       email: create.email,
     }));
-    const membershipUpsert = vi.fn(async () => ({}));
+    const membershipUpsert = vi.fn(
+      async (_args: {
+        where: { clinicId_userId: { clinicId: string; userId: string } };
+        update: { role: string; active: true };
+        create: {
+          clinicId: string;
+          userId: string;
+          role: string;
+          active: true;
+        };
+      }) => ({})
+    );
     const plan = resolveLocalLoginSeed(DEV_ENV, "development");
     expect(plan.status).toBe("seed");
     if (plan.status !== "seed") {
