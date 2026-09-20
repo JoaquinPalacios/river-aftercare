@@ -19,6 +19,7 @@ This directory is the product and architecture documentation for Care Guide.
 | [architecture/SEO.md](architecture/SEO.md)                                 | Launch indexing policy, structured SEO settings, JSON-LD, tenant noindex, and future search visibility.                         |
 | [launch/PRODUCTION-READINESS.md](launch/PRODUCTION-READINESS.md)           | Current production-readiness gate. Not a provisioning runbook.                                                                  |
 | [launch/PRODUCTION-MIGRATION.md](launch/PRODUCTION-MIGRATION.md)           | Canonical production Prisma workflow: auto-deploy from `main`, schema gate, human-approved `prod:db:*` migrate, same-SHA redeploy. |
+| [launch/NEON-RECOVERY.md](launch/NEON-RECOVERY.md)                         | Production Neon history/PITR recovery runbook. Isolated child-branch first. In-place production restore is not tested.          |
 | [launch/AGENTIC-READINESS.md](launch/AGENTIC-READINESS.md)                 | Architecture audit vs Is Agentic. No claimed production score.                                                                  |
 | [launch/R2-PROVISIONING.md](launch/R2-PROVISIONING.md)                     | Manual Cloudflare R2 bucket/token/domain steps for Joaquín. Not executed from Cursor.                                           |
 | [development/POSTGRES-18-UPGRADE.md](development/POSTGRES-18-UPGRADE.md)   | Local PostgreSQL 17 → 18 dump/restore runbook. Protects the existing PG17 Docker volume.                                        |

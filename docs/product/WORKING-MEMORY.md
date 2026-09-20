@@ -5,13 +5,21 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-20 (Pricing card feature-list spacing: 16px item gap, no stretch)
+Last updated: 2026-09-20 (Neon recovery drill + runbook: 6-hour history, isolated child branch; in-place production restore not tested)
 
 ## Durable production release rule
 
 River Aftercare keeps Vercel automatic Production deployments from main enabled. For schema-changing releases, the Production schema gate is expected to fail the build while migrations are pending. Apply reviewed migrations manually with the trusted prod:db:* DIRECT_URL workflow, verify, then redeploy the same SHA. Never auto-migrate from Vercel.
 
 Canonical detail: [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md), [ADR 0025](../adr/0025-migrate-before-promote.md). Do not recommend disabling Production auto-deploy or switching the normal release process to manual Promote.
+
+## Durable Neon recovery rule
+
+Preferred first response to accidental production data loss is **not** an in-place rewind. Identify a safe timestamp inside the available Neon history window, preview historic data, run read-only verification, then create an **isolated historical child branch** and verify it independently. Only then decide between selective data recovery and a controlled full production restore.
+
+Verified 20 September 2026: history retention is **6 hours**; historical SQL and child-branch recovery work; independently queried recovered branch matched preview counts. **In-place production restore has not been tested.** Production was not modified. Do not describe this as full disaster recovery proven.
+
+Canonical detail: [../launch/NEON-RECOVERY.md](../launch/NEON-RECOVERY.md).
 
 ---
 
@@ -814,6 +822,7 @@ This temporarily means we do not have the same TypeScript-aware ESLint rule cove
 | `docs/architecture/AUTH.md`              | Production staff login bounds, dummy verification, hosts, and WAF rate limiting |
 | `docs/architecture/CLINIC-ASSETS.md`     | Logo storage interface; Cloudflare R2 production provider                       |
 | `docs/launch/R2-PROVISIONING.md`         | Manual R2 bucket/token/domain steps for Joaquín                                 |
+| `docs/launch/NEON-RECOVERY.md`           | Production Neon history/PITR recovery; isolated child branch first              |
 | `README.md`                              | Repo entry; direction vs implementation                                         |
 
 ## Phase 2A clinic self-service foundation (implemented)
@@ -1169,7 +1178,7 @@ Local/test compatibility upgrade. **Neon production was not contacted.** Product
 | Vitest DB tests    | Same `DATABASE_URL` server; assert `SHOW server_version` major 18                                                                                                                                                                                                 |
 | Playwright         | `care_guide_e2e` on the same PG18 server. Global setup fails if major ≠ 18. Does not write the development DB                                                                                                                                                     |
 | GitHub Actions     | Prisma path/pairing check only (`.github/workflows/prisma-release-gate.yml`). No production credentials. No PostgreSQL service. Automated DB tests still assume a reachable PG18 at `DATABASE_URL`                                                                |
-| Production Neon    | Project **River Aftercare Production**, branch `production`, AWS Asia Pacific 2 (Sydney), PostgreSQL 18. Application is connected. Migrations are applied manually with `DIRECT_URL` — see [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md) |
+| Production Neon    | Project **River Aftercare Production**, branch `production`, AWS Asia Pacific 2 (Sydney), PostgreSQL 18. Application is connected. Migrations are applied manually with `DIRECT_URL` — see [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md). History/PITR recovery: [../launch/NEON-RECOVERY.md](../launch/NEON-RECOVERY.md) (6-hour window verified 2026-09-20; in-place restore not tested). |
 | Prisma             | 7.10.x + `@prisma/adapter-pg` + `pg`. No Prisma 8 RC. No `@neondatabase/serverless`                                                                                                                                                                               |
 | CLI URL            | `prisma.config.ts` uses `DIRECT_URL` when set, else `DATABASE_URL`. Runtime `getPrisma()` always uses `DATABASE_URL`. Production helpers load only `.env.neon-production`                                                                                         |
 | Later Vercel       | Pooled Neon URL (`-pooler`, `sslmode=require`) as `DATABASE_URL` for app runtime and the Production schema gate. Unpooled `DIRECT_URL` is for trusted-machine `prisma migrate deploy` only — do not add it to Vercel for ordinary runtime. Vercel must not run `migrate deploy`, seed, or `db push` |
@@ -1745,3 +1754,28 @@ Release safety after production P2022 (`ClinicProfile.typeface` missing because 
 | Vercel Preview / PR                          | Gate does not run. Must not receive production credentials or `DIRECT_URL`                                                                                        |
 
 A pending-migration Production build failure is a safety gate, not an incident by itself. Do not recommend disabling Production auto-deploy.
+
+---
+
+## Neon production recovery drill (2026-09-20)
+
+Docs-only record of a **manual** recovery-readiness drill against Neon project **River Aftercare Production**, branch `production`, PostgreSQL 18, AWS Sydney. **Production was not modified.** No application, Prisma, Vercel, or secret changes.
+
+| Surface                         | Result                                                                                                      |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Configured history retention    | **6 hours** (observed)                                                                                      |
+| Restore from history            | Available                                                                                                   |
+| Manual snapshots                | Available                                                                                                   |
+| Scheduled snapshots             | Require a plan upgrade. An upgraded plan has **not** been purchased.                                        |
+| Preview timestamp               | 20 September 2026, 10:10 AM Australia/Sydney                                                                |
+| Browse Data UI                  | Failed once with `Error connecting to database: signal is aborted without reason` (Neon console/UI issue)   |
+| Historical SQL (Query Data)     | Worked                                                                                                      |
+| Isolated child branch           | `recovery-drill-2026-09-20` from `production` at that timestamp; auto-delete 1 day; deleted after verify    |
+| Independent branch query        | Same historical counts as preview                                                                           |
+| In-place production restore     | **Not performed. Not tested. Do not claim it is proven.**                                                   |
+
+Historical / recovered counts: `User` 3, `Clinic` 1, `ClinicProfile` 1, `ClinicMembership` 2, `AccountToken` 1, `auth_sessions` 4. Finished Prisma migrations included `20260919140000_add_clinic_typeface` and `20260919120000_add_account_token` (no rollback). `ClinicProfile.typeface` existed as nullable `ClinicTypeface`.
+
+Canonical first response: incident → safe timestamp inside history → Preview historic data → read-only SQL → isolated child branch → verify → then selective recovery **or** controlled full restore if genuinely necessary. Do not rewind production as the default or as a test.
+
+Runbook: [../launch/NEON-RECOVERY.md](../launch/NEON-RECOVERY.md). 6-hour history is MVP-acceptable only with timely incident detection. Reconsider longer retention as paying-client data grows.
