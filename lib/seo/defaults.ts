@@ -52,13 +52,13 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
   },
   "/pricing": {
     seoTitle: "Patient Aftercare Software Pricing | River Aftercare",
-    metaDescription: `Compare ${PRODUCT_NAME} plans for clinics and practices. Australian dollar prices include GST, from branded digital aftercare for a single location through to custom Group support.`,
+    metaDescription: `Compare ${PRODUCT_NAME} Essential and Practice plans for clinics. Australian dollar pricing for branded patient aftercare, from a single location through to custom Group support.`,
     ogTitle: null,
     ogDescription: null,
     ogImagePath: null,
     index: INDEXABLE_ROBOTS.index,
     follow: INDEXABLE_ROBOTS.follow,
-    lastModified: "2026-09-19",
+    lastModified: "2026-09-20",
   },
   "/contact": {
     seoTitle: "Book a Demo | River Aftercare",

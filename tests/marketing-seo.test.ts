@@ -113,6 +113,11 @@ describe("marketing crawl files", () => {
     expect(PRICING_METADATA.title).toBe(
       "Patient Aftercare Software Pricing | River Aftercare"
     );
+    expect(PRICING_METADATA.description).toBe(
+      "Compare River Aftercare Essential and Practice plans for clinics. Australian dollar pricing for branded patient aftercare, from a single location through to custom Group support."
+    );
+    expect(PRICING_METADATA.description).not.toMatch(/GST/i);
+    expect(PRICING_METADATA.description).not.toMatch(/tax/i);
   });
 });
 

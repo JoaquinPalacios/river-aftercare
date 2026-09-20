@@ -16,7 +16,7 @@ Named production providers in the public copy: Vercel, Neon (Sydney), Cloudflare
 
 Unresolved / do not over-claim:
 
-- GST registration status (not stated in public copy)
+- GST registration is not in force (pending accountant confirmation); public pricing copy must not claim GST is included
 - counsel-approved APP-entity / NDB applicability language beyond the published “where applicable law requires” wording
 - flipping `PRIVACY_PAGE_LEGALLY_APPROVED` or source `noindex` without an explicit decision
 
@@ -48,5 +48,5 @@ Patient pages already avoid invented clinical authority. A reviewed disclaimer f
 | Public location          | Tweed Heads South, New South Wales, Australia (no residential street address) |
 | Governing law            | New South Wales, Australia (non-exclusive jurisdiction)                       |
 | Legal / privacy email    | `admin@riveraftercare.com.au`                                                 |
-| GST registration         | Unknown — public copy says GST will be charged where applicable               |
+| GST registration         | **Not registered** — pending accountant confirmation. Public pricing copy must not claim GST is included. Terms remain “GST will be charged where applicable.” |
 | Production subprocessors | Named in `/privacy`: Vercel, Neon, Cloudflare, Resend, Hostinger, Google      |
