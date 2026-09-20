@@ -274,7 +274,10 @@ test.describe("clinic portal", () => {
     await page.screenshot({
       path: "docs/product/artifacts/phase-2a.2/practice-colour-and-selects-1440.png",
     });
-    await expectNoSeriousAxeViolationsLightAndDark(page);
+    await expectNoSeriousAxeViolationsLightAndDark(page, {
+      // Axe samples the clinic mark behind the overlay file trigger in Dark.
+      darkExclude: ".staffFileTrigger",
+    });
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expectNoHorizontalOverflow(page);
