@@ -39,7 +39,7 @@ pnpm prod:db:status
 8. If safe:
 
 ```bash
-pnpm prod:db:migrate -- --apply
+pnpm prod:db:migrate --apply
 ```
 
 9. Verify:
@@ -136,9 +136,11 @@ Preferred helpers (fail closed if the file is missing, named wrong, lacks `DIREC
 ```bash
 pnpm prod:db:status
 pnpm prod:db:migrate              # prints the plan; does not apply
-pnpm prod:db:migrate -- --apply   # prisma migrate deploy via DIRECT_URL
+pnpm prod:db:migrate --apply      # prisma migrate deploy via DIRECT_URL
 pnpm prod:db:verify
 ```
+
+Pass `--apply` directly to the pnpm script. Do **not** insert a standalone `--` between the script name and `--apply`; pnpm forwards that `--` and `scripts/prod-db.mjs` rejects it (`Unknown argument: --`).
 
 Equivalent manual commands (trusted machine only). Unsetting ambient URLs is required so local `.env` cannot win:
 
@@ -164,7 +166,7 @@ Lightweight. Do not add a database AuditLog.
 - SQL reviewed (A additive / B contract / C data):
 - Destructive marker present if required:
 - Production preflight (`pnpm prod:db:status`) passed:
-- Migration applied (`pnpm prod:db:migrate -- --apply`):
+- Migration applied (`pnpm prod:db:migrate --apply`):
 - Verification (`pnpm prod:db:verify`) passed:
 - Same merged SHA redeployed in Vercel after verification:
 
@@ -172,7 +174,7 @@ Lightweight. Do not add a database AuditLog.
 
 **Canonical:** automatic Production deployments from `main` remain **enabled**. Do not disable them as part of normal River Aftercare operations.
 
-On `VERCEL_ENV=production`, `pnpm build` runs `prisma migrate status` and refuses to finish if production is behind. It never runs `migrate deploy`, seed, or `db push`. After a pending-migration failure, apply migrations with `pnpm prod:db:migrate -- --apply`, verify, then **Redeploy** the same SHA. Existing Production stays on the prior successful deployment until that redeploy succeeds.
+On `VERCEL_ENV=production`, `pnpm build` runs `prisma migrate status` and refuses to finish if production is behind. It never runs `migrate deploy`, seed, or `db push`. After a pending-migration failure, apply migrations with `pnpm prod:db:migrate --apply`, verify, then **Redeploy** the same SHA. Existing Production stays on the prior successful deployment until that redeploy succeeds.
 
 Break-glass only: `SKIP_PRODUCTION_SCHEMA_GATE=1` (do not use this to ship code that needs unapplied migrations).
 

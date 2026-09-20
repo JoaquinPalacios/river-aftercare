@@ -52,7 +52,7 @@ function main() {
   const state = interpretMigrateStatusOutput(output);
   if (state === "pending") {
     fail(
-      "Vercel production schema gate: production still has pending Prisma migrations. Apply them with pnpm prod:db:migrate -- --apply from a trusted machine using .env.neon-production, verify with pnpm prod:db:verify, then redeploy this git SHA. This build does not run migrate deploy, seed, or db push."
+      "Vercel production schema gate: production still has pending Prisma migrations. Apply them with pnpm prod:db:migrate --apply from a trusted machine using .env.neon-production, verify with pnpm prod:db:verify, then redeploy this git SHA. This build does not run migrate deploy, seed, or db push."
     );
   }
   if (state !== "up-to-date") {
