@@ -253,7 +253,7 @@ test.describe("clinic portal", () => {
       page.getByRole("heading", { name: "Riverside Dental Demo" })
     ).toBeVisible();
     await expect(
-      page.getByLabel("Primary brand colour", { exact: true })
+      page.getByLabel("Primary colour", { exact: true })
     ).toBeVisible();
     await expect(page.locator("#primaryColor-picker")).toHaveCount(1);
     await expect(page.getByLabel("Corner radius")).toHaveClass(/staffSelect/);

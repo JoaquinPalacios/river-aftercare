@@ -19,7 +19,11 @@ export async function setPortalColorScheme(
     if (current !== scheme) {
       await appearance.click();
       await page
-        .getByRole("radio", { name: scheme === "dark" ? "Dark" : "Light" })
+        .getByRole("radiogroup", { name: "Colour theme" })
+        .getByRole("radio", {
+          name: scheme === "dark" ? "Dark" : "Light",
+          exact: true,
+        })
         .click();
     }
   } else {

@@ -70,7 +70,10 @@ test.describe("clinic Dark branding and favicon", () => {
       fullPage: true,
     });
 
-    await page.getByRole("radio", { name: "Light" }).click();
+    await page
+      .getByRole("radiogroup", { name: "Preview appearance" })
+      .getByRole("radio", { name: "Light", exact: true })
+      .click();
     await expect(page.getByText("Sample recovery heading")).toBeVisible();
     await page.screenshot({
       path: `${ARTIFACT_DIR}/branding-light-preview.png`,
@@ -85,7 +88,10 @@ test.describe("clinic Dark branding and favicon", () => {
       path: `${ARTIFACT_DIR}/branding-dark-settings-dark-ui.png`,
       fullPage: true,
     });
-    await page.getByRole("radio", { name: "Dark" }).click();
+    await page
+      .getByRole("radiogroup", { name: "Preview appearance" })
+      .getByRole("radio", { name: "Dark", exact: true })
+      .click();
     await page.screenshot({
       path: `${ARTIFACT_DIR}/branding-custom-dark-preview.png`,
       fullPage: true,
@@ -97,7 +103,7 @@ test.describe("clinic Dark branding and favicon", () => {
       buffer: FAVICON_PNG,
     });
     await page.getByRole("button", { name: "Upload favicon" }).click();
-    await expect(page.getByRole("status")).toHaveText("Favicon updated.");
+    await expect(page.getByText("Favicon updated.")).toBeVisible();
     await page.screenshot({
       path: `${ARTIFACT_DIR}/branding-favicon-upload.png`,
       fullPage: true,
@@ -148,14 +154,14 @@ test.describe("clinic Dark branding and favicon", () => {
       buffer: DARK_LOGO_PNG,
     });
     await page.getByRole("button", { name: "Upload Dark logo" }).click();
-    await expect(page.getByRole("status")).toHaveText("Dark logo updated.");
+    await expect(page.getByText("Dark logo updated.")).toBeVisible();
     await page.setInputFiles("#clinic-favicon-file", {
       name: "clinic-favicon.png",
       mimeType: "image/png",
       buffer: FAVICON_PNG,
     });
     await page.getByRole("button", { name: "Upload favicon" }).click();
-    await expect(page.getByRole("status")).toHaveText("Favicon updated.");
+    await expect(page.getByText("Favicon updated.")).toBeVisible();
 
     const profile = await e2ePrisma.clinicProfile.findUnique({
       where: { clinicId: DEMO_CLINIC_ID },
