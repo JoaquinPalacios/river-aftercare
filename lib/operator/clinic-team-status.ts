@@ -3,6 +3,8 @@ export const TEAM_STATUS = {
   ACCESS_RESTORED: "access-restored",
   ACCESS_REMOVED: "access-removed",
   ROLE_UPDATED: "role-updated",
+  STAFF_DEACTIVATED: "staff-deactivated",
+  STAFF_REACTIVATED: "staff-reactivated",
 } as const;
 
 export type TeamStatusFlag = (typeof TEAM_STATUS)[keyof typeof TEAM_STATUS];
@@ -12,6 +14,8 @@ const TEAM_STATUS_MESSAGES: Record<TeamStatusFlag, string> = {
   [TEAM_STATUS.ACCESS_RESTORED]: "Access restored.",
   [TEAM_STATUS.ACCESS_REMOVED]: "Access removed.",
   [TEAM_STATUS.ROLE_UPDATED]: "Role updated.",
+  [TEAM_STATUS.STAFF_DEACTIVATED]: "Staff access deactivated for this clinic.",
+  [TEAM_STATUS.STAFF_REACTIVATED]: "Staff access restored for this clinic.",
 };
 
 export function clinicTeamPath(clinicId: string): string {

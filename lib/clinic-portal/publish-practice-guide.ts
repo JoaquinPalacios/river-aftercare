@@ -1,11 +1,8 @@
-import {
-  ClinicMembershipRole,
-  GuideRevisionStatus,
-  PracticeGuideStatus,
-} from "@prisma/client";
+import { GuideRevisionStatus, PracticeGuideStatus } from "@prisma/client";
 
 import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import { WORKING_DRAFT_VERSION } from "@/lib/aftercare/practice-revision-document";
+import { actorCanManageClinic } from "@/lib/auth/clinic-authorization";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import {
   isPracticeReviewAttested,
@@ -20,7 +17,7 @@ export async function publishPracticeGuide(input: {
   reviewAttested?: boolean | string | null;
 }): Promise<{ id: string; version: number }> {
   const prisma = getPrisma();
-  const [guide, clinic] = await Promise.all([
+  const [guide, clinic, canManage] = await Promise.all([
     prisma.practiceGuide.findFirst({
       where: {
         id: input.guideId,
@@ -36,12 +33,11 @@ export async function publishPracticeGuide(input: {
       where: { id: input.clinicId },
       select: {
         slug: true,
-        memberships: {
-          where: { userId: input.actorUserId },
-          select: { role: true },
-          take: 1,
-        },
       },
+    }),
+    actorCanManageClinic({
+      actorUserId: input.actorUserId,
+      clinicId: input.clinicId,
     }),
   ]);
 
@@ -49,8 +45,7 @@ export async function publishPracticeGuide(input: {
     throw new ClinicPortalError("Guide not found.", "not_found");
   }
 
-  const membership = clinic?.memberships[0];
-  if (!clinic || membership?.role !== ClinicMembershipRole.ADMIN) {
+  if (!clinic || !canManage) {
     throw new ClinicPortalError("You cannot publish this guide.", "forbidden");
   }
 

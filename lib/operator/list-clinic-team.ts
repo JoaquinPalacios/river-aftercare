@@ -8,7 +8,7 @@ import {
 
 import { getPrisma } from "@/lib/prisma";
 
-export type ClinicTeamStatus = "active" | "pending" | "expired";
+export type ClinicTeamStatus = "active" | "inactive" | "pending" | "expired";
 
 export type ClinicTeamMember = {
   kind: "member";
@@ -17,7 +17,7 @@ export type ClinicTeamMember = {
   name: string | null;
   email: string;
   role: ClinicMembershipRole;
-  status: "active";
+  status: "active" | "inactive";
 };
 
 export type ClinicTeamInvitation = {
@@ -55,6 +55,7 @@ export async function listClinicTeam(
         select: {
           id: true,
           role: true,
+          active: true,
           user: {
             select: {
               id: true,
@@ -114,7 +115,7 @@ export async function listClinicTeam(
       name: membership.user.name,
       email: membership.user.email,
       role: membership.role,
-      status: "active",
+      status: membership.active ? "active" : "inactive",
     })
   );
 

@@ -150,6 +150,9 @@ model ClinicMembership {
   clinicId  String
   userId    String
   role      ClinicMembershipRole
+  /// Per-clinic access flag. Inactive memberships do not grant clinic
+  /// authorization. This is not a global User disablement.
+  active    Boolean              @default(true)
   clinic    Clinic               @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime             @default(now())
@@ -157,6 +160,7 @@ model ClinicMembership {
 
   @@unique([clinicId, userId])
   @@index([userId])
+  @@index([userId, active])
   @@index([clinicId, role])
 }
 

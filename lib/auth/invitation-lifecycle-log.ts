@@ -41,6 +41,23 @@ export type InvitationLifecycleLogEvent =
       event: "clinic_role_updated";
       userId: string;
       clinicId: string;
+    }
+  | {
+      event: "clinic_membership_deactivated";
+      userId: string;
+      clinicId: string;
+      actorUserId: string;
+    }
+  | {
+      event: "clinic_membership_reactivated";
+      userId: string;
+      clinicId: string;
+      actorUserId: string;
+    }
+  | {
+      event: "operator_clinic_settings_updated";
+      userId: string;
+      clinicId: string;
     };
 
 export function logInvitationLifecycle(
