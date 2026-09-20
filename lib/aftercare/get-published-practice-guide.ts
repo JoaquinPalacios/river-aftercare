@@ -13,6 +13,11 @@ import { isValidCareGuideSlug } from "@/lib/aftercare/slug";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
 import { getPrisma } from "@/lib/prisma";
 
+/**
+ * Public patient document. Serve the clinic's published snapshot only.
+ * Do not attach reviewAttestedBy, reviewAttestedAt, MedicalWebPage, or
+ * canonical reviewedBy to this shape — ADR 0021.
+ */
 export interface PublishedPracticeGuideDocument {
   clinic: {
     id: string;

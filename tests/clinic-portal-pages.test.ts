@@ -129,6 +129,7 @@ describe("clinic portal pages", () => {
     expect(logoActions).not.toContain('formData.get("clinicId")');
     expect(guideActions).toContain("requireClinicAdmin");
     expect(guideActions).toContain("unpublishGuideAction");
+    expect(guideActions).toContain("reviewAttested");
     expect(guideActions).not.toContain('formData.get("clinicId")');
     expect(operatorPage).toContain("requirePlatformOperator");
     expect(operatorActions).toContain("requirePlatformOperator");
@@ -188,6 +189,9 @@ describe("clinic portal pages", () => {
     expect(list).toContain("clinicCanUseCanonicalTemplate");
     expect(create).toContain("clinicCanUseCanonicalTemplate");
     expect(create).toContain("isDemoTenant");
+    expect(create).toContain("classifyCanonicalTemplate");
+    expect(create).toContain("eligibleRevisionId");
+    expect(list).toContain("isSample");
 
     const pkg = JSON.parse(readFileSync("package.json", "utf8"));
     expect(pkg.scripts["bootstrap:demo-template"]).toBe(

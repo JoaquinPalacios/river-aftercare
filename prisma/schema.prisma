@@ -137,7 +137,8 @@ model User {
   memberships                     ClinicMembership[]
   accounts                        Account[]
   sessions                        Session[]
-  authoredPracticeGuideRevisions  PracticeGuideRevision[]
+  authoredPracticeGuideRevisions  PracticeGuideRevision[]    @relation("PracticeGuideRevisionAuthor")
+  attestedPracticeGuideRevisions  PracticeGuideRevision[]    @relation("PracticeGuideRevisionAttestation")
   accountTokens                   AccountToken[]             @relation("AccountTokenSubject")
   invitedAccountTokens            AccountToken[]             @relation("AccountTokenInviter")
   createdAt                       DateTime                   @default(now())
@@ -437,6 +438,10 @@ model GuideTemplate {
   slug           String                  @unique
   title          String
   isActive       Boolean                 @default(true)
+  /// Sample/demo library content. Never eligible for ordinary real-clinic
+  /// enablement, even if revision review metadata is later populated.
+  /// Distinct from clinic publish attestation on PracticeGuideRevision.
+  isSample       Boolean                 @default(false)
   revisions      GuideTemplateRevision[]
   practiceGuides PracticeGuide[]
   createdAt      DateTime                @default(now())
@@ -519,23 +524,31 @@ model PracticeGuide {
 /// Versions 1+ are immutable published snapshots. Public pages pin the
 /// highest published version; draft edits never mutate those rows.
 model PracticeGuideRevision {
-  id              String                          @id @default(cuid())
-  practiceGuideId String
-  version         Int
-  status          GuideRevisionStatus             @default(DRAFT)
-  title           String
-  introduction    String?                         @db.Text
-  publishedAt     DateTime?
-  createdByUserId String?
-  createdAt       DateTime                        @default(now())
-  updatedAt       DateTime                        @updatedAt
-  practiceGuide   PracticeGuide                   @relation(fields: [practiceGuideId], references: [id], onDelete: Cascade)
-  createdBy       User?                           @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
-  sections        PracticeGuideRevisionSection[]
+  id                       String                          @id @default(cuid())
+  practiceGuideId          String
+  version                  Int
+  status                   GuideRevisionStatus             @default(DRAFT)
+  title                    String
+  introduction             String?                         @db.Text
+  publishedAt              DateTime?
+  createdByUserId          String?
+  /// Practice confirmation that this clinic approved the snapshot for
+  /// patients. Not River Aftercare clinical approval. The attesting user is
+  /// the Clinic ADMIN who confirmed the practice's review process — not
+  /// necessarily the clinician who performed that review.
+  reviewAttestedAt         DateTime?
+  reviewAttestedByUserId   String?
+  createdAt                DateTime                        @default(now())
+  updatedAt                DateTime                        @updatedAt
+  practiceGuide            PracticeGuide                   @relation(fields: [practiceGuideId], references: [id], onDelete: Cascade)
+  createdBy                User?                           @relation("PracticeGuideRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  reviewAttestedBy         User?                           @relation("PracticeGuideRevisionAttestation", fields: [reviewAttestedByUserId], references: [id], onDelete: SetNull)
+  sections                 PracticeGuideRevisionSection[]
 
   @@unique([practiceGuideId, version])
   @@index([practiceGuideId, status])
   @@index([createdByUserId])
+  @@index([reviewAttestedByUserId])
 }
 
 model PracticeGuideRevisionSection {

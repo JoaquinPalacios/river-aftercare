@@ -7,7 +7,7 @@ import {
 import { composeGuideDocument } from "@/lib/aftercare/compose-guide-document";
 import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import {
-  classifyCanonicalTemplateAvailability,
+  classifyCanonicalTemplate,
   clinicCanUseCanonicalTemplate,
 } from "@/lib/aftercare/guide-template-review";
 import { isValidCareGuideSlug } from "@/lib/aftercare/slug";
@@ -131,11 +131,13 @@ export async function createPracticeGuideFromTemplate(input: {
       id: true,
       slug: true,
       title: true,
+      isSample: true,
       revisions: {
         where: { status: GuideRevisionStatus.PUBLISHED },
         orderBy: { version: "desc" },
         select: {
           id: true,
+          version: true,
           status: true,
           reviewedAt: true,
           reviewedBy: true,
@@ -147,14 +149,17 @@ export async function createPracticeGuideFromTemplate(input: {
     },
   });
 
-  const availability = classifyCanonicalTemplateAvailability(
-    template?.revisions ?? []
-  );
+  const classified = classifyCanonicalTemplate({
+    isSample: template?.isSample ?? false,
+    revisions: template?.revisions ?? [],
+  });
   const allowed = clinicCanUseCanonicalTemplate({
     isDemoTenant: isDemoTenant(clinic.slug),
-    availability,
+    availability: classified.availability,
   });
-  const publishedRevision = template?.revisions[0];
+  const publishedRevision = template?.revisions.find(
+    (revision) => revision.id === classified.eligibleRevisionId
+  );
   if (!template || !publishedRevision || !allowed) {
     throw new ClinicPortalError("That template is not available.", "not_found");
   }

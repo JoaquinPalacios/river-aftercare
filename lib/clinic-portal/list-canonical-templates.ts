@@ -2,7 +2,7 @@ import { GuideRevisionStatus } from "@prisma/client";
 
 import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import {
-  classifyCanonicalTemplateAvailability,
+  classifyCanonicalTemplate,
   clinicCanUseCanonicalTemplate,
   type CanonicalTemplateAvailability,
 } from "@/lib/aftercare/guide-template-review";
@@ -44,9 +44,12 @@ export async function listCanonicalGuideTemplates(
         slug: true,
         title: true,
         specialty: true,
+        isSample: true,
         revisions: {
           where: { status: GuideRevisionStatus.PUBLISHED },
           select: {
+            id: true,
+            version: true,
             status: true,
             reviewedAt: true,
             reviewedBy: true,
@@ -77,15 +80,17 @@ export async function listCanonicalGuideTemplates(
   return {
     isDemoTenant: demoTenant,
     templates: templates.flatMap((template) => {
-      const availability = classifyCanonicalTemplateAvailability(
-        template.revisions
-      );
+      const classified = classifyCanonicalTemplate({
+        isSample: template.isSample,
+        revisions: template.revisions,
+      });
       if (
         !clinicCanUseCanonicalTemplate({
           isDemoTenant: demoTenant,
-          availability,
+          availability: classified.availability,
         }) ||
-        !availability
+        !classified.availability ||
+        !classified.eligibleRevisionId
       ) {
         return [];
       }
@@ -96,7 +101,7 @@ export async function listCanonicalGuideTemplates(
           slug: template.slug,
           title: template.title,
           specialty: template.specialty,
-          availability,
+          availability: classified.availability,
           alreadyEnabled: enabledIds.has(template.id),
         },
       ];

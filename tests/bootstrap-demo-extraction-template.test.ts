@@ -28,6 +28,7 @@ function matchingSnapshot(): DemoExtractionTemplateSnapshot {
     title: create.template.title,
     specialty: create.template.specialty,
     isActive: true,
+    isSample: true,
     revisions: [
       {
         version: create.revision.version,
@@ -53,6 +54,7 @@ describe("demo extraction bootstrap planner", () => {
       title: "Tooth Extraction",
       specialty: "DENTAL",
       isActive: true,
+      isSample: true,
     });
     expect(plan.revision).toEqual({
       version: 1,
@@ -71,7 +73,7 @@ describe("demo extraction bootstrap planner", () => {
     const formatted = formatDemoExtractionBootstrapPlan(plan);
     expect(formatted).toContain("Action: create");
     expect(formatted).toContain(
-      "- 1 GuideTemplate slug=extraction title=Tooth Extraction specialty=DENTAL isActive=true"
+      "- 1 GuideTemplate slug=extraction title=Tooth Extraction specialty=DENTAL isActive=true isSample=true"
     );
     expect(formatted).toContain(
       "- 1 GuideTemplateRevision version=1 status=PUBLISHED reviewedAt=null reviewedBy=null"
@@ -113,6 +115,14 @@ describe("demo extraction bootstrap planner", () => {
     const retitled = matchingSnapshot();
     retitled.title = "Different title";
     expect(planDemoExtractionBootstrap(retitled).action).toBe("refuse");
+
+    const notSample = matchingSnapshot();
+    notSample.isSample = false;
+    const refusedSample = planDemoExtractionBootstrap(notSample);
+    expect(refusedSample.action).toBe("refuse");
+    if (refusedSample.action === "refuse") {
+      expect(refusedSample.reason).toContain("isSample");
+    }
 
     const reordered = matchingSnapshot();
     reordered.revisions[0].sections[0].body = "Changed body";
@@ -186,6 +196,7 @@ describe("demo extraction bootstrap writes", () => {
         },
       });
       expect(created.title).toBe("Tooth Extraction");
+      expect(created.isSample).toBe(true);
       expect(created.revisions).toHaveLength(1);
       expect(created.revisions[0]?.sections).toHaveLength(8);
       expect(created.revisions[0]?.reviewedAt).toBeNull();

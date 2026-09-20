@@ -31,4 +31,30 @@ describe("reserved tenant slugs", () => {
       )
     ).toBe(true);
   });
+
+  it("rejects operator clinic creation with slug demodental so the demo tenant cannot be claimed", () => {
+    const parsed = createOperatorClinicSchema.safeParse({
+      name: "Not The Demo",
+      slug: "demodental",
+    });
+    expect(parsed.success).toBe(false);
+    if (parsed.success) {
+      return;
+    }
+    expect(parsed.error.issues.some((issue) => issue.path[0] === "slug")).toBe(
+      true
+    );
+    expect(
+      parsed.error.issues.some(
+        (issue) =>
+          issue.message ===
+          "That hostname is reserved for the interactive demo."
+      )
+    ).toBe(true);
+  });
+
+  it("does not treat demodental as an infrastructure hostname reservation", () => {
+    expect(RESERVED_TENANT_SLUGS).not.toContain("demodental");
+    expect(isReservedTenantSlug("demodental")).toBe(false);
+  });
 });

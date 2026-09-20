@@ -549,6 +549,22 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
   padding: 0.7rem 1.5rem 0;
 }
 
+.staffDialogCheck {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.85rem 1.5rem 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--staff-ink);
+}
+
+.staffDialogCheck input {
+  margin-top: 0.2rem;
+  flex: 0 0 auto;
+}
+
 .staffDialogActions {
   display: flex;
   flex-wrap: wrap;

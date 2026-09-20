@@ -3,6 +3,7 @@ import { ClinicMembershipRole } from "@prisma/client";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import { GuideEditor } from "@/app/(staff)/(clinic-portal)/guides/guide-editor";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import { isClinicPortalError } from "@/lib/clinic-portal/errors";
@@ -76,6 +77,7 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
           guide={guide}
           patientUrlExample={patientUrlExample}
           canEdit={clinicMembership.role === ClinicMembershipRole.ADMIN}
+          requiresReviewAttestation={!isDemoTenant(overview?.slug ?? "")}
           clinicThemeMode={clinic?.profile?.themeMode}
           fontClassName={font.className}
           fontCssVariable={font.cssVariable}

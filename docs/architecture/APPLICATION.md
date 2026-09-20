@@ -22,6 +22,8 @@ Business rules should not live only inside React components. Current server modu
 | Concern                 | Module area                                                                                                                                                 |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Guide lifecycle         | `lib/clinic-portal/*-practice-guide.ts`                                                                                                                     |
+| Canonical sample/review | `lib/aftercare/guide-template-review.ts`, `GuideTemplate.isSample`                                                                                          |
+| Practice attestation    | `lib/clinic-portal/practice-review-attestation.ts`, `publishPracticeGuide`                                                                                  |
 | Practice configuration  | `lib/clinic-portal/update-practice-settings.ts`                                                                                                             |
 | Authorization           | `lib/auth/require-*.ts`, `lib/clinic-assets/authorize-clinic-logo.ts`                                                                                       |
 | Staff login             | `lib/auth/password.ts`, `lib/auth/login-input.ts`, [AUTH.md](AUTH.md)                                                                                       |

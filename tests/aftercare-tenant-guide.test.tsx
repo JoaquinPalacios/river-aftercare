@@ -215,6 +215,10 @@ describe("tenant guide page", () => {
     expect(html).not.toContain("login");
     expect(html).not.toContain("Sign in");
     expect(html).not.toContain("/_sites/");
+    expect(html).not.toContain("Clinical review confirmed");
+    expect(html).not.toContain("reviewedBy");
+    expect(html).not.toContain("MedicalWebPage");
+    expect(html).not.toContain("reviewAttested");
   });
 
   it("keeps clinic emergency chrome distinct from guide emergency content", async () => {

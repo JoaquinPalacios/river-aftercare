@@ -12,6 +12,7 @@ import {
   clinicGuideStatusLabel,
   type ClinicGuideLifecycleStatus,
 } from "@/lib/clinic-portal/guide-status";
+import { clinicActorLabel } from "@/lib/clinic-portal/practice-review-attestation";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
 import { getPrisma } from "@/lib/prisma";
 
@@ -31,6 +32,10 @@ export interface PracticeGuideEditorRecord {
     id: string;
     slug: string;
     title: string;
+  } | null;
+  reviewAttestation: {
+    confirmedAt: Date;
+    confirmedByLabel: string;
   } | null;
   sections: ComposedGuideSection[];
   updatedAt: Date;
@@ -134,6 +139,7 @@ export async function loadPracticeGuideEditor(input: {
       contentRevisions: {
         include: {
           sections: { orderBy: { sortOrder: "asc" } },
+          reviewAttestedBy: { select: { name: true } },
         },
       },
     },
@@ -154,6 +160,7 @@ export async function loadPracticeGuideEditor(input: {
         contentRevisions: {
           include: {
             sections: { orderBy: { sortOrder: "asc" } },
+            reviewAttestedBy: { select: { name: true } },
           },
         },
       },
@@ -200,6 +207,15 @@ export async function loadPracticeGuideEditor(input: {
     lifecycle,
     statusLabel: clinicGuideStatusLabel(lifecycle),
     template: guide.guideTemplate,
+    reviewAttestation:
+      published?.reviewAttestedAt && published.reviewAttestedByUserId
+        ? {
+            confirmedAt: published.reviewAttestedAt,
+            confirmedByLabel: clinicActorLabel(
+              published.reviewAttestedBy?.name
+            ),
+          }
+        : null,
     sections: composedSectionsFromPracticeRevision(draft.sections),
     updatedAt: draft.updatedAt,
   };

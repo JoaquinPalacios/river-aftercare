@@ -31,12 +31,14 @@ import { useUnsavedChangesGuard } from "@/app/(staff)/components/use-unsaved-cha
 import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
 import { guideQrDownloadPath } from "@/lib/clinic-portal/guide-qr";
 import { formSaveStatus } from "@/lib/clinic-portal/form-save-status";
+import { formatPortalDateTime } from "@/lib/clinic-portal/format-portal-date";
 import {
   clinicGuideCanUnpublish,
   clinicGuideDestructiveAction,
   clinicGuideStatusPills,
 } from "@/lib/clinic-portal/guide-status";
 import type { PracticeGuideEditorRecord } from "@/lib/clinic-portal/load-practice-guide-editor";
+import { PRACTICE_REVIEW_ATTESTATION_LABEL } from "@/lib/clinic-portal/practice-review-attestation";
 import type { GuideSectionKind } from "@/lib/aftercare/types";
 
 const ADDITIONAL_KINDS: GuideSectionKind[] = [
@@ -83,6 +85,7 @@ export function GuideEditor({
   guide,
   patientUrlExample,
   canEdit,
+  requiresReviewAttestation = true,
   clinicThemeMode,
   fontClassName,
   fontCssVariable,
@@ -90,6 +93,7 @@ export function GuideEditor({
   guide: PracticeGuideEditorRecord;
   patientUrlExample: string;
   canEdit: boolean;
+  requiresReviewAttestation?: boolean;
   clinicThemeMode?: string | null;
   fontClassName?: string;
   fontCssVariable?: `--font-clinic-${string}` | null;
@@ -105,6 +109,7 @@ export function GuideEditor({
     toEditorSections(guide.sections)
   );
   const [publishOpen, setPublishOpen] = useState(false);
+  const [reviewAttested, setReviewAttested] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [saveState, saveAction, saving] = useActionState(
     saveGuideDraftAction,
@@ -274,7 +279,10 @@ export function GuideEditor({
               dirty ? "Save the current draft before publishing." : undefined
             }
             className="staffBtn staffBtnPrimary"
-            onClick={() => setPublishOpen(true)}
+            onClick={() => {
+              setReviewAttested(false);
+              setPublishOpen(true);
+            }}
           >
             {publishing ? "Publishing…" : "Publish guide"}
           </button>
@@ -375,6 +383,14 @@ export function GuideEditor({
           <div className="staffEditorToolbarMeta">
             <GuideStatusPills pills={statusPills} />
             <p className="staffEditorToolbarContext">{sourceLabel}</p>
+            {guide.reviewAttestation ? (
+              <p className="staffEditorToolbarContext">
+                Clinical review confirmed by{" "}
+                {guide.reviewAttestation.confirmedByLabel}
+                {" · "}
+                {formatPortalDateTime(guide.reviewAttestation.confirmedAt)}
+              </p>
+            ) : null}
             {saveFeedback}
           </div>
         </div>
@@ -556,6 +572,13 @@ export function GuideEditor({
       {canEdit ? (
         <form id="guide-publish-form" action={publishAction} className="hidden">
           <input type="hidden" name="guideId" value={guide.id} />
+          <input
+            type="hidden"
+            name="reviewAttested"
+            value={
+              requiresReviewAttestation && reviewAttested ? "true" : "false"
+            }
+          />
         </form>
       ) : null}
 
@@ -578,15 +601,30 @@ export function GuideEditor({
         cancelLabel="Cancel"
         confirmLabel="Publish guide"
         confirmTone="primary"
-        onCancel={() => setPublishOpen(false)}
-        onConfirm={() => {
+        confirmDisabled={requiresReviewAttestation && !reviewAttested}
+        onCancel={() => {
           setPublishOpen(false);
+          setReviewAttested(false);
+        }}
+        onConfirm={() => {
           const form = document.getElementById(
             "guide-publish-form"
           ) as HTMLFormElement | null;
           form?.requestSubmit();
+          setPublishOpen(false);
         }}
-      />
+      >
+        {requiresReviewAttestation ? (
+          <label className="staffDialogCheck">
+            <input
+              type="checkbox"
+              checked={reviewAttested}
+              onChange={(event) => setReviewAttested(event.target.checked)}
+            />
+            <span>{PRACTICE_REVIEW_ATTESTATION_LABEL}</span>
+          </label>
+        ) : null}
+      </ConfirmDialog>
     </div>
   );
 }
