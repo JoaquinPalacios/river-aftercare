@@ -17,11 +17,31 @@ import {
   PLAN_COMPARISON_CONTROL_LABEL,
   PLAN_COMPARISON_PANEL_ID,
   PLAN_COMPARISON_ROWS,
+  PLAN_COMPARISON_SUPPORT_FEATURE,
   PLAN_PRICES,
   PRICING_NOTES,
+  PRICING_PRIORITY_SUPPORT_LABEL,
   PRICING_SHARING_FEATURE_LABEL,
+  PRICING_STANDARD_SUPPORT_LABEL,
   PRICING_TYPOGRAPHY_FEATURE_LABEL,
 } from "@/lib/marketing/plans";
+
+const UNSUPPORTED_SUPPORT_COPY = [
+  "same-day support",
+  "24-hour response",
+  "2-hour response",
+  "dedicated support",
+  "guaranteed turnaround",
+  "24/7 support",
+  "emergency support",
+  "clinical support",
+  "phone support",
+  "dedicated account management",
+  "Premium support",
+  "VIP support",
+  "Enterprise support",
+  "Account manager",
+] as const;
 
 describe("marketing pricing page", () => {
   const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
@@ -266,6 +286,11 @@ describe("marketing pricing page", () => {
     );
     expect(practiceBlock).toContain("Up to 5 clinic team members");
     expect(practiceBlock).toContain("Assisted setup");
+    expect(practiceBlock).toContain(PRICING_PRIORITY_SUPPORT_LABEL);
+    expect(practiceBlock).not.toContain(PRICING_STANDARD_SUPPORT_LABEL);
+    expect(essentialBlock).not.toContain(PRICING_STANDARD_SUPPORT_LABEL);
+    expect(essentialBlock).not.toContain(PRICING_PRIORITY_SUPPORT_LABEL);
+    expect(groupBlock).not.toContain(PRICING_STANDARD_SUPPORT_LABEL);
     expect(practiceBlock).not.toContain(
       "Create and edit your own aftercare guides"
     );
@@ -321,6 +346,19 @@ describe("marketing pricing page", () => {
     expect(comparisonBlock).not.toContain("central permissions");
     expect(comparisonBlock).not.toContain("master guide governance");
     expect(comparisonBlock).not.toContain("named-seat");
+    expect(comparisonBlock).toContain('data-comparison-row="support"');
+    expect(comparisonBlock).not.toContain(
+      'data-comparison-row="priority-support"'
+    );
+    expect(comparisonBlock).toContain(`scope="row">${PLAN_COMPARISON_SUPPORT_FEATURE}<`);
+    expect(comparisonBlock).toContain(PRICING_STANDARD_SUPPORT_LABEL);
+    expect(comparisonBlock).toContain(PRICING_PRIORITY_SUPPORT_LABEL);
+    for (const copy of UNSUPPORTED_SUPPORT_COPY) {
+      expect(html.toLowerCase()).not.toContain(copy.toLowerCase());
+    }
+    expect(html).not.toMatch(/\bSLA\b/);
+    expect(html).not.toContain("self-serve billing");
+    expect(html).not.toContain("Stripe");
   });
 
   it("includes the onboarding product-truth note as the final reveal item", async () => {
@@ -374,12 +412,19 @@ describe("canonical plan prices", () => {
     expect(LAUNCH_PLANS[0].features).not.toContain(
       "Up to 2 custom clinic guides"
     );
+    expect(LAUNCH_PLANS[0].features).not.toContain(
+      PRICING_STANDARD_SUPPORT_LABEL
+    );
+    expect(LAUNCH_PLANS[0].features).not.toContain(
+      PRICING_PRIORITY_SUPPORT_LABEL
+    );
     expect([...LAUNCH_PLANS[1].features]).toEqual([
       "Everything in Essential",
       "Up to 30 custom clinic guides",
       "Adapt River Aftercare templates to suit your clinic",
       "Up to 5 clinic team members",
       "Assisted setup",
+      PRICING_PRIORITY_SUPPORT_LABEL,
     ]);
     expect(LAUNCH_PLANS[1].features).not.toContain(
       "Create and edit your own aftercare guides"
@@ -400,6 +445,9 @@ describe("canonical plan prices", () => {
       "For organisations that need coordinated rollout and tailored support across their practices."
     );
     expect(LAUNCH_PLANS[2].position).not.toContain("central management");
+    expect(LAUNCH_PLANS[0].features).toHaveLength(6);
+    expect(LAUNCH_PLANS[1].features).toHaveLength(6);
+    expect(LAUNCH_PLANS[2].features).toHaveLength(4);
   });
 
   it("keeps comparison rows aligned with advertised plan limits", () => {
@@ -424,6 +472,7 @@ describe("canonical plan prices", () => {
     const theme = PLAN_COMPARISON_ROWS.find(
       (row) => row.id === "patient-presentation"
     );
+    const support = PLAN_COMPARISON_ROWS.find((row) => row.id === "support");
     const groupCopy = PLAN_COMPARISON_ROWS.map((row) => row.group.label).join(
       "\n"
     );
@@ -459,6 +508,22 @@ describe("canonical plan prices", () => {
     expect(pdf?.feature).toBe("Print / Save PDF");
     expect(contact?.feature).toBe("Clinic contact and emergency information");
     expect(theme?.feature).toBe("Light / Dark / System patient presentation");
+    expect(support?.feature).toBe(PLAN_COMPARISON_SUPPORT_FEATURE);
+    expect(support?.essential).toEqual({
+      kind: "text",
+      label: PRICING_STANDARD_SUPPORT_LABEL,
+    });
+    expect(support?.practice).toEqual({
+      kind: "text",
+      label: PRICING_PRIORITY_SUPPORT_LABEL,
+    });
+    expect(support?.group).toEqual({
+      kind: "text",
+      label: PRICING_PRIORITY_SUPPORT_LABEL,
+    });
+    expect(PLAN_COMPARISON_ROWS.some((row) => row.id === "priority-support")).toBe(
+      false
+    );
     expect(JSON.stringify(LAUNCH_PLANS)).not.toContain("Permanent guide URLs");
     expect(JSON.stringify(PLAN_COMPARISON_ROWS)).not.toContain(
       "Permanent guide URLs"

@@ -8,6 +8,9 @@ import { MarketingPlanComparison } from "@/app/(marketing)/components/marketing-
 import {
   PLAN_COMPARISON_CONTROL_LABEL,
   PLAN_COMPARISON_PANEL_ID,
+  PLAN_COMPARISON_SUPPORT_FEATURE,
+  PRICING_PRIORITY_SUPPORT_LABEL,
+  PRICING_STANDARD_SUPPORT_LABEL,
 } from "@/lib/marketing/plans";
 
 describe("marketing plan comparison disclosure", () => {
@@ -59,6 +62,26 @@ describe("marketing plan comparison disclosure", () => {
     expect(comparison.textContent).toContain("Up to 2");
     expect(comparison.textContent).toContain("Up to 30");
     expect(comparison.textContent).toContain("Not included");
+    const supportRow = comparison.querySelector(
+      '[data-comparison-row="support"]'
+    ) as HTMLTableRowElement;
+    expect(supportRow).toBeTruthy();
+    expect(supportRow.querySelector("th")?.textContent).toBe(
+      PLAN_COMPARISON_SUPPORT_FEATURE
+    );
+    expect(
+      supportRow.querySelector('[data-plan="essential"]')?.textContent
+    ).toContain(PRICING_STANDARD_SUPPORT_LABEL);
+    expect(
+      supportRow.querySelector('[data-plan="practice"]')?.textContent
+    ).toContain(PRICING_PRIORITY_SUPPORT_LABEL);
+    expect(
+      supportRow.querySelector('[data-plan="group"]')?.textContent
+    ).toContain(PRICING_PRIORITY_SUPPORT_LABEL);
+    expect(supportRow.querySelector("svg")).toBeNull();
+    expect(
+      comparison.querySelector('[data-comparison-row="priority-support"]')
+    ).toBeNull();
 
     await act(async () => {
       button.click();

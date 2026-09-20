@@ -60,6 +60,12 @@ export const PRICING_TYPOGRAPHY_FEATURE_LABEL =
 export const PRICING_SHARING_FEATURE_LABEL =
   "QR sharing, PDF and durable patient guide URLs";
 
+export const PRICING_STANDARD_SUPPORT_LABEL = "Standard support";
+
+export const PRICING_PRIORITY_SUPPORT_LABEL = "Priority support";
+
+export const PLAN_COMPARISON_SUPPORT_FEATURE = "Support";
+
 export const PRICING_TYPOGRAPHY_FOOTNOTE_ID = "pricing-typography-note";
 
 export const PRICING_TYPOGRAPHY_NOTE =
@@ -84,6 +90,7 @@ const PRACTICE_CARD_FEATURES = [
   `Adapt ${PRODUCT_NAME} templates to suit your clinic`,
   `Up to ${PLAN_PRICES.practice.clinicTeamMembers} clinic team members`,
   "Assisted setup",
+  PRICING_PRIORITY_SUPPORT_LABEL,
 ] as const;
 
 export const LAUNCH_PLANS = [
@@ -133,7 +140,7 @@ export const LAUNCH_PLANS = [
     features: [
       "Coordinated rollout across practices",
       "Custom onboarding",
-      "Priority support",
+      PRICING_PRIORITY_SUPPORT_LABEL,
       "Tailored account setup",
     ],
     setupNotes: null,
@@ -333,10 +340,10 @@ export const PLAN_COMPARISON_ROWS: readonly PlanComparisonRow[] = [
     group: textValue("Coordinated rollout"),
   },
   {
-    id: "priority-support",
-    feature: "Priority support",
-    essential: dash,
-    practice: dash,
-    group: included,
+    id: "support",
+    feature: PLAN_COMPARISON_SUPPORT_FEATURE,
+    essential: textValue(PRICING_STANDARD_SUPPORT_LABEL),
+    practice: textValue(PRICING_PRIORITY_SUPPORT_LABEL),
+    group: textValue(PRICING_PRIORITY_SUPPORT_LABEL),
   },
 ];
