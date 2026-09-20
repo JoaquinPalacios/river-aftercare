@@ -44,15 +44,15 @@ describe("validateClinicFavicon", () => {
         bytes: pngBytes(64, 32),
         mimeType: "image/png",
         fileName: "wide.png",
-      }).error
-    ).toMatch(/square/i);
+      })
+    ).toMatchObject({ ok: false, error: expect.stringMatching(/square/i) });
     expect(
       validateClinicFavicon({
         bytes: pngBytes(16, 16),
         mimeType: "image/png",
         fileName: "tiny.png",
-      }).error
-    ).toMatch(/32/);
+      })
+    ).toMatchObject({ ok: false, error: expect.stringMatching(/32/) });
     expect(
       validateClinicFavicon({
         bytes: pngBytes(
@@ -61,8 +61,8 @@ describe("validateClinicFavicon", () => {
         ),
         mimeType: "image/png",
         fileName: "huge.png",
-      }).error
-    ).toMatch(/1024/);
+      })
+    ).toMatchObject({ ok: false, error: expect.stringMatching(/1024/) });
     expect(
       validateClinicFavicon({
         bytes: PNG_32,
