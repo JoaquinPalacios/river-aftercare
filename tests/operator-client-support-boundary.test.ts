@@ -65,6 +65,12 @@ describe("operator client-support security boundaries", () => {
     );
 
     expect(cookie).toContain("authSessionCookieOptions");
+    expect(cookie).not.toContain("maxAge");
+    const sessionCookie = readFileSync("lib/auth/session-cookie.ts", "utf8");
+    expect(sessionCookie).toContain("httpOnly: true");
+    expect(sessionCookie).toContain('sameSite: "lax"');
+    expect(sessionCookie).toContain('path: "/"');
+    expect(sessionCookie).toContain("secure: useSecureCookies");
     expect(session).toContain("isPlatformOperator(user)");
     expect(session).toContain("readOperatorSupportClinic");
     expect(requireAdmin).toContain("PlatformRole.OPERATOR");

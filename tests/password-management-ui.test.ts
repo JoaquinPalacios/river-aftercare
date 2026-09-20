@@ -88,4 +88,11 @@ describe("password management UI contracts", () => {
     expect(loginForm).not.toContain("Turnstile");
     expect(loginForm).not.toContain("Invite");
   });
+
+  it("keeps the current email in the profile field while a change is pending", () => {
+    const form = readFileSync("app/(staff)/account/profile-form.tsx", "utf8");
+    expect(form).toContain("setEmailValue(email)");
+    expect(form).toContain("setShownPendingEmail(null)");
+    expect(form).toContain("pending-email-verification");
+  });
 });

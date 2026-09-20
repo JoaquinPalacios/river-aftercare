@@ -141,11 +141,12 @@ export interface LocalLoginPrisma {
   clinicMembership: {
     upsert: (args: {
       where: { clinicId_userId: { clinicId: string; userId: string } };
-      update: { role: ClinicMembershipRole };
+      update: { role: ClinicMembershipRole; active: true };
       create: {
         clinicId: string;
         userId: string;
         role: ClinicMembershipRole;
+        active: true;
       };
     }) => Promise<unknown>;
   };
@@ -187,11 +188,12 @@ export async function upsertLocalLoginAccounts(input: {
             userId: user.id,
           },
         },
-        update: { role: account.role },
+        update: { role: account.role, active: true },
         create: {
           clinicId: input.clinicId,
           userId: user.id,
           role: account.role,
+          active: true,
         },
       });
     }

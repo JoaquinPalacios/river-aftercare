@@ -36,6 +36,7 @@ export function UpdateProfileForm({
   const submittingRef = useRef(false);
   const [nameValue, setNameValue] = useState(name);
   const [emailValue, setEmailValue] = useState(email);
+  const [shownPendingEmail, setShownPendingEmail] = useState(pendingEmail);
   const [currentPassword, setCurrentPassword] = useState("");
   const [localErrors, setLocalErrors] = useState<
     UpdateProfileActionState["fieldErrors"]
@@ -46,19 +47,38 @@ export function UpdateProfileForm({
   }, [pending]);
 
   useEffect(() => {
-    if (state.saved || cancelState.cancelled) {
-      setCurrentPassword("");
-      setLocalErrors({});
-      router.refresh();
+    setShownPendingEmail(pendingEmail);
+  }, [pendingEmail]);
+
+  useEffect(() => {
+    if (!state.saved) {
+      return;
     }
-  }, [router, state.saved, cancelState.cancelled]);
+    setCurrentPassword("");
+    setLocalErrors({});
+    if (state.emailChanged) {
+      setEmailValue(email);
+      setShownPendingEmail(state.pendingEmail ?? null);
+    }
+    router.refresh();
+  }, [router, state.saved, state.emailChanged, state.pendingEmail, email]);
+
+  useEffect(() => {
+    if (!cancelState.cancelled) {
+      return;
+    }
+    setCurrentPassword("");
+    setLocalErrors({});
+    setEmailValue(email);
+    setShownPendingEmail(null);
+    router.refresh();
+  }, [router, cancelState.cancelled, email]);
 
   const fieldErrors = {
     ...state.fieldErrors,
     ...localErrors,
   };
 
-  const shownPendingEmail = state.pendingEmail ?? pendingEmail;
   const successMessage = state.emailChanged
     ? EMAIL_VERIFICATION_SENT_MESSAGE
     : PROFILE_UPDATED_MESSAGE;
@@ -146,7 +166,7 @@ export function UpdateProfileForm({
         ) : null}
       </div>
 
-      {shownPendingEmail && !cancelState.cancelled ? (
+      {shownPendingEmail ? (
         <div
           className="rounded-md border border-staff-line bg-staff-canvas px-3 py-2 text-sm text-staff-ink"
           role="status"
