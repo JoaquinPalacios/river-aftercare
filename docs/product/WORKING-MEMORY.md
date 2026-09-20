@@ -1957,7 +1957,7 @@ See [AUTH.md](../architecture/AUTH.md), [CLINIC-PORTAL.md](../architecture/CLINI
 
 ## E2E baseline repair (2026-09-20)
 
-Main `a7164f1` full Playwright: **241 tests, 237 passed, 4 failed**. No production copy changes.
+Main `a7164f1` full Playwright: **241 tests, 237 passed, 4 failed**. This branch after locator + budget repair: **241 passed**. No production copy changes.
 
 | Failure                                                          | Cause                                                                                                                                                               | Fix                                                                                                                                                                                                                                  |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
