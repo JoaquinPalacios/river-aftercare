@@ -40,10 +40,10 @@ test.describe("marketing reveal sequence consistency", () => {
     page,
   }) => {
     await openWithReducedMotion(page, "/dental");
-    const template = page
-      .locator('[class*="verticalStatus"]')
-      .filter({ hasText: "Current starting template" });
-    const explanation = page.locator('[class*="verticalNote"]').filter({
+    const template = page.getByText("Current starting template", {
+      exact: true,
+    });
+    const explanation = page.locator('p[class*="verticalNote"]').filter({
       hasText:
         "Riverside Dental Demo currently uses a Tooth Extraction sample template.",
     });
@@ -56,7 +56,7 @@ test.describe("marketing reveal sequence consistency", () => {
   }) => {
     await openWithReducedMotion(page, "/physiotherapy");
     await expectRevealAncestor(
-      page.locator('[class*="verticalNote"]').filter({
+      page.locator('p[class*="verticalNote"]').filter({
         hasText:
           "Physiotherapy template availability is confirmed during onboarding.",
       })
@@ -64,7 +64,7 @@ test.describe("marketing reveal sequence consistency", () => {
 
     await openWithReducedMotion(page, "/chiropractic");
     await expectRevealAncestor(
-      page.locator('[class*="verticalBoundary"]').filter({
+      page.locator('p[class*="verticalNote"]').filter({
         hasText:
           "These are examples of guidance a practice may choose to publish, not a pre-built chiropractic template library.",
       })
@@ -72,7 +72,7 @@ test.describe("marketing reveal sequence consistency", () => {
 
     await openWithReducedMotion(page, "/cosmetic-clinics");
     await expectRevealAncestor(
-      page.locator('[class*="verticalNote"]').filter({
+      page.locator('p[class*="verticalNote"]').filter({
         hasText:
           "Template availability is confirmed during onboarding as the River Aftercare library expands.",
       })

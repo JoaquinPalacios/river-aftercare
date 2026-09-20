@@ -6,6 +6,7 @@ import {
   PATIENT_THEME_STORAGE_KEY,
   PORTAL_THEME_STORAGE_KEY,
   PRODUCT_THEME_COOKIE_NAME,
+  PRODUCT_THEME_QUERY_PARAM,
   PRODUCT_THEME_SYNC_PATH,
   parseThemeMode,
   parseThemePreference,
@@ -60,20 +61,24 @@ describe("theme preference", () => {
     const source = readFileSync("lib/branding/theme-preference.ts", "utf8");
     expect(source).toContain("app.localhost");
     expect(source).toContain("iframe");
+    expect(source).toContain("stampStaffLoginLinks");
   });
 
   it("lets staff bootstrap fall back to marketing storage, cookie, then system", () => {
     const script = themePreferenceBootstrapScript(PORTAL_THEME_STORAGE_KEY, {
       fallbackStorageKey: MARKETING_THEME_STORAGE_KEY,
       cookieName: PRODUCT_THEME_COOKIE_NAME,
+      queryParam: PRODUCT_THEME_QUERY_PARAM,
       defaultPreference: "system",
     });
 
     expect(script).toContain(PORTAL_THEME_STORAGE_KEY);
     expect(script).toContain(MARKETING_THEME_STORAGE_KEY);
     expect(script).toContain(PRODUCT_THEME_COOKIE_NAME);
+    expect(script).toContain(PRODUCT_THEME_QUERY_PARAM);
     expect(script).toContain("document.cookie");
     expect(script).toContain('"system"');
+    expect(script).toContain("URLSearchParams");
     expect(script).not.toContain("<");
     expect(script).not.toContain("ThemeProvider");
   });

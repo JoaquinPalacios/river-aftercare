@@ -9,6 +9,7 @@ import {
   MARKETING_THEME_STORAGE_KEY,
   PORTAL_THEME_STORAGE_KEY,
   PRODUCT_THEME_COOKIE_NAME,
+  PRODUCT_THEME_QUERY_PARAM,
   productThemeCookieDomain,
   themePreferenceBootstrapScript,
 } from "@/lib/branding/theme-preference";
@@ -45,6 +46,7 @@ export default function RootLayout({
             __html: themePreferenceBootstrapScript(PORTAL_THEME_STORAGE_KEY, {
               fallbackStorageKey: MARKETING_THEME_STORAGE_KEY,
               cookieName: PRODUCT_THEME_COOKIE_NAME,
+              queryParam: PRODUCT_THEME_QUERY_PARAM,
               defaultPreference: "system",
             }),
           }}

@@ -46,15 +46,19 @@ async function readAuthSurfaces(page: Page) {
 }
 
 async function chooseMarketingTheme(page: Page, name: "Dark" | "Light") {
-  const sync = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/ui-theme") &&
-      response.request().method() === "GET" &&
-      response.ok()
-  );
   await page.getByRole("button", { name: /Change colour theme/ }).click();
   await page.getByRole("menuitemradio", { name }).click();
-  await sync;
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-theme-mode",
+    name.toLowerCase()
+  );
+}
+
+async function signInFromMarketing(page: Page) {
+  const signIn = page.getByRole("link", { name: "Sign in" }).first();
+  await expect(signIn).toHaveAttribute("href", /[?&]ui-theme=/);
+  await signIn.click();
+  await expect(page).toHaveURL(/\/login/);
 }
 
 test.describe("auth light and dark theming", () => {
@@ -124,12 +128,8 @@ test.describe("auth light and dark theming", () => {
   test("marketing dark survives navigation to sign in", async ({ page }) => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await chooseMarketingTheme(page, "Dark");
-    await expect(page.locator("html")).toHaveAttribute(
-      "data-theme-mode",
-      "dark"
-    );
 
-    await page.goto(staffUrl("/login"), { waitUntil: "load" });
+    await signInFromMarketing(page);
     await expect(page.locator("html")).toHaveAttribute(
       "data-theme-mode",
       "dark"
@@ -143,12 +143,8 @@ test.describe("auth light and dark theming", () => {
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await chooseMarketingTheme(page, "Light");
-    await expect(page.locator("html")).toHaveAttribute(
-      "data-theme-mode",
-      "light"
-    );
 
-    await page.goto(staffUrl("/login"), { waitUntil: "load" });
+    await signInFromMarketing(page);
     await expect(page.locator("html")).toHaveAttribute(
       "data-theme-mode",
       "light"
