@@ -26,6 +26,12 @@ const SERVER_ONLY_FILES = [
   "lib/operator/deliver-clinic-invitation-email.ts",
   "lib/marketing/contact-mailer.ts",
   "lib/marketing/contact-config.ts",
+  "lib/observability/error-tracking-env.ts",
+  "lib/observability/sensitive-value-sanitizer.ts",
+  "lib/observability/sanitize-error-event.ts",
+  "lib/observability/init-server-error-tracking.ts",
+  "lib/observability/report-server-exception.ts",
+  "lib/observability/on-request-error.ts",
 ];
 
 const CLIENT_FILES = [

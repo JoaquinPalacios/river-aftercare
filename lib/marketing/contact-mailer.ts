@@ -10,6 +10,7 @@ import {
   sendTransactionalEmail,
   type TransactionalEmailMessage,
 } from "@/lib/email/transactional-mailer";
+import { reportContactEmailFailure } from "@/lib/observability/report-server-exception";
 
 export const CONTACT_DELIVERY_FAILED =
   "We couldn't send your message right now. Please try again.";
@@ -32,6 +33,7 @@ export async function deliverMarketingContactEnquiry(
   config: MarketingContactDeliveryConfig = getMarketingContactDeliveryConfig()
 ): Promise<MarketingContactMailerResult> {
   if (!config.ready) {
+    reportContactEmailFailure("not_configured");
     return { ok: false, error: CONTACT_DELIVERY_FAILED };
   }
 
@@ -49,6 +51,11 @@ export async function deliverMarketingContactEnquiry(
   );
 
   if (!result.ok) {
+    reportContactEmailFailure(
+      result.code === "not_configured" || result.code === "invalid_message"
+        ? result.code
+        : "delivery_failed"
+    );
     return { ok: false, error: CONTACT_DELIVERY_FAILED };
   }
 

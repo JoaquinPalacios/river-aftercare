@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-20 (production error surfaces + staff `/api/health`; no Prisma migration)
+Last updated: 2026-09-20 (privacy-minimal production server error tracking; no Prisma migration)
 
 ## Durable production release rule
 
@@ -25,7 +25,13 @@ Canonical detail: [../launch/NEON-RECOVERY.md](../launch/NEON-RECOVERY.md).
 
 User-facing failures must stay usable when Neon, R2, clinic profile fetch, or membership lookup is already failing. Marketing, staff, patient, and `global-error` fallbacks use local River Aftercare assets and CSS only. They do not query the database, R2, Resend, or remote brand files. Multiple root layouts do not apply group `not-found.tsx` to unmatched URLs; marketing `_marketing/[...slug]`, staff `[...slug]`, and nested tenant `[guideSlug]/[...rest]` catch-alls only call `notFound()`.
 
-Public synthetic DB health lives at **`https://app.riveraftercare.com.au/api/health`** only (staff host). It runs `SELECT 1` through the pooled Prisma `DATABASE_URL` client and returns `{ "status": "ok" }` (HTTP 200) or `{ "status": "unavailable" }` (HTTP 503). Marketing and tenant hosts 404. Do not probe this URL every 3 minutes while Neon scale-to-zero is in use; 15 minutes is the intended Better Stack interval. This is not a migration verifier, diagnostics dump, or Sentry/Better Stack SDK.
+Public synthetic DB health lives at **`https://app.riveraftercare.com.au/api/health`** only (staff host). It runs `SELECT 1` through the pooled Prisma `DATABASE_URL` client and returns `{ "status": "ok" }` (HTTP 200) or `{ "status": "unavailable" }` (HTTP 503). Marketing and tenant hosts 404. Do not probe this URL every 3 minutes while Neon scale-to-zero is in use; 15 minutes is the intended Better Stack interval. This is not a migration verifier or diagnostics dump. Failed probes are not sent to Better Stack Error Tracking.
+
+Canonical detail: [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READINESS.md), [../architecture/APPLICATION.md](../architecture/APPLICATION.md).
+
+## Durable server error-tracking rule
+
+Production Node.js exceptions are sent to Better Stack Error Tracking through a Sentry-compatible SDK. Telemetry is on only when `VERCEL_ENV === "production"` and server-only `BETTER_STACK_ERROR_DSN` is valid. Preview, development, test, and local stay off. There is no browser Sentry init, no Better Stack JavaScript tag, no replay/RUM, and no tracing/profiling. `/api/health` failures are not reported as error events. Events are processed in Better Stack’s configured **US** region on the current Free plan. Do not connect the GitHub repository to Better Stack unless a later, explicit decision grants that extra access.
 
 Canonical detail: [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READINESS.md), [../architecture/APPLICATION.md](../architecture/APPLICATION.md).
 
@@ -1806,3 +1812,22 @@ Tight UI-system pass. Not a redesign. No marketing copy, SEO, or route changes.
 | Auth visuals               | Shared `staffAuthPage` / `staffAuthCard` / `staffLoginField` / `staffFieldError` / `staffFormAlert` / `staffFormStatus` using existing staff tokens. Dark inputs use `--staff-canvas` on the elevated `--staff-panel` card. Primary button stays River `#3b4bd1` in both themes. Autofill uses inset token fill. Related routes (`/forgot-password`, `/reset-password`, `/accept-invitation`) share `StaffAuthShell`.                                                                                                                                                                                                                                                      |
 
 Merge-gate at HEAD `408bc67` (2026-09-20): full `pnpm test:e2e` **215 passed / 1 failed**. Practice axe (`e2e/clinic-portal.spec.ts:246`) passed in that run. Remaining failure is `e2e/performance.spec.ts:27` tenant CSS raw **67,658 vs 26,000** (chunks 57,485 + 6,460 + 3,713). Reproduced identically on `origin/main` `fee9755` — baseline, not a regression from this PR. Dark-only axe exclude is `.staffFileTrigger` (the Practice logo `<label>` wrapping the clipped file input + presentational `staffBtnSecondary` span). Light still scans it. Save / Remove / Appearance / colour pickers are outside the selector. Auth-theme, marketing-reveal-sequences, and reveal-auth-visual-qa all passed in the full suite.
+
+---
+
+## Privacy-minimal server error tracking (2026-09-20)
+
+Better Stack Error Tracking for production Node exceptions. No Prisma migration. No Production/Vercel/Neon changes in this PR. DSN is not in the repo.
+
+| Surface     | Behaviour                                                                                                                                                                                                               |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SDK         | `@sentry/nextjs` 10.75.0. Sentry protocol → Better Stack. Not Sentry.io. Not `@logtail/next`.                                                                                                                           |
+| Init        | `instrumentation.ts` `register()` loads `sentry.server.config.ts` on `NEXT_RUNTIME=nodejs` only. `onRequestError` → `captureServerRequestError`. No `withSentryConfig` (avoids client injection and source-map upload). |
+| Edge        | **Not configured.** Next.js 16 `proxy.ts` is Node-only. No `runtime = "edge"` routes.                                                                                                                                   |
+| Enablement  | Production + valid `BETTER_STACK_ERROR_DSN` only. Preview/dev/test/local off.                                                                                                                                           |
+| Privacy     | `sendDefaultPii: false`, `tracesSampleRate: 0`, `maxBreadcrumbs: 0`, no local variables, no attachments, no Prisma/OTEL tracing. `beforeSend` strips user/headers/cookies/query/body.                                   |
+| Wrapper     | Business code uses `reportServerException` / `reportOperationalFailure` / `reportAuthEmailFailure` / `reportContactEmailFailure`. Never Sentry directly except instrumentation/config.                                  |
+| Operational | Contact and auth-mail delivery/not-configured only. Health 503 is Uptime-only.                                                                                                                                          |
+| Browser     | Not initialized. Client JS errors remain a known gap.                                                                                                                                                                   |
+| Region      | Better Stack Free Error Tracking is US. Legal copy should stay consistent; no legal claim in this work.                                                                                                                 |
+| Verify      | `pnpm observability:test-error` after merge, trusted machine, explicit DSN, `environment=verification`. Do not run from CI.                                                                                             |
