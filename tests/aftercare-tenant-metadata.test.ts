@@ -12,6 +12,7 @@ import {
   AFTERCARE_ROBOTS,
   aftercarePageMetadata,
   clinicFaviconMetadata,
+  clinicThemeColorViewport,
   publicTenantCanonicalUrl,
 } from "@/lib/aftercare/tenant-metadata";
 import { PRODUCT_FAVICON_32_SRC } from "@/lib/branding/product-assets";
@@ -82,7 +83,16 @@ describe("tenant metadata helpers", () => {
     expect(JSON.stringify(metadata.icons)).toContain(
       "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
     );
-    expect(metadata.themeColor).toEqual([
+    expect(
+      clinicThemeColorViewport({
+        primaryColor: "#0f766e",
+        accentColor: "#f59e0b",
+        darkPrimaryColor: "#22d3ee",
+        darkAccentColor: "#fde68a",
+        useCustomDarkBranding: true,
+        themeMode: "SYSTEM",
+      }).themeColor
+    ).toEqual([
       { media: "(prefers-color-scheme: light)", color: "#0f766e" },
       { media: "(prefers-color-scheme: dark)", color: "#22d3ee" },
     ]);

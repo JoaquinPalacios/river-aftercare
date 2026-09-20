@@ -11,10 +11,11 @@ import {
 import {
   aftercareTenantBrandMetadata,
   aftercareThemeFromProfile,
+  clinicThemeColorViewport,
 } from "@/lib/aftercare/tenant-metadata";
 import { requireTenantClinic } from "@/lib/tenancy/require-tenant-clinic";
 
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 interface TenantLayoutProps {
@@ -32,6 +33,14 @@ export async function generateMetadata({
   return aftercareTenantBrandMetadata(
     aftercareThemeFromProfile(clinic.profile)
   );
+}
+
+export async function generateViewport({
+  params,
+}: TenantLayoutProps): Promise<Viewport> {
+  const { tenant } = await params;
+  const clinic = await requireTenantClinic(tenant);
+  return clinicThemeColorViewport(aftercareThemeFromProfile(clinic.profile));
 }
 
 export default async function TenantLayout({

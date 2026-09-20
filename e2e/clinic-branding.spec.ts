@@ -146,6 +146,17 @@ test.describe("clinic Dark branding and favicon", () => {
       },
     });
 
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto(tenantUrl(DEMO_TENANT_SLUG, "/extraction"), {
+      waitUntil: "load",
+    });
+    await expect(page.locator(".aftercareTheme")).toBeVisible();
+    expect(await page.content()).toContain("--cg-brand:#22d3ee");
+    await page.screenshot({
+      path: `${ARTIFACT_DIR}/patient-custom-dark.png`,
+      fullPage: true,
+    });
+
     await signInAsLocalAdmin(page);
     await page.goto(staffUrl("/practice"), { waitUntil: "load" });
     await page.setInputFiles("#clinic-dark-logo-file", {
@@ -180,10 +191,7 @@ test.describe("clinic Dark branding and favicon", () => {
     const html = await page.content();
     expect(html).toContain("--cg-brand:#22d3ee");
     expect(html).toContain(faviconPath);
-    await page.screenshot({
-      path: `${ARTIFACT_DIR}/patient-custom-dark.png`,
-      fullPage: true,
-    });
+    expect(html).toMatch(/name=["']theme-color["']/);
     await page.screenshot({
       path: `${ARTIFACT_DIR}/patient-custom-dark-logo.png`,
       fullPage: true,

@@ -98,6 +98,8 @@ Colour fields are one native colour control plus a hex input. Light primary/acce
 
 Optional Dark logo and favicon uploads reuse the clinic branding asset control (choose, then upload, cancel, confirm-remove). Favicon copy: shown in the browser tab for patient aftercare pages.
 
+Patient tenant layouts emit `theme-color` from `generateViewport` using the clinic Light/Dark brand tokens (SYSTEM uses `prefers-color-scheme` media). Marketing, staff, login, and operator keep the River Aftercare favicon pack.
+
 ### Permissions
 
 | Actor               | Portal                    | Guides                                                 | Practice                       | Operator      |

@@ -9,7 +9,9 @@ vi.mock("@/lib/tenancy/require-tenant-clinic", () => ({
   requireTenantClinic,
 }));
 
-import TenantLayout from "@/app/(aftercare)/%5Fsites/[tenant]/layout";
+import TenantLayout, {
+  generateViewport,
+} from "@/app/(aftercare)/%5Fsites/[tenant]/layout";
 
 describe("tenant layout branding", () => {
   beforeEach(() => {
@@ -76,6 +78,36 @@ describe("tenant layout branding", () => {
 
     expect(html).toContain(`html{color-scheme:${scheme}}`);
     expect(html).not.toContain("Change colour theme");
+  });
+
+  it("emits clinic theme-color from generateViewport, not page markup", async () => {
+    requireTenantClinic.mockResolvedValue({
+      id: "clinic_b",
+      slug: "otherclinic",
+      name: "Other Clinic",
+      profile: {
+        displayName: "Other Clinic Patient Brand",
+        primaryColor: "#0f766e",
+        accentColor: "#f59e0b",
+        darkPrimaryColor: "#22d3ee",
+        darkAccentColor: "#fde68a",
+        useCustomDarkBranding: true,
+        themeMode: "SYSTEM",
+        allowPatientThemeToggle: false,
+      },
+    });
+
+    await expect(
+      generateViewport({
+        params: Promise.resolve({ tenant: "otherclinic" }),
+        children: <p>child</p>,
+      })
+    ).resolves.toEqual({
+      themeColor: [
+        { media: "(prefers-color-scheme: light)", color: "#0f766e" },
+        { media: "(prefers-color-scheme: dark)", color: "#22d3ee" },
+      ],
+    });
   });
 
   it("applies custom Dark brand tokens while leaving Light tokens unchanged", async () => {

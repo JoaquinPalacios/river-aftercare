@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 
 import {
@@ -87,9 +87,9 @@ export function clinicFaviconMetadata(
   };
 }
 
-export function clinicThemeColorMetadata(
+export function clinicThemeColorViewport(
   input: AftercareThemeInput | null | undefined
-): Pick<Metadata, "themeColor"> {
+): Pick<Viewport, "themeColor"> {
   const theme = resolveAftercareTheme(input);
   const light = theme.light["--cg-brand"];
   const dark = theme.dark["--cg-brand"];
@@ -146,11 +146,8 @@ export function aftercareTenantBrandMetadata(
       })
     | null
     | undefined
-): Pick<Metadata, "icons" | "themeColor"> {
-  return {
-    ...clinicFaviconMetadata(profile?.faviconUrl),
-    ...clinicThemeColorMetadata(profile),
-  };
+): Pick<Metadata, "icons"> {
+  return clinicFaviconMetadata(profile?.faviconUrl);
 }
 
 export function aftercarePageMetadata(input: {
