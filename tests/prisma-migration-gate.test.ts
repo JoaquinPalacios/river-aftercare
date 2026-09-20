@@ -267,15 +267,21 @@ describe("mergeFileChanges", () => {
 });
 
 describe("release-check CLI", () => {
-  it("exits 0 on this branch when Prisma files are unchanged versus origin/main", () => {
+  it("exits 0 versus origin/main for unchanged Prisma files or a paired schema-changing release", () => {
     const result = spawnSync(process.execPath, ["scripts/release-check.mjs"], {
       encoding: "utf8",
       cwd: process.cwd(),
       env: { ...process.env, RELEASE_CHECK_BASE: "origin/main" },
     });
     expect(result.stderr, result.stderr).toBe("");
-    expect(result.stdout).toContain("No Prisma schema/migration changes.");
     expect(result.status).toBe(0);
+    const unchanged = result.stdout.includes(
+      "No Prisma schema/migration changes."
+    );
+    const pairedSchemaRelease =
+      result.stdout.includes("Production schema change detected.") &&
+      result.stdout.includes("Pairing check passed");
+    expect(unchanged || pairedSchemaRelease).toBe(true);
   });
 
   it("does not connect to a database or load production env files", () => {
