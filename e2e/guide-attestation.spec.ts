@@ -53,7 +53,18 @@ test.describe("clinic publish attestation and demo sample governance", () => {
   test("clinic staff cannot publish or attest", async ({ page }) => {
     await signInAsLocalStaff(page);
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    await page.getByRole("link", { name: "Edit" }).first().click();
+    await expect(page.getByRole("link", { name: "Edit" })).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Publish guide" })
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(
+        "I confirm this content has been reviewed and approved by the practice for publication to its patients."
+      )
+    ).toHaveCount(0);
+    await page.getByRole("link", { name: "Preview" }).first().click();
+    await expect(page).toHaveURL(/\/guides\/.+\/preview/);
+    await expect(page.getByRole("link", { name: "Edit guide" })).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Publish guide" })
     ).toHaveCount(0);
