@@ -227,7 +227,7 @@ Leave `*_postgres_data` on disk until Joaquín confirms the restored PG18 databa
 
 The repository stays on **PostgreSQL protocol + Prisma 7 + `PrismaPg` + `pg`**. Do not add `@neondatabase/serverless` or `@prisma/adapter-neon` unless the runtime moves to an edge environment that cannot open TCP.
 
-Production Neon is wired. Application runtime uses pooled `DATABASE_URL`. Migrations use unpooled `DIRECT_URL` from gitignored `.env.neon-production` via `pnpm prod:db:*`. Vercel does not run `migrate deploy`. See [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md).
+Production Neon is wired. Application runtime uses pooled `DATABASE_URL`. Migrations use unpooled `DIRECT_URL` from gitignored `.env.neon-production` via `pnpm prod:db:*`. Automatic Production deploys from `main` stay enabled. Vercel does not run `migrate deploy` and should not receive `DIRECT_URL` for ordinary runtime. See [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md).
 
 Local Docker continues to work with `DATABASE_URL` only. `prisma.config.ts` uses `DIRECT_URL` when set, otherwise `DATABASE_URL`. Runtime `getPrisma()` always uses `DATABASE_URL`.
 

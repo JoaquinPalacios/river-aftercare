@@ -155,7 +155,7 @@ The expected local connection string for this repo is:
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/care_guide?schema=public"
 ```
 
-Prisma CLI (`migrate` / `seed` / `studio`) uses optional `DIRECT_URL` when set, otherwise `DATABASE_URL`. Local Docker does not need a second URL. Production Neon uses a **pooled** `DATABASE_URL` for the app and an **unpooled** `DIRECT_URL` for migrations. Production helpers (`pnpm prod:db:status`, `pnpm prod:db:migrate -- --apply`, `pnpm prod:db:verify`) load only gitignored `.env.neon-production` and will not fall back to local `.env`. Vercel does **not** run `migrate deploy`. Schema-touching releases must migrate-before-promote — [docs/launch/PRODUCTION-MIGRATION.md](docs/launch/PRODUCTION-MIGRATION.md).
+Prisma CLI (`migrate` / `seed` / `studio`) uses optional `DIRECT_URL` when set, otherwise `DATABASE_URL`. Local Docker does not need a second URL. Production Neon uses a **pooled** `DATABASE_URL` for the app and an **unpooled** `DIRECT_URL` for trusted-machine migrations. Production helpers (`pnpm prod:db:status`, `pnpm prod:db:migrate -- --apply`, `pnpm prod:db:verify`) load only gitignored `.env.neon-production` and will not fall back to local `.env`. Vercel automatic Production deploys from `main` stay enabled and do **not** run `migrate deploy`. Schema-touching releases are expected to fail the Production schema gate until the same SHA is redeployed after `prod:db:*` — [docs/launch/PRODUCTION-MIGRATION.md](docs/launch/PRODUCTION-MIGRATION.md).
 
 The app runtime also expects:
 
@@ -302,16 +302,19 @@ Hosting for the aftercare product in the PRD was left open. Production currently
 
 ## Deploy on Vercel
 
-Production hosting is Vercel. Git merge to `main` deploys **application code**. It does not apply Prisma migrations and must not run `db push` or seed.
+Production hosting is Vercel. Automatic Production deployments from `main` remain **enabled**. Git merge to `main` starts a Production **application** build. It does not apply Prisma migrations and must not run `db push` or seed. Manual Promote is not the canonical workflow.
 
-Schema-touching releases:
+App-only merges: the Production schema gate confirms no pending migrations and the automatic deploy completes.
+
+Schema-changing merges:
 
 1. `pnpm release:check`
 2. Review SQL
-3. `pnpm prod:db:status`
-4. `pnpm prod:db:migrate -- --apply`
-5. `pnpm prod:db:verify`
-6. Only then promote/redeploy the application SHA
+3. Merge to `main` (the Production schema gate is expected to fail while migrations are pending; current Production stays live)
+4. `pnpm prod:db:status`
+5. `pnpm prod:db:migrate -- --apply`
+6. `pnpm prod:db:verify`
+7. Redeploy the **same** merged SHA in Vercel
 
 See [docs/launch/PRODUCTION-MIGRATION.md](docs/launch/PRODUCTION-MIGRATION.md). The Next.js template pointer below is not a Care Guide infrastructure decision.
 

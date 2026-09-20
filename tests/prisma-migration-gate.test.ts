@@ -97,12 +97,23 @@ describe("evaluatePrismaReleaseChange", () => {
     ]);
     expect(evaluation.errors).toEqual([]);
     expect(prismaReleaseExitCode(evaluation)).toBe(0);
-    expect(formatPrismaReleaseReport(evaluation)).toContain(
-      "PRISMA RELEASE GATE"
+    const report = formatPrismaReleaseReport(evaluation);
+    expect(report).toContain("PRISMA RELEASE GATE");
+    expect(report).toContain("Production schema change detected.");
+    expect(report).toContain(
+      "River Aftercare keeps automatic Vercel Production deployments from main enabled."
     );
-    expect(formatPrismaReleaseReport(evaluation)).toContain(
-      "migrate-before-promote"
+    expect(report).toContain(
+      "After merge, the Production schema gate is expected to block the new build while migrations are pending."
     );
+    expect(report).toContain(
+      "Redeploy the same merged SHA so the schema gate can pass."
+    );
+    expect(report).toContain(
+      "review and apply the production migration using the trusted prod:db:* workflow, verify it, then redeploy the same merged SHA."
+    );
+    expect(report).not.toMatch(/migrate-before-promote/i);
+    expect(report).not.toMatch(/promote application code/i);
   });
 
   it("fails when the schema changes without a new migration", () => {
@@ -280,6 +291,10 @@ describe("release-check CLI", () => {
     expect(source).not.toContain(".env.neon-production");
     expect(source).not.toContain('spawnSync("pnpm"');
     expect(source).not.toContain("prisma migrate");
+    expect(source).not.toMatch(/promoting application code/i);
+    expect(source).toContain(
+      "then redeploy the same merged SHA. Vercel does not run migrate deploy."
+    );
   });
 });
 

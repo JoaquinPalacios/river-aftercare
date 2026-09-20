@@ -5,7 +5,13 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (Production Prisma migrate-before-promote release gate; includes operator Team role editing from main)
+Last updated: 2026-09-20 (Release-check CLI copy aligned with auto-deploy + schema gate)
+
+## Durable production release rule
+
+River Aftercare keeps Vercel automatic Production deployments from main enabled. For schema-changing releases, the Production schema gate is expected to fail the build while migrations are pending. Apply reviewed migrations manually with the trusted prod:db:* DIRECT_URL workflow, verify, then redeploy the same SHA. Never auto-migrate from Vercel.
+
+Canonical detail: [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md), [ADR 0025](../adr/0025-migrate-before-promote.md). Do not recommend disabling Production auto-deploy or switching the normal release process to manual Promote.
 
 ---
 
@@ -1166,7 +1172,7 @@ Local/test compatibility upgrade. **Neon production was not contacted.** Product
 | Production Neon    | Project **River Aftercare Production**, branch `production`, AWS Asia Pacific 2 (Sydney), PostgreSQL 18. Application is connected. Migrations are applied manually with `DIRECT_URL` — see [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md) |
 | Prisma             | 7.10.x + `@prisma/adapter-pg` + `pg`. No Prisma 8 RC. No `@neondatabase/serverless`                                                                                                                                                                               |
 | CLI URL            | `prisma.config.ts` uses `DIRECT_URL` when set, else `DATABASE_URL`. Runtime `getPrisma()` always uses `DATABASE_URL`. Production helpers load only `.env.neon-production`                                                                                         |
-| Later Vercel       | Pooled Neon URL (`-pooler`, `sslmode=require`) as `DATABASE_URL`; unpooled as `DIRECT_URL` for `prisma migrate deploy`. Vercel build must not run `migrate deploy`, seed, or `db push`                                                                            |
+| Later Vercel       | Pooled Neon URL (`-pooler`, `sslmode=require`) as `DATABASE_URL` for app runtime and the Production schema gate. Unpooled `DIRECT_URL` is for trusted-machine `prisma migrate deploy` only — do not add it to Vercel for ordinary runtime. Vercel must not run `migrate deploy`, seed, or `db push` |
 | Extensions         | Default `plpgsql` only. No `pgcrypto` / `uuid-ossp` / `citext`                                                                                                                                                                                                    |
 | Generated columns  | None                                                                                                                                                                                                                                                              |
 
@@ -1720,17 +1726,22 @@ No systematic regression. Bundle: overlay CSS 1,634 / 561 gzip; overlay JS chunk
 
 ---
 
-## Production Prisma migrate-before-promote (2026-09-19)
+## Production Prisma schema gate (2026-09-19)
 
 Release safety after production P2022 (`ClinicProfile.typeface` missing because `20260919140000_add_clinic_typeface` was on `main` before Neon `migrate deploy`).
 
-| Surface                                      | Behaviour                                                                                                                                         |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Policy                                       | [ADR 0025](../adr/0025-migrate-before-promote.md). Canonical commands: [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md)     |
-| `pnpm release:check`                         | Git diff vs `origin/main`. No DB. Fails schema-without-migration, missing SQL, rewritten history, unreviewed destructive SQL                      |
-| GitHub Action                                | `.github/workflows/prisma-release-gate.yml` — contents:read, no secrets, no migrate                                                               |
-| `pnpm prod:db:status` / `migrate` / `verify` | Require `.env.neon-production`, `DIRECT_URL` + `DATABASE_URL`, refuse localhost / `.env` fallback / seed / `db push`. `migrate` needs `--apply`   |
-| Vercel Production build                      | `scripts/vercel-production-schema-gate.mjs` runs `migrate status` only when `VERCEL_ENV=production`. Pending → fail build. Never `migrate deploy` |
-| Vercel Preview / PR                          | Gate does not run. Must not receive production credentials                                                                                        |
+**Durable rule:** River Aftercare keeps Vercel automatic Production deployments from main enabled. For schema-changing releases, the Production schema gate is expected to fail the build while migrations are pending. Apply reviewed migrations manually with the trusted prod:db:* DIRECT_URL workflow, verify, then redeploy the same SHA. Never auto-migrate from Vercel.
 
-Do not claim Production auto-deploy was disabled from this change. Joaquín can still turn off Production auto-deploy and promote after migrate.
+| Surface                                      | Behaviour                                                                                                                                                         |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Policy                                       | [ADR 0025](../adr/0025-migrate-before-promote.md). Canonical commands: [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md)                     |
+| Auto-deploy from `main`                      | **Enabled** and canonical. Do not disable it in normal operations. Manual Promote is not the current workflow.                                                    |
+| App-only PR                                  | Merge → Vercel Production build → schema gate confirms no pending migrations → automatic Production deploy                                                        |
+| Schema-changing PR                           | Merge → schema gate **fails** while pending → current Production stays live → `prod:db:*` on a trusted machine → redeploy the **same SHA**                        |
+| `pnpm release:check`                         | Git diff vs `origin/main`. No DB. Fails schema-without-migration, missing SQL, rewritten history, unreviewed destructive SQL. Operator copy describes failed-build → `prod:db:*` → redeploy same SHA, not manual Promote |
+| GitHub Action                                | `.github/workflows/prisma-release-gate.yml` — contents:read, no secrets, no migrate                                                                               |
+| `pnpm prod:db:status` / `migrate` / `verify` | Require `.env.neon-production`, `DIRECT_URL` + `DATABASE_URL`, refuse localhost / `.env` fallback / seed / `db push`. `migrate` needs `--apply`                   |
+| Vercel Production build                      | `scripts/vercel-production-schema-gate.mjs` runs `migrate status` only when `VERCEL_ENV=production` (via runtime `DATABASE_URL`). Pending → fail build. Never `migrate deploy` |
+| Vercel Preview / PR                          | Gate does not run. Must not receive production credentials or `DIRECT_URL`                                                                                        |
+
+A pending-migration Production build failure is a safety gate, not an incident by itself. Do not recommend disabling Production auto-deploy.

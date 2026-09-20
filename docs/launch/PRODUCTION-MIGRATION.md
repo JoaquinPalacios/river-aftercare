@@ -4,12 +4,60 @@ Canonical release procedure after a committed migration existed on `main` while 
 
 This document is the release-control contract. It does not provision Neon or Vercel and does not store credentials.
 
-## Policy
+## Canonical release policy
 
-| Release contents                                           | Production action                                                                                         |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| No `prisma/schema.prisma` or `prisma/migrations/**` change | Normal application deploy may proceed.                                                                    |
-| Prisma schema and/or migration present                     | **Migrate-before-promote.** Review SQL → preflight → apply → verify → only then promote application code. |
+River Aftercare **keeps Vercel automatic Production deployments from `main` enabled**. Do not disable them as part of normal operations. Manual Promote is **not** the current release policy.
+
+The production schema gate is the intended safety model. A failed Production build because migrations are pending is a **safety gate**, not an incident by itself. Existing Production continues serving the last successful deployment while the new build is blocked.
+
+Production migrations remain **human-approved**. Vercel builds never apply migrations. Preview builds never apply migrations. Pull-request builds never receive production migration credentials.
+
+### App-only PR
+
+1. Merge to `main`
+2. Vercel Production build starts
+3. Production schema gate confirms the database has no pending migrations
+4. Build succeeds
+5. Automatic Production deployment completes
+
+No manual deployment or promotion is required.
+
+### Schema-changing PR
+
+1. Merge to `main`
+2. Vercel Production build starts
+3. Production schema gate detects a pending Prisma migration
+4. Build **fails**
+5. Currently deployed Production remains live
+6. Joaquín reviews the migration SQL
+7. On a trusted local machine:
+
+```bash
+pnpm prod:db:status
+```
+
+8. If safe:
+
+```bash
+pnpm prod:db:migrate -- --apply
+```
+
+9. Verify:
+
+```bash
+pnpm prod:db:verify
+```
+
+10. Redeploy the **same** merged SHA in Vercel
+11. Schema gate now passes
+12. That deployment becomes Production
+
+This failed-build-then-migrate-then-redeploy behaviour is **intentional**.
+
+| Release contents                                           | Production action                                                                                                                                            |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| No `prisma/schema.prisma` or `prisma/migrations/**` change | Merge to `main`. Automatic Production deploy proceeds after the schema gate confirms no pending migrations.                                                  |
+| Prisma schema and/or migration present                     | Merge to `main`. The Production schema gate is **expected** to fail the build. Review SQL → preflight → apply → verify → **Redeploy the same SHA**.          |
 
 Migrations are not all the same:
 
@@ -18,7 +66,7 @@ Migrations are not all the same:
 | A. Additive / expand          | New table/column/index/enum that old code ignores | Apply to production **before** code that reads or writes the new shape.                                         |
 | B. Destructive / contract     | DROP / TRUNCATE / DELETE / ALTER DROP             | **No single-step schema+code cutover.** Expand/contract. Keep the old application compatible during transition. |
 | C. Data migrations            | UPDATE/backfill                                   | Treat as a schema-touching release. Review row impact. Do not hide behind “no schema.prisma change”.            |
-| D. No-schema application only | No Prisma paths in the diff                       | No production `migrate deploy`.                                                                                 |
+| D. No-schema application only | No Prisma paths in the diff                       | No production `migrate deploy`. Automatic Production deploy from `main` is the normal path.                     |
 
 Never against production:
 
@@ -40,6 +88,27 @@ Never against production:
 
 There is no environment-protected GitHub Actions deploy workflow in this repository. Production migration stays a local, explicit command. Do not add a `pull_request` workflow that reads Neon URLs.
 
+## DIRECT_URL vs Vercel
+
+These are different machines with different credentials.
+
+**Trusted migration machine** (human-approved production apply):
+
+- gitignored `.env.neon-production`
+- `DATABASE_URL` (pooled runtime URL; required by the helpers)
+- `DIRECT_URL` (unpooled; Prisma migration CLI resolves this)
+- `pnpm prod:db:*` commands
+
+**Vercel Production build:**
+
+- uses the production schema gate (`prisma migrate status` only)
+- already has runtime `DATABASE_URL`
+- should **not** require adding `DIRECT_URL` merely to support ordinary application runtime
+- the current gate proceeds when `DATABASE_URL` is present; Prisma CLI prefers `DIRECT_URL` if it happens to be set, otherwise `DATABASE_URL`
+- do not expose `DIRECT_URL` to Vercel unless a future explicitly reviewed implementation genuinely requires it
+
+`DIRECT_URL` is for trusted production migration execution. `DATABASE_URL` remains the application runtime connection.
+
 ## Detection (no database)
 
 ```bash
@@ -60,7 +129,7 @@ PRs run the same check via `.github/workflows/prisma-release-gate.yml` (contents
 
 ## Canonical production commands
 
-Create a **local, gitignored** `.env.neon-production` (`.env*` is already ignored). Put the Neon **pooled** URL in `DATABASE_URL` and the **unpooled** URL in `DIRECT_URL`. Do not commit the file. Do not copy it into Preview env.
+Create a **local, gitignored** `.env.neon-production` (`.env*` is already ignored). Put the Neon **pooled** URL in `DATABASE_URL` and the **unpooled** URL in `DIRECT_URL`. Do not commit the file. Do not copy it into Preview env or into Vercel merely to make the schema gate run.
 
 Preferred helpers (fail closed if the file is missing, named wrong, lacks `DIRECT_URL`/`DATABASE_URL`, or points at localhost):
 
@@ -97,25 +166,16 @@ Lightweight. Do not add a database AuditLog.
 - Production preflight (`pnpm prod:db:status`) passed:
 - Migration applied (`pnpm prod:db:migrate -- --apply`):
 - Verification (`pnpm prod:db:verify`) passed:
-- Application promoted / Production deploy of this SHA:
+- Same merged SHA redeployed in Vercel after verification:
 
-## Vercel promotion
+## Vercel deployments
 
-**Current default Git behaviour:** a merge to `main` typically creates a Vercel Production deployment of application code. Migrations are **not** applied during that build. That is the code-before-schema failure mode.
+**Canonical:** automatic Production deployments from `main` remain **enabled**. Do not disable them as part of normal River Aftercare operations.
 
-**Safety net already in this repo:** on `VERCEL_ENV=production`, `pnpm build` runs `prisma migrate status` and refuses to finish if production is behind. After a pending-migration failure, apply migrations with `pnpm prod:db:migrate -- --apply`, then **Redeploy** the same SHA. Break-glass only: `SKIP_PRODUCTION_SCHEMA_GATE=1` (do not use this to ship code that needs unapplied migrations).
+On `VERCEL_ENV=production`, `pnpm build` runs `prisma migrate status` and refuses to finish if production is behind. It never runs `migrate deploy`, seed, or `db push`. After a pending-migration failure, apply migrations with `pnpm prod:db:migrate -- --apply`, verify, then **Redeploy** the same SHA. Existing Production stays on the prior successful deployment until that redeploy succeeds.
 
-**Recommended Vercel dashboard change (Joaquín; not applied by this repository):**
+Break-glass only: `SKIP_PRODUCTION_SCHEMA_GATE=1` (do not use this to ship code that needs unapplied migrations).
 
-1. Vercel → Project → **Settings** → **Environments** → **Production**.
-2. Disable automatic deployments from the production Git branch (`main`).
-3. Keep Preview deployments for pull requests.
-4. After merge: preflight → apply → verify → **Deployments → Promote to Production** (or a manual Production deploy of the verified SHA).
+**Not the current policy:** disabling Production auto-deploy and using Vercel **Promote** after migrate. That remains a possible future alternative if Joaquín later chooses it; it is **not** the canonical River Aftercare release workflow.
 
-Do not configure Vercel to run `prisma migrate deploy` on every Production or Preview build. Do not put `.env.neon-production` on untrusted PR builds.
-
-## After merge of this control change
-
-1. Keep using `pnpm release:check` on schema PRs (CI will too).
-2. For the next Prisma-touching release, follow the sequence above **before** the Production hostname serves the new code.
-3. Optionally disable Production auto-deploy as documented. The pending-migration build gate remains even if auto-deploy stays on.
+Do not configure Vercel to run `prisma migrate deploy` on every Production or Preview build. Do not put `.env.neon-production` or production `DIRECT_URL` on untrusted PR builds.
