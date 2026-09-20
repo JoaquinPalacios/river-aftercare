@@ -24,7 +24,10 @@ test.describe("account settings and clinic members", () => {
     await expect(page.getByLabel("Name")).toBeVisible();
     await expect(page.getByLabel("Email")).toBeVisible();
     await expect(page.getByLabel("Current password").first()).toBeVisible();
-    await expect(page.getByLabel("New password")).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: "New password", exact: true })
+    ).toBeVisible();
+    await expect(page.getByLabel("Confirm new password")).toBeVisible();
     await expectNoSeriousAxeViolations(page);
 
     await page
