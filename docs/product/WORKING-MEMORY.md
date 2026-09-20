@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-19 (Canonical Vercel auto-deploy from main + production schema gate)
+Last updated: 2026-09-20 (Release-check CLI copy aligned with auto-deploy + schema gate)
 
 ## Durable production release rule
 
@@ -1738,7 +1738,7 @@ Release safety after production P2022 (`ClinicProfile.typeface` missing because 
 | Auto-deploy from `main`                      | **Enabled** and canonical. Do not disable it in normal operations. Manual Promote is not the current workflow.                                                    |
 | App-only PR                                  | Merge → Vercel Production build → schema gate confirms no pending migrations → automatic Production deploy                                                        |
 | Schema-changing PR                           | Merge → schema gate **fails** while pending → current Production stays live → `prod:db:*` on a trusted machine → redeploy the **same SHA**                        |
-| `pnpm release:check`                         | Git diff vs `origin/main`. No DB. Fails schema-without-migration, missing SQL, rewritten history, unreviewed destructive SQL                                      |
+| `pnpm release:check`                         | Git diff vs `origin/main`. No DB. Fails schema-without-migration, missing SQL, rewritten history, unreviewed destructive SQL. Operator copy describes failed-build → `prod:db:*` → redeploy same SHA, not manual Promote |
 | GitHub Action                                | `.github/workflows/prisma-release-gate.yml` — contents:read, no secrets, no migrate                                                                               |
 | `pnpm prod:db:status` / `migrate` / `verify` | Require `.env.neon-production`, `DIRECT_URL` + `DATABASE_URL`, refuse localhost / `.env` fallback / seed / `db push`. `migrate` needs `--apply`                   |
 | Vercel Production build                      | `scripts/vercel-production-schema-gate.mjs` runs `migrate status` only when `VERCEL_ENV=production` (via runtime `DATABASE_URL`). Pending → fail build. Never `migrate deploy` |

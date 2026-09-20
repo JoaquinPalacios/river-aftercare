@@ -114,7 +114,7 @@ function emitGitHubAnnotations(evaluation) {
   }
   if (evaluation.prismaChanged) {
     console.log(
-      "::warning title=Prisma release::This change includes Prisma schema/migration files. Apply production migrations with DIRECT_URL before promoting application code. Vercel does not run migrate deploy."
+      "::warning title=Prisma release::Production schema change detected. Automatic Production deployments from main stay enabled. After merge, the Production schema gate is expected to block the new build while migrations are pending. Review and apply with prod:db:*, verify, then redeploy the same merged SHA. Vercel does not run migrate deploy."
     );
   }
   for (const error of evaluation.errors) {
