@@ -11,6 +11,7 @@ import {
   getAuthEmailDeliveryConfig,
   sendAuthTransactionalEmail,
 } from "@/lib/email/auth-email";
+import { reportAuthEmailFailure } from "@/lib/observability/report-server-exception";
 import { composePasswordResetEmail } from "@/lib/email/password-reset-mail";
 import { getPrisma } from "@/lib/prisma";
 import { buildPasswordResetUrl } from "@/lib/tenancy/staff-app-origin";
@@ -60,6 +61,7 @@ export async function requestPasswordReset(input: {
       userId: user.id,
       reason: "not_configured",
     });
+    reportAuthEmailFailure("not_configured");
     return;
   }
 
@@ -91,11 +93,16 @@ export async function requestPasswordReset(input: {
 
     if (!sent.ok) {
       await revokeCreatedTokenBestEffort(created.token.id, input.now);
+      const reason =
+        sent.code === "not_configured" || sent.code === "invalid_message"
+          ? sent.code
+          : "delivery_failed";
       logPasswordLifecycle({
         event: "password_reset_email_failed",
         userId: user.id,
-        reason: sent.code === "not_configured" ? "not_configured" : sent.code,
+        reason,
       });
+      reportAuthEmailFailure(reason);
       return;
     }
   } catch {
@@ -105,6 +112,7 @@ export async function requestPasswordReset(input: {
       userId: user.id,
       reason: "delivery_failed",
     });
+    reportAuthEmailFailure("delivery_failed");
     return;
   }
 

@@ -7,6 +7,7 @@ import {
   getAuthEmailDeliveryConfig,
   sendAuthTransactionalEmail,
 } from "@/lib/email/auth-email";
+import { reportAuthEmailFailure } from "@/lib/observability/report-server-exception";
 import { composeInvitationEmail } from "@/lib/email/invitation-mail";
 import { buildInvitationUrl } from "@/lib/tenancy/staff-app-origin";
 
@@ -27,6 +28,7 @@ export async function deliverClinicInvitationEmail(input: {
       clinicId: input.clinicId,
       reason: "not_configured",
     });
+    reportAuthEmailFailure("not_configured");
     return false;
   }
 
@@ -48,12 +50,17 @@ export async function deliverClinicInvitationEmail(input: {
       config
     );
     if (!sent.ok) {
+      const reason =
+        sent.code === "not_configured" || sent.code === "invalid_message"
+          ? sent.code
+          : "delivery_failed";
       logInvitationLifecycle({
         event: "invitation_email_failed",
         userId: input.userId,
         clinicId: input.clinicId,
-        reason: sent.code === "not_configured" ? "not_configured" : sent.code,
+        reason,
       });
+      reportAuthEmailFailure(reason);
       return false;
     }
     return true;
@@ -64,6 +71,7 @@ export async function deliverClinicInvitationEmail(input: {
       clinicId: input.clinicId,
       reason: "delivery_failed",
     });
+    reportAuthEmailFailure("delivery_failed");
     return false;
   }
 }

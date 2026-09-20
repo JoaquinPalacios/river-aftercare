@@ -81,6 +81,7 @@ Missing `AUTH_EMAIL_FROM` must not break `pnpm build`. Auth delivery then return
 - No logging of raw tokens, reset/invite URLs, API keys, or message bodies
 - Provider error details stay behind `{ ok: false, code: "delivery_failed" | "not_configured" | "invalid_message" }`
 - Contact continues to map those to the generic user-facing Contact copy
+- Production server error tracking records sanitized operational events (`contact_email_delivery_failed`, `auth_email_delivery_failed`, `auth_email_not_configured`) without recipient, subject, body, token, or provider detail. Validation, Turnstile, and honeypot failures are not reported.
 
 Invitation HTML templates live in `lib/email/invitation-mail.ts`. Password-reset templates are sent from `lib/email/password-reset-mail.ts`.
 
