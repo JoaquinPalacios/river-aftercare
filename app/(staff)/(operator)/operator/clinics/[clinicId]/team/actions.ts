@@ -18,6 +18,7 @@ import {
 import { changeClinicMembershipRole } from "@/lib/operator/change-clinic-membership-role";
 import { removeClinicAccess } from "@/lib/operator/remove-clinic-access";
 import { resendClinicInvitation } from "@/lib/operator/resend-clinic-invitation";
+import { updateClinicMembershipStatus } from "@/lib/clinic-portal/update-clinic-membership-status";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 
 export interface ClinicTeamActionState {
@@ -237,5 +238,44 @@ export async function changeClinicMembershipRoleAction(
       throw error;
     }
     return { error: "Could not update the role." };
+  }
+}
+
+export async function updateClinicStaffMembershipStatusAction(
+  _previous: ClinicTeamActionState,
+  formData: FormData
+): Promise<ClinicTeamActionState> {
+  const { user } = await requireOperatorOnStaffHost();
+  const clinicId = clinicIdFromForm(formData);
+  const membershipId = formData.get("membershipId");
+  const activeValue = formData.get("active");
+  if (!clinicId || typeof membershipId !== "string" || !membershipId) {
+    notFound();
+  }
+
+  const active = activeValue === "true";
+
+  try {
+    const result = await updateClinicMembershipStatus({
+      actor: user,
+      clinicId,
+      membershipId,
+      active,
+    });
+    if (!result.ok) {
+      return { error: result.error };
+    }
+    revalidateTeam(clinicId);
+    redirect(
+      clinicTeamStatusPath(
+        clinicId,
+        active ? TEAM_STATUS.STAFF_REACTIVATED : TEAM_STATUS.STAFF_DEACTIVATED
+      )
+    );
+  } catch (error) {
+    if (isNextControlFlow(error)) {
+      throw error;
+    }
+    return { error: "Could not update membership status." };
   }
 }

@@ -720,11 +720,13 @@ async function main() {
       },
       update: {
         role: account.role,
+        active: true,
       },
       create: {
         clinicId: clinic.id,
         userId: user.id,
         role: account.role,
+        active: true,
       },
     });
   }

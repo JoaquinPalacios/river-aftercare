@@ -15,11 +15,11 @@ Marketing Contact
   → To CONTACT_EMAIL_TO (contact@riveraftercare.com.au)
   → Reply-To visitor email
 
-Account lifecycle (password reset and operator invitations)
+Account lifecycle (password reset, operator invitations, email change)
   → sendAuthTransactionalEmail
   → sendTransactionalEmail
   → From AUTH_EMAIL_FROM (accounts@mail.riveraftercare.com.au in production)
-  → To the user
+  → To the user (current User.email for reset/invite; pending new address for email change)
   → optional Reply-To AUTH_EMAIL_REPLY_TO (contact@riveraftercare.com.au)
 ```
 
@@ -42,7 +42,7 @@ The verified Resend sending domain is `mail.riveraftercare.com.au`. Do not send 
 | Reply-To             | sanitised visitor email                                          | optional `AUTH_EMAIL_REPLY_TO`                   |
 | Transport selector   | `CONTACT_MAILER` (`memory` refused when `VERCEL_ENV=production`) | memory locally; Resend only on Vercel production |
 | Turnstile / honeypot | yes                                                              | no                                               |
-| Templates            | clinic enquiry composition                                       | password-reset and invitation                    |
+| Templates            | clinic enquiry composition                                       | password-reset, invitation, and email-change     |
 
 Do not reuse Contact From/To for invitations or password reset. Do not reuse auth From for Contact.
 

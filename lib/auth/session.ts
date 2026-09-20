@@ -12,6 +12,10 @@ import { cache } from "react";
 
 import { auth } from "@/auth";
 import { AUTH_SESSION_MAX_AGE_SECONDS } from "@/lib/auth/session-cookie";
+import {
+  OPERATOR_SUPPORT_MEMBERSHIP_ID,
+  readOperatorSupportClinic,
+} from "@/lib/auth/operator-support-clinic";
 import { getPrisma } from "@/lib/prisma";
 
 type SessionClient = PrismaClient | Prisma.TransactionClient;
@@ -30,6 +34,7 @@ export interface ClinicMembershipContext {
     id: string;
     name: string;
   };
+  source?: "membership" | "operator_support";
 }
 
 export interface AuthContext {
@@ -133,7 +138,7 @@ export const getCurrentClinicMembership = cache(
     }
 
     const memberships = await getPrisma().clinicMembership.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, active: true },
       select: {
         id: true,
         role: true,
@@ -166,6 +171,7 @@ export const getCurrentClinicMembership = cache(
       membershipId: membership.id,
       role: membership.role,
       clinic: membership.clinic,
+      source: "membership",
     };
   }
 );
@@ -182,6 +188,31 @@ export const getAuthContext = cache(async (): Promise<AuthContext> => {
 
   return {
     user,
-    clinicMembership: await getCurrentClinicMembership(),
+    clinicMembership: await resolveClinicMembershipContext(user),
   };
 });
+
+async function resolveClinicMembershipContext(
+  user: AuthenticatedUser
+): Promise<ClinicMembershipContext | null> {
+  const membership = await getCurrentClinicMembership();
+  if (membership) {
+    return membership;
+  }
+
+  if (!isPlatformOperator(user)) {
+    return null;
+  }
+
+  const supportClinic = await readOperatorSupportClinic();
+  if (!supportClinic) {
+    return null;
+  }
+
+  return {
+    membershipId: OPERATOR_SUPPORT_MEMBERSHIP_ID,
+    role: ClinicMembershipRole.ADMIN,
+    clinic: supportClinic,
+    source: "operator_support",
+  };
+}

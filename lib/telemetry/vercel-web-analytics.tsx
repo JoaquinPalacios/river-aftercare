@@ -14,7 +14,8 @@ export function vercelWebAnalyticsBeforeSend(
     const url = new URL(event.url);
     if (
       (url.pathname === "/reset-password" ||
-        url.pathname === "/accept-invitation") &&
+        url.pathname === "/accept-invitation" ||
+        url.pathname === "/confirm-email-change") &&
       url.hash
     ) {
       url.hash = "";

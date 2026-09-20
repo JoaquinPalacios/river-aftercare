@@ -9,6 +9,7 @@ import {
 } from "@prisma/client";
 
 import {
+  emailChangeExpiresAt,
   generateAccountToken,
   hashAccountToken,
   invitationExpiresAt,
@@ -66,6 +67,17 @@ export type CompleteInvitationResult =
   | {
       ok: false;
       reason: AccountTokenLookupFailureReason | "stale_user";
+    };
+
+export type CreateEmailChangeTokenResult =
+  | { created: true; rawToken: string; token: AccountTokenRecord }
+  | { created: false; reason: "email_taken" };
+
+export type CompleteEmailChangeResult =
+  | { ok: true; userId: string; tokenId: string; email: string }
+  | {
+      ok: false;
+      reason: AccountTokenLookupFailureReason | "email_taken" | "stale_user";
     };
 
 export class AccountTokenError extends Error {
@@ -207,6 +219,24 @@ async function revokeOutstandingInvitationTokens(
       type: AccountTokenType.INVITATION,
       consumedAt: null,
       revokedAt: null,
+    },
+    data: { revokedAt: now },
+  });
+}
+
+async function revokeOutstandingEmailChangeTokens(
+  client: AccountTokenClient,
+  userId: string,
+  now: Date,
+  exceptTokenId?: string
+): Promise<void> {
+  await client.accountToken.updateMany({
+    where: {
+      userId,
+      type: AccountTokenType.EMAIL_CHANGE,
+      consumedAt: null,
+      revokedAt: null,
+      ...(exceptTokenId ? { id: { not: exceptTokenId } } : {}),
     },
     data: { revokedAt: now },
   });
@@ -741,4 +771,198 @@ export async function revokeOutstandingInvitations(input: {
     input.clinicId,
     input.now ?? new Date()
   );
+}
+
+export async function revokeOutstandingEmailChanges(input: {
+  userId: string;
+  now?: Date;
+  prisma?: AccountTokenClient;
+}): Promise<void> {
+  await revokeOutstandingEmailChangeTokens(
+    input.prisma ?? getPrisma(),
+    input.userId,
+    input.now ?? new Date()
+  );
+}
+
+export async function findOutstandingEmailChange(input: {
+  userId: string;
+  now?: Date;
+  prisma?: AccountTokenClient;
+}): Promise<AccountTokenRecord | null> {
+  const now = input.now ?? new Date();
+  const prisma = input.prisma ?? getPrisma();
+  const row = await prisma.accountToken.findFirst({
+    where: {
+      userId: input.userId,
+      type: AccountTokenType.EMAIL_CHANGE,
+      consumedAt: null,
+      revokedAt: null,
+      expiresAt: { gt: now },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return row ? toRecord(row) : null;
+}
+
+export async function createEmailChangeToken(input: {
+  userId: string;
+  email: string;
+  now?: Date;
+  prisma?: PrismaClient;
+}): Promise<CreateEmailChangeTokenResult> {
+  const now = input.now ?? new Date();
+  const email = normalizeAccountTokenEmail(input.email);
+  const prisma = input.prisma ?? getPrisma();
+  const rawToken = generateAccountToken();
+  const tokenHash = hashAccountToken(rawToken);
+
+  return prisma.$transaction(async (tx) => {
+    await lockOutstandingScope(tx, `user-email:${email}`);
+    await lockOutstandingScope(
+      tx,
+      `account-token:${AccountTokenType.EMAIL_CHANGE}:${input.userId}`
+    );
+
+    const takenUser = await tx.user.findFirst({
+      where: { email, NOT: { id: input.userId } },
+      select: { id: true },
+    });
+    if (takenUser) {
+      return { created: false, reason: "email_taken" as const };
+    }
+
+    const takenPending = await tx.accountToken.findFirst({
+      where: {
+        email,
+        type: AccountTokenType.EMAIL_CHANGE,
+        consumedAt: null,
+        revokedAt: null,
+        NOT: { userId: input.userId },
+      },
+      select: { id: true },
+    });
+    if (takenPending) {
+      return { created: false, reason: "email_taken" as const };
+    }
+
+    await revokeOutstandingEmailChangeTokens(tx, input.userId, now);
+    const row = await tx.accountToken.create({
+      data: {
+        type: AccountTokenType.EMAIL_CHANGE,
+        tokenHash,
+        userId: input.userId,
+        email,
+        expiresAt: emailChangeExpiresAt(now),
+        createdAt: now,
+      },
+    });
+
+    return { created: true, rawToken, token: toRecord(row) };
+  });
+}
+
+export async function completeEmailChange(input: {
+  rawToken: string;
+  now?: Date;
+  prisma?: PrismaClient;
+}): Promise<CompleteEmailChangeResult> {
+  const tokenHash = hashRawTokenOrMissing(input.rawToken);
+  if (!tokenHash) {
+    return { ok: false, reason: "missing" };
+  }
+
+  const now = input.now ?? new Date();
+  const prisma = input.prisma ?? getPrisma();
+
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.accountToken.findUnique({
+      where: { tokenHash },
+    });
+    const failure = evaluateToken(existing, AccountTokenType.EMAIL_CHANGE, now);
+    if (failure || !existing) {
+      return { ok: false, reason: failure ?? "missing" };
+    }
+
+    await lockOutstandingScope(tx, `user-email:${existing.email}`);
+    await lockOutstandingScope(
+      tx,
+      `account-token:${AccountTokenType.EMAIL_CHANGE}:${existing.userId}`
+    );
+
+    const latest = await tx.accountToken.findUnique({
+      where: { id: existing.id },
+    });
+    const latestFailure = evaluateToken(
+      latest,
+      AccountTokenType.EMAIL_CHANGE,
+      now
+    );
+    if (latestFailure || !latest) {
+      return { ok: false, reason: latestFailure ?? "missing" };
+    }
+
+    const user = await tx.user.findUnique({
+      where: { id: latest.userId },
+      select: { id: true, email: true },
+    });
+    if (!user) {
+      return { ok: false, reason: "stale_user" };
+    }
+
+    const taken = await tx.user.findFirst({
+      where: { email: latest.email, NOT: { id: user.id } },
+      select: { id: true },
+    });
+    if (taken) {
+      await tx.accountToken.updateMany({
+        where: {
+          id: latest.id,
+          revokedAt: null,
+        },
+        data: { revokedAt: now },
+      });
+      return { ok: false, reason: "email_taken" };
+    }
+
+    const consumed = await tx.accountToken.updateMany({
+      where: {
+        id: latest.id,
+        type: AccountTokenType.EMAIL_CHANGE,
+        consumedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: now },
+      },
+      data: { consumedAt: now },
+    });
+
+    if (consumed.count !== 1) {
+      const after = await tx.accountToken.findUnique({
+        where: { id: latest.id },
+      });
+      const afterFailure = evaluateToken(
+        after,
+        AccountTokenType.EMAIL_CHANGE,
+        now
+      );
+      return { ok: false, reason: afterFailure ?? "missing" };
+    }
+
+    await tx.user.update({
+      where: { id: user.id },
+      data: {
+        email: latest.email,
+        emailVerified: now,
+      },
+    });
+    await revokeOutstandingPasswordResetTokens(tx, user.id, now);
+    await revokeOutstandingEmailChangeTokens(tx, user.id, now, latest.id);
+
+    return {
+      ok: true,
+      userId: user.id,
+      tokenId: latest.id,
+      email: latest.email,
+    };
+  });
 }

@@ -58,12 +58,12 @@ Generic credential failure remains:
 
 Unknown email, wrong password, and null `passwordHash` share that external failure. Do not expose “user does not exist”, “password not set”, hash format errors, or dummy-verification details.
 
-After a **correct** password, existing access rules still apply:
+After a **correct** password, existing access rules still apply. Login counts **active** `ClinicMembership` rows only (`active = true`). Inactive memberships do not grant clinic access and do not count toward the one-clinic login rule:
 
-- no membership and not `OPERATOR` → 403
-- more than one membership → 409
-- operator with zero memberships → `/operator/clinics`
-- exactly one membership → `/dashboard`
+- no **active** membership and not `OPERATOR` → 403
+- more than one **active** membership → 409
+- operator with zero active memberships → `/operator/clinics`
+- exactly one active membership → `/dashboard`
 
 ## Host restriction
 
@@ -93,8 +93,8 @@ Login does **not** use Cloudflare Turnstile. Marketing `/contact` Turnstile is u
 ## Explicitly not in the login path
 
 - invitations / Team management
-- email-address changes
-- account status / `disabledAt`
+- email-address changes (self-service lives on `/account`, not on login)
+- global account status / `disabledAt`
 - Turnstile on login or forgot-password
 - clinic multi-clinic login picker
 
@@ -116,11 +116,28 @@ Constants: `lib/auth/password-policy.ts`.
 
 257+ new passwords are rejected before `hashPassword` / scrypt.
 
-## Account security
+## Account
 
-Shared authenticated route: `/account/security`.
+Shared authenticated route: `/account`. `/account/security` redirects to `/account#security`.
 
-Any signed-in `User` can change their own password: platform `OPERATOR` (no clinic membership required), clinic `ADMIN`, and clinic `STAFF`. The page is **not** inside the clinic-membership-only portal layout; the account layout reuses operator chrome or clinic portal chrome based on the signed-in principal.
+Any signed-in `User` can manage their own identity: platform `OPERATOR` (no clinic membership required), clinic `ADMIN`, and clinic `STAFF`. These fields belong to `User`, not to a clinic membership. The page is **not** inside the clinic-membership-only portal layout; the account layout reuses operator chrome, clinic portal chrome, or a minimal authenticated shell based on the signed-in principal.
+
+### Profile (name and email)
+
+`updateProfileAction` → `updateOwnProfile`:
+
+1. Staff-host check + `requireAuthenticatedUser`. The target is always the signed-in user id.
+2. Name: trim / collapse whitespace, reject empty, reject `<>`, max **80**.
+3. Email: trim, lowercase, max **254**, same format check as account-token emails (`parseEmailAddress`).
+4. Name-only changes do not require the current password.
+5. Email changes require the current password (`verifyPassword`). The current `User.email` stays active. An `EMAIL_CHANGE` `AccountToken` is mailed to the **new** address (`/confirm-email-change#token=`). On consume: atomically set `User.email`, set `emailVerified` to confirmation time, consume the token, and revoke outstanding `PASSWORD_RESET` and other `EMAIL_CHANGE` tokens. Sessions stay (they store user id; `auth()` re-reads email from `User`). A typo in the new address cannot lock recovery: login and password reset still use the old email until confirmation.
+6. Global uniqueness: advisory lock on the normalized pending email, then reject if another user already has it or another outstanding `EMAIL_CHANGE` already claims it (`P2002` maps to the same friendly error).
+
+Wrong current password returns “Current password is incorrect.” Duplicate email returns “That email is already in use.” Success copy: “Profile updated.” or “Check the new address to confirm this change. Your current email stays active until then.”
+
+Operators cannot edit another user's global name or email from clinic Team / Practice.
+
+### Change password
 
 Change-password Server Action (`changePasswordAction`):
 
@@ -158,7 +175,7 @@ Timing: unknown users skip Resend. Residual timing differences exist and are not
 
 ## Password reset email
 
-`sendAuthTransactionalEmail` + `composePasswordResetEmail`. Recipient is `User.email` from the database record, never an arbitrary submitted mailbox after lookup. From/Reply-To come from `AUTH_EMAIL_FROM` / optional `AUTH_EMAIL_REPLY_TO`.
+`sendAuthTransactionalEmail` + `composePasswordResetEmail` / `composeInvitationEmail` / `composeEmailChangeEmail`. Password-reset recipient is `User.email` from the database record. Email-change recipient is the **pending new** address on the token. From/Reply-To come from `AUTH_EMAIL_FROM` / optional `AUTH_EMAIL_REPLY_TO`.
 
 Subject: `Reset your River Aftercare password`. Body includes a one-time link that expires in 30 minutes, ignore-if-unsolicited copy, and optional reply guidance. Plain text + escaped HTML. No password, hash, session, token hash, or clinic/patient data.
 
@@ -194,29 +211,29 @@ Inspection: login/`createDatabaseSession` writes a fixed `expires = now + 30 day
 
 ## Host restriction
 
-`proxy.ts` remains the host gate. Staff-path prefixes include `/login`, `/forgot-password`, `/reset-password`, `/accept-invitation`, `/account`, `/operator`, and `/api/auth`. Marketing apex and tenant hosts 404 those paths.
+`proxy.ts` remains the host gate. Staff-path prefixes include `/login`, `/forgot-password`, `/reset-password`, `/accept-invitation`, `/confirm-email-change`, `/account`, `/operator`, and `/api/auth`. Marketing apex and tenant hosts 404 those paths.
 
-Forgot/reset/accept-invitation/invitation-status Route Handlers also require a staff `Host` (and a staff `Origin` when present). Change-password and operator Team mutations are Server Actions with an explicit staff-host check. Login still relies on the proxy boundary alone.
+Forgot/reset/accept-invitation/email-change Route Handlers also require a staff `Host` (and a staff `Origin` when present). Change-password and operator Team mutations are Server Actions with an explicit staff-host check. Login still relies on the proxy boundary alone.
 
 ## Security logging
 
-Structured events only: `password_changed`, `password_reset_requested`, `password_reset_email_failed`, `password_reset_completed`, `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`, `clinic_role_updated`. Prefer user id (and clinic id for invitations). Never log passwords, raw tokens, token hashes, reset/invite URLs, session tokens, API keys, or mail bodies. Unknown emails are not logged.
+Structured events only: `password_changed`, `password_reset_requested`, `password_reset_email_failed`, `password_reset_completed`, `profile_name_changed`, `email_change_requested`, `email_change_completed`, `email_change_email_failed`, `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`, `clinic_role_updated`, `clinic_membership_deactivated`, `clinic_membership_reactivated`, `operator_clinic_settings_updated`. Prefer user id (and clinic id for invitations / membership / operator clinic edits). Never log passwords, raw tokens, token hashes, reset/invite URLs, session tokens, API keys, or mail bodies. Unknown emails are not logged.
 
 ## AccountToken
 
 `AccountToken` remains the account-lifecycle token model. Auth.js `VerificationToken` is unused and is **not** reused.
 
-| Field                                   | Rule                                                                                                                 |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `tokenHash`                             | Unique SHA-256 of the raw token. Raw tokens are never stored.                                                        |
-| `type`                                  | `PASSWORD_RESET` or `INVITATION`                                                                                     |
-| `userId`                                | Required. Cascade delete with the subject user.                                                                      |
-| `email`                                 | Invitation/reset identity snapshot. Service normalizes trim + lowercase, max 254. Does **not** rewrite `User.email`. |
-| `clinicId` / `role` / `invitedByUserId` | Invitation only. Password reset stores nulls.                                                                        |
-| `expiresAt`                             | Required. Password reset 30 minutes. Invitation 7 days.                                                              |
-| `consumedAt` / `revokedAt`              | Nullable. Outstanding means both null.                                                                               |
+| Field                                   | Rule                                                                                                                                                                                                  |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tokenHash`                             | Unique SHA-256 of the raw token. Raw tokens are never stored.                                                                                                                                         |
+| `type`                                  | `PASSWORD_RESET`, `INVITATION`, or `EMAIL_CHANGE`                                                                                                                                                     |
+| `userId`                                | Required. Cascade delete with the subject user.                                                                                                                                                       |
+| `email`                                 | Invitation/reset/email-change identity snapshot. Service normalizes trim + lowercase, max 254. `EMAIL_CHANGE` stores the **pending new** address and does **not** rewrite `User.email` until consume. |
+| `clinicId` / `role` / `invitedByUserId` | Invitation only. Password reset and email change store nulls.                                                                                                                                         |
+| `expiresAt`                             | Required. Password reset and email change 30 minutes. Invitation 7 days.                                                                                                                              |
+| `consumedAt` / `revokedAt`              | Nullable. Outstanding means both null.                                                                                                                                                                |
 
-Password-reset creation for forgot-password uses `createPasswordResetTokenIfAllowed` (10-minute cooldown inside the existing advisory lock, then supersede + insert). Invitation creation uses `createInvitationToken` (7-day TTL, one outstanding invite per user+clinic). `completeInvitation` consumes an invitation, sets the password, and creates the clinic membership in one transaction.
+Password-reset creation for forgot-password uses `createPasswordResetTokenIfAllowed` (10-minute cooldown inside the existing advisory lock, then supersede + insert). Invitation creation uses `createInvitationToken` (7-day TTL, one outstanding invite per user+clinic). Email-change creation uses `createEmailChangeToken` (30-minute TTL, one outstanding change per user, one outstanding claim per pending email). `completeInvitation` consumes an invitation, sets the password, and creates the clinic membership in one transaction. `completeEmailChange` consumes the token and then updates `User.email` / `emailVerified`.
 
 ## Auth transactional email
 
@@ -252,11 +269,12 @@ Operator creates clinic
 
 `/operator/clinics/[clinicId]/team` (staff host + `requirePlatformOperator`). Columns: Name, Email, Role, Status, Actions.
 
-Statuses are derived, not stored:
+Team rows are memberships plus pending invitations.
 
 | Status             | Source of truth                                                                                       |
 | ------------------ | ----------------------------------------------------------------------------------------------------- |
-| Active             | `ClinicMembership` exists                                                                             |
+| Active             | `ClinicMembership` exists and `active = true`                                                         |
+| Inactive           | `ClinicMembership` exists and `active = false` (STAFF only; reversible clinic access)                 |
 | Pending            | `passwordHash` null, zero memberships, outstanding unexpired `INVITATION` for this clinic             |
 | Invitation expired | `passwordHash` null, zero memberships, latest this-clinic invitation outstanding but past `expiresAt` |
 
@@ -283,7 +301,7 @@ Mutations are Server Actions. Clinic comes from the operator-authorized route. I
 | Expired/cancelled same-clinic pending  | New invitation token for the same User. Name may be updated.                                                                |
 | Active user, zero memberships          | Restore access: create one `ClinicMembership` with the operator-selected role. Keep password. No invitation token or email. |
 
-A User may have **at most one** active `ClinicMembership`. This change does not add a clinic switcher.
+Product invitations still refuse a second clinic (“already belongs to another clinic”). Login and `getCurrentClinicMembership` count **active** memberships only, so one active + one inactive membership can sign in to the active clinic. This change does not add a clinic switcher. Two active memberships still 409.
 
 ### Invitation email and URL
 
@@ -309,16 +327,27 @@ Prevalidation is UX only. `completeInvitation` still revalidates and conditional
 
 `completeInvitation` (one transaction, advisory locks): validate INVITATION token; require matching User email, `passwordHash` null, `platformRole` NONE, zero memberships, clinic exists; consume token; set `passwordHash`; set `emailVerified` to acceptance time; create `ClinicMembership` with **token** clinic and role; revoke other outstanding invitations for that user. Only one concurrent accept succeeds. No session is created.
 
-`emailVerified` is **not** required for login. It records that the mailbox received a strong invitation token.
+`emailVerified` is **not** required for login, clinic access, operator access, password reset, or middleware. Invitation acceptance sets it as a mailbox-receipt timestamp. Confirming an email change sets it to confirmation time. It is not a live authorization flag.
 
 Success: `/login?invite=success` (fixed flag → “Your account is ready. Sign in with your new password.”). Then the existing one-membership login path.
 
 ### Change role
 
 - **Change role** (operator only, active membership): update that `ClinicMembership.role` to ADMIN or STAFF. Do not change `User.platformRole`, passwordHash, sessions, AccountToken rows, or membership count. Same-role submissions are a safe no-op. Redirect to Team with `?status=role-updated` → “Role updated.”
-- Clinic role is read from `ClinicMembership` on each request (`getCurrentClinicMembership`). Auth.js database sessions store user id, name, and email only. A role change therefore takes effect on the next authorization read without session invalidation.
+- Clinic role and `ClinicMembership.active` are read from the database on each request (`getCurrentClinicMembership` filters `active: true`). Auth.js database sessions store user id, name, and email only. Deactivating STAFF therefore takes effect on the next authorization read without waiting for session expiry. Other-clinic active memberships are unchanged. The User row and password stay intact.
 - Platform operators cannot be made clinic members and cannot be the target of a role change.
 - No last-admin guard: changing the only ADMIN to STAFF remains allowed while operator provisioning can also remove the only ADMIN or leave a clinic with zero members. Revisit last-admin protection, self-demotion, and self-removal when clinic-admin Team self-service ships.
+
+### Clinic staff Active / Inactive
+
+Clinic ADMIN (and a platform operator assisting that clinic) can set **STAFF** memberships Active ↔ Inactive. This is membership state, not a global User disablement.
+
+- Server function: `updateClinicMembershipStatus` behind `actorCanManageClinic`.
+- Target must belong to the same clinic, must be `STAFF`, and must not be `platformRole = OPERATOR`.
+- ADMIN-to-ADMIN activation is not offered.
+- Reactivation updates the existing membership row (`active = true`). It does not create a duplicate membership or send an invitation.
+- Clinic Practice → Members exposes Activate / Deactivate. Operator Team uses the same status mutation.
+- Inactive members lose that clinic's portal, Practice, Guides, and server actions even if they know a URL. They can still sign in when they have another active membership, and they can still use `/account`.
 
 ### Remove access / restore access
 
@@ -331,13 +360,21 @@ Success: `/login?invite=success` (fixed flag → “Your account is ready. Sign 
 - **Resend** (pending or expired, same clinic, still `passwordHash` null, no membership): new token, previous outstanding invite revoked.
 - **Cancel**: revoke outstanding INVITATION tokens for that user+clinic. User row kept. Login still generic 401.
 
-Security logging: `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`, `clinic_role_updated`. User id + clinic id only. Never passwords, raw tokens, hashes, URLs, or provider errors.
+Security logging: `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`, `clinic_role_updated`, `clinic_membership_deactivated`, `clinic_membership_reactivated`. User id + clinic id (plus actor user id for status changes). Never passwords, raw tokens, hashes, URLs, or provider errors.
+
+## Operator clinic support
+
+Platform `OPERATOR` is not a clinic member. Operators manage clinic-owned data through `lib/auth/clinic-authorization.ts` (`canAccessClinic`, `canManageClinic`, `canManageClinicBranding`, `canManageClinicMembers`, `canManageClinicGuides`). Those helpers treat `PlatformRole.OPERATOR` as able to manage an existing clinic without a membership row.
+
+To work inside the clinic portal (Overview / Guides / Practice), an operator submits **Manage clinic workspace** on the clinic detail page. That sets `river_operator_support_clinic` using the same cookie options as the Auth.js session cookie (`HttpOnly`, `SameSite=Lax`, `Path=/`, `Secure` in production). It is a session cookie (no Max-Age). The cookie is **context only**: `getAuthContext` synthesizes an in-memory ADMIN-equivalent clinic context with `source: "operator_support"` only when `platformRole` is `OPERATOR` and the clinic still exists. `requireClinicAdmin` accepts that source only when `platformRole` is `OPERATOR`. Changing the cookie cannot grant a STAFF/ADMIN user another clinic. Missing or deleted clinic ids fail closed (no support context). **Exit support** and logout clear the cookie. Clinic mutations still take `clinicId` from that authorized context, never from a hidden form clinic id on portal actions. The portal shell shows **Assisting** plus the clinic name and **Exit support** while the operator is in a client workspace.
+
+Operators must not set another user's password. Password recovery stays on forgot/reset or invitation resend.
 
 ## Not yet implemented
 
 - clinic ADMIN / STAFF inviting users
 - last-admin protection (revisit when clinic-admin Team self-service ships; operator retains platform control)
 - multi-clinic picker
-- email-address changes
 - global account disable
 - login or forgot-password Turnstile
+- operator editing of another user's global name/email/password

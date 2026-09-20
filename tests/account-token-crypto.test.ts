@@ -6,6 +6,8 @@ import {
   ACCOUNT_TOKEN_BYTE_LENGTH,
   ACCOUNT_TOKEN_ENTROPY_BITS,
   ACCOUNT_TOKEN_HASH_ALGORITHM,
+  emailChangeExpiresAt,
+  EMAIL_CHANGE_TOKEN_TTL_MINUTES,
   generateAccountToken,
   hashAccountToken,
   invitationExpiresAt,
@@ -59,11 +61,15 @@ describe("account token crypto", () => {
     const now = new Date("2026-09-19T12:00:00.000Z");
     expect(PASSWORD_RESET_TOKEN_TTL_MINUTES).toBe(30);
     expect(INVITATION_TOKEN_TTL_DAYS).toBe(7);
+    expect(EMAIL_CHANGE_TOKEN_TTL_MINUTES).toBe(30);
     expect(passwordResetExpiresAt(now).toISOString()).toBe(
       "2026-09-19T12:30:00.000Z"
     );
     expect(invitationExpiresAt(now).toISOString()).toBe(
       "2026-09-26T12:00:00.000Z"
+    );
+    expect(emailChangeExpiresAt(now).toISOString()).toBe(
+      "2026-09-19T12:30:00.000Z"
     );
     expect(PASSWORD_RESET_REQUEST_COOLDOWN_MINUTES).toBe(10);
     expect(passwordResetCooldownSince(now).toISOString()).toBe(

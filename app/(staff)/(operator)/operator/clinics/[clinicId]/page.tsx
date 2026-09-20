@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
+import { startOperatorClinicSupportAction } from "@/app/(staff)/(operator)/operator/support-actions";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import { getOperatorClinic } from "@/lib/operator/get-operator-clinic";
@@ -161,9 +162,9 @@ export default async function OperatorClinicDetailPage({
           Manage who can access this clinic.
         </p>
         <p className="mt-2 text-sm">
-          {clinic.members.length === 0
+          {clinic.members.filter((member) => member.active).length === 0
             ? "No active members yet."
-            : `${clinic.members.length} active member${clinic.members.length === 1 ? "" : "s"}.`}
+            : `${clinic.members.filter((member) => member.active).length} active member${clinic.members.filter((member) => member.active).length === 1 ? "" : "s"}.`}
         </p>
         <Link
           href={`/operator/clinics/${clinic.id}/team`}
@@ -171,6 +172,12 @@ export default async function OperatorClinicDetailPage({
         >
           Open team
         </Link>
+        <form action={startOperatorClinicSupportAction} className="mt-4">
+          <input type="hidden" name="clinicId" value={clinic.id} />
+          <button type="submit" className="staffBtn staffBtnPrimary">
+            Manage clinic workspace
+          </button>
+        </form>
       </section>
 
       <p>

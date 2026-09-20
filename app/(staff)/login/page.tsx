@@ -7,6 +7,7 @@ import {
   INVITATION_READY_MESSAGE,
   PASSWORD_RESET_SUCCESS_MESSAGE,
 } from "@/lib/auth/password-policy";
+import { EMAIL_CHANGE_CONFIRMED_MESSAGE } from "@/lib/auth/account-profile-schema";
 import { getAuthContext } from "@/lib/auth/session";
 import { signedInHomePath } from "@/lib/auth/signed-in-home";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -25,6 +26,7 @@ export default async function LoginPage({
   searchParams?: Promise<{
     reset?: string | string[];
     invite?: string | string[];
+    email?: string | string[];
   }>;
 }) {
   const authContext = await getAuthContext().catch(() => ({
@@ -43,8 +45,12 @@ export default async function LoginPage({
   const inviteParam = Array.isArray(params.invite)
     ? params.invite[0]
     : params.invite;
+  const emailParam = Array.isArray(params.email)
+    ? params.email[0]
+    : params.email;
   const resetSuccess = resetParam === "success";
   const inviteSuccess = inviteParam === "success";
+  const emailSuccess = emailParam === "updated";
 
   const localLogin =
     process.env.NODE_ENV === "development"
@@ -64,6 +70,11 @@ export default async function LoginPage({
       {inviteSuccess ? (
         <div className="staffFormStatus" role="status">
           {INVITATION_READY_MESSAGE}
+        </div>
+      ) : null}
+      {emailSuccess ? (
+        <div className="staffFormStatus" role="status">
+          {EMAIL_CHANGE_CONFIRMED_MESSAGE}
         </div>
       ) : null}
       <LoginForm />

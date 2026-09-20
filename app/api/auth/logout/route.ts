@@ -5,6 +5,7 @@ import {
   AUTH_SESSION_COOKIE_NAME,
   authSessionCookieOptions,
 } from "@/lib/auth/session-cookie";
+import { OPERATOR_SUPPORT_CLINIC_COOKIE } from "@/lib/auth/operator-support-clinic";
 import { deleteDatabaseSession } from "@/lib/auth/session";
 
 export async function POST() {
@@ -20,6 +21,12 @@ export async function POST() {
   response.cookies.set({
     ...authSessionCookieOptions,
     name: AUTH_SESSION_COOKIE_NAME,
+    value: "",
+    expires: new Date(0),
+  });
+  response.cookies.set({
+    ...authSessionCookieOptions,
+    name: OPERATOR_SUPPORT_CLINIC_COOKIE,
     value: "",
     expires: new Date(0),
   });

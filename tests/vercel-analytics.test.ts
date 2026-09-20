@@ -94,5 +94,14 @@ describe("vercelWebAnalyticsBeforeSend", () => {
       type: "pageview",
       url: "https://app.example.test/accept-invitation",
     });
+
+    const emailChange: BeforeSendEvent = {
+      type: "pageview",
+      url: "https://app.example.test/confirm-email-change#token=abc",
+    };
+    expect(vercelWebAnalyticsBeforeSend(emailChange)).toEqual({
+      type: "pageview",
+      url: "https://app.example.test/confirm-email-change",
+    });
   });
 });

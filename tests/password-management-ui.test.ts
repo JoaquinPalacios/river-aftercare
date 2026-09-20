@@ -3,16 +3,17 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("password management UI contracts", () => {
-  it("keeps account security behind any authenticated user", () => {
-    const page = readFileSync("app/(staff)/account/security/page.tsx", "utf8");
+  it("keeps account settings behind any authenticated user", () => {
+    const page = readFileSync("app/(staff)/account/page.tsx", "utf8");
     const layout = readFileSync("app/(staff)/account/layout.tsx", "utf8");
-    const action = readFileSync(
+    const action = readFileSync("app/(staff)/account/actions.ts", "utf8");
+    const passwordAction = readFileSync(
       "app/(staff)/account/security/actions.ts",
       "utf8"
     );
-    expect(page).toContain("Account security");
-    expect(page).toContain("Change password");
     expect(page).toContain("requireAuthenticatedUser");
+    expect(page).toContain("UpdateProfileForm");
+    expect(page).toContain("ChangePasswordForm");
     expect(page).not.toContain("requireStaffSession");
     expect(page).not.toContain("requirePlatformOperator");
     expect(layout).toContain("requireAuthenticatedUser");
@@ -20,9 +21,12 @@ describe("password management UI contracts", () => {
     expect(layout).toContain("PortalChrome");
     expect(action).toContain("requireAuthenticatedUser");
     expect(action).toContain("isStaffAppHost");
+    expect(action).not.toContain('formData.get("userId")');
+    expect(passwordAction).toContain("requireAuthenticatedUser");
+    expect(passwordAction).not.toContain('formData.get("userId")');
   });
 
-  it("links account security from operator and clinic shells", () => {
+  it("links Account from operator and clinic shells", () => {
     const panel = readFileSync(
       "app/(staff)/components/staff-account-panel.tsx",
       "utf8"
@@ -35,9 +39,12 @@ describe("password management UI contracts", () => {
       "app/(staff)/components/operator-account-chrome.tsx",
       "utf8"
     );
-    expect(panel).toContain('href="/account/security"');
-    expect(panel).toContain("Account security");
+    expect(panel).toContain('href="/account"');
+    expect(panel).toContain("Account");
     expect(chrome).toContain("StaffAccountPanel");
+    expect(chrome).toContain("Exit support");
+    expect(chrome).toContain("Assisting");
+    expect(chrome).not.toContain("Back to All Clinics");
     expect(operator).toContain("StaffAccountPanel");
     expect(chrome).not.toContain("Invite user");
     expect(operator).not.toContain("Invite user");
@@ -64,8 +71,10 @@ describe("password management UI contracts", () => {
     const login = readFileSync("app/(staff)/login/page.tsx", "utf8");
     expect(login).toContain('resetParam === "success"');
     expect(login).toContain('inviteParam === "success"');
+    expect(login).toContain('emailParam === "updated"');
     expect(login).toContain("PASSWORD_RESET_SUCCESS_MESSAGE");
     expect(login).toContain("INVITATION_READY_MESSAGE");
+    expect(login).toContain("EMAIL_CHANGE_CONFIRMED_MESSAGE");
     expect(login).not.toContain("params.message");
     expect(login).not.toContain("searchParams.message");
   });
@@ -78,5 +87,12 @@ describe("password management UI contracts", () => {
     expect(forgot).not.toContain("Turnstile");
     expect(loginForm).not.toContain("Turnstile");
     expect(loginForm).not.toContain("Invite");
+  });
+
+  it("keeps the current email in the profile field while a change is pending", () => {
+    const form = readFileSync("app/(staff)/account/profile-form.tsx", "utf8");
+    expect(form).toContain("setEmailValue(email)");
+    expect(form).toContain("setShownPendingEmail(null)");
+    expect(form).toContain("pending-email-verification");
   });
 });

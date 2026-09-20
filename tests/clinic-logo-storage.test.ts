@@ -168,6 +168,25 @@ describe("clinic logo authorization", () => {
       })
     ).toEqual({ ok: false, code: "forbidden" });
   });
+
+  it("allows a platform operator for the requested clinic only", () => {
+    expect(
+      authorizeClinicLogoMutation({
+        role: ClinicMembershipRole.STAFF,
+        platformRole: "OPERATOR",
+        actorClinicId: "clinic_a",
+        targetClinicId: "clinic_a",
+      })
+    ).toEqual({ ok: true });
+    expect(
+      authorizeClinicLogoMutation({
+        role: ClinicMembershipRole.STAFF,
+        platformRole: "OPERATOR",
+        actorClinicId: "clinic_a",
+        targetClinicId: "clinic_b",
+      })
+    ).toEqual({ ok: false, code: "forbidden" });
+  });
 });
 
 describe("clinic asset storage configuration", () => {

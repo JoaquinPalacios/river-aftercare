@@ -89,6 +89,9 @@ describe("proxy", () => {
       proxy(requestFor("http://localhost:3000/accept-invitation")).status
     ).toBe(404);
     expect(
+      proxy(requestFor("http://localhost:3000/confirm-email-change")).status
+    ).toBe(404);
+    expect(
       proxy(requestFor("http://localhost:3000/operator/clinics")).status
     ).toBe(404);
   });
@@ -236,6 +239,9 @@ describe("proxy", () => {
       proxy(requestFor("http://app.localhost:3000/accept-invitation")).status
     ).toBe(200);
     expect(
+      proxy(requestFor("http://app.localhost:3000/confirm-email-change")).status
+    ).toBe(200);
+    expect(
       proxy(requestFor("http://app.localhost:3000/operator/clinics")).status
     ).toBe(200);
   });
@@ -306,6 +312,10 @@ describe("proxy", () => {
     ).toBe(404);
     expect(
       proxy(requestFor("http://demodental.localhost:3000/accept-invitation"))
+        .status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://demodental.localhost:3000/confirm-email-change"))
         .status
     ).toBe(404);
     expect(

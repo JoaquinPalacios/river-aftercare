@@ -10,6 +10,7 @@ export const ACCOUNT_TOKEN_HASH_ALGORITHM = "sha256";
 export const PASSWORD_RESET_TOKEN_TTL_MINUTES = 30;
 export const PASSWORD_RESET_REQUEST_COOLDOWN_MINUTES = 10;
 export const INVITATION_TOKEN_TTL_DAYS = 7;
+export const EMAIL_CHANGE_TOKEN_TTL_MINUTES = 30;
 
 const MINUTES_IN_MS = 60 * 1000;
 const DAYS_IN_MS = 24 * 60 * MINUTES_IN_MS;
@@ -39,6 +40,12 @@ export function passwordResetExpiresAt(now: Date): Date {
 
 export function invitationExpiresAt(now: Date): Date {
   return new Date(now.getTime() + INVITATION_TOKEN_TTL_DAYS * DAYS_IN_MS);
+}
+
+export function emailChangeExpiresAt(now: Date): Date {
+  return new Date(
+    now.getTime() + EMAIL_CHANGE_TOKEN_TTL_MINUTES * MINUTES_IN_MS
+  );
 }
 
 export function passwordResetCooldownSince(now: Date): Date {

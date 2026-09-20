@@ -26,7 +26,7 @@ Preferences, separated by a divider, above account:
 
 - Appearance — System / Light / Dark for the **staff/operator shell**. Stored as `aftercare-guide-portal-theme` on this device. Does **not** change `ClinicProfile.themeMode` (patient presentation).
 
-Account/sign-out stay below Appearance. **Account security** (`/account/security`) is a shared authenticated page for operator, clinic admin, and clinic staff. Sign out uses the same full-row hit area as other sidebar utility rows (minimum 44px). It is account navigation, not a high-prominence destructive action.
+Account/sign-out stay below Appearance. **Account** (`/account`) is a shared authenticated page for operator, clinic admin, and clinic staff (profile name/email plus change password). `/account/security` redirects to `/account#security`. Sign out uses the same full-row hit area as other sidebar utility rows (minimum 44px). It is account navigation, not a high-prominence destructive action.
 
 ### User-facing role labels
 
@@ -90,7 +90,9 @@ Destructive confirmations use the native `<dialog>` element with River Aftercare
 
 ### Practice
 
-One route with internal sections: Practice identity, Branding, Contact, Emergency / urgent help, Patient presentation.
+One route with internal sections: Members, Practice identity, Branding, Contact, Emergency / urgent help, Patient presentation.
+
+Clinic ADMIN (and a platform operator assisting the clinic) can set **STAFF** memberships Active / Inactive from Members. Inactive is clinic-membership state only. Confirmation copy must not imply the River Aftercare account is deleted.
 
 Header uses portal spacing (eyebrow / title / description, then ~2.25rem before the form). Desktop has a section index with consistent row height, hover/focus, and `aria-current` for the section in view (IntersectionObserver). Section-nav clicks smooth-scroll unless `prefers-reduced-motion: reduce`. Sections use `scroll-margin-top`.
 
@@ -102,13 +104,15 @@ Patient tenant layouts emit `theme-color` from `generateViewport` using the clin
 
 ### Permissions
 
-| Actor               | Portal                    | Guides                                                 | Practice                       | Operator      |
-| ------------------- | ------------------------- | ------------------------------------------------------ | ------------------------------ | ------------- |
-| Clinic `ADMIN`      | Yes                       | Create, edit, save, publish, unpublish, delete/discard | Edit identity/branding/contact | Not found     |
-| Clinic `STAFF`      | Overview + Guides         | View + draft/public preview                            | Not found                      | Not found     |
-| Platform `OPERATOR` | Redirected to All Clinics | No clinic membership locally                           | No                             | `/operator/*` |
+| Actor               | Portal                                                                            | Guides                                                 | Practice                                             | Operator      |
+| ------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------- | ------------- |
+| Clinic `ADMIN`      | Yes                                                                               | Create, edit, save, publish, unpublish, delete/discard | Edit identity/branding/contact/members               | Not found     |
+| Clinic `STAFF`      | Overview + Guides when membership `active`                                        | View + draft/public preview                            | Not found                                            | Not found     |
+| Platform `OPERATOR` | All Clinics; **Manage clinic workspace** enters the clinic portal for that client | Same clinic-admin guide mutations while assisting      | Same clinic-admin Practice mutations while assisting | `/operator/*` |
 
-Mutations authorize on the server: authenticated user → clinic membership → `ADMIN` → resource `clinicId` from membership, never from the form.
+The portal shell shows **Assisting** plus the clinic name and **Exit support** while an operator is in a client workspace. That indicator stays visible on Overview, Guides, Practice, and Account when the support context is active.
+
+Inactive `ClinicMembership.active = false` does not grant portal access for that clinic, including direct URLs. Authorization helpers live in `lib/auth/clinic-authorization.ts`. Portal mutations still take `clinicId` from the authorized session context, never from the form. Operators are platform-global; they are not fabricated as clinic members.
 
 ## Guide lifecycle
 
@@ -171,7 +175,7 @@ Do not share one clinic login. Named membership accounts are required for accoun
 | Practice  | 5                    |
 | Group     | custom               |
 
-Current roles remain Clinic ADMIN and Clinic STAFF only. **Operator-managed** invitations exist: Operator → Clinics → Team → Invite user. Clinic ADMIN/STAFF cannot invite. Operators can change an active member's role (Administrator ↔ Staff), remove clinic access (User and password kept; sessions invalidated), and restore a passworded zero-membership User without a new invitation. Seat-limit enforcement is not implemented. Clinic-admin Team self-service is later portal work. See [AUTH.md](AUTH.md).
+Current roles remain Clinic ADMIN and Clinic STAFF only. **Operator-managed** invitations exist: Operator → Clinics → Team → Invite user. Clinic ADMIN/STAFF cannot invite. Operators can change an active member's role (Administrator ↔ Staff), set STAFF memberships Active / Inactive, remove clinic access (User and password kept; sessions invalidated on remove), and restore a passworded zero-membership User without a new invitation. They cannot set another user's password. Seat-limit enforcement is not implemented. Clinic-admin Team invitation self-service is later portal work; clinic ADMIN can already manage STAFF Active / Inactive from Practice → Members. See [AUTH.md](AUTH.md).
 
 ## Application architecture
 

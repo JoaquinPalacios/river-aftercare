@@ -1091,6 +1091,56 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
   border-color: var(--staff-status-success-line);
 }
 
+.staffStatusPill[data-tone="inactive"] {
+  background: var(--staff-canvas);
+  color: var(--staff-muted);
+  border-color: var(--staff-line);
+}
+
+tr[data-active="false"] td {
+  color: var(--staff-ink);
+}
+
+tr[data-active="false"] td:nth-child(2) {
+  opacity: 0.85;
+}
+
+.staffOperatorAssistBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.75rem;
+  background: var(--staff-panel);
+}
+
+.staffOperatorAssistBanner p {
+  margin: 0;
+  max-width: 40rem;
+  color: var(--staff-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.staffOperatorAssistLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--staff-muted);
+}
+
+.staffOperatorAssistClinic {
+  margin-top: 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--staff-ink);
+}
+
 .staffStatusPill[data-tone="changes"],
 .staffStatusPill[data-tone="draft"],
 .staffStatusPill[data-tone="unpublished"],

@@ -226,6 +226,48 @@ describe("POST /api/auth/login", () => {
     expect(createDatabaseSessionMock).not.toHaveBeenCalled();
   });
 
+  it("queries only active memberships for login authorization", async () => {
+    findUniqueMock.mockResolvedValue(staffUser());
+    verifyPasswordMock.mockReturnValue(true);
+    findManyMock.mockResolvedValue([]);
+
+    await POST(
+      loginRequest({
+        email: "admin@care-guide.test",
+        password: "CareGuideDemo123!",
+      })
+    );
+
+    expect(findManyMock).toHaveBeenCalledWith({
+      where: { userId: "user_1", active: true },
+      select: { clinicId: true },
+      orderBy: { createdAt: "asc" },
+    });
+  });
+
+  it("allows a user with one active membership after another clinic is inactive", async () => {
+    const expires = new Date("2026-05-01T12:00:00.000Z");
+    findUniqueMock.mockResolvedValue(staffUser());
+    verifyPasswordMock.mockReturnValue(true);
+    findManyMock.mockResolvedValue([{ clinicId: "clinic_2" }]);
+    createDatabaseSessionMock.mockResolvedValue({
+      sessionToken: "session-token-active",
+      expires,
+    });
+
+    const response = await POST(
+      loginRequest({
+        email: "admin@care-guide.test",
+        password: "CareGuideDemo123!",
+      })
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      redirectTo: "/dashboard",
+    });
+  });
+
   it("normalizes email with trim and lowercase before lookup", async () => {
     findUniqueMock.mockResolvedValue(null);
     verifyPasswordMock.mockReturnValue(false);

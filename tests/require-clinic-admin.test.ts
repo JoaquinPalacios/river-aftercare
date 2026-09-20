@@ -63,4 +63,47 @@ describe("requireClinicAdmin", () => {
     );
     expect(notFoundMock).toHaveBeenCalledOnce();
   });
+
+  it("allows a platform operator assisting a clinic", async () => {
+    const session = {
+      user: {
+        id: "user_operator",
+        email: "operator@care-guide.test",
+        name: "Demo Operator",
+        platformRole: "OPERATOR",
+      },
+      clinicMembership: {
+        membershipId: "operator-support",
+        role: ClinicMembershipRole.ADMIN,
+        clinic: { id: "clinic_1", name: "Riverside" },
+        source: "operator_support" as const,
+      },
+    };
+    requireStaffSessionMock.mockResolvedValue(session);
+
+    await expect(requireClinicAdmin()).resolves.toEqual(session);
+    expect(notFoundMock).not.toHaveBeenCalled();
+  });
+
+  it("does not treat a forged operator-support context as clinic admin for STAFF", async () => {
+    requireStaffSessionMock.mockResolvedValue({
+      user: {
+        id: "user_staff",
+        email: "staff@care-guide.test",
+        name: "Demo Staff",
+        platformRole: "NONE",
+      },
+      clinicMembership: {
+        membershipId: "operator-support",
+        role: ClinicMembershipRole.ADMIN,
+        clinic: { id: "clinic_other", name: "Other Clinic" },
+        source: "operator_support" as const,
+      },
+    });
+
+    await expect(requireClinicAdmin()).rejects.toThrow(
+      "NEXT_HTTP_ERROR_FALLBACK;404"
+    );
+    expect(notFoundMock).toHaveBeenCalledOnce();
+  });
 });

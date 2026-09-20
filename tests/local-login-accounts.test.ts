@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
@@ -79,7 +81,18 @@ describe("local login accounts", () => {
       id: create.id,
       email: create.email,
     }));
-    const membershipUpsert = vi.fn(async () => ({}));
+    const membershipUpsert = vi.fn(
+      async (_args: {
+        where: { clinicId_userId: { clinicId: string; userId: string } };
+        update: { role: string; active: true };
+        create: {
+          clinicId: string;
+          userId: string;
+          role: string;
+          active: true;
+        };
+      }) => ({})
+    );
     const plan = resolveLocalLoginSeed(DEV_ENV, "development");
     expect(plan.status).toBe("seed");
     if (plan.status !== "seed") {
@@ -118,5 +131,20 @@ describe("local login accounts", () => {
     expect(userUpsert.mock.calls[0]?.[0].where).toEqual({
       id: "user_demo_admin",
     });
+    expect(membershipUpsert.mock.calls[0]?.[0].update).toEqual({
+      role: "ADMIN",
+      active: true,
+    });
+    expect(membershipUpsert.mock.calls[0]?.[0].create).toMatchObject({
+      role: "ADMIN",
+      active: true,
+    });
+  });
+
+  it("reactivates demo clinic memberships in prisma/seed.mjs", () => {
+    const seed = readFileSync("prisma/seed.mjs", "utf8");
+    expect(seed).toMatch(
+      /update:\s*\{[\s\S]*role: account\.role,\s*active: true/
+    );
   });
 });

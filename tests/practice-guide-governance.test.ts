@@ -549,7 +549,7 @@ describe("first-clinic clinical governance", () => {
     );
   });
 
-  it("blocks STAFF, operators without membership, and unknown actors from attesting", async (ctx) => {
+  it("blocks STAFF and unknown actors from attesting, and lets operators publish for support", async (ctx) => {
     if (!(await connectOrSkip(ctx))) {
       return;
     }
@@ -589,10 +589,7 @@ describe("first-clinic clinical governance", () => {
         guideId: created.id,
         reviewAttested: true,
       })
-    ).rejects.toSatisfy(
-      (error: unknown) =>
-        error instanceof ClinicPortalError && error.code === "forbidden"
-    );
+    ).resolves.toMatchObject({ version: 1 });
     await expect(
       publishPracticeGuide({
         clinicId: CLINIC_ID,
@@ -608,7 +605,7 @@ describe("first-clinic clinical governance", () => {
       await db().practiceGuideRevision.count({
         where: { practiceGuideId: created.id, version: { gt: 0 } },
       })
-    ).toBe(0);
+    ).toBe(1);
   });
 
   it("lets demodental publish without fabricating clinical attestation", async (ctx) => {

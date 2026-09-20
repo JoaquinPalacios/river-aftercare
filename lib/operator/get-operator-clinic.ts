@@ -46,6 +46,7 @@ export interface OperatorClinicDetail {
     role: string;
     name: string | null;
     email: string;
+    active: boolean;
   }>;
   updatedAt: Date;
 }
@@ -76,6 +77,7 @@ export async function getOperatorClinic(
         select: {
           id: true,
           role: true,
+          active: true,
           user: {
             select: {
               name: true,
@@ -142,6 +144,7 @@ export async function getOperatorClinic(
       role: membership.role,
       name: membership.user.name,
       email: membership.user.email,
+      active: membership.active,
     })),
     updatedAt: clinic.profile?.updatedAt ?? clinic.updatedAt,
   };

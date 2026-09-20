@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { PortalAppearanceControl } from "@/app/(staff)/components/portal-appearance-control";
 import { StaffAccountPanel } from "@/app/(staff)/components/staff-account-panel";
+import { stopOperatorClinicSupportAction } from "@/app/(staff)/(operator)/operator/support-actions";
 import { ProductMark } from "@/lib/branding/product-mark";
 import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -16,6 +17,7 @@ export function PortalChrome({
   roleLabel,
   patientSiteHref,
   canManagePractice,
+  assistingClinicName = null,
   children,
 }: {
   displayName: string;
@@ -23,6 +25,7 @@ export function PortalChrome({
   roleLabel: string;
   patientSiteHref: string | null;
   canManagePractice: boolean;
+  assistingClinicName?: string | null;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -62,7 +65,10 @@ export function PortalChrome({
   return (
     <div className="staffAppShell">
       <aside className="staffAppSidebar">
-        <PortalBrand displayName={displayName} />
+        <PortalBrand
+          displayName={displayName}
+          assisting={Boolean(assistingClinicName)}
+        />
         <div className="flex min-h-0 flex-1 flex-col p-3">
           <PortalNav
             pathname={pathname}
@@ -83,7 +89,11 @@ export function PortalChrome({
 
       <div className="staffAppMain">
         <header className="flex items-center justify-between gap-3 border-b border-staff-line bg-staff-panel px-4 py-3 md:hidden">
-          <PortalBrand displayName={displayName} compact />
+          <PortalBrand
+            displayName={displayName}
+            compact
+            assisting={Boolean(assistingClinicName)}
+          />
           <button
             ref={triggerRef}
             type="button"
@@ -123,7 +133,24 @@ export function PortalChrome({
           </div>
         </header>
         <main className="staffAppScroller">
-          <div className="staffAppContent">{children}</div>
+          <div className="staffAppContent">
+            {assistingClinicName ? (
+              <div className="staffOperatorAssistBanner" role="status">
+                <div>
+                  <p className="staffOperatorAssistLabel">Assisting</p>
+                  <p className="staffOperatorAssistClinic">
+                    {assistingClinicName}
+                  </p>
+                </div>
+                <form action={stopOperatorClinicSupportAction}>
+                  <button type="submit" className="staffBtn staffBtnQuiet">
+                    Exit support
+                  </button>
+                </form>
+              </div>
+            ) : null}
+            {children}
+          </div>
         </main>
       </div>
     </div>
@@ -133,9 +160,11 @@ export function PortalChrome({
 function PortalBrand({
   displayName,
   compact = false,
+  assisting = false,
 }: {
   displayName: string;
   compact?: boolean;
+  assisting?: boolean;
 }) {
   return (
     <div
@@ -145,7 +174,20 @@ function PortalBrand({
         <ProductMark className="h-5 w-5 text-staff-brand" />
         {PRODUCT_NAME}
       </p>
-      <p className="mt-1 truncate text-sm text-staff-muted">{displayName}</p>
+      {assisting ? (
+        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
+          Assisting
+        </p>
+      ) : null}
+      <p
+        className={
+          assisting
+            ? "mt-0.5 truncate text-sm font-medium text-staff-ink"
+            : "mt-1 truncate text-sm text-staff-muted"
+        }
+      >
+        {displayName}
+      </p>
     </div>
   );
 }

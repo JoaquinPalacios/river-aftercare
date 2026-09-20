@@ -82,7 +82,7 @@ export async function POST(request: Request) {
   }
 
   const memberships = await getPrisma().clinicMembership.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, active: true },
     select: {
       clinicId: true,
     },
