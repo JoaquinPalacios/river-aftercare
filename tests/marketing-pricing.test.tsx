@@ -283,6 +283,10 @@ describe("marketing pricing page", () => {
     expect(groupBlock).toContain("Custom pricing");
     expect(groupBlock).not.toContain("A$");
     expect(groupBlock).toContain("Talk to us");
+    expect(groupBlock).toContain(
+      "For organisations that need coordinated rollout and tailored support across their practices."
+    );
+    expect(groupBlock).not.toContain("central management");
     expect(groupBlock).toContain("Coordinated rollout across practices");
     expect(groupBlock).toContain("Custom onboarding");
     expect(groupBlock).toContain("Priority support");
@@ -392,6 +396,10 @@ describe("canonical plan prices", () => {
       "Priority support",
       "Tailored account setup",
     ]);
+    expect(LAUNCH_PLANS[2].position).toBe(
+      "For organisations that need coordinated rollout and tailored support across their practices."
+    );
+    expect(LAUNCH_PLANS[2].position).not.toContain("central management");
   });
 
   it("keeps comparison rows aligned with advertised plan limits", () => {

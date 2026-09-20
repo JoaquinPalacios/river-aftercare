@@ -126,7 +126,7 @@ export const LAUNCH_PLANS = [
     cadence: null,
     price: "Custom pricing",
     position:
-      "For organisations that need coordinated rollout, central management and tailored support across their practices.",
+      "For organisations that need coordinated rollout and tailored support across their practices.",
     recommended: false,
     ctaLabel: "Talk to us",
     ctaHref: "/contact",
