@@ -14,12 +14,14 @@ export const PLAN_PRICES = {
     annualAudInclGst: 790,
     includedLocations: 1,
     customGuides: 2,
+    clinicTeamMembers: 2,
   },
   practice: {
     monthlyAudInclGst: 149,
     annualAudInclGst: 1490,
     includedLocations: 1,
     customGuides: 30,
+    clinicTeamMembers: 5,
     /**
      * Internal commercial reference only. There is no Location model yet.
      * Do not format these amounts into public UI, metadata, or JSON-LD.
@@ -53,12 +55,36 @@ const practiceAnnual = formatAudInclGst(PLAN_PRICES.practice.annualAudInclGst);
 export const PRICING_CURRENCY_LABEL = "All prices are in Australian dollars.";
 
 export const PRICING_TYPOGRAPHY_FEATURE_LABEL =
-  "Logo, colours and curated typography";
+  "Clinic branding and curated typography";
+
+export const PRICING_SHARING_FEATURE_LABEL =
+  "QR sharing, PDF and durable patient guide URLs";
 
 export const PRICING_TYPOGRAPHY_FOOTNOTE_ID = "pricing-typography-note";
 
 export const PRICING_TYPOGRAPHY_NOTE =
   "* Choose from six curated professional typefaces. Need another? Ask us — additional options can be reviewed subject to availability.";
+
+export const PLAN_COMPARISON_CONTROL_LABEL = "Compare all plan features";
+
+export const PLAN_COMPARISON_PANEL_ID = "plan-comparison-panel";
+
+const ESSENTIAL_CARD_FEATURES = [
+  `${PLAN_PRICES.essential.includedLocations} practice / location`,
+  `${PRODUCT_NAME} guide templates`,
+  `Create and edit up to ${PLAN_PRICES.essential.customGuides} custom clinic guides`,
+  `Up to ${PLAN_PRICES.essential.clinicTeamMembers} clinic team members`,
+  PRICING_TYPOGRAPHY_FEATURE_LABEL,
+  PRICING_SHARING_FEATURE_LABEL,
+] as const;
+
+const PRACTICE_CARD_FEATURES = [
+  "Everything in Essential",
+  `Up to ${PLAN_PRICES.practice.customGuides} custom clinic guides`,
+  `Adapt ${PRODUCT_NAME} templates to suit your clinic`,
+  `Up to ${PLAN_PRICES.practice.clinicTeamMembers} clinic team members`,
+  "Assisted setup",
+] as const;
 
 export const LAUNCH_PLANS = [
   {
@@ -73,18 +99,7 @@ export const LAUNCH_PLANS = [
     recommended: false,
     ctaLabel: "Request a demo",
     ctaHref: "/contact",
-    features: [
-      "1 practice / location",
-      `${PRODUCT_NAME} guide templates`,
-      `Create and edit up to ${PLAN_PRICES.essential.customGuides} custom clinic guides`,
-      "Branded patient aftercare pages",
-      PRICING_TYPOGRAPHY_FEATURE_LABEL,
-      "Permanent guide URLs",
-      "QR-ready sharing",
-      "Print / Save PDF",
-      "Clinic contact and emergency information",
-      "Light, Dark and System patient presentation",
-    ],
+    features: ESSENTIAL_CARD_FEATURES,
     setupNotes: null,
   },
   {
@@ -99,12 +114,7 @@ export const LAUNCH_PLANS = [
     recommended: true,
     ctaLabel: "Request a demo",
     ctaHref: "/contact",
-    features: [
-      "Everything in Essential",
-      `Up to ${PLAN_PRICES.practice.customGuides} custom clinic guides`,
-      "Adapt River Aftercare templates to suit your clinic",
-      "Assisted setup",
-    ],
+    features: PRACTICE_CARD_FEATURES,
     setupNotes: ["Multi-location practice? Talk to us about your setup."],
   },
   {
@@ -116,7 +126,7 @@ export const LAUNCH_PLANS = [
     cadence: null,
     price: "Custom pricing",
     position:
-      "For organisations that need coordinated rollout, central management and tailored support across their practices.",
+      "For organisations that need coordinated rollout and tailored support across their practices.",
     recommended: false,
     ctaLabel: "Talk to us",
     ctaHref: "/contact",
@@ -161,3 +171,172 @@ export const ONBOARDING_STEPS = [
     body: "Publish a durable branded page patients can reopen after the appointment.",
   },
 ] as const;
+
+export type PlanComparisonValueKind =
+  "text" | "included" | "not-included" | "dash";
+
+export type PlanComparisonValue = {
+  kind: PlanComparisonValueKind;
+  label: string;
+};
+
+export type PlanComparisonPlanId = "essential" | "practice" | "group";
+
+export type PlanComparisonRow = {
+  id: string;
+  feature: string;
+  essential: PlanComparisonValue;
+  practice: PlanComparisonValue;
+  group: PlanComparisonValue;
+};
+
+const included: PlanComparisonValue = {
+  kind: "included",
+  label: "Included",
+};
+
+const notIncluded: PlanComparisonValue = {
+  kind: "not-included",
+  label: "Not included",
+};
+
+const dash: PlanComparisonValue = {
+  kind: "dash",
+  label: "—",
+};
+
+function textValue(label: string): PlanComparisonValue {
+  return { kind: "text", label };
+}
+
+function upTo(count: number): PlanComparisonValue {
+  return textValue(`Up to ${count}`);
+}
+
+export const PLAN_COMPARISON_COLUMNS = [
+  { id: "essential", name: "Essential", recommended: false },
+  { id: "practice", name: "Practice", recommended: true },
+  { id: "group", name: "Group", recommended: false },
+] as const;
+
+export const PLAN_COMPARISON_ROWS: readonly PlanComparisonRow[] = [
+  {
+    id: "locations",
+    feature: "Practice / location",
+    essential: textValue(String(PLAN_PRICES.essential.includedLocations)),
+    practice: textValue(String(PLAN_PRICES.practice.includedLocations)),
+    group: textValue("Tailored"),
+  },
+  {
+    id: "custom-guides",
+    feature: "Custom clinic guides",
+    essential: upTo(PLAN_PRICES.essential.customGuides),
+    practice: upTo(PLAN_PRICES.practice.customGuides),
+    group: textValue("Tailored"),
+  },
+  {
+    id: "clinic-team-members",
+    feature: "Clinic team members",
+    essential: upTo(PLAN_PRICES.essential.clinicTeamMembers),
+    practice: upTo(PLAN_PRICES.practice.clinicTeamMembers),
+    group: textValue("Tailored"),
+  },
+  {
+    id: "templates",
+    feature: `${PRODUCT_NAME} templates`,
+    essential: included,
+    practice: included,
+    group: included,
+  },
+  {
+    id: "create-edit-guides",
+    feature: "Create and edit clinic-owned guides",
+    essential: included,
+    practice: included,
+    group: included,
+  },
+  {
+    id: "adapt-templates",
+    feature: `Adapt ${PRODUCT_NAME} templates`,
+    essential: notIncluded,
+    practice: included,
+    group: textValue("Tailored"),
+  },
+  {
+    id: "branded-pages",
+    feature: "Branded patient aftercare pages",
+    essential: included,
+    practice: included,
+    group: included,
+  },
+  {
+    id: "clinic-branding",
+    feature: "Clinic branding",
+    essential: included,
+    practice: included,
+    group: included,
+  },
+  {
+    id: "curated-typography",
+    feature: "Curated typography",
+    essential: included,
+    practice: included,
+    group: included,
+  },
+  {
+    id: "durable-urls",
+    feature: "Durable patient guide URLs",
+    essential: included,
+    practice: included,
+    group: included,
+  },
+  {
+    id: "qr-sharing",
+    feature: "QR sharing",
+    essential: included,
+    practice: included,
+    group: included,
+  },
+  {
+    id: "print-pdf",
+    feature: "Print / Save PDF",
+    essential: included,
+    practice: included,
+    group: included,
+  },
+  {
+    id: "clinic-contact",
+    feature: "Clinic contact and emergency information",
+    essential: included,
+    practice: included,
+    group: included,
+  },
+  {
+    id: "patient-presentation",
+    feature: "Light / Dark / System patient presentation",
+    essential: included,
+    practice: included,
+    group: included,
+  },
+  {
+    id: "assisted-setup",
+    feature: "Assisted setup",
+    essential: included,
+    practice: included,
+    group: textValue("Custom onboarding"),
+  },
+  {
+    id: "multi-location",
+    feature: "Multi-location",
+    essential: dash,
+    practice: textValue("Talk to us"),
+    group: textValue("Coordinated rollout"),
+  },
+  {
+    id: "priority-support",
+    feature: "Priority support",
+    essential: dash,
+    practice: dash,
+    group: included,
+  },
+];

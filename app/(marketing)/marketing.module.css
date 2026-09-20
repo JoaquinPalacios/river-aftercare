@@ -3465,6 +3465,220 @@ html[data-theme-mode="dark"] .wordmarkName {
   line-height: 1.45;
 }
 
+.planCompare {
+  margin: 1.15rem 0 0;
+  border: 1px solid var(--mk-card-line);
+  border-radius: var(--mk-card-radius);
+  background: var(--mk-card);
+  color: var(--mk-ink);
+  box-shadow: var(--mk-card-shadow);
+}
+
+.planCompareTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0.85rem 1.15rem;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.planCompareTrigger:focus {
+  outline: none;
+}
+
+.planCompareTrigger:focus-visible {
+  outline: 2.5px solid var(--mk-focus);
+  outline-offset: -3px;
+  border-radius: inherit;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .planCompareTrigger:hover {
+    background: color-mix(in srgb, var(--mk-sky) 8%, transparent);
+  }
+}
+
+.planCompareTriggerLabel {
+  min-width: 0;
+}
+
+.planCompareChevron {
+  flex: 0 0 auto;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-0.12rem) rotate(45deg);
+  transition: transform var(--mk-interact-duration) var(--mk-interact-ease);
+}
+
+.planCompareTrigger[aria-expanded="true"] .planCompareChevron {
+  transform: translateY(0.1rem) rotate(225deg);
+}
+
+.planComparePanel {
+  padding: 0 1.05rem 1.05rem;
+  border-top: 1px solid var(--mk-card-line);
+}
+
+.planComparePanel[hidden] {
+  display: none;
+}
+
+.planCompareTable {
+  display: block;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.planCompareTable thead {
+  display: none;
+}
+
+.planCompareTable tbody,
+.planCompareTable tr,
+.planCompareTable th,
+.planCompareTable td {
+  display: block;
+}
+
+.planCompareTable tr {
+  padding: 0.9rem 0.1rem;
+  border-bottom: 1px solid var(--mk-card-line);
+}
+
+.planCompareTable tbody tr:last-child {
+  border-bottom: 0;
+  padding-bottom: 0.25rem;
+}
+
+.planCompareTable th[scope="row"] {
+  padding: 0 0 0.45rem;
+  color: var(--mk-ink);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.35;
+}
+
+.planCompareTable td {
+  display: grid;
+  grid-template-columns: minmax(6.75rem, 8rem) minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.75rem;
+  row-gap: 0.15rem;
+  padding: 0.18rem 0;
+  color: var(--mk-ink);
+  line-height: 1.4;
+}
+
+.planComparePlanLabel {
+  color: var(--mk-muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.planCompareValue,
+.planCompareValueMuted,
+.planCompareValueIncluded {
+  min-width: 0;
+}
+
+.planCompareValueIncluded {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.planCompareValueMuted {
+  color: var(--mk-muted);
+}
+
+.planCompareCheck {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+  color: var(--mk-brand);
+}
+
+@media (min-width: 64rem) {
+  .planCompareTable {
+    display: table;
+    table-layout: fixed;
+  }
+
+  .planCompareTable thead {
+    display: table-header-group;
+  }
+
+  .planCompareTable tbody {
+    display: table-row-group;
+  }
+
+  .planCompareTable tr {
+    display: table-row;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .planCompareTable th,
+  .planCompareTable td {
+    display: table-cell;
+    padding: 0.7rem 0.75rem;
+    border-bottom: 1px solid var(--mk-card-line);
+    vertical-align: middle;
+    text-align: left;
+  }
+
+  .planCompareTable thead th {
+    color: var(--mk-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .planCompareTable tbody th[scope="row"] {
+    width: 32%;
+    padding: 0.7rem 0.85rem 0.7rem 0.1rem;
+    font-size: 0.98rem;
+  }
+
+  .planCompareTable td {
+    width: 22.66%;
+    font-size: 0.95rem;
+  }
+
+  .planCompareTable tbody tr:last-child th,
+  .planCompareTable tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .planComparePlanLabel {
+    display: none;
+  }
+
+  .planComparePractice {
+    background: color-mix(in srgb, var(--mk-brand) 6%, transparent);
+  }
+
+  .planCompareTable thead .planComparePractice {
+    color: var(--mk-brand);
+  }
+}
+
 .contactPoint {
   margin: 0;
 }
@@ -5678,7 +5892,8 @@ html[data-theme-mode="dark"] .wordmarkName {
   .verticalFaqIcon::after,
   .verticalFaqItem::before,
   .verticalFaqQuestionInner,
-  .verticalCtaSecondary {
+  .verticalCtaSecondary,
+  .planCompareChevron {
     transition: none;
     animation: none;
   }
