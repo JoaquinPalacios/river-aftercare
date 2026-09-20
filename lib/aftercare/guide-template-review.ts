@@ -12,6 +12,16 @@ export interface GuideRevisionReviewFields {
   reviewedBy: string | null;
 }
 
+export interface CanonicalRevisionCandidate extends GuideRevisionReviewFields {
+  id: string;
+  version: number;
+}
+
+export interface CanonicalTemplateClassification {
+  availability: CanonicalTemplateAvailability | null;
+  eligibleRevisionId: string | null;
+}
+
 function namedClinicalReviewer(reviewedBy: string | null): string | null {
   const reviewer = reviewedBy?.trim() ?? "";
   if (!reviewer || NON_CLINICAL_REVIEWER_LABELS.has(reviewer)) {
@@ -46,21 +56,55 @@ export function isSamplePublishedRevision(
 
 export type CanonicalTemplateAvailability = "reviewed" | "sample";
 
-export function classifyCanonicalTemplateAvailability(
-  revisions: GuideRevisionReviewFields[]
-): CanonicalTemplateAvailability | null {
-  const publishedRevisions = revisions.filter(
-    (revision) => revision.status === GuideRevisionStatus.PUBLISHED
-  );
-  if (publishedRevisions.length === 0) {
-    return null;
+export function latestPublishedRevision<
+  T extends { status: GuideRevisionStatus | string; version: number },
+>(revisions: T[]): T | null {
+  let latest: T | null = null;
+  for (const revision of revisions) {
+    if (revision.status !== GuideRevisionStatus.PUBLISHED) {
+      continue;
+    }
+    if (!latest || revision.version > latest.version) {
+      latest = revision;
+    }
+  }
+  return latest;
+}
+
+/**
+ * Classify a canonical template from its explicit sample designation plus the
+ * exact latest published revision. Do not infer sample status from missing
+ * review metadata, and do not classify on one revision while pinning another.
+ *
+ * - isSample=true → sample/demo only, even if review fields are populated.
+ * - isSample=false → the latest published revision must itself be reviewed
+ *   before a normal clinic may enable it. An older reviewed revision cannot
+ *   make a newer unreviewed published revision eligible.
+ */
+export function classifyCanonicalTemplate(input: {
+  isSample: boolean;
+  revisions: CanonicalRevisionCandidate[];
+}): CanonicalTemplateClassification {
+  const latest = latestPublishedRevision(input.revisions);
+  if (!latest) {
+    return { availability: null, eligibleRevisionId: null };
   }
 
-  if (publishedRevisions.some(isClinicallyReviewedRevision)) {
-    return "reviewed";
+  if (input.isSample) {
+    return {
+      availability: "sample",
+      eligibleRevisionId: latest.id,
+    };
   }
 
-  return "sample";
+  if (isClinicallyReviewedRevision(latest)) {
+    return {
+      availability: "reviewed",
+      eligibleRevisionId: latest.id,
+    };
+  }
+
+  return { availability: null, eligibleRevisionId: null };
 }
 
 export function clinicCanUseCanonicalTemplate(input: {

@@ -481,6 +481,7 @@ async function upsertAftercareDemo(clinicId) {
       slug: DEMO_EXTRACTION_GUIDE.slug,
       title: DEMO_EXTRACTION_GUIDE.title,
       isActive: true,
+      isSample: true,
     },
     create: {
       id: DEMO_EXTRACTION_GUIDE.templateId,
@@ -488,6 +489,7 @@ async function upsertAftercareDemo(clinicId) {
       slug: DEMO_EXTRACTION_GUIDE.slug,
       title: DEMO_EXTRACTION_GUIDE.title,
       isActive: true,
+      isSample: true,
     },
   });
 
@@ -647,6 +649,8 @@ function demoComposedSections() {
 }
 
 async function snapshotDemoPracticeRevisions(practiceGuideId) {
+  // Historical demo publications are not clinic attestations. Leave
+  // reviewAttestedAt / reviewAttestedByUserId null.
   await prisma.practiceGuideRevision.deleteMany({
     where: { practiceGuideId },
   });
@@ -785,7 +789,7 @@ async function main() {
     `- Clinic profile: ${DEMO_CLINIC_PROFILE.displayName} (patient-facing)`
   );
   console.info(
-    `- Aftercare template: ${aftercareDemo.template.title} (${aftercareDemo.template.slug}) revision v${aftercareDemo.revision.version} SAMPLE/NON-CLINICAL demo-only (reviewedAt/reviewedBy null)`
+    `- Aftercare template: ${aftercareDemo.template.title} (${aftercareDemo.template.slug}) revision v${aftercareDemo.revision.version} SAMPLE/NON-CLINICAL demo-only (isSample=true, reviewedAt/reviewedBy null)`
   );
   console.info(
     `- Practice guide: ${aftercareDemo.practiceGuide.publicSlug} pinned=${aftercareDemo.revision.id} published/enabled`

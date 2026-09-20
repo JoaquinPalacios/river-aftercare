@@ -34,6 +34,7 @@ export interface DemoExtractionTemplateSnapshot {
   title: string;
   specialty: string;
   isActive: boolean;
+  isSample: boolean;
   revisions: DemoExtractionRevisionSnapshot[];
 }
 
@@ -47,6 +48,7 @@ export type DemoExtractionBootstrapPlan =
         title: string;
         specialty: string;
         isActive: true;
+        isSample: true;
       };
       revision: {
         version: number;

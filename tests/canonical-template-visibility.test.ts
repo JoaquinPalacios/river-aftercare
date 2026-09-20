@@ -135,6 +135,7 @@ describe("canonical template visibility and enablement", () => {
         title: "Sample crown",
         specialty: "DENTAL",
         isActive: true,
+        isSample: true,
         revisions: {
           create: {
             version: 1,
@@ -278,7 +279,7 @@ describe("canonical template visibility and enablement", () => {
 
     expect(demoIds.has(SAMPLE_TEMPLATE_ID)).toBe(true);
     expect(demoIds.has(REVIEWED_TEMPLATE_ID)).toBe(true);
-    expect(demoIds.has(UNREVIEWED_GENERIC_ID)).toBe(true);
+    expect(demoIds.has(UNREVIEWED_GENERIC_ID)).toBe(false);
     expect(demoIds.has(INACTIVE_TEMPLATE_ID)).toBe(false);
     expect(demoIds.has(DRAFT_TEMPLATE_ID)).toBe(false);
 
@@ -317,6 +318,7 @@ describe("canonical template visibility and enablement", () => {
         title: "Tooth Extraction sample",
         specialty: "DENTAL",
         isActive: true,
+        isSample: true,
         revisions: {
           create: {
             version: 1,

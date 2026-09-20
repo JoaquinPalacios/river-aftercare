@@ -16,6 +16,12 @@ describe("guide editor UX", () => {
     expect(editor).toContain("Keep editing");
     expect(editor).toContain("Discard changes");
     expect(editor).toContain("Publish this guide?");
+    expect(editor).toContain("PRACTICE_REVIEW_ATTESTATION_LABEL");
+    expect(editor).toContain("requiresReviewAttestation");
+    expect(editor).toContain("reviewAttested");
+    expect(editor).toContain("Clinical review confirmed by");
+    expect(editor).not.toContain("clinically approved");
+    expect(editor).not.toContain("I am a clinician");
     expect(editor).toContain("staffEditorToolbar");
     expect(editor).toContain("staffEditorRail");
     expect(editor).toContain("staffGuideEditor");

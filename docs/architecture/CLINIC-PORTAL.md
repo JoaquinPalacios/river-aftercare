@@ -73,7 +73,7 @@ Authenticated draft preview uses a staff toolbar outside `PatientPage`, includin
 
 The patient renderer is wrapped in `PatientThemeBoundary` so clinic tokens and `color-scheme` can live on a scoped surface. Authenticated preview chrome uses the same resolved appearance; it does not stay on the portal theme while the document follows the selector. Portal appearance has no influence on a real public tenant page.
 
-Cancel returns to `/guides`. Unsaved edits open a discard confirmation (Keep editing / Discard changes). Save draft does not change the public pinned revision. Publish asks for confirmation, then pins an immutable snapshot.
+Cancel returns to `/guides`. Unsaved edits open a discard confirmation (Keep editing / Discard changes). Save draft does not change the public pinned revision. Publish asks for confirmation. Real clinics must also confirm a practice attestation checkbox. The server action is the security boundary; the checkbox is not. `demodental` keeps a confirmation dialog without fabricating attestation records.
 
 Lifecycle destructive actions reuse the Guides-list domain actions from a compact **More actions** (`⋯`) control in the editor toolbar:
 
@@ -110,11 +110,21 @@ Mutations authorize on the server: authenticated user → clinic membership → 
 
 Canonical template or custom guide → working draft (`PracticeGuideRevision` version 0) → authenticated preview at `/guides/[id]/preview` → explicit Publish copies an immutable snapshot → tenant URL serves that pin.
 
-Normal clinics only see **reviewed** templates: active + published revision with `reviewedAt` and a named `reviewedBy` (not a demo/seed label). Active + `PUBLISHED` alone is not reviewed.
+**First-client model (ADR 0026): clinic-supplied / clinic-approved.** River Aftercare is the publishing platform. The clinic supplies content and attests that the practice has reviewed it before patients see it. A River Aftercare reviewed canonical library is deferred. Attestation is practice confirmation of its review process. It is **not** River Aftercare clinical approval, and the attesting Clinic ADMIN is not recorded as the clinician.
 
-The Tooth Extraction library row shipped for Riverside Dental Demo is **sample / non-clinical**. Guides → Create shows it only to `demodental`, labelled “Sample template”. Server-side enablement rejects every other clinic. Production inserts that row with `pnpm bootstrap:demo-template` (library rows only). Do not run `pnpm db:seed` in production.
+- Explicit `GuideTemplate.isSample`. Sample templates are never enableable for ordinary real clinics, even if `reviewedAt` / `reviewedBy` are later populated. Demo tenant `demodental` may still use them.
+- Normal clinics only see **reviewed non-sample** templates: `isSample = false` and the **latest** published revision itself has `reviewedAt` plus a named `reviewedBy` (not a demo/seed label). Availability and enablement pin that exact revision. Reviewed v1 + unreviewed v2 is not eligible.
+- Custom guides (`guideTemplateId` and `pinnedRevisionId` both null) remain supported and are the first-clinic path.
+- Every new published clinic revision for a real clinic stores `reviewAttestedAt` and `reviewAttestedByUserId`. Republish requires a fresh attestation. Prior published rows are not mutated. Demo publication does not write those fields.
+- Clinic admin UI may show “Clinical review confirmed by {name} · {date/time}” after publication. Patient pages must not.
 
-See [ADR 0017](../adr/0017-clinic-owned-practice-revisions-pin-public-documents.md).
+The Tooth Extraction library row (`slug = extraction`) is **sample / non-clinical**. Guides → Create shows it only to `demodental`, labelled “Sample template”. Server-side enablement rejects every other clinic. Production inserts that row with `pnpm bootstrap:demo-template` (library rows only). Do not run `pnpm db:seed` in production.
+
+`demodental` is reserved from ordinary operator clinic creation so a normal clinic cannot claim the demo tenant identity. It remains a real tenant hostname (not an infrastructure reserved slug).
+
+Final patient disclaimer copy is still pending separately supplied approved wording. The smallest future slot is `PatientPage`, after the guide body and before `PracticeContact`, rendered only when non-empty approved copy exists. Do not ship placeholder clinical text.
+
+See [ADR 0017](../adr/0017-clinic-owned-practice-revisions-pin-public-documents.md) and [ADR 0026](../adr/0026-first-client-clinic-supplied-governance.md).
 
 ### Draft delete and discard (Phase 2A.2)
 

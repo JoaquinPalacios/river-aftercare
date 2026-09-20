@@ -168,6 +168,7 @@ export async function publishGuideAction(
       clinicId: clinicMembership.clinic.id,
       actorUserId: user.id,
       guideId,
+      reviewAttested: formData.get("reviewAttested"),
     });
     return { ok: true };
   } catch (error) {

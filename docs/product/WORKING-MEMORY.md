@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-20 (Stripe billing architecture investigation; not implemented)
+Last updated: 2026-09-20 (first-client Model B: clinic-supplied/clinic-attested governance, explicit `isSample`, demodental creation guard)
 
 ## Durable production release rule
 
@@ -34,6 +34,12 @@ Canonical detail: [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READI
 Production Node.js exceptions are sent to Better Stack Error Tracking through a Sentry-compatible SDK. Telemetry is on only when `VERCEL_ENV === "production"` and server-only `BETTER_STACK_ERROR_DSN` is valid. Preview, development, test, and local stay off. There is no browser Sentry init, no Better Stack JavaScript tag, no replay/RUM, and no tracing/profiling. `/api/health` failures are not reported as error events. Events are processed in Better Stack’s configured **US** region on the current Free plan. Do not connect the GitHub repository to Better Stack unless a later, explicit decision grants that extra access.
 
 Canonical detail: [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READINESS.md), [../architecture/APPLICATION.md](../architecture/APPLICATION.md).
+
+## Durable first-client clinical governance rule
+
+First paying clinic uses **Model B**: clinic-supplied / clinic-approved content. River Aftercare is the publishing platform. Canonical sample templates are explicit (`GuideTemplate.isSample`); review metadata cannot make them generally available. Real-clinic publish stores a fresh practice attestation on each immutable `PracticeGuideRevision`. That is not River Aftercare clinical approval. Demo publication must not fabricate attestation. Patient pages must not show attestation identity or `MedicalWebPage` / `reviewedBy`. Final disclaimer copy is supplied separately.
+
+Canonical detail: [ADR 0026](../adr/0026-first-client-clinic-supplied-governance.md), [../architecture/CLINIC-PORTAL.md](../architecture/CLINIC-PORTAL.md).
 
 ## Durable billing architecture rule (proposed — not implemented)
 
@@ -715,15 +721,15 @@ Marketing motion/navigation polish, calmer patient interactions, and the first A
 
 Staff `/dashboard` is the River Aftercare clinic portal, not the parked chairside dashboard.
 
-| Area      | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth      | Unchanged `requireStaffSession()`. Unauthenticated `/dashboard` and `/guides` redirect to `/login`. Anonymous `app.` `/` redirects server-side to `/login`. Authenticated `app.` `/` reuses `signedInHomePath()` (`/dashboard` or operator `/operator/clinics`). One shared login; no operator-specific credentials path.                                                                                                                       |
-| Shell     | Platform periwinkle/cobalt. Primary: Overview / Guides / Practice. Utility: View patient site. Preferences: Appearance (System/Light/Dark). Account and Sign out.                                                                                                                                                                                                                                                                               |
-| Overview  | Real published/draft guide counts. Setup checks: identity, branding, contact, emergency, published guide. Statuses are Configured / Needs attention. Patient-site link uses the real tenant renderer.                                                                                                                                                                                                                                           |
-| Guides    | `/guides` lists the authenticated clinic's actual `PracticeGuide` rows. ADMIN can create from a **reviewed** canonical template, or from a **sample** template if the clinic is `demodental`, or as a custom guide. Edit draft, preview, publish, **unpublish**, **delete never-published drafts**, and **discard unpublished draft changes**. STAFF can view and preview. No fake template library. Published-guide deletion remains deferred. |
-| Practice  | `/practice` (ADMIN). Identity, controlled branding colours/radius/terminology/theme, contact, emergency. Tenant slug is not editable here. Logo path remains; upload is blocked.                                                                                                                                                                                                                                                                |
-| Isolation | Loaders and mutations query by membership `clinicId` only. No client-provided clinic IDs.                                                                                                                                                                                                                                                                                                                                                       |
-| Chairside | `/dashboard/procedures`, `/sessions/new`, `/session/[id]/control`, `/display/[token]` remain. Not linked from portal nav. Not shown on Overview.                                                                                                                                                                                                                                                                                                |
+| Area      | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth      | Unchanged `requireStaffSession()`. Unauthenticated `/dashboard` and `/guides` redirect to `/login`. Anonymous `app.` `/` redirects server-side to `/login`. Authenticated `app.` `/` reuses `signedInHomePath()` (`/dashboard` or operator `/operator/clinics`). One shared login; no operator-specific credentials path.                                                                                                               |
+| Shell     | Platform periwinkle/cobalt. Primary: Overview / Guides / Practice. Utility: View patient site. Preferences: Appearance (System/Light/Dark). Account and Sign out.                                                                                                                                                                                                                                                                       |
+| Overview  | Real published/draft guide counts. Setup checks: identity, branding, contact, emergency, published guide. Statuses are Configured / Needs attention. Patient-site link uses the real tenant renderer.                                                                                                                                                                                                                                   |
+| Guides    | `/guides` lists the authenticated clinic's actual `PracticeGuide` rows. ADMIN can create from a **reviewed non-sample** canonical template, or from an explicit **sample** template (`isSample`) if the clinic is `demodental`, or as a custom guide. Real-clinic publish requires practice attestation on the new immutable revision. STAFF can view and preview. No fake template library. Published-guide deletion remains deferred. |
+| Practice  | `/practice` (ADMIN). Identity, controlled branding colours/radius/terminology/theme, contact, emergency. Tenant slug is not editable here. Logo path remains; upload is blocked.                                                                                                                                                                                                                                                        |
+| Isolation | Loaders and mutations query by membership `clinicId` only. No client-provided clinic IDs.                                                                                                                                                                                                                                                                                                                                               |
+| Chairside | `/dashboard/procedures`, `/sessions/new`, `/session/[id]/control`, `/display/[token]` remain. Not linked from portal nav. Not shown on Overview.                                                                                                                                                                                                                                                                                        |
 
 ### Next clinic-portal work (not built)
 
@@ -791,14 +797,15 @@ Seeded fictional clinic: **Rivers Care Demo Clinic** (`clinic_demo_rivers`).
 
 Aftercare seed (Phase 1A, logo path updated in 1C). Tooth Extraction library copy is **sample / non-clinical**, not clinically approved:
 
-- Canonical template **Tooth Extraction** (`extraction`, specialty `DENTAL`)
+- Canonical template **Tooth Extraction** (`extraction`, specialty `DENTAL`, explicit `isSample = true`)
 - Published revision v1 with ordered demo sections, `reviewedAt` / `reviewedBy` left **null**
-- Visible and enableable **only** for the interactive demo tenant (`demodental`)
+- Visible and enableable **only** for the interactive demo tenant (`demodental`); operator clinic creation cannot claim that slug
 - Published/enabled PracticeGuide pinned to that revision (local seed only — production bootstrap does not create clinic guides)
 - One practice override (`first-24-hours`) and one addition (`weekend-contact` after `contact-practice`) — local seed only
+- Demo published clinic revisions do **not** fabricate practice attestation
 - Page-level demo banner for `demodental` only: “Interactive demo — Sample content only · Not clinical advice · Changes aren't saved.”
 
-Production must **not** run `pnpm db:seed`. To insert **only** the sample Tooth Extraction library rows, use `pnpm bootstrap:demo-template` (dry-run by default; `--apply` to write). Real customer templates require named clinical review (`reviewedAt` + `reviewedBy`) before they appear for normal clinics.
+Production must **not** run `pnpm db:seed`. To insert **only** the sample Tooth Extraction library rows, use `pnpm bootstrap:demo-template` (dry-run by default; `--apply` to write). Real customer templates require `isSample = false` and named clinical review of the **latest** published revision (`reviewedAt` + `reviewedBy`) before they appear for normal clinics. First-client publication is clinic-owned custom guides with per-revision practice attestation ([ADR 0026](../adr/0026-first-client-clinic-supplied-governance.md)). Final patient disclaimer copy is still pending separately supplied wording.
 
 Pacific Dental appears in the PRD only as a **conceptual** hostname example (`pacificdental.<platform-domain>`).
 
@@ -1036,7 +1043,7 @@ Local phase on `feature/phase-2b-seo-discovery-launch`. Starts from current main
 | Discovery        | `/llms.txt` generated from identity + public routes, including `/clinics` and clinic vertical pages. `llms-full.txt` skipped until a governed corpus exists. Sitemap includes `/about`, `/clinics`, and `/dental`, `/physiotherapy`, `/chiropractic`, `/cosmetic-clinics`. Tenant guides remain noindex and off the sitemap.                                                                                                                                                               |
 | OG image         | Operator upload/replace/remove for a dedicated 1200×630 PNG/JPEG/WebP. Stored in `PlatformSeoSettings.defaultOgImagePath` as `/platform/seo/<uuid>.<ext>`. Logo is not used as a social card.                                                                                                                                                                                                                                                                                              |
 | Docs             | [../architecture/SEO.md](../architecture/SEO.md), [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READINESS.md), [../launch/AGENTIC-READINESS.md](../launch/AGENTIC-READINESS.md), [ADR 0020](../adr/0020-platform-seo-is-structured-database-configuration.md), [ADR 0021](../adr/0021-clinic-patient-guides-stay-noindex-by-default.md), [ADR 0023](../adr/0023-platform-seo-assets-use-a-distinct-private-r2-namespace.md). Visuals: [artifacts/phase-2b](artifacts/phase-2b). |
-| Templates        | Sample **Tooth Extraction** library row is demo-tenant-only. It is not clinical approval.                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Templates        | Sample **Tooth Extraction** library row is explicit `isSample` and demo-tenant-only. It is not clinical approval. First-client Model B: clinic-supplied content with per-published-revision practice attestation ([ADR 0026](../adr/0026-first-client-clinic-supplied-governance.md)).                                                                                                                                                                                                     |
 | QR               | Clinic staff Share for published/enabled guides (durable public URL, SVG/PNG). Patient pages do not show a QR. See public UI + share polish.                                                                                                                                                                                                                                                                                                                                               |
 | Auth             | `next-auth` v5 beta unchanged; documented as an acceptable first-launch exception pending a separate decision.                                                                                                                                                                                                                                                                                                                                                                             |
 
@@ -1873,13 +1880,11 @@ Documentation only on a review branch. No Stripe package, no Prisma migration, n
 
 Canonical report: [../architecture/BILLING.md](../architecture/BILLING.md).
 
-| Recommendation | Detail |
-| -------------- | ------ |
-| Sales motion | Assisted Checkout after operator provisioning. `/pricing` stays Request a demo / Talk to us. |
-| Domain | `ClinicBillingProfile` + `ClinicEntitlement` projection. Stripe owns money; River owns plan policy and patient-URL retention. |
-| Catalogue | Essential + Practice Products; monthly/yearly inclusive AUD Prices matching `PLAN_PRICES`. No Group product. No location Prices. |
-| GST | Manual 10% inclusive GST for AU-only launch. Stripe Tax later if international. Accountant must confirm GST registration. |
-| Activation | `invoice.paid` projector. Not `checkout.session.completed` (BECS is delayed). |
-| Patient URLs | Do not unpublish on first payment failure. Proposed: grace while Stripe retries, then restrict authoring, then 30-day public retention. Joaquín must approve. |
-
-
+| Recommendation | Detail                                                                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales motion   | Assisted Checkout after operator provisioning. `/pricing` stays Request a demo / Talk to us.                                                                  |
+| Domain         | `ClinicBillingProfile` + `ClinicEntitlement` projection. Stripe owns money; River owns plan policy and patient-URL retention.                                 |
+| Catalogue      | Essential + Practice Products; monthly/yearly inclusive AUD Prices matching `PLAN_PRICES`. No Group product. No location Prices.                              |
+| GST            | Manual 10% inclusive GST for AU-only launch. Stripe Tax later if international. Accountant must confirm GST registration.                                     |
+| Activation     | `invoice.paid` projector. Not `checkout.session.completed` (BECS is delayed).                                                                                 |
+| Patient URLs   | Do not unpublish on first payment failure. Proposed: grace while Stripe retries, then restrict authoring, then 30-day public retention. Joaquín must approve. |
