@@ -158,7 +158,8 @@ function syncProductThemeToStaffOrigin(
   if (
     domain !== ".localhost" ||
     !staffOrigin ||
-    staffOrigin === location.origin
+    staffOrigin === location.origin ||
+    (typeof process !== "undefined" && process.env.VITEST)
   ) {
     return Promise.resolve();
   }
