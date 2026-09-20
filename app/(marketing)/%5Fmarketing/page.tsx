@@ -321,11 +321,14 @@ export default async function MarketingHomePage() {
                   </MarketingReveal.Card>
                 ))}
               </div>
-              <p className={styles.clinicTypeMore}>
+              <MarketingReveal.Card
+                index={CLINIC_VERTICAL_NAV.length}
+                className={styles.clinicTypeMore}
+              >
                 <Link className={styles.textLink} href="/clinics">
                   Explore all clinic types →
                 </Link>
-              </p>
+              </MarketingReveal.Card>
             </div>
           </section>
         </div>

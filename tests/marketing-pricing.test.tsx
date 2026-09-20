@@ -216,6 +216,18 @@ describe("marketing pricing page", () => {
     expect(groupBlock).not.toContain("A$");
     expect(groupBlock).toContain("Talk to us");
   });
+
+  it("includes the onboarding product-truth note as the final reveal item", async () => {
+    const html = renderToStaticMarkup(await MarketingPricingPage());
+    const marker =
+      "Where an appropriate River Aftercare template exists, the clinic can use it as a starting point.";
+    const at = html.indexOf(marker);
+    expect(at).toBeGreaterThan(-1);
+    const around = html.slice(Math.max(0, at - 280), at);
+    expect(around).toContain("mkReveal");
+    expect(html).toContain("data-mk-numbered-steps");
+    expect(html.indexOf("data-mk-numbered-steps")).toBeLessThan(at);
+  });
 });
 
 describe("canonical plan prices", () => {

@@ -124,50 +124,70 @@ export function MarketingVerticalLanding({
           aria-labelledby={`${id}-guidance`}
         >
           <div className={styles.inner}>
-            <div
-              className={`${styles.verticalGuidanceLayout} ${styles.sectionStack}`}
-            >
-              <MarketingRevealGroup>
-                <MarketingRevealItem delay={0}>
-                  <p className={styles.eyebrow}>{content.guidance.eyebrow}</p>
-                </MarketingRevealItem>
-                <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                  <h2 id={`${id}-guidance`} className={styles.sectionTitle}>
-                    {content.guidance.h2}
-                  </h2>
-                </MarketingRevealItem>
-                <MarketingRevealItem delay={editorialRevealDelay(2)}>
-                  <p className={styles.copy}>{content.guidance.body}</p>
-                  {content.guidance.items ? (
-                    <ul className={styles.verticalExampleList}>
-                      {content.guidance.items.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
+            <MarketingRevealGroup>
+              <div
+                className={`${styles.verticalGuidanceLayout} ${styles.sectionStack}`}
+              >
+                <div>
+                  <MarketingRevealItem delay={0}>
+                    <p className={styles.eyebrow}>{content.guidance.eyebrow}</p>
+                  </MarketingRevealItem>
+                  <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                    <h2 id={`${id}-guidance`} className={styles.sectionTitle}>
+                      {content.guidance.h2}
+                    </h2>
+                  </MarketingRevealItem>
+                  <MarketingRevealItem delay={editorialRevealDelay(2)}>
+                    <p className={styles.copy}>{content.guidance.body}</p>
+                    {content.guidance.items ? (
+                      <ul className={styles.verticalExampleList}>
+                        {content.guidance.items.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </MarketingRevealItem>
+                </div>
+                <aside className={styles.verticalGuidanceAside}>
+                  {content.guidance.status ? (
+                    <MarketingRevealItem delay={editorialRevealDelay(3)}>
+                      <p className={styles.verticalStatus}>
+                        <span className={styles.verticalStatusLabel}>
+                          {content.guidance.status.label}
+                        </span>
+                        <span className={styles.verticalStatusValue}>
+                          {content.guidance.status.value}
+                        </span>
+                      </p>
+                    </MarketingRevealItem>
                   ) : null}
-                </MarketingRevealItem>
-              </MarketingRevealGroup>
-              <aside className={styles.verticalGuidanceAside}>
-                {content.guidance.status ? (
-                  <p className={styles.verticalStatus}>
-                    <span className={styles.verticalStatusLabel}>
-                      {content.guidance.status.label}
-                    </span>
-                    <span className={styles.verticalStatusValue}>
-                      {content.guidance.status.value}
-                    </span>
-                  </p>
-                ) : null}
-                {content.guidance.boundary ? (
-                  <p className={styles.verticalBoundary}>
-                    {content.guidance.boundary}
-                  </p>
-                ) : null}
-                {content.guidance.note ? (
-                  <p className={styles.verticalNote}>{content.guidance.note}</p>
-                ) : null}
-              </aside>
-            </div>
+                  {content.guidance.boundary ? (
+                    <MarketingRevealItem
+                      delay={editorialRevealDelay(
+                        content.guidance.status ? 4 : 3
+                      )}
+                    >
+                      <p className={styles.verticalBoundary}>
+                        {content.guidance.boundary}
+                      </p>
+                    </MarketingRevealItem>
+                  ) : null}
+                  {content.guidance.note ? (
+                    <MarketingRevealItem
+                      delay={editorialRevealDelay(
+                        3 +
+                          Number(Boolean(content.guidance.status)) +
+                          Number(Boolean(content.guidance.boundary))
+                      )}
+                    >
+                      <p className={styles.verticalNote}>
+                        {content.guidance.note}
+                      </p>
+                    </MarketingRevealItem>
+                  ) : null}
+                </aside>
+              </div>
+            </MarketingRevealGroup>
           </div>
         </section>
 

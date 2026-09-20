@@ -1473,6 +1473,13 @@ test.describe("Phase 1F.11 story clarity", () => {
     await expect(
       workflows.getByRole("link", { name: "Explore all clinic types →" })
     ).toHaveAttribute("href", "/clinics");
+    await expect
+      .poll(async () =>
+        workflows
+          .getByRole("link", { name: "Explore all clinic types →" })
+          .evaluate((element) => Boolean(element.closest(".mkReveal")))
+      )
+      .toBe(true);
 
     const chapter = await page.evaluate(() => {
       const showcase = document.querySelector("[data-mk-workflow-showcase]");
