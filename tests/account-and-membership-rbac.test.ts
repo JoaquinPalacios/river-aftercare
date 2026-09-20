@@ -58,8 +58,8 @@ async function cleanup() {
 async function seed() {
   await prisma.clinic.createMany({
     data: [
-      { id: CLINIC_A, name: "Clinic A", slug: `${PREFIX}a` },
-      { id: CLINIC_B, name: "Clinic B", slug: `${PREFIX}b` },
+      { id: CLINIC_A, name: "Clinic A", slug: "testrbac-a" },
+      { id: CLINIC_B, name: "Clinic B", slug: "testrbac-b" },
     ],
   });
   await prisma.user.createMany({
@@ -391,7 +391,9 @@ describe("account and clinic membership RBAC", () => {
     });
     expect(operatorPassword.ok).toBe(false);
     expect(CANNOT_CHANGE_OPERATOR_MEMBERSHIP_MESSAGE).toContain(
-      "platform operator"
+      "Platform operator"
     );
+    const staff = await prisma.user.findUnique({ where: { id: STAFF_A } });
+    expect(verifyPassword("staff-a-password", staff?.passwordHash)).toBe(true);
   });
 });

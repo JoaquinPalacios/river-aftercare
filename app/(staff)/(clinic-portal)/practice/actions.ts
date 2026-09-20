@@ -1,7 +1,8 @@
 "use server";
 
+import { PlatformRole } from "@prisma/client";
+
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
-import { isPlatformOperator } from "@/lib/auth/session";
 import { logInvitationLifecycle } from "@/lib/auth/invitation-lifecycle-log";
 import { isClinicPortalError } from "@/lib/clinic-portal/errors";
 import { practiceSettingsSchema } from "@/lib/clinic-portal/practice-settings-schema";
@@ -68,7 +69,7 @@ export async function savePracticeSettingsAction(
       clinicId: clinicMembership.clinic.id,
       values: parsed.data,
     });
-    if (isPlatformOperator(user)) {
+    if (user.platformRole === PlatformRole.OPERATOR) {
       logInvitationLifecycle({
         event: "operator_clinic_settings_updated",
         userId: user.id,

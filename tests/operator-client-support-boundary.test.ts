@@ -23,8 +23,8 @@ describe("operator client-support security boundaries", () => {
     expect(membership).not.toContain("hashPassword");
     expect(teamActions).not.toContain("passwordHash");
     expect(practiceMembers).not.toContain("passwordHash");
-    expect(profile).toContain("userId: input.userId");
-    expect(password).toContain("userId: input.userId");
+    expect(profile).toContain("id: input.userId");
+    expect(password).toContain("id: input.userId");
     expect(password).toContain("verifyPassword");
   });
 

@@ -22,6 +22,7 @@ vi.mock(
     changeClinicMembershipRoleAction: changeRoleMock,
     resendClinicInvitationAction: resendMock,
     cancelClinicInvitationAction: cancelMock,
+    updateClinicStaffMembershipStatusAction: vi.fn(),
   })
 );
 
