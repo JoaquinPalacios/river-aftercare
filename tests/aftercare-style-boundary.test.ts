@@ -385,6 +385,7 @@ describe("aftercare style boundary", () => {
       "app/(marketing)/components/contact-form.tsx",
       "app/(marketing)/components/contact-turnstile.tsx",
       "app/(marketing)/components/marketing-error-retry.tsx",
+      "app/(marketing)/components/marketing-plan-comparison.tsx",
       "app/(marketing)/error.tsx",
       "app/(marketing)/global-error.tsx",
     ]);
