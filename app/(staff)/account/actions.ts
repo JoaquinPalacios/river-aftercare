@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { updateOwnProfileSchema } from "@/lib/auth/account-profile-schema";
 import { requireAuthenticatedUser } from "@/lib/auth/require-authenticated-user";
+import { revokeOutstandingEmailChanges } from "@/lib/auth/account-token-service";
 import { updateOwnProfile } from "@/lib/auth/update-own-profile";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 
@@ -17,6 +18,8 @@ export interface UpdateProfileActionState {
   };
   saved?: boolean;
   emailChanged?: boolean;
+  pendingEmail?: string | null;
+  cancelled?: boolean;
 }
 
 const GENERIC_ERROR = "Unable to update your profile right now. Try again.";
@@ -85,6 +88,7 @@ export async function updateProfileAction(
     return {
       saved: true,
       emailChanged: result.emailChanged,
+      pendingEmail: result.pendingEmail,
     };
   } catch (error) {
     if (isNextControlFlow(error)) {
@@ -92,4 +96,18 @@ export async function updateProfileAction(
     }
     return { error: GENERIC_ERROR };
   }
+}
+
+export async function cancelPendingEmailChangeAction(
+  _previous: UpdateProfileActionState,
+  _formData: FormData
+): Promise<UpdateProfileActionState> {
+  const host = (await headers()).get("host");
+  if (!isStaffAppHost(host)) {
+    notFound();
+  }
+
+  const user = await requireAuthenticatedUser();
+  await revokeOutstandingEmailChanges({ userId: user.id });
+  return { cancelled: true };
 }

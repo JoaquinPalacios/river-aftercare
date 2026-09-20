@@ -65,7 +65,10 @@ export function PortalChrome({
   return (
     <div className="staffAppShell">
       <aside className="staffAppSidebar">
-        <PortalBrand displayName={displayName} />
+        <PortalBrand
+          displayName={displayName}
+          assisting={Boolean(assistingClinicName)}
+        />
         <div className="flex min-h-0 flex-1 flex-col p-3">
           <PortalNav
             pathname={pathname}
@@ -86,7 +89,11 @@ export function PortalChrome({
 
       <div className="staffAppMain">
         <header className="flex items-center justify-between gap-3 border-b border-staff-line bg-staff-panel px-4 py-3 md:hidden">
-          <PortalBrand displayName={displayName} compact />
+          <PortalBrand
+            displayName={displayName}
+            compact
+            assisting={Boolean(assistingClinicName)}
+          />
           <button
             ref={triggerRef}
             type="button"
@@ -129,13 +136,15 @@ export function PortalChrome({
           <div className="staffAppContent">
             {assistingClinicName ? (
               <div className="staffOperatorAssistBanner" role="status">
-                <p>
-                  Assisting {assistingClinicName} as a platform operator. Clinic
-                  data changes apply to this client only.
-                </p>
+                <div>
+                  <p className="staffOperatorAssistLabel">Assisting</p>
+                  <p className="staffOperatorAssistClinic">
+                    {assistingClinicName}
+                  </p>
+                </div>
                 <form action={stopOperatorClinicSupportAction}>
                   <button type="submit" className="staffBtn staffBtnQuiet">
-                    Back to All Clinics
+                    Exit support
                   </button>
                 </form>
               </div>
@@ -151,9 +160,11 @@ export function PortalChrome({
 function PortalBrand({
   displayName,
   compact = false,
+  assisting = false,
 }: {
   displayName: string;
   compact?: boolean;
+  assisting?: boolean;
 }) {
   return (
     <div
@@ -163,7 +174,20 @@ function PortalBrand({
         <ProductMark className="h-5 w-5 text-staff-brand" />
         {PRODUCT_NAME}
       </p>
-      <p className="mt-1 truncate text-sm text-staff-muted">{displayName}</p>
+      {assisting ? (
+        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
+          Assisting
+        </p>
+      ) : null}
+      <p
+        className={
+          assisting
+            ? "mt-0.5 truncate text-sm font-medium text-staff-ink"
+            : "mt-1 truncate text-sm text-staff-muted"
+        }
+      >
+        {displayName}
+      </p>
     </div>
   );
 }

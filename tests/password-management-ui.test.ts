@@ -42,6 +42,9 @@ describe("password management UI contracts", () => {
     expect(panel).toContain('href="/account"');
     expect(panel).toContain("Account");
     expect(chrome).toContain("StaffAccountPanel");
+    expect(chrome).toContain("Exit support");
+    expect(chrome).toContain("Assisting");
+    expect(chrome).not.toContain("Back to All Clinics");
     expect(operator).toContain("StaffAccountPanel");
     expect(chrome).not.toContain("Invite user");
     expect(operator).not.toContain("Invite user");
@@ -68,8 +71,10 @@ describe("password management UI contracts", () => {
     const login = readFileSync("app/(staff)/login/page.tsx", "utf8");
     expect(login).toContain('resetParam === "success"');
     expect(login).toContain('inviteParam === "success"');
+    expect(login).toContain('emailParam === "updated"');
     expect(login).toContain("PASSWORD_RESET_SUCCESS_MESSAGE");
     expect(login).toContain("INVITATION_READY_MESSAGE");
+    expect(login).toContain("EMAIL_CHANGE_CONFIRMED_MESSAGE");
     expect(login).not.toContain("params.message");
     expect(login).not.toContain("searchParams.message");
   });

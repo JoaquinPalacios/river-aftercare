@@ -101,6 +101,7 @@ enum PlatformRole {
 enum AccountTokenType {
   INVITATION
   PASSWORD_RESET
+  EMAIL_CHANGE
 }
 
 enum PracticeSectionProvenance {
@@ -204,8 +205,8 @@ model VerificationToken {
   @@map("auth_verification_tokens")
 }
 
-/// Account lifecycle tokens (invitations, password reset). Auth.js
-/// `VerificationToken` is unused and is not suitable for these flows.
+/// Account lifecycle tokens (invitations, password reset, email change).
+/// Auth.js `VerificationToken` is unused and is not suitable for these flows.
 /// Raw tokens are never persisted; only SHA-256(`tokenHash`) is stored.
 /// Outstanding uniqueness is a service transaction plus SQL partial unique
 /// indexes in the additive migration (Prisma cannot express those predicates).

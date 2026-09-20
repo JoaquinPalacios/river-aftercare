@@ -4,6 +4,7 @@ import { getRootDomain } from "@/lib/tenancy/root-domain";
 
 export const PASSWORD_RESET_PAGE_PATH = "/reset-password";
 export const ACCEPT_INVITATION_PAGE_PATH = "/accept-invitation";
+export const CONFIRM_EMAIL_CHANGE_PAGE_PATH = "/confirm-email-change";
 
 export function staffAppOrigin(env: NodeJS.ProcessEnv = process.env): string {
   const root = getRootDomain(env);
@@ -74,4 +75,15 @@ export function buildInvitationUrl(
   env: NodeJS.ProcessEnv = process.env
 ): string {
   return buildStaffFragmentTokenUrl(ACCEPT_INVITATION_PAGE_PATH, rawToken, env);
+}
+
+export function buildEmailChangeUrl(
+  rawToken: string,
+  env: NodeJS.ProcessEnv = process.env
+): string {
+  return buildStaffFragmentTokenUrl(
+    CONFIRM_EMAIL_CHANGE_PAGE_PATH,
+    rawToken,
+    env
+  );
 }

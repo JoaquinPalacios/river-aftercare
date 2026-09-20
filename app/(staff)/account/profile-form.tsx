@@ -4,12 +4,13 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
+  cancelPendingEmailChangeAction,
   updateProfileAction,
   type UpdateProfileActionState,
 } from "@/app/(staff)/account/actions";
 import { PasswordVisibilityField } from "@/app/(staff)/components/password-visibility-field";
 import {
-  EMAIL_UPDATED_MESSAGE,
+  EMAIL_VERIFICATION_SENT_MESSAGE,
   PROFILE_CURRENT_PASSWORD_HINT,
   PROFILE_UPDATED_MESSAGE,
 } from "@/lib/auth/account-profile-schema";
@@ -20,12 +21,18 @@ const PENDING_STATUS = "Saving profile. Please wait.";
 export function UpdateProfileForm({
   name,
   email,
+  pendingEmail = null,
 }: {
   name: string;
   email: string;
+  pendingEmail?: string | null;
 }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(updateProfileAction, initial);
+  const [cancelState, cancelAction, cancelPending] = useActionState(
+    cancelPendingEmailChangeAction,
+    initial
+  );
   const submittingRef = useRef(false);
   const [nameValue, setNameValue] = useState(name);
   const [emailValue, setEmailValue] = useState(email);
@@ -39,20 +46,21 @@ export function UpdateProfileForm({
   }, [pending]);
 
   useEffect(() => {
-    if (state.saved) {
+    if (state.saved || cancelState.cancelled) {
       setCurrentPassword("");
       setLocalErrors({});
       router.refresh();
     }
-  }, [router, state.saved]);
+  }, [router, state.saved, cancelState.cancelled]);
 
   const fieldErrors = {
     ...state.fieldErrors,
     ...localErrors,
   };
 
+  const shownPendingEmail = state.pendingEmail ?? pendingEmail;
   const successMessage = state.emailChanged
-    ? EMAIL_UPDATED_MESSAGE
+    ? EMAIL_VERIFICATION_SENT_MESSAGE
     : PROFILE_UPDATED_MESSAGE;
 
   return (
@@ -128,8 +136,8 @@ export function UpdateProfileForm({
           }}
         />
         <p id="profile-email-hint" className="text-sm text-staff-muted">
-          Changing email requires your current password. Sign in afterwards uses
-          the new address.
+          Changing email sends a confirmation to the new address. Sign-in keeps
+          using this address until you confirm.
         </p>
         {fieldErrors?.email ? (
           <p id="profile-email-error" className="text-sm text-red-600">
@@ -137,6 +145,27 @@ export function UpdateProfileForm({
           </p>
         ) : null}
       </div>
+
+      {shownPendingEmail && !cancelState.cancelled ? (
+        <div
+          className="rounded-md border border-staff-line bg-staff-canvas px-3 py-2 text-sm text-staff-ink"
+          role="status"
+          data-testid="pending-email-verification"
+        >
+          <p>
+            Confirmation sent to <strong>{shownPendingEmail}</strong>. Your
+            current email stays active until you confirm.
+          </p>
+          <button
+            type="submit"
+            formAction={cancelAction}
+            disabled={cancelPending || pending}
+            className="staffBtn staffBtnQuiet mt-3 h-11 w-fit"
+          >
+            {cancelPending ? "Cancelling…" : "Cancel pending change"}
+          </button>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2">
         <label

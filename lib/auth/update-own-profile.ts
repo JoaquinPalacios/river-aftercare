@@ -1,11 +1,9 @@
 import "server-only";
 
-import { AccountTokenType, Prisma } from "@prisma/client";
-
+import { requestEmailChange } from "@/lib/auth/request-email-change";
 import { logAccountSecurity } from "@/lib/auth/account-security-log";
 import {
   PROFILE_EMAIL_INVALID_MESSAGE,
-  PROFILE_EMAIL_TAKEN_MESSAGE,
   PROFILE_NAME_REQUIRED_MESSAGE,
   normalizeProfileName,
   profileEmailError,
@@ -31,11 +29,16 @@ export type UpdateOwnProfileResult =
       email: string;
       nameChanged: boolean;
       emailChanged: boolean;
+      pendingEmail: string | null;
     }
   | {
       ok: false;
       code:
-        "validation" | "current_incorrect" | "email_taken" | "unauthenticated";
+        | "validation"
+        | "current_incorrect"
+        | "email_taken"
+        | "delivery_failed"
+        | "unauthenticated";
       error: string;
       fieldErrors?: {
         name?: string;
@@ -43,15 +46,6 @@ export type UpdateOwnProfileResult =
         currentPassword?: string;
       };
     };
-
-function isUniqueEmailConflict(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === "P2002" &&
-    Array.isArray(error.meta?.target) &&
-    error.meta.target.includes("email")
-  );
-}
 
 export async function updateOwnProfile(input: {
   userId: string;
@@ -129,9 +123,10 @@ export async function updateOwnProfile(input: {
     return {
       ok: true,
       name,
-      email,
+      email: user.email,
       nameChanged: false,
       emailChanged: false,
+      pendingEmail: null,
     };
   }
 
@@ -162,71 +157,42 @@ export async function updateOwnProfile(input: {
     }
   }
 
-  try {
-    await getPrisma().$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`user-email:${email}`}))`;
-
-      if (emailChanged) {
-        const taken = await tx.user.findFirst({
-          where: { email, NOT: { id: user.id } },
-          select: { id: true },
-        });
-        if (taken) {
-          throw new EmailTakenError();
-        }
-      }
-
-      await tx.user.update({
-        where: { id: user.id },
-        data: {
-          name,
-          ...(emailChanged ? { email, emailVerified: null } : {}),
-        },
-      });
-
-      if (emailChanged) {
-        await tx.accountToken.updateMany({
-          where: {
-            userId: user.id,
-            type: AccountTokenType.PASSWORD_RESET,
-            consumedAt: null,
-            revokedAt: null,
-          },
-          data: { revokedAt: new Date() },
-        });
-      }
-    });
-  } catch (error) {
-    if (error instanceof EmailTakenError || isUniqueEmailConflict(error)) {
-      return {
-        ok: false,
-        code: "email_taken",
-        error: PROFILE_EMAIL_TAKEN_MESSAGE,
-        fieldErrors: { email: PROFILE_EMAIL_TAKEN_MESSAGE },
-      };
-    }
-    throw error;
-  }
-
   if (nameChanged) {
+    await getPrisma().user.update({
+      where: { id: user.id },
+      data: { name },
+    });
     logAccountSecurity({ event: "profile_name_changed", userId: user.id });
   }
+
+  let pendingEmail: string | null = null;
   if (emailChanged) {
-    logAccountSecurity({ event: "email_changed", userId: user.id });
+    const requested = await requestEmailChange({
+      userId: user.id,
+      email,
+    });
+    if (!requested.ok) {
+      return {
+        ok: false,
+        code: requested.code,
+        error: requested.error,
+        fieldErrors:
+          requested.code === "email_taken"
+            ? { email: requested.error }
+            : requested.code === "validation"
+              ? { email: requested.error }
+              : undefined,
+      };
+    }
+    pendingEmail = requested.pendingEmail;
   }
 
   return {
     ok: true,
     name,
-    email,
+    email: user.email,
     nameChanged,
     emailChanged,
+    pendingEmail,
   };
-}
-
-class EmailTakenError extends Error {
-  constructor() {
-    super(PROFILE_EMAIL_TAKEN_MESSAGE);
-    this.name = "EmailTakenError";
-  }
 }

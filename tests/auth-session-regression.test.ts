@@ -16,6 +16,7 @@ describe("auth session regressions", () => {
     const source = readFileSync("app/api/auth/logout/route.ts", "utf8");
     expect(source).toContain("deleteDatabaseSession");
     expect(source).toContain("AUTH_SESSION_COOKIE_NAME");
+    expect(source).toContain("OPERATOR_SUPPORT_CLINIC_COOKIE");
   });
 
   it("Auth.js still reads database sessions with no extra login provider", () => {

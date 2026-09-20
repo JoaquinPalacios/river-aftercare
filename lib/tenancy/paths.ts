@@ -3,6 +3,7 @@ export const STAFF_PATH_PREFIXES = [
   "/forgot-password",
   "/reset-password",
   "/accept-invitation",
+  "/confirm-email-change",
   "/account",
   "/dashboard",
   "/guides",

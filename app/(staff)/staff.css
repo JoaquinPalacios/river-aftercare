@@ -1126,6 +1126,21 @@ tr[data-active="false"] td:nth-child(2) {
   line-height: 1.5;
 }
 
+.staffOperatorAssistLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--staff-muted);
+}
+
+.staffOperatorAssistClinic {
+  margin-top: 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--staff-ink);
+}
+
 .staffStatusPill[data-tone="changes"],
 .staffStatusPill[data-tone="draft"],
 .staffStatusPill[data-tone="unpublished"],

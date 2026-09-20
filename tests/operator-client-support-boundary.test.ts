@@ -46,4 +46,33 @@ describe("operator client-support security boundaries", () => {
     expect(practiceActions).not.toContain('formData.get("clinicId")');
     expect(guideActions).not.toContain('formData.get("clinicId")');
   });
+
+  it("treats the support cookie as context only and verifies operator role server-side", () => {
+    const cookie = readFileSync("lib/auth/operator-support-clinic.ts", "utf8");
+    const session = readFileSync("lib/auth/session.ts", "utf8");
+    const requireAdmin = readFileSync(
+      "lib/auth/require-clinic-admin.ts",
+      "utf8"
+    );
+    const supportActions = readFileSync(
+      "app/(staff)/(operator)/operator/support-actions.ts",
+      "utf8"
+    );
+    const logout = readFileSync("app/api/auth/logout/route.ts", "utf8");
+    const chrome = readFileSync(
+      "app/(staff)/components/portal-chrome.tsx",
+      "utf8"
+    );
+
+    expect(cookie).toContain("authSessionCookieOptions");
+    expect(session).toContain("isPlatformOperator(user)");
+    expect(session).toContain("readOperatorSupportClinic");
+    expect(requireAdmin).toContain("PlatformRole.OPERATOR");
+    expect(supportActions).toContain("requirePlatformOperator");
+    expect(supportActions).toContain("clearOperatorSupportClinicCookie");
+    expect(supportActions).toContain('redirect("/operator/clinics")');
+    expect(logout).toContain("OPERATOR_SUPPORT_CLINIC_COOKIE");
+    expect(chrome).toContain("Exit support");
+    expect(chrome).toContain("Assisting");
+  });
 });

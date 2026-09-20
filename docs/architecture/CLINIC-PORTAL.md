@@ -110,6 +110,8 @@ Patient tenant layouts emit `theme-color` from `generateViewport` using the clin
 | Clinic `STAFF`      | Overview + Guides when membership `active`                                        | View + draft/public preview                            | Not found                                            | Not found     |
 | Platform `OPERATOR` | All Clinics; **Manage clinic workspace** enters the clinic portal for that client | Same clinic-admin guide mutations while assisting      | Same clinic-admin Practice mutations while assisting | `/operator/*` |
 
+The portal shell shows **Assisting** plus the clinic name and **Exit support** while an operator is in a client workspace. That indicator stays visible on Overview, Guides, Practice, and Account when the support context is active.
+
 Inactive `ClinicMembership.active = false` does not grant portal access for that clinic, including direct URLs. Authorization helpers live in `lib/auth/clinic-authorization.ts`. Portal mutations still take `clinicId` from the authorized session context, never from the form. Operators are platform-global; they are not fabricated as clinic members.
 
 ## Guide lifecycle

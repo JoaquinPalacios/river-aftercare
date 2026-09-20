@@ -155,6 +155,7 @@ test.describe("staff isolation", () => {
       "/reset-password",
       "/account/security",
       "/accept-invitation",
+      "/confirm-email-change",
       "/operator/clinics",
     ] as const) {
       const response = await page.goto(tenantUrl(DEMO_TENANT_SLUG, pathname), {
@@ -219,6 +220,14 @@ test.describe("staff isolation", () => {
     expect(accept?.status()).toBe(200);
     await expect(
       page.getByRole("heading", { name: "Set up your River Aftercare account" })
+    ).toBeVisible();
+
+    const confirmEmail = await page.goto(staffUrl("/confirm-email-change"), {
+      waitUntil: "load",
+    });
+    expect(confirmEmail?.status()).toBe(200);
+    await expect(
+      page.getByRole("heading", { name: "Confirm your email" })
     ).toBeVisible();
 
     const account = await page.goto(staffUrl("/account/security"), {
@@ -299,6 +308,7 @@ test.describe("public marketing host", () => {
       "/reset-password",
       "/account/security",
       "/accept-invitation",
+      "/confirm-email-change",
     ] as const) {
       const response = await page.goto(marketingUrl(pathname), {
         waitUntil: "domcontentloaded",

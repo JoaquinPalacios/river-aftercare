@@ -593,6 +593,8 @@ describe("account token service", () => {
     expect(existsSync("app/api/auth/forgot-password")).toBe(true);
     expect(existsSync("app/api/auth/reset-password")).toBe(true);
     expect(existsSync("app/api/auth/invitation-status")).toBe(true);
+    expect(existsSync("app/(staff)/confirm-email-change")).toBe(true);
+    expect(existsSync("app/api/auth/confirm-email-change")).toBe(true);
     expect(
       readFileSync("lib/auth/account-token-service.ts", "utf8")
     ).not.toMatch(/sendAuthTransactionalEmail|AUTH_EMAIL_FROM/);

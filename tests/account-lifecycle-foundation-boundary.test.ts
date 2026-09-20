@@ -15,6 +15,8 @@ const SERVER_ONLY_FILES = [
   "lib/clinic-portal/list-practice-members.ts",
   "lib/auth/request-password-reset.ts",
   "lib/auth/reset-password.ts",
+  "lib/auth/request-email-change.ts",
+  "lib/auth/complete-email-change.ts",
   "lib/auth/accept-invitation.ts",
   "lib/auth/password-lifecycle-log.ts",
   "lib/auth/invitation-lifecycle-log.ts",
@@ -22,6 +24,7 @@ const SERVER_ONLY_FILES = [
   "lib/email/transactional-mailer.ts",
   "lib/email/auth-email.ts",
   "lib/email/password-reset-mail.ts",
+  "lib/email/email-change-mail.ts",
   "lib/email/invitation-mail.ts",
   "lib/operator/invite-clinic-user.ts",
   "lib/operator/resend-clinic-invitation.ts",
@@ -52,6 +55,7 @@ const CLIENT_FILES = [
   "app/(staff)/forgot-password/forgot-password-form.tsx",
   "app/(staff)/reset-password/reset-password-form.tsx",
   "app/(staff)/accept-invitation/accept-invitation-form.tsx",
+  "app/(staff)/confirm-email-change/confirm-email-change-form.tsx",
   "app/(staff)/account/security/change-password-form.tsx",
   "app/(staff)/account/profile-form.tsx",
   "app/(staff)/(clinic-portal)/practice/practice-members-section.tsx",
@@ -73,6 +77,9 @@ describe("account lifecycle invitation boundary", () => {
   it("adds operator invitation UI without clinic-admin Team permissions", () => {
     expect(existsSync("app/(staff)/accept-invitation")).toBe(true);
     expect(existsSync("app/api/auth/accept-invitation")).toBe(true);
+    expect(existsSync("app/(staff)/confirm-email-change")).toBe(true);
+    expect(existsSync("app/api/auth/confirm-email-change")).toBe(true);
+    expect(existsSync("app/api/auth/email-change-status")).toBe(true);
     expect(existsSync("app/api/auth/invitation-status")).toBe(true);
     expect(
       existsSync("app/(staff)/(operator)/operator/clinics/[clinicId]/team")

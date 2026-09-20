@@ -186,10 +186,15 @@ describe("account and clinic membership RBAC", () => {
       currentPassword: "staff-a-password",
     });
     expect(emailResult.ok).toBe(true);
+    if (emailResult.ok) {
+      expect(emailResult.pendingEmail).toBe(
+        `${PREFIX}staff-a-next@example.test`
+      );
+    }
 
     const user = await prisma.user.findUnique({ where: { id: STAFF_A } });
     expect(user?.name).toBe("Staff A Updated");
-    expect(user?.email).toBe(`${PREFIX}staff-a-next@example.test`);
+    expect(user?.email).toBe(`${PREFIX}staff-a@example.test`);
     expect(user?.emailVerified).toBeNull();
   });
 
@@ -212,6 +217,13 @@ describe("account and clinic membership RBAC", () => {
   it("lets clinic ADMIN deactivate and reactivate STAFF in the same clinic only", async () => {
     await cleanup();
     await seed();
+    await prisma.session.create({
+      data: {
+        sessionToken: `${PREFIX}staff_a_session`,
+        userId: STAFF_A,
+        expires: new Date("2026-12-01T00:00:00.000Z"),
+      },
+    });
     const membershipId = `${PREFIX}m_staff_a`;
     const deactivated = await updateClinicMembershipStatus({
       actor: { id: ADMIN_A, platformRole: PlatformRole.NONE },
@@ -225,6 +237,11 @@ describe("account and clinic membership RBAC", () => {
       where: { id: membershipId },
     });
     expect(row?.active).toBe(false);
+    expect(
+      await prisma.session.findUnique({
+        where: { sessionToken: `${PREFIX}staff_a_session` },
+      })
+    ).toBeTruthy();
     expect(
       await actorCanAccessClinic({
         actorUserId: STAFF_A,

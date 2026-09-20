@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { UpdateProfileForm } from "@/app/(staff)/account/profile-form";
 import { ChangePasswordForm } from "@/app/(staff)/account/security/change-password-form";
 import { requireAuthenticatedUser } from "@/lib/auth/require-authenticated-user";
+import { findOutstandingEmailChange } from "@/lib/auth/account-token-service";
+import { EMAIL_CHANGE_CONFIRMED_MESSAGE } from "@/lib/auth/account-profile-schema";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { PRIVATE_ROBOTS } from "@/lib/seo/robots-policy";
 
@@ -12,8 +14,18 @@ export const metadata: Metadata = {
   robots: PRIVATE_ROBOTS,
 };
 
-export default async function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ email?: string | string[] }>;
+}) {
   const user = await requireAuthenticatedUser();
+  const pending = await findOutstandingEmailChange({ userId: user.id });
+  const params = searchParams ? await searchParams : {};
+  const emailParam = Array.isArray(params.email)
+    ? params.email[0]
+    : params.email;
+  const emailConfirmed = emailParam === "updated";
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-8">
@@ -42,8 +54,20 @@ export default async function AccountPage() {
         <p className="mt-2 text-sm leading-6 text-staff-muted">
           Update the name and email used to sign in.
         </p>
+        {emailConfirmed ? (
+          <div
+            className="mt-5 rounded-md border border-staff-line bg-staff-canvas px-3 py-2 text-sm text-staff-ink"
+            role="status"
+          >
+            {EMAIL_CHANGE_CONFIRMED_MESSAGE}
+          </div>
+        ) : null}
         <div className="mt-5">
-          <UpdateProfileForm name={user.name ?? ""} email={user.email} />
+          <UpdateProfileForm
+            name={user.name ?? ""}
+            email={user.email}
+            pendingEmail={pending?.email ?? null}
+          />
         </div>
       </section>
 
