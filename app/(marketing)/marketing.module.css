@@ -5684,3 +5684,51 @@ html[data-theme-mode="dark"] .wordmarkName {
     transform: none;
   }
 }
+
+.statusPage {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 2rem 1.25rem 3rem;
+  background: var(--mk-hero);
+  color: var(--mk-ink);
+}
+
+.statusBrand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  color: var(--mk-brand);
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.statusMark {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.statusTitle {
+  margin: 0 0 0.55rem;
+  max-width: 18ch;
+  font-size: clamp(1.7rem, 4vw, 2.35rem);
+  line-height: 1.15;
+  font-weight: 680;
+  letter-spacing: -0.04em;
+}
+
+.statusCopy {
+  margin: 0 0 1.4rem;
+  max-width: 36rem;
+  color: var(--mk-muted);
+  font-size: 1.05rem;
+}
+
+.statusActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}

@@ -2,7 +2,9 @@ import { expect, type Page } from "@playwright/test";
 
 export async function expectGenericNotFound(page: Page): Promise<void> {
   expect(page.url()).not.toContain("/_sites");
-  await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Page not found" })
+  ).toBeVisible();
   await expect(
     page.getByText("This aftercare page is not available.")
   ).toBeVisible();

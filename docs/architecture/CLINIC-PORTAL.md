@@ -162,3 +162,7 @@ Current roles remain Clinic ADMIN and Clinic STAFF only. **Operator-managed** in
 ## Application architecture
 
 Launch backend remains Next.js App Router + Server Actions + Prisma. See [APPLICATION.md](APPLICATION.md). NestJS is not part of MVP.
+
+## Patient error and 404 fallbacks
+
+If a published tenant page fails, patients see generic River Aftercare copy: the aftercare guide cannot load right now, please try again shortly. The error boundary does **not** query `ClinicProfile` or Neon to recover branding. When the tenant layout already rendered, clinic chrome from that layout may remain around the fallback. Unknown-tenant 404s stay practice-neutral. Nested unknown tenant paths (`/[guide]/…`) call `notFound()` so the same patient 404 renders. Staff/operator links are never included. Do not invent clinical or emergency instructions in these fallbacks.

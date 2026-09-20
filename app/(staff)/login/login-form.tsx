@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 
@@ -201,9 +202,9 @@ export function LoginForm() {
         {pending ? "Signing in…" : "Sign in"}
       </button>
       <p className="text-sm text-staff-muted">
-        <a href="/forgot-password" className="font-medium text-staff-brand">
+        <Link href="/forgot-password" className="font-medium text-staff-brand">
           Forgot password?
-        </a>
+        </Link>
       </p>
     </form>
   );

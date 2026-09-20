@@ -202,6 +202,89 @@ html.aftercareDocument body {
   max-width: 42rem;
 }
 
+.notFoundBrand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.85rem;
+  color: light-dark(var(--cg-brand, #1e293b), var(--cg-text-muted, #9aa3ad));
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.notFoundMark {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.notFoundTitle {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.45rem, 4vw, 1.9rem);
+  line-height: 1.2;
+  font-weight: 680;
+  letter-spacing: -0.03em;
+}
+
+.notFoundCopy {
+  margin: 0;
+  max-width: 40ch;
+  color: var(--cg-text-muted, #4b5563);
+}
+
+.notFoundActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1.25rem;
+}
+
+.notFoundRetry,
+.notFoundHome {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.6rem;
+  padding: 0.45rem 1rem;
+  border-radius: 0.75rem;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.notFoundRetry {
+  border: 0;
+  background: var(--cg-brand, #1e293b);
+  color: var(--cg-on-brand, #ffffff);
+}
+
+.notFoundHome {
+  border: 1px solid var(--cg-border, #ecece8);
+  background: var(--cg-surface, #ffffff);
+  color: var(--cg-text, #111318);
+}
+
+.notFoundRetry:focus-visible,
+.notFoundHome:focus-visible {
+  outline: var(--interaction-focus-width) solid var(--cg-focus, #1e293b);
+  outline-offset: 3px;
+}
+
+.notFoundRetry:disabled,
+.notFoundRetry[aria-busy="true"] {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notFoundRetry,
+  .notFoundHome {
+    transition: none;
+  }
+}
+
 .aftercareTheme :focus-visible {
   outline: var(--interaction-focus-width) solid var(--cg-focus);
   outline-offset: 3px;

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
@@ -136,12 +137,12 @@ export function ResetPasswordForm() {
         <div className="staffFormAlert" role="alert">
           {PASSWORD_RESET_INVALID_LINK_MESSAGE}
         </div>
-        <a
+        <Link
           href="/forgot-password"
           className="text-sm font-medium text-staff-brand"
         >
           Request a new reset link
-        </a>
+        </Link>
       </div>
     );
   }
