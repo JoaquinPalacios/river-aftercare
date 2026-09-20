@@ -409,6 +409,12 @@ test.describe("clinic portal", () => {
       page.getByRole("link", { name: "Back to Tooth Extraction" })
     ).toBeVisible();
     await expect(page.getByRole("link", { name: "Edit guide" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "About this guide", exact: true })
+    ).toHaveCount(0);
+    await expect(
+      page.getByText("This aftercare information is provided by")
+    ).toHaveCount(0);
     await page.screenshot({
       path: "test-results/artifacts/staff-guide-preview-toolbar-1440.png",
     });

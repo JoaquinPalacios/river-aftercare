@@ -25,7 +25,7 @@ River Aftercare is the publishing and workflow platform. The clinic supplies aft
 - Custom guides (`guideTemplateId` and `pinnedRevisionId` null) remain the first-client path.
 - `demodental` remains a real tenant hostname. Operator clinic creation cannot claim that slug. It is not an infrastructure reserved label in `RESERVED_TENANT_SLUGS`, because those labels must not resolve as tenants.
 - Demo publication must not fabricate clinical attestation. Historical demo published rows stay unaugmented.
-- Patient pages continue to show only the clinic’s published snapshot. Do not emit `reviewedBy`, attestation identity, `MedicalWebPage`, or clinical-review JSON-LD. Final patient disclaimer copy is supplied separately and is not invented here.
+- Patient pages continue to show only the clinic’s published snapshot. Do not emit `reviewedBy`, attestation identity, `MedicalWebPage`, or clinical-review JSON-LD. The platform patient disclaimer is separate approved product copy, not clinical review metadata.
 
 ## Consequences
 
@@ -36,6 +36,6 @@ River Aftercare is the publishing and workflow platform. The clinic supplies aft
 
 ## Notes for later implementation
 
-- Approved patient disclaimer copy should render in `PatientPage` after the guide body and before `PracticeContact`, only when non-empty approved copy exists. Do not ship an empty placeholder.
+- Patient disclaimer copy is implemented as `PatientAftercareDisclaimer` on real-clinic published-guide pages, print, and authenticated preview that reuses `PatientPage`. It sits after the guide body and before `PracticeContact`. Demo tenant `demodental` keeps separate sample messaging and does not receive this disclaimer. Do not add `reviewedBy`, attestation identity, or `MedicalWebPage`.
 - A later hybrid Model C (clinic attestation plus a reviewed non-sample canonical library) can reuse exact-revision pinning and per-revision clinic attestation without changing this boundary.
 - Do not add operator-attestation-for-a-clinic, AHPRA credentials, or MedicalWebPage claims in this phase.

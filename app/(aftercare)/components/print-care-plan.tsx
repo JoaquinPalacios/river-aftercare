@@ -1,7 +1,9 @@
 import { GuideDocument } from "@/app/(aftercare)/components/guide-document";
+import { PatientAftercareDisclaimer } from "@/app/(aftercare)/components/patient-aftercare-disclaimer";
 import { PoweredByAftercareGuide } from "@/app/(aftercare)/components/powered-by-aftercare-guide";
 import { PrintTrigger } from "@/app/(aftercare)/components/print-trigger";
 import { DEMO_PRINT_SAMPLE_NOTICE } from "@/lib/aftercare/demo-tenant";
+import { canRenderPatientAftercareDisclaimer } from "@/lib/aftercare/patient-aftercare-disclaimer";
 import {
   hasPracticeContact,
   type PracticeChrome,
@@ -64,6 +66,15 @@ export function PrintableGuide({
         </div>
       </header>
       <GuideDocument sections={sections} />
+      {canRenderPatientAftercareDisclaimer({
+        isDemoTenant: chrome.showDemoNotice,
+        practiceName: chrome.displayName,
+      }) ? (
+        <PatientAftercareDisclaimer
+          practiceName={chrome.displayName}
+          showContactFollowUp={hasPracticeContact(chrome)}
+        />
+      ) : null}
       <PrintPracticeDetails chrome={chrome} />
       {chrome.showCareGuideAttribution ? (
         <footer className={styles.footer}>

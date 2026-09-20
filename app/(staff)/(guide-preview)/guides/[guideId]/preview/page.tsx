@@ -89,7 +89,7 @@ export default async function GuidePreviewPage({
           fontClassName={font.className}
           fontCssVariable={font.cssVariable}
         >
-          <PatientPage chrome={chrome}>
+          <PatientPage chrome={chrome} showAftercareDisclaimer>
             <header className={styles.hero}>
               <p className={styles.kicker}>{chrome.instructionsLabel}</p>
               <h1 className={styles.title}>{guide.title}</h1>

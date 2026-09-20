@@ -135,6 +135,7 @@ describe("clinic portal pages", () => {
     expect(operatorActions).toContain("requirePlatformOperator");
     expect(preview).toContain("requireStaffSession");
     expect(preview).toContain("PatientPage");
+    expect(preview).toContain("showAftercareDisclaimer");
     expect(preview).toContain("GuideDocument");
     expect(preview).toContain("StaffPreviewShell");
     expect(preview).not.toContain("Wisdom Teeth");

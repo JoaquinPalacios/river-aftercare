@@ -219,6 +219,8 @@ describe("tenant guide page", () => {
     expect(html).not.toContain("reviewedBy");
     expect(html).not.toContain("MedicalWebPage");
     expect(html).not.toContain("reviewAttested");
+    expect(html).not.toContain("About this guide");
+    expect(html).not.toContain("This aftercare information is provided by");
   });
 
   it("keeps clinic emergency chrome distinct from guide emergency content", async () => {
@@ -254,6 +256,21 @@ describe("tenant guide page", () => {
     expect(html).not.toContain("Powered by River Aftercare");
     expect(html).not.toContain('role="tablist"');
     expect(html).not.toContain("Check-in");
+    expect(html).toContain("About this guide");
+    expect(html).toContain(
+      "This aftercare information is provided by Other Clinic Patient Brand for its patients. It does not replace advice from your treating practitioner. Follow any instructions given directly to you by your practitioner. If you are unsure about your recovery or need help, contact the practice using the details below."
+    );
+    expect(html.indexOf("Tenant B override copy.")).toBeLessThan(
+      html.indexOf("About this guide")
+    );
+    expect(html.indexOf("About this guide")).toBeLessThan(
+      html.indexOf("Contact Other Clinic Patient Brand")
+    );
+    expect(html).not.toContain("reviewedBy");
+    expect(html).not.toContain("reviewAttestedBy");
+    expect(html).not.toContain("MedicalWebPage");
+    expect(html).not.toContain("Interactive demo");
+    expect(html).not.toContain("Sample content only");
   });
 
   it("uses one h1, sequential headings, and a main landmark", async () => {
@@ -291,6 +308,8 @@ describe("tenant guide page", () => {
       "http://demodental.localhost:3000/extraction"
     );
     expect(JSON.stringify(metadata)).not.toContain("/_sites");
+    expect(JSON.stringify(metadata)).not.toContain("MedicalWebPage");
+    expect(JSON.stringify(metadata)).not.toContain("reviewedBy");
   });
 
   it("points patient guide metadata at the clinic favicon when configured", async () => {
@@ -336,6 +355,36 @@ describe("tenant guide page", () => {
     expect(html).toContain("Empty body section");
     expect(html).toContain("<h2");
     expect(html).not.toContain("Canonical intro for Riverside patients.");
+  });
+
+  it("omits the contact follow-up when a real clinic publishes without contact details", async () => {
+    getPublishedPracticeGuide.mockResolvedValue({
+      ...GUIDE_B,
+      profile: {
+        ...GUIDE_B.profile,
+        phone: null,
+        contactUrl: null,
+        emergencyInstructions: null,
+        addressLine1: null,
+        addressLine2: null,
+        city: null,
+        region: null,
+        postalCode: null,
+      },
+    });
+
+    const html = await renderGuide("otherclinic");
+
+    expect(html).toContain("About this guide");
+    expect(html).toContain(
+      "This aftercare information is provided by Other Clinic Patient Brand for its patients. It does not replace advice from your treating practitioner. Follow any instructions given directly to you by your practitioner."
+    );
+    expect(html).not.toContain(
+      "If you are unsure about your recovery or need help, contact the practice using the details below."
+    );
+    expect(html).not.toContain("Contact Other Clinic Patient Brand");
+    expect(html).not.toContain("reviewedBy");
+    expect(html).not.toContain("MedicalWebPage");
   });
 
   it("returns not-found behaviour for unknown, draft, or disabled guides", async () => {

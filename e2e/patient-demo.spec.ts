@@ -28,6 +28,9 @@ test.describe("interactive recovery demo", () => {
       page.getByRole("tabpanel", { name: "Today" }).getByText("Day 1 of 7")
     ).toBeVisible();
     await expect(page.getByRole("tab", { name: "Check-in" })).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "About this guide", exact: true })
+    ).toHaveCount(0);
   });
 
   test("Today, Timeline, and Print stay keyboard accessible", async ({
@@ -50,6 +53,9 @@ test.describe("interactive recovery demo", () => {
     await page.getByRole("link", { name: "Print / Save PDF" }).click();
     await expectPublicTenantUrl(page, PRINT);
     await expect(page.getByText("SAMPLE / NOT CLINICAL ADVICE")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "About this guide", exact: true })
+    ).toHaveCount(0);
     await expect(page.getByRole("tab")).toHaveCount(0);
   });
 
@@ -113,6 +119,12 @@ test.describe("interactive recovery demo", () => {
     await expect(page.getByText("Weekend contact")).toBeVisible();
     await expect(page.getByText("What's normal")).toBeVisible();
     await expect(page.getByText("SAMPLE / NOT CLINICAL ADVICE")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "About this guide", exact: true })
+    ).toHaveCount(0);
+    await expect(
+      page.getByText("This aftercare information is provided by")
+    ).toHaveCount(0);
     await expect(page.getByRole("tab")).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: /Change colour theme/ })

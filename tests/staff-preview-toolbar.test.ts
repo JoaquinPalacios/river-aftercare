@@ -37,6 +37,7 @@ describe("authenticated guide preview toolbar", () => {
     expect(preview).toContain("staffPreviewBackLabel");
     expect(preview).toContain("StaffPreviewShell");
     expect(preview).toContain("<PatientPage");
+    expect(preview).toContain("showAftercareDisclaimer");
     expect(preview).toContain("GuideDocument");
     expect(preview).toContain('colorSchemeSelector: "scope"');
     expect(shell).toContain("PatientThemeBoundary");
