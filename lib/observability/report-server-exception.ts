@@ -2,6 +2,7 @@ import "server-only";
 
 import * as Sentry from "@sentry/nextjs";
 
+import { ALLOWED_ERROR_TAG_KEYS } from "@/lib/observability/error-tracking-allowlists";
 import { isServerErrorTrackingEnabled } from "@/lib/observability/error-tracking-env";
 import { sanitizeSensitiveValue } from "@/lib/observability/sensitive-value-sanitizer";
 
@@ -19,7 +20,7 @@ export type OperationalFailureComponent = "contact-email" | "auth-email";
 export type OperationalFailureCodeValue =
   "not_configured" | "delivery_failed" | "invalid_message";
 
-const ALLOWED_TAG_KEYS = new Set(["component", "failure_code", "environment"]);
+const ALLOWED_TAG_KEYS = ALLOWED_ERROR_TAG_KEYS;
 
 export type ServerExceptionTags = Partial<{
   component: OperationalFailureComponent | string;

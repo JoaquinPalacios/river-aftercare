@@ -27,11 +27,16 @@ const SERVER_ONLY_FILES = [
   "lib/marketing/contact-mailer.ts",
   "lib/marketing/contact-config.ts",
   "lib/observability/error-tracking-env.ts",
-  "lib/observability/sensitive-value-sanitizer.ts",
-  "lib/observability/sanitize-error-event.ts",
   "lib/observability/init-server-error-tracking.ts",
   "lib/observability/report-server-exception.ts",
   "lib/observability/on-request-error.ts",
+];
+
+const CLI_SHARED_OBSERVABILITY_FILES = [
+  "lib/observability/error-tracking-allowlists.ts",
+  "lib/observability/error-tracking-privacy.ts",
+  "lib/observability/sensitive-value-sanitizer.ts",
+  "lib/observability/sanitize-error-event.ts",
 ];
 
 const CLIENT_FILES = [
@@ -94,6 +99,15 @@ describe("account lifecycle invitation boundary", () => {
       expect(source, file).not.toContain("transactional-mailer");
       expect(source, file).not.toContain("passwordHash");
       expect(source, file).not.toContain("tokenHash");
+      expect(source, file).not.toContain("error-tracking-privacy");
+      expect(source, file).not.toContain("sanitize-error-event");
+      expect(source, file).not.toContain("sensitive-value-sanitizer");
+    }
+
+    for (const file of CLI_SHARED_OBSERVABILITY_FILES) {
+      const source = readFileSync(file, "utf8");
+      expect(source, file).not.toContain('import "server-only"');
+      expect(source, file).not.toContain("@sentry/nextjs");
     }
   });
 

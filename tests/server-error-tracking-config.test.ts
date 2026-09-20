@@ -155,6 +155,7 @@ describe("Better Stack error tracking configuration", () => {
       maxBreadcrumbs: number;
       enableLogs: boolean;
       includeLocalVariables: boolean;
+      includeServerName: boolean;
       skipOpenTelemetrySetup: boolean;
     };
     expect(options.enabled).toBe(true);
@@ -165,6 +166,7 @@ describe("Better Stack error tracking configuration", () => {
     expect(options.maxBreadcrumbs).toBe(0);
     expect(options.enableLogs).toBe(false);
     expect(options.includeLocalVariables).toBe(false);
+    expect(options.includeServerName).toBe(false);
     expect(options.skipOpenTelemetrySetup).toBe(true);
   });
 
@@ -186,5 +188,6 @@ describe("Better Stack error tracking configuration", () => {
     expect(options.sendDefaultPii).toBe(false);
     expect(options.tracesSampleRate).toBe(0);
     expect(options.maxBreadcrumbs).toBe(0);
+    expect(options.includeServerName).toBe(false);
   });
 });

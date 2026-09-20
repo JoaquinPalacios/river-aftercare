@@ -36,10 +36,14 @@ function spawnScript(envOverrides: Record<string, string | undefined>) {
     }
   }
 
-  return spawnSync(process.execPath, [SCRIPT], {
-    encoding: "utf8",
-    env,
-  });
+  return spawnSync(
+    process.execPath,
+    ["--disable-warning=MODULE_TYPELESS_PACKAGE_JSON", SCRIPT],
+    {
+      encoding: "utf8",
+      env,
+    }
+  );
 }
 
 function combinedOutput(result: ReturnType<typeof spawnSync>) {
@@ -64,8 +68,7 @@ describe("observability:test-error script", () => {
     expect(source).toContain("component: VERIFICATION_COMPONENT");
     expect(source).not.toMatch(/app\/api|debug\/error|NEXT_PUBLIC_/);
     expect(source).not.toContain("DATABASE_URL");
-    expect(source).toContain("sendDefaultPii: false");
-    expect(source).toContain("tracesSampleRate: 0");
+    expect(source).toContain("createErrorTrackingInitOptions");
     expect(source).not.toMatch(/VERCEL_ENV\s*=\s*["']production["']/);
     expect(source).toContain("dotenv/config");
 
@@ -152,7 +155,7 @@ describe("verification event send path", () => {
       sentry,
     });
 
-    expect(result).toEqual({ queued: true, flushed: true });
+    expect(result).toMatchObject({ queued: true, flushed: true });
     expect(sentry.init).toHaveBeenCalledOnce();
     const options = sentry.init.mock.calls[0]?.[0] as {
       environment: string;
@@ -235,10 +238,73 @@ describe("verification event send path", () => {
     expect(printed).not.toContain(SECRET_DSN);
   });
 
+  it("sanitizes the event immediately before transport without user, IP, or modules", async () => {
+    let inspected: Record<string, unknown> | undefined;
+    const sentry = mockSentry({
+      init: vi.fn(
+        (options: {
+          beforeSend?: (event: Record<string, unknown>) => unknown;
+        }) => {
+          inspected = options.beforeSend?.({
+            message: EVENT_NAME,
+            user: { ip_address: "{{auto}}", id: "anonymous" },
+            server_name: "mac.lan",
+            modules: { next: "16.3.5" },
+            tags: {
+              user: "anonymous",
+              environment: VERIFICATION_ENVIRONMENT,
+              component: VERIFICATION_COMPONENT,
+            },
+            request: {
+              url: "https://example.test/login?email=a@b.c",
+              headers: { authorization: "Bearer secret", cookie: "a=b" },
+              data: { password: "hunter2" },
+            },
+            contexts: {
+              device: { cpu_description: "M-series" },
+              os: { name: "macOS" },
+              culture: { timezone: "Australia/Sydney" },
+            },
+          }) as Record<string, unknown>;
+        }
+      ),
+    });
+
+    const result = await sendVerificationEvent({
+      env: { BETTER_STACK_ERROR_DSN: FAKE_DSN },
+      sentry,
+    });
+
+    expect(result.inventory).toMatchObject({
+      hasUser: false,
+      hasServerName: false,
+      hasModules: false,
+      hasRequest: false,
+      tagKeys: ["component", "environment"],
+    });
+    expect(inspected).toBeDefined();
+    expect(inspected).not.toHaveProperty("user");
+    expect(inspected).not.toHaveProperty("server_name");
+    expect(inspected).not.toHaveProperty("modules");
+    expect(inspected).not.toHaveProperty("request");
+    const payload = JSON.stringify(inspected);
+    expect(payload).not.toContain("ip_address");
+    expect(payload).not.toContain("{{auto}}");
+    expect(payload).not.toContain("mac.lan");
+    expect(payload).not.toContain("hunter2");
+    expect(payload).not.toContain("Bearer secret");
+    expect(payload).not.toContain(FAKE_DSN);
+  });
+
   it("does not require VERCEL_ENV for verification init options", () => {
     const options = createVerificationInitOptions(FAKE_DSN);
     expect(options.environment).toBe("verification");
-    expect(JSON.stringify(options)).not.toContain("production");
+    expect(options.sendDefaultPii).toBe(false);
+    expect(options.includeServerName).toBe(false);
+    expect(options.tracesSampleRate).toBe(0);
+    expect(JSON.stringify({ environment: options.environment })).not.toContain(
+      "production"
+    );
   });
 });
 
