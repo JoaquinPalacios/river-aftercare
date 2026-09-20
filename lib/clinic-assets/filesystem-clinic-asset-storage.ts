@@ -28,7 +28,10 @@ export const DEFAULT_CLINIC_ASSET_FILESYSTEM_ROOT = path.join(
 
 export function clinicAssetFilesystemRoot(): string {
   const override = process.env.CLINIC_ASSET_FILESYSTEM_ROOT?.trim();
-  return path.resolve(override || DEFAULT_CLINIC_ASSET_FILESYSTEM_ROOT);
+  if (override) {
+    return path.resolve(/*turbopackIgnore: true*/ override);
+  }
+  return path.join(process.cwd(), ".data", "clinic-assets");
 }
 
 /**
@@ -64,8 +67,11 @@ export function resolveClinicAssetFilesystemPath(
     return null;
   }
 
-  const resolvedRoot = path.resolve(root);
-  const resolved = path.resolve(resolvedRoot, ...segments);
+  const resolvedRoot = path.resolve(/*turbopackIgnore: true*/ root);
+  const resolved = path.resolve(
+    /*turbopackIgnore: true*/ resolvedRoot,
+    ...segments
+  );
   const relative = path.relative(resolvedRoot, resolved);
   if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
     return null;
@@ -97,8 +103,8 @@ async function assertInsideRoot(
   }
 
   try {
-    const realRoot = await realpath(root);
-    const realCandidate = await realpath(resolved);
+    const realRoot = await realpath(/*turbopackIgnore: true*/ root);
+    const realCandidate = await realpath(/*turbopackIgnore: true*/ resolved);
     const relative = path.relative(realRoot, realCandidate);
     if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
       return null;
@@ -112,7 +118,9 @@ async function assertInsideRoot(
 export function createFilesystemClinicAssetStorage(options?: {
   root?: string;
 }): ClinicAssetStorage {
-  const root = path.resolve(options?.root ?? clinicAssetFilesystemRoot());
+  const root = path.resolve(
+    /*turbopackIgnore: true*/ options?.root ?? clinicAssetFilesystemRoot()
+  );
 
   return {
     async uploadLogo(input) {
@@ -127,8 +135,10 @@ export function createFilesystemClinicAssetStorage(options?: {
         throw new Error("Clinic asset key is not allowed.");
       }
 
-      await mkdir(path.dirname(destination), { recursive: true });
-      await writeFile(destination, input.bytes);
+      await mkdir(/*turbopackIgnore: true*/ path.dirname(destination), {
+        recursive: true,
+      });
+      await writeFile(/*turbopackIgnore: true*/ destination, input.bytes);
 
       return {
         clinicId: input.clinicId,
@@ -149,7 +159,7 @@ export function createFilesystemClinicAssetStorage(options?: {
         return;
       }
       try {
-        await unlink(destination);
+        await unlink(/*turbopackIgnore: true*/ destination);
       } catch (error) {
         if (
           error &&
@@ -174,7 +184,7 @@ export function createFilesystemClinicAssetStorage(options?: {
       }
 
       try {
-        const bytes = await readFile(destination);
+        const bytes = await readFile(/*turbopackIgnore: true*/ destination);
         return {
           bytes: new Uint8Array(bytes),
           mimeType,
@@ -201,7 +211,7 @@ export function createFilesystemClinicAssetStorage(options?: {
         return null;
       }
       try {
-        const info = await stat(destination);
+        const info = await stat(/*turbopackIgnore: true*/ destination);
         if (!info.isFile()) {
           return null;
         }
@@ -232,9 +242,12 @@ export function createFilesystemClinicAssetStorage(options?: {
 }
 
 function isSafeFilesystemRootToReset(root: string): boolean {
-  const resolved = path.resolve(root);
-  const dataRoot = path.resolve(process.cwd(), ".data");
-  const tmpRoot = path.resolve(os.tmpdir());
+  const resolved = path.resolve(/*turbopackIgnore: true*/ root);
+  const dataRoot = path.resolve(
+    /*turbopackIgnore: true*/ process.cwd(),
+    ".data"
+  );
+  const tmpRoot = path.resolve(/*turbopackIgnore: true*/ os.tmpdir());
   const relativeToData = path.relative(dataRoot, resolved);
   const relativeToTmp = path.relative(tmpRoot, resolved);
   const insideData =
@@ -252,11 +265,14 @@ function isSafeFilesystemRootToReset(root: string): boolean {
 export async function resetFilesystemClinicAssetStorage(
   root = clinicAssetFilesystemRoot()
 ): Promise<void> {
-  const resolved = path.resolve(root);
+  const resolved = path.resolve(/*turbopackIgnore: true*/ root);
   if (!isSafeFilesystemRootToReset(resolved)) {
     throw new Error(
       "Refusing to delete a clinic asset root outside .data or the system temp directory."
     );
   }
-  await rm(resolved, { recursive: true, force: true });
+  await rm(/*turbopackIgnore: true*/ resolved, {
+    recursive: true,
+    force: true,
+  });
 }

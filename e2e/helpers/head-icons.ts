@@ -1,7 +1,10 @@
 import type { Page, Response } from "@playwright/test";
 
-import { PRODUCT_ICON_HREFS, PRODUCT_WEB_MANIFEST_SRC } from "@/lib/seo/icons";
-import { PRODUCT_FAVICON_ICO_SRC } from "@/lib/branding/product-assets";
+import {
+  PRODUCT_WEB_MANIFEST_SRC,
+  PRODUCT_FAVICON_ICO_SRC,
+} from "@/lib/branding/product-assets";
+import { PRODUCT_ICON_HREFS } from "@/lib/seo/icons";
 
 const ICON_REL = /<link\b[^>]*\brel=["']([^"']*icon[^"']*)["'][^>]*>/gi;
 
