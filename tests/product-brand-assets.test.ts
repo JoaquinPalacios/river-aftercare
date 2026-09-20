@@ -32,12 +32,12 @@ describe("product brand assets", () => {
       PRODUCT_ANDROID_CHROME_192_SRC,
       PRODUCT_ANDROID_CHROME_512_SRC,
       PRODUCT_WEB_MANIFEST_SRC,
-      "/favicon.ico",
     ];
 
     expect(
       files.map((src) => publicPath(src)).filter((path) => !existsSync(path))
     ).toEqual([]);
+    expect(existsSync("public/favicon.ico")).toBe(false);
     expect(existsSync("app/favicon.ico")).toBe(false);
     expect(existsSync("app/icon.png")).toBe(false);
     expect(existsSync("app/apple-icon.png")).toBe(false);

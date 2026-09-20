@@ -215,6 +215,12 @@ test.describe("clinic favicon end to end", () => {
       headDump(marketingHtml),
       browserName
     );
+    const riverIco = await page.request.get(
+      marketingUrl("/favicons/favicon.ico")
+    );
+    expect(riverIco.status()).toBe(200);
+    const rootIco = await page.request.get(marketingUrl("/favicon.ico"));
+    expect(rootIco.status()).toBe(404);
 
     for (const path of ["/pricing", "/about", "/contact"]) {
       await page.goto(marketingUrl(path), { waitUntil: "load" });
@@ -229,6 +235,10 @@ test.describe("clinic favicon end to end", () => {
       headDump(loginHtml),
       browserName
     );
+    const loginIco = await page.request.get(staffUrl("/favicons/favicon.ico"));
+    expect(loginIco.status()).toBe(200);
+    const loginRootIco = await page.request.get(staffUrl("/favicon.ico"));
+    expect(loginRootIco.status()).toBe(404);
 
     if (browserName === "webkit") {
       return;
@@ -261,6 +271,10 @@ test.describe("clinic favicon end to end", () => {
     assertRiverPack(html);
     const ico = await page.request.get(marketingUrl("/favicons/favicon.ico"));
     expect(ico.status()).toBe(200);
+    const rootIco = await page.request.get(
+      tenantUrl(DEMO_TENANT_SLUG, "/favicon.ico")
+    );
+    expect(rootIco.status()).toBe(404);
   });
 
   test("uploaded clinic favicon is the only rel=icon and returns 200", async ({
