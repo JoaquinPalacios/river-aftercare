@@ -407,8 +407,18 @@ model ClinicProfile {
   displayName              String
   /// Stored logo reference: a same-origin demo/static path or a provider-independent object key (`clinics/<clinicId>/branding/<uuid>.<ext>`). Never a Cloudflare, Supabase, or other provider URL. Resolve at read time with `resolveClinicLogoSrc`.
   logoUrl                  String?
+  /// Optional Dark-mode mark. Same storage contract as `logoUrl`. Used only when the resolved patient appearance is Dark; otherwise the standard logo is used.
+  darkLogoUrl              String?
+  /// Optional patient-guide favicon. Same clinic branding object-key contract as `logoUrl`. PNG only. Resolve with `resolveClinicLogoSrc`.
+  faviconUrl               String?
   primaryColor             String?
   accentColor              String?
+  /// Optional Dark-mode brand colour. Ignored unless `useCustomDarkBranding` is true and `darkAccentColor` is also valid.
+  darkPrimaryColor         String?
+  /// Optional Dark-mode accent colour. Ignored unless `useCustomDarkBranding` is true and `darkPrimaryColor` is also valid.
+  darkAccentColor          String?
+  /// When false, Dark patient pages keep using `primaryColor` / `accentColor` with River Aftercare dark surfaces. Does not force patients into Dark appearance.
+  useCustomDarkBranding    Boolean                      @default(false)
   neutralColor             String?
   radiusPreset             ClinicRadiusPreset           @default(MEDIUM)
   typeface                 ClinicTypeface?

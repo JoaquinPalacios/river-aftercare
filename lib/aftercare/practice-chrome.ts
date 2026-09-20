@@ -14,6 +14,8 @@ import {
 export interface PracticeChromeProfile {
   displayName: string;
   logoUrl: string | null;
+  darkLogoUrl?: string | null;
+  faviconUrl?: string | null;
   phone: string | null;
   addressLine1?: string | null;
   addressLine2?: string | null;
@@ -32,6 +34,8 @@ export interface PracticeChromeProfile {
 export interface PracticeChrome {
   displayName: string;
   logoSrc: string | null;
+  darkLogoSrc: string | null;
+  faviconSrc: string | null;
   phoneDisplay: string | null;
   phoneHref: string | null;
   addressText: string | null;
@@ -58,6 +62,8 @@ export function resolvePracticeChrome(input: {
   return {
     displayName: profile?.displayName?.trim() || input.name,
     logoSrc: resolveClinicLogoSrc(profile?.logoUrl ?? null),
+    darkLogoSrc: resolveClinicLogoSrc(profile?.darkLogoUrl ?? null),
+    faviconSrc: resolveClinicLogoSrc(profile?.faviconUrl ?? null),
     phoneDisplay,
     phoneHref: toTelHref(phoneDisplay),
     addressText: formatPracticeAddress(profile),

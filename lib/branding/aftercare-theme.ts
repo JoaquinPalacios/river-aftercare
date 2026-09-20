@@ -52,6 +52,9 @@ export type AftercareRadiusPreset = "SHARP" | "MEDIUM" | "SOFT";
 export interface AftercareThemeInput {
   primaryColor: string | null;
   accentColor: string | null;
+  darkPrimaryColor?: string | null;
+  darkAccentColor?: string | null;
+  useCustomDarkBranding?: boolean | null;
   neutralColor?: string | null;
   radiusPreset?: string | null;
   themeMode?: string | null;
@@ -139,6 +142,16 @@ export const DEFAULT_AFTERCARE_THEME: AftercareTheme = {
   dark: DEFAULT_DARK,
 };
 
+export function clinicHasCustomDarkBranding(
+  input: AftercareThemeInput | null | undefined
+): boolean {
+  return (
+    input?.useCustomDarkBranding === true &&
+    Boolean(parseCssHexColor(input.darkPrimaryColor)) &&
+    Boolean(parseCssHexColor(input.darkAccentColor))
+  );
+}
+
 export function resolveAftercareTheme(
   input: AftercareThemeInput | null | undefined
 ): AftercareTheme {
@@ -146,6 +159,13 @@ export function resolveAftercareTheme(
   const dark: AftercareThemeTokens = { ...DEFAULT_DARK };
   const primary = parseCssHexColor(input?.primaryColor);
   const accent = parseCssHexColor(input?.accentColor);
+  const customDark = clinicHasCustomDarkBranding(input);
+  const darkPrimary = customDark
+    ? parseCssHexColor(input?.darkPrimaryColor)
+    : null;
+  const darkAccent = customDark
+    ? parseCssHexColor(input?.darkAccentColor)
+    : null;
   const neutral = parseCssHexColor(input?.neutralColor);
   const radius = parseRadiusPreset(input?.radiusPreset);
 
@@ -159,9 +179,21 @@ export function resolveAftercareTheme(
     }
   }
 
+  if (darkPrimary) {
+    const onBrand = readableForeground(darkPrimary);
+    if (onBrand) {
+      dark["--cg-brand"] = darkPrimary;
+      dark["--cg-on-brand"] = onBrand;
+    }
+  }
+
   if (accent) {
     light["--cg-accent"] = accent;
     dark["--cg-accent"] = accent;
+  }
+
+  if (darkAccent) {
+    dark["--cg-accent"] = darkAccent;
   }
 
   if (neutral && canUseAsLightSurface(neutral)) {
