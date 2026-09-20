@@ -84,7 +84,9 @@ describe("marketing pricing page", () => {
     );
     expect(compareCss).not.toContain("overflow-x: auto");
     expect(compareCss).not.toContain("overflow-x: scroll");
+    expect(compareCss).toContain("display: block");
     expect(compareCss).toContain("@media (min-width: 64rem)");
+    expect(compareCss).toContain("display: table");
     const planFeaturesRule = styles.slice(
       styles.indexOf(".planFeatures {"),
       styles.indexOf(".planFeatures li")
@@ -287,7 +289,9 @@ describe("marketing pricing page", () => {
     expect(groupBlock).toContain("Tailored account setup");
     expect(groupBlock).not.toContain("central permissions");
     expect(groupBlock).not.toContain("master guide governance");
-    expect(html).toContain(PLAN_COMPARISON_CONTROL_LABEL);
+    expect(html).toContain('data-plan-card="essential"');
+    expect(html).toContain('data-plan-card="practice"');
+    expect(html).toContain('data-plan-card="group"');
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain(`aria-controls="${PLAN_COMPARISON_PANEL_ID}"`);
     expect(html).toMatch(

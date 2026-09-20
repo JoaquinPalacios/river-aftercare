@@ -87,6 +87,7 @@ export default async function MarketingPricingPage() {
                           : styles.planCard
                       }
                       aria-labelledby={`plan-${plan.id}`}
+                      data-plan-card={plan.id}
                     >
                       {plan.recommended ? (
                         <p className={styles.planBadge}>Recommended</p>

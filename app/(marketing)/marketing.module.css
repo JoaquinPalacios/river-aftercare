@@ -3539,6 +3539,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .planCompareTable {
+  display: block;
   width: 100%;
   border-collapse: collapse;
 }

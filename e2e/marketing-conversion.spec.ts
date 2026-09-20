@@ -229,13 +229,14 @@ test.describe("marketing conversion routes", () => {
   test("plan comparison stays collapsed and expands below the pricing cards", async ({
     page,
   }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(marketingUrl("/pricing"), { waitUntil: "load" });
     const control = page.getByRole("button", {
       name: "Compare all plan features",
     });
     const panel = page.locator("#plan-comparison-panel");
-    const essentialCard = page.locator("#plan-essential");
-    const practiceCard = page.locator("#plan-practice");
+    const essentialCard = page.locator('[data-plan-card="essential"]');
+    const practiceCard = page.locator('[data-plan-card="practice"]');
 
     await expect(control).toBeVisible();
     await expect(control).toHaveAttribute("aria-expanded", "false");
@@ -257,12 +258,20 @@ test.describe("marketing conversion routes", () => {
     const practiceHeightClosed = await practiceCard.evaluate(
       (element) => element.getBoundingClientRect().height
     );
-    const essentialCtaTopClosed = await essentialCard
-      .getByRole("link", { name: "Request a demo" })
-      .evaluate((element) => element.getBoundingClientRect().top);
-    const practiceCtaTopClosed = await practiceCard
-      .getByRole("link", { name: "Request a demo" })
-      .evaluate((element) => element.getBoundingClientRect().top);
+    const ctaOffset = async (
+      card: import("@playwright/test").Locator
+    ): Promise<number> =>
+      card.evaluate((element) => {
+        const cta = element.querySelector("a");
+        if (!(cta instanceof HTMLElement)) {
+          return Number.NaN;
+        }
+        return (
+          cta.getBoundingClientRect().top - element.getBoundingClientRect().top
+        );
+      });
+    const essentialCtaOffsetClosed = await ctaOffset(essentialCard);
+    const practiceCtaOffsetClosed = await ctaOffset(practiceCard);
 
     await control.click();
     await expect(control).toHaveAttribute("aria-expanded", "true");
@@ -322,14 +331,10 @@ test.describe("marketing conversion routes", () => {
     );
     expect(essentialHeightOpen).toBe(essentialHeightClosed);
     expect(practiceHeightOpen).toBe(practiceHeightClosed);
-    const essentialCtaTopOpen = await essentialCard
-      .getByRole("link", { name: "Request a demo" })
-      .evaluate((element) => element.getBoundingClientRect().top);
-    const practiceCtaTopOpen = await practiceCard
-      .getByRole("link", { name: "Request a demo" })
-      .evaluate((element) => element.getBoundingClientRect().top);
-    expect(essentialCtaTopOpen).toBe(essentialCtaTopClosed);
-    expect(practiceCtaTopOpen).toBe(practiceCtaTopClosed);
+    const essentialCtaOffsetOpen = await ctaOffset(essentialCard);
+    const practiceCtaOffsetOpen = await ctaOffset(practiceCard);
+    expect(essentialCtaOffsetOpen).toBe(essentialCtaOffsetClosed);
+    expect(practiceCtaOffsetOpen).toBe(practiceCtaOffsetClosed);
 
     await control.press("Enter");
     await expect(control).toHaveAttribute("aria-expanded", "false");
