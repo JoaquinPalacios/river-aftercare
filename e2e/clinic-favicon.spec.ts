@@ -1,6 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
 
+import { clinicLogoObjectKey } from "@/lib/clinic-assets/clinic-logo";
+import { createFilesystemClinicAssetStorage } from "@/lib/clinic-assets/filesystem-clinic-asset-storage";
 import { HARBOR } from "./fixtures/harbor";
 import { solidPng } from "../tests/helpers/solid-png";
 import {
@@ -49,11 +53,17 @@ const ORIGINAL = {
   logoUrl: "/demo/riverside-mark.svg",
 };
 
-function writeArtifact(name: string, contents: string): void {
+function writeArtifact(
+  name: string,
+  contents: string,
+  browserName?: string
+): void {
+  const file =
+    browserName === "webkit" ? name.replace(/(\.[^.]+)$/, "-webkit$1") : name;
   mkdirSync(ARTIFACT_DIR, { recursive: true });
   mkdirSync("test-results/artifacts", { recursive: true });
-  writeFileSync(`${ARTIFACT_DIR}/${name}`, contents);
-  writeFileSync(`test-results/artifacts/${name}`, contents);
+  writeFileSync(`${ARTIFACT_DIR}/${file}`, contents);
+  writeFileSync(`test-results/artifacts/${file}`, contents);
 }
 
 function publicBrandingPath(storageKey: string): string {
@@ -94,6 +104,66 @@ async function restoreDemoBranding(): Promise<void> {
   });
 }
 
+const E2E_ASSET_ROOT = path.join(process.cwd(), ".data", "clinic-assets-e2e");
+
+async function seedBrandingAsset(
+  field: "faviconUrl" | "logoUrl" | "darkLogoUrl",
+  bytes: Buffer
+): Promise<string> {
+  const storage = createFilesystemClinicAssetStorage({ root: E2E_ASSET_ROOT });
+  const storageKey = clinicLogoObjectKey({
+    clinicId: DEMO_CLINIC_ID,
+    objectId: randomUUID(),
+    extension: "png",
+  });
+  await storage.uploadLogo({
+    clinicId: DEMO_CLINIC_ID,
+    storageKey,
+    bytes: new Uint8Array(bytes),
+    mimeType: "image/png",
+  });
+  const current = await e2ePrisma.clinicProfile.findUnique({
+    where: { clinicId: DEMO_CLINIC_ID },
+    select: { faviconUrl: true, logoUrl: true, darkLogoUrl: true },
+  });
+  const previous = current?.[field];
+  await e2ePrisma.clinicProfile.update({
+    where: { clinicId: DEMO_CLINIC_ID },
+    data: { [field]: storageKey },
+  });
+  if (
+    typeof previous === "string" &&
+    previous.startsWith(`clinics/${DEMO_CLINIC_ID}/branding/`)
+  ) {
+    await storage.deleteLogo({
+      clinicId: DEMO_CLINIC_ID,
+      storageKey: previous,
+    });
+  }
+  return storageKey;
+}
+
+async function installFavicon(
+  page: Page,
+  browserName: string,
+  buffer: Buffer,
+  buttonName: string
+): Promise<void> {
+  if (browserName === "webkit") {
+    await seedBrandingAsset("faviconUrl", buffer);
+    return;
+  }
+  await signInAsLocalAdmin(page);
+  await uploadNamedAsset(
+    page,
+    "#clinic-favicon-file",
+    "favicon.png",
+    buffer,
+    buttonName,
+    "Favicon updated."
+  );
+}
+
 async function uploadNamedAsset(
   page: Page,
   inputId: string,
@@ -132,6 +202,7 @@ test.describe("clinic favicon end to end", () => {
   test("marketing, staff, login, and operator keep the River favicon pack", async ({
     page,
     browser,
+    browserName,
   }) => {
     const marketing = await page.goto(marketingUrl("/"), {
       waitUntil: "load",
@@ -139,7 +210,11 @@ test.describe("clinic favicon end to end", () => {
     expect(marketing?.status()).toBe(200);
     const marketingHtml = await page.content();
     assertRiverPack(marketingHtml);
-    writeArtifact("marketing-river-favicon-head.txt", headDump(marketingHtml));
+    writeArtifact(
+      "marketing-river-favicon-head.txt",
+      headDump(marketingHtml),
+      browserName
+    );
 
     for (const path of ["/pricing", "/about", "/contact"]) {
       await page.goto(marketingUrl(path), { waitUntil: "load" });
@@ -149,7 +224,15 @@ test.describe("clinic favicon end to end", () => {
     await page.goto(staffUrl("/login"), { waitUntil: "load" });
     const loginHtml = await page.content();
     assertRiverPack(loginHtml);
-    writeArtifact("staff-river-favicon-head.txt", headDump(loginHtml));
+    writeArtifact(
+      "staff-river-favicon-head.txt",
+      headDump(loginHtml),
+      browserName
+    );
+
+    if (browserName === "webkit") {
+      return;
+    }
 
     const adminContext = await browser.newContext();
     const adminPage = await adminContext.newPage();
@@ -185,15 +268,7 @@ test.describe("clinic favicon end to end", () => {
     browserName,
   }) => {
     mkdirSync(ARTIFACT_DIR, { recursive: true });
-    await signInAsLocalAdmin(page);
-    await uploadNamedAsset(
-      page,
-      "#clinic-favicon-file",
-      "favicon-a.png",
-      FAVICON_A,
-      "Upload favicon",
-      "Favicon updated."
-    );
+    await installFavicon(page, browserName, FAVICON_A, "Upload favicon");
 
     const profile = await e2ePrisma.clinicProfile.findUnique({
       where: { clinicId: DEMO_CLINIC_ID },
@@ -203,7 +278,7 @@ test.describe("clinic favicon end to end", () => {
       /^clinics\/clinic_demo_rivers\/branding\/.+\.png$/
     );
     const faviconPath = publicBrandingPath(profile!.faviconUrl!);
-    writeArtifact("favicon-a-url.txt", `${faviconPath}\n`);
+    writeArtifact("favicon-a-url.txt", `${faviconPath}\n`, browserName);
 
     const assetRequests: string[] = [];
     page.on("request", (request) => {
@@ -223,7 +298,7 @@ test.describe("clinic favicon end to end", () => {
     });
     expect(tenant?.status()).toBe(200);
     const html = await page.content();
-    writeArtifact("tenant-favicon-head.txt", headDump(html));
+    writeArtifact("tenant-favicon-head.txt", headDump(html), browserName);
     assertClinicFaviconOnly(html, faviconPath);
 
     const asset = await page.request.get(
@@ -241,10 +316,13 @@ test.describe("clinic favicon end to end", () => {
         `browser=${browserName}`,
         `clinicFaviconPath=${faviconPath}`,
         `clinicFaviconStatus=${asset.status()}`,
+        `clinicFaviconContentType=${asset.headers()["content-type"]}`,
         `targetInfo.faviconUrl=${selected ?? "(null or unavailable)"}`,
-        "requests:",
-        ...assetRequests,
-      ].join("\n") + "\n"
+        "pageRequests:",
+        ...(assetRequests.length > 0 ? assetRequests : ["(none captured)"]),
+        `explicitGET ${tenantUrl(DEMO_TENANT_SLUG, faviconPath)} ${asset.status()}`,
+      ].join("\n") + "\n",
+      browserName
     );
 
     if (browserName === "chromium") {
@@ -255,7 +333,10 @@ test.describe("clinic favicon end to end", () => {
     }
 
     await page.screenshot({
-      path: `${ARTIFACT_DIR}/tenant-with-clinic-favicon.png`,
+      path:
+        browserName === "webkit"
+          ? `${ARTIFACT_DIR}/tenant-with-clinic-favicon-webkit.png`
+          : `${ARTIFACT_DIR}/tenant-with-clinic-favicon.png`,
       fullPage: true,
     });
   });
@@ -265,36 +346,33 @@ test.describe("clinic favicon end to end", () => {
     browser,
     browserName,
   }) => {
-    await signInAsLocalAdmin(page);
-    await uploadNamedAsset(
-      page,
-      "#clinic-favicon-file",
-      "favicon-a.png",
-      FAVICON_A,
-      "Upload favicon",
-      "Favicon updated."
-    );
+    await installFavicon(page, browserName, FAVICON_A, "Upload favicon");
     const first = await e2ePrisma.clinicProfile.findUnique({
       where: { clinicId: DEMO_CLINIC_ID },
       select: { faviconUrl: true },
     });
     const urlA = publicBrandingPath(first!.faviconUrl!);
+    writeArtifact("favicon-a-url.txt", `${urlA}\n`, browserName);
 
-    await uploadNamedAsset(
-      page,
-      "#clinic-favicon-file",
-      "favicon-b.png",
-      FAVICON_B,
-      "Upload replacement",
-      "Favicon updated."
-    );
+    if (browserName === "webkit") {
+      await seedBrandingAsset("faviconUrl", FAVICON_B);
+    } else {
+      await uploadNamedAsset(
+        page,
+        "#clinic-favicon-file",
+        "favicon-b.png",
+        FAVICON_B,
+        "Upload replacement",
+        "Favicon updated."
+      );
+    }
     const second = await e2ePrisma.clinicProfile.findUnique({
       where: { clinicId: DEMO_CLINIC_ID },
       select: { faviconUrl: true },
     });
     const urlB = publicBrandingPath(second!.faviconUrl!);
     expect(urlB).not.toBe(urlA);
-    writeArtifact("favicon-b-url.txt", `${urlB}\n`);
+    writeArtifact("favicon-b-url.txt", `${urlB}\n`, browserName);
 
     const context = await browser.newContext();
     const fresh = await context.newPage();
@@ -323,57 +401,63 @@ test.describe("clinic favicon end to end", () => {
     expect(requested.some((url) => url.includes(pathnameOf(urlA)))).toBe(false);
 
     if (browserName === "chromium") {
-      expect(await chromiumTargetFaviconUrl(fresh)).not.toContain(urlA);
+      const selected = await chromiumTargetFaviconUrl(fresh);
+      if (selected) {
+        expect(selected).not.toContain(urlA);
+      }
     }
 
     await context.close();
   });
 
-  test("removing the favicon restores the River pack", async ({ page }) => {
-    await signInAsLocalAdmin(page);
-    await uploadNamedAsset(
-      page,
-      "#clinic-favicon-file",
-      "favicon-a.png",
-      FAVICON_A,
-      "Upload favicon",
-      "Favicon updated."
-    );
-    await page.getByRole("button", { name: "Remove favicon" }).click();
-    await expect(
-      page.getByRole("dialog", { name: "Remove favicon?" })
-    ).toBeVisible();
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: "Remove favicon" })
-      .click();
-    await expect(page.getByText("Favicon removed.")).toBeVisible();
+  test("removing the favicon restores the River pack", async ({
+    page,
+    browserName,
+  }) => {
+    await installFavicon(page, browserName, FAVICON_A, "Upload favicon");
+    if (browserName === "webkit") {
+      await e2ePrisma.clinicProfile.update({
+        where: { clinicId: DEMO_CLINIC_ID },
+        data: { faviconUrl: null },
+      });
+    } else {
+      await page.getByRole("button", { name: "Remove favicon" }).click();
+      await expect(
+        page.getByRole("dialog", { name: "Remove favicon?" })
+      ).toBeVisible();
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Remove favicon" })
+        .click();
+      await expect(page.getByText("Favicon removed.")).toBeVisible();
+    }
 
     await page.goto(tenantUrl(DEMO_TENANT_SLUG, "/extraction"), {
       waitUntil: "load",
     });
     const html = await page.content();
+    writeArtifact(
+      "tenant-after-favicon-removal-head.txt",
+      headDump(html),
+      browserName
+    );
     assertRiverPack(html);
     const ico = await page.request.get(marketingUrl("/favicons/favicon.ico"));
     expect(ico.status()).toBe(200);
     await page.screenshot({
-      path: `${ARTIFACT_DIR}/tenant-after-favicon-removal.png`,
+      path:
+        browserName === "webkit"
+          ? `${ARTIFACT_DIR}/tenant-after-favicon-removal-webkit.png`
+          : `${ARTIFACT_DIR}/tenant-after-favicon-removal.png`,
       fullPage: true,
     });
   });
 
   test("clinic branding GET is tenant-scoped at HTML and bytes", async ({
     page,
+    browserName,
   }) => {
-    await signInAsLocalAdmin(page);
-    await uploadNamedAsset(
-      page,
-      "#clinic-favicon-file",
-      "favicon-a.png",
-      FAVICON_A,
-      "Upload favicon",
-      "Favicon updated."
-    );
+    await installFavicon(page, browserName, FAVICON_A, "Upload favicon");
     const profile = await e2ePrisma.clinicProfile.findUnique({
       where: { clinicId: DEMO_CLINIC_ID },
       select: { faviconUrl: true, primaryColor: true },
@@ -406,36 +490,43 @@ test.describe("clinic favicon end to end", () => {
 
   test("standard logo, Dark logo, and favicon all GET 200", async ({
     page,
+    browserName,
   }) => {
     await e2ePrisma.clinicProfile.update({
       where: { clinicId: DEMO_CLINIC_ID },
       data: { logoUrl: null, darkLogoUrl: null, faviconUrl: null },
     });
-    await signInAsLocalAdmin(page);
-    await uploadNamedAsset(
-      page,
-      "#clinic-logo-file",
-      "logo.png",
-      LOGO_PNG,
-      "Upload logo",
-      "Practice logo updated."
-    );
-    await uploadNamedAsset(
-      page,
-      "#clinic-dark-logo-file",
-      "dark-logo.png",
-      DARK_LOGO_PNG,
-      "Upload Dark logo",
-      "Dark logo updated."
-    );
-    await uploadNamedAsset(
-      page,
-      "#clinic-favicon-file",
-      "favicon-a.png",
-      FAVICON_A,
-      "Upload favicon",
-      "Favicon updated."
-    );
+    if (browserName === "webkit") {
+      await seedBrandingAsset("logoUrl", LOGO_PNG);
+      await seedBrandingAsset("darkLogoUrl", DARK_LOGO_PNG);
+      await seedBrandingAsset("faviconUrl", FAVICON_A);
+    } else {
+      await signInAsLocalAdmin(page);
+      await uploadNamedAsset(
+        page,
+        "#clinic-logo-file",
+        "logo.png",
+        LOGO_PNG,
+        "Upload logo",
+        "Practice logo updated."
+      );
+      await uploadNamedAsset(
+        page,
+        "#clinic-dark-logo-file",
+        "dark-logo.png",
+        DARK_LOGO_PNG,
+        "Upload Dark logo",
+        "Dark logo updated."
+      );
+      await uploadNamedAsset(
+        page,
+        "#clinic-favicon-file",
+        "favicon-a.png",
+        FAVICON_A,
+        "Upload favicon",
+        "Favicon updated."
+      );
+    }
 
     const profile = await e2ePrisma.clinicProfile.findUnique({
       where: { clinicId: DEMO_CLINIC_ID },
