@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-20 (verification event matches production privacy floor)
+Last updated: 2026-09-20 (Stripe billing architecture investigation; not implemented)
 
 ## Durable production release rule
 
@@ -34,6 +34,14 @@ Canonical detail: [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READI
 Production Node.js exceptions are sent to Better Stack Error Tracking through a Sentry-compatible SDK. Telemetry is on only when `VERCEL_ENV === "production"` and server-only `BETTER_STACK_ERROR_DSN` is valid. Preview, development, test, and local stay off. There is no browser Sentry init, no Better Stack JavaScript tag, no replay/RUM, and no tracing/profiling. `/api/health` failures are not reported as error events. Events are processed in Better Stack’s configured **US** region on the current Free plan. Do not connect the GitHub repository to Better Stack unless a later, explicit decision grants that extra access.
 
 Canonical detail: [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READINESS.md), [../architecture/APPLICATION.md](../architecture/APPLICATION.md).
+
+## Durable billing architecture rule (proposed — not implemented)
+
+River Aftercare remains assisted sales at launch. Public `/pricing` keeps Request a demo / Talk to us. Do not add Buy now, a River card form, or live Stripe objects until Joaquín approves [BILLING.md](../architecture/BILLING.md).
+
+Stripe is the financial source of truth (Customer, Subscription, Invoice, payment methods). River persists a local entitlement projection for authorisation and must not call Stripe on patient or editor request paths. Canonical advertised amounts stay in `lib/marketing/plans.ts`. Essential vs Practice guide limits and template-adaptation rules are still commercial copy until an approved enforcement phase. Published patient URLs must not disappear on the first failed payment.
+
+Do not create additional-location Prices, Group self-serve products, or Prisma billing migrations from an investigation task.
 
 ---
 
@@ -1856,4 +1864,22 @@ Public `/pricing` copy only. No Stripe, billing, plan enforcement, fonts, or edi
 | Group     | Unchanged. Custom pricing. Coordinated rollout / custom onboarding / priority support / tailored account setup.                                                                                                                     |
 
 Commercial distinction: Essential may use River templates as supplied and author up to 2 clinic-owned custom guides with the normal editor. Practice may also adapt River templates into clinic-owned custom guides (future count toward the allowance). Do not hide editor controls from Essential to manufacture a plan difference. Guide limits and template-adaptation entitlement are **not technically enforced** today.
+
+---
+
+## Stripe billing + entitlement architecture (investigation only, 2026-09-20)
+
+Documentation only on a review branch. No Stripe package, no Prisma migration, no Dashboard objects, no env secrets, no enforcement, no pricing-page change.
+
+Canonical report: [../architecture/BILLING.md](../architecture/BILLING.md).
+
+| Recommendation | Detail |
+| -------------- | ------ |
+| Sales motion | Assisted Checkout after operator provisioning. `/pricing` stays Request a demo / Talk to us. |
+| Domain | `ClinicBillingProfile` + `ClinicEntitlement` projection. Stripe owns money; River owns plan policy and patient-URL retention. |
+| Catalogue | Essential + Practice Products; monthly/yearly inclusive AUD Prices matching `PLAN_PRICES`. No Group product. No location Prices. |
+| GST | Manual 10% inclusive GST for AU-only launch. Stripe Tax later if international. Accountant must confirm GST registration. |
+| Activation | `invoice.paid` projector. Not `checkout.session.completed` (BECS is delayed). |
+| Patient URLs | Do not unpublish on first payment failure. Proposed: grace while Stripe retries, then restrict authoring, then 30-day public retention. Joaquín must approve. |
+
 

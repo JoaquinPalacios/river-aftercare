@@ -53,5 +53,7 @@ Do not create an ADR for a reversible UI detail. Create one when a later impleme
 | [0024](0024-account-lifecycle-tokens-and-shared-transactional-email.md)      | Account lifecycle tokens and shared transactional email      | Accepted |
 | [0025](0025-migrate-before-promote.md)                                       | Production schema gate; auto-deploy from main stays enabled  | Accepted |
 
+Billing / Stripe is **proposed, not an ADR yet**. See [../architecture/BILLING.md](../architecture/BILLING.md). Do not implement until Joaquín approves that investigation.
+
 Related product contract: [../product/PRD.md](../product/PRD.md).
 Performance contract: [../architecture/PERFORMANCE.md](../architecture/PERFORMANCE.md).
