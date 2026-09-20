@@ -172,7 +172,10 @@ describe("beforeSend error event sanitization", () => {
       url: "https://app.example.test/login",
       method: "POST",
     });
-    expect(sanitized.breadcrumbs).toEqual([]);
+    expect(sanitized.breadcrumbs).toBeUndefined();
+    expect(sanitized.extra).toBeUndefined();
+    expect(sanitized.tags).toEqual({ component: "auth-email" });
+    expect(sanitized.contexts?.os).toBeUndefined();
     expect(sanitized.message).not.toContain("alex@clinic.example.test");
     expect(sanitized.exception?.values?.[0]?.value).not.toContain(
       "postgres://"
@@ -197,7 +200,6 @@ describe("beforeSend error event sanitization", () => {
         },
       ],
     });
-    expect(sanitized.contexts?.os).toMatchObject({ name: "linux" });
     const payload = JSON.stringify(sanitized);
     expect(payload).not.toContain("hunter2");
     expect(payload).not.toContain("authjs.session-token=secret");
@@ -205,5 +207,109 @@ describe("beforeSend error event sanitization", () => {
     expect(payload).not.toContain("raw-token-value");
     expect(payload).not.toContain("alex@clinic.example.test");
     expect(payload).toContain(REDACTED_MARKER);
+  });
+
+  it("strips identifying SDK metadata while keeping useful exception diagnostics", () => {
+    const sanitized = sanitizeErrorEvent({
+      message: "river_aftercare_error_tracking_verification",
+      environment: "verification",
+      release: "abc1234def",
+      level: "info",
+      user: { ip_address: "203.0.113.9" },
+      server_name: "mac.lan",
+      modules: { next: "16.3.5", "@sentry/nextjs": "10.75.0" },
+      tags: {
+        user: "anonymous",
+        environment: "verification",
+        component: "observability-verification",
+        email: "alex@clinic.example.test",
+      },
+      contexts: {
+        device: { name: "Mac", memory_size: 32, cpu_description: "M-series" },
+        os: { name: "macOS", version: "15.6", build: "24G84" },
+        culture: { locale: "en-AU", timezone: "Australia/Sydney" },
+        app: { app_memory: 123456789 },
+        cloud_resource: { "cloud.provider": "vercel" },
+        runtime: { name: "node", version: "v24.20.0" },
+        trace: { trace_id: "abc" },
+      },
+      sdk: {
+        name: "sentry.javascript.nextjs",
+        version: "10.75.0",
+        integrations: ["RequestData", "Console", "Prisma", "Postgres"],
+      },
+      exception: {
+        values: [
+          {
+            type: "Error",
+            value: "guide publish failed",
+            stacktrace: {
+              frames: [
+                {
+                  filename: "lib/clinic-portal/publish-guide.ts",
+                  lineno: 40,
+                  colno: 3,
+                  function: "publishGuide",
+                  vars: { token: "raw-token-value" },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    expect(sanitized.user).toBeUndefined();
+    expect(sanitized.server_name).toBeUndefined();
+    expect(sanitized.modules).toBeUndefined();
+    expect(sanitized.breadcrumbs).toBeUndefined();
+    expect(sanitized.extra).toBeUndefined();
+    expect(sanitized.tags).toEqual({
+      environment: "verification",
+      component: "observability-verification",
+    });
+    expect(sanitized.contexts).toEqual({
+      runtime: { name: "node", version: "v24.20.0" },
+    });
+    expect(sanitized.sdk).toEqual({
+      name: "sentry.javascript.nextjs",
+      version: "10.75.0",
+    });
+    expect(sanitized.release).toBe("abc1234def");
+    expect(sanitized.environment).toBe("verification");
+    expect(sanitized.exception?.values?.[0]?.type).toBe("Error");
+    expect(sanitized.exception?.values?.[0]?.value).toBe(
+      "guide publish failed"
+    );
+    expect(
+      (
+        sanitized.exception?.values?.[0]?.stacktrace as {
+          frames: Array<{ vars?: unknown; filename: string; lineno: number }>;
+        }
+      ).frames[0]
+    ).toMatchObject({
+      filename: "lib/clinic-portal/publish-guide.ts",
+      lineno: 40,
+      colno: 3,
+      function: "publishGuide",
+    });
+    expect(
+      (
+        sanitized.exception?.values?.[0]?.stacktrace as {
+          frames: Array<{ vars?: unknown }>;
+        }
+      ).frames[0]?.vars
+    ).toBeUndefined();
+
+    const payload = JSON.stringify(sanitized);
+    expect(payload).not.toContain("203.0.113.9");
+    expect(payload).not.toContain("mac.lan");
+    expect(payload).not.toContain("Australia/Sydney");
+    expect(payload).not.toContain("M-series");
+    expect(payload).not.toContain("raw-token-value");
+    expect(payload).not.toContain('"user":"anonymous"');
+    expect(payload).not.toContain("RequestData");
+    expect(payload).not.toContain("Prisma");
+    expect(payload).not.toMatch(/"next":"16\.3\.5"/);
   });
 });

@@ -1,5 +1,3 @@
-import "server-only";
-
 export const REDACTED_MARKER = "[REDACTED]";
 
 const MAX_SANITIZE_DEPTH = 8;

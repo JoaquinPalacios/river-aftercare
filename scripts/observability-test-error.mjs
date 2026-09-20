@@ -20,6 +20,8 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { createErrorTrackingInitOptions } from "../lib/observability/error-tracking-privacy.ts";
+
 export const EVENT_NAME = "river_aftercare_error_tracking_verification";
 export const FLUSH_TIMEOUT_MS = 8000;
 export const VERIFICATION_ENVIRONMENT = "verification";
@@ -110,28 +112,10 @@ export function resolveSentrySdk(namespace) {
 }
 
 export function createVerificationInitOptions(dsn) {
-  return {
+  return createErrorTrackingInitOptions({
     dsn,
-    enabled: true,
     environment: VERIFICATION_ENVIRONMENT,
-    sendDefaultPii: false,
-    tracesSampleRate: 0,
-    maxBreadcrumbs: 0,
-    enableLogs: false,
-    includeLocalVariables: false,
-    sendClientReports: false,
-    skipOpenTelemetrySetup: true,
-    beforeSend(event) {
-      return {
-        ...event,
-        user: undefined,
-        request: undefined,
-        breadcrumbs: [],
-        extra: undefined,
-        message: EVENT_NAME,
-      };
-    },
-  };
+  });
 }
 
 export function createVerificationEvent() {
@@ -195,11 +179,60 @@ export function formatVerificationFailure(err) {
  *   };
  * }} args
  */
+export function describeSanitizedPayload(event) {
+  const record =
+    event && typeof event === "object"
+      ? /** @type {Record<string, unknown>} */ (event)
+      : {};
+  const tags =
+    record.tags && typeof record.tags === "object"
+      ? Object.keys(record.tags).sort()
+      : [];
+  const contexts =
+    record.contexts && typeof record.contexts === "object"
+      ? Object.keys(record.contexts).sort()
+      : [];
+
+  return {
+    fields: Object.keys(record).sort(),
+    tagKeys: tags,
+    contextKeys: contexts,
+    hasUser: Object.prototype.hasOwnProperty.call(record, "user"),
+    hasServerName: Object.prototype.hasOwnProperty.call(record, "server_name"),
+    hasModules: Object.prototype.hasOwnProperty.call(record, "modules"),
+    hasRequest: Object.prototype.hasOwnProperty.call(record, "request"),
+    hasBreadcrumbs: Object.prototype.hasOwnProperty.call(record, "breadcrumbs"),
+  };
+}
+
+/**
+ * @param {{
+ *   env?: Record<string, string | undefined>;
+ *   sentry: {
+ *     init: Function;
+ *     captureEvent: Function;
+ *     flush: Function;
+ *     close?: Function;
+ *   };
+ * }} args
+ */
 export async function sendVerificationEvent({ env = process.env, sentry }) {
   const dsn = readVerificationDsn(env);
+  const options = createVerificationInitOptions(dsn);
+  const originalBeforeSend = options.beforeSend;
+  let inventory;
+
+  options.beforeSend = (event) => {
+    const sanitized = originalBeforeSend(event);
+    if (sanitized && typeof sanitized === "object") {
+      delete sanitized.request;
+    }
+    inventory = describeSanitizedPayload(sanitized);
+    return sanitized;
+  };
 
   try {
-    sentry.init(createVerificationInitOptions(dsn));
+    sentry.init(options);
   } catch (err) {
     throw categorizedError(
       categorizeError(err) === "malformed_dsn"
@@ -243,7 +276,7 @@ export async function sendVerificationEvent({ env = process.env, sentry }) {
     }
   }
 
-  return { queued: true, flushed: true };
+  return { queued: true, flushed: true, inventory };
 }
 
 export function isExecutedAsCli(
@@ -275,8 +308,24 @@ async function main() {
   readVerificationDsn();
   const namespace = await import("@sentry/nextjs");
   const sentry = resolveSentrySdk(namespace);
-  await sendVerificationEvent({ env: process.env, sentry });
+  const result = await sendVerificationEvent({ env: process.env, sentry });
   console.log("Verification event sent successfully.");
+  if (result.inventory) {
+    console.log(
+      `Sanitized payload keys: ${result.inventory.fields.join(", ") || "(none)"}`
+    );
+    console.log(`Tag keys: ${result.inventory.tagKeys.join(", ") || "(none)"}`);
+    console.log(
+      `Context keys: ${result.inventory.contextKeys.join(", ") || "(none)"}`
+    );
+    console.log(`user present: ${result.inventory.hasUser ? "YES" : "NO"}`);
+    console.log(
+      `server_name present: ${result.inventory.hasServerName ? "YES" : "NO"}`
+    );
+    console.log(
+      `modules present: ${result.inventory.hasModules ? "YES" : "NO"}`
+    );
+  }
 }
 
 if (isExecutedAsCli()) {

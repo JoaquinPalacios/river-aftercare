@@ -1,23 +1,13 @@
-import "server-only";
-
+import {
+  ALLOWED_ERROR_CONTEXTS,
+  ALLOWED_ERROR_TAG_KEYS,
+} from "./error-tracking-allowlists.ts";
 import {
   REDACTED_MARKER,
   sanitizeErrorMessage,
   sanitizeErrorTrackingUrl,
   sanitizeSensitiveValue,
-} from "@/lib/observability/sensitive-value-sanitizer";
-
-const DIAGNOSTIC_CONTEXTS = new Set([
-  "app",
-  "os",
-  "device",
-  "runtime",
-  "browser",
-  "gpu",
-  "culture",
-  "cloud_resource",
-  "trace",
-]);
+} from "./sensitive-value-sanitizer.ts";
 
 export type SanitizedErrorEvent = {
   message?: string;
@@ -101,6 +91,25 @@ function sanitizeException(
   };
 }
 
+function sanitizeRuntimeContext(
+  value: unknown
+): Record<string, unknown> | undefined {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const runtime: Record<string, unknown> = {};
+  if (typeof record.name === "string" && record.name.trim()) {
+    runtime.name = record.name.trim();
+  }
+  if (typeof record.version === "string" && record.version.trim()) {
+    runtime.version = record.version.trim();
+  }
+
+  return Object.keys(runtime).length > 0 ? runtime : undefined;
+}
+
 function sanitizeContexts(
   contexts: unknown
 ): Record<string, unknown> | undefined {
@@ -110,14 +119,70 @@ function sanitizeContexts(
   }
 
   const output: Record<string, unknown> = {};
+  for (const key of ALLOWED_ERROR_CONTEXTS) {
+    if (key === "runtime" && record.runtime !== undefined) {
+      const runtime = sanitizeRuntimeContext(record.runtime);
+      if (runtime) {
+        output.runtime = runtime;
+      }
+    }
+  }
+
+  return Object.keys(output).length > 0 ? output : undefined;
+}
+
+function sanitizeTags(tags: unknown): Record<string, string> | undefined {
+  const record = asRecord(tags);
+  if (!record) {
+    return undefined;
+  }
+
+  const output: Record<string, string> = {};
   for (const [key, value] of Object.entries(record)) {
-    if (DIAGNOSTIC_CONTEXTS.has(key)) {
-      output[key] = sanitizeSensitiveValue(value, key);
+    if (
+      !ALLOWED_ERROR_TAG_KEYS.has(key) ||
+      typeof value !== "string" ||
+      !value
+    ) {
       continue;
     }
-    output[key] = sanitizeSensitiveValue(value, key);
+    const sanitized = sanitizeSensitiveValue(value, key);
+    if (typeof sanitized === "string" && sanitized.length > 0) {
+      output[key] = sanitized;
+    }
   }
-  return output;
+
+  return Object.keys(output).length > 0 ? output : undefined;
+}
+
+function stripLocalVariablesFromException(
+  exception: SanitizedErrorEvent["exception"]
+): SanitizedErrorEvent["exception"] {
+  if (!exception?.values) {
+    return exception;
+  }
+
+  return {
+    values: exception.values.map((entry) => {
+      const stacktrace = asRecord(entry.stacktrace);
+      const frames = stacktrace?.frames;
+      if (!Array.isArray(frames)) {
+        return entry;
+      }
+
+      return {
+        ...entry,
+        stacktrace: {
+          ...stacktrace,
+          frames: frames.map((frame) => {
+            const record = asRecord(frame) ?? {};
+            delete record.vars;
+            return record;
+          }),
+        },
+      };
+    }),
+  };
 }
 
 export function sanitizeErrorEvent(
@@ -127,8 +192,27 @@ export function sanitizeErrorEvent(
 
   delete sanitized.user;
   delete sanitized.modules;
+  delete sanitized.extra;
+  delete (sanitized as { server_name?: unknown }).server_name;
   delete (sanitized as { attachments?: unknown }).attachments;
   delete (sanitized as { debug_meta?: unknown }).debug_meta;
+  delete (sanitized as { breadcrumbs?: unknown }).breadcrumbs;
+
+  const sdk = asRecord(event.sdk);
+  if (sdk) {
+    const nextSdk: Record<string, unknown> = {};
+    if (typeof sdk.name === "string") {
+      nextSdk.name = sdk.name;
+    }
+    if (typeof sdk.version === "string") {
+      nextSdk.version = sdk.version;
+    }
+    if (Object.keys(nextSdk).length > 0) {
+      sanitized.sdk = nextSdk;
+    } else {
+      delete sanitized.sdk;
+    }
+  }
 
   if (typeof event.message === "string") {
     sanitized.message = sanitizeErrorMessage(event.message);
@@ -139,22 +223,26 @@ export function sanitizeErrorEvent(
     delete sanitized.request;
   }
 
-  sanitized.exception = sanitizeException(event.exception);
+  sanitized.exception = stripLocalVariablesFromException(
+    sanitizeException(event.exception)
+  );
   if (!sanitized.exception) {
     delete sanitized.exception;
   }
 
-  if (event.extra !== undefined) {
-    sanitized.extra = sanitizeSensitiveValue(event.extra, "extra");
-  }
-  if (event.tags !== undefined) {
-    sanitized.tags = sanitizeSensitiveValue(event.tags, "tags");
-  }
-  if (event.contexts !== undefined) {
-    sanitized.contexts = sanitizeContexts(event.contexts);
+  const tags = sanitizeTags(event.tags);
+  if (tags) {
+    sanitized.tags = tags;
+  } else {
+    delete sanitized.tags;
   }
 
-  sanitized.breadcrumbs = [];
+  const contexts = sanitizeContexts(event.contexts);
+  if (contexts) {
+    sanitized.contexts = contexts;
+  } else {
+    delete sanitized.contexts;
+  }
 
   return sanitized;
 }
