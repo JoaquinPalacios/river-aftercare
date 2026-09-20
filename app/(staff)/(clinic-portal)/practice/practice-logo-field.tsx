@@ -1,44 +1,118 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-
-import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
-import { StaffFileTrigger } from "@/app/(staff)/components/staff-file-trigger";
-import { useAssetFileSelection } from "@/app/(staff)/components/use-asset-file-selection";
 import {
+  PracticeBrandingAssetField,
+  type BrandingAssetActionState,
+  type PracticeBrandingAssetCopy,
+} from "@/app/(staff)/(clinic-portal)/practice/practice-branding-asset-field";
+import {
+  removeClinicDarkLogoAction,
+  removeClinicFaviconAction,
   removeClinicLogoAction,
+  uploadClinicDarkLogoAction,
+  uploadClinicFaviconAction,
   uploadClinicLogoAction,
+  type ClinicFaviconActionState,
   type ClinicLogoActionState,
 } from "@/app/(staff)/(clinic-portal)/practice/logo-actions";
 
-const empty: ClinicLogoActionState = {};
-const ACCEPT =
+const LOGO_ACCEPT =
   "image/png,image/jpeg,image/webp,image/svg+xml,.png,.jpg,.jpeg,.webp,.svg";
-const REQUIREMENTS_FORMATS = "SVG, PNG, JPEG or WebP";
-const REQUIREMENTS_LIMITS = "Raster max 2 MB · SVG max 1 MB";
-const REQUIREMENTS = `${REQUIREMENTS_FORMATS} · ${REQUIREMENTS_LIMITS}`;
+const FAVICON_ACCEPT = "image/png,.png";
 
-function PracticeLogoPreview({
-  src,
-  alt,
-  onError,
-}: {
-  src: string;
-  alt: string;
-  onError?: () => void;
-}) {
-  return (
-    // Clinic mark is a same-origin path, configured assets origin, or a local object URL.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} className="staffLogoPreview" onError={onError} />
-  );
+const LOGO_COPY: PracticeBrandingAssetCopy = {
+  label: "Practice logo",
+  help: "Shown on your patient aftercare site.",
+  formats: "SVG, PNG, JPEG or WebP",
+  limits: "Raster max 2 MB · SVG max 1 MB",
+  noun: "practice logo",
+  chooseNew: "Choose logo",
+  chooseReplace: "Choose replacement",
+  uploadNew: "Upload logo",
+  uploadReplace: "Upload replacement",
+  remove: "Remove logo",
+  keep: "Keep logo",
+  successUpload: "Practice logo updated.",
+  successRemove: "Practice logo removed.",
+  confirmTitle: "Remove practice logo?",
+  confirmDescription:
+    "The patient aftercare site will fall back to the practice name and default presentation.",
+  unavailable:
+    "Logo upload is unavailable because clinic object storage is not configured in this environment.",
+  currentCaption: "Current logo",
+  selectedCaption: "Selected replacement",
+  emptyChoice: "Choose a PNG, JPEG, WebP, or SVG image.",
+};
+
+const DARK_LOGO_COPY: PracticeBrandingAssetCopy = {
+  ...LOGO_COPY,
+  label: "Dark logo",
+  help: "Optional. Use an alternate logo if your standard logo is not suitable on dark backgrounds.",
+  noun: "Dark-mode logo",
+  chooseNew: "Choose Dark logo",
+  chooseReplace: "Choose replacement",
+  uploadNew: "Upload Dark logo",
+  uploadReplace: "Upload replacement",
+  remove: "Remove Dark logo",
+  keep: "Keep Dark logo",
+  successUpload: "Dark logo updated.",
+  successRemove: "Dark logo removed.",
+  confirmTitle: "Remove Dark logo?",
+  confirmDescription:
+    "Dark patient pages will use your standard practice logo.",
+  currentCaption: "Current Dark logo",
+  selectedCaption: "Selected replacement",
+};
+
+const FAVICON_COPY: PracticeBrandingAssetCopy = {
+  label: "Favicon",
+  help: "Shown in the browser tab for your patient aftercare pages.",
+  formats: "Square PNG",
+  limits: "At least 32 × 32 · 512 × 512 recommended · max 1024 × 1024 · 512 KB",
+  noun: "clinic favicon",
+  chooseNew: "Choose favicon",
+  chooseReplace: "Choose replacement",
+  uploadNew: "Upload favicon",
+  uploadReplace: "Upload replacement",
+  remove: "Remove favicon",
+  keep: "Keep favicon",
+  successUpload: "Favicon updated.",
+  successRemove: "Favicon removed.",
+  confirmTitle: "Remove favicon?",
+  confirmDescription:
+    "Patient aftercare tabs will use the River Aftercare favicon.",
+  unavailable:
+    "Favicon upload is unavailable because clinic object storage is not configured in this environment.",
+  currentCaption: "Current favicon",
+  selectedCaption: "Selected replacement",
+  emptyChoice: "Choose a square PNG image.",
+  previewClassName: "staffFaviconPreview",
+};
+
+function readLogoState(state: unknown): BrandingAssetActionState {
+  const value = state as ClinicLogoActionState;
+  return {
+    ok: value.ok,
+    error: value.error,
+    storedUrl: value.logoUrl,
+    previewSrc: value.logoSrc,
+  };
+}
+
+function readFaviconState(state: unknown): BrandingAssetActionState {
+  const value = state as ClinicFaviconActionState;
+  return {
+    ok: value.ok,
+    error: value.error,
+    storedUrl: value.faviconUrl,
+    previewSrc: value.faviconSrc,
+  };
 }
 
 export function PracticeLogoField({
   displayName,
   logoUrl,
-  logoSrc: initialLogoSrc,
+  logoSrc,
   canEdit,
   storageAvailable,
   onLogoChange,
@@ -53,296 +127,110 @@ export function PracticeLogoField({
     logoSrc: string | null;
   }) => void;
 }) {
-  const appliedUploadKey = useRef<string | null>(null);
-  const seenUploadState = useRef<ClinicLogoActionState>(empty);
-  const labelId = useId();
-  const helpId = useId();
-  const requirementsId = useId();
-  const selectedId = useId();
-  const errorId = useId();
-  const [mounted, setMounted] = useState(false);
-  const [logoSrc, setLogoSrc] = useState(initialLogoSrc);
-  const [hasLogo, setHasLogo] = useState(Boolean(logoUrl));
-  const [success, setSuccess] = useState<string | undefined>();
-  const [error, setError] = useState<string | undefined>();
-  const [confirmRemove, setConfirmRemove] = useState(false);
-  const [previewBroken, setPreviewBroken] = useState(false);
-  const [uploadState, uploadAction, uploading] = useActionState(
-    uploadClinicLogoAction,
-    empty
-  );
-  const [removing, setRemoving] = useState(false);
-  const {
-    fileRef,
-    selectedLabel,
-    selectedPreviewSrc,
-    hasSelection,
-    clearSelection,
-    onFileChange,
-  } = useAssetFileSelection();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    setLogoSrc(initialLogoSrc);
-    setHasLogo(Boolean(logoUrl));
-  }, [initialLogoSrc, logoUrl]);
-
-  useEffect(() => {
-    setPreviewBroken(false);
-  }, [selectedPreviewSrc]);
-
-  useEffect(() => {
-    if (seenUploadState.current === uploadState) {
-      return;
-    }
-    seenUploadState.current = uploadState;
-
-    if (
-      uploadState.ok &&
-      uploadState.logoUrl &&
-      appliedUploadKey.current !== uploadState.logoUrl
-    ) {
-      appliedUploadKey.current = uploadState.logoUrl;
-      setLogoSrc(uploadState.logoSrc ?? null);
-      setHasLogo(true);
-      onLogoChange({
-        logoUrl: uploadState.logoUrl,
-        logoSrc: uploadState.logoSrc ?? null,
-      });
-      clearSelection();
-      setError(undefined);
-      setSuccess("Practice logo updated.");
-      return;
-    }
-
-    if (uploadState.error) {
-      setSuccess(undefined);
-      setError(uploadState.error);
-    }
-  }, [uploadState, onLogoChange, clearSelection]);
-
-  async function removeLogo(): Promise<void> {
-    setRemoving(true);
-    setError(undefined);
-    setSuccess(undefined);
-    try {
-      const data = new FormData();
-      data.set("intent", "remove-logo");
-      const result = await removeClinicLogoAction(empty, data);
-      if (result.ok) {
-        setLogoSrc(null);
-        setHasLogo(false);
-        onLogoChange({ logoUrl: null, logoSrc: null });
-        clearSelection();
-        setSuccess("Practice logo removed.");
-        return;
-      }
-      setError(result.error ?? "Could not update the clinic logo.");
-    } finally {
-      setRemoving(false);
-    }
-  }
-
-  const previewSrc = logoSrc;
-  const busy = uploading || removing;
-  const practiceName = displayName || "Practice";
-  const previewAlt = `Current ${practiceName} logo`;
-  const selectedPreviewAlt = hasLogo
-    ? `Selected replacement for the ${practiceName} logo`
-    : `Selected ${practiceName} logo`;
-  const chooseLabel = hasLogo ? "Choose replacement" : "Choose logo";
-  const comparing = hasLogo && hasSelection;
-  const showSelectedPreview = Boolean(selectedPreviewSrc) && !previewBroken;
-  const selectedCaption = selectedLabel ? (
-    <p className="text-sm text-staff-ink" id={selectedId} aria-live="polite">
-      {selectedLabel}
-    </p>
-  ) : null;
-  const describedBy = [
-    helpId,
-    requirementsId,
-    hasSelection ? selectedId : null,
-    error ? errorId : null,
-  ]
-    .filter(Boolean)
-    .join(" ");
-
   return (
-    <div
-      className="staffAssetControl"
-      role="group"
-      aria-labelledby={labelId}
-      aria-busy={busy || undefined}
-    >
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium" id={labelId}>
-          Practice logo
-        </p>
-        <p className="text-sm text-staff-muted" id={helpId}>
-          Shown on your patient aftercare site.
-        </p>
-      </div>
+    <PracticeBrandingAssetField
+      copy={LOGO_COPY}
+      storedUrl={logoUrl}
+      previewSrc={logoSrc}
+      hiddenName="logoUrl"
+      fileInputId="clinic-logo-file"
+      formId="clinic-logo-upload"
+      fileFieldName="logo"
+      accept={LOGO_ACCEPT}
+      canEdit={canEdit}
+      storageAvailable={storageAvailable}
+      previewName={`${displayName || "Practice"} logo`}
+      uploadAction={uploadClinicLogoAction}
+      removeAction={removeClinicLogoAction}
+      readUpload={readLogoState}
+      onAssetChange={(next) =>
+        onLogoChange({ logoUrl: next.storedUrl, logoSrc: next.previewSrc })
+      }
+    />
+  );
+}
 
-      {comparing ? (
-        <div className="staffLogoCompare">
-          <div className="staffLogoCompareSlot">
-            <p className="staffLogoCompareLabel">Current logo</p>
-            {previewSrc ? (
-              <PracticeLogoPreview src={previewSrc} alt={previewAlt} />
-            ) : (
-              <div className="staffLogoPreviewEmpty" />
-            )}
-          </div>
-          <span className="staffLogoCompareArrow" aria-hidden="true">
-            <span className="staffLogoCompareArrowMobile">↓</span>
-            <span className="staffLogoCompareArrowDesktop">→</span>
-          </span>
-          <div className="staffLogoCompareSlot staffLogoCompareSlotSelected">
-            <p className="staffLogoCompareLabel">Selected replacement</p>
-            {showSelectedPreview && selectedPreviewSrc ? (
-              <PracticeLogoPreview
-                src={selectedPreviewSrc}
-                alt={selectedPreviewAlt}
-                onError={() => setPreviewBroken(true)}
-              />
-            ) : (
-              <div className="staffLogoPreviewEmpty" />
-            )}
-            {selectedCaption}
-          </div>
-        </div>
-      ) : previewSrc ? (
-        <PracticeLogoPreview src={previewSrc} alt={previewAlt} />
-      ) : showSelectedPreview && selectedPreviewSrc ? (
-        <PracticeLogoPreview
-          src={selectedPreviewSrc}
-          alt={selectedPreviewAlt}
-          onError={() => setPreviewBroken(true)}
-        />
-      ) : (
-        <div className="staffLogoPreviewEmpty" id={requirementsId}>
-          <p className="text-sm text-staff-muted">{REQUIREMENTS_FORMATS}</p>
-          <p className="text-sm text-staff-muted">{REQUIREMENTS_LIMITS}</p>
-        </div>
-      )}
+export function PracticeDarkLogoField({
+  displayName,
+  logoUrl,
+  logoSrc,
+  canEdit,
+  storageAvailable,
+  onLogoChange,
+}: {
+  displayName: string;
+  logoUrl: string | null;
+  logoSrc: string | null;
+  canEdit: boolean;
+  storageAvailable: boolean;
+  onLogoChange: (next: {
+    logoUrl: string | null;
+    logoSrc: string | null;
+  }) => void;
+}) {
+  return (
+    <PracticeBrandingAssetField
+      copy={DARK_LOGO_COPY}
+      storedUrl={logoUrl}
+      previewSrc={logoSrc}
+      hiddenName="darkLogoUrl"
+      fileInputId="clinic-dark-logo-file"
+      formId="clinic-dark-logo-upload"
+      fileFieldName="logo"
+      accept={LOGO_ACCEPT}
+      canEdit={canEdit}
+      storageAvailable={storageAvailable}
+      previewName={`${displayName || "Practice"} Dark-mode logo`}
+      uploadAction={uploadClinicDarkLogoAction}
+      removeAction={removeClinicDarkLogoAction}
+      readUpload={readLogoState}
+      onAssetChange={(next) =>
+        onLogoChange({ logoUrl: next.storedUrl, logoSrc: next.previewSrc })
+      }
+    />
+  );
+}
 
-      {previewSrc || comparing || showSelectedPreview ? (
-        <p className="text-sm text-staff-muted" id={requirementsId}>
-          {REQUIREMENTS}
-        </p>
-      ) : null}
-
-      <input type="hidden" name="logoUrl" value={logoUrl ?? ""} />
-
-      {storageAvailable && canEdit ? (
-        <div className="flex min-w-0 flex-col gap-3">
-          {hasSelection && !comparing ? selectedCaption : null}
-
-          <div className="staffAssetActions">
-            <StaffFileTrigger
-              inputRef={fileRef}
-              id="clinic-logo-file"
-              form="clinic-logo-upload"
-              name="logo"
-              accept={ACCEPT}
-              disabled={busy}
-              ariaLabel={chooseLabel}
-              ariaDescribedBy={describedBy}
-              ariaInvalid={Boolean(error)}
-              pending={hasSelection}
-              buttonLabel={chooseLabel}
-              onChange={(event) => {
-                setSuccess(undefined);
-                setError(undefined);
-                void onFileChange(event);
-              }}
-            />
-
-            {hasSelection ? (
-              <>
-                <button
-                  form="clinic-logo-upload"
-                  type="submit"
-                  disabled={busy}
-                  className="staffBtn staffBtnPrimary"
-                >
-                  {uploading
-                    ? "Uploading…"
-                    : hasLogo
-                      ? "Upload replacement"
-                      : "Upload logo"}
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  className="staffBtn staffBtnQuiet"
-                  onClick={() => {
-                    clearSelection();
-                    setError(undefined);
-                    setSuccess(undefined);
-                  }}
-                >
-                  Cancel
-                </button>
-              </>
-            ) : hasLogo ? (
-              <button
-                type="button"
-                disabled={busy}
-                className="staffBtn staffBtnQuiet"
-                onClick={() => setConfirmRemove(true)}
-              >
-                {removing ? "Removing…" : "Remove logo"}
-              </button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-
-      {!storageAvailable ? (
-        <p className="staffLogoUnavailable">
-          Logo upload is unavailable because clinic object storage is not
-          configured in this environment.
-        </p>
-      ) : null}
-
-      {success && !error ? (
-        <p className="text-sm text-staff-muted" role="status">
-          {success}
-        </p>
-      ) : null}
-
-      {error ? (
-        <p className="text-sm text-red-600" id={errorId} role="alert">
-          {error}
-        </p>
-      ) : null}
-
-      {canEdit && (hasLogo || confirmRemove) ? (
-        <ConfirmDialog
-          open={confirmRemove}
-          title="Remove practice logo?"
-          description="The patient aftercare site will fall back to the practice name and default presentation."
-          cancelLabel="Keep logo"
-          confirmLabel={removing ? "Removing…" : "Remove logo"}
-          confirmTone="danger"
-          onCancel={() => setConfirmRemove(false)}
-          onConfirm={() => {
-            setConfirmRemove(false);
-            void removeLogo();
-          }}
-        />
-      ) : null}
-
-      {mounted && storageAvailable && canEdit
-        ? createPortal(
-            <form id="clinic-logo-upload" action={uploadAction} />,
-            document.body
-          )
-        : null}
-    </div>
+export function PracticeFaviconField({
+  displayName,
+  faviconUrl,
+  faviconSrc,
+  canEdit,
+  storageAvailable,
+  onFaviconChange,
+}: {
+  displayName: string;
+  faviconUrl: string | null;
+  faviconSrc: string | null;
+  canEdit: boolean;
+  storageAvailable: boolean;
+  onFaviconChange: (next: {
+    faviconUrl: string | null;
+    faviconSrc: string | null;
+  }) => void;
+}) {
+  return (
+    <PracticeBrandingAssetField
+      copy={FAVICON_COPY}
+      storedUrl={faviconUrl}
+      previewSrc={faviconSrc}
+      hiddenName="faviconUrl"
+      fileInputId="clinic-favicon-file"
+      formId="clinic-favicon-upload"
+      fileFieldName="favicon"
+      accept={FAVICON_ACCEPT}
+      canEdit={canEdit}
+      storageAvailable={storageAvailable}
+      previewName={`${displayName || "Practice"} favicon`}
+      uploadAction={uploadClinicFaviconAction}
+      removeAction={removeClinicFaviconAction}
+      readUpload={readFaviconState}
+      onAssetChange={(next) =>
+        onFaviconChange({
+          faviconUrl: next.storedUrl,
+          faviconSrc: next.previewSrc,
+        })
+      }
+    />
   );
 }

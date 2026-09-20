@@ -64,6 +64,8 @@ export async function generateMetadata({
     canonicalUrl: await publicTenantCanonicalUrl(
       `/${document.practiceGuide.publicSlug}`
     ),
+    faviconUrl: document.profile?.faviconUrl,
+    theme: document.profile,
   });
 }
 

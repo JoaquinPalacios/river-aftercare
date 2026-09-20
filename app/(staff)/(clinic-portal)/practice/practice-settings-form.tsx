@@ -14,7 +14,12 @@ import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
 import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
 import { SaveStatus } from "@/app/(staff)/components/save-status";
 import { useUnsavedChangesGuard } from "@/app/(staff)/components/use-unsaved-changes-guard";
-import { PracticeLogoField } from "@/app/(staff)/(clinic-portal)/practice/practice-logo-field";
+import {
+  PracticeDarkLogoField,
+  PracticeFaviconField,
+  PracticeLogoField,
+} from "@/app/(staff)/(clinic-portal)/practice/practice-logo-field";
+import { PracticeBrandingPreview } from "@/app/(staff)/(clinic-portal)/practice/practice-branding-preview";
 import {
   savePracticeSettingsAction,
   type PracticeActionState,
@@ -49,12 +54,16 @@ function scrollToSection(id: string) {
 export function PracticeSettingsForm({
   values,
   logoSrc,
+  darkLogoSrc,
+  faviconSrc,
   canEdit,
   patientSiteHref,
   storageAvailable,
 }: {
   values: PracticeSettingsInput;
   logoSrc: string | null;
+  darkLogoSrc: string | null;
+  faviconSrc: string | null;
   canEdit: boolean;
   patientSiteHref: string | null;
   storageAvailable: boolean;
@@ -66,6 +75,11 @@ export function PracticeSettingsForm({
   );
   const [form, setForm] = useState(values);
   const [currentLogoSrc, setCurrentLogoSrc] = useState(logoSrc);
+  const [currentDarkLogoSrc, setCurrentDarkLogoSrc] = useState(darkLogoSrc);
+  const [currentFaviconSrc, setCurrentFaviconSrc] = useState(faviconSrc);
+  const [previewAppearance, setPreviewAppearance] = useState<"light" | "dark">(
+    "light"
+  );
   const [confirmed, setConfirmed] = useState(() => snapshot(values));
   const [activeSection, setActiveSection] = useState<
     (typeof SECTIONS)[number]["id"]
@@ -80,6 +94,30 @@ export function PracticeSettingsForm({
       setCurrentLogoSrc(nextLogo.logoSrc);
       setForm((current) => {
         const next = { ...current, logoUrl: nextLogo.logoUrl };
+        setConfirmed(snapshot(next));
+        return next;
+      });
+    },
+    []
+  );
+
+  const onDarkLogoChange = useCallback(
+    (nextLogo: { logoUrl: string | null; logoSrc: string | null }) => {
+      setCurrentDarkLogoSrc(nextLogo.logoSrc);
+      setForm((current) => {
+        const next = { ...current, darkLogoUrl: nextLogo.logoUrl };
+        setConfirmed(snapshot(next));
+        return next;
+      });
+    },
+    []
+  );
+
+  const onFaviconChange = useCallback(
+    (nextFavicon: { faviconUrl: string | null; faviconSrc: string | null }) => {
+      setCurrentFaviconSrc(nextFavicon.faviconSrc);
+      setForm((current) => {
+        const next = { ...current, faviconUrl: nextFavicon.faviconUrl };
         setConfirmed(snapshot(next));
         return next;
       });
@@ -224,6 +262,11 @@ export function PracticeSettingsForm({
             />
             <FieldError message={state.fieldErrors?.displayName} />
           </Field>
+        </section>
+
+        <section id="practice-branding" className="staffPracticeSection">
+          <h2 className="text-base font-semibold">Branding</h2>
+          <h3 className="text-sm font-semibold">Brand identity</h3>
           <PracticeLogoField
             displayName={form.displayName}
             logoUrl={form.logoUrl}
@@ -232,29 +275,107 @@ export function PracticeSettingsForm({
             storageAvailable={storageAvailable}
             onLogoChange={onLogoChange}
           />
-        </section>
+          <PracticeDarkLogoField
+            displayName={form.displayName}
+            logoUrl={form.darkLogoUrl ?? null}
+            logoSrc={currentDarkLogoSrc}
+            canEdit={canEdit}
+            storageAvailable={storageAvailable}
+            onLogoChange={onDarkLogoChange}
+          />
+          <PracticeFaviconField
+            displayName={form.displayName}
+            faviconUrl={form.faviconUrl ?? null}
+            faviconSrc={currentFaviconSrc}
+            canEdit={canEdit}
+            storageAvailable={storageAvailable}
+            onFaviconChange={onFaviconChange}
+          />
 
-        <section id="practice-branding" className="staffPracticeSection">
-          <h2 className="text-base font-semibold">Branding</h2>
-          <ColorField
-            id="primaryColor"
-            name="primaryColor"
-            label="Primary brand colour"
-            hint="Shown on the patient site"
-            value={form.primaryColor ?? ""}
-            disabled={!canEdit}
-            error={state.fieldErrors?.primaryColor}
-            onChange={(value) => patch("primaryColor", value || null)}
-          />
-          <ColorField
-            id="accentColor"
-            name="accentColor"
-            label="Accent colour"
-            value={form.accentColor ?? ""}
-            disabled={!canEdit}
-            error={state.fieldErrors?.accentColor}
-            onChange={(value) => patch("accentColor", value || null)}
-          />
+          <h3 className="text-sm font-semibold">Brand colours</h3>
+          <fieldset className="staffBrandAppearanceGroup">
+            <legend className="text-sm font-medium">Light</legend>
+            <ColorField
+              id="primaryColor"
+              name="primaryColor"
+              label="Primary colour"
+              hint="Used for Light patient pages, and for Dark when custom Dark branding is off."
+              value={form.primaryColor ?? ""}
+              disabled={!canEdit}
+              error={state.fieldErrors?.primaryColor}
+              onChange={(value) => patch("primaryColor", value || null)}
+            />
+            <ColorField
+              id="accentColor"
+              name="accentColor"
+              label="Accent colour"
+              value={form.accentColor ?? ""}
+              disabled={!canEdit}
+              error={state.fieldErrors?.accentColor}
+              onChange={(value) => patch("accentColor", value || null)}
+            />
+          </fieldset>
+          <fieldset className="staffBrandAppearanceGroup">
+            <legend className="text-sm font-medium">Dark</legend>
+            <p className="text-sm text-staff-muted">
+              Add alternate brand colours for patients using Dark mode.
+            </p>
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="useCustomDarkBranding"
+                checked={form.useCustomDarkBranding === true}
+                onChange={(event) =>
+                  patch("useCustomDarkBranding", event.target.checked)
+                }
+                disabled={!canEdit}
+                className="mt-0.5 h-4 w-4"
+              />
+              <span>
+                Use custom Dark branding
+                <span className="mt-1 block text-staff-muted">
+                  {form.useCustomDarkBranding
+                    ? "Dark mode uses these colours with River Aftercare dark patient surfaces."
+                    : "Dark mode uses your existing brand colours with River Aftercare's dark patient surfaces."}
+                </span>
+              </span>
+            </label>
+            {form.useCustomDarkBranding ? (
+              <>
+                <ColorField
+                  id="darkPrimaryColor"
+                  name="darkPrimaryColor"
+                  label="Dark primary colour"
+                  value={form.darkPrimaryColor ?? ""}
+                  disabled={!canEdit}
+                  error={state.fieldErrors?.darkPrimaryColor}
+                  onChange={(value) => patch("darkPrimaryColor", value || null)}
+                />
+                <ColorField
+                  id="darkAccentColor"
+                  name="darkAccentColor"
+                  label="Dark accent colour"
+                  value={form.darkAccentColor ?? ""}
+                  disabled={!canEdit}
+                  error={state.fieldErrors?.darkAccentColor}
+                  onChange={(value) => patch("darkAccentColor", value || null)}
+                />
+              </>
+            ) : (
+              <>
+                <input
+                  type="hidden"
+                  name="darkPrimaryColor"
+                  value={form.darkPrimaryColor ?? ""}
+                />
+                <input
+                  type="hidden"
+                  name="darkAccentColor"
+                  value={form.darkAccentColor ?? ""}
+                />
+              </>
+            )}
+          </fieldset>
           <ColorField
             id="neutralColor"
             name="neutralColor"
@@ -338,6 +459,14 @@ export function PracticeSettingsForm({
               <option value="RECOVERY">Recovery instructions</option>
             </select>
           </Field>
+          <PracticeBrandingPreview
+            values={form}
+            logoSrc={currentLogoSrc}
+            darkLogoSrc={currentDarkLogoSrc}
+            faviconSrc={currentFaviconSrc}
+            appearance={previewAppearance}
+            onAppearanceChange={setPreviewAppearance}
+          />
         </section>
 
         <section id="practice-contact" className="staffPracticeSection">
@@ -489,8 +618,9 @@ export function PracticeSettingsForm({
             Allow patients to toggle light and dark
           </label>
           <p className="text-sm text-staff-muted">
-            This controls the patient aftercare site. It does not change the
-            staff portal appearance.
+            This controls whether patients first see Light, Dark, or follow
+            their device. It does not replace clinic brand colours. Staff portal
+            appearance stays separate.
           </p>
           {patientSiteHref ? (
             <a

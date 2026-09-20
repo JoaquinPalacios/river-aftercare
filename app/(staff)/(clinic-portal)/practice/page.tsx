@@ -47,11 +47,18 @@ export default async function PracticePage() {
         patientSiteHref={overview.patientSiteHref}
         storageAvailable={isClinicAssetStorageConfigured()}
         logoSrc={resolveClinicLogoSrc(profile?.logoUrl ?? null)}
+        darkLogoSrc={resolveClinicLogoSrc(profile?.darkLogoUrl ?? null)}
+        faviconSrc={resolveClinicLogoSrc(profile?.faviconUrl ?? null)}
         values={{
           displayName: profile?.displayName || overview.displayName,
           logoUrl: profile?.logoUrl ?? null,
+          darkLogoUrl: profile?.darkLogoUrl ?? null,
+          faviconUrl: profile?.faviconUrl ?? null,
           primaryColor: profile?.primaryColor ?? null,
           accentColor: profile?.accentColor ?? null,
+          darkPrimaryColor: profile?.darkPrimaryColor ?? null,
+          darkAccentColor: profile?.darkAccentColor ?? null,
+          useCustomDarkBranding: profile?.useCustomDarkBranding ?? false,
           neutralColor: profile?.neutralColor ?? null,
           radiusPreset: profile?.radiusPreset ?? "MEDIUM",
           typeface: profile?.typeface ?? null,

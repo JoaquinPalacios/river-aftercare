@@ -2,7 +2,11 @@
 
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
 import {
+  removeClinicDarkLogo,
+  removeClinicFavicon,
   removeClinicLogo,
+  uploadClinicDarkLogo,
+  uploadClinicFavicon,
   uploadClinicLogo,
 } from "@/lib/clinic-assets/mutate-clinic-logo";
 import { ClinicAssetStorageUnavailableError } from "@/lib/clinic-assets/errors";
@@ -15,14 +19,21 @@ export interface ClinicLogoActionState {
   ok?: boolean;
 }
 
-function logoError(error: unknown): string {
+export interface ClinicFaviconActionState {
+  error?: string;
+  faviconUrl?: string | null;
+  faviconSrc?: string | null;
+  ok?: boolean;
+}
+
+function assetError(error: unknown, fallback: string): string {
   if (error instanceof ClinicAssetStorageUnavailableError) {
     return error.message;
   }
   if (isClinicPortalError(error)) {
     return error.message;
   }
-  return "Could not update the clinic logo.";
+  return fallback;
 }
 
 export async function uploadClinicLogoAction(
@@ -50,7 +61,7 @@ export async function uploadClinicLogoAction(
       logoSrc: uploaded.logoSrc,
     };
   } catch (error) {
-    return { error: logoError(error) };
+    return { error: assetError(error, "Could not update the clinic logo.") };
   }
 }
 
@@ -67,6 +78,98 @@ export async function removeClinicLogoAction(
     });
     return { ok: true, logoUrl: null, logoSrc: null };
   } catch (error) {
-    return { error: logoError(error) };
+    return { error: assetError(error, "Could not update the clinic logo.") };
+  }
+}
+
+export async function uploadClinicDarkLogoAction(
+  _previous: ClinicLogoActionState,
+  formData: FormData
+): Promise<ClinicLogoActionState> {
+  const { clinicMembership } = await requireClinicAdmin();
+  const file = formData.get("logo");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose a PNG, JPEG, WebP, or SVG image." };
+  }
+
+  try {
+    const uploaded = await uploadClinicDarkLogo({
+      actorRole: clinicMembership.role,
+      actorClinicId: clinicMembership.clinic.id,
+      targetClinicId: clinicMembership.clinic.id,
+      bytes: new Uint8Array(await file.arrayBuffer()),
+      mimeType: file.type,
+      fileName: file.name,
+    });
+    return {
+      ok: true,
+      logoUrl: uploaded.logoUrl,
+      logoSrc: uploaded.logoSrc,
+    };
+  } catch (error) {
+    return { error: assetError(error, "Could not update the Dark-mode logo.") };
+  }
+}
+
+export async function removeClinicDarkLogoAction(
+  _previous: ClinicLogoActionState,
+  _formData: FormData
+): Promise<ClinicLogoActionState> {
+  const { clinicMembership } = await requireClinicAdmin();
+  try {
+    await removeClinicDarkLogo({
+      actorRole: clinicMembership.role,
+      actorClinicId: clinicMembership.clinic.id,
+      targetClinicId: clinicMembership.clinic.id,
+    });
+    return { ok: true, logoUrl: null, logoSrc: null };
+  } catch (error) {
+    return { error: assetError(error, "Could not update the Dark-mode logo.") };
+  }
+}
+
+export async function uploadClinicFaviconAction(
+  _previous: ClinicFaviconActionState,
+  formData: FormData
+): Promise<ClinicFaviconActionState> {
+  const { clinicMembership } = await requireClinicAdmin();
+  const file = formData.get("favicon");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose a square PNG image." };
+  }
+
+  try {
+    const uploaded = await uploadClinicFavicon({
+      actorRole: clinicMembership.role,
+      actorClinicId: clinicMembership.clinic.id,
+      targetClinicId: clinicMembership.clinic.id,
+      bytes: new Uint8Array(await file.arrayBuffer()),
+      mimeType: file.type,
+      fileName: file.name,
+    });
+    return {
+      ok: true,
+      faviconUrl: uploaded.faviconUrl,
+      faviconSrc: uploaded.faviconSrc,
+    };
+  } catch (error) {
+    return { error: assetError(error, "Could not update the clinic favicon.") };
+  }
+}
+
+export async function removeClinicFaviconAction(
+  _previous: ClinicFaviconActionState,
+  _formData: FormData
+): Promise<ClinicFaviconActionState> {
+  const { clinicMembership } = await requireClinicAdmin();
+  try {
+    await removeClinicFavicon({
+      actorRole: clinicMembership.role,
+      actorClinicId: clinicMembership.clinic.id,
+      targetClinicId: clinicMembership.clinic.id,
+    });
+    return { ok: true, faviconUrl: null, faviconSrc: null };
+  } catch (error) {
+    return { error: assetError(error, "Could not update the clinic favicon.") };
   }
 }

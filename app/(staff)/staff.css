@@ -2192,6 +2192,181 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   }
 }
 
+.staffFaviconPreview {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  padding: 0.2rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.375rem;
+  background: var(--staff-canvas);
+  object-fit: contain;
+}
+
+.staffBrandAppearanceGroup {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.75rem;
+}
+
+.staffBrandAppearanceGroup legend {
+  padding: 0 0.35rem;
+}
+
+.staffBrandingPreview {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.staffBrandingPreviewSwitch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.staffBrandingPreviewOption,
+.staffBrandingPreviewOptionCurrent {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 999px;
+  background: var(--staff-panel);
+  color: var(--staff-ink);
+  font-size: 0.875rem;
+}
+
+.staffBrandingPreviewOptionCurrent {
+  border-color: var(--staff-brand);
+  background: color-mix(in srgb, var(--staff-brand) 12%, var(--staff-panel));
+}
+
+.staffBrandingPreviewOption:focus-within,
+.staffBrandingPreviewOptionCurrent:focus-within {
+  outline: var(--interaction-focus-width) solid var(--staff-brand);
+  outline-offset: var(--interaction-focus-offset);
+}
+
+.staffBrandingPreviewOption input,
+.staffBrandingPreviewOptionCurrent input {
+  margin: 0;
+}
+
+.staffPatientPreview {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem 1.2rem;
+  overflow: hidden;
+  border: 1px solid var(--cg-border, var(--staff-line));
+  border-radius: var(--cg-radius, 0.75rem);
+  background: var(--cg-surface, var(--staff-canvas));
+  color: var(--cg-text, var(--staff-ink));
+}
+
+.staffPatientPreviewTab {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--cg-border, var(--staff-line));
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: var(--cg-surface-subtle, var(--staff-panel));
+  color: var(--cg-text-muted, var(--staff-muted));
+  font-size: 0.75rem;
+}
+
+.staffPatientPreviewTab img {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.staffPatientPreviewChrome {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.staffPatientPreviewLogo,
+.staffPatientPreviewLogoFallback {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.staffPatientPreviewLogoFallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.35rem;
+  background: var(--cg-brand, var(--staff-brand));
+  color: var(--cg-on-brand, #fff);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.staffPatientPreviewName {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.staffPatientPreviewKicker {
+  margin: 0;
+  color: var(--cg-brand, var(--staff-brand));
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.staffPatientPreviewTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+.staffPatientPreviewBody {
+  margin: 0;
+  color: var(--cg-text-muted, var(--staff-muted));
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.staffPatientPreviewButton {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--cg-radius, 0.75rem);
+  background: var(--cg-brand, var(--staff-brand));
+  color: var(--cg-on-brand, #fff);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+@media (min-width: 430px) {
+  .staffBrandingPreviewSwitch {
+    justify-content: flex-end;
+  }
+}
+
 .staffSectionNavRow {
   color: var(--staff-muted);
 }
