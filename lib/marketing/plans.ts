@@ -71,7 +71,7 @@ export const LAUNCH_PLANS = [
     features: [
       "1 practice / location",
       `${PRODUCT_NAME} guide templates`,
-      `Up to ${PLAN_PRICES.essential.customGuides} custom clinic guides`,
+      `Create and edit up to ${PLAN_PRICES.essential.customGuides} custom clinic guides`,
       "Branded patient aftercare pages",
       PRICING_TYPOGRAPHY_FEATURE_LABEL,
       "Permanent guide URLs",
@@ -97,9 +97,7 @@ export const LAUNCH_PLANS = [
     features: [
       "Everything in Essential",
       `Up to ${PLAN_PRICES.practice.customGuides} custom clinic guides`,
-      "Create and edit your own aftercare guides",
       "Adapt River Aftercare templates to suit your clinic",
-      "Add clinic-specific instructions",
       "Assisted setup",
     ],
     setupNotes: ["Multi-location practice? Talk to us about your setup."],

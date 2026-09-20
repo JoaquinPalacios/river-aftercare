@@ -115,7 +115,8 @@ describe("marketing pricing page", () => {
     expect(html).toContain(LAUNCH_PLANS[2].name);
     expect(html).toContain("River Aftercare guide templates");
     expect(html).toContain("Print / Save PDF");
-    expect(html).toContain("Up to 2 custom clinic guides");
+    expect(html).toContain("Create and edit up to 2 custom clinic guides");
+    expect(html).not.toContain(">Up to 2 custom clinic guides<");
     expect(html).toContain("Up to 30 custom clinic guides");
     expect(html).not.toContain("active custom");
     expect(html).toContain(
@@ -125,11 +126,11 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("Create and adapt clinic aftercare");
     expect(html).not.toContain("Guide and section controls");
     expect(html).not.toContain("Local clinic instructions");
-    expect(html).toContain("Create and edit your own aftercare guides");
+    expect(html).not.toContain("Create and edit your own aftercare guides");
     expect(html).toContain(
       "Adapt River Aftercare templates to suit your clinic"
     );
-    expect(html).toContain("Add clinic-specific instructions");
+    expect(html).not.toContain("Add clinic-specific instructions");
     expect(html).not.toContain("Richer branding");
     expect(html).not.toContain("hide River Aftercare attribution");
     expect(html).not.toContain("Shared guides");
@@ -190,18 +191,26 @@ describe("marketing pricing page", () => {
     );
     const groupBlock = html.slice(html.indexOf('id="plan-group"'));
     expect(essentialBlock).toContain("1 practice / location");
+    expect(essentialBlock).toContain(
+      "Create and edit up to 2 custom clinic guides"
+    );
+    expect(essentialBlock).not.toContain(">Up to 2 custom clinic guides<");
     expect(essentialBlock).toContain("Logo, colours and curated typography");
-    expect(essentialBlock).toContain("<sup aria-hidden=\"true\">*</sup>");
+    expect(essentialBlock).toContain('<sup aria-hidden="true">*</sup>');
     expect(essentialBlock).toContain('href="#pricing-typography-note"');
     expect(essentialBlock).not.toContain("Patient check-ins");
     expect(essentialBlock).not.toContain("Connected aftercare");
     expect(essentialBlock).not.toContain("Additional locations");
     expect(practiceBlock).toContain("Everything in Essential");
-    expect(practiceBlock).toContain("Create and edit your own aftercare guides");
+    expect(practiceBlock).toContain("Up to 30 custom clinic guides");
     expect(practiceBlock).toContain(
       "Adapt River Aftercare templates to suit your clinic"
     );
-    expect(practiceBlock).toContain("Add clinic-specific instructions");
+    expect(practiceBlock).toContain("Assisted setup");
+    expect(practiceBlock).not.toContain(
+      "Create and edit your own aftercare guides"
+    );
+    expect(practiceBlock).not.toContain("Add clinic-specific instructions");
     expect(practiceBlock).not.toContain("Create and adapt clinic aftercare");
     expect(practiceBlock).not.toContain("Guide and section controls");
     expect(practiceBlock).not.toContain("Local clinic instructions");
@@ -246,5 +255,44 @@ describe("canonical plan prices", () => {
     expect(PLAN_PRICES.practice.additionalLocation.annualAudInclGst).toBe(590);
     expect(formatAudInclGst(1490)).toBe("A$1,490");
     expect(JSON.stringify(PLAN_PRICES)).not.toContain("298");
+  });
+
+  it("describes Essential custom-guide authoring and Practice template adaptation", () => {
+    expect([...LAUNCH_PLANS[0].features]).toEqual([
+      "1 practice / location",
+      "River Aftercare guide templates",
+      "Create and edit up to 2 custom clinic guides",
+      "Branded patient aftercare pages",
+      "Logo, colours and curated typography",
+      "Permanent guide URLs",
+      "QR-ready sharing",
+      "Print / Save PDF",
+      "Clinic contact and emergency information",
+      "Light, Dark and System patient presentation",
+    ]);
+    expect(LAUNCH_PLANS[0].features).not.toContain(
+      "Up to 2 custom clinic guides"
+    );
+    expect([...LAUNCH_PLANS[1].features]).toEqual([
+      "Everything in Essential",
+      "Up to 30 custom clinic guides",
+      "Adapt River Aftercare templates to suit your clinic",
+      "Assisted setup",
+    ]);
+    expect(LAUNCH_PLANS[1].features).not.toContain(
+      "Create and edit your own aftercare guides"
+    );
+    expect(LAUNCH_PLANS[1].features).not.toContain(
+      "Add clinic-specific instructions"
+    );
+    expect(LAUNCH_PLANS[1].features).not.toContain(
+      "Guide and section controls"
+    );
+    expect([...LAUNCH_PLANS[2].features]).toEqual([
+      "Coordinated rollout across practices",
+      "Custom onboarding",
+      "Priority support",
+      "Tailored account setup",
+    ]);
   });
 });
