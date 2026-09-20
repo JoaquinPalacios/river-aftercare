@@ -57,6 +57,6 @@ Vercel automatic Production deployments from `main` stay **enabled**. Vercel dep
 
 ## Errors, 404s, and health
 
-Host-aware fallbacks live next to each root layout: `error.tsx`, `not-found.tsx`, and `global-error.tsx` under `(marketing)`, `(staff)`, and `(aftercare)`. Copy is generic. Pages do not render Prisma/Neon/Vercel detail or error digests. Fallback components must not call `getPrisma`, clinic profile, R2, or membership lookup.
+Host-aware fallbacks live next to each root layout: `error.tsx`, `not-found.tsx`, and `global-error.tsx` under `(marketing)`, `(staff)`, and `(aftercare)`. Copy is generic. Pages do not render Prisma/Neon/Vercel detail or error digests. Fallback components must not call `getPrisma`, clinic profile, R2, or membership lookup. Multiple root layouts do not apply a group `not-found.tsx` to unmatched URLs, so marketing uses `_marketing/[...slug]`, staff uses `[...slug]`, and nested tenant paths use `[guideSlug]/[...rest]` — each catch-all only calls `notFound()`.
 
 `GET` / `HEAD` `/api/health` is staff-host only (`isStaffAppHost`). Healthy: HTTP 200 `{ "status": "ok" }`. Unhealthy: HTTP 503 `{ "status": "unavailable" }` plus a `health_database_unavailable` log event without connection text. The probe is `SELECT 1` through `getPrisma()` (pooled `DATABASE_URL`). It is not a schema-drift check. See [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READINESS.md).

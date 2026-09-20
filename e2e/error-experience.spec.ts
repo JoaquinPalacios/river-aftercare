@@ -21,10 +21,12 @@ const FORBIDDEN = [
 ];
 
 async function expectSafeFailureCopy(page: import("@playwright/test").Page) {
-  const body = ((await page.textContent("body")) ?? "").toLowerCase();
+  // innerText excludes script/style payloads (e.g. Vercel analytics).
+  const body = ((await page.locator("body").innerText()) ?? "").toLowerCase();
   for (const term of FORBIDDEN) {
     expect(body, term).not.toContain(term);
   }
+  await expect(page.getByText("This page could not be found")).toHaveCount(0);
 }
 
 test.describe("host-aware 404 and health", () => {

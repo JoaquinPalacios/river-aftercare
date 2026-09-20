@@ -362,11 +362,14 @@ describe("aftercare style boundary", () => {
     expect(fixtures).toContain("Call ${MARKETING_DEMO_CLINIC_NAME}");
   });
 
-  it("keeps patient Client Components isolated to theme control and marketing Motion to marketing", () => {
+  it("keeps patient Client Components isolated to theme control, required error boundaries, and marketing Motion to marketing", () => {
     const allowedPatientClient = new Set([
       "app/(aftercare)/components/patient-theme-control.tsx",
       "app/(aftercare)/components/patient-demo-experience.tsx",
       "app/(aftercare)/components/print-trigger.tsx",
+      "app/(aftercare)/error.tsx",
+      "app/(aftercare)/global-error.tsx",
+      "app/(aftercare)/%5Fsites/[tenant]/error.tsx",
     ]);
     const allowedMarketingClient = new Set([
       "app/(marketing)/components/marketing-theme-control.tsx",
@@ -381,6 +384,9 @@ describe("aftercare style boundary", () => {
       "app/(marketing)/components/marketing-nav-theme.tsx",
       "app/(marketing)/components/contact-form.tsx",
       "app/(marketing)/components/contact-turnstile.tsx",
+      "app/(marketing)/components/marketing-error-retry.tsx",
+      "app/(marketing)/error.tsx",
+      "app/(marketing)/global-error.tsx",
     ]);
     const files = walk("app/(aftercare)").filter((path) =>
       /\.(ts|tsx|css)$/.test(path)

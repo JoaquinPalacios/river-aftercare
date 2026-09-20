@@ -189,9 +189,9 @@ Revisit only if a later phase adds authenticated or highly interactive patient U
 ### 404 distinction
 
 - **Security routing 404:** hostname proxy returns an empty 404 for invalid/reserved hosts, direct `/_sites` / `/_marketing`, staff paths on a tenant or marketing host, and `/api/health` off the staff host. Do not brand these.
-- **Application marketing 404:** unknown apex pages rewrite to `/_marketing/...` and render `app/(marketing)/not-found.tsx`.
-- **Application staff 404:** unknown app-host paths render `app/(staff)/not-found.tsx`.
-- **Application tenant 404:** unknown tenant, unknown/draft/disabled guide, or pinned draft revision render the aftercare not-found surfaces (“Page not found” / “This aftercare page is not available.”). Generic, practice-neutral copy on unknown-tenant failures. Known-tenant layout may still apply CSS variables around a missing guide; visible chrome does not advertise another tenant.
+- **Application marketing 404:** unknown apex pages rewrite to `/_marketing/...`. `_marketing/[...slug]` calls `notFound()` so `app/(marketing)/not-found.tsx` renders.
+- **Application staff 404:** unknown app-host paths match `(staff)/[...slug]`, which calls `notFound()` so `app/(staff)/not-found.tsx` renders. Static staff pages and `/api/*` route handlers stay more specific than the catch-all.
+- **Application tenant 404:** unknown tenant, unknown/draft/disabled guide, nested unknown tenant path, or pinned draft revision render the aftercare not-found surfaces (“Page not found” / “This aftercare page is not available.”). Generic, practice-neutral copy on unknown-tenant failures. Known-tenant layout may still apply CSS variables around a missing guide; visible chrome does not advertise another tenant.
 
 ## After Phase 1F (public experience and branding foundation)
 

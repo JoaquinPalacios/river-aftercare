@@ -179,6 +179,22 @@ describe("failure UI source contract", () => {
     }
   });
 
+  it("uses catch-all pages to invoke host not-found boundaries without data access", () => {
+    const catchAlls = [
+      "app/(marketing)/%5Fmarketing/[...slug]/page.tsx",
+      "app/(staff)/[...slug]/page.tsx",
+      "app/(aftercare)/%5Fsites/[tenant]/[guideSlug]/[...rest]/page.tsx",
+    ] as const;
+
+    for (const file of catchAlls) {
+      const source = readFileSync(file, "utf8");
+      expect(source, file).toContain("notFound()");
+      expect(source, file).not.toContain("getPrisma");
+      expect(source, file).not.toContain("getAuthContext");
+      expect(source, file).not.toMatch(/from ["']@\/lib\/prisma["']/);
+    }
+  });
+
   it("keeps the health probe to SELECT 1 on the pooled Prisma client", () => {
     const ping = readFileSync(
       "lib/health/ping-application-database.ts",
