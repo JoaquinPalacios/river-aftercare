@@ -16,14 +16,13 @@ async function readAuthSurfaces(page: Page) {
     const title = document.querySelector(".staffAuthCard h1");
     const input = document.querySelector(".staffLoginField");
     const button = document.querySelector(".staffBtnPrimary");
-    const link = document.querySelector(".staffAuthCard a[href]");
+    const link = document.querySelector(
+      ".staffBackLink, .staffAuthCard a[href]"
+    );
     if (
       !(pageEl instanceof HTMLElement) ||
       !(card instanceof HTMLElement) ||
-      !(title instanceof HTMLElement) ||
-      !(input instanceof HTMLElement) ||
-      !(button instanceof HTMLElement) ||
-      !(link instanceof HTMLElement)
+      !(title instanceof HTMLElement)
     ) {
       return null;
     }
@@ -33,11 +32,29 @@ async function readAuthSurfaces(page: Page) {
       page: getComputedStyle(pageEl).backgroundColor,
       card: getComputedStyle(card).backgroundColor,
       text: getComputedStyle(title).color,
-      input: getComputedStyle(input).backgroundColor,
-      button: getComputedStyle(button).backgroundColor,
-      link: getComputedStyle(link).color,
+      input:
+        input instanceof HTMLElement
+          ? getComputedStyle(input).backgroundColor
+          : null,
+      button:
+        button instanceof HTMLElement
+          ? getComputedStyle(button).backgroundColor
+          : null,
+      link: link instanceof HTMLElement ? getComputedStyle(link).color : null,
     };
   });
+}
+
+async function chooseMarketingTheme(page: Page, name: "Dark" | "Light") {
+  const sync = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/ui-theme") &&
+      response.request().method() === "GET" &&
+      response.ok()
+  );
+  await page.getByRole("button", { name: /Change colour theme/ }).click();
+  await page.getByRole("menuitemradio", { name }).click();
+  await sync;
 }
 
 test.describe("auth light and dark theming", () => {
@@ -106,8 +123,7 @@ test.describe("auth light and dark theming", () => {
 
   test("marketing dark survives navigation to sign in", async ({ page }) => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
-    await page.getByRole("button", { name: /Change colour theme/ }).click();
-    await page.getByRole("menuitemradio", { name: "Dark" }).click();
+    await chooseMarketingTheme(page, "Dark");
     await expect(page.locator("html")).toHaveAttribute(
       "data-theme-mode",
       "dark"
@@ -126,8 +142,7 @@ test.describe("auth light and dark theming", () => {
   test("marketing light survives navigation to sign in", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
-    await page.getByRole("button", { name: /Change colour theme/ }).click();
-    await page.getByRole("menuitemradio", { name: "Light" }).click();
+    await chooseMarketingTheme(page, "Light");
     await expect(page.locator("html")).toHaveAttribute(
       "data-theme-mode",
       "light"
@@ -176,14 +191,18 @@ test.describe("auth light and dark theming", () => {
     expect(surfaces?.page).toBe(DARK_CANVAS);
     expect(surfaces?.card).toBe(DARK_PANEL);
     expect(surfaces?.text).toBe(DARK_INK);
+    expect(surfaces?.input).toBe(DARK_CANVAS);
 
-    await page.addInitScript(() => {
+    await page.evaluate(() => {
       window.localStorage.setItem("aftercare-guide-portal-theme", "light");
     });
-    await page.goto(staffUrl("/forgot-password"), { waitUntil: "load" });
+    await page.reload({ waitUntil: "load" });
     await expect(page.locator("html")).toHaveAttribute(
       "data-theme-mode",
       "light"
     );
+    const lightSurfaces = await readAuthSurfaces(page);
+    expect(lightSurfaces?.page).toBe(LIGHT_CANVAS);
+    expect(lightSurfaces?.card).toBe(LIGHT_PANEL);
   });
 });

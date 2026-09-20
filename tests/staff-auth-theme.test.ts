@@ -89,12 +89,12 @@ describe("staff auth theming", () => {
     );
   });
 
-  it("writes a product cookie that bootstrap can read on a later visit", () => {
+  it("writes a product cookie that bootstrap can read on a later visit", async () => {
     document.documentElement.setAttribute(
       "data-theme-cookie-domain",
       ".localhost"
     );
-    persistProductThemeCookie("dark");
+    await persistProductThemeCookie("dark");
 
     expect(document.cookie).toContain(`${PRODUCT_THEME_COOKIE_NAME}=dark`);
   });

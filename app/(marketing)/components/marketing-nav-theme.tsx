@@ -40,8 +40,8 @@ export function MarketingNavTheme() {
 
   function selectPreference(next: ThemePreference) {
     setPreference(next);
-    applyThemePreference(next, { productCookie: true });
     localStorage.setItem(MARKETING_THEME_STORAGE_KEY, next);
+    void applyThemePreference(next, { productCookie: true });
   }
 
   return (

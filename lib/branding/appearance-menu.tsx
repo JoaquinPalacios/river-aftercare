@@ -92,11 +92,11 @@ export function AppearanceMenu({
               style={{ alignItems: "center", gap: "0.5rem" }}
               onClick={() => {
                 setPreference(option.value);
-                applyThemePreference(option.value, {
-                  productCookie: shareProductCookie,
-                });
                 localStorage.setItem(storageKey, option.value);
                 menuRef.current?.hidePopover();
+                void applyThemePreference(option.value, {
+                  productCookie: shareProductCookie,
+                });
               }}
             >
               <span className={`${classPrefix}OptionIcon`} aria-hidden="true">

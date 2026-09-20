@@ -41,9 +41,9 @@ export function PortalAppearanceControl() {
 
   function selectPreference(next: ThemePreference) {
     setPreference(next);
-    applyThemePreference(next, { productCookie: true });
     localStorage.setItem(PORTAL_THEME_STORAGE_KEY, next);
     setExpanded(false);
+    void applyThemePreference(next, { productCookie: true });
   }
 
   return (

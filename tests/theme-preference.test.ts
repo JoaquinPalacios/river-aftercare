@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 
 import {
   MARKETING_THEME_STORAGE_KEY,
   PATIENT_THEME_STORAGE_KEY,
   PORTAL_THEME_STORAGE_KEY,
   PRODUCT_THEME_COOKIE_NAME,
+  PRODUCT_THEME_SYNC_PATH,
   parseThemeMode,
   parseThemePreference,
   productThemeCookieDomain,
@@ -50,10 +52,14 @@ describe("theme preference", () => {
 
   it("keeps product theme cookies on the platform root, including localhost", () => {
     expect(PRODUCT_THEME_COOKIE_NAME).toBe("aftercare-guide-ui-theme");
+    expect(PRODUCT_THEME_SYNC_PATH).toBe("/api/ui-theme");
     expect(productThemeCookieDomain("localhost")).toBe(".localhost");
     expect(productThemeCookieDomain("riveraftercare.com.au")).toBe(
       ".riveraftercare.com.au"
     );
+    const source = readFileSync("lib/branding/theme-preference.ts", "utf8");
+    expect(source).toContain("app.localhost");
+    expect(source).toContain("iframe");
   });
 
   it("lets staff bootstrap fall back to marketing storage, cookie, then system", () => {
