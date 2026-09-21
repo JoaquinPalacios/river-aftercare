@@ -1,4 +1,8 @@
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import {
+  PRIVACY_LAST_UPDATED_ISO,
+  TERMS_LAST_UPDATED_ISO,
+} from "@/lib/legal/status";
 import { DRAFT_LEGAL_ROBOTS, INDEXABLE_ROBOTS } from "@/lib/seo/robots-policy";
 import type {
   MarketingPageSeoInput,
@@ -88,7 +92,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: DRAFT_LEGAL_ROBOTS.index,
     follow: DRAFT_LEGAL_ROBOTS.follow,
-    lastModified: "2026-09-19",
+    lastModified: PRIVACY_LAST_UPDATED_ISO,
   },
   "/terms": {
     seoTitle: "Terms & Conditions",
@@ -98,7 +102,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: DRAFT_LEGAL_ROBOTS.index,
     follow: DRAFT_LEGAL_ROBOTS.follow,
-    lastModified: "2026-09-19",
+    lastModified: TERMS_LAST_UPDATED_ISO,
   },
   "/clinics": {
     seoTitle:

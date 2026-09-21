@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-21 (marketing reveals hydration-safe)
+Last updated: 2026-09-21 (launch-ready Terms/Privacy billing copy)
 
 ## Durable production release rule
 
@@ -62,6 +62,14 @@ Public support levels are marketing copy only: Essential = **Standard support**,
 Do not add Standard support as an Essential card bullet; it belongs in the comparison table as text, not a checkmark. Practice cards include Priority support. Group already includes Priority support — do not invent Premium, VIP, dedicated, or enterprise support. Do not publish same-day, 24-hour, 2-hour, 24/7, phone, clinical, or emergency support guarantees. Do not add `account@riveraftercare.com.au` or other public support emails until the later billing/legal/account task.
 
 Canonical source: `lib/marketing/plans.ts`.
+
+## Durable launch-ready Terms/Privacy billing-copy rule
+
+Public `/terms` and `/privacy` now describe the intended Stripe launch state. They are **not** legally approved. Do not merge or deploy that copy until Joaquín reviews the wording, an Australian solicitor reviews the near-final documents, and billing functionality is ready to go live.
+
+Do not flip `TERMS_PAGE_LEGALLY_APPROVED` or `PRIVACY_PAGE_LEGALLY_APPROVED`. Do not change legal-page robots/indexing. GST remains “will be charged where applicable.” Do not add `account@riveraftercare.com.au` until that mailbox is an established production contact.
+
+Canonical copy: `lib/legal/terms.ts`, `lib/legal/privacy.ts`, `lib/legal/status.ts`. Last updated **21 September 2026**.
 
 ---
 
@@ -1673,33 +1681,37 @@ Focused copy and composition pass on `/about`. Routes, SEO metadata, JSON-LD, an
 
 ---
 
-## Privacy Policy published copy (2026-09-19)
+## Privacy Policy published copy (2026-09-21)
 
-Replaces the `/privacy` draft with the current public Privacy Policy and removes the Draft for Legal Review card.
+Replaces the 19 September 2026 `/privacy` commercial description with launch-ready Stripe billing identity. The public draft banner remains removed.
 
-| Area             | Behaviour                                                                                                                                                                            |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Copy             | 21 numbered sections plus a short hero lede and preamble. Last updated **19 September 2026**.                                                                                        |
-| Identity         | **Pedro Joaquin Palacios**, sole trader trading as River Aftercare, ABN **32 671 297 130**, Tweed Heads South NSW. Privacy email **admin@riveraftercare.com.au** as `mailto:` links. |
-| Providers        | Names Vercel, Neon (Sydney), Cloudflare (R2 + Turnstile), Resend, Hostinger, and Google. Overseas processing: United States and Europe, plus distributed network infrastructure.     |
-| Draft banner     | Removed. `PRIVACY_PAGE_LEGALLY_APPROVED` stays `false`. Source robots remain `noindex, follow`.                                                                                      |
-| Markup           | Legal body copy supports `**bold**` and `[label](mailto:…)` via `lib/legal/inline-markup.ts`. Contact block is an `<address>`.                                                       |
-| Do not overclaim | Not Privacy Act certification, HIPAA, or a flipped operator legal-approval flag. Do not flip indexing without an explicit decision.                                                  |
+| Area             | Behaviour                                                                                                                                                                                                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Copy             | 21 numbered sections plus a short hero lede and preamble. Last updated **21 September 2026**.                                                                                                                                                                                   |
+| Identity         | **Pedro Joaquin Palacios**, sole trader trading as River Aftercare, ABN **32 671 297 130**, Tweed Heads South NSW. Privacy email **admin@riveraftercare.com.au** as `mailto:` links.                                                                                            |
+| Providers        | Names Vercel, Neon (Sydney), Cloudflare (R2 + Turnstile), Resend, Hostinger, Google, and **Stripe**. Overseas processing: United States and Europe, plus distributed network infrastructure. Stripe-hosted Checkout/Portal cookies are Stripe’s, not River advertising cookies. |
+| Billing identity | Legal entity name, trading/practice name, billing contact, billing email, billing address, ABN, or ACN where used instead of an ABN. Payment credentials are entered on Stripe-hosted pages. River does not store full card or bank-account credentials.                        |
+| Retention        | Up to **60 days** public patient-guide availability after subscription end, separate **30-day** export/exit window, plus legal/accounting retention. Cancellation is not account deletion.                                                                                      |
+| Draft banner     | Removed. `PRIVACY_PAGE_LEGALLY_APPROVED` stays `false`. Source robots remain `noindex, follow`.                                                                                                                                                                                 |
+| Markup           | Legal body copy supports `**bold**` and `[label](mailto:…)` / `https` links via `lib/legal/inline-markup.ts`. Contact block is an `<address>`.                                                                                                                                  |
+| Do not overclaim | Not Privacy Act certification, HIPAA, GST registration, or a flipped operator legal-approval flag. Do not flip indexing without an explicit decision.                                                                                                                           |
 
 ---
 
-## Terms published copy (2026-09-19)
+## Terms published copy (2026-09-21)
 
-Replaces the `/terms` draft with the current public Terms & Conditions and removes the Draft for Legal Review card.
+Replaces the 19 September 2026 `/terms` invoice/bank-transfer description with launch-ready Stripe billing, plan allowances, and retention rules. The public draft banner remains removed.
 
-| Area             | Behaviour                                                                                                                                                                                 |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Copy             | 32 numbered sections plus a short hero lede and preamble. Last updated **19 September 2026**.                                                                                             |
-| Identity         | Same operator identity and `admin@riveraftercare.com.au` contact as Privacy.                                                                                                              |
-| Commercial       | AUD, GST where applicable, monthly in advance, **14 calendar days**, bank transfer / manual invoice payment, month-to-month, cancellation at period end, overdue suspension after notice. |
-| Legal            | NSW governing law, non-exclusive jurisdiction, Australian Consumer Law, mutual AUD $1,000 / 12-month fees liability cap, mutual third-party indemnities, confidentiality, force majeure.  |
-| Draft banner     | Removed. `TERMS_PAGE_LEGALLY_APPROVED` stays `false`. Source robots remain `noindex, follow`.                                                                                             |
-| Do not overclaim | Not counsel-certified. Do not flip indexing or the operator legal-approval flag without an explicit decision.                                                                             |
+| Area             | Behaviour                                                                                                                                                                                                                                                                                                 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Copy             | 32 numbered sections plus a short hero lede and preamble. Last updated **21 September 2026**.                                                                                                                                                                                                             |
+| Identity         | Same operator identity and `admin@riveraftercare.com.au` contact as Privacy.                                                                                                                                                                                                                              |
+| Commercial       | AUD, GST where applicable, monthly or annual subscriptions charged in advance, Stripe-hosted card/BECS, automatic renewal, period-end cancellation including via a billing portal where available, immediate/prorated upgrades, next-renewal downgrades, failed-payment retry then authoring restriction. |
+| Templates        | Essential may use available templates as supplied. Practice may adapt where the plan permits. Group follows Customer Commercial Terms. Clinic-authored custom guides remain fully editable. River retains underlying template IP.                                                                         |
+| Retention        | Full paid functionality through the paid-through date. Public durable patient guide URLs may remain available for up to **60 days**. Separate **30-day** Customer Content export window. Account deletion is not subscription cancellation.                                                               |
+| Legal            | NSW governing law, non-exclusive jurisdiction, Australian Consumer Law, mutual AUD $1,000 / 12-month fees liability cap, mutual third-party indemnities, confidentiality, force majeure.                                                                                                                  |
+| Draft banner     | Removed. `TERMS_PAGE_LEGALLY_APPROVED` stays `false`. Source robots remain `noindex, follow`.                                                                                                                                                                                                             |
+| Do not overclaim | Not counsel-certified. Do not flip indexing or the operator legal-approval flag without an explicit decision. Do not merge until Joaquín, solicitor, and billing go-live reviews.                                                                                                                         |
 
 ---
 
@@ -1933,7 +1945,7 @@ Canonical report: [../architecture/BILLING.md](../architecture/BILLING.md).
 | Catalogue      | Essential + Practice Products; monthly/yearly inclusive AUD Prices matching `PLAN_PRICES`. No Group product. No location Prices.                                                                                                                                                                 |
 | GST            | Investigation recommendation only — **not current public/legal truth**. Public GST-inclusive claims have been withdrawn. GST registration is pending accountant confirmation; River is not GST registered; Stripe GST/tax is not authorised. Do not implement inclusive 10% GST from this table. |
 | Activation     | `invoice.paid` projector. Not `checkout.session.completed` (BECS is delayed).                                                                                                                                                                                                                    |
-| Patient URLs   | Do not unpublish on first payment failure. Proposed: grace while Stripe retries, then restrict authoring, then 30-day public retention. Joaquín must approve.                                                                                                                                    |
+| Patient URLs   | Do not unpublish on first payment failure. **Approved legal policy:** retry/grace, then restrict authoring, then **up to 60 days** public retention. The 30-day option in BILLING.md is historical.                                                                                              |
 
 ---
 

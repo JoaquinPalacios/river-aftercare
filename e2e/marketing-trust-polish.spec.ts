@@ -1,5 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import {
+  PRIVACY_LAST_UPDATED_ISO,
+  TERMS_LAST_UPDATED_ISO,
+} from "@/lib/legal/status";
+
 import { expectNoSeriousAxeViolations } from "./helpers/axe";
 import { expectOneH1 } from "./helpers/assertions";
 import { expectNoHorizontalOverflow } from "./helpers/layout";
@@ -50,7 +55,7 @@ test.describe("marketing + trust polish", () => {
     ).toHaveAttribute("href", "mailto:admin@riveraftercare.com.au");
     await expect(page.locator("time")).toHaveAttribute(
       "dateTime",
-      "2026-09-19"
+      PRIVACY_LAST_UPDATED_ISO
     );
     expect(
       await page.locator('meta[name="robots"]').getAttribute("content")
@@ -82,7 +87,7 @@ test.describe("marketing + trust polish", () => {
     ).toHaveAttribute("href", "mailto:admin@riveraftercare.com.au");
     await expect(page.locator("time")).toHaveAttribute(
       "dateTime",
-      "2026-09-19"
+      TERMS_LAST_UPDATED_ISO
     );
     expect(
       await page.locator('meta[name="robots"]').getAttribute("content")
