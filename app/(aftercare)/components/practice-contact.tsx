@@ -1,5 +1,6 @@
 import {
   hasPracticeContact,
+  hasRenderedWebPracticeContactChannel,
   type PracticeChrome,
 } from "@/lib/aftercare/practice-chrome";
 
@@ -19,7 +20,7 @@ export function PracticeContact({ chrome }: { chrome: PracticeChrome }) {
         Contact {chrome.displayName}
       </h2>
       <p className={styles.contactCopy}>Questions about your recovery?</p>
-      {chrome.phoneHref || chrome.contactHref ? (
+      {hasRenderedWebPracticeContactChannel(chrome) ? (
         <div className={styles.actions}>
           {chrome.phoneHref ? (
             <a

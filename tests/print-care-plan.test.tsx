@@ -187,6 +187,15 @@ describe("printable recovery guide", () => {
     expect(print).not.toContain("date of birth");
     expect(print).not.toContain("PIN");
     expect(print).not.toContain("patient name");
+    expect(print).not.toContain("About this guide");
+    expect(print).not.toContain("This aftercare information is provided by");
+    expect(web).not.toContain("This aftercare information is provided by");
+    expect(web).toContain("Interactive demo");
+    expect(web).toContain("Sample content only");
+    expect(web).toContain("Not clinical advice");
+    expect(print).not.toContain("reviewedBy");
+    expect(print).not.toContain("reviewAttestedBy");
+    expect(print).not.toContain("MedicalWebPage");
     expect(web).toContain("Leave the site undisturbed today.");
     expect(print).toContain("Leave the site undisturbed today.");
     expect(web).toContain("Print / Save PDF");
@@ -213,5 +222,48 @@ describe("printable recovery guide", () => {
 
     expect(print).not.toContain("Powered by River Aftercare");
     expect(print).not.toContain("<footer");
+    expect(print).toContain("SAMPLE / NOT CLINICAL ADVICE");
+    expect(print).not.toContain("This aftercare information is provided by");
+  });
+
+  it("prints the real-clinic disclaimer before practice contact", async () => {
+    getPublishedPracticeGuide.mockResolvedValue({
+      ...DOCUMENT,
+      clinic: {
+        id: "clinic_b",
+        slug: "otherclinic",
+        name: "Other Clinic",
+      },
+      profile: {
+        ...DOCUMENT.profile,
+        displayName: "Other Clinic Patient Brand",
+        showCareGuideAttribution: false,
+        logoUrl: null,
+      },
+    });
+
+    const print = renderToStaticMarkup(
+      await PrintPage({
+        params: Promise.resolve({
+          tenant: "otherclinic",
+          guideSlug: "extraction",
+        }),
+      })
+    );
+
+    expect(print).toContain("About this guide");
+    expect(print).toContain(
+      "This aftercare information is provided by Other Clinic Patient Brand for its patients. It does not replace advice from your treating practitioner. Follow any instructions given directly to you by your practitioner. If you are unsure about your recovery or need help, contact the practice using the details below."
+    );
+    expect(print.indexOf("Follow the stages in order.")).toBeLessThan(
+      print.indexOf("About this guide")
+    );
+    expect(print.indexOf("About this guide")).toBeLessThan(
+      print.indexOf("Contact Other Clinic Patient Brand")
+    );
+    expect(print).not.toContain("SAMPLE / NOT CLINICAL ADVICE");
+    expect(print).not.toContain("reviewedBy");
+    expect(print).not.toContain("reviewAttestedBy");
+    expect(print).not.toContain("MedicalWebPage");
   });
 });

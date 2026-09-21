@@ -130,7 +130,7 @@ The Tooth Extraction library row (`slug = extraction`) is **sample / non-clinica
 
 `demodental` is reserved from ordinary operator clinic creation so a normal clinic cannot claim the demo tenant identity. It remains a real tenant hostname (not an infrastructure reserved slug).
 
-Final patient disclaimer copy is still pending separately supplied approved wording. The smallest future slot is `PatientPage`, after the guide body and before `PracticeContact`, rendered only when non-empty approved copy exists. Do not ship placeholder clinical text.
+Real-clinic published-guide pages, print, and authenticated draft preview render a platform-level **About this guide** disclaimer (`PatientAftercareDisclaimer`) after the guide body and before `PracticeContact`. Copy is fixed in application code. Practice name comes from `PracticeChrome.displayName`. The closing “contact the practice using the details below” sentence is included only when that surface actually renders a practice contact channel: web uses phone or contact URL; print uses phone or address. Address is not shown on the web guide. Emergency instructions are clinic-authored urgent copy, not a contact channel. This is not River Aftercare clinical review, not reviewer/attestation identity, and not `MedicalWebPage` / `reviewedBy`. Clinic-authored emergency instructions stay in `PracticeContact` / guide sections. `demodental` keeps its existing sample/not-clinical-advice chrome and does not receive this disclaimer. Tenant home does not show it. There is no configurable disclaimer database field.
 
 See [ADR 0017](../adr/0017-clinic-owned-practice-revisions-pin-public-documents.md) and [ADR 0026](../adr/0026-first-client-clinic-supplied-governance.md).
 

@@ -4,7 +4,12 @@ import {
   DEMO_AFTERCARE_NOTICE,
   isDemoTenant,
 } from "@/lib/aftercare/demo-tenant";
-import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
+import {
+  hasPracticeContact,
+  hasRenderedPrintPracticeContactDetails,
+  hasRenderedWebPracticeContactChannel,
+  resolvePracticeChrome,
+} from "@/lib/aftercare/practice-chrome";
 
 const PROFILE = {
   displayName: "Riverside Dental Demo",
@@ -199,5 +204,64 @@ describe("resolvePracticeChrome", () => {
     );
     expect(chrome.phoneHref).toBeNull();
     expect(chrome.contactHref).toBeNull();
+  });
+
+  it("treats only rendered web and print contact channels as usable", () => {
+    const phoneOnly = resolvePracticeChrome({
+      slug: "otherclinic",
+      name: "Other Clinic",
+      profile: {
+        ...PROFILE,
+        phone: "03 5550 0199",
+        contactUrl: null,
+        emergencyInstructions: null,
+      },
+    });
+    expect(hasRenderedWebPracticeContactChannel(phoneOnly)).toBe(true);
+    expect(hasRenderedPrintPracticeContactDetails(phoneOnly)).toBe(true);
+
+    const urlOnly = resolvePracticeChrome({
+      slug: "otherclinic",
+      name: "Other Clinic",
+      profile: {
+        ...PROFILE,
+        phone: null,
+        contactUrl: "https://www.example.com/harbor-family-dental/contact",
+        emergencyInstructions: null,
+      },
+    });
+    expect(hasRenderedWebPracticeContactChannel(urlOnly)).toBe(true);
+    expect(hasRenderedPrintPracticeContactDetails(urlOnly)).toBe(false);
+    expect(hasPracticeContact(urlOnly)).toBe(true);
+
+    const addressOnly = resolvePracticeChrome({
+      slug: "otherclinic",
+      name: "Other Clinic",
+      profile: {
+        ...PROFILE,
+        phone: null,
+        contactUrl: null,
+        emergencyInstructions: null,
+        addressLine1: "12 Harbor Street",
+        city: "Sydney",
+      },
+    });
+    expect(hasPracticeContact(addressOnly)).toBe(true);
+    expect(hasRenderedWebPracticeContactChannel(addressOnly)).toBe(false);
+    expect(hasRenderedPrintPracticeContactDetails(addressOnly)).toBe(true);
+
+    const emergencyOnly = resolvePracticeChrome({
+      slug: "otherclinic",
+      name: "Other Clinic",
+      profile: {
+        ...PROFILE,
+        phone: null,
+        contactUrl: null,
+        emergencyInstructions: "Call if swelling worsens.",
+      },
+    });
+    expect(hasPracticeContact(emergencyOnly)).toBe(true);
+    expect(hasRenderedWebPracticeContactChannel(emergencyOnly)).toBe(false);
+    expect(hasRenderedPrintPracticeContactDetails(emergencyOnly)).toBe(false);
   });
 });

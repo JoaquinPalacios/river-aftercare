@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-20 (E2E baseline: scoped pricing locators, patient CSS core vs typeface catalogue)
+Last updated: 2026-09-21 (patient disclaimer contact sentence matches rendered channels)
 
 ## Durable production release rule
 
@@ -37,7 +37,7 @@ Canonical detail: [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READI
 
 ## Durable first-client clinical governance rule
 
-First paying clinic uses **Model B**: clinic-supplied / clinic-approved content. River Aftercare is the publishing platform. Canonical sample templates are explicit (`GuideTemplate.isSample`); review metadata cannot make them generally available. Real-clinic publish stores a fresh practice attestation on each immutable `PracticeGuideRevision`. That is not River Aftercare clinical approval. Demo publication must not fabricate attestation. Patient pages must not show attestation identity or `MedicalWebPage` / `reviewedBy`. Final disclaimer copy is supplied separately.
+First paying clinic uses **Model B**: clinic-supplied / clinic-approved content. River Aftercare is the publishing platform. Canonical sample templates are explicit (`GuideTemplate.isSample`); review metadata cannot make them generally available. Real-clinic publish stores a fresh practice attestation on each immutable `PracticeGuideRevision`. That is not River Aftercare clinical approval. Demo publication must not fabricate attestation. Patient pages must not show attestation identity or `MedicalWebPage` / `reviewedBy`. Real-clinic published guides, print, and authenticated preview show a platform **About this guide** disclaimer (`PatientAftercareDisclaimer`); the “details below” sentence follows only a rendered contact channel (web: phone or contact URL; print: phone or address). `demodental` keeps separate sample messaging and does not receive it.
 
 Canonical detail: [ADR 0026](../adr/0026-first-client-clinic-supplied-governance.md), [../architecture/CLINIC-PORTAL.md](../architecture/CLINIC-PORTAL.md).
 
@@ -819,7 +819,7 @@ Aftercare seed (Phase 1A, logo path updated in 1C). Tooth Extraction library cop
 - Demo published clinic revisions do **not** fabricate practice attestation
 - Page-level demo banner for `demodental` only: “Interactive demo — Sample content only · Not clinical advice · Changes aren't saved.”
 
-Production must **not** run `pnpm db:seed`. To insert **only** the sample Tooth Extraction library rows, use `pnpm bootstrap:demo-template` (dry-run by default; `--apply` to write). Real customer templates require `isSample = false` and named clinical review of the **latest** published revision (`reviewedAt` + `reviewedBy`) before they appear for normal clinics. First-client publication is clinic-owned custom guides with per-revision practice attestation ([ADR 0026](../adr/0026-first-client-clinic-supplied-governance.md)). Final patient disclaimer copy is still pending separately supplied wording.
+Production must **not** run `pnpm db:seed`. To insert **only** the sample Tooth Extraction library rows, use `pnpm bootstrap:demo-template` (dry-run by default; `--apply` to write). Real customer templates require `isSample = false` and named clinical review of the **latest** published revision (`reviewedAt` + `reviewedBy`) before they appear for normal clinics. First-client publication is clinic-owned custom guides with per-revision practice attestation ([ADR 0026](../adr/0026-first-client-clinic-supplied-governance.md)). Real-clinic published-guide pages show a platform aftercare disclaimer; that is not River Aftercare clinical review.
 
 Pacific Dental appears in the PRD only as a **conceptual** hostname example (`pacificdental.<platform-domain>`).
 

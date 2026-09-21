@@ -22,7 +22,7 @@ Indexing white-label clinic pages by default would mix clinic-owned instructions
 
 - Patients can still share links.
 - Google may crawl tenant pages (robots.txt does not block tenant `/<slug>`) and should honour metadata noindex.
-- Do not emit `MedicalWebPage` / `reviewedBy` claims. Clinic publish attestation is practice workflow accountability, not structured clinical-review metadata for patients or JSON-LD. See [ADR 0026](0026-first-client-clinic-supplied-governance.md).
+- Do not emit `MedicalWebPage` / `reviewedBy` claims. Clinic publish attestation is practice workflow accountability, not structured clinical-review metadata for patients or JSON-LD. The platform aftercare disclaimer does not change this. See [ADR 0026](0026-first-client-clinic-supplied-governance.md).
 
 ## Notes for later implementation
 

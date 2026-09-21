@@ -36,17 +36,19 @@ Unresolved / do not over-claim:
 
 ## Medical / content disclaimer
 
-Patient pages already avoid invented clinical authority. A reviewed disclaimer for clinic-published instructions remains part of the legal pack.
+Real-clinic published-guide pages, print, and authenticated preview that reuses `PatientPage` show a platform-level **About this guide** disclaimer. Copy is fixed product wording, not clinic-configurable, and not River Aftercare clinical review. Clinic-authored emergency instructions remain separate. `demodental` keeps its existing sample / not-clinical-advice messaging and does not receive this disclaimer.
+
+This is **not** counsel-approved legal copy. Operator legal-approval flags were not changed. A reviewed legal pack remains outstanding.
 
 ## Launch TODO (do not fabricate)
 
-| Fact                     | Repository truth                                                              |
-| ------------------------ | ----------------------------------------------------------------------------- |
-| Legal entity name        | **Pedro Joaquin Palacios**, sole trader trading as River Aftercare            |
-| ABN                      | 32 671 297 130                                                                |
-| ACN                      | Not applicable — not currently an Australian company                          |
-| Public location          | Tweed Heads South, New South Wales, Australia (no residential street address) |
-| Governing law            | New South Wales, Australia (non-exclusive jurisdiction)                       |
-| Legal / privacy email    | `admin@riveraftercare.com.au`                                                 |
+| Fact                     | Repository truth                                                                                                                                               |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Legal entity name        | **Pedro Joaquin Palacios**, sole trader trading as River Aftercare                                                                                             |
+| ABN                      | 32 671 297 130                                                                                                                                                 |
+| ACN                      | Not applicable — not currently an Australian company                                                                                                           |
+| Public location          | Tweed Heads South, New South Wales, Australia (no residential street address)                                                                                  |
+| Governing law            | New South Wales, Australia (non-exclusive jurisdiction)                                                                                                        |
+| Legal / privacy email    | `admin@riveraftercare.com.au`                                                                                                                                  |
 | GST registration         | **Not registered** — pending accountant confirmation. Public pricing copy must not claim GST is included. Terms remain “GST will be charged where applicable.” |
-| Production subprocessors | Named in `/privacy`: Vercel, Neon, Cloudflare, Resend, Hostinger, Google      |
+| Production subprocessors | Named in `/privacy`: Vercel, Neon, Cloudflare, Resend, Hostinger, Google                                                                                       |

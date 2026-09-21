@@ -143,6 +143,8 @@ describe("tenant homepage", () => {
     expect(html).toContain("Interactive demo");
     expect(html).toContain("Sample content only");
     expect(html).toContain("Not clinical advice");
+    expect(html).not.toContain("About this guide");
+    expect(html).not.toContain("This aftercare information is provided by");
     expect(html).toContain('src="/demo/riverside-mark.svg"');
     expect(html).not.toContain("Implant Aftercare");
     expect(html).not.toContain("login");
@@ -242,6 +244,8 @@ describe("tenant homepage", () => {
     expect(html).not.toContain("riverside-dental-demo");
     expect(html).not.toContain("Powered by River Aftercare");
     expect(html).not.toContain("Interactive demo");
+    expect(html).not.toContain("About this guide");
+    expect(html).not.toContain("This aftercare information is provided by");
   });
 
   it("uses one h1, a main landmark, and a tel action", async () => {

@@ -97,7 +97,7 @@ export default async function TenantGuidePage({
   const printHref = `/${document.practiceGuide.publicSlug}/print`;
 
   return (
-    <PatientPage chrome={chrome}>
+    <PatientPage chrome={chrome} showAftercareDisclaimer>
       <header className={styles.hero}>
         <p className={styles.kicker}>{chrome.instructionsLabel}</p>
         <h1 className={styles.title}>{document.title}</h1>

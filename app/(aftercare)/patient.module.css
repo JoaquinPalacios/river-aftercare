@@ -380,6 +380,32 @@
   border: 0;
 }
 
+.disclaimer {
+  margin: 2rem 0 0;
+  padding: 1.4rem 0 0;
+  border-top: 1px solid var(--cg-border);
+}
+
+.disclaimerTitle {
+  margin: 0 0 0.45rem;
+  font-size: 1.2rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.disclaimerCopy {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--cg-text);
+}
+
+.disclaimer + .contact,
+.disclaimer + .printContact {
+  margin-top: 1.35rem;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .contact {
   margin: 2rem 0 0;
   padding: 1.4rem 0 0;
@@ -805,6 +831,7 @@
   .warning,
   .emergency,
   .printUrgent,
+  .disclaimer,
   .timelineItem {
     break-inside: avoid;
   }
