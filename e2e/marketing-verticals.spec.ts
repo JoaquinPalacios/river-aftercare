@@ -11,8 +11,8 @@ const VERTICALS = [
     h1: "Make post-treatment instructions part of your dental experience.",
     title: "Dental Aftercare Software for Practices | River Aftercare",
     description:
-      "Give patients clear, clinic-branded post-treatment instructions they can reopen after dental treatment by link or QR code, with no app or patient login.",
-    ogTitle: "Aftercare that still feels like your dental practice",
+      "Publish branded dental post-treatment instructions patients can revisit by link or QR code. No patient app or login required.",
+    ogTitle: "Dental Aftercare Software for Practices | River Aftercare",
     unique: "leave the chair",
     absent: ["Riverside Physio", "exercise-adherence tracker"],
   },
@@ -135,12 +135,13 @@ test.describe("clinic vertical acquisition pages", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(marketingUrl("/dental"), { waitUntil: "load" });
 
-    const firstQuestion = "Do patients need to download an app?";
-    const secondQuestion = "Do patients need an account?";
+    const firstQuestion = "Do patients need an app or account?";
+    const secondQuestion =
+      "Can our dental practice change or create the instructions?";
     const firstAnswer =
-      "No. River Aftercare patient pages open in the browser from a link or QR code.";
+      "No. Patients open their aftercare page in the browser from a durable link or QR code. No River Aftercare app or patient login is required.";
     const secondAnswer =
-      "No. The current public guide experience does not require a patient login.";
+      "Yes, within your plan. Essential includes available River Aftercare templates and up to 2 active custom clinic guides.";
 
     const first = page.locator("summary").filter({
       hasText: firstQuestion,
@@ -152,7 +153,7 @@ test.describe("clinic vertical acquisition pages", () => {
     const secondDetails = page.locator("details").filter({ has: second });
     await first.scrollIntoViewIfNeeded();
     await expect(first).toBeVisible();
-    await expect(page.locator("details")).toHaveCount(5);
+    await expect(page.locator("details")).toHaveCount(6);
     await expect(firstDetails).toHaveJSProperty("open", false);
     await expect(page.getByText(firstAnswer)).toBeHidden();
 
@@ -188,14 +189,15 @@ test.describe("clinic vertical acquisition pages", () => {
       path: "/dental",
       heading: "Questions dental practices ask",
       questions: [
-        "Do patients need to download an app?",
-        "Do patients need an account?",
-        "Can our practice change the instructions?",
-        "Does River Aftercare replace our practice-management system?",
+        "Do patients need an app or account?",
+        "Can our dental practice change or create the instructions?",
         "What dental templates are available?",
+        "Can River Aftercare match our dental practice branding?",
+        "Does River Aftercare replace our practice-management system?",
+        "How many custom aftercare guides can we publish?",
       ],
       answer:
-        "Riverside Dental Demo currently uses a Tooth Extraction sample template.",
+        "Riverside Dental Demo currently uses a Tooth Extraction sample guide.",
     },
     {
       path: "/physiotherapy",
@@ -239,7 +241,7 @@ test.describe("clinic vertical acquisition pages", () => {
   ] as const;
 
   for (const vertical of FAQ_COPY) {
-    test(`${vertical.path} renders five visible FAQ controls with answers in the HTML`, async ({
+    test(`${vertical.path} renders visible FAQ controls with answers in the HTML`, async ({
       page,
     }) => {
       await page.emulateMedia({ reducedMotion: "reduce" });
@@ -249,7 +251,9 @@ test.describe("clinic vertical acquisition pages", () => {
       await expect(
         page.getByRole("heading", { name: vertical.heading })
       ).toBeVisible();
-      await expect(page.locator("details")).toHaveCount(5);
+      await expect(page.locator("details")).toHaveCount(
+        vertical.questions.length
+      );
 
       for (const question of vertical.questions) {
         const control = page.locator("summary").filter({ hasText: question });
@@ -412,18 +416,22 @@ test.describe("clinic vertical acquisition pages", () => {
         document.documentElement.setAttribute("data-theme-mode", mode);
       }, scheme);
 
-      return page.locator('[data-brand-scope="vertical"]').evaluate((element) => {
-        const styles = getComputedStyle(element);
-        return {
-          accent: styles.getPropertyValue("--vertical-accent").trim(),
-          canvas: styles.getPropertyValue("--vertical-hero-canvas").trim(),
-          surface: styles.getPropertyValue("--vertical-surface-soft").trim(),
-          emphasis: styles.getPropertyValue("--vertical-surface-emphasis").trim(),
-          bloom: styles.getPropertyValue("--vertical-hero-bloom").trim(),
-          mist: styles.getPropertyValue("--vertical-hero-mist").trim(),
-          card: styles.getPropertyValue("--vertical-card-tint").trim(),
-        };
-      });
+      return page
+        .locator('[data-brand-scope="vertical"]')
+        .evaluate((element) => {
+          const styles = getComputedStyle(element);
+          return {
+            accent: styles.getPropertyValue("--vertical-accent").trim(),
+            canvas: styles.getPropertyValue("--vertical-hero-canvas").trim(),
+            surface: styles.getPropertyValue("--vertical-surface-soft").trim(),
+            emphasis: styles
+              .getPropertyValue("--vertical-surface-emphasis")
+              .trim(),
+            bloom: styles.getPropertyValue("--vertical-hero-bloom").trim(),
+            mist: styles.getPropertyValue("--vertical-hero-mist").trim(),
+            card: styles.getPropertyValue("--vertical-card-tint").trim(),
+          };
+        });
     }
 
     for (const scheme of ["light", "dark"] as const) {

@@ -14,7 +14,7 @@ const HUB_LLMS_BLURB =
 
 const VERTICAL_LLMS_BLURBS: Record<string, string> = {
   "/dental":
-    "Dental practices: clinic-branded post-treatment instructions patients can reopen after dental care.",
+    "Dental practices: branded dental post-treatment instructions patients can revisit by link or QR code.",
   "/physiotherapy":
     "Physiotherapy clinics: recovery, home-care and written exercise guidance between appointments. Not an exercise-tracking app.",
   "/chiropractic":

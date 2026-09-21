@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-21 (Sentry production error observability baseline)
+Last updated: 2026-09-21 (Dental vertical copy, SEO, and shared FAQ accordion geometry)
 
 ## Durable production release rule
 
@@ -1370,8 +1370,8 @@ Shared premium editorial system for `/dental`, `/physiotherapy`, `/chiropractic`
 | Workflow       | Connected process rail (`ol` + numbered nodes). Decorative connector is `aria-hidden`.                                                                                                                                                                                                                                                 |
 | Proof          | Dental: Riverside Dental Demo typographic showcase. Other verticals: profession-specific fit module, no fake demos.                                                                                                                                                                                                                    |
 | CTA / footer   | Closing CTA is Request a demo + View pricing only. Footer is a quiet utility band: For clinics / Product (includes Sign in) / Legal. Account column removed. No “Request a demo” in the footer.                                                                                                                                        |
-| Copy exception | Dental guidance badge is **Current starting template** / Tooth Extraction, not “reviewed”, because the sample is not clinically reviewed.                                                                                                                                                                                              |
-| SEO            | Titles, descriptions, canonicals, robots, JSON-LD, sitemap, and `lastModified` unchanged. Main copy remains server-rendered; FAQ answers stay in markup.                                                                                                                                                                               |
+| Copy exception | Dental guidance badge is **Current dental demo** / Tooth Extraction. The sample is not clinically reviewed and is not advertised as an approved production starting template. Essential vs Practice guide limits (2 vs 30 active custom guides) are stated on `/dental`; prices stay on `/pricing`.                                    |
+| SEO            | Vertical pages stay indexable WebPage + shared Organization / WebSite / SoftwareApplication. FAQ remains native `details` markup without FAQPage JSON-LD. Dental metadata was refined 2026-09-21 (`lastModified` 2026-09-21); other vertical metadata is unchanged until those pages are reviewed.                                     |
 
 ---
 
@@ -2024,3 +2024,19 @@ Copy, SEO, and restrained editorial layout only. Not a page redesign. Commercial
 | Beyond these four | Full-width qualification panel. Left: “Another treatment-based practice?” + Tell us about your clinic → `/contact`. Right: “A good fit when” plus three fit statements. Heading → body uses `--mk-heading-intro-gap` (`1.25rem`). Mobile stacks intro → fit → CTA.                                       |
 | SEO               | Title `Patient Aftercare for Treatment-Based Clinics \| River Aftercare` (differentiated from homepage Software-for-Clinics title). Description names the four verticals + branded aftercare + link or QR. Canonical `/clinics`, index/follow, existing WebPage JSON-LD only. `lastModified` 2026-09-21. |
 | Motion            | New columns use `MarketingReveal`. Fit column reveals as one composition.                                                                                                                                                                                                                                |
+
+---
+
+## `/dental` copy + SEO + shared FAQ geometry (2026-09-21)
+
+Copy/SEO for `/dental` only, plus a shared FAQ accordion geometry fix used by all vertical pages. Not a redesign. Do not change physiotherapy, chiropractic, or cosmetic FAQ copy until those pages are reviewed separately. Prices stay on `/pricing`.
+
+| Area          | Behaviour                                                                                                                                                                                                                                                                                                                                                   |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SEO role      | Homepage = broad aftercare software. `/clinics` = treatment-based clinic fit. `/dental` = dental post-treatment instruction intent. `/pricing` = commercial plans.                                                                                                                                                                                          |
+| Metadata      | Title remains `Dental Aftercare Software for Practices \| River Aftercare`. Description/OG: branded dental post-treatment instructions patients can revisit by link or QR; no patient app or login. Canonical `/dental`, index/follow. Existing WebPage / SoftwareApplication / Organization / WebSite JSON-LD only. No FAQPage. `lastModified` 2026-09-21. |
+| Product model | Essential: available River Aftercare templates + up to 2 active custom clinic guides. Practice: up to 30 active custom guides, broader creation/adaptation, local instructions, section controls. Clinic approves clinical guidance. No prices on `/dental`.                                                                                                |
+| Demo language | Badge is **Current dental demo** / Tooth Extraction. Not “starting template” and not a customer case study. Live-example / “real” wording removed. Sample is not clinically reviewed.                                                                                                                                                                       |
+| FAQ           | Six native `details` questions (app/account, plan-aware customisation, templates, branding, PMS boundary, guide limits). Server-rendered. No FAQPage schema. Other verticals stay at five questions.                                                                                                                                                        |
+| Shared FAQ UI | Accordion chrome (border + outer radius) lives on first/last items, not a parent frame. Items use `overflow: visible` so focus-visible is not clipped. Open/hover fills follow first/last inner radii. Answer panel uses `--mk-body-gap` (1rem) top padding.                                                                                                |
+| Do not claim  | Clinical review of Tooth Extraction, monitoring, patient-specific advice, messaging, PMS, CRM, patient health records, multi-location guide sharing, unsupported custom CSS.                                                                                                                                                                                |

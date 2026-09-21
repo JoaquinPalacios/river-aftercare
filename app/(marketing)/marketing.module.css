@@ -4975,7 +4975,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   gap: 0;
   overflow: visible;
   isolation: isolate;
-  border: 1px solid var(--mk-card-line);
   border-radius: var(--mk-card-radius);
   background: var(--mk-card);
   box-shadow: var(--mk-card-shadow);
@@ -4983,25 +4982,26 @@ html[data-theme-mode="dark"] .wordmarkName {
 
 .verticalFaqItem {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  z-index: 0;
+  margin: 0;
+  border-inline: 1px solid var(--mk-card-line);
   border-bottom: 1px solid var(--mk-card-line);
   background: var(--mk-card);
   background-clip: padding-box;
 }
 
 .verticalFaqItem:first-child {
-  border-radius: calc(var(--mk-card-radius) - 1px)
-    calc(var(--mk-card-radius) - 1px) 0 0;
+  border-top: 1px solid var(--mk-card-line);
+  border-radius: var(--mk-card-radius) var(--mk-card-radius) 0 0;
 }
 
 .verticalFaqItem:last-child {
-  border-bottom: 0;
-  border-radius: 0 0 calc(var(--mk-card-radius) - 1px)
-    calc(var(--mk-card-radius) - 1px);
+  border-radius: 0 0 var(--mk-card-radius) var(--mk-card-radius);
 }
 
 .verticalFaqItem:only-child {
-  border-radius: calc(var(--mk-card-radius) - 1px);
+  border-radius: var(--mk-card-radius);
 }
 
 .verticalFaqItem::before {
@@ -5045,7 +5045,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   cursor: pointer;
   color: inherit;
   font: inherit;
-  border-radius: inherit;
+  border-radius: 0;
 }
 
 .verticalFaqQuestion::-webkit-details-marker {
@@ -5064,7 +5064,6 @@ html[data-theme-mode="dark"] .wordmarkName {
 .verticalFaqQuestion:focus-visible {
   outline: 2.5px solid var(--mk-focus);
   outline-offset: -3px;
-  border-radius: inherit;
 }
 
 .verticalFaqQuestionInner {
@@ -5083,14 +5082,27 @@ html[data-theme-mode="dark"] .wordmarkName {
     var(--mk-interact-ease);
 }
 
-.verticalFaqItem:first-child .verticalFaqQuestionInner {
+.verticalFaqItem:first-child .verticalFaqQuestion,
+.verticalFaqItem:first-child .verticalFaqQuestionInner,
+.verticalFaqItem:only-child[open] .verticalFaqQuestion,
+.verticalFaqItem:only-child[open] .verticalFaqQuestionInner {
   border-radius: calc(var(--mk-card-radius) - 1px)
     calc(var(--mk-card-radius) - 1px) 0 0;
 }
 
+.verticalFaqItem:last-child:not([open]) .verticalFaqQuestion,
 .verticalFaqItem:last-child:not([open]) .verticalFaqQuestionInner {
   border-radius: 0 0 calc(var(--mk-card-radius) - 1px)
     calc(var(--mk-card-radius) - 1px);
+}
+
+.verticalFaqItem:only-child:not([open]) .verticalFaqQuestion,
+.verticalFaqItem:only-child:not([open]) .verticalFaqQuestionInner {
+  border-radius: calc(var(--mk-card-radius) - 1px);
+}
+
+.verticalFaqItem:focus-within {
+  z-index: 1;
 }
 
 .verticalFaqQuestionText {
@@ -5141,7 +5153,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .verticalFaqPanel {
-  padding: 0 1.15rem 1.15rem;
+  padding: var(--mk-body-gap) 1.15rem 1.15rem;
 }
 
 .verticalFaqPanel p {

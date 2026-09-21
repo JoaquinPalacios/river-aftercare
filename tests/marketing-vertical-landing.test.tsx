@@ -111,14 +111,15 @@ describe("clinic vertical landing pages", () => {
     expect(physio).toContain('data-brand-scope="vertical"');
     expect(chiro).not.toContain('data-brand-scope="master"');
     expect(dental).toContain("data-mk-vertical-hero");
-    expect(dental).toContain("Current starting template");
-    const templateAt = dental.indexOf("Current starting template");
+    expect(dental).toContain("Current dental demo");
+    expect(dental).not.toContain("Current starting template");
+    const templateAt = dental.indexOf("Current dental demo");
     expect(templateAt).toBeGreaterThan(-1);
     expect(dental.slice(Math.max(0, templateAt - 280), templateAt)).toContain(
       "mkReveal"
     );
     const dentalNoteAt = dental.indexOf(
-      "Riverside Dental Demo currently uses a Tooth Extraction sample template."
+      "Riverside Dental Demo uses a Tooth Extraction sample guide to show the current patient experience."
     );
     expect(dentalNoteAt).toBeGreaterThan(templateAt);
     expect(
@@ -131,7 +132,32 @@ describe("clinic vertical landing pages", () => {
     expect(
       physio.slice(Math.max(0, physioNoteAt - 280), physioNoteAt)
     ).toContain("mkReveal");
-    expect(dental).toContain("Live example");
+    expect(dental).toContain("Dental demo");
+    expect(dental).not.toContain("Live example");
+    expect(dental).toContain(
+      "Start with an available guide, or bring your own clinic-approved aftercare."
+    );
+    expect(dental).toContain("up to 2 active custom clinic guides");
+    expect(dental).toContain("up to 30 active custom guides");
+    expect(dental).toContain(
+      "From approved instructions to a page patients can revisit"
+    );
+    expect(dental).not.toContain(
+      "From approved instructions to a page patients can keep"
+    );
+    expect(dental).toContain("See the patient experience in action");
+    expect(dental).toContain("It is not clinically reviewed.");
+    expect(dental).not.toContain("See a real River Aftercare dental example");
+    expect(dental).not.toContain("Do patients need to download an app?");
+    expect(dental).not.toContain("Do patients need an account?");
+    expect(dental).toContain("Do patients need an app or account?");
+    expect(dental).toContain(
+      "How many custom aftercare guides can we publish?"
+    );
+    expect(dental).toContain("patient aftercare publishing software");
+    expect(dental).toContain(
+      "where your plan allows, local instructions and supported section changes"
+    );
     const demoHtml = dental.slice(
       dental.indexOf('aria-labelledby="dental-demo"'),
       dental.indexOf('aria-labelledby="dental-faq"')
@@ -160,7 +186,7 @@ describe("clinic vertical landing pages", () => {
       [cosmetic, VERTICAL_LANDINGS["/cosmetic-clinics"]],
     ] as const) {
       expect(html).toContain(landing.faq.h2);
-      expect(html.match(/<details\b/g)).toHaveLength(5);
+      expect(html.match(/<details\b/g)).toHaveLength(landing.faq.items.length);
       for (const item of landing.faq.items) {
         expect(html).toContain(item.question);
         expect(html).toContain(item.answer.replaceAll("'", "&#x27;"));
