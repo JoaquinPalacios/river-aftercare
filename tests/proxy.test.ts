@@ -210,6 +210,22 @@ describe("proxy", () => {
     ).toBe(404);
   });
 
+  it("lets the app staff host reach /api/stripe/webhook and blocks it elsewhere", () => {
+    const staff = proxy(
+      requestFor("http://app.localhost:3000/api/stripe/webhook")
+    );
+    expect(staff.status).toBe(200);
+    expect(rewrittenUrl(staff)).toBeNull();
+
+    expect(
+      proxy(requestFor("http://localhost:3000/api/stripe/webhook")).status
+    ).toBe(404);
+    expect(
+      proxy(requestFor("http://demodental.localhost:3000/api/stripe/webhook"))
+        .status
+    ).toBe(404);
+  });
+
   it("lets the app staff host pass through", () => {
     const response = proxy(requestFor("http://app.localhost:3000/login"));
     expect(response.status).toBe(200);

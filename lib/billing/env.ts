@@ -1,0 +1,33 @@
+import "server-only";
+
+export const STRIPE_SECRET_KEY_ENV = "STRIPE_SECRET_KEY";
+export const STRIPE_WEBHOOK_SECRET_ENV = "STRIPE_WEBHOOK_SECRET";
+
+export const STRIPE_ESSENTIAL_MONTHLY_PRICE_ID_ENV =
+  "STRIPE_ESSENTIAL_MONTHLY_PRICE_ID";
+export const STRIPE_ESSENTIAL_YEARLY_PRICE_ID_ENV =
+  "STRIPE_ESSENTIAL_YEARLY_PRICE_ID";
+export const STRIPE_PRACTICE_MONTHLY_PRICE_ID_ENV =
+  "STRIPE_PRACTICE_MONTHLY_PRICE_ID";
+export const STRIPE_PRACTICE_YEARLY_PRICE_ID_ENV =
+  "STRIPE_PRACTICE_YEARLY_PRICE_ID";
+
+export const STRIPE_PRICE_ENV_KEYS = {
+  ESSENTIAL_MONTHLY: STRIPE_ESSENTIAL_MONTHLY_PRICE_ID_ENV,
+  ESSENTIAL_YEARLY: STRIPE_ESSENTIAL_YEARLY_PRICE_ID_ENV,
+  PRACTICE_MONTHLY: STRIPE_PRACTICE_MONTHLY_PRICE_ID_ENV,
+  PRACTICE_YEARLY: STRIPE_PRACTICE_YEARLY_PRICE_ID_ENV,
+} as const;
+
+export type StripePriceEnvKey =
+  (typeof STRIPE_PRICE_ENV_KEYS)[keyof typeof STRIPE_PRICE_ENV_KEYS];
+
+export type Env = Record<string, string | undefined>;
+
+export function readTrimmedEnv(
+  name: string,
+  env: Env = process.env
+): string | null {
+  const value = env[name]?.trim();
+  return value ? value : null;
+}

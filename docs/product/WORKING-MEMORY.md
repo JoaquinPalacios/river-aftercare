@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-21 (Dental vertical copy, SEO, and shared FAQ accordion geometry)
+Last updated: 2026-09-21 (Stripe Billing Phase 1 test-mode foundation)
 
 ## Durable production release rule
 
@@ -41,13 +41,15 @@ First paying clinic uses **Model B**: clinic-supplied / clinic-approved content.
 
 Canonical detail: [ADR 0026](../adr/0026-first-client-clinic-supplied-governance.md), [../architecture/CLINIC-PORTAL.md](../architecture/CLINIC-PORTAL.md).
 
-## Durable billing architecture rule (proposed — not implemented)
+## Durable billing architecture rule (Phase 1 foundation)
 
-River Aftercare remains assisted sales at launch. Public `/pricing` keeps Request a demo / Talk to us. Do not add Buy now, a River card form, or live Stripe objects until Joaquín approves [BILLING.md](../architecture/BILLING.md).
+River Aftercare remains assisted sales at launch. Public `/pricing` keeps Request a demo / Talk to us. Do not add Buy now, a River card form, or live Stripe objects until Joaquín explicitly starts a later Checkout phase.
 
-Stripe is the financial source of truth (Customer, Subscription, Invoice, payment methods). River persists a local entitlement projection for authorisation and must not call Stripe on patient or editor request paths. Canonical advertised amounts stay in `lib/marketing/plans.ts`. Essential vs Practice guide limits and template-adaptation rules are still commercial copy until an approved enforcement phase. Published patient URLs must not disappear on the first failed payment.
+Stripe is the financial source of truth (Customer, Subscription, Invoice, payment methods). River persists a local entitlement projection for future authorisation and must not call Stripe on patient or editor request paths. Canonical advertised amounts stay in `lib/marketing/plans.ts`. Essential vs Practice guide limits and template-adaptation rules remain commercial copy until an approved enforcement phase. Published patient URLs must not disappear on the first failed payment.
 
-Do not create additional-location Prices, Group self-serve products, or Prisma billing migrations from an investigation task.
+Phase 1 **is implemented**: test-mode Stripe SDK/config, plan↔Price mapping, `ClinicBillingProfile` / `ClinicEntitlement` / `StripeEventReceipt`, and verified idempotent `POST /api/stripe/webhook`. Paid activation is `invoice.paid`. Checkout completion cannot grant paid entitlement. Existing clinics are not backfilled as paid. Application features do not enforce entitlements yet.
+
+Do not create additional-location Prices, Group self-serve products, live-mode keys, GST/Stripe Tax, Checkout, Customer Portal, or enforcement from a later billing task unless that task explicitly asks.
 
 ## Durable GST public-copy rule
 
@@ -1935,7 +1937,7 @@ Commercial distinction: Essential may use River templates as supplied and author
 
 ## Stripe billing + entitlement architecture (investigation only, 2026-09-20)
 
-Documentation only on a review branch. No Stripe package, no Prisma migration, no Dashboard objects, no env secrets, no enforcement, no pricing-page change.
+Historical investigation. **Phase 1 (2026-09-21) implemented the test-mode foundation.** See the durable billing rule above and [../launch/STRIPE-SETUP.md](../launch/STRIPE-SETUP.md). Do not re-apply inclusive GST, 30-day retention, or `GRACE` entitlement from this table.
 
 Canonical report: [../architecture/BILLING.md](../architecture/BILLING.md).
 
@@ -2040,3 +2042,20 @@ Copy/SEO for `/dental` only, plus a shared FAQ accordion geometry fix used by al
 | FAQ           | Six native `details` questions (app/account, plan-aware customisation, templates, branding, PMS boundary, guide limits). Server-rendered. No FAQPage schema. Other verticals stay at five questions.                                                                                                                                                        |
 | Shared FAQ UI | Accordion chrome (border + outer radius) lives on first/last items, not a parent frame. Items use `overflow: visible` so focus-visible is not clipped. Open/hover fills follow first/last inner radii. Answer panel uses `--mk-body-gap` (1rem) top padding.                                                                                                |
 | Do not claim  | Clinical review of Tooth Extraction, monitoring, patient-specific advice, messaging, PMS, CRM, patient health records, multi-location guide sharing, unsupported custom CSS.                                                                                                                                                                                |
+
+---
+
+## Stripe Billing Phase 1 — test-mode foundation (2026-09-21)
+
+Technical foundation only. No Checkout, Customer Portal, live Stripe, GST, legal-copy edits, or product enforcement.
+
+| Area | Behaviour |
+| ---- | --------- |
+| SDK | `stripe@22.6.2`, default API `2026-08-26.dahlia`. Server-only. Live keys refused. |
+| Mapping | Essential/Practice × monthly/yearly Price IDs from env. Unknown Price IDs fail closed. No Group Price. |
+| Persistence | `ClinicBillingProfile` 1:1 Clinic (nullable Stripe IDs, separate `abn`/`acn`). `ClinicEntitlement` 1:1 observational projection. `StripeEventReceipt` unique `evt_`. Existing clinics not backfilled as paid. |
+| Webhook | `POST /api/stripe/webhook` on staff host. Raw body + `Stripe-Signature`. Idempotent receipts. |
+| Activation | `invoice.paid` can activate mapped Essential/Practice. `checkout.session.completed` cannot. `past_due` keeps ACTIVE entitlement. Terminal unpaid → RESTRICTED. Cancel-at-period-end stays ACTIVE through paid-through. Ended sets `publicGuideRetentionUntil` (+60 days) without unpublishing. |
+| Identity | Stripe Customer/Subscription `metadata.clinicId` (and Checkout `client_reference_id` later). Never email or display name. |
+| Operator UI | Not added. Operator clinic page could later show a read-only projection; out of Phase 1 scope. |
+

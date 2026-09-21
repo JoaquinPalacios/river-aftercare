@@ -10,15 +10,21 @@ export const OPERATIONAL_FAILURE_CODES = {
   CONTACT_EMAIL_DELIVERY_FAILED: "contact_email_delivery_failed",
   AUTH_EMAIL_DELIVERY_FAILED: "auth_email_delivery_failed",
   AUTH_EMAIL_NOT_CONFIGURED: "auth_email_not_configured",
+  STRIPE_WEBHOOK_FAILED: "stripe_webhook_failed",
+  STRIPE_WEBHOOK_NOT_CONFIGURED: "stripe_webhook_not_configured",
 } as const;
 
 export type OperationalFailureCode =
   (typeof OPERATIONAL_FAILURE_CODES)[keyof typeof OPERATIONAL_FAILURE_CODES];
 
-export type OperationalFailureComponent = "contact-email" | "auth-email";
+export type OperationalFailureComponent =
+  "contact-email" | "auth-email" | "stripe-webhook";
 
 export type OperationalFailureCodeValue =
-  "not_configured" | "delivery_failed" | "invalid_message";
+  | "not_configured"
+  | "delivery_failed"
+  | "invalid_message"
+  | "processing_failed";
 
 const ALLOWED_TAG_KEYS = ALLOWED_ERROR_TAG_KEYS;
 

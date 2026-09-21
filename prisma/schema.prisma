@@ -121,6 +121,8 @@ model Clinic {
   doctors            Doctor[]
   procedureSessions  ProcedureSession[]
   profile            ClinicProfile?
+  billingProfile     ClinicBillingProfile?
+  entitlement        ClinicEntitlement?
   practiceGuides     PracticeGuide[]
   accountTokens      AccountToken[]
   createdAt          DateTime            @default(now())
@@ -650,4 +652,116 @@ model MarketingPageSeo {
   follow          Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+enum CommercialPlan {
+  ESSENTIAL
+  PRACTICE
+  GROUP
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+/// Stripe-facing commercial/payment lifecycle. Not a copy of every Stripe
+/// subscription.status, and not product authorization.
+enum BillingStatus {
+  PAYMENT_PENDING
+  ACTIVE
+  PAST_DUE
+  UNPAID
+  CANCEL_AT_PERIOD_END
+  ENDED
+}
+
+/// River product authorization derived from billing. Phase 1 is observational
+/// only — application features must not enforce these values yet.
+enum EntitlementStatus {
+  PENDING
+  ACTIVE
+  RESTRICTED
+  ENDED
+}
+
+enum StripeEventProcessingStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
+/// Legal/billing identity and Stripe Customer/Subscription linkage.
+/// Separate from ClinicProfile (patient-facing chrome). Existing clinics are
+/// not backfilled; rows are created when billing data exists.
+model ClinicBillingProfile {
+  id                   String   @id @default(cuid())
+  clinicId             String   @unique
+  legalEntityName      String?
+  tradingName          String?
+  billingContactName   String?
+  billingEmail         String?
+  addressLine1         String?
+  addressLine2         String?
+  city                 String?
+  region               String?
+  postalCode           String?
+  country              String?  @default("AU")
+  /// Australian Business Number. Nullable until captured. Not a combined
+  /// business-number field; ACN is stored separately.
+  abn                  String?
+  /// Australian Company Number. Used when the customer has no ABN.
+  acn                  String?
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
+  clinic               Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+/// Local entitlement projection used for future product authorization.
+/// Absence of a row, or a non-ACTIVE status, must not currently block clinics.
+model ClinicEntitlement {
+  id                        String            @id @default(cuid())
+  clinicId                  String            @unique
+  commercialPlan            CommercialPlan?
+  billingInterval           BillingInterval?
+  billingStatus             BillingStatus
+  entitlementStatus         EntitlementStatus
+  stripePriceId             String?
+  currentPeriodStart        DateTime?
+  currentPeriodEnd          DateTime?
+  paidThrough               DateTime?
+  cancelAtPeriodEnd         Boolean           @default(false)
+  subscriptionEndedAt       DateTime?
+  /// Calculated only when a subscription actually ends. Not set on
+  /// cancel-at-period-end while the period is still paid.
+  publicGuideRetentionUntil DateTime?
+  lastStripeEventId         String?
+  lastProjectedAt           DateTime?
+  clinic                    Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+
+  @@index([billingStatus])
+  @@index([entitlementStatus])
+}
+
+/// Idempotency and processing metadata for verified Stripe webhook events.
+/// The Stripe event payload is not stored.
+model StripeEventReceipt {
+  id               String                      @id @default(cuid())
+  stripeEventId    String                      @unique
+  eventType        String
+  stripeCreatedAt  DateTime?
+  receivedAt       DateTime                    @default(now())
+  processedAt      DateTime?
+  processingStatus StripeEventProcessingStatus @default(RECEIVED)
+  failureText      String?
+  clinicId         String?
+
+  @@index([eventType, receivedAt])
+  @@index([processingStatus])
+  @@index([clinicId])
 }

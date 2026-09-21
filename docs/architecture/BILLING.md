@@ -1,11 +1,47 @@
 # Stripe billing and plan entitlement — architecture investigation
 
-**Status:** Proposed. Investigation only. Not implemented.  
-**Date:** 2026-09-20  
-**Base:** `origin/main` at `2441d9a` (after public pricing merge `#64` and subsequent error-tracking privacy work)  
+**Status:** Phase 1 (test-mode foundation) is implemented in application code. This document remains the historical investigation. **Approved commercial decisions in the Phase 1 implementation override stale recommendations below.**
+
+**Date:** 2026-09-20 (investigation). Phase 1 landed 2026-09-21.  
+**Base:** investigation was written against `origin/main` at `2441d9a`.  
 **This document is not tax, legal, or accounting advice.**
 
-Public `/pricing` stays assisted-sales (`Request a demo` / `Talk to us`). Do not change it to Buy now. Do not create Stripe objects, migrations, secrets, or enforcement from this note.
+### Phase 1 now contains
+
+- Official `stripe` Node SDK (`22.6.2`, default API `2026-08-26.dahlia`)
+- Server-only test-mode config and Essential/Practice Price ID mapping
+- `ClinicBillingProfile`, `ClinicEntitlement`, `StripeEventReceipt`
+- Verified, idempotent `POST /api/stripe/webhook` on the staff host
+- Local entitlement projection driven by `invoice.paid` (not Checkout completion)
+
+### Not yet present
+
+- Checkout Session creation, Buy now, success/cancel pages
+- Customer Portal
+- Plan-limit enforcement
+- Production / live Stripe configuration
+- Live payments
+- GST / Stripe Tax
+- 60-day public-guide cleanup automation
+
+### Superseded investigation recommendations
+
+Treat the rest of this file as context. Do not re-introduce these stale recommendations:
+
+| Topic | Investigation said | Current approved decision |
+| ----- | ------------------ | ------------------------- |
+| GST | Manual inclusive 10% GST / Tax Invoice extras | **Not GST registered.** Do not configure GST-inclusive behaviour, automatic tax, or 10% GST. |
+| Public retention | 30 days aligned to Terms export | **Up to 60 days** after the paid subscription ends. Field only in Phase 1. |
+| Past-due entitlement | `GRACE` | Keep **ACTIVE** entitlement while Stripe is retrying (`past_due`). |
+| Essential → Practice | Prefer period-end | **Immediate**, proration may apply, once payment state allows. |
+| Portal cancel | Undecided | Enable later, **at period end only**. Do not enable Portal plan switching. |
+| Enums | Richer `GRACE` / `PUBLIC_RETENTION` / `CHECKOUT_OPEN` | Phase 1 uses `BillingStatus` + `EntitlementStatus` as implemented in Prisma. |
+| Invoice table | Optional `StripeInvoiceRef` | **Not added.** Stripe remains the invoice system of record. |
+| Implementation sequence | Domain before Stripe package | Phase 1 ships domain + webhook together, still without Checkout. |
+
+Public `/pricing` stays assisted-sales (`Request a demo` / `Talk to us`). Do not change it to Buy now. Do not create live Stripe objects from this note.
+
+Operator TEST MODE catalogue steps: [`docs/launch/STRIPE-SETUP.md`](../launch/STRIPE-SETUP.md).
 
 Related: [`lib/marketing/plans.ts`](../../lib/marketing/plans.ts) (canonical advertised amounts), [CLINIC-PORTAL.md](CLINIC-PORTAL.md), [APPLICATION.md](APPLICATION.md), [AUTH.md](AUTH.md), [TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md), [PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md), [LEGAL-REQUIREMENTS.md](../launch/LEGAL-REQUIREMENTS.md), ADR [0016](../adr/0016-platform-operator-is-distinct-from-clinic-admin.md), [0017](../adr/0017-clinic-owned-practice-revisions-pin-public-documents.md), [0024](../adr/0024-account-lifecycle-tokens-and-shared-transactional-email.md), [0025](../adr/0025-migrate-before-promote.md).
 

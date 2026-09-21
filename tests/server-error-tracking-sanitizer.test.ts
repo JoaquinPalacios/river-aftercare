@@ -89,6 +89,23 @@ describe("sensitive value sanitizer", () => {
     expect(sanitized).toMatch(/\[REDACTED\]/);
   });
 
+  it("redacts Stripe secret keys and webhook secrets in messages", () => {
+    const sanitized = sanitizeErrorMessage(
+      [
+        "key sk_test_billingPhase1DummyValue",
+        "live sk_live_shouldNeverAppear",
+        "restricted rk_test_restrictedDummy",
+        "webhook whsec_billingPhase1Dummy",
+      ].join(" | ")
+    );
+    expect(sanitized).not.toContain("sk_test_billingPhase1DummyValue");
+    expect(sanitized).not.toContain("sk_live_shouldNeverAppear");
+    expect(sanitized).not.toContain("rk_test_restrictedDummy");
+    expect(sanitized).not.toContain("whsec_billingPhase1Dummy");
+    expect(isSensitiveKey("stripeSecretKey")).toBe(true);
+    expect(isSensitiveKey("STRIPE_WEBHOOK_SECRET")).toBe(true);
+  });
+
   it("keeps a safe URL path and strips query and fragment", () => {
     expect(
       sanitizeErrorTrackingUrl(
