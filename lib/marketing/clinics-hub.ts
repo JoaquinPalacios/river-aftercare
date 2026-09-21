@@ -8,14 +8,14 @@ export const CLINICS_HUB_COPY = {
   hero: {
     eyebrow: "For clinics & practices",
     h1: "Aftercare built around the way your clinic works.",
-    body: "River Aftercare gives treatment-based clinics a branded place for the guidance patients need after appointments, procedures and between visits.",
+    body: "River Aftercare is patient aftercare software for treatment-based clinics. Publish clear, branded guidance patients can return to after appointments, procedures and between visits.",
     primaryCta: "Request a demo",
     secondaryCta: "Explore clinic types",
   },
   platform: {
     eyebrow: "One platform",
-    h2: "Different kinds of care. The same need for clarity afterwards.",
-    body: "The language changes between professions. Dental practices publish post-treatment instructions. Physiotherapists share recovery and home-care guidance. Chiropractic practices share clinic-approved home-care and post-appointment guidance. Cosmetic clinics provide post-treatment aftercare. River Aftercare gives each of them the same underlying foundation: clear, clinic-branded guidance patients can return to.",
+    h2: "Different kinds of care. The same need for clear aftercare.",
+    body: "The language and guidance vary by profession. The workflow stays the same: your clinic publishes approved aftercare in its own brand, and patients reopen it whenever they need it from a durable link or QR code.",
   },
   discovery: {
     eyebrow: "For different clinic workflows",
@@ -31,7 +31,7 @@ export const CLINICS_HUB_COPY = {
       },
       {
         title: "Clinic branded",
-        body: "Your identity, terminology and contact details remain part of the patient experience.",
+        body: "Your logo, colours, terminology and contact details remain part of the patient experience.",
       },
       {
         title: "Easy to revisit",
@@ -45,9 +45,15 @@ export const CLINICS_HUB_COPY = {
   },
   other: {
     eyebrow: "Beyond these four",
-    h2: "Don't see your clinic type?",
-    body: "River Aftercare is designed for treatment-based practices where important guidance continues after the appointment. Tell us about your workflow and we'll determine whether the platform is a good fit.",
-    cta: "Talk to us",
+    h2: "Another treatment-based practice?",
+    body: "If your clinic sends patients home with guidance they may need to revisit, River Aftercare may fit your workflow.",
+    cta: "Tell us about your clinic",
+    fitLabel: "A good fit when",
+    fitItems: [
+      "Guidance continues after the appointment",
+      "Your clinic wants to keep its own brand and terminology",
+      "Patients need a simple way to revisit guidance without an account",
+    ],
   },
   cta: {
     h2: "Give your aftercare a place patients can return to.",
@@ -57,9 +63,9 @@ export const CLINICS_HUB_COPY = {
   },
   visual: {
     label:
-      "Four clinic workflows sharing one branded patient-guidance foundation",
-    coreTitle: "Branded patient guidance",
-    coreFacts: ["Link or QR", "No app or login"],
+      "Four clinic workflows sharing one branded patient-aftercare foundation",
+    coreTitle: "Branded patient aftercare",
+    coreFacts: ["Link or QR", "No patient app or login"],
     paths: [
       {
         themeId: "dental",
@@ -98,20 +104,20 @@ export const CLINICS_HUB_CARDS: readonly ClinicsHubCard[] = [
     themeId: "physiotherapy",
     label: CLINIC_VERTICAL_NAV[1].cardTitle,
     body: CLINIC_VERTICAL_NAV[1].cardCopy,
-    cta: "Explore physiotherapy",
+    cta: "Explore physiotherapy aftercare",
   },
   {
     path: "/chiropractic",
     themeId: "chiropractic",
     label: CLINIC_VERTICAL_NAV[2].cardTitle,
     body: CLINIC_VERTICAL_NAV[2].cardCopy,
-    cta: "Explore chiropractic",
+    cta: "Explore chiropractic aftercare",
   },
   {
     path: "/cosmetic-clinics",
     themeId: "cosmetic",
     label: CLINIC_VERTICAL_NAV[3].cardTitle,
     body: CLINIC_VERTICAL_NAV[3].cardCopy,
-    cta: "Explore cosmetic & aesthetic",
+    cta: "Explore cosmetic & aesthetic aftercare",
   },
 ] as const;

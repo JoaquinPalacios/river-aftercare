@@ -109,22 +109,23 @@ export function MarketingClinicsHub({
         <div className={styles.marketingSoft} data-mk-chapter="soft">
           <section className={styles.band} aria-labelledby="clinics-platform">
             <div className={styles.inner}>
-              <div className={styles.headingBlock}>
+              <div className={styles.clinicsHubPlatform}>
                 <MarketingRevealGroup>
-                  <MarketingRevealItem delay={0}>
-                    <p className={styles.eyebrow}>{copy.platform.eyebrow}</p>
-                  </MarketingRevealItem>
-                  <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                    <h2 id="clinics-platform" className={styles.sectionTitle}>
-                      {copy.platform.h2}
-                    </h2>
-                  </MarketingRevealItem>
-                  <MarketingRevealItem delay={editorialRevealDelay(2)}>
-                    <p
-                      className={`${styles.copy} ${styles.clinicsHubPlatform}`}
-                    >
-                      {copy.platform.body}
-                    </p>
+                  <div className={styles.clinicsHubPlatformIntro}>
+                    <MarketingRevealItem delay={0}>
+                      <p className={styles.eyebrow}>{copy.platform.eyebrow}</p>
+                    </MarketingRevealItem>
+                    <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                      <h2 id="clinics-platform" className={styles.sectionTitle}>
+                        {copy.platform.h2}
+                      </h2>
+                    </MarketingRevealItem>
+                  </div>
+                  <MarketingRevealItem
+                    delay={editorialRevealDelay(2)}
+                    className={styles.clinicsHubPlatformBody}
+                  >
+                    <p className={styles.copy}>{copy.platform.body}</p>
                   </MarketingRevealItem>
                 </MarketingRevealGroup>
               </div>
@@ -252,18 +253,46 @@ export function MarketingClinicsHub({
             <div className={styles.inner}>
               <div className={styles.clinicsHubOther}>
                 <MarketingRevealGroup>
-                  <MarketingRevealItem delay={0}>
-                    <p className={`${styles.eyebrow} ${styles.eyebrowFlow}`}>
-                      {copy.other.eyebrow}
-                    </p>
+                  <div
+                    className={`${styles.clinicsHubOtherIntro} ${styles.sectionStack}`}
+                  >
+                    <MarketingRevealItem delay={0}>
+                      <p className={`${styles.eyebrow} ${styles.eyebrowFlow}`}>
+                        {copy.other.eyebrow}
+                      </p>
+                    </MarketingRevealItem>
+                    <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                      <h2 id="clinics-other" className={styles.sectionTitle}>
+                        {copy.other.h2}
+                      </h2>
+                    </MarketingRevealItem>
+                    <MarketingRevealItem delay={editorialRevealDelay(2)}>
+                      <p className={styles.copy}>{copy.other.body}</p>
+                    </MarketingRevealItem>
+                  </div>
+                  <MarketingRevealItem
+                    delay={editorialRevealDelay(2)}
+                    className={styles.clinicsHubOtherFit}
+                  >
+                    <h3
+                      id="clinics-fit"
+                      className={styles.clinicsHubOtherFitLabel}
+                    >
+                      {copy.other.fitLabel}
+                    </h3>
+                    <ul
+                      className={styles.clinicsHubOtherFitList}
+                      aria-labelledby="clinics-fit"
+                    >
+                      {copy.other.fitItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
                   </MarketingRevealItem>
-                  <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                    <h2 id="clinics-other" className={styles.sectionTitle}>
-                      {copy.other.h2}
-                    </h2>
-                  </MarketingRevealItem>
-                  <MarketingRevealItem delay={editorialRevealDelay(2)}>
-                    <p className={styles.copy}>{copy.other.body}</p>
+                  <MarketingRevealItem
+                    delay={editorialRevealDelay(3)}
+                    className={styles.clinicsHubOtherCta}
+                  >
                     <div className={styles.actions}>
                       <MarketingPrimaryLink href="/contact">
                         {copy.other.cta}

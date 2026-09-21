@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-21 (launch-ready Terms/Privacy billing copy)
+Last updated: 2026-09-21 (`/clinics` copy + SEO hub refinement)
 
 ## Durable production release rule
 
@@ -1401,7 +1401,7 @@ Colour-language pass only. Layout, copy, SEO, and logo artwork are unchanged.
 | Conversion   | Primary CTAs stay `--mk-brand-strong` periwinkle. Secondary buttons keep a neutral outline; hover/focus edge can pick up sky. Focus rings remain `--mk-focus`.                                                                                                                                                                                                           |
 | Master brand | Home, `/clinics`, About, Pricing, Contact use periwinkle + cobalt for major brand moments, sky for flow/connectors/secondary interaction. Flow eyebrows use `.flowSection` / `.eyebrowFlow`.                                                                                                                                                                             |
 | Verticals    | Typed `VERTICAL_ACCENT_FAMILY` in `lib/marketing/vertical-landing.ts`. `data-vertical` still drives CSS. Dental periwinkle, physiotherapy sky (light text `#146f88`), chiropractic cobalt, cosmetic lavender/periwinkle. Connectors use sky; card rails stay vertical-led.                                                                                               |
-| `/clinics`   | Four pathway/card identities remain distinct. Core “Branded patient guidance” hairline is periwinkle → sky → cobalt.                                                                                                                                                                                                                                                     |
+| `/clinics`   | Four pathway/card identities remain distinct. Core “Branded patient aftercare” hairline is periwinkle → sky → cobalt.                                                                                                                                                                                                                                                    |
 | Light mode   | Bright dark-sky values are not used as Light text. Physio/sky text stays `#146f88` on warm white.                                                                                                                                                                                                                                                                        |
 | Logo         | `public/brand/river-aftercare-*.svg` colours unchanged.                                                                                                                                                                                                                                                                                                                  |
 
@@ -1513,14 +1513,14 @@ See [MARKETING-CONTACT.md](../architecture/MARKETING-CONTACT.md).
 
 Second tightly scoped production-design pass. No copy, SEO, or architecture change.
 
-| Area                | Behaviour                                                                                                                                                                                |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phone mockup        | Decorative illustration: `user-select: none`, `aria-hidden` on the shell, radios `tabindex="-1"`. Last timeline rail ends at the dot. Coming-next/help no longer stack a stray 1px line. |
-| Link underlines     | Non-nav `.textLink` uses `--mk-inline-link-underline-offset: -0.125rem`. Nav stays `0.5rem`. Footer stays `0`.                                                                           |
-| About clinic list   | Row gap `0.65rem` and slightly more item padding so accent rails read as a family, not a stripe. Allied-health row stays muted.                                                          |
-| Pricing notes       | `.noteCard` gets a tinted 1px border, faint top-edge inset highlight, and a quiet surface gradient. No lift, glow, or hover animation.                                                   |
-| `/clinics` platform | “One platform” copy sits in `.headingBlock` so heading → body uses `--mk-heading-intro-gap`.                                                                                             |
-| FAQ                 | Item overflow clips hover/open fills and rails to nested radius. Summary is `display: block`. Focus remains visible as an inset ring.                                                    |
+| Area                | Behaviour                                                                                                                                                                                                                   |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phone mockup        | Decorative illustration: `user-select: none`, `aria-hidden` on the shell, radios `tabindex="-1"`. Last timeline rail ends at the dot. Coming-next/help no longer stack a stray 1px line.                                    |
+| Link underlines     | Non-nav `.textLink` uses `--mk-inline-link-underline-offset: -0.125rem`. Nav stays `0.5rem`. Footer stays `0`.                                                                                                              |
+| About clinic list   | Row gap `0.65rem` and slightly more item padding so accent rails read as a family, not a stripe. Allied-health row stays muted.                                                                                             |
+| Pricing notes       | `.noteCard` gets a tinted 1px border, faint top-edge inset highlight, and a quiet surface gradient. No lift, glow, or hover animation.                                                                                      |
+| `/clinics` platform | Desktop two-column editorial: eyebrow + heading left, supporting paragraph right (`minmax(0, 1.35fr) minmax(16rem, 1fr)` + `2.75rem`, same as About). Mobile stacks eyebrow → heading → body with `--mk-heading-intro-gap`. |
+| FAQ                 | Item overflow clips hover/open fills and rails to nested radius. Summary is `display: block`. Focus remains visible as an inset ring.                                                                                       |
 
 ---
 
@@ -2006,3 +2006,20 @@ Vitest file parallelism stays on. DB-backed unit/integration tests share local P
 | Assertions                 | Count/filter by owned identity (`slug`, `id`, `userId`, `clinicId`). Never `clinic.count()` / `user.count()` / `guideTemplate.count()` / `accountToken.count()` with an empty `where`.                                                                                               |
 | Demo bootstrap             | `bootstrapDemoExtractionTemplate` writes only `GuideTemplate` slug `extraction` (+ 1 revision + 8 sections). It does not create Clinic/User/PracticeGuide. Prove “exactly one extraction template” and “demodental clinic count unchanged”, not “the whole database has one clinic”. |
 | Why isolated reruns passed | A single file sees only seed’s Rivers Care Demo Clinic (`clinic_demo_rivers` / `demodental`). A parallel worker’s legitimate clinic made global `clinic.count()` 2.                                                                                                                  |
+
+---
+
+## `/clinics` copy + SEO hub refinement (2026-09-21)
+
+Copy, SEO, and restrained editorial layout only. Not a page redesign. Commercial plan selection stays on `/pricing`. Do not add pricing cards or extra verticals.
+
+| Area              | Behaviour                                                                                                                                                                                                                                                                                                |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Role              | `/clinics` is the clinic/use-case hub: treatment-based clinic fit + vertical discovery. Homepage remains broad product/category intent. Vertical pages remain profession-specific. `/pricing` remains commercial-plan intent.                                                                            |
+| Hero              | H1 unchanged. Supporting paragraph is patient aftercare software for treatment-based clinics. Diagram core label is **Branded patient aftercare**; secondary line is `Link or QR · No patient app or login`. CTAs stay Request a demo → `/contact` and Explore clinic types → `#clinic-types`.           |
+| One platform      | Heading: “Different kinds of care. The same need for clear aftercare.” Body no longer enumerates professions (cards do that). Desktop: eyebrow + heading left, paragraph right using the About editorial grid. Mobile: semantic stack.                                                                   |
+| Vertical cards    | Labels, colours, destinations, and descriptive copy unchanged. CTA labels are `Explore … aftercare` for all four, with the existing SVG arrow.                                                                                                                                                           |
+| Shared foundation | Clinic branded body is logo, colours, terminology and contact details. Do not enumerate favicon / Dark logo / palette controls here.                                                                                                                                                                     |
+| Beyond these four | Full-width qualification panel. Left: “Another treatment-based practice?” + Tell us about your clinic → `/contact`. Right: “A good fit when” plus three fit statements. Heading → body uses `--mk-heading-intro-gap` (`1.25rem`). Mobile stacks intro → fit → CTA.                                       |
+| SEO               | Title `Patient Aftercare for Treatment-Based Clinics \| River Aftercare` (differentiated from homepage Software-for-Clinics title). Description names the four verticals + branded aftercare + link or QR. Canonical `/clinics`, index/follow, existing WebPage JSON-LD only. `lastModified` 2026-09-21. |
+| Motion            | New columns use `MarketingReveal`. Fit column reveals as one composition.                                                                                                                                                                                                                                |

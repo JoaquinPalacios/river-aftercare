@@ -942,7 +942,7 @@ test.describe("premium marketing UX", () => {
     await showMarketingScheme(page, "light");
     await page
       .getByRole("heading", {
-        name: "Different kinds of care. The same need for clarity afterwards.",
+        name: "Different kinds of care. The same need for clear aftercare.",
       })
       .locator("xpath=ancestor::section[1]")
       .screenshot({
@@ -968,7 +968,7 @@ test.describe("premium marketing UX", () => {
     await showMarketingScheme(page, "dark");
     await page
       .getByRole("heading", {
-        name: "Different kinds of care. The same need for clarity afterwards.",
+        name: "Different kinds of care. The same need for clear aftercare.",
       })
       .locator("xpath=ancestor::section[1]")
       .screenshot({
@@ -1237,7 +1237,7 @@ test.describe("premium marketing UX", () => {
     await showMarketingScheme(page, "dark");
     await page
       .getByRole("heading", {
-        name: "Different kinds of care. The same need for clarity afterwards.",
+        name: "Different kinds of care. The same need for clear aftercare.",
       })
       .locator("xpath=ancestor::section[1]")
       .screenshot({
