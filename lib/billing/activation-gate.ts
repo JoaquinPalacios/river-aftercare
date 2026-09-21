@@ -10,26 +10,30 @@ export const BILLING_SETUP_PATH = "/account/billing/setup";
 export const BILLING_COMPLETE_PATH = "/account/billing/complete";
 export const BILLING_STATUS_PATH = "/account/billing";
 
+export type BillingRecoveryPath =
+  | typeof BILLING_SETUP_PATH
+  | typeof BILLING_COMPLETE_PATH
+  | typeof BILLING_STATUS_PATH;
+
 export type ClinicProductAccessDecision =
   | {
       kind: "allow";
-      reason:
-        "legacy" | "active" | "operator_support" | "post_payment_unenforced";
+      reason: "legacy" | "active" | "operator_support";
     }
   | {
       kind: "billing_required";
-      reason: "pending_onboarding";
-      href: typeof BILLING_SETUP_PATH | typeof BILLING_COMPLETE_PATH;
+      reason: "not_active";
+      href: BillingRecoveryPath;
     };
 
 /**
  * Phase 2 activation gate.
  *
- * Legacy clinics have no entitlement row and stay open.
- * PENDING means the clinic was explicitly placed into paid onboarding.
- * ACTIVE opens product access.
- * RESTRICTED and ENDED keep Phase 1 behaviour: they do not lock the product.
- * Operators assisting a clinic are not sent through customer Checkout.
+ * No entitlement row is the legacy compatibility path.
+ * A billing-onboarding clinic opens product routes only while entitlement
+ * is ACTIVE. Every other entitlement state stays closed. Billing status
+ * chooses a recovery page and never grants product access.
+ * Operator support keeps its existing exemption.
  */
 export function decideClinicProductAccess(input: {
   membershipSource: "membership" | "operator_support";
@@ -48,18 +52,27 @@ export function decideClinicProductAccess(input: {
     return { kind: "allow", reason: "active" };
   }
 
-  if (input.entitlementStatus === EntitlementStatus.PENDING) {
-    return {
-      kind: "billing_required",
-      reason: "pending_onboarding",
-      href:
-        input.billingStatus === BillingStatus.PAYMENT_PENDING
-          ? BILLING_COMPLETE_PATH
-          : BILLING_SETUP_PATH,
-    };
-  }
+  return {
+    kind: "billing_required",
+    reason: "not_active",
+    href: billingRecoveryPath(input.entitlementStatus, input.billingStatus),
+  };
+}
 
-  return { kind: "allow", reason: "post_payment_unenforced" };
+function billingRecoveryPath(
+  entitlementStatus: EntitlementStatus,
+  billingStatus: BillingStatus | null
+): BillingRecoveryPath {
+  if (
+    entitlementStatus === EntitlementStatus.ENDED ||
+    entitlementStatus === EntitlementStatus.RESTRICTED
+  ) {
+    return BILLING_STATUS_PATH;
+  }
+  if (billingStatus === BillingStatus.PAYMENT_PENDING) {
+    return BILLING_COMPLETE_PATH;
+  }
+  return BILLING_SETUP_PATH;
 }
 
 export async function readClinicBillingAccess(

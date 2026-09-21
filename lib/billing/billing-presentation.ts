@@ -24,6 +24,7 @@ export type BillingReturnPresentation =
     }
   | { kind: "processing"; productAccess: false }
   | { kind: "retry"; productAccess: false; canRestartCheckout: boolean }
+  | { kind: "inactive"; productAccess: false }
   | { kind: "setup"; productAccess: false }
   | { kind: "support"; productAccess: false };
 
@@ -46,6 +47,10 @@ export function presentBillingReturn(input: {
       planName,
       intervalLabel,
     };
+  }
+
+  if (input.entitlementStatus === EntitlementStatus.ENDED) {
+    return { kind: "inactive", productAccess: false };
   }
 
   if (

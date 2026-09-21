@@ -50,6 +50,32 @@ describe("billing return flow", () => {
     });
   });
 
+  it("shows an ended subscription as inactive without product access", () => {
+    expect(
+      presentBillingReturn({
+        entitlementStatus: EntitlementStatus.ENDED,
+        billingStatus: BillingStatus.ENDED,
+        commercialPlan: "ESSENTIAL",
+        billingInterval: "MONTHLY",
+        checkoutStarted: true,
+        stripeSubscriptionId: "sub_ended",
+      })
+    ).toEqual({ kind: "inactive", productAccess: false });
+  });
+
+  it("keeps a restricted entitlement on recovery without product access", () => {
+    expect(
+      presentBillingReturn({
+        entitlementStatus: EntitlementStatus.RESTRICTED,
+        billingStatus: BillingStatus.UNPAID,
+        commercialPlan: "PRACTICE",
+        billingInterval: "MONTHLY",
+        checkoutStarted: false,
+        stripeSubscriptionId: "sub_restricted",
+      })
+    ).toMatchObject({ kind: "retry", productAccess: false });
+  });
+
   it("does not let a success URL override a still-pending entitlement", () => {
     const complete = readFileSync(
       "app/(staff)/account/billing/complete/page.tsx",

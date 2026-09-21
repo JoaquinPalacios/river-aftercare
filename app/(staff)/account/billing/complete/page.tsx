@@ -88,6 +88,28 @@ export default async function BillingCompletePage() {
             Refresh status
           </Link>
         </section>
+      ) : presentation.kind === "inactive" ? (
+        <section
+          className="rounded-xl border border-staff-line bg-staff-panel p-5 sm:p-6"
+          role="status"
+        >
+          <p className="staffStatusPill" data-tone="inactive">
+            Not active
+          </p>
+          <h2 className="mt-4 text-lg font-semibold">
+            Your River Aftercare subscription is not active.
+          </h2>
+          <p className="mt-2 text-sm text-staff-muted">
+            Clinic access stays closed until a subscription is active. Contact
+            River Aftercare if you need help continuing.
+          </p>
+          <a
+            href={context.contactHref}
+            className="staffBtn staffBtnSecondary mt-5 inline-flex h-11 items-center"
+          >
+            Contact River Aftercare
+          </a>
+        </section>
       ) : presentation.kind === "retry" ? (
         <section
           className="rounded-xl border border-staff-line bg-staff-panel p-5 sm:p-6"

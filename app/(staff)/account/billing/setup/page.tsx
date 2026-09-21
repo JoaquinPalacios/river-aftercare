@@ -49,6 +49,8 @@ export default async function BillingSetupPage({
         </p>
       ) : view.presentation.kind === "active" ? (
         <ActiveBilling view={view} />
+      ) : view.presentation.kind === "inactive" ? (
+        <InactiveBilling contactHref={context.contactHref} />
       ) : view.presentation.kind === "processing" ||
         view.presentation.kind === "retry" ? (
         <ProcessingBilling view={view} />
@@ -142,6 +144,32 @@ function ProcessingBilling({
       >
         View payment status
       </Link>
+    </section>
+  );
+}
+
+function InactiveBilling({ contactHref }: { contactHref: string }) {
+  return (
+    <section
+      className="rounded-xl border border-staff-line bg-staff-panel p-5"
+      role="status"
+    >
+      <p className="staffStatusPill" data-tone="inactive">
+        Not active
+      </p>
+      <h2 className="mt-4 text-lg font-semibold">
+        Your River Aftercare subscription is not active.
+      </h2>
+      <p className="mt-2 text-sm text-staff-muted">
+        Clinic access stays closed until a subscription is active. Contact River
+        Aftercare if you need help continuing.
+      </p>
+      <a
+        href={contactHref}
+        className="staffBtn staffBtnSecondary mt-4 inline-flex h-11 items-center"
+      >
+        Contact River Aftercare
+      </a>
     </section>
   );
 }

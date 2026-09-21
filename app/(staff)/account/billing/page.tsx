@@ -53,14 +53,20 @@ export default async function BillingStatusPage() {
                 <span
                   className="staffStatusPill"
                   data-tone={
-                    presentation.kind === "active" ? "success" : "warning"
+                    presentation.kind === "active"
+                      ? "success"
+                      : presentation.kind === "inactive"
+                        ? "inactive"
+                        : "warning"
                   }
                 >
                   {presentation.kind === "active"
                     ? "Active"
                     : presentation.kind === "processing"
                       ? "Payment processing"
-                      : view.billingLabel}
+                      : presentation.kind === "inactive"
+                        ? "Not active"
+                        : view.billingLabel}
                 </span>
               </dd>
             </div>
@@ -87,6 +93,34 @@ export default async function BillingStatusPage() {
             >
               View payment status
             </Link>
+          ) : null}
+          {presentation.kind === "retry" ? (
+            <p className="mt-4 text-sm text-staff-muted" role="status">
+              We haven’t confirmed payment yet. Clinic access stays closed until
+              payment is confirmed.
+            </p>
+          ) : null}
+          {presentation.kind === "inactive" ? (
+            <p className="mt-4 text-sm text-staff-muted" role="status">
+              Your River Aftercare subscription is not active. Clinic access
+              stays closed until a subscription is active.
+            </p>
+          ) : null}
+          {presentation.kind === "retry" && presentation.canRestartCheckout ? (
+            <Link
+              href={BILLING_SETUP_PATH}
+              className="staffBtn staffBtnPrimary mt-5 inline-flex h-11 items-center"
+            >
+              Return to billing setup
+            </Link>
+          ) : null}
+          {presentation.kind === "retry" || presentation.kind === "inactive" ? (
+            <a
+              href={context.contactHref}
+              className="staffBtn staffBtnSecondary mt-5 inline-flex h-11 items-center"
+            >
+              Contact River Aftercare
+            </a>
           ) : null}
           {presentation.kind === "active" ? (
             <Link

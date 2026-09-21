@@ -41,7 +41,7 @@ GROUP stays custom/manual. Customer Portal, invoice history, payment-method edit
 - Append-only `LegalAcceptance` (`termsVersion` `2026-09-21`, `privacyVersionAcknowledged` `2026-09-21`, source `BILLING_CHECKOUT`). No IP address or device fingerprint.
 - One Stripe Customer per Clinic (`metadata.clinicId`), reused with a stable idempotency key. Hosted subscription Checkout uses the server Price ID, quantity 1, `client_reference_id` and subscription metadata `clinicId`, and `payment_method_types` `card` + `au_becs_debit`. Automatic tax is off.
 - Success and cancel URLs do not activate entitlement. The complete page reads the local projection: active, payment processing, or a recovery/support state. Processing polls `GET /api/billing/status` (local state only).
-- Pre-payment activation gate: a clinic with `EntitlementStatus.PENDING` can use billing pages and account basics, and is redirected away from product authoring. No entitlement row means legacy access and is not blocked. `ACTIVE` opens the product. `RESTRICTED` and `ENDED` are not locked in this phase.
+- Activation gate: no `ClinicEntitlement` row means legacy access and is not blocked. A billing-onboarding clinic opens product routes only while entitlement is `ACTIVE`. `PENDING`, `RESTRICTED`, `ENDED`, and any later non-active state stay on billing recovery (`/account/billing`, setup, or payment status). Billing status does not grant product access. Operator support stays exempt. Phase 3 can later distinguish paid-customer restriction from this initial fail-closed gate.
 
 ### Not yet present
 
