@@ -14,6 +14,7 @@ export const STAFF_PATH_PREFIXES = [
   "/api/auth",
   "/api/ui-theme",
   "/api/health",
+  "/api/stripe",
 ] as const;
 
 export const MARKETING_PAGE_PATHS = [

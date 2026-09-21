@@ -29,6 +29,9 @@ const SENSITIVE_KEYS = new Set(
     "secretaccesskey",
     "turnstilesecret",
     "turnstilesecretkey",
+    "stripesecretkey",
+    "stripewebhooksecret",
+    "webhooksecret",
     "email",
     "name",
     "phone",
@@ -73,6 +76,8 @@ const JWT_PATTERN =
   /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g;
 const TOKEN_QUERY_PATTERN = /([?&#](?:raw)?token=)[A-Za-z0-9._~-]+/gi;
 const RESEND_KEY_PATTERN = /\bre_[A-Za-z0-9]{8,}\b/g;
+const STRIPE_SECRET_KEY_PATTERN = /\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]+/g;
+const STRIPE_WEBHOOK_SECRET_PATTERN = /\bwhsec_[A-Za-z0-9]+/g;
 
 export function normalizeSensitiveKey(key: string): string {
   return key.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -118,7 +123,9 @@ export function sanitizeErrorMessage(value: string): string {
     .replace(URL_WITH_USERINFO_PATTERN, REDACTED_MARKER)
     .replace(JWT_PATTERN, REDACTED_MARKER)
     .replace(TOKEN_QUERY_PATTERN, `$1${REDACTED_MARKER}`)
-    .replace(RESEND_KEY_PATTERN, REDACTED_MARKER);
+    .replace(RESEND_KEY_PATTERN, REDACTED_MARKER)
+    .replace(STRIPE_SECRET_KEY_PATTERN, REDACTED_MARKER)
+    .replace(STRIPE_WEBHOOK_SECRET_PATTERN, REDACTED_MARKER);
 }
 
 export function sanitizeErrorTrackingUrl(url: unknown): string | undefined {

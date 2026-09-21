@@ -53,4 +53,4 @@ This is **not** counsel-approved legal copy. Operator legal-approval flags were 
 | Governing law            | New South Wales, Australia (non-exclusive jurisdiction)                                                                                                        |
 | Legal / privacy email    | `admin@riveraftercare.com.au`                                                                                                                                  |
 | GST registration         | **Not registered** — pending accountant confirmation. Public pricing copy must not claim GST is included. Terms remain “GST will be charged where applicable.” |
-| Production subprocessors | Named in `/privacy`: Vercel, Neon, Cloudflare, Resend, Hostinger, Google, and Stripe (payment/billing). Stripe billing is not yet implemented in the app.      |
+| Production subprocessors | Named in `/privacy`: Vercel, Neon, Cloudflare, Resend, Hostinger, Google, and Stripe (payment/billing). Stripe Billing Phase 1 (test-mode webhook projection) exists in the app; Checkout, Customer Portal, live payments, and enforcement are not implemented. |

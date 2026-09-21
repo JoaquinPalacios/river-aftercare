@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
     "dompurify",
     "@aws-sdk/client-s3",
     "@sentry/nextjs",
+    "stripe",
   ],
   experimental: {
     serverActions: {
