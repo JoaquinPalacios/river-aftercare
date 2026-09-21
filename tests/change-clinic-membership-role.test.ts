@@ -169,7 +169,9 @@ describe("change clinic membership role", () => {
         expiresAt: new Date("2026-09-26T00:00:00.000Z"),
       },
     });
-    const tokenCountBefore = await prisma.accountToken.count();
+    const tokenCountBefore = await prisma.accountToken.count({
+      where: { userId: user.id },
+    });
     const membershipCountBefore = await prisma.clinicMembership.count({
       where: { userId: user.id },
     });
@@ -197,7 +199,9 @@ describe("change clinic membership role", () => {
     expect(keptUser?.email).toBe(user.email);
     expect(keptUser?.name).toBe("Role Person");
     expect(await prisma.session.count({ where: { userId: user.id } })).toBe(1);
-    expect(await prisma.accountToken.count()).toBe(tokenCountBefore);
+    expect(
+      await prisma.accountToken.count({ where: { userId: user.id } })
+    ).toBe(tokenCountBefore);
     expect(
       await prisma.clinicMembership.count({ where: { userId: user.id } })
     ).toBe(membershipCountBefore);

@@ -3,6 +3,7 @@ import "dotenv/config";
 import { afterAll, describe, expect, it } from "vitest";
 import type { PrismaClient } from "@prisma/client";
 
+import { DEMO_AFTERCARE_TENANT_SLUG } from "@/lib/aftercare/demo-tenant";
 import {
   DEMO_EXTRACTION_SECTIONS,
   DEMO_EXTRACTION_TEMPLATE_SLUG,
@@ -13,6 +14,47 @@ import {
   planDemoExtractionBootstrap,
   type DemoExtractionTemplateSnapshot,
 } from "@/lib/clinic-portal/bootstrap-demo-extraction-template";
+
+const DEMO_SEED_USER_IDS = [
+  "user_demo_admin",
+  "user_demo_staff",
+  "user_demo_operator",
+] as const;
+
+async function ownedDemoBootstrapState(client: PrismaClient) {
+  const extractionWhere = { slug: DEMO_EXTRACTION_TEMPLATE_SLUG };
+  const [
+    templateCount,
+    revisionCount,
+    sectionCount,
+    demoClinicCount,
+    demoUserCount,
+  ] = await Promise.all([
+    client.guideTemplate.count({ where: extractionWhere }),
+    client.guideTemplateRevision.count({
+      where: { guideTemplate: extractionWhere },
+    }),
+    client.guideTemplateSection.count({
+      where: { revision: { guideTemplate: extractionWhere } },
+    }),
+    client.clinic.count({ where: { slug: DEMO_AFTERCARE_TENANT_SLUG } }),
+    client.user.count({ where: { id: { in: [...DEMO_SEED_USER_IDS] } } }),
+  ]);
+  const demoClinic = await client.clinic.findUnique({
+    where: { slug: DEMO_AFTERCARE_TENANT_SLUG },
+    select: { id: true, name: true, slug: true },
+  });
+
+  return {
+    templateCount,
+    revisionCount,
+    sectionCount,
+    demoClinicCount,
+    demoClinicId: demoClinic?.id ?? null,
+    demoClinicName: demoClinic?.name ?? null,
+    demoUserCount,
+  };
+}
 
 function expectedCreatePlan() {
   return planDemoExtractionBootstrap(null);
@@ -153,24 +195,14 @@ describe("demo extraction bootstrap writes", () => {
     }
 
     const client = prisma;
-    const clinicCount = await client.clinic.count();
-    const userCount = await client.user.count();
-    const guideCount = await client.practiceGuide.count();
-    const templateCount = await client.guideTemplate.count();
-    const revisionCount = await client.guideTemplateRevision.count();
-    const sectionCount = await client.guideTemplateSection.count();
+    const before = await ownedDemoBootstrapState(client);
 
     const dryRun = await bootstrapDemoExtractionTemplate({
       prisma: client,
       apply: false,
     });
     expect(dryRun.applied).toBe(false);
-    expect(await client.clinic.count()).toBe(clinicCount);
-    expect(await client.user.count()).toBe(userCount);
-    expect(await client.practiceGuide.count()).toBe(guideCount);
-    expect(await client.guideTemplate.count()).toBe(templateCount);
-    expect(await client.guideTemplateRevision.count()).toBe(revisionCount);
-    expect(await client.guideTemplateSection.count()).toBe(sectionCount);
+    expect(await ownedDemoBootstrapState(client)).toEqual(before);
 
     const existing = await client.guideTemplate.findUnique({
       where: { slug: DEMO_EXTRACTION_TEMPLATE_SLUG },
@@ -181,10 +213,12 @@ describe("demo extraction bootstrap writes", () => {
       prisma: client,
       apply: true,
     });
+    const afterApply = await ownedDemoBootstrapState(client);
 
-    expect(await client.clinic.count()).toBe(clinicCount);
-    expect(await client.user.count()).toBe(userCount);
-    expect(await client.practiceGuide.count()).toBe(guideCount);
+    expect(afterApply.demoClinicCount).toBe(before.demoClinicCount);
+    expect(afterApply.demoClinicCount).toBeLessThanOrEqual(1);
+    expect(afterApply.demoClinicId).toBe(before.demoClinicId);
+    expect(afterApply.demoUserCount).toBe(before.demoUserCount);
 
     if (!existing) {
       expect(apply.plan.action).toBe("create");
@@ -201,32 +235,47 @@ describe("demo extraction bootstrap writes", () => {
       expect(created.revisions[0]?.sections).toHaveLength(8);
       expect(created.revisions[0]?.reviewedAt).toBeNull();
       expect(created.revisions[0]?.reviewedBy).toBeNull();
-      expect(await client.guideTemplate.count()).toBe(templateCount + 1);
-      expect(await client.guideTemplateRevision.count()).toBe(
-        revisionCount + 1
-      );
-      expect(await client.guideTemplateSection.count()).toBe(sectionCount + 8);
-
-      const second = await bootstrapDemoExtractionTemplate({
-        prisma: client,
-        apply: true,
-      });
-      expect(second.plan.action).toBe("noop");
-      expect(second.applied).toBe(false);
-      expect(await client.guideTemplate.count()).toBe(templateCount + 1);
-      return;
+      expect(afterApply.templateCount).toBe(1);
+      expect(afterApply.revisionCount).toBe(1);
+      expect(afterApply.sectionCount).toBe(8);
+    } else {
+      expect(apply.applied).toBe(false);
+      expect(["noop", "refuse"]).toContain(apply.plan.action);
+      expect(afterApply.templateCount).toBe(before.templateCount);
     }
 
-    expect(apply.applied).toBe(false);
-    expect(["noop", "refuse"]).toContain(apply.plan.action);
-    if (apply.plan.action === "noop") {
-      const second = await bootstrapDemoExtractionTemplate({
-        prisma: client,
-        apply: true,
-      });
+    const second = await bootstrapDemoExtractionTemplate({
+      prisma: client,
+      apply: true,
+    });
+    const afterSecond = await ownedDemoBootstrapState(client);
+    expect(second.applied).toBe(false);
+    expect(afterSecond.templateCount).toBe(afterApply.templateCount);
+    expect(afterSecond.demoClinicCount).toBe(before.demoClinicCount);
+    expect(afterSecond.demoClinicId).toBe(before.demoClinicId);
+    if (apply.plan.action === "create" || apply.plan.action === "noop") {
       expect(second.plan.action).toBe("noop");
-      expect(second.applied).toBe(false);
-      expect(await client.guideTemplate.count()).toBe(templateCount);
+      expect(afterSecond.templateCount).toBe(1);
+      expect(afterSecond.revisionCount).toBe(1);
+      expect(afterSecond.sectionCount).toBe(8);
+    }
+
+    const concurrent = await Promise.all([
+      bootstrapDemoExtractionTemplate({ prisma: client, apply: true }),
+      bootstrapDemoExtractionTemplate({ prisma: client, apply: true }),
+    ]);
+    const afterConcurrent = await ownedDemoBootstrapState(client);
+    expect(concurrent.map((result) => result.applied)).toEqual([false, false]);
+    expect(afterConcurrent.templateCount).toBe(afterSecond.templateCount);
+    expect(afterConcurrent.demoClinicCount).toBe(before.demoClinicCount);
+    expect(afterConcurrent.demoClinicCount).toBeLessThanOrEqual(1);
+    expect(afterConcurrent.demoClinicId).toBe(before.demoClinicId);
+    if (second.plan.action === "noop") {
+      expect(concurrent.map((result) => result.plan.action)).toEqual([
+        "noop",
+        "noop",
+      ]);
+      expect(afterConcurrent.templateCount).toBe(1);
     }
 
     void dbAvailable;
