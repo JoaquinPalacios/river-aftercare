@@ -49,6 +49,40 @@ export type StripeBillingLogEvent =
     }
   | {
       event: "stripe_webhook_not_configured";
+    }
+  | {
+      event: "billing_onboarding_prepared";
+      clinicId: string;
+      commercialPlan: string;
+      billingInterval: string;
+    }
+  | {
+      event: "stripe_customer_created" | "stripe_customer_reused";
+      clinicId: string;
+    }
+  | {
+      event: "checkout_session_created" | "checkout_session_reused";
+      clinicId: string;
+      commercialPlan: string;
+      billingInterval: string;
+    }
+  | {
+      event: "checkout_session_failed";
+      clinicId: string;
+      reason: string;
+    }
+  | {
+      event: "legal_acceptance_recorded";
+      clinicId: string;
+      userId: string;
+      termsVersion: string;
+      privacyVersionAcknowledged: string;
+      source: string;
+    }
+  | {
+      event: "billing_entitlement_activated";
+      clinicId: string;
+      eventType: string;
     };
 
 export function logStripeBilling(entry: StripeBillingLogEvent): void {
@@ -56,7 +90,8 @@ export function logStripeBilling(entry: StripeBillingLogEvent): void {
     entry.event === "stripe_webhook_failed" ||
     entry.event === "stripe_webhook_unknown_price" ||
     entry.event === "stripe_webhook_unknown_clinic" ||
-    entry.event === "stripe_webhook_not_configured"
+    entry.event === "stripe_webhook_not_configured" ||
+    entry.event === "checkout_session_failed"
   ) {
     console.error(entry);
     return;

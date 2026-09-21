@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
+import { enforcePrePaymentActivationGate } from "@/lib/billing/activation-gate";
 import { completeProcedureSession } from "@/lib/sessions/complete-procedure-session";
 import {
   SessionNotFoundError,
@@ -16,6 +17,7 @@ import {
 
 export async function completeSessionAction(formData: FormData): Promise<void> {
   const { clinicMembership } = await requireStaffSession();
+  await enforcePrePaymentActivationGate(clinicMembership);
 
   if (!clinicMembership) {
     notFound();
@@ -45,6 +47,7 @@ export async function completeSessionAction(formData: FormData): Promise<void> {
 
 export async function moveStageAction(formData: FormData): Promise<void> {
   const { user, clinicMembership } = await requireStaffSession();
+  await enforcePrePaymentActivationGate(clinicMembership);
 
   if (!clinicMembership) {
     notFound();

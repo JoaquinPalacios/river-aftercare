@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
+import { enforcePrePaymentActivationGate } from "@/lib/billing/activation-gate";
 import {
   type ClinicProcedureTemplateListItem,
   listActiveClinicProcedureTemplates,
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
 
 export default async function DashboardProceduresPage() {
   const { clinicMembership } = await requireStaffSession();
+  await enforcePrePaymentActivationGate(clinicMembership);
   // `requireStaffSession` redirects when clinic membership is missing, so the
   // protected dashboard shell guarantees a non-null value here. We rely on
   // that invariant rather than adding a second per-page redirect branch.

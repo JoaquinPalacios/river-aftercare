@@ -18,6 +18,8 @@ export function PortalChrome({
   patientSiteHref,
   canManagePractice,
   assistingClinicName = null,
+  showProductNav = true,
+  billingHref = null,
   children,
 }: {
   displayName: string;
@@ -26,6 +28,8 @@ export function PortalChrome({
   patientSiteHref: string | null;
   canManagePractice: boolean;
   assistingClinicName?: string | null;
+  showProductNav?: boolean;
+  billingHref?: string | null;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -74,6 +78,7 @@ export function PortalChrome({
             pathname={pathname}
             patientSiteHref={patientSiteHref}
             canManagePractice={canManagePractice}
+            showProductNav={showProductNav}
             onNavigate={() => undefined}
           />
           <div className="mt-auto">
@@ -82,7 +87,11 @@ export function PortalChrome({
               <PortalAppearanceControl />
             </div>
             <div className="staffNavRule" role="presentation" />
-            <StaffAccountPanel userLabel={userLabel} roleLabel={roleLabel} />
+            <StaffAccountPanel
+              userLabel={userLabel}
+              roleLabel={roleLabel}
+              billingHref={billingHref}
+            />
           </div>
         </div>
       </aside>
@@ -122,6 +131,7 @@ export function PortalChrome({
               pathname={pathname}
               patientSiteHref={patientSiteHref}
               canManagePractice={canManagePractice}
+              showProductNav={showProductNav}
               onNavigate={() => menuRef.current?.hidePopover()}
             />
             <div className="staffNavRule" role="presentation" />
@@ -129,7 +139,11 @@ export function PortalChrome({
               <PortalAppearanceControl />
             </div>
             <div className="staffNavRule" role="presentation" />
-            <StaffAccountPanel userLabel={userLabel} roleLabel={roleLabel} />
+            <StaffAccountPanel
+              userLabel={userLabel}
+              roleLabel={roleLabel}
+              billingHref={billingHref}
+            />
           </div>
         </header>
         <main className="staffAppScroller">
@@ -196,18 +210,24 @@ function PortalNav({
   pathname,
   patientSiteHref,
   canManagePractice,
+  showProductNav,
   onNavigate,
 }: {
   pathname: string;
   patientSiteHref: string | null;
   canManagePractice: boolean;
+  showProductNav: boolean;
   onNavigate: () => void;
 }) {
-  const items = [
-    { href: "/dashboard", label: "Overview" },
-    { href: "/guides", label: "Guides" },
-    ...(canManagePractice ? [{ href: "/practice", label: "Practice" }] : []),
-  ];
+  const items = showProductNav
+    ? [
+        { href: "/dashboard", label: "Overview" },
+        { href: "/guides", label: "Guides" },
+        ...(canManagePractice
+          ? [{ href: "/practice", label: "Practice" }]
+          : []),
+      ]
+    : [{ href: "/account/billing", label: "Billing" }];
 
   return (
     <nav aria-label="Clinic portal">

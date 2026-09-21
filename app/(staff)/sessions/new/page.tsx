@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { NewSessionForm } from "@/app/(staff)/sessions/new/new-session-form";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
+import { enforcePrePaymentActivationGate } from "@/lib/billing/activation-gate";
 import { listSessionFormOptions } from "@/lib/sessions/list-session-form-options";
 
 export const metadata: Metadata = {
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 
 export default async function NewSessionPage() {
   const { clinicMembership } = await requireStaffSession();
+  await enforcePrePaymentActivationGate(clinicMembership);
   const clinic = clinicMembership!.clinic;
 
   const options = await listSessionFormOptions(clinic.id);

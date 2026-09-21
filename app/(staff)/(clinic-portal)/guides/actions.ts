@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
+import { enforcePrePaymentActivationGate } from "@/lib/billing/activation-gate";
 import { fieldErrorsFromZod } from "@/lib/clinic-portal/field-errors";
 import {
   createCustomPracticeGuide,
@@ -36,6 +37,12 @@ export interface GuideActionState {
   };
 }
 
+async function requireGuideAdmin() {
+  const session = await requireClinicAdmin();
+  await enforcePrePaymentActivationGate(session.clinicMembership);
+  return session;
+}
+
 function errorState(error: unknown): GuideActionState {
   if (isClinicPortalError(error)) {
     return { error: error.message };
@@ -48,7 +55,7 @@ export async function createGuideFromTemplateAction(
   _previous: GuideActionState,
   formData: FormData
 ): Promise<GuideActionState> {
-  const { user, clinicMembership } = await requireClinicAdmin();
+  const { user, clinicMembership } = await requireGuideAdmin();
   const parsed = createTemplateGuideSchema.safeParse({
     templateId: formData.get("templateId") ?? "",
     publicSlug: formData.get("publicSlug") || undefined,
@@ -79,7 +86,7 @@ export async function createCustomGuideAction(
   _previous: GuideActionState,
   formData: FormData
 ): Promise<GuideActionState> {
-  const { user, clinicMembership } = await requireClinicAdmin();
+  const { user, clinicMembership } = await requireGuideAdmin();
   const parsed = createCustomGuideSchema.safeParse({
     title: formData.get("title") ?? "",
     publicSlug: formData.get("publicSlug") ?? "",
@@ -115,7 +122,7 @@ export async function saveGuideDraftAction(
   _previous: GuideActionState,
   formData: FormData
 ): Promise<GuideActionState> {
-  const { user, clinicMembership } = await requireClinicAdmin();
+  const { user, clinicMembership } = await requireGuideAdmin();
   const rawSections = formData.get("sections");
   let sections: unknown = [];
   if (typeof rawSections === "string") {
@@ -157,7 +164,7 @@ export async function publishGuideAction(
   _previous: GuideActionState,
   formData: FormData
 ): Promise<GuideActionState> {
-  const { user, clinicMembership } = await requireClinicAdmin();
+  const { user, clinicMembership } = await requireGuideAdmin();
   const guideId = String(formData.get("guideId") ?? "");
   if (!guideId) {
     return { error: "Missing guide." };
@@ -180,7 +187,7 @@ export async function deleteGuideAction(
   _previous: GuideActionState,
   formData: FormData
 ): Promise<GuideActionState> {
-  const { user, clinicMembership } = await requireClinicAdmin();
+  const { user, clinicMembership } = await requireGuideAdmin();
   const guideId = String(formData.get("guideId") ?? "");
   if (!guideId) {
     return { error: "Missing guide." };
@@ -206,7 +213,7 @@ export async function discardGuideDraftChangesAction(
   _previous: GuideActionState,
   formData: FormData
 ): Promise<GuideActionState> {
-  const { user, clinicMembership } = await requireClinicAdmin();
+  const { user, clinicMembership } = await requireGuideAdmin();
   const guideId = String(formData.get("guideId") ?? "");
   if (!guideId) {
     return { error: "Missing guide." };
@@ -242,7 +249,7 @@ export async function unpublishGuideAction(
   _previous: GuideActionState,
   formData: FormData
 ): Promise<GuideActionState> {
-  const { user, clinicMembership } = await requireClinicAdmin();
+  const { user, clinicMembership } = await requireGuideAdmin();
   const guideId = String(formData.get("guideId") ?? "");
   if (!guideId) {
     return { error: "Missing guide." };

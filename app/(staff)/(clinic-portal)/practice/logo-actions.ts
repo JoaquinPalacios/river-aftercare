@@ -1,6 +1,7 @@
 "use server";
 
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
+import { enforcePrePaymentActivationGate } from "@/lib/billing/activation-gate";
 import {
   removeClinicDarkLogo,
   removeClinicFavicon,
@@ -38,6 +39,7 @@ function assetError(error: unknown, fallback: string): string {
 
 async function clinicAssetActor() {
   const { user, clinicMembership } = await requireClinicAdmin();
+  await enforcePrePaymentActivationGate(clinicMembership);
   return {
     actorRole: clinicMembership.role,
     actorClinicId: clinicMembership.clinic.id,

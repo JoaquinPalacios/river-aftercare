@@ -5,8 +5,10 @@ import { notFound } from "next/navigation";
 
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
+import { PrepareBillingForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/prepare-billing-form";
 import { startOperatorClinicSupportAction } from "@/app/(staff)/(operator)/operator/support-actions";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
+import { loadOperatorBillingPanel } from "@/lib/billing/billing-page";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import { getOperatorClinic } from "@/lib/operator/get-operator-clinic";
 import { clinicTypefaceLabel } from "@/lib/branding/clinic-typeface";
@@ -29,6 +31,7 @@ export default async function OperatorClinicDetailPage({
   if (!clinic) {
     notFound();
   }
+  const billing = await loadOperatorBillingPanel(clinic.id);
 
   const requestHeaders = await headers();
   const host =
@@ -155,6 +158,20 @@ export default async function OperatorClinicDetailPage({
           </ul>
         )}
       </section>
+
+      <PrepareBillingForm
+        clinicId={clinic.id}
+        plan={billing.plan}
+        interval={billing.interval}
+        canRevise={billing.canRevise}
+        blockedReason={billing.reviseBlockedReason}
+        planLabel={billing.planLabel}
+        intervalLabel={billing.intervalLabel}
+        entitlementLabel={billing.entitlementLabel}
+        billingLabel={billing.billingLabel}
+        customerLinked={billing.customerLinked}
+        subscriptionLinked={billing.subscriptionLinked}
+      />
 
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
         <h2 className="text-base font-semibold">Team</h2>

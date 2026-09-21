@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { CompleteSessionButton } from "@/app/(staff)/session/[id]/control/complete-session-button";
 import { StageControls } from "@/app/(staff)/session/[id]/control/stage-controls";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
+import { enforcePrePaymentActivationGate } from "@/lib/billing/activation-gate";
 import { getPrisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
@@ -21,6 +22,7 @@ interface ControlPageProps {
 export default async function SessionControlPage({ params }: ControlPageProps) {
   const { id } = await params;
   const { clinicMembership } = await requireStaffSession();
+  await enforcePrePaymentActivationGate(clinicMembership);
   const clinic = clinicMembership!.clinic;
 
   const session = await getPrisma().procedureSession.findFirst({

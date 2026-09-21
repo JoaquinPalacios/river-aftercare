@@ -11,6 +11,19 @@ export const PRIVACY_LAST_UPDATED_ISO = "2026-09-21";
 
 export const TERMS_LAST_UPDATED_ISO = "2026-09-21";
 
+/**
+ * Stable Terms version recorded when a clinic administrator accepts the
+ * contract before Checkout. This is the document's last-updated ISO date,
+ * not rendered prose.
+ */
+export const TERMS_ACCEPTANCE_VERSION = TERMS_LAST_UPDATED_ISO;
+
+/**
+ * Stable Privacy version acknowledged at the same time. Acknowledgement is
+ * not a claim that consent is the sole basis for privacy processing.
+ */
+export const PRIVACY_ACKNOWLEDGEMENT_VERSION = PRIVACY_LAST_UPDATED_ISO;
+
 export const LEGAL_ABN = "32 671 297 130";
 
 export const LEGAL_PUBLIC_LOCATION =

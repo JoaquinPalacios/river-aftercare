@@ -4,6 +4,7 @@ import { OperatorAccountChrome } from "@/app/(staff)/components/operator-account
 import { PortalChrome } from "@/app/(staff)/components/portal-chrome";
 import { StaffAccountPanel } from "@/app/(staff)/components/staff-account-panel";
 import { requireAuthenticatedUser } from "@/lib/auth/require-authenticated-user";
+import { readClinicBillingAccess } from "@/lib/billing/activation-gate";
 import {
   getAuthContext,
   isPlatformOperator,
@@ -36,6 +37,7 @@ export default async function AccountLayout({
   }
 
   if (clinicMembership) {
+    const billingAccess = await readClinicBillingAccess(clinicMembership);
     const overview = await getClinicPortalOverview(clinicMembership.clinic.id);
     const displayName = overview?.displayName ?? clinicMembership.clinic.name;
     const assisting = clinicMembership.source === "operator_support";
@@ -51,6 +53,8 @@ export default async function AccountLayout({
         patientSiteHref={overview?.patientSiteHref ?? null}
         canManagePractice={assisting || clinicMembership.role === "ADMIN"}
         assistingClinicName={assisting ? displayName : null}
+        showProductNav={billingAccess.kind === "allow"}
+        billingHref={billingAccess.billingHref}
       >
         {children}
       </PortalChrome>

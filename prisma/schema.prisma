@@ -112,9 +112,9 @@ enum PracticeSectionProvenance {
 }
 
 model Clinic {
-  id                 String              @id @default(cuid())
+  id                 String                @id @default(cuid())
   name               String
-  slug               String              @unique
+  slug               String                @unique
   memberships        ClinicMembership[]
   procedureTemplates ProcedureTemplate[]
   rooms              Room[]
@@ -123,29 +123,31 @@ model Clinic {
   profile            ClinicProfile?
   billingProfile     ClinicBillingProfile?
   entitlement        ClinicEntitlement?
+  legalAcceptances   LegalAcceptance[]
   practiceGuides     PracticeGuide[]
   accountTokens      AccountToken[]
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
 }
 
 model User {
-  id                              String                     @id @default(cuid())
-  name                            String?
-  email                           String                     @unique
-  emailVerified                   DateTime?
-  image                           String?
-  passwordHash                    String?
-  platformRole                    PlatformRole               @default(NONE)
-  memberships                     ClinicMembership[]
-  accounts                        Account[]
-  sessions                        Session[]
-  authoredPracticeGuideRevisions  PracticeGuideRevision[]    @relation("PracticeGuideRevisionAuthor")
-  attestedPracticeGuideRevisions  PracticeGuideRevision[]    @relation("PracticeGuideRevisionAttestation")
-  accountTokens                   AccountToken[]             @relation("AccountTokenSubject")
-  invitedAccountTokens            AccountToken[]             @relation("AccountTokenInviter")
-  createdAt                       DateTime                   @default(now())
-  updatedAt                       DateTime                   @updatedAt
+  id                             String                  @id @default(cuid())
+  name                           String?
+  email                          String                  @unique
+  emailVerified                  DateTime?
+  image                          String?
+  passwordHash                   String?
+  platformRole                   PlatformRole            @default(NONE)
+  memberships                    ClinicMembership[]
+  accounts                       Account[]
+  sessions                       Session[]
+  authoredPracticeGuideRevisions PracticeGuideRevision[] @relation("PracticeGuideRevisionAuthor")
+  attestedPracticeGuideRevisions PracticeGuideRevision[] @relation("PracticeGuideRevisionAttestation")
+  accountTokens                  AccountToken[]          @relation("AccountTokenSubject")
+  invitedAccountTokens           AccountToken[]          @relation("AccountTokenInviter")
+  legalAcceptances               LegalAcceptance[]
+  createdAt                      DateTime                @default(now())
+  updatedAt                      DateTime                @updatedAt
 }
 
 model ClinicMembership {
@@ -511,21 +513,21 @@ model GuideTemplateSection {
 /// guides leave both null. Patient-visible content is served from an immutable
 /// published `PracticeGuideRevision` snapshot, not from live overrides.
 model PracticeGuide {
-  id               String                    @id @default(cuid())
+  id               String                  @id @default(cuid())
   clinicId         String
   title            String
   guideTemplateId  String?
   pinnedRevisionId String?
   publicSlug       String
-  isEnabled        Boolean                   @default(false)
-  status           PracticeGuideStatus       @default(DRAFT)
-  sortOrder        Int                       @default(0)
+  isEnabled        Boolean                 @default(false)
+  status           PracticeGuideStatus     @default(DRAFT)
+  sortOrder        Int                     @default(0)
   publishedAt      DateTime?
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime                  @updatedAt
-  clinic           Clinic                    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  guideTemplate    GuideTemplate?            @relation(fields: [guideTemplateId], references: [id], onDelete: Restrict)
-  pinnedRevision   GuideTemplateRevision?    @relation(fields: [pinnedRevisionId, guideTemplateId], references: [id, guideTemplateId], onDelete: Restrict)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  clinic           Clinic                  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  guideTemplate    GuideTemplate?          @relation(fields: [guideTemplateId], references: [id], onDelete: Restrict)
+  pinnedRevision   GuideTemplateRevision?  @relation(fields: [pinnedRevisionId, guideTemplateId], references: [id, guideTemplateId], onDelete: Restrict)
   overrides        PracticeGuideOverride[]
   additions        PracticeGuideAddition[]
   contentRevisions PracticeGuideRevision[]
@@ -541,26 +543,26 @@ model PracticeGuide {
 /// Versions 1+ are immutable published snapshots. Public pages pin the
 /// highest published version; draft edits never mutate those rows.
 model PracticeGuideRevision {
-  id                       String                          @id @default(cuid())
-  practiceGuideId          String
-  version                  Int
-  status                   GuideRevisionStatus             @default(DRAFT)
-  title                    String
-  introduction             String?                         @db.Text
-  publishedAt              DateTime?
-  createdByUserId          String?
+  id                     String                         @id @default(cuid())
+  practiceGuideId        String
+  version                Int
+  status                 GuideRevisionStatus            @default(DRAFT)
+  title                  String
+  introduction           String?                        @db.Text
+  publishedAt            DateTime?
+  createdByUserId        String?
   /// Practice confirmation that this clinic approved the snapshot for
   /// patients. Not River Aftercare clinical approval. The attesting user is
   /// the Clinic ADMIN who confirmed the practice's review process — not
   /// necessarily the clinician who performed that review.
-  reviewAttestedAt         DateTime?
-  reviewAttestedByUserId   String?
-  createdAt                DateTime                        @default(now())
-  updatedAt                DateTime                        @updatedAt
-  practiceGuide            PracticeGuide                   @relation(fields: [practiceGuideId], references: [id], onDelete: Cascade)
-  createdBy                User?                           @relation("PracticeGuideRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  reviewAttestedBy         User?                           @relation("PracticeGuideRevisionAttestation", fields: [reviewAttestedByUserId], references: [id], onDelete: SetNull)
-  sections                 PracticeGuideRevisionSection[]
+  reviewAttestedAt       DateTime?
+  reviewAttestedByUserId String?
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  practiceGuide          PracticeGuide                  @relation(fields: [practiceGuideId], references: [id], onDelete: Cascade)
+  createdBy              User?                          @relation("PracticeGuideRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  reviewAttestedBy       User?                          @relation("PracticeGuideRevisionAttestation", fields: [reviewAttestedByUserId], references: [id], onDelete: SetNull)
+  sections               PracticeGuideRevisionSection[]
 
   @@unique([practiceGuideId, version])
   @@index([practiceGuideId, status])
@@ -569,20 +571,20 @@ model PracticeGuideRevision {
 }
 
 model PracticeGuideRevisionSection {
-  id            String                     @id @default(cuid())
-  revisionId    String
-  key           String
-  kind          GuideSectionKind
-  title         String
-  body          String                     @db.Text
-  periodLabel   String?
-  startDay      Int?
-  endDay        Int?
-  sortOrder     Int
-  provenance    PracticeSectionProvenance
-  createdAt     DateTime                   @default(now())
-  updatedAt     DateTime                   @updatedAt
-  revision      PracticeGuideRevision      @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  id          String                    @id @default(cuid())
+  revisionId  String
+  key         String
+  kind        GuideSectionKind
+  title       String
+  body        String                    @db.Text
+  periodLabel String?
+  startDay    Int?
+  endDay      Int?
+  sortOrder   Int
+  provenance  PracticeSectionProvenance
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  revision    PracticeGuideRevision     @relation(fields: [revisionId], references: [id], onDelete: Cascade)
 
   @@unique([revisionId, key])
   @@unique([revisionId, sortOrder])
@@ -668,6 +670,8 @@ enum BillingInterval {
 /// Stripe-facing commercial/payment lifecycle. Not a copy of every Stripe
 /// subscription.status, and not product authorization.
 enum BillingStatus {
+  /// Operator prepared a standard offer. Checkout has not been submitted.
+  OFFER_PREPARED
   PAYMENT_PENDING
   ACTIVE
   PAST_DUE
@@ -676,13 +680,19 @@ enum BillingStatus {
   ENDED
 }
 
-/// River product authorization derived from billing. Phase 1 is observational
-/// only — application features must not enforce these values yet.
+/// River product authorization derived from billing.
+/// PENDING is the Phase 2 pre-payment activation gate for clinics explicitly
+/// placed into billing onboarding. RESTRICTED and ENDED are not enforced yet.
 enum EntitlementStatus {
   PENDING
   ACTIVE
   RESTRICTED
   ENDED
+}
+
+/// Why a person accepted the current legal documents. Append-only.
+enum LegalAcceptanceSource {
+  BILLING_CHECKOUT
 }
 
 enum StripeEventProcessingStatus {
@@ -696,32 +706,38 @@ enum StripeEventProcessingStatus {
 /// Separate from ClinicProfile (patient-facing chrome). Existing clinics are
 /// not backfilled; rows are created when billing data exists.
 model ClinicBillingProfile {
-  id                   String   @id @default(cuid())
-  clinicId             String   @unique
-  legalEntityName      String?
-  tradingName          String?
-  billingContactName   String?
-  billingEmail         String?
-  addressLine1         String?
-  addressLine2         String?
-  city                 String?
-  region               String?
-  postalCode           String?
-  country              String?  @default("AU")
+  id                      String   @id @default(cuid())
+  clinicId                String   @unique
+  legalEntityName         String?
+  tradingName             String?
+  billingContactName      String?
+  billingEmail            String?
+  addressLine1            String?
+  addressLine2            String?
+  city                    String?
+  region                  String?
+  postalCode              String?
+  country                 String?  @default("AU")
   /// Australian Business Number. Nullable until captured. Not a combined
   /// business-number field; ACN is stored separately.
-  abn                  String?
+  abn                     String?
   /// Australian Company Number. Used when the customer has no ABN.
-  acn                  String?
-  stripeCustomerId     String?  @unique
-  stripeSubscriptionId String?  @unique
-  clinic               Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  acn                     String?
+  stripeCustomerId        String?  @unique
+  stripeSubscriptionId    String?  @unique
+  /// Latest hosted Checkout Session, so a repeated click can reuse it.
+  /// Cleared when the operator changes the offer. Not a payment credential.
+  stripeCheckoutSessionId String?  @unique
+  clinic                  Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
-/// Local entitlement projection used for future product authorization.
-/// Absence of a row, or a non-ACTIVE status, must not currently block clinics.
+/// Local entitlement projection.
+/// No row: legacy clinic. Product access stays as it is today.
+/// PENDING: Phase 2 pre-payment gate for a clinic prepared for paid onboarding.
+/// ACTIVE: product access is open.
+/// RESTRICTED / ENDED: preserved for a later enforcement phase. Not a lockout.
 model ClinicEntitlement {
   id                        String            @id @default(cuid())
   clinicId                  String            @unique
@@ -746,6 +762,25 @@ model ClinicEntitlement {
 
   @@index([billingStatus])
   @@index([entitlementStatus])
+}
+
+/// Immutable Terms acceptance and Privacy acknowledgement.
+/// A later document version inserts a new row. Existing rows are not rewritten.
+/// No IP address or device fingerprint is stored.
+model LegalAcceptance {
+  id                         String                @id @default(cuid())
+  clinicId                   String
+  userId                     String
+  termsVersion               String
+  privacyVersionAcknowledged String
+  source                     LegalAcceptanceSource
+  acceptedAt                 DateTime              @default(now())
+  createdAt                  DateTime              @default(now())
+  clinic                     Clinic                @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  user                       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([clinicId, acceptedAt])
+  @@index([userId])
 }
 
 /// Idempotency and processing metadata for verified Stripe webhook events.

@@ -484,6 +484,18 @@ export async function processVerifiedStripeEvent(
     throw error;
   }
 
+  if (
+    identity.clinicId &&
+    projection.entitlement.entitlementStatus === EntitlementStatus.ACTIVE &&
+    previousRow?.entitlementStatus !== EntitlementStatus.ACTIVE
+  ) {
+    logStripeBilling({
+      event: "billing_entitlement_activated",
+      clinicId: identity.clinicId,
+      eventType,
+    });
+  }
+
   logStripeBilling({
     event: "stripe_webhook_processed",
     stripeEventId,

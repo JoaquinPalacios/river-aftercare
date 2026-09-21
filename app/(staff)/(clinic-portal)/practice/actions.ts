@@ -3,6 +3,7 @@
 import { PlatformRole } from "@prisma/client";
 
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
+import { enforcePrePaymentActivationGate } from "@/lib/billing/activation-gate";
 import { logInvitationLifecycle } from "@/lib/auth/invitation-lifecycle-log";
 import { isClinicPortalError } from "@/lib/clinic-portal/errors";
 import { practiceSettingsSchema } from "@/lib/clinic-portal/practice-settings-schema";
@@ -26,6 +27,7 @@ export async function savePracticeSettingsAction(
   formData: FormData
 ): Promise<PracticeActionState> {
   const { user, clinicMembership } = await requireClinicAdmin();
+  await enforcePrePaymentActivationGate(clinicMembership);
   const parsed = practiceSettingsSchema.safeParse({
     displayName: formData.get("displayName") ?? "",
     logoUrl: formData.get("logoUrl") ?? "",

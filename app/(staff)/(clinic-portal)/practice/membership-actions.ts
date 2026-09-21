@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
+import { enforcePrePaymentActivationGate } from "@/lib/billing/activation-gate";
 import { updateClinicMembershipStatus } from "@/lib/clinic-portal/update-clinic-membership-status";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 
@@ -33,6 +34,7 @@ export async function updateStaffMembershipStatusAction(
   }
 
   const { user, clinicMembership } = await requireClinicAdmin();
+  await enforcePrePaymentActivationGate(clinicMembership);
   const membershipId =
     typeof formData.get("membershipId") === "string"
       ? String(formData.get("membershipId"))

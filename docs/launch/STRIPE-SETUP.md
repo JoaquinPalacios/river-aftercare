@@ -1,8 +1,10 @@
-# Stripe TEST MODE setup — River Aftercare Billing Phase 1
+# Stripe TEST MODE setup — River Aftercare Billing
 
-**Status:** Operator documentation for later manual configuration. This repository does not create Stripe Dashboard objects, live-mode keys, or charges.
+**Status:** Operator documentation for manual Dashboard configuration. This repository does not create Stripe Dashboard objects, live-mode keys, or charges.
 
-Phase 1 ships the webhook endpoint and local projection only. Do **not** enable live mode. Do **not** configure GST, Stripe Tax, or Tax Invoice extras yet. Accountant confirmation is still pending; River Aftercare is not currently GST registered.
+Phase 1 ships the webhook endpoint and local projection. Phase 2 ships demo-approved hosted Checkout (card + AU BECS) for an operator-prepared Essential or Practice offer. Do **not** enable live mode. Do **not** configure GST, Stripe Tax, or Tax Invoice extras. Accountant confirmation is still pending; River Aftercare is not currently GST registered.
+
+Safe testing uses a local or other non-production database, Stripe TEST MODE keys, and Stripe CLI webhook forwarding. Do not point test Checkout or test webhooks at production Clinic billing records. Vercel Preview should receive test keys only when that preview uses a non-production database.
 
 Related: [BILLING.md](../architecture/BILLING.md), [LEGAL-REQUIREMENTS.md](LEGAL-REQUIREMENTS.md), `.env.example`.
 
@@ -10,12 +12,12 @@ Related: [BILLING.md](../architecture/BILLING.md), [LEGAL-REQUIREMENTS.md](LEGAL
 
 Create two Products. Monthly and yearly are Prices on the same Product. Currency **AUD**. Do not mark tax inclusive. Do not attach a GST tax rate. Do not enable automatic tax.
 
-| Product | Recurring Price |
-| ------- | --------------- |
-| River Aftercare Essential | A$79 / month |
-| River Aftercare Essential | A$790 / year |
-| River Aftercare Practice | A$149 / month |
-| River Aftercare Practice | A$1,490 / year |
+| Product                   | Recurring Price |
+| ------------------------- | --------------- |
+| River Aftercare Essential | A$79 / month    |
+| River Aftercare Essential | A$790 / year    |
+| River Aftercare Practice  | A$149 / month   |
+| River Aftercare Practice  | A$1,490 / year  |
 
 Do **not** create a Group Product or Group Price. Group remains custom / operator-managed.
 
@@ -32,16 +34,18 @@ Vercel Preview should use **test-mode** keys and test Price IDs only. Phase 1 re
 
 Prefer a restricted test key (`rk_test_...`) with Billing, Checkout, Customers, and webhook read access over an unrestricted `sk_test_...`.
 
-## Payment methods (intended, not wired in this phase)
+## Payment methods
 
-Dashboard Payment Method Configuration should later offer:
+Phase 2 Checkout sends an explicit allow-list:
 
-- Card
-- Australian BECS Direct Debit
+- `card`
+- `au_becs_debit`
 
-Do not pass `payment_method_types` in application code when Checkout is built. Omit it so Dashboard configuration can change without a deploy.
+`payment_method_types` is set on the Checkout Session so Dashboard dynamic methods cannot add Afterpay, PayPal, BNPL, or cash. Link wallets are not offered (`wallet_options.link.display` `never`). Stripe still shows its own BECS mandate. River does not recreate that text.
 
-BECS identity verification on the Stripe account may be required before BECS appears. That is a Dashboard task, not application code.
+Also enable card and Australian BECS Direct Debit in the TEST MODE Payment Method Configuration. BECS identity verification on the Stripe account may be required before BECS appears. That remains a Dashboard task.
+
+Do not enable Stripe Tax. Do not add a GST rate.
 
 ## Webhook endpoint
 
@@ -84,14 +88,14 @@ River activates paid entitlement from **`invoice.paid`**, after the Price ID map
 
 When Portal is configured later, the approved launch settings are:
 
-| Capability | Setting |
-| ---------- | ------- |
-| Invoice history | Enabled |
-| Payment method update | Enabled |
-| Cancellation | Enabled |
-| Cancellation mode | At period end (`at_period_end`) |
-| Immediate cancellation | Disabled |
-| Subscription / plan switching | **Disabled** |
+| Capability                    | Setting                         |
+| ----------------------------- | ------------------------------- |
+| Invoice history               | Enabled                         |
+| Payment method update         | Enabled                         |
+| Cancellation                  | Enabled                         |
+| Cancellation mode             | At period end (`at_period_end`) |
+| Immediate cancellation        | Disabled                        |
+| Subscription / plan switching | **Disabled**                    |
 
 Essential → Practice is immediate (proration may apply). Practice → Essential is at next renewal with entitlement-conflict checks. Do not expose generic Stripe Portal plan switching until that workflow is built deliberately.
 
@@ -99,10 +103,20 @@ Essential → Practice is immediate (proration may apply). Practice → Essentia
 
 Do not configure Stripe Tax. Do not add a 10% GST rate. Do not claim Tax Invoice support from this phase.
 
+## Local Checkout test path
+
+1. Use the local PostgreSQL 18 database (or another non-production database). Apply `prisma/migrations/20260921180000_add_billing_checkout_onboarding` there. Do not apply it to production from this note.
+2. Put test-mode `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and the four test Price IDs in local env. The app refuses `sk_live_` and `rk_live_`.
+3. Forward webhooks with Stripe CLI to `http://app.localhost:3000/api/stripe/webhook`.
+4. As OPERATOR, open the clinic and choose Essential or Practice plus monthly or yearly, then Prepare billing.
+5. Sign in as that clinic's ADMIN, complete billing identity and Terms acceptance, and continue to Stripe Checkout.
+6. Pay with a [Stripe test card](https://docs.stripe.com/testing) or the AU BECS test debit. Card payment can become active after `invoice.paid`. BECS can stay on Payment processing until settlement.
+7. The browser return to `/account/billing/complete` must not be treated as activation. Only the local projection after `invoice.paid` opens product access.
+
 ## What Joaquín still does in TEST MODE
 
-1. Create the two Products and four AUD Prices above.
-2. Store the four Price IDs and a test restricted key + webhook secret in local / Preview env.
-3. Enable card + AU BECS in the TEST MODE Payment Method Configuration.
-4. Register the staff-host webhook and the events listed above.
-5. Do not create live-mode catalogue, keys, or endpoints in this phase.
+1. Create the two Products and four AUD Prices above. Do not create a Group Price.
+2. Store the four Price IDs and a test restricted key + webhook secret in local env (and Preview only if that environment is not production data).
+3. Enable card + AU BECS in the TEST MODE Payment Method Configuration. Leave Stripe Tax off.
+4. Register the staff-host webhook (or local CLI forwarding) and the events listed above. Pin API version `2026-08-26.dahlia`.
+5. Do not create live-mode catalogue, keys, endpoints, or charges in this phase.

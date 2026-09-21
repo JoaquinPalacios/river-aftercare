@@ -21,7 +21,7 @@ const APP_AND_LIB_TS = [...walk("app"), ...walk("lib")].filter((path) =>
   /\.(ts|tsx)$/.test(path)
 );
 
-describe("Stripe billing Phase 1 security boundary", () => {
+describe("Stripe billing security boundary", () => {
   it("keeps billing modules server-only and out of client bundles", () => {
     expect(BILLING_SERVER_FILES.length).toBeGreaterThan(0);
     for (const file of BILLING_SERVER_FILES) {
@@ -67,7 +67,7 @@ describe("Stripe billing Phase 1 security boundary", () => {
     expect(example).toMatch(/Never prefix with\s*\n# NEXT_PUBLIC_/);
   });
 
-  it("does not enforce entitlements or build Checkout/Portal in this phase", () => {
+  it("keeps Checkout server-side and does not add Customer Portal", () => {
     const featureFiles = APP_AND_LIB_TS.filter(
       (path) =>
         !path.startsWith("lib/billing/") &&

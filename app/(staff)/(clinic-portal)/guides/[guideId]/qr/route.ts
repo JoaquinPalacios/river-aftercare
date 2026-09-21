@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 
 import { getAuthContext } from "@/lib/auth/session";
+import { clinicProductApiBlocked } from "@/lib/billing/activation-gate";
 import {
   guideQrFilename,
   parseGuideQrFormat,
@@ -23,6 +24,9 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (!auth.clinicMembership) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (await clinicProductApiBlocked(auth.clinicMembership)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

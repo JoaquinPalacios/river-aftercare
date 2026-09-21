@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
+import { enforcePrePaymentActivationGate } from "@/lib/billing/activation-gate";
 import { createProcedureSession } from "@/lib/sessions/create-procedure-session";
 import {
   InvalidSelectedAreaOptionError,
@@ -18,6 +19,7 @@ export async function createSessionAction(
   formData: FormData
 ): Promise<CreateSessionActionState> {
   const { clinicMembership } = await requireStaffSession();
+  await enforcePrePaymentActivationGate(clinicMembership);
 
   if (!clinicMembership) {
     return {

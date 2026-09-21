@@ -47,7 +47,7 @@ export function getStripeClientConfig(
   if (isLiveStripeSecret(secretKey)) {
     return {
       ready: false,
-      reason: "Live Stripe keys are not permitted in Phase 1.",
+      reason: "Live Stripe keys are not permitted.",
     };
   }
 
