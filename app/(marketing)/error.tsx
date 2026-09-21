@@ -14,20 +14,26 @@ import {
   errorRecoveryAction,
   type AppRouterErrorProps,
 } from "@/lib/errors/app-router-error";
+import { ClientErrorReporter } from "@/lib/observability/client-error-reporter";
 
 export default function MarketingError(props: AppRouterErrorProps) {
   const recover = errorRecoveryAction(props);
 
   return (
-    <MarketingStatusPage
-      title={MARKETING_ERROR_TITLE}
-      description={MARKETING_ERROR_BODY}
-      actions={
-        <>
-          {recover ? <MarketingErrorRetry onRetry={recover} /> : null}
-          <MarketingStatusLink href="/">{BACK_HOME_LABEL}</MarketingStatusLink>
-        </>
-      }
-    />
+    <>
+      <ClientErrorReporter error={props.error} />
+      <MarketingStatusPage
+        title={MARKETING_ERROR_TITLE}
+        description={MARKETING_ERROR_BODY}
+        actions={
+          <>
+            {recover ? <MarketingErrorRetry onRetry={recover} /> : null}
+            <MarketingStatusLink href="/">
+              {BACK_HOME_LABEL}
+            </MarketingStatusLink>
+          </>
+        }
+      />
+    </>
   );
 }

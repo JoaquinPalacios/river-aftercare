@@ -3,7 +3,7 @@ import { DISABLED_ERROR_TRACKING_INTEGRATIONS } from "./error-tracking-allowlist
 
 export type ErrorTrackingInitOptions = {
   dsn: string;
-  environment: "production" | "verification";
+  environment: "production" | "preview" | "verification";
   release?: string;
 };
 
@@ -38,6 +38,9 @@ export function createErrorTrackingInitOptions(
     sendClientReports: false,
     attachStacktrace: true,
     skipOpenTelemetrySetup: true,
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0,
+    profilesSampleRate: 0,
     dataCollection: {
       userInfo: false,
       cookies: false,
@@ -50,6 +53,12 @@ export function createErrorTrackingInitOptions(
       } catch {
         return null;
       }
+    },
+    beforeSendTransaction() {
+      return null;
+    },
+    beforeBreadcrumb() {
+      return null;
     },
     integrations(integrations: Array<{ name: string }>) {
       return filterErrorTrackingIntegrations(integrations);

@@ -34,12 +34,14 @@ function restore(name: string, value: string | undefined) {
 describe("server error tracking wrapper", () => {
   const previous = {
     vercelEnv: process.env.VERCEL_ENV,
-    dsn: process.env.BETTER_STACK_ERROR_DSN,
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    serverDsn: process.env.SENTRY_DSN,
   };
 
   afterEach(() => {
     restore("VERCEL_ENV", previous.vercelEnv);
-    restore("BETTER_STACK_ERROR_DSN", previous.dsn);
+    restore("NEXT_PUBLIC_SENTRY_DSN", previous.dsn);
+    restore("SENTRY_DSN", previous.serverDsn);
     sentryState.captureException.mockReset();
     sentryState.captureEvent.mockReset();
     sentryState.captureRequestError.mockReset();
@@ -47,7 +49,7 @@ describe("server error tracking wrapper", () => {
 
   it("captures exceptions when production tracking is enabled", () => {
     process.env.VERCEL_ENV = "production";
-    process.env.BETTER_STACK_ERROR_DSN = FAKE_DSN;
+    process.env.NEXT_PUBLIC_SENTRY_DSN = FAKE_DSN;
     const error = new Error("server exploded");
     reportServerException(error, { tags: { component: "auth-email" } });
     expect(sentryState.captureException).toHaveBeenCalledOnce();
@@ -59,7 +61,7 @@ describe("server error tracking wrapper", () => {
 
   it("is a no-op when tracking is disabled", () => {
     delete process.env.VERCEL_ENV;
-    process.env.BETTER_STACK_ERROR_DSN = FAKE_DSN;
+    process.env.NEXT_PUBLIC_SENTRY_DSN = FAKE_DSN;
     reportServerException(new Error("ignored"));
     reportContactEmailFailure("delivery_failed");
     expect(sentryState.captureException).not.toHaveBeenCalled();
@@ -68,16 +70,16 @@ describe("server error tracking wrapper", () => {
 
   it("never lets a telemetry failure escape", () => {
     process.env.VERCEL_ENV = "production";
-    process.env.BETTER_STACK_ERROR_DSN = FAKE_DSN;
+    process.env.NEXT_PUBLIC_SENTRY_DSN = FAKE_DSN;
     sentryState.captureException.mockImplementation(() => {
-      throw new Error("better stack down");
+      throw new Error("sentry down");
     });
     expect(() => reportServerException(new Error("app error"))).not.toThrow();
   });
 
   it("allow-lists and sanitizes operational metadata", () => {
     process.env.VERCEL_ENV = "production";
-    process.env.BETTER_STACK_ERROR_DSN = FAKE_DSN;
+    process.env.NEXT_PUBLIC_SENTRY_DSN = FAKE_DSN;
     reportOperationalFailure(
       OPERATIONAL_FAILURE_CODES.CONTACT_EMAIL_DELIVERY_FAILED,
       {
@@ -102,7 +104,7 @@ describe("server error tracking wrapper", () => {
 
   it("does not forward arbitrary request or recipient fields", () => {
     process.env.VERCEL_ENV = "production";
-    process.env.BETTER_STACK_ERROR_DSN = FAKE_DSN;
+    process.env.NEXT_PUBLIC_SENTRY_DSN = FAKE_DSN;
     reportAuthEmailFailure("not_configured");
     const event = sentryState.captureEvent.mock.calls[0]?.[0] as Record<
       string,
@@ -116,7 +118,7 @@ describe("server error tracking wrapper", () => {
 
   it("strips headers before captureRequestError and swallows SDK failures", async () => {
     process.env.VERCEL_ENV = "production";
-    process.env.BETTER_STACK_ERROR_DSN = FAKE_DSN;
+    process.env.NEXT_PUBLIC_SENTRY_DSN = FAKE_DSN;
     await captureServerRequestError(
       new Error("rsc failed"),
       {
@@ -139,6 +141,28 @@ describe("server error tracking wrapper", () => {
     expect(
       JSON.stringify(sentryState.captureRequestError.mock.calls)
     ).not.toContain("authjs.session-token");
+
+    sentryState.captureRequestError.mockClear();
+    await captureServerRequestError(
+      new Error("reset exploded"),
+      {
+        path: "/reset-password#token=SECRET",
+        method: "GET",
+        headers: { cookie: "authjs.session-token=secret" },
+      },
+      {
+        routePath: "/reset-password",
+        routerKind: "App Router",
+        routeType: "render",
+      }
+    );
+    expect(sentryState.captureRequestError.mock.calls[0]?.[1]).toMatchObject({
+      path: "/reset-password",
+      headers: {},
+    });
+    expect(
+      JSON.stringify(sentryState.captureRequestError.mock.calls)
+    ).not.toContain("SECRET");
 
     sentryState.captureRequestError.mockRejectedValue(new Error("timeout"));
     await expect(

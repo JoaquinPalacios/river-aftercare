@@ -42,6 +42,6 @@ export async function captureServerRequestError(
       }
     );
   } catch {
-    // Better Stack must never fail the Next.js request.
+    // Sentry must never fail the Next.js request.
   }
 }

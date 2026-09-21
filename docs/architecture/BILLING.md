@@ -119,7 +119,7 @@ Clinic portal: Overview, Guides, Practice (ADMIN). Account today is **Account se
 | Background jobs | **None.** No Inngest, queues, or Vercel cron. |
 | Audit log | **None** (parked chairside stage transitions only). |
 | Stripe | **Absent.** No `stripe` package. Privacy copy currently says manual invoicing and that customers do not provide cards through the Service. |
-| Observability | Better Stack via `@sentry/nextjs` on production Node only. [`sensitive-value-sanitizer.ts`](../../lib/observability/sensitive-value-sanitizer.ts) redacts secrets/emails/tokens; extend it for `sk_`, `rk_`, `whsec_`, Stripe IDs in logs. |
+| Observability | Sentry via `@sentry/nextjs` for production/preview exceptions. Session Replay off. [`sensitive-value-sanitizer.ts`](../../lib/observability/sensitive-value-sanitizer.ts) redacts secrets/emails/tokens; extend it for `sk_`, `rk_`, `whsec_`, Stripe IDs in logs. Uptime remains Better Stack. |
 | Runtime | Next.js 16.3.5 App Router monolith on Vercel. Node 24 LTS. |
 
 ### A.9 Legal / commercial stance today

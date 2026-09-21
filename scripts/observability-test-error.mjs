@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Trusted-machine verification for Better Stack Error Tracking.
+ * Trusted-machine verification for Sentry error monitoring.
  *
  * Not an HTTP route. Not reachable by production users. Does not touch
  * the application database. Sends one synthetic event only.
@@ -9,9 +9,10 @@
  * Usage:
  *   pnpm observability:test-error
  *
- * Loads BETTER_STACK_ERROR_DSN from the environment, or from ignored
- * `.env` via dotenv (same convention as other local scripts). Does not
- * require VERCEL_ENV=production and does not enable application telemetry.
+ * Loads SENTRY_DSN or NEXT_PUBLIC_SENTRY_DSN from the environment, or
+ * from ignored `.env` via dotenv (same convention as other local scripts).
+ * Does not require VERCEL_ENV=production and does not enable application
+ * telemetry.
  *
  * The event is labelled environment=verification so it cannot be confused
  * with a production incident. Do not run this from CI or during app tests.
@@ -31,8 +32,8 @@ const MAX_DSN_LENGTH = 512;
 
 const FAILURE_MESSAGES = {
   missing_dsn:
-    "BETTER_STACK_ERROR_DSN is required. This script does not read Production Vercel env automatically.",
-  malformed_dsn: "BETTER_STACK_ERROR_DSN is not a valid https DSN.",
+    "SENTRY_DSN or NEXT_PUBLIC_SENTRY_DSN is required. This script does not read Production Vercel env automatically.",
+  malformed_dsn: "Sentry DSN is not a valid https DSN.",
   ci_refused: "Refusing to send a verification event from CI or Vitest.",
   sdk_api_unavailable:
     "Verification event could not be sent (SDK API unavailable).",
@@ -73,7 +74,7 @@ export function isValidVerificationDsn(value) {
 
 /** @param {Record<string, string | undefined>} [env] */
 export function readVerificationDsn(env = process.env) {
-  const raw = env.BETTER_STACK_ERROR_DSN;
+  const raw = env.SENTRY_DSN || env.NEXT_PUBLIC_SENTRY_DSN;
   if (typeof raw !== "string" || !raw.trim()) {
     throw categorizedError("missing_dsn");
   }

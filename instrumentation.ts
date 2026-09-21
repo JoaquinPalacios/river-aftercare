@@ -26,6 +26,6 @@ export async function onRequestError(
       await import("@/lib/observability/on-request-error");
     await captureServerRequestError(error, request, context);
   } catch {
-    // Better Stack must never fail the Next.js request.
+    // Sentry must never fail the Next.js request.
   }
 }

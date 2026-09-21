@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs/config";
+
+import { createSentryBuildOptions } from "./lib/observability/sentry-build-options";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.localhost"],
@@ -20,4 +23,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, createSentryBuildOptions());

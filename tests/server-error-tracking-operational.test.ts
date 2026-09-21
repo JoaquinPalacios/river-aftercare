@@ -90,13 +90,13 @@ function restore(name: string, value: string | undefined) {
 
 function enableTracking() {
   process.env.VERCEL_ENV = "production";
-  process.env.BETTER_STACK_ERROR_DSN = FAKE_DSN;
+  process.env.NEXT_PUBLIC_SENTRY_DSN = FAKE_DSN;
 }
 
 describe("operational failure reporting", () => {
   const previous = {
     vercelEnv: process.env.VERCEL_ENV,
-    dsn: process.env.BETTER_STACK_ERROR_DSN,
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
     to: process.env.CONTACT_EMAIL_TO,
     from: process.env.CONTACT_EMAIL_FROM,
     mailer: process.env.CONTACT_MAILER,
@@ -106,7 +106,7 @@ describe("operational failure reporting", () => {
 
   afterEach(() => {
     restore("VERCEL_ENV", previous.vercelEnv);
-    restore("BETTER_STACK_ERROR_DSN", previous.dsn);
+    restore("NEXT_PUBLIC_SENTRY_DSN", previous.dsn);
     restore("CONTACT_EMAIL_TO", previous.to);
     restore("CONTACT_EMAIL_FROM", previous.from);
     restore("CONTACT_MAILER", previous.mailer);

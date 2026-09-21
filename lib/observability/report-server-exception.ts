@@ -3,7 +3,7 @@ import "server-only";
 import * as Sentry from "@sentry/nextjs";
 
 import { ALLOWED_ERROR_TAG_KEYS } from "@/lib/observability/error-tracking-allowlists";
-import { isServerErrorTrackingEnabled } from "@/lib/observability/error-tracking-env";
+import { getServerErrorTrackingConfig } from "@/lib/observability/error-tracking-env";
 import { sanitizeSensitiveValue } from "@/lib/observability/sensitive-value-sanitizer";
 
 export const OPERATIONAL_FAILURE_CODES = {
@@ -49,12 +49,17 @@ function allowlistedTags(
   return Object.keys(output).length > 0 ? output : undefined;
 }
 
+function currentEnvironmentTag(): string | undefined {
+  const config = getServerErrorTrackingConfig();
+  return config.enabled ? config.environment : undefined;
+}
+
 export function reportServerException(
   error: unknown,
   options?: { tags?: ServerExceptionTags }
 ): void {
   try {
-    if (!isServerErrorTrackingEnabled()) {
+    if (!getServerErrorTrackingConfig().enabled) {
       return;
     }
 
@@ -74,7 +79,7 @@ export function reportOperationalFailure(
   }
 ): void {
   try {
-    if (!isServerErrorTrackingEnabled()) {
+    if (!getServerErrorTrackingConfig().enabled) {
       return;
     }
 
@@ -85,7 +90,7 @@ export function reportOperationalFailure(
       tags: allowlistedTags({
         component: tags.component,
         failure_code: tags.failure_code,
-        environment: "production",
+        environment: currentEnvironmentTag(),
       }),
     });
   } catch {

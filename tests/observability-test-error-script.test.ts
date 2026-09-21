@@ -66,22 +66,22 @@ describe("observability:test-error script", () => {
     expect(source).toContain("environment: VERIFICATION_ENVIRONMENT");
     expect(source).toContain("river_aftercare_error_tracking_verification");
     expect(source).toContain("component: VERIFICATION_COMPONENT");
-    expect(source).not.toMatch(/app\/api|debug\/error|NEXT_PUBLIC_/);
+    expect(source).not.toMatch(/app\/api|debug\/error/);
     expect(source).not.toContain("DATABASE_URL");
     expect(source).toContain("createErrorTrackingInitOptions");
     expect(source).not.toMatch(/VERCEL_ENV\s*=\s*["']production["']/);
     expect(source).toContain("dotenv/config");
 
-    const missing = spawnScript({ BETTER_STACK_ERROR_DSN: "" });
+    const missing = spawnScript({ SENTRY_DSN: "" });
     expect(missing.status).not.toBe(0);
     expect(combinedOutput(missing)).toMatch(
-      /BETTER_STACK_ERROR_DSN is required/
+      /SENTRY_DSN or NEXT_PUBLIC_SENTRY_DSN is required/
     );
     expect(combinedOutput(missing)).not.toContain(FAKE_DSN);
 
     const ci = spawnScript({
       CI: "true",
-      BETTER_STACK_ERROR_DSN: FAKE_DSN,
+      SENTRY_DSN: FAKE_DSN,
     });
     expect(ci.status).not.toBe(0);
     expect(combinedOutput(ci)).toMatch(/Refusing to send/);
@@ -90,7 +90,7 @@ describe("observability:test-error script", () => {
 
   it("fails cleanly for a malformed DSN without echoing it", () => {
     const malformed = "not-a-dsn";
-    const result = spawnScript({ BETTER_STACK_ERROR_DSN: malformed });
+    const result = spawnScript({ SENTRY_DSN: malformed });
     expect(result.status).not.toBe(0);
     expect(combinedOutput(result)).toMatch(/not a valid https DSN/);
     expect(combinedOutput(result)).not.toContain(malformed);
@@ -100,24 +100,22 @@ describe("observability:test-error script", () => {
 describe("verification DSN validation", () => {
   it("accepts a https Sentry-compatible DSN", () => {
     expect(isValidVerificationDsn(FAKE_DSN)).toBe(true);
-    expect(
-      readVerificationDsn({ BETTER_STACK_ERROR_DSN: ` ${FAKE_DSN} ` })
-    ).toBe(FAKE_DSN);
+    expect(readVerificationDsn({ SENTRY_DSN: ` ${FAKE_DSN} ` })).toBe(FAKE_DSN);
   });
 
   it("rejects missing or malformed DSNs without returning them", () => {
     expect(() => readVerificationDsn({})).toThrow(/missing_dsn/);
-    expect(() => readVerificationDsn({ BETTER_STACK_ERROR_DSN: "" })).toThrow(
+    expect(() => readVerificationDsn({ SENTRY_DSN: "" })).toThrow(
       /missing_dsn/
     );
     expect(() =>
-      readVerificationDsn({ BETTER_STACK_ERROR_DSN: "http://key@host/1" })
+      readVerificationDsn({ SENTRY_DSN: "http://key@host/1" })
     ).toThrow(/malformed_dsn/);
     expect(isValidVerificationDsn("https://host-without-key/1")).toBe(false);
 
     try {
       readVerificationDsn({
-        BETTER_STACK_ERROR_DSN: SECRET_DSN.replace("https", "http"),
+        SENTRY_DSN: SECRET_DSN.replace("https", "http"),
       });
     } catch (err) {
       expect(String(err)).not.toContain("supersecretpublickey");
@@ -151,7 +149,7 @@ describe("verification event send path", () => {
   it("initializes a verification client without VERCEL_ENV=production", async () => {
     const sentry = mockSentry();
     const result = await sendVerificationEvent({
-      env: { BETTER_STACK_ERROR_DSN: FAKE_DSN },
+      env: { SENTRY_DSN: FAKE_DSN },
       sentry,
     });
 
@@ -176,7 +174,7 @@ describe("verification event send path", () => {
   it("sends exactly one fixed synthetic event", async () => {
     const sentry = mockSentry();
     await sendVerificationEvent({
-      env: { BETTER_STACK_ERROR_DSN: FAKE_DSN },
+      env: { SENTRY_DSN: FAKE_DSN },
       sentry,
     });
 
@@ -197,7 +195,7 @@ describe("verification event send path", () => {
     const sentry = mockSentry({ flush: vi.fn(async () => true) });
     await expect(
       sendVerificationEvent({
-        env: { BETTER_STACK_ERROR_DSN: FAKE_DSN },
+        env: { SENTRY_DSN: FAKE_DSN },
         sentry,
       })
     ).resolves.toMatchObject({ flushed: true });
@@ -207,7 +205,7 @@ describe("verification event send path", () => {
     const sentry = mockSentry({ flush: vi.fn(async () => false) });
     await expect(
       sendVerificationEvent({
-        env: { BETTER_STACK_ERROR_DSN: FAKE_DSN },
+        env: { SENTRY_DSN: FAKE_DSN },
         sentry,
       })
     ).rejects.toThrow(/flush_timeout/);
@@ -225,7 +223,7 @@ describe("verification event send path", () => {
 
     await expect(
       sendVerificationEvent({
-        env: { BETTER_STACK_ERROR_DSN: SECRET_DSN },
+        env: { SENTRY_DSN: SECRET_DSN },
         sentry,
       })
     ).rejects.toThrow(/malformed_dsn/);
@@ -271,7 +269,7 @@ describe("verification event send path", () => {
     });
 
     const result = await sendVerificationEvent({
-      env: { BETTER_STACK_ERROR_DSN: FAKE_DSN },
+      env: { SENTRY_DSN: FAKE_DSN },
       sentry,
     });
 

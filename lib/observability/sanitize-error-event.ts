@@ -218,6 +218,12 @@ export function sanitizeErrorEvent(
     sanitized.message = sanitizeErrorMessage(event.message);
   }
 
+  if (typeof event.transaction === "string") {
+    sanitized.transaction =
+      sanitizeErrorTrackingUrl(event.transaction) ??
+      sanitizeErrorMessage(event.transaction);
+  }
+
   sanitized.request = sanitizeRequest(event.request);
   if (!sanitized.request) {
     delete sanitized.request;
