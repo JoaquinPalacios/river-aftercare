@@ -1,0 +1,9 @@
+# Build output classification for pnpm build on 198bc2d
+
+Exit: 0
+
+WARNING/NOTICE: - Experiments (use with caution):
+WARNING/NOTICE:   · serverActions
+
+No Next.js metadata, dynamic-rendering, source-map, or bundle warnings.
+Prisma generate succeeded on 7.10.0. Schema gate skipped (not Vercel production).

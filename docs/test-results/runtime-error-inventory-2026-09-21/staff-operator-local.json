@@ -1,0 +1,226 @@
+{
+  "adminLogin": {
+    "status": 200,
+    "body": {
+      "redirectTo": "/dashboard",
+      "user": {
+        "id": "user_demo_admin",
+        "name": "Demo Admin",
+        "email": "admin@local.aftercare.test"
+      }
+    }
+  },
+  "operatorLogin": {
+    "status": 200,
+    "body": {
+      "redirectTo": "/operator/clinics",
+      "user": {
+        "id": "user_demo_operator",
+        "name": "Demo Operator",
+        "email": "operator@local.aftercare.test"
+      }
+    }
+  },
+  "adminAudit": {
+    "console": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "url": "http://app.localhost:3000/login"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "url": "http://app.localhost:3000/login"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "url": "http://app.localhost:3000/login"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "url": "http://app.localhost:3000/login"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "url": "http://app.localhost:3000/login"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "url": "http://app.localhost:3000/login"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "url": "http://app.localhost:3000/login"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "url": "http://app.localhost:3000/login"
+      }
+    ],
+    "pageerrors": [],
+    "http": [
+      {
+        "status": 404,
+        "method": "GET",
+        "url": "http://app.localhost:3000/_vercel/insights/script.js"
+      },
+      {
+        "status": 404,
+        "method": "GET",
+        "url": "http://app.localhost:3000/_vercel/speed-insights/script.js"
+      },
+      {
+        "status": 404,
+        "method": "GET",
+        "url": "http://app.localhost:3000/_vercel/insights/script.js"
+      },
+      {
+        "status": 404,
+        "method": "GET",
+        "url": "http://app.localhost:3000/_vercel/speed-insights/script.js"
+      },
+      {
+        "status": 404,
+        "method": "GET",
+        "url": "http://app.localhost:3000/_vercel/insights/script.js"
+      },
+      {
+        "status": 404,
+        "method": "GET",
+        "url": "http://app.localhost:3000/_vercel/speed-insights/script.js"
+      },
+      {
+        "status": 404,
+        "method": "GET",
+        "url": "http://app.localhost:3000/_vercel/insights/script.js"
+      },
+      {
+        "status": 404,
+        "method": "GET",
+        "url": "http://app.localhost:3000/_vercel/speed-insights/script.js"
+      }
+    ],
+    "failed": [
+      {
+        "url": "http://app.localhost:3000/_vercel/insights/script.js",
+        "err": "net::ERR_ABORTED",
+        "type": "script"
+      },
+      {
+        "url": "http://app.localhost:3000/_vercel/speed-insights/script.js",
+        "err": "net::ERR_ABORTED",
+        "type": "script"
+      },
+      {
+        "url": "http://app.localhost:3000/_vercel/insights/script.js",
+        "err": "net::ERR_ABORTED",
+        "type": "script"
+      },
+      {
+        "url": "http://app.localhost:3000/_vercel/speed-insights/script.js",
+        "err": "net::ERR_ABORTED",
+        "type": "script"
+      },
+      {
+        "url": "http://app.localhost:3000/_vercel/insights/script.js",
+        "err": "net::ERR_ABORTED",
+        "type": "script"
+      },
+      {
+        "url": "http://app.localhost:3000/_vercel/speed-insights/script.js",
+        "err": "net::ERR_ABORTED",
+        "type": "script"
+      },
+      {
+        "url": "http://app.localhost:3000/_vercel/insights/script.js",
+        "err": "net::ERR_ABORTED",
+        "type": "script"
+      },
+      {
+        "url": "http://app.localhost:3000/_vercel/speed-insights/script.js",
+        "err": "net::ERR_ABORTED",
+        "type": "script"
+      }
+    ],
+    "notes": [
+      {
+        "p": "/dashboard",
+        "url": "http://app.localhost:3000/login",
+        "h1": "Sign in"
+      },
+      {
+        "p": "/practice",
+        "url": "http://app.localhost:3000/login",
+        "h1": "Sign in"
+      },
+      {
+        "p": "/guides",
+        "url": "http://app.localhost:3000/login",
+        "h1": "Sign in"
+      },
+      {
+        "p": "/account",
+        "url": "http://app.localhost:3000/login",
+        "h1": "Sign in"
+      },
+      {
+        "fatal": "TimeoutError: locator.focus: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByLabel('Name')\n"
+      }
+    ]
+  },
+  "opAudit": {
+    "console": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "url": "http://app.localhost:3000/login"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "url": "http://app.localhost:3000/login"
+      }
+    ],
+    "pageerrors": [],
+    "http": [
+      {
+        "status": 404,
+        "method": "GET",
+        "url": "http://app.localhost:3000/_vercel/insights/script.js"
+      },
+      {
+        "status": 404,
+        "method": "GET",
+        "url": "http://app.localhost:3000/_vercel/speed-insights/script.js"
+      }
+    ],
+    "failed": [
+      {
+        "url": "http://app.localhost:3000/_vercel/insights/script.js",
+        "err": "net::ERR_ABORTED",
+        "type": "script"
+      },
+      {
+        "url": "http://app.localhost:3000/_vercel/speed-insights/script.js",
+        "err": "net::ERR_ABORTED",
+        "type": "script"
+      }
+    ],
+    "notes": [
+      {
+        "home": "http://app.localhost:3000/login",
+        "h1": "Sign in"
+      },
+      {
+        "fatal": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('link', { name: 'Riverside Dental Demo' }).first()\n"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+[local-staff-invalid-login] 401 POST http://app.localhost:3000/api/auth/login type=fetch page=http://app.localhost:3000/login body={"error":"Invalid credentials."}

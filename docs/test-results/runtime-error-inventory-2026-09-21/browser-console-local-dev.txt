@@ -1,0 +1,944 @@
+[local-marketing-home] ERROR A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <SegmentViewNode type="page" pagePath="(marketing...">
+      <SegmentTrieNode>
+      <MarketingHomePage>
+        <MarketingShell>
+          <MarketingExperience className="marketing-...">
+            ...
+              <div className="marketing-..." data-vertical={undefined} data-brand-scope="master">
+                <header>
+                <script>
+                <style>
+                <main>
+                  ...
+                    <div style={{}} ref={function useMotionRef.useCallback}>
+                      <div className="marketing-...">
+                        <div className="marketing-...">
+                          <MarketingRevealItem>
+                            <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                              <div
+                                className="mkReveal"
+                                data-mk-pending=""
+                                data-mk-rail={undefined}
+                                data-mk-process-rail={undefined}
+                                data-mk-preview={undefined}
+                                data-mk-process-connector={undefined}
+                                aria-hidden={undefined}
+                                style={{
++                                 opacity: 0
++                                 transform: "translateY(14px)"
+                                }}
+                                ref={function useMotionRef.useCallback}
+                              >
+                          <MarketingRevealItem>
+                            <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                              <div
+                                className="mkReveal"
+                                data-mk-pending=""
+                                data-mk-rail={undefined}
+                                data-mk-process-rail={undefined}
+                                data-mk-preview={undefined}
+                                data-mk-process-connector={undefined}
+                                aria-hidden={undefined}
+                                style={{
++                                 opacity: 0
++                                 transform: "translateY(14px)"
+                                }}
+                                ref={function useMotionRef.useCallback}
+                              >
+                        <div className="marketing-...">
+                          <div className="marketing-...">
+                            <MarketingRevealItem>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                            <MarketingRevealItem>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                          <MarketingRevealPreview>
+                            <MarketingRevealItem variants={{hidden:{...}, ...}}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(20px) scale(0.985)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                  <div className="marketing-..." data-mk-chapter="soft">
+                    ...
+                      <motion.div ref={{current:null}} data-mk-section="" data-mk-entered={undefined} initial="hidden" ...>
+                        <div data-mk-section="" data-mk-entered={undefined} style={{}} ...>
+                          <MarketingRevealItem delay={0}>
+                            <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                              <div
+                                className="mkReveal"
+                                data-mk-pending=""
+                                data-mk-rail={undefined}
+                                data-mk-process-rail={undefined}
+                                data-mk-preview={undefined}
+                                data-mk-process-connector={undefined}
+                                aria-hidden={undefined}
+                                style={{
++                                 opacity: 0
++                                 transform: "translateY(14px)"
+                                }}
+                                ref={function useMotionRef.useCallback}
+                              >
+                          <div className="marketing-...">
+                            <MarketingRevealItem delay={0.15}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                            <MarketingNumberedSteps>
+                              <ol className="marketing-..." data-mk-numbered-steps="">
+                                <MarketingRevealCard as="li" index={0} className="marketing-...">
+                                  <motion.li ref={function ref} className="mkReveal m..." data-mk-card="" ...>
+                                    <li
+                                      className="mkReveal marketing-module__SpNEBa__numberedStep"
+                                      data-mk-card=""
++                                     data-mk-pending=""
+-                                     data-mk-pending={null}
+                                      data-mk-entered={undefined}
+                                      data-mk-rail={undefined}
+                                      data-mk-process-rail={undefined}
+                                      data-mk-process-connector={undefined}
+                                      data-mk-process-card={undefined}
+                                      aria-hidden={undefined}
+                                      style={{
++                                       opacity: 0
++                                       transform: "translateY(16px)"
+                                      }}
+                                      ref={function useMotionRef.useCallback}
+                                    >
+                                <MarketingRevealCard as="li" index={1} className="marketing-...">
+                                  <motion.li ref={function ref} className="mkReveal m..." data-mk-card="" ...>
+                                    <li
+                                      className="mkReveal marketing-module__SpNEBa__numberedStep"
+                                      data-mk-card=""
++                                     data-mk-pending=""
+-                                     data-mk-pending={null}
+                                      data-mk-entered={undefined}
+                                      data-mk-rail={undefined}
+                                      data-mk-process-rail={undefined}
+                                      data-mk-process-connector={undefined}
+                                      data-mk-process-card={undefined}
+                                      aria-hidden={undefined}
+                                      style={{
++                                       opacity: 0
++                                       transform: "translateY(16px)"
+                                      }}
+                                      ref={function useMotionRef.useCallback}
+                                    >
+                                <MarketingRevealCard as="li" index={2} className="marketing-...">
+                                  <motion.li ref={function ref} className="mkReveal m..." data-mk-card="" ...>
+                                    <li
+                                      className="mkReveal marketing-module__SpNEBa__numberedStep"
+                                      data-mk-card=""
++                                     data-mk-pending=""
+-                                     data-mk-pending={null}
+                                      data-mk-entered={undefined}
+                                      data-mk-rail={undefined}
+                                      data-mk-process-rail={undefined}
+                                      data-mk-process-connector={undefined}
+                                      data-mk-process-card={undefined}
+                                      aria-hidden={undefined}
+                                      style={{
++                                       opacity: 0
++                                       transform: "translateY(16px)"
+                                      }}
+                                      ref={function useMotionRef.useCallback}
+                                    >
+                    ...
+                      <div data-mk-section="" data-mk-entered={undefined} style={{}} ...>
+                        <div className="marketing-...">
+                          <div className="marketing-..." data-mk-product-copy="">
+                            <MarketingRevealItem delay={0}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                            <MarketingRevealItem delay={0.15}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                            <MarketingRevealItem delay={0.3}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                          ...
+                            <div className="marketing-..." data-mk-product-canvas="" aria-hidden="true">
+                              <div className="marketing-...">
+                                <MarketingRevealItem delay={0.22} variants={{hidden:{...}, ...}} ...>
+                                  <motion.div ref={function ref} className="mkReveal m..." data-mk-pending="" ...>
+                                    <div
+                                      className="mkReveal marketing-module__SpNEBa__productRevealSlot"
+                                      data-mk-pending=""
+                                      data-mk-rail={undefined}
+                                      data-mk-process-rail={undefined}
+                                      data-mk-preview={undefined}
+                                      data-mk-process-connector={undefined}
+                                      aria-hidden={undefined}
+                                      style={{
++                                       opacity: 0
++                                       transform: "translateY(14px)"
+                                      }}
+                                      ref={function useMotionRef.useCallback}
+                                    >
+                                <MarketingRevealItem delay={0.28} variants={{hidden:{...}, ...}} ...>
+                                  <motion.div ref={function ref} className="mkReveal m..." data-mk-pending="" ...>
+                                    <div
+                                      className="mkReveal marketing-module__SpNEBa__productPlusSlot"
+                                      data-mk-pending=""
+                                      data-mk-rail={undefined}
+                                      data-mk-process-rail={undefined}
+                                      data-mk-preview={undefined}
+                                      data-mk-process-connector={undefined}
+                                      aria-hidden={undefined}
+                                      style={{
++                                       opacity: 0
++                                       transform: "translateY(14px)"
+                                      }}
+                                      ref={function useMotionRef.useCallback}
+                                    >
+                                <MarketingRevealItem delay={0.29} variants={{hidden:{...}, ...}} ...>
+                                  <motion.div ref={function ref} className="mkReveal m..." data-mk-pending="" ...>
+                                    <div
+                                      className="mkReveal marketing-module__SpNEBa__productRevealSlot"
+                                      data-mk-pending=""
+                                      data-mk-rail={undefined}
+                                      data-mk-process-rail={undefined}
+                                      data-mk-preview={undefined}
+                                      data-mk-process-connector={undefined}
+                                      aria-hidden={undefined}
+                                      style={{
++                                       opacity: 0
++                                       transform: "translateY(14px)"
+                                      }}
+                                      ref={function useMotionRef.useCallback}
+                                    >
+                              <MarketingRevealItem delay={0.36} variants={{hidden:{...}, ...}}>
+                                <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                  <div
+                                    className="mkReveal"
+                                    data-mk-pending=""
+                                    data-mk-rail={undefined}
+                                    data-mk-process-rail={undefined}
+                                    data-mk-preview={undefined}
+                                    data-mk-process-connector={undefined}
+                                    aria-hidden={undefined}
+                                    style={{
++                                     opacity: 0
++                                     transform: "translateY(14px)"
+                                    }}
+                                    ref={function useMotionRef.useCallback}
+                                  >
+                              <MarketingRevealItem delay={0.43} variants={{hidden:{...}, ...}} className="marketing-...">
+                                <motion.div ref={function ref} className="mkReveal m..." data-mk-pending="" ...>
+                                  <div
+                                    className="mkReveal marketing-module__SpNEBa__productResultSlot"
+                                    data-mk-pending=""
+                                    data-mk-rail={undefined}
+                                    data-mk-process-rail={undefined}
+                                    data-mk-preview={undefined}
+                                    data-mk-process-connector={undefined}
+                                    aria-hidden={undefined}
+                                    style={{
++                                     opacity: 0
++                                     transform: "translateY(14px)"
+                                    }}
+                                    ref={function useMotionRef.useCallback}
+                                  >
+                    <section id="how-it-works" className="marketing-..." aria-labelledby="how-heading">
+                      <div className="marketing-...">
+                        ...
+                          <div data-mk-section="" data-mk-entered={undefined} style={{}} ...>
+                            <MarketingRevealItem delay={0}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                            <MarketingRevealItem delay={0.15}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                        <MarketingProcess>
+                          <div className="marketing-..." data-mk-process="">
+                            <MarketingRevealCard as="span" index={0} variants={{hidden:{...}, ...}} ...>
+                              <motion.span ref={function ref} className="mkReveal m..." data-mk-card="" ...>
+                                <span
+                                  className="mkReveal marketing-module__SpNEBa__processRail"
+                                  data-mk-card=""
++                                 data-mk-pending=""
+-                                 data-mk-pending={null}
+                                  data-mk-entered={undefined}
+                                  data-mk-rail=""
+                                  data-mk-process-rail=""
+                                  data-mk-process-connector={undefined}
+                                  data-mk-process-card={undefined}
+                                  aria-hidden={true}
++                                 style={{opacity:1,transform:"scaleX(0)"}}
+-                                 style={{}}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                            <ol className="marketing-...">
+                              <MarketingRevealCard as="li" index={0} className="marketing-..." processCard={true}>
+                                <motion.li ref={function ref} className="mkReveal m..." data-mk-card="" ...>
+                                  <li
+                                    className="mkReveal marketing-module__SpNEBa__processStep"
+                                    data-mk-card=""
++                                   data-mk-pending=""
+-                                   data-mk-pending={null}
+                                    data-mk-entered={undefined}
+                                    data-mk-rail={undefined}
+                                    data-mk-process-rail={undefined}
+                                    data-mk-process-connector={undefined}
+                                    data-mk-process-card=""
+                                    aria-hidden={undefined}
+                                    style={{
++                                     opacity: 0
++                                     transform: "translateY(16px)"
+                                    }}
+                                    ref={function useMotionRef.useCallback}
+                                  >
+                              <MarketingRevealCard as="li" index={1} className="marketing-..." processCard={true}>
+                                <motion.li ref={function ref} className="mkReveal m..." data-mk-card="" ...>
+                                  <li
+                                    className="mkReveal marketing-module__SpNEBa__processStep"
+                                    data-mk-card=""
++                                   data-mk-pending=""
+-                                   data-mk-pending={null}
+                                    data-mk-entered={undefined}
+                                    data-mk-rail={undefined}
+                                    data-mk-process-rail={undefined}
+                                    data-mk-process-connector={undefined}
+                                    data-mk-process-card=""
+                                    aria-hidden={undefined}
+                                    style={{
++                                     opacity: 0
++                                     transform: "translateY(16px)"
+                                    }}
+                                    ref={function useMotionRef.useCallback}
+                                  >
+                              <MarketingRevealCard as="li" index={2} className="marketing-..." processCard={true}>
+                                <motion.li ref={function ref} className="mkReveal m..." data-mk-card="" ...>
+                                  <li
+                                    className="mkReveal marketing-module__SpNEBa__processStep"
+                                    data-mk-card=""
++                                   data-mk-pending=""
+-                                   data-mk-pending={null}
+                                    data-mk-entered={undefined}
+                                    data-mk-rail={undefined}
+                                    data-mk-process-rail={undefined}
+                                    data-mk-process-connector={undefined}
+                                    data-mk-process-card=""
+                                    aria-hidden={undefined}
+                                    style={{
++                                     opacity: 0
++                                     transform: "translateY(16px)"
+                                    }}
+                                    ref={function useMotionRef.useCallback}
+                                  >
+                              <MarketingRevealCard as="li" index={3} className="marketing-..." processCard={true}>
+                                <motion.li ref={function ref} className="mkReveal m..." data-mk-card="" ...>
+                                  <li
+                                    className="mkReveal marketing-module__SpNEBa__processStep"
+                                    data-mk-card=""
++                                   data-mk-pending=""
+-                                   data-mk-pending={null}
+                                    data-mk-entered={undefined}
+                                    data-mk-rail={undefined}
+                                    data-mk-process-rail={undefined}
+                                    data-mk-process-connector={undefined}
+                                    data-mk-process-card=""
+                                    aria-hidden={undefined}
+                                    style={{
++                                     opacity: 0
++                                     transform: "translateY(16px)"
+                                    }}
+                                    ref={function useMotionRef.useCallback}
+                                  >
+                    <section className="marketing-..." aria-labelledby="why-heading">
+                      <div className="marketing-...">
+                        ...
+                          <div data-mk-section="" data-mk-entered={undefined} style={{}} ...>
+                            <MarketingRevealItem delay={0}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                            <MarketingRevealItem delay={0.15}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                        <MarketingPillars>
+                          <div className="marketing-..." data-mk-pillars="">
+                            <div className="marketing-...">
+                              <MarketingRevealCard index={0} className="marketing-...">
+                                <motion.div ref={function ref} className="mkReveal m..." data-mk-card="" ...>
+                                  <div
+                                    className="mkReveal marketing-module__SpNEBa__pillarRevealSlot"
+                                    data-mk-card=""
++                                   data-mk-pending=""
+-                                   data-mk-pending={null}
+                                    data-mk-entered={undefined}
+                                    data-mk-rail={undefined}
+                                    data-mk-process-rail={undefined}
+                                    data-mk-process-connector={undefined}
+                                    data-mk-process-card={undefined}
+                                    aria-hidden={undefined}
+                                    style={{
++                                     opacity: 0
++                                     transform: "translateY(16px)"
+                                    }}
+                                    ref={function useMotionRef.useCallback}
+                                  >
+                              <MarketingRevealCard index={1} className="marketing-...">
+                                <motion.div ref={function ref} className="mkReveal m..." data-mk-card="" ...>
+                                  <div
+                                    className="mkReveal marketing-module__SpNEBa__pillarRevealSlot"
+                                    data-mk-card=""
++                                   data-mk-pending=""
+-                                   data-mk-pending={null}
+                                    data-mk-entered={undefined}
+                                    data-mk-rail={undefined}
+                                    data-mk-process-rail={undefined}
+                                    data-mk-process-connector={undefined}
+                                    data-mk-process-card={undefined}
+                                    aria-hidden={undefined}
+                                    style={{
++                                     opacity: 0
++                                     transform: "translateY(16px)"
+                                    }}
+                                    ref={function useMotionRef.useCallback}
+                                  >
+                              <MarketingRevealCard index={2} className="marketing-...">
+                                <motion.div ref={function ref} className="mkReveal m..." data-mk-card="" ...>
+                                  <div
+                                    className="mkReveal marketing-module__SpNEBa__pillarRevealSlot"
+                                    data-mk-card=""
++                                   data-mk-pending=""
+-                                   data-mk-pending={null}
+                                    data-mk-entered={undefined}
+                                    data-mk-rail={undefined}
+                                    data-mk-process-rail={undefined}
+                                    data-mk-process-connector={undefined}
+                                    data-mk-process-card={undefined}
+                                    aria-hidden={undefined}
+                                    style={{
++                                     opacity: 0
++                                     transform: "translateY(16px)"
+                                    }}
+                                    ref={function useMotionRef.useCallback}
+                                  >
+                            <MarketingRevealCard index={3}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-card="" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-card=""
++                                 data-mk-pending=""
+-                                 data-mk-pending={null}
+                                  data-mk-entered={undefined}
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-process-connector={undefined}
+                                  data-mk-process-card={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(16px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                    ...
+                      <div data-mk-section="" data-mk-entered={undefined} style={{}} ...>
+                        <div className="marketing-...">
+                          <div className="marketing-..." data-mk-brand-copy="">
+                            <MarketingRevealItem delay={0}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                            <MarketingRevealItem delay={0.15}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                            <MarketingRevealItem delay={0.3}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                          <div className="marketing-..." data-mk-brand-visual="">
+                            <MarketingRevealItem delay={0.44999999999999996} preview={true}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview=""
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(10px) scale(0.985)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                  <div className="marketing-..." data-mk-chapter="showcase" data-mk-workflow-showcase="">
+                    <section id="clinic-types" className="marketing-..." aria-labelledby="clinic-typ...">
+                      <div className="marketing-...">
+                        ...
+                          <div data-mk-section="" data-mk-entered={undefined} style={{}} ...>
+                            <MarketingRevealItem delay={0}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                            <MarketingRevealItem delay={0.15}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                            <MarketingRevealItem delay={0.3}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                        <div className="marketing-...">
+                          <MarketingRevealCard index={0} className="marketing-...">
+                            <motion.div ref={function ref} className="mkReveal m..." data-mk-card="" data-mk-pending="" ...>
+                              <div
+                                className="mkReveal marketing-module__SpNEBa__clinicTypeSlot"
+                                data-mk-card=""
++                               data-mk-pending=""
+-                               data-mk-pending={null}
+                                data-mk-entered={undefined}
+                                data-mk-rail={undefined}
+                                data-mk-process-rail={undefined}
+                                data-mk-process-connector={undefined}
+                                data-mk-process-card={undefined}
+                                aria-hidden={undefined}
+                                style={{
++                                 opacity: 0
++                                 transform: "translateY(16px)"
+                                }}
+                                ref={function useMotionRef.useCallback}
+                              >
+                          <MarketingRevealCard index={1} className="marketing-...">
+                            <motion.div ref={function ref} className="mkReveal m..." data-mk-card="" data-mk-pending="" ...>
+                              <div
+                                className="mkReveal marketing-module__SpNEBa__clinicTypeSlot"
+                                data-mk-card=""
++                               data-mk-pending=""
+-                               data-mk-pending={null}
+                                data-mk-entered={undefined}
+                                data-mk-rail={undefined}
+                                data-mk-process-rail={undefined}
+                                data-mk-process-connector={undefined}
+                                data-mk-process-card={undefined}
+                                aria-hidden={undefined}
+                                style={{
++                                 opacity: 0
++                                 transform: "translateY(16px)"
+                                }}
+                                ref={function useMotionRef.useCallback}
+                              >
+                          <MarketingRevealCard index={2} className="marketing-...">
+                            <motion.div ref={function ref} className="mkReveal m..." data-mk-card="" data-mk-pending="" ...>
+                              <div
+                                className="mkReveal marketing-module__SpNEBa__clinicTypeSlot"
+                                data-mk-card=""
++                               data-mk-pending=""
+-                               data-mk-pending={null}
+                                data-mk-entered={undefined}
+                                data-mk-rail={undefined}
+                                data-mk-process-rail={undefined}
+                                data-mk-process-connector={undefined}
+                                data-mk-process-card={undefined}
+                                aria-hidden={undefined}
+                                style={{
++                                 opacity: 0
++                                 transform: "translateY(16px)"
+                                }}
+                                ref={function useMotionRef.useCallback}
+                              >
+                          <MarketingRevealCard index={3} className="marketing-...">
+                            <motion.div ref={function ref} className="mkReveal m..." data-mk-card="" data-mk-pending="" ...>
+                              <div
+                                className="mkReveal marketing-module__SpNEBa__clinicTypeSlot"
+                                data-mk-card=""
++                               data-mk-pending=""
+-                               data-mk-pending={null}
+                                data-mk-entered={undefined}
+                                data-mk-rail={undefined}
+                                data-mk-process-rail={undefined}
+                                data-mk-process-connector={undefined}
+                                data-mk-process-card={undefined}
+                                aria-hidden={undefined}
+                                style={{
++                                 opacity: 0
++                                 transform: "translateY(16px)"
+                                }}
+                                ref={function useMotionRef.useCallback}
+                              >
+                        <MarketingRevealCard index={4} className="marketing-...">
+                          <motion.div ref={function ref} className="mkReveal m..." data-mk-card="" data-mk-pending="" ...>
+                            <div
+                              className="mkReveal marketing-module__SpNEBa__clinicTypeMore"
+                              data-mk-card=""
++                             data-mk-pending=""
+-                             data-mk-pending={null}
+                              data-mk-entered={undefined}
+                              data-mk-rail={undefined}
+                              data-mk-process-rail={undefined}
+                              data-mk-process-connector={undefined}
+                              data-mk-process-card={undefined}
+                              aria-hidden={undefined}
+                              style={{
++                               opacity: 0
++                               transform: "translateY(16px)"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                  ...
+                    <motion.div ref={{current:null}} data-mk-section="" data-mk-entered={undefined} initial="hidden" ...>
+                      <div data-mk-section="" data-mk-entered={undefined} style={{}} ...>
+                        <div className="marketing-...">
+                          <div className="marketing-...">
+                            <MarketingRevealItem delay={0}>
+                              <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                                <div
+                                  className="mkReveal"
+                                  data-mk-pending=""
+                                  data-mk-rail={undefined}
+                                  data-mk-process-rail={undefined}
+                                  data-mk-preview={undefined}
+                                  data-mk-process-connector={undefined}
+                                  aria-hidden={undefined}
+                                  style={{
++                                   opacity: 0
++                                   transform: "translateY(14px)"
+                                  }}
+                                  ref={function useMotionRef.useCallback}
+                                >
+                          <MarketingRevealItem delay={0.15}>
+                            <motion.div ref={function ref} className="mkReveal" data-mk-pending="" ...>
+                              <div
+                                className="mkReveal"
+                                data-mk-pending=""
+                                data-mk-rail={undefined}
+                                data-mk-process-rail={undefined}
+                                data-mk-preview={undefined}
+                                data-mk-process-connector={undefined}
+                                aria-hidden={undefined}
+                                style={{
++                                 opacity: 0
++                                 transform: "translateY(14px)"
+                                }}
+                                ref={function useMotionRef.useCallback}
+                              >
+                ...
+ @ http://localhost:3000/
+[local-marketing-home] ERROR A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <MotionConfig reducedMotion="user">
+      <div className="marketing-..." data-vertical={undefined} data-brand-scope="master">
+        <header>
+        <script>
+        <main>
+          <MarketingPageHero>
+            <section className="marketing-..." aria-labelledby="contact-hero" data-mk-page-hero="contact">
+              <div className="marketing-...">
+                <MarketingRevealGroup>
+                  <motion.div ref={{current:null}} data-mk-section="" data-mk-entered={undefined} initial="hidden" ...>
+                    <div data-mk-section="" data-mk-entered={undefined} style={{}} ...>
+                      <MarketingRevealItem delay={0}>
+                        <motion.div ref={function ref} className="mkReveal" data-mk-pending="" data-mk-rail={undefined} ...>
+                          <div
+                            className="mkReveal"
+                            data-mk-pending=""
+                            data-mk-rail={undefined}
+                            data-mk-process-rail={undefined}
+                            data-mk-preview={undefined}
+                            data-mk-process-connector={undefined}
+                            aria-hidden={undefined}
+                            style={{
++                             opacity: 0
++                             transform: "translateY(14px)"
+                            }}
+                            ref={function useMotionRef.useCallback}
+                          >
+                      <MarketingRevealItem delay={0.15}>
+                        <motion.div ref={function ref} className="mkReveal" data-mk-pending="" data-mk-rail={undefined} ...>
+                          <div
+                            className="mkReveal"
+                            data-mk-pending=""
+                            data-mk-rail={undefined}
+                            data-mk-process-rail={undefined}
+                            data-mk-preview={undefined}
+                            data-mk-process-connector={undefined}
+                            aria-hidden={undefined}
+                            style={{
++                             opacity: 0
++                             transform: "translateY(14px)"
+                            }}
+                            ref={function useMotionRef.useCallback}
+                          >
+                      <MarketingRevealItem delay={0.3}>
+                        <motion.div ref={function ref} className="mkReveal" data-mk-pending="" data-mk-rail={undefined} ...>
+                          <div
+                            className="mkReveal"
+                            data-mk-pending=""
+                            data-mk-rail={undefined}
+                            data-mk-process-rail={undefined}
+                            data-mk-preview={undefined}
+                            data-mk-process-connector={undefined}
+                            aria-hidden={undefined}
+                            style={{
++                             opacity: 0
++                             transform: "translateY(14px)"
+                            }}
+                            ref={function useMotionRef.useCallback}
+                          >
+              ...
+          <div className="marketing-..." data-mk-chapter="soft">
+            <section className="marketing-..." aria-labelledby="contact-fo...">
+              <div className="marketing-...">
+                <MarketingRevealGroup>
+                  <motion.div ref={{current:null}} data-mk-section="" data-mk-entered={undefined} initial="hidden" ...>
+                    <div data-mk-section="" data-mk-entered={undefined} style={{}} ...>
+                      <MarketingRevealItem delay={0}>
+                        <motion.div ref={function ref} className="mkReveal" data-mk-pending="" data-mk-rail={undefined} ...>
+                          <div
+                            className="mkReveal"
+                            data-mk-pending=""
+                            data-mk-rail={undefined}
+                            data-mk-process-rail={undefined}
+                            data-mk-preview={undefined}
+                            data-mk-process-connector={undefined}
+                            aria-hidden={undefined}
+                            style={{
++                             opacity: 0
++                             transform: "translateY(14px)"
+                            }}
+                            ref={function useMotionRef.useCallback}
+                          >
+        ...
+ @ http://localhost:3000/contact
+[local-staff-invalid-login] ERROR Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://app.localhost:3000/login

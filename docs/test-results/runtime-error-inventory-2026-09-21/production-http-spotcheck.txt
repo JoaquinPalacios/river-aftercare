@@ -1,0 +1,67 @@
+# Production HTTP spot-checks — 2026-09-21
+SHA audited: 198bc2d22858cfec8d1f6943a070f63b9fbec7be
+Method: curl -sI (no Production mutation)
+
+## Hosts
+- Marketing: https://riveraftercare.com.au
+- Staff:     https://app.riveraftercare.com.au
+- Tenant:    https://demodental.riveraftercare.com.au
+- Assets:    https://assets.riveraftercare.com.au
+
+## Manifest
+GET https://riveraftercare.com.au/favicons/site.webmanifest
+  HTTP/2 404  content-type: text/html; charset=utf-8
+  x-matched-path: /_marketing/[...slug]
+
+GET https://app.riveraftercare.com.au/favicons/site.webmanifest
+  HTTP/2 200  content-type: application/manifest+json; charset=utf-8
+  x-matched-path: /favicons/site.webmanifest
+
+GET https://demodental.riveraftercare.com.au/favicons/site.webmanifest
+  HTTP/2 404  content-type: text/html; charset=utf-8
+  x-matched-path: /_sites/[tenant]/[guideSlug]/[...rest]
+
+## River favicon pack (PNG/ICO) — all 200 on marketing and staff
+/favicons/favicon-16x16.png
+/favicons/favicon-32x32.png
+/favicons/android-chrome-192x192.png
+/favicons/android-chrome-512x512.png
+/favicons/apple-touch-icon.png
+/favicons/favicon.ico
+
+Tenant PNG pack also 200 (proxy matcher excludes png/ico). Tenant webmanifest 404 (webmanifest not excluded).
+
+## Root /favicon.ico (not in app metadata)
+GET https://riveraftercare.com.au/favicon.ico
+  HTTP/2 404  x-matched-path: /[...slug]
+Playwright Chromium did not request this URL when metadata icons were present.
+
+## HTML <link> icons
+Marketing: rel=manifest /favicons/site.webmanifest + River icon pack
+Staff:     rel=manifest /favicons/site.webmanifest + River icon pack
+Tenant extraction:
+  rel=manifest /favicons/site.webmanifest
+  rel=icon + apple-touch-icon → https://assets.riveraftercare.com.au/clinics/cmu511avy000004l2u3rnfmr2/branding/8a146ccf-5e02-4ce7-ad7f-5e442aac5ae1.png
+
+## Clinic branding PNG
+GET https://assets.riveraftercare.com.au/clinics/cmu511avy000004l2u3rnfmr2/branding/8a146ccf-5e02-4ce7-ad7f-5e442aac5ae1.png
+  HTTP/2 200  content-type: image/png
+  cross-origin-resource-policy: same-site
+  x-content-type-options: nosniff
+  x-matched-path: /clinics/[clinicId]/branding/[filename]
+
+## Health
+GET https://app.riveraftercare.com.au/api/health → 200 {"status":"ok"}
+GET https://riveraftercare.com.au/api/health → 404 (expected; staff-host only)
+
+## Document security headers (HTML HEAD)
+Marketing / staff login / tenant extraction:
+  present: strict-transport-security: max-age=63072000
+  absent on HTML: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options,
+                  Referrer-Policy, COOP, COEP, Permissions-Policy
+Playwright recorded 0 CSP violations (no document CSP to violate).
+
+## Vercel telemetry
+GET https://riveraftercare.com.au/_vercel/insights/script.js → 200 application/javascript
+  cross-origin-resource-policy: cross-origin
+Local pnpm start: same paths 404 (platform injects these only on Vercel).

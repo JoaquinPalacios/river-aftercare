@@ -1,0 +1,307 @@
+===== LOCAL DEV =====
+[local-staff-invalid-login] 401 POST http://app.localhost:3000/api/auth/login type=fetch page=http://app.localhost:3000/login body={"error":"Invalid credentials."}
+
+===== LOCAL PRODUCTION-MODE (pnpm start) =====
+[marketing-home] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/ body=
+[marketing-home] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/ body=
+[marketing-home] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/clinics body=
+[marketing-home] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/clinics body=
+[marketing-home] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/ body=
+[marketing-home] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/ body=
+[marketing-home] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/clinics body=
+[marketing-home] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/clinics body=
+[marketing-home] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/about?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/contact?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/about?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/contact?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/contact?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/about?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/about?_rsc=lDjW-TDt5TZ_XprV net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=lDjW-TDt5TZ_XprV net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/contact?_rsc=lDjW-TDt5TZ_XprV net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/about?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/contact?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/
+[marketing-home] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/contact?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/about?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/contact?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home] REQUESTFAILED GET http://localhost:3000/about?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-pricing] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/pricing body=
+[marketing-pricing] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/pricing body=
+[marketing-pricing] REQUESTFAILED GET http://localhost:3000/?_rsc=fUIZ8fn8yWcfc3_a net::ERR_ABORTED type=fetch page=http://localhost:3000/pricing
+[marketing-pricing] REQUESTFAILED GET http://localhost:3000/about?_rsc=fUIZ8fn8yWcfc3_a net::ERR_ABORTED type=fetch page=http://localhost:3000/pricing
+[marketing-pricing] REQUESTFAILED GET http://localhost:3000/contact?_rsc=fUIZ8fn8yWcfc3_a net::ERR_ABORTED type=fetch page=http://localhost:3000/pricing
+[marketing-pricing] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=dZqG7S2QX3xtCT_J net::ERR_ABORTED type=fetch page=http://localhost:3000/pricing
+[marketing-pricing] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/pricing
+[marketing-pricing] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/pricing
+[marketing-pricing] REQUESTFAILED GET http://localhost:3000/about?_rsc=dZqG7S2QX3xtCT_J net::ERR_ABORTED type=fetch page=http://localhost:3000/pricing
+[marketing-pricing] REQUESTFAILED GET http://localhost:3000/contact?_rsc=dZqG7S2QX3xtCT_J net::ERR_ABORTED type=fetch page=http://localhost:3000/pricing
+[marketing-pricing] REQUESTFAILED GET http://localhost:3000/?_rsc=dZqG7S2QX3xtCT_J net::ERR_ABORTED type=fetch page=http://localhost:3000/pricing
+[marketing-about] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/about body=
+[marketing-about] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/about body=
+[marketing-about] REQUESTFAILED GET http://localhost:3000/?_rsc=RAlUTKEcaXxyvNLw net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=RAlUTKEcaXxyvNLw net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/contact?_rsc=RAlUTKEcaXxyvNLw net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/dental?_rsc=RAlUTKEcaXxyvNLw net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=LkgEsVwa61Q_397C net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/?_rsc=LkgEsVwa61Q_397C net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/contact?_rsc=LkgEsVwa61Q_397C net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/about?_rsc=LkgEsVwa61Q_397C net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/dental?_rsc=LkgEsVwa61Q_397C net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/physiotherapy?_rsc=LkgEsVwa61Q_397C net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/chiropractic?_rsc=RAlUTKEcaXxyvNLw net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/chiropractic?_rsc=LkgEsVwa61Q_397C net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/cosmetic-clinics?_rsc=LkgEsVwa61Q_397C net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/privacy?_rsc=RAlUTKEcaXxyvNLw net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/clinics?_rsc=RAlUTKEcaXxyvNLw net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/privacy?_rsc=LkgEsVwa61Q_397C net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/clinics?_rsc=LkgEsVwa61Q_397C net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-about] REQUESTFAILED GET http://localhost:3000/terms?_rsc=LkgEsVwa61Q_397C net::ERR_ABORTED type=fetch page=http://localhost:3000/about
+[marketing-contact] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/contact body=
+[marketing-contact] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/contact body=
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/?_rsc=4i2W5218t00TzIfd net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/about?_rsc=4i2W5218t00TzIfd net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=4i2W5218t00TzIfd net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/contact?_rsc=FK30UU4eqHS3Ngvo net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/about?_rsc=FK30UU4eqHS3Ngvo net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=FK30UU4eqHS3Ngvo net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/?_rsc=FK30UU4eqHS3Ngvo net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/clinics?_rsc=4i2W5218t00TzIfd net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/dental?_rsc=4i2W5218t00TzIfd net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/privacy?_rsc=4i2W5218t00TzIfd net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/privacy?_rsc=FK30UU4eqHS3Ngvo net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/terms?_rsc=FK30UU4eqHS3Ngvo net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/clinics?_rsc=FK30UU4eqHS3Ngvo net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/dental?_rsc=FK30UU4eqHS3Ngvo net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/physiotherapy?_rsc=4i2W5218t00TzIfd net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/chiropractic?_rsc=4i2W5218t00TzIfd net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/cosmetic-clinics?_rsc=4i2W5218t00TzIfd net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/physiotherapy?_rsc=FK30UU4eqHS3Ngvo net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/chiropractic?_rsc=FK30UU4eqHS3Ngvo net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-contact] REQUESTFAILED GET http://localhost:3000/cosmetic-clinics?_rsc=FK30UU4eqHS3Ngvo net::ERR_ABORTED type=fetch page=http://localhost:3000/contact
+[marketing-clinics] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/clinics body=
+[marketing-clinics] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/clinics body=
+[marketing-clinics] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/ body=
+[marketing-clinics] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/ body=
+[marketing-clinics] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/clinics body=
+[marketing-clinics] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/clinics body=
+[marketing-clinics] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/ body=
+[marketing-clinics] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/ body=
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/about?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/contact?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/about?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/contact?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/dental?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/dental?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/physiotherapy?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/chiropractic?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/cosmetic-clinics?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/chiropractic?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/cosmetic-clinics?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/about?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/contact?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/about?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/contact?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/about?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/contact?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/about?_rsc=lDjW-TDt5TZ_XprV net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=lDjW-TDt5TZ_XprV net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/contact?_rsc=lDjW-TDt5TZ_XprV net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/about?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-clinics] REQUESTFAILED GET http://localhost:3000/contact?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-dental] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/dental body=
+[marketing-dental] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/dental body=
+[marketing-dental] REQUESTFAILED GET http://localhost:3000/?_rsc=4-sMMjOkb9Wd1YTF net::ERR_ABORTED type=fetch page=http://localhost:3000/dental
+[marketing-dental] REQUESTFAILED GET http://localhost:3000/about?_rsc=4-sMMjOkb9Wd1YTF net::ERR_ABORTED type=fetch page=http://localhost:3000/dental
+[marketing-dental] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=4-sMMjOkb9Wd1YTF net::ERR_ABORTED type=fetch page=http://localhost:3000/dental
+[marketing-dental] REQUESTFAILED GET http://localhost:3000/contact?_rsc=4-sMMjOkb9Wd1YTF net::ERR_ABORTED type=fetch page=http://localhost:3000/dental
+[marketing-dental] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/dental
+[marketing-dental] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/dental
+[marketing-dental] REQUESTFAILED GET http://localhost:3000/?_rsc=cM35459Wbgd17B63 net::ERR_ABORTED type=fetch page=http://localhost:3000/dental
+[marketing-dental] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=cM35459Wbgd17B63 net::ERR_ABORTED type=fetch page=http://localhost:3000/dental
+[marketing-dental] REQUESTFAILED GET http://localhost:3000/contact?_rsc=cM35459Wbgd17B63 net::ERR_ABORTED type=fetch page=http://localhost:3000/dental
+[marketing-dental] REQUESTFAILED GET http://localhost:3000/about?_rsc=cM35459Wbgd17B63 net::ERR_ABORTED type=fetch page=http://localhost:3000/dental
+[marketing-physiotherapy] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/physiotherapy body=
+[marketing-physiotherapy] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/physiotherapy body=
+[marketing-physiotherapy] REQUESTFAILED GET http://localhost:3000/?_rsc=yiRWW9B9DVj_-BUy net::ERR_ABORTED type=fetch page=http://localhost:3000/physiotherapy
+[marketing-physiotherapy] REQUESTFAILED GET http://localhost:3000/about?_rsc=yiRWW9B9DVj_-BUy net::ERR_ABORTED type=fetch page=http://localhost:3000/physiotherapy
+[marketing-physiotherapy] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=yiRWW9B9DVj_-BUy net::ERR_ABORTED type=fetch page=http://localhost:3000/physiotherapy
+[marketing-physiotherapy] REQUESTFAILED GET http://localhost:3000/contact?_rsc=yiRWW9B9DVj_-BUy net::ERR_ABORTED type=fetch page=http://localhost:3000/physiotherapy
+[marketing-physiotherapy] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/physiotherapy
+[marketing-physiotherapy] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/physiotherapy
+[marketing-physiotherapy] REQUESTFAILED GET http://localhost:3000/about?_rsc=4rCJl1nTamuFBHD2 net::ERR_ABORTED type=fetch page=http://localhost:3000/physiotherapy
+[marketing-physiotherapy] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=4rCJl1nTamuFBHD2 net::ERR_ABORTED type=fetch page=http://localhost:3000/physiotherapy
+[marketing-physiotherapy] REQUESTFAILED GET http://localhost:3000/contact?_rsc=4rCJl1nTamuFBHD2 net::ERR_ABORTED type=fetch page=http://localhost:3000/physiotherapy
+[marketing-physiotherapy] REQUESTFAILED GET http://localhost:3000/?_rsc=4rCJl1nTamuFBHD2 net::ERR_ABORTED type=fetch page=http://localhost:3000/physiotherapy
+[marketing-physiotherapy] REQUESTFAILED GET http://localhost:3000/physiotherapy?_rsc=4rCJl1nTamuFBHD2 net::ERR_ABORTED type=fetch page=http://localhost:3000/physiotherapy
+[marketing-chiropractic] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/chiropractic body=
+[marketing-chiropractic] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/chiropractic body=
+[marketing-chiropractic] REQUESTFAILED GET http://localhost:3000/?_rsc=UVj82PNEsnmOOviz net::ERR_ABORTED type=fetch page=http://localhost:3000/chiropractic
+[marketing-chiropractic] REQUESTFAILED GET http://localhost:3000/about?_rsc=UVj82PNEsnmOOviz net::ERR_ABORTED type=fetch page=http://localhost:3000/chiropractic
+[marketing-chiropractic] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=UVj82PNEsnmOOviz net::ERR_ABORTED type=fetch page=http://localhost:3000/chiropractic
+[marketing-chiropractic] REQUESTFAILED GET http://localhost:3000/contact?_rsc=UVj82PNEsnmOOviz net::ERR_ABORTED type=fetch page=http://localhost:3000/chiropractic
+[marketing-chiropractic] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/chiropractic
+[marketing-chiropractic] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/chiropractic
+[marketing-chiropractic] REQUESTFAILED GET http://localhost:3000/about?_rsc=uZ2hVyqPq1c7fKHe net::ERR_ABORTED type=fetch page=http://localhost:3000/chiropractic
+[marketing-chiropractic] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=uZ2hVyqPq1c7fKHe net::ERR_ABORTED type=fetch page=http://localhost:3000/chiropractic
+[marketing-chiropractic] REQUESTFAILED GET http://localhost:3000/contact?_rsc=uZ2hVyqPq1c7fKHe net::ERR_ABORTED type=fetch page=http://localhost:3000/chiropractic
+[marketing-chiropractic] REQUESTFAILED GET http://localhost:3000/?_rsc=uZ2hVyqPq1c7fKHe net::ERR_ABORTED type=fetch page=http://localhost:3000/chiropractic
+[marketing-chiropractic] REQUESTFAILED GET http://localhost:3000/chiropractic?_rsc=uZ2hVyqPq1c7fKHe net::ERR_ABORTED type=fetch page=http://localhost:3000/chiropractic
+[marketing-cosmetic-clinics] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/cosmetic-clinics body=
+[marketing-cosmetic-clinics] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/cosmetic-clinics body=
+[marketing-cosmetic-clinics] REQUESTFAILED GET http://localhost:3000/?_rsc=wbFp0QSN8HWx7nrB net::ERR_ABORTED type=fetch page=http://localhost:3000/cosmetic-clinics
+[marketing-cosmetic-clinics] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=wbFp0QSN8HWx7nrB net::ERR_ABORTED type=fetch page=http://localhost:3000/cosmetic-clinics
+[marketing-cosmetic-clinics] REQUESTFAILED GET http://localhost:3000/contact?_rsc=wbFp0QSN8HWx7nrB net::ERR_ABORTED type=fetch page=http://localhost:3000/cosmetic-clinics
+[marketing-cosmetic-clinics] REQUESTFAILED GET http://localhost:3000/about?_rsc=wbFp0QSN8HWx7nrB net::ERR_ABORTED type=fetch page=http://localhost:3000/cosmetic-clinics
+[marketing-cosmetic-clinics] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/cosmetic-clinics
+[marketing-cosmetic-clinics] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/cosmetic-clinics
+[marketing-cosmetic-clinics] REQUESTFAILED GET http://localhost:3000/?_rsc=if_k5bGB9A76VU_7 net::ERR_ABORTED type=fetch page=http://localhost:3000/cosmetic-clinics
+[marketing-cosmetic-clinics] REQUESTFAILED GET http://localhost:3000/about?_rsc=if_k5bGB9A76VU_7 net::ERR_ABORTED type=fetch page=http://localhost:3000/cosmetic-clinics
+[marketing-cosmetic-clinics] REQUESTFAILED GET http://localhost:3000/contact?_rsc=if_k5bGB9A76VU_7 net::ERR_ABORTED type=fetch page=http://localhost:3000/cosmetic-clinics
+[marketing-cosmetic-clinics] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=if_k5bGB9A76VU_7 net::ERR_ABORTED type=fetch page=http://localhost:3000/cosmetic-clinics
+[marketing-cosmetic-clinics] REQUESTFAILED GET http://localhost:3000/cosmetic-clinics?_rsc=if_k5bGB9A76VU_7 net::ERR_ABORTED type=fetch page=http://localhost:3000/cosmetic-clinics
+[marketing-privacy] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/privacy body=
+[marketing-privacy] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/privacy body=
+[marketing-privacy] REQUESTFAILED GET http://localhost:3000/about?_rsc=ygqMCxk3o84CYjwE net::ERR_ABORTED type=fetch page=http://localhost:3000/privacy
+[marketing-privacy] REQUESTFAILED GET http://localhost:3000/?_rsc=ygqMCxk3o84CYjwE net::ERR_ABORTED type=fetch page=http://localhost:3000/privacy
+[marketing-privacy] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=ygqMCxk3o84CYjwE net::ERR_ABORTED type=fetch page=http://localhost:3000/privacy
+[marketing-privacy] REQUESTFAILED GET http://localhost:3000/contact?_rsc=ygqMCxk3o84CYjwE net::ERR_ABORTED type=fetch page=http://localhost:3000/privacy
+[marketing-privacy] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/privacy
+[marketing-privacy] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/privacy
+[marketing-privacy] REQUESTFAILED GET http://localhost:3000/about?_rsc=KCSf4lku29h_oYsO net::ERR_ABORTED type=fetch page=http://localhost:3000/privacy
+[marketing-privacy] REQUESTFAILED GET http://localhost:3000/?_rsc=KCSf4lku29h_oYsO net::ERR_ABORTED type=fetch page=http://localhost:3000/privacy
+[marketing-privacy] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=KCSf4lku29h_oYsO net::ERR_ABORTED type=fetch page=http://localhost:3000/privacy
+[marketing-privacy] REQUESTFAILED GET http://localhost:3000/contact?_rsc=KCSf4lku29h_oYsO net::ERR_ABORTED type=fetch page=http://localhost:3000/privacy
+[marketing-terms] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/terms body=
+[marketing-terms] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/terms body=
+[marketing-terms] REQUESTFAILED GET http://localhost:3000/?_rsc=JMQ_5MN8UCs9_d8S net::ERR_ABORTED type=fetch page=http://localhost:3000/terms
+[marketing-terms] REQUESTFAILED GET http://localhost:3000/about?_rsc=JMQ_5MN8UCs9_d8S net::ERR_ABORTED type=fetch page=http://localhost:3000/terms
+[marketing-terms] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=JMQ_5MN8UCs9_d8S net::ERR_ABORTED type=fetch page=http://localhost:3000/terms
+[marketing-terms] REQUESTFAILED GET http://localhost:3000/contact?_rsc=JMQ_5MN8UCs9_d8S net::ERR_ABORTED type=fetch page=http://localhost:3000/terms
+[marketing-terms] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/terms
+[marketing-terms] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/terms
+[marketing-terms] REQUESTFAILED GET http://localhost:3000/about?_rsc=K0QWRtseNEYMd0wt net::ERR_ABORTED type=fetch page=http://localhost:3000/terms
+[marketing-terms] REQUESTFAILED GET http://localhost:3000/pricing?_rsc=K0QWRtseNEYMd0wt net::ERR_ABORTED type=fetch page=http://localhost:3000/terms
+[marketing-terms] REQUESTFAILED GET http://localhost:3000/contact?_rsc=K0QWRtseNEYMd0wt net::ERR_ABORTED type=fetch page=http://localhost:3000/terms
+[marketing-terms] REQUESTFAILED GET http://localhost:3000/?_rsc=K0QWRtseNEYMd0wt net::ERR_ABORTED type=fetch page=http://localhost:3000/terms
+[staff-login] 404 GET http://app.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/login body=
+[staff-login] 404 GET http://app.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/login body=
+[staff-login] REQUESTFAILED GET http://app.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/login
+[staff-login] REQUESTFAILED GET http://app.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/login
+[staff-forgot-password] 404 GET http://app.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/forgot-password body=
+[staff-forgot-password] 404 GET http://app.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/forgot-password body=
+[staff-forgot-password] REQUESTFAILED GET http://app.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/forgot-password
+[staff-forgot-password] REQUESTFAILED GET http://app.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/forgot-password
+[staff-reset-password] 404 GET http://app.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/reset-password body=
+[staff-reset-password] 404 GET http://app.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/reset-password body=
+[staff-reset-password] REQUESTFAILED GET http://app.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/reset-password
+[staff-reset-password] REQUESTFAILED GET http://app.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/reset-password
+[staff-accept-invitation] 404 GET http://app.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/accept-invitation body=
+[staff-accept-invitation] 404 GET http://app.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/accept-invitation body=
+[staff-accept-invitation] REQUESTFAILED GET http://app.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/accept-invitation
+[staff-accept-invitation] REQUESTFAILED GET http://app.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/accept-invitation
+[staff-confirm-email-change] 404 GET http://app.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/confirm-email-change body=
+[staff-confirm-email-change] 404 GET http://app.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/confirm-email-change body=
+[staff-confirm-email-change] REQUESTFAILED GET http://app.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/confirm-email-change
+[staff-confirm-email-change] REQUESTFAILED GET http://app.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/confirm-email-change
+[staff-root-redirect] 404 GET http://app.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/login body=
+[staff-root-redirect] 404 GET http://app.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/login body=
+[staff-root-redirect] REQUESTFAILED GET http://app.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/login
+[staff-root-redirect] REQUESTFAILED GET http://app.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/login
+[staff-dashboard-unauth] 404 GET http://app.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/login body=
+[staff-dashboard-unauth] 404 GET http://app.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/login body=
+[staff-dashboard-unauth] REQUESTFAILED GET http://app.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/login
+[staff-dashboard-unauth] REQUESTFAILED GET http://app.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/login
+[staff-account-unauth] 404 GET http://app.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/login body=
+[staff-account-unauth] 404 GET http://app.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/login body=
+[staff-account-unauth] REQUESTFAILED GET http://app.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/login
+[staff-account-unauth] REQUESTFAILED GET http://app.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/login
+[patient-home] 404 GET http://demodental.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://demodental.localhost:3000/ body=
+[patient-home] 404 GET http://demodental.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://demodental.localhost:3000/ body=
+[patient-home] REQUESTFAILED GET http://demodental.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://demodental.localhost:3000/
+[patient-home] REQUESTFAILED GET http://demodental.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://demodental.localhost:3000/
+[patient-extraction-light] 404 GET http://demodental.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://demodental.localhost:3000/extraction body=
+[patient-extraction-light] 404 GET http://demodental.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://demodental.localhost:3000/extraction body=
+[patient-extraction-light] REQUESTFAILED GET http://demodental.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://demodental.localhost:3000/extraction
+[patient-extraction-light] REQUESTFAILED GET http://demodental.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://demodental.localhost:3000/extraction
+[patient-extraction-dark-media] 404 GET http://demodental.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://demodental.localhost:3000/extraction body=
+[patient-extraction-dark-media] 404 GET http://demodental.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://demodental.localhost:3000/extraction body=
+[patient-extraction-dark-media] REQUESTFAILED GET http://demodental.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://demodental.localhost:3000/extraction
+[patient-extraction-dark-media] REQUESTFAILED GET http://demodental.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://demodental.localhost:3000/extraction
+[marketing-home-mobile] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/ body=
+[marketing-home-mobile] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/ body=
+[marketing-home-mobile] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/clinics body=
+[marketing-home-mobile] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/clinics body=
+[marketing-home-mobile] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/ body=
+[marketing-home-mobile] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/ body=
+[marketing-home-mobile] 404 GET http://localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/clinics body=
+[marketing-home-mobile] 404 GET http://localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://localhost:3000/clinics body=
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/?_rsc=QmXynVnDjtQEGMQS net::ERR_ABORTED type=fetch page=http://localhost:3000/
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/contact?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/clinics
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/clinics
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/contact?_rsc=LZcnCiJQ6Jrxh1Ma net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/clinics
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://localhost:3000/clinics
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[marketing-home-mobile] REQUESTFAILED GET http://localhost:3000/contact?_rsc=tBLsVRIWFEZF89Oe net::ERR_ABORTED type=fetch page=http://localhost:3000/clinics
+[staff-login-mobile] 404 GET http://app.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/login body=
+[staff-login-mobile] 404 GET http://app.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/login body=
+[staff-login-mobile] REQUESTFAILED GET http://app.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/login
+[staff-login-mobile] REQUESTFAILED GET http://app.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/login
+[patient-extraction-mobile] 404 GET http://demodental.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://demodental.localhost:3000/extraction body=
+[patient-extraction-mobile] 404 GET http://demodental.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://demodental.localhost:3000/extraction body=
+[patient-extraction-mobile] REQUESTFAILED GET http://demodental.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://demodental.localhost:3000/extraction
+[patient-extraction-mobile] REQUESTFAILED GET http://demodental.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://demodental.localhost:3000/extraction
+[staff-invalid-login] 404 GET http://app.localhost:3000/_vercel/insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/login body=
+[staff-invalid-login] 404 GET http://app.localhost:3000/_vercel/speed-insights/script.js type=script ct=text/html; charset=utf-8 page=http://app.localhost:3000/login body=
+[staff-invalid-login] 401 POST http://app.localhost:3000/api/auth/login type=fetch ct=application/json page=http://app.localhost:3000/login body={"error":"Invalid credentials."}
+[staff-invalid-login] REQUESTFAILED GET http://app.localhost:3000/_vercel/insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/login
+[staff-invalid-login] REQUESTFAILED GET http://app.localhost:3000/_vercel/speed-insights/script.js net::ERR_ABORTED type=script page=http://app.localhost:3000/login

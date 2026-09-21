@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-21 (Vitest DB tests must not assert global table counts)
+Last updated: 2026-09-21 (runtime error inventory after production deploy of `198bc2d`; Vitest DB tests must not assert global table counts)
 
 ## Durable production release rule
 
@@ -1968,6 +1968,22 @@ Main `a7164f1` full Playwright: **241 tests, 237 passed, 4 failed**. This branch
 Typeface architecture: six allow-listed `next/font` families in `lib/branding/clinic-fonts.ts`, `preload: false`. The tenant layout selects one family at request time. Next.js still emits every statically reachable `@font-face` into the tenant CSS graph, so per-family dynamic import still `<link>`s the whole catalogue and adds stylesheet requests. Font _files_ are fetched only for the applied family (Geist default: 1 WOFF2; Inter selected: 1 Inter WOFF2). Do not drop supported fonts to pass the budget.
 
 Canonical performance write-up: [PERFORMANCE.md](../architecture/PERFORMANCE.md) “Patient CSS budget after clinic typefaces”.
+
+---
+
+## Runtime error inventory after production deploy `198bc2d` (2026-09-21)
+
+Investigation only: [../test-results/runtime-error-inventory-2026-09-21/ERROR-INVENTORY.md](../test-results/runtime-error-inventory-2026-09-21/ERROR-INVENTORY.md). No application fix, no Production mutation, no deploy.
+
+Playwright Chromium without extensions against Production public/auth/patient hosts, local `pnpm dev`, and local `pnpm start`. `pnpm lint` / `tsc -b` / `pnpm build` clean.
+
+| ID    | Severity | Finding                                                                                                                                                                                                                                                                                                                                  | Do not                                                                                                |
+| ----- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| E1    | P2       | `/favicons/site.webmanifest` is **404 HTML** on marketing apex and tenant (`x-matched-path` catch-alls). Staff host **200**. File exists in `public/favicons/`. `proxy.ts` matcher excludes `png\|ico\|…` but not `webmanifest`. HTML still has `rel=manifest`. PNG/ICO pack 200. Clinic favicon PNG on `assets.` 200 `CORP: same-site`. | Do not add `app/favicon.ico`. Do not drop tenant `rel=manifest` as a silent “fix”. Do not weaken CSP. |
+| E2    | P2       | Marketing Motion reveal hydrates incorrectly in `pnpm dev`: `useReducedMotion()` is `null` on SSR so `motionOn` is false; client applies `opacity: 0` / `translateY(14px)` and `data-mk-pending`. Production Chromium did not log it.                                                                                                    | Do not wrap in try/catch or suppress the console.                                                     |
+| E3–E8 | P3       | Local Vercel insights 404; `serverActions` experiment notice; HTTP localhost Secure cookies; Turnstile headless; RSC `ERR_ABORTED`; root `/favicon.ico` 404 if requested                                                                                                                                                                 | Do not treat these as P0/P1.                                                                          |
+
+No P0/P1. No service worker. No document CSP violations (HTML has HSTS, not a document CSP). Authenticated Production was not exercised. Next fix PRs should split: (1) proxy `webmanifest` + e2e GET 200; (2) SSR-safe reduced-motion.
 
 ---
 

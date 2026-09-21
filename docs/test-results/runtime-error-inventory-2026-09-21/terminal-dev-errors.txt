@@ -1,0 +1,3 @@
+ HEAD /favicons/site.webmanifest 404 in 537ms (next.js: 493ms, proxy.ts: 3ms, application-code: 41ms)
+ HEAD /favicons/site.webmanifest 404 in 611ms (next.js: 551ms, proxy.ts: 1.9ms, application-code: 58ms)
+ POST /api/auth/login 401 in 328ms (next.js: 275ms, proxy.ts: 3ms, application-code: 49ms)

@@ -1,0 +1,99 @@
+$ pnpm db:generate && eslint && tsc -b && node scripts/vercel-production-schema-gate.mjs && next build
+$ prisma generate --config prisma.config.ts
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+
+✔ Generated Prisma Client (v7.10.0) to ./node_modules/.pnpm/@prisma+client@7.10.0_prisma@7.10.0_@types+react-dom@19.3.0_@types+react@19.3.0__@types_5023e10ea2fd2857eb522795d9c1d232/node_modules/@prisma/client in 214ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+
+▲ Next.js 16.3.5 (Turbopack)
+- Environments: .env
+✓ Running next.config.ts took 23ms
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 7.7s
+  Running TypeScript ...
+  Finished TypeScript in 1682ms ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/42) ...
+  Generating static pages using 3 workers (10/42) 
+  Generating static pages using 3 workers (20/42) 
+  Generating static pages using 3 workers (31/42) 
+✓ Generating static pages using 3 workers (42/42) in 483ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_marketing
+├ ƒ /_marketing/[...slug]
+├ ƒ /_marketing/about
+├ ƒ /_marketing/chiropractic
+├ ƒ /_marketing/clinics
+├ ƒ /_marketing/contact
+├ ƒ /_marketing/cosmetic-clinics
+├ ƒ /_marketing/dental
+├ ƒ /_marketing/physiotherapy
+├ ƒ /_marketing/pricing
+├ ƒ /_marketing/privacy
+├ ƒ /_marketing/terms
+├ ○ /_not-found
+├ ƒ /_sites/[tenant]
+├ ƒ /_sites/[tenant]/[guideSlug]
+├ ƒ /_sites/[tenant]/[guideSlug]/[...rest]
+├ ƒ /_sites/[tenant]/[guideSlug]/print
+├ ƒ /[...slug]
+├ ○ /accept-invitation
+├ ƒ /account
+├ ƒ /account/security
+├ ƒ /api/auth/[...nextauth]
+├ ƒ /api/auth/accept-invitation
+├ ƒ /api/auth/confirm-email-change
+├ ƒ /api/auth/email-change-status
+├ ƒ /api/auth/forgot-password
+├ ƒ /api/auth/invitation-status
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/me
+├ ƒ /api/auth/reset-password
+├ ƒ /api/health
+├ ƒ /api/ui-theme
+├ ƒ /clinic-branding/[clinicId]/[filename]
+├ ƒ /clinics/[clinicId]/branding/[filename]
+├ ○ /confirm-email-change
+├ ƒ /dashboard
+├ ƒ /dashboard/procedures
+├ ƒ /display/[token]
+├ ○ /forgot-password
+├ ƒ /guides
+├ ƒ /guides/[guideId]/edit
+├ ƒ /guides/[guideId]/preview
+├ ƒ /guides/[guideId]/qr
+├ ƒ /guides/new
+├ ƒ /llms.txt
+├ ƒ /login
+├ ƒ /operator/clinics
+├ ƒ /operator/clinics/[clinicId]
+├ ƒ /operator/clinics/[clinicId]/team
+├ ƒ /operator/clinics/[clinicId]/team/invite
+├ ƒ /operator/clinics/new
+├ ƒ /operator/seo
+├ ƒ /platform-seo/[filename]
+├ ƒ /platform/seo/[filename]
+├ ƒ /practice
+├ ○ /reset-password
+├ ○ /robots.txt
+├ ƒ /session/[id]/control
+├ ƒ /sessions/new
+└ ○ /sitemap.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
