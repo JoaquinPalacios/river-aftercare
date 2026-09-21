@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { config, proxy } from "@/proxy";
+import { proxyMatcherMatches } from "./helpers/proxy-matcher";
 
 function requestFor(
   url: string,
@@ -481,5 +482,66 @@ describe("proxy", () => {
     expect(source).toContain("_next/static");
     expect(source).toContain("_next/image");
     expect(source).toContain("favicon.ico");
+    expect(source).toContain("webmanifest");
+  });
+
+  it("does not run hostname proxy for public static file extensions", () => {
+    expect(proxyMatcherMatches("/_next/static/chunks/main.js")).toBe(false);
+    expect(proxyMatcherMatches("/_next/image")).toBe(false);
+    expect(proxyMatcherMatches("/favicon.ico")).toBe(false);
+    expect(proxyMatcherMatches("/favicons/favicon.ico")).toBe(false);
+    expect(proxyMatcherMatches("/favicons/favicon-16x16.png")).toBe(false);
+    expect(proxyMatcherMatches("/favicons/favicon-32x32.png")).toBe(false);
+    expect(proxyMatcherMatches("/favicons/apple-touch-icon.png")).toBe(false);
+    expect(proxyMatcherMatches("/favicons/android-chrome-192x192.png")).toBe(
+      false
+    );
+    expect(proxyMatcherMatches("/favicons/android-chrome-512x512.png")).toBe(
+      false
+    );
+    expect(proxyMatcherMatches("/brand/river-aftercare-logo.svg")).toBe(false);
+    expect(proxyMatcherMatches("/brand/river-aftercare-isologo.svg")).toBe(
+      false
+    );
+    expect(proxyMatcherMatches("/brand/river-aftercare-og.webp")).toBe(false);
+    expect(proxyMatcherMatches("/favicons/site.webmanifest")).toBe(false);
+    expect(
+      proxyMatcherMatches(
+        "/clinic-branding/clinic_demo_rivers/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
+      )
+    ).toBe(false);
+  });
+
+  it("still matches application routes, including names with dots that are not static files", () => {
+    expect(proxyMatcherMatches("/")).toBe(true);
+    expect(proxyMatcherMatches("/extraction")).toBe(true);
+    expect(proxyMatcherMatches("/login")).toBe(true);
+    expect(proxyMatcherMatches("/pricing")).toBe(true);
+    expect(proxyMatcherMatches("/sitemap.xml")).toBe(true);
+    expect(proxyMatcherMatches("/robots.txt")).toBe(true);
+    expect(proxyMatcherMatches("/llms.txt")).toBe(true);
+    expect(proxyMatcherMatches("/foo.bar")).toBe(true);
+  });
+
+  it("would rewrite webmanifest on marketing and tenant hosts if the matcher ran", () => {
+    const marketing = proxy(
+      requestFor("http://localhost:3000/favicons/site.webmanifest")
+    );
+    expect(rewrittenUrl(marketing)?.pathname).toBe(
+      "/_marketing/favicons/site.webmanifest"
+    );
+
+    const tenant = proxy(
+      requestFor("http://demodental.localhost:3000/favicons/site.webmanifest")
+    );
+    expect(rewrittenUrl(tenant)?.pathname).toBe(
+      "/_sites/demodental/favicons/site.webmanifest"
+    );
+
+    const staff = proxy(
+      requestFor("http://app.localhost:3000/favicons/site.webmanifest")
+    );
+    expect(staff.status).toBe(200);
+    expect(rewrittenUrl(staff)).toBeNull();
   });
 });
