@@ -17,12 +17,12 @@ Related: [`lib/marketing/plans.ts`](../../lib/marketing/plans.ts) (canonical adv
 
 Hostname tenancy ([ADR 0003](../adr/0003-tenant-identity-uses-hostname.md), [ADR 0012](../adr/0012-apex-host-is-the-public-marketing-face.md)):
 
-| Host                           | Kind      | Surface                                                         |
-| ------------------------------ | --------- | --------------------------------------------------------------- |
+| Host | Kind | Surface |
+| ---- | ---- | ------- |
 | Apex / `riveraftercare.com.au` | marketing | `/`, `/pricing`, `/contact`, legal pages. **All `/api/*` 404.** |
-| `app.<root>`                   | staff     | Clinic portal, operator, parked chairside, **`/api/*`**.        |
-| `<slug>.<root>`                | tenant    | Patient aftercare only.                                         |
-| `assets.<root>`                | reserved  | Clinic branding + platform SEO assets.                          |
+| `app.<root>` | staff | Clinic portal, operator, parked chairside, **`/api/*`**. |
+| `<slug>.<root>` | tenant | Patient aftercare only. |
+| `assets.<root>` | reserved | Clinic branding + platform SEO assets. |
 
 Routing: [`proxy.ts`](../../proxy.ts) (Next.js 16 Node proxy, not Edge). Staff host allows all paths through. Marketing 404s `/api/*` via `isMarketingBlockedPath`. A Stripe webhook **must** be posted to the staff origin, for example `https://app.riveraftercare.com.au/api/stripe/webhook`.
 
@@ -34,25 +34,25 @@ Canonical schema: [`prisma/schema.prisma`](../../prisma/schema.prisma). PostgreS
 
 **Clinic / users / roles**
 
-| Model              | Role today                                                                                                                |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `Clinic`           | Tenant. `id`, `name`, `slug`. **No plan, status, or billing fields.**                                                     |
-| `ClinicProfile`    | Patient-facing chrome: `displayName`, logo, colours, typeface, contact, address, emergency. Not a legal/billing identity. |
-| `User`             | Auth.js user + `platformRole` (`NONE` \| `OPERATOR`) + optional `passwordHash`.                                           |
-| `ClinicMembership` | Exactly one membership per user in the current auth resolver. Roles `ADMIN` \| `STAFF`.                                   |
-| `AccountToken`     | Invitations and password reset. Hash-only.                                                                                |
+| Model | Role today |
+| ----- | ---------- |
+| `Clinic` | Tenant. `id`, `name`, `slug`. **No plan, status, or billing fields.** |
+| `ClinicProfile` | Patient-facing chrome: `displayName`, logo, colours, typeface, contact, address, emergency. Not a legal/billing identity. |
+| `User` | Auth.js user + `platformRole` (`NONE` \| `OPERATOR`) + optional `passwordHash`. |
+| `ClinicMembership` | Exactly one membership per user in the current auth resolver. Roles `ADMIN` \| `STAFF`. |
+| `AccountToken` | Invitations and password reset. Hash-only. |
 
 There is **no account-owner entity**. “Ownership” is clinic `ADMIN` membership. Operators (`platformRole=OPERATOR`) are platform-scoped and typically have **no** clinic membership ([ADR 0016](../adr/0016-platform-operator-is-distinct-from-clinic-admin.md)).
 
 **Guides**
 
-| Model                                             | Role today                                                                                                                                                                                                        |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GuideTemplate` / `GuideTemplateRevision`         | Canonical River library. Never mutated by clinic editing.                                                                                                                                                         |
-| `PracticeGuide`                                   | Clinic-enabled guide. Template-backed: `guideTemplateId` + `pinnedRevisionId`. Custom: both null. Unique `(clinicId, guideTemplateId)`.                                                                           |
-| `PracticeGuideRevision`                           | Version 0 = mutable draft. Versions 1+ = immutable published snapshots. Public pages pin the highest published clinic revision ([ADR 0017](../adr/0017-clinic-owned-practice-revisions-pin-public-documents.md)). |
-| `PracticeGuideOverride` / `PracticeGuideAddition` | Legacy composition. Current editor writes clinic revisions, not these tables.                                                                                                                                     |
-| `PracticeSectionProvenance`                       | `CANONICAL` \| `PRACTICE_OVERRIDE` \| `PRACTICE_ADDITION` \| `PRACTICE_CUSTOM`.                                                                                                                                   |
+| Model | Role today |
+| ----- | ---------- |
+| `GuideTemplate` / `GuideTemplateRevision` | Canonical River library. Never mutated by clinic editing. |
+| `PracticeGuide` | Clinic-enabled guide. Template-backed: `guideTemplateId` + `pinnedRevisionId`. Custom: both null. Unique `(clinicId, guideTemplateId)`. |
+| `PracticeGuideRevision` | Version 0 = mutable draft. Versions 1+ = immutable published snapshots. Public pages pin the highest published clinic revision ([ADR 0017](../adr/0017-clinic-owned-practice-revisions-pin-public-documents.md)). |
+| `PracticeGuideOverride` / `PracticeGuideAddition` | Legacy composition. Current editor writes clinic revisions, not these tables. |
+| `PracticeSectionProvenance` | `CANONICAL` \| `PRACTICE_OVERRIDE` \| `PRACTICE_ADDITION` \| `PRACTICE_CUSTOM`. |
 
 Guide lifecycle: `PracticeGuideStatus` = `DRAFT` \| `PUBLISHED` \| `UNPUBLISHED` plus `isEnabled`. Public patient visibility requires `PUBLISHED` + `isEnabled` + a published clinic revision.
 
@@ -60,32 +60,32 @@ Guide lifecycle: `PracticeGuideStatus` = `DRAFT` \| `PUBLISHED` \| `UNPUBLISHED`
 
 ### A.3 Authentication and auth boundaries
 
-| Piece                                                               | Path                                                                                               |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Auth.js v5 (Prisma adapter, empty providers; custom password login) | [`auth.ts`](../../auth.ts)                                                                         |
-| Session helpers                                                     | [`lib/auth/session.ts`](../../lib/auth/session.ts)                                                 |
-| Guards                                                              | `requireStaffSession`, `requireClinicAdmin`, `requirePlatformOperator`, `requireAuthenticatedUser` |
-| Login / logout / reset / invitation                                 | `app/api/auth/*` route handlers on the staff host                                                  |
+| Piece | Path |
+| ----- | ---- |
+| Auth.js v5 (Prisma adapter, empty providers; custom password login) | [`auth.ts`](../../auth.ts) |
+| Session helpers | [`lib/auth/session.ts`](../../lib/auth/session.ts) |
+| Guards | `requireStaffSession`, `requireClinicAdmin`, `requirePlatformOperator`, `requireAuthenticatedUser` |
+| Login / logout / reset / invitation | `app/api/auth/*` route handlers on the staff host |
 
 Clinic mutations: authenticate → membership → `ADMIN` → `clinicId` from session, never from the client. Operator mutations: `requirePlatformOperator()`; clinic id comes from the operator route, not impersonation.
 
-| Action                                  | Clinic ADMIN | Clinic STAFF | OPERATOR                  |
-| --------------------------------------- | ------------ | ------------ | ------------------------- |
-| View portal / guides / preview          | yes          | yes          | no (unless also a member) |
-| Create / edit / publish / delete guides | yes          | no           | no                        |
-| Practice settings / logo                | yes          | no           | no                        |
-| Create clinic / invite team / SEO       | no           | no           | yes                       |
-| Billing (today)                         | none         | none         | none                      |
+| Action | Clinic ADMIN | Clinic STAFF | OPERATOR |
+| ------ | ------------ | ------------ | -------- |
+| View portal / guides / preview | yes | yes | no (unless also a member) |
+| Create / edit / publish / delete guides | yes | no | no |
+| Practice settings / logo | yes | no | no |
+| Create clinic / invite team / SEO | no | no | yes |
+| Billing (today) | none | none | none |
 
 ### A.4 Clinic and operator onboarding
 
-| Flow              | Who                 | Code                                                                                                                                                                                 |
-| ----------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Create clinic     | OPERATOR            | [`lib/operator/create-operator-clinic.ts`](../../lib/operator/create-operator-clinic.ts) → `Clinic` + nested `ClinicProfile` (`displayName = name`). UI: `/operator/clinics/new`.    |
-| Invite users      | OPERATOR            | [`lib/operator/invite-clinic-user.ts`](../../lib/operator/invite-clinic-user.ts) + [`lib/auth/account-token-service.ts`](../../lib/auth/account-token-service.ts). Email via Resend. |
-| Accept invite     | Invitee             | `/accept-invitation` + `POST /api/auth/accept-invitation`                                                                                                                            |
-| Practice branding | Clinic ADMIN        | `/practice` → [`update-practice-settings.ts`](../../lib/clinic-portal/update-practice-settings.ts)                                                                                   |
-| Setup checklist   | Derived, not stored | [`setup-status.ts`](../../lib/clinic-portal/setup-status.ts): identity, branding, contact, emergency, published guide → `configured` \| `needs_attention`                            |
+| Flow | Who | Code |
+| ---- | --- | ---- |
+| Create clinic | OPERATOR | [`lib/operator/create-operator-clinic.ts`](../../lib/operator/create-operator-clinic.ts) → `Clinic` + nested `ClinicProfile` (`displayName = name`). UI: `/operator/clinics/new`. |
+| Invite users | OPERATOR | [`lib/operator/invite-clinic-user.ts`](../../lib/operator/invite-clinic-user.ts) + [`lib/auth/account-token-service.ts`](../../lib/auth/account-token-service.ts). Email via Resend. |
+| Accept invite | Invitee | `/accept-invitation` + `POST /api/auth/accept-invitation` |
+| Practice branding | Clinic ADMIN | `/practice` → [`update-practice-settings.ts`](../../lib/clinic-portal/update-practice-settings.ts) |
+| Setup checklist | Derived, not stored | [`setup-status.ts`](../../lib/clinic-portal/setup-status.ts): identity, branding, contact, emergency, published guide → `configured` \| `needs_attention` |
 
 Marketing “onboarding steps” in `plans.ts` are copy only.
 
@@ -112,15 +112,15 @@ Clinic portal: Overview, Guides, Practice (ADMIN). Account today is **Account se
 
 ### A.8 Environment, email, jobs, audit, Stripe
 
-| Concern         | Current truth                                                                                                                                                                                                                                                                                   |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Env             | [`.env.example`](../../.env.example); Vercel injects Production/Preview secrets. Server-only secrets are never `NEXT_PUBLIC_*`.                                                                                                                                                                 |
-| Email           | Resend via [`transactional-mailer.ts`](../../lib/email/transactional-mailer.ts). Contact vs auth identities stay separate ([TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md)).                                                                                                                   |
-| Background jobs | **None.** No Inngest, queues, or Vercel cron.                                                                                                                                                                                                                                                   |
-| Audit log       | **None** (parked chairside stage transitions only).                                                                                                                                                                                                                                             |
-| Stripe          | **Absent.** No `stripe` package. Privacy copy currently says manual invoicing and that customers do not provide cards through the Service.                                                                                                                                                      |
-| Observability   | Sentry via `@sentry/nextjs` for production/preview exceptions. Session Replay off. [`sensitive-value-sanitizer.ts`](../../lib/observability/sensitive-value-sanitizer.ts) redacts secrets/emails/tokens; extend it for `sk_`, `rk_`, `whsec_`, Stripe IDs in logs. Uptime remains Better Stack. |
-| Runtime         | Next.js 16.3.5 App Router monolith on Vercel. Node 24 LTS.                                                                                                                                                                                                                                      |
+| Concern | Current truth |
+| ------- | ------------- |
+| Env | [`.env.example`](../../.env.example); Vercel injects Production/Preview secrets. Server-only secrets are never `NEXT_PUBLIC_*`. |
+| Email | Resend via [`transactional-mailer.ts`](../../lib/email/transactional-mailer.ts). Contact vs auth identities stay separate ([TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md)). |
+| Background jobs | **None.** No Inngest, queues, or Vercel cron. |
+| Audit log | **None** (parked chairside stage transitions only). |
+| Stripe | **Absent.** No `stripe` package. Privacy copy currently says manual invoicing and that customers do not provide cards through the Service. |
+| Observability | Sentry via `@sentry/nextjs` for production/preview exceptions. Session Replay off. [`sensitive-value-sanitizer.ts`](../../lib/observability/sensitive-value-sanitizer.ts) redacts secrets/emails/tokens; extend it for `sk_`, `rk_`, `whsec_`, Stripe IDs in logs. Uptime remains Better Stack. |
+| Runtime | Next.js 16.3.5 App Router monolith on Vercel. Node 24 LTS. |
 
 ### A.9 Legal / commercial stance today
 
@@ -134,20 +134,20 @@ Counsel-approval flags remain `false`.
 
 ## B. Current gaps
 
-| Gap                                | Detail                                                                                                                                                                                    |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No plan field                      | Essential vs Practice vs Group is marketing copy only.                                                                                                                                    |
-| No guide limits                    | 2 / 30 custom-guide caps are not enforced.                                                                                                                                                |
-| No template-adaptation entitlement | Any ADMIN can edit a template-backed clinic guide into clinic-specific content.                                                                                                           |
-| Template enablement ≠ custom       | Template-backed guides keep `guideTemplateId` even after `PRACTICE_OVERRIDE` edits, so “custom guide count” cannot be derived from current rows without a new rule.                       |
-| No billing identity                | `ClinicProfile` is patient chrome. No legal name, ABN, billing email, or billing address domain.                                                                                          |
-| No Stripe customer/subscription    | No IDs, no projection, no webhook route.                                                                                                                                                  |
-| No invoice access in-app           | No Account → Billing, no Customer Portal.                                                                                                                                                 |
-| No payment lifecycle               | Clinic has no status. Setup is a derived checklist.                                                                                                                                       |
-| Terms/Privacy mismatch             | Live Stripe Checkout would contradict “14-day bank transfer” and “does not require card details through the Service”. Must be updated **before live mode**, not as a side effect of code. |
-| No jobs / audit                    | Webhook processing and operator reconciliation must be designed without a queue or AuditLog product.                                                                                      |
-| Webhook host                       | Apex cannot receive Stripe webhooks. Staff host can.                                                                                                                                      |
-| Group / locations                  | No domain. Do not encode additional-location prices.                                                                                                                                      |
+| Gap | Detail |
+| --- | ------ |
+| No plan field | Essential vs Practice vs Group is marketing copy only. |
+| No guide limits | 2 / 30 custom-guide caps are not enforced. |
+| No template-adaptation entitlement | Any ADMIN can edit a template-backed clinic guide into clinic-specific content. |
+| Template enablement ≠ custom | Template-backed guides keep `guideTemplateId` even after `PRACTICE_OVERRIDE` edits, so “custom guide count” cannot be derived from current rows without a new rule. |
+| No billing identity | `ClinicProfile` is patient chrome. No legal name, ABN, billing email, or billing address domain. |
+| No Stripe customer/subscription | No IDs, no projection, no webhook route. |
+| No invoice access in-app | No Account → Billing, no Customer Portal. |
+| No payment lifecycle | Clinic has no status. Setup is a derived checklist. |
+| Terms/Privacy mismatch | Live Stripe Checkout would contradict “14-day bank transfer” and “does not require card details through the Service”. Must be updated **before live mode**, not as a side effect of code. |
+| No jobs / audit | Webhook processing and operator reconciliation must be designed without a queue or AuditLog product. |
+| Webhook host | Apex cannot receive Stripe webhooks. Staff host can. |
+| Group / locations | No domain. Do not encode additional-location prices. |
 
 ---
 
@@ -182,14 +182,14 @@ Counsel-approval flags remain `false`.
                            on a patient or editor request)
 ```
 
-| Truth                                                            | Owner                                     | River may cache?                                                                               |
-| ---------------------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Advertised GST-inclusive prices                                  | `PLAN_PRICES` in `lib/marketing/plans.ts` | Stripe Price amounts must match; marketing must not read Stripe.                               |
-| Money movement, invoices, PDFs, payment methods, dunning retries | Stripe                                    | Cache IDs, status, period end, hosted invoice URL. Never PAN/BSB/account numbers or PDF blobs. |
-| Operator-approved commercial plan + interval                     | River `ClinicEntitlement`                 | Stripe Price is created from this mapping, not the reverse, except as a verification check.    |
-| What staff/patients are allowed to do                            | River `entitlementStatus` + plan rules    | Derived from Stripe + River policy, then persisted.                                            |
-| Patient-facing clinic brand                                      | `ClinicProfile`                           | Do not reuse as tax-invoice identity.                                                          |
-| Legal/billing identity                                           | `ClinicBillingProfile`                    | Copied onto Stripe Customer at create/update.                                                  |
+| Truth | Owner | River may cache? |
+| ----- | ----- | ---------------- |
+| Advertised GST-inclusive prices | `PLAN_PRICES` in `lib/marketing/plans.ts` | Stripe Price amounts must match; marketing must not read Stripe. |
+| Money movement, invoices, PDFs, payment methods, dunning retries | Stripe | Cache IDs, status, period end, hosted invoice URL. Never PAN/BSB/account numbers or PDF blobs. |
+| Operator-approved commercial plan + interval | River `ClinicEntitlement` | Stripe Price is created from this mapping, not the reverse, except as a verification check. |
+| What staff/patients are allowed to do | River `entitlementStatus` + plan rules | Derived from Stripe + River policy, then persisted. |
+| Patient-facing clinic brand | `ClinicProfile` | Do not reuse as tax-invoice identity. |
+| Legal/billing identity | `ClinicBillingProfile` | Copied onto Stripe Customer at create/update. |
 
 Do **not** authorise guide create/edit/publish by calling Stripe on the request path. Do **not** put plan solely as a column on `Clinic` (future Group / multi-location billing would then have nowhere to go). Do **not** invent an Organisation/Location hierarchy in the first implementation.
 
@@ -335,13 +335,13 @@ Add `Clinic.billingProfile`, `Clinic.entitlement`, `Clinic.stripeInvoiceRefs`.
 
 **Canonical vs cached**
 
-| Field                                                                        | Canonical?                                                                                         |
-| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `commercialPlan`, `billingInterval`, `customGuideLimit`, `canAdaptTemplates` | River canonical (operator-approved). Stripe Price must be a mapped consequence.                    |
-| Billing identity fields                                                      | River canonical for “who we intend to bill”; Stripe Customer is the billed copy.                   |
-| `stripeCustomerId` / `stripeSubscriptionId` / `stripePriceId` / invoice IDs  | Cached identifiers. Stripe owns the objects.                                                       |
-| `billingStatus`, period/paid-through, `cancelAtPeriodEnd`                    | Cached projection. Refresh by retrieving the Subscription, not by trusting a single event payload. |
-| `entitlementStatus`, `publicRetentionUntil`                                  | River canonical policy output.                                                                     |
+| Field | Canonical? |
+| ----- | ---------- |
+| `commercialPlan`, `billingInterval`, `customGuideLimit`, `canAdaptTemplates` | River canonical (operator-approved). Stripe Price must be a mapped consequence. |
+| Billing identity fields | River canonical for “who we intend to bill”; Stripe Customer is the billed copy. |
+| `stripeCustomerId` / `stripeSubscriptionId` / `stripePriceId` / invoice IDs | Cached identifiers. Stripe owns the objects. |
+| `billingStatus`, period/paid-through, `cancelAtPeriodEnd` | Cached projection. Refresh by retrieving the Subscription, not by trusting a single event payload. |
+| `entitlementStatus`, `publicRetentionUntil` | River canonical policy output. |
 
 Do **not** store card numbers, BSB, account numbers, mandate text, or invoice PDF bytes.
 
@@ -371,10 +371,10 @@ Do not add these columns in the first billing-identity migration unless enforcem
 
 Follow Stripe’s catalogue rule: **one Product per plan the customer can choose**; monthly/yearly are Prices on that Product.
 
-| Stripe Product            | Monthly Price                   | Yearly Price                    |
-| ------------------------- | ------------------------------- | ------------------------------- |
-| River Aftercare Essential | AUD 7900 cents, interval month  | AUD 79000 cents, interval year  |
-| River Aftercare Practice  | AUD 14900 cents, interval month | AUD 149000 cents, interval year |
+| Stripe Product | Monthly Price | Yearly Price |
+| -------------- | ------------- | ------------ |
+| River Aftercare Essential | AUD 7900 cents, interval month | AUD 79000 cents, interval year |
+| River Aftercare Practice | AUD 14900 cents, interval month | AUD 149000 cents, interval year |
 
 All `tax_behavior: inclusive`. Currency `aud`. Nickname the Prices clearly (`essential_monthly`, etc.). Group is **not** a Stripe Product at launch.
 
@@ -405,14 +405,14 @@ Clients never send Price IDs. Operators never paste Price IDs into clinic UI.
 
 Why not Stripe Tax (Option B) for launch:
 
-| Concern                                               | Option A (manual inclusive 10% GST)                                                                                           | Option B (Stripe Tax)                                                                                                     |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Advertised totals stay A$79 / A$149 / A$790 / A$1,490 | Yes, if `inclusive: true`                                                                                                     | Yes only if `tax_behavior: inclusive` **and** tax actually calculates                                                     |
-| AU-only, fixed B2B SaaS                               | Matches                                                                                                                       | Extra machinery                                                                                                           |
-| ABN on a domestic AU→AU sale                          | GST still charged; customer claims input tax credits                                                                          | Stripe Tax docs treat ABN as **no GST for remote sellers**. A mis-set origin could omit GST on taxable domestic supplies. |
-| Fees                                                  | None beyond Billing                                                                                                           | Tax Basic is **0.5% per transaction** (Billing/Checkout) where registered; Tax Complete from A$140/month                  |
-| Future international                                  | Replace later with Stripe Tax (cannot combine `automatic_tax` with manual `tax_rates` on the same object — a planned cutover) | Better later, not needed now                                                                                              |
-| Registration mistake                                  | Rate is explicit                                                                                                              | `automatic_tax` with no active registration **silently collects $0 tax**                                                  |
+| Concern | Option A (manual inclusive 10% GST) | Option B (Stripe Tax) |
+| ------- | ----------------------------------- | --------------------- |
+| Advertised totals stay A$79 / A$149 / A$790 / A$1,490 | Yes, if `inclusive: true` | Yes only if `tax_behavior: inclusive` **and** tax actually calculates |
+| AU-only, fixed B2B SaaS | Matches | Extra machinery |
+| ABN on a domestic AU→AU sale | GST still charged; customer claims input tax credits | Stripe Tax docs treat ABN as **no GST for remote sellers**. A mis-set origin could omit GST on taxable domestic supplies. |
+| Fees | None beyond Billing | Tax Basic is **0.5% per transaction** (Billing/Checkout) where registered; Tax Complete from A$140/month |
+| Future international | Replace later with Stripe Tax (cannot combine `automatic_tax` with manual `tax_rates` on the same object — a planned cutover) | Better later, not needed now |
+| Registration mistake | Rate is explicit | `automatic_tax` with no active registration **silently collects $0 tax** |
 
 This is **not** a tax determination. Joaquín’s accountant must confirm: GST registration, that these plans are taxable supplies, that inclusive 10% is correct, and invoice wording.
 
@@ -506,18 +506,18 @@ SDK: official `stripe` Node package, **latest stable** at implementation time (a
 
 Verify against the pinned API/SDK when implementing. Current names that matter:
 
-| Event                                      | Use                                                                                                                                                                                                                                                 |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `checkout.session.completed`               | Bind Customer + Subscription IDs. If `payment_status=unpaid` → `PAYMENT_PENDING`. If `paid` → run projector.                                                                                                                                        |
-| `checkout.session.async_payment_succeeded` | BECS (and other delayed methods) succeeded. Run projector.                                                                                                                                                                                          |
-| `checkout.session.async_payment_failed`    | Initial delayed payment failed. Do not activate. Mark failed initial payment.                                                                                                                                                                       |
-| `checkout.session.expired`                 | Clear `CHECKOUT_OPEN` if it still points at this Session.                                                                                                                                                                                           |
-| `customer.subscription.created`            | Run projector (do not assume `active`).                                                                                                                                                                                                             |
-| `customer.subscription.updated`            | Run projector (status, cancel_at_period_end, price, period).                                                                                                                                                                                        |
-| `customer.subscription.deleted`            | Run projector → `ENDED` / retention policy.                                                                                                                                                                                                         |
-| `invoice.paid`                             | **Preferred payment-success signal** (covers out-of-band paid as well as charge success). Activate or renew from projector. Newer `invoice_payment.paid` exists; `invoice.paid` is still the documented fulfillment event and is enough for launch. |
-| `invoice.payment_failed`                   | Card/BECS failure. `past_due` / `PAYMENT_PENDING` as appropriate. Do not unpublish patient guides.                                                                                                                                                  |
-| `invoice.finalization_failed`              | Operator alert. No entitlement change by itself.                                                                                                                                                                                                    |
+| Event | Use |
+| ----- | --- |
+| `checkout.session.completed` | Bind Customer + Subscription IDs. If `payment_status=unpaid` → `PAYMENT_PENDING`. If `paid` → run projector. |
+| `checkout.session.async_payment_succeeded` | BECS (and other delayed methods) succeeded. Run projector. |
+| `checkout.session.async_payment_failed` | Initial delayed payment failed. Do not activate. Mark failed initial payment. |
+| `checkout.session.expired` | Clear `CHECKOUT_OPEN` if it still points at this Session. |
+| `customer.subscription.created` | Run projector (do not assume `active`). |
+| `customer.subscription.updated` | Run projector (status, cancel_at_period_end, price, period). |
+| `customer.subscription.deleted` | Run projector → `ENDED` / retention policy. |
+| `invoice.paid` | **Preferred payment-success signal** (covers out-of-band paid as well as charge success). Activate or renew from projector. Newer `invoice_payment.paid` exists; `invoice.paid` is still the documented fulfillment event and is enough for launch. |
+| `invoice.payment_failed` | Card/BECS failure. `past_due` / `PAYMENT_PENDING` as appropriate. Do not unpublish patient guides. |
+| `invoice.finalization_failed` | Operator alert. No entitlement change by itself. |
 
 Do **not** depend on event order. Multiple events fire for one Checkout.
 
@@ -533,16 +533,16 @@ Out-of-order `updated` then `created` is harmless if every handler retrieves liv
 
 ### G.4 Activation rules
 
-| Stripe observation                                              | River `billingStatus`    | River `entitlementStatus`             |
-| --------------------------------------------------------------- | ------------------------ | ------------------------------------- |
-| Checkout open, no subscription                                  | `CHECKOUT_OPEN`          | `PENDING_ACTIVATION`                  |
-| Subscription exists, first invoice not paid (BECS `processing`) | `PAYMENT_PENDING`        | `PENDING_ACTIVATION`                  |
-| Subscription `active` **and** latest relevant invoice paid      | `ACTIVE`                 | `ACTIVE`                              |
-| Subscription `past_due`, retries still running                  | `PAST_DUE`               | `GRACE` (see I)                       |
-| Subscription `unpaid` or retries exhausted per Dashboard        | `UNPAID`                 | `AUTHORING_RESTRICTED` then retention |
-| `cancel_at_period_end=true`, still `active`                     | `CANCELED_AT_PERIOD_END` | `ACTIVE` until `paidThrough`          |
-| Subscription `canceled` / `incomplete_expired`                  | `ENDED`                  | retention then `TERMINATED`           |
-| `incomplete` requiring customer action (e.g. 3DS abandoned)     | `REQUIRES_ACTION`        | `PENDING_ACTIVATION`                  |
+| Stripe observation | River `billingStatus` | River `entitlementStatus` |
+| ------------------ | --------------------- | ------------------------- |
+| Checkout open, no subscription | `CHECKOUT_OPEN` | `PENDING_ACTIVATION` |
+| Subscription exists, first invoice not paid (BECS `processing`) | `PAYMENT_PENDING` | `PENDING_ACTIVATION` |
+| Subscription `active` **and** latest relevant invoice paid | `ACTIVE` | `ACTIVE` |
+| Subscription `past_due`, retries still running | `PAST_DUE` | `GRACE` (see I) |
+| Subscription `unpaid` or retries exhausted per Dashboard | `UNPAID` | `AUTHORING_RESTRICTED` then retention |
+| `cancel_at_period_end=true`, still `active` | `CANCELED_AT_PERIOD_END` | `ACTIVE` until `paidThrough` |
+| Subscription `canceled` / `incomplete_expired` | `ENDED` | retention then `TERMINATED` |
+| `incomplete` requiring customer action (e.g. 3DS abandoned) | `REQUIRES_ACTION` | `PENDING_ACTIVATION` |
 
 **Paid entitlements begin** when the projector sees a paid invoice for the current subscription **and** subscription status is `active` (or `canceled` with `cancel_at_period_end` still inside the paid period — treat as active until period end).
 
@@ -558,12 +558,12 @@ If processing throws after signature verify: return **500** so Stripe retries. A
 
 ### H.1 Capabilities
 
-| Capability                                                                                            | Essential               | Practice              | Group           |
-| ----------------------------------------------------------------------------------------------------- | ----------------------- | --------------------- | --------------- |
-| Use River templates **as supplied** (enable, publish clinic snapshot without clinic-specific rewrite) | yes                     | yes                   | operator-scoped |
-| Create/edit **custom** clinic guides with the **normal editor**                                       | yes, max **2**          | yes, max **30**       | operator-set    |
-| **Adapt** a River template into a clinic-owned custom guide                                           | **no**                  | yes; counts toward 30 | operator-set    |
-| Multi-location                                                                                        | no (sales conversation) | sales conversation    | custom          |
+| Capability | Essential | Practice | Group |
+| ---------- | --------- | -------- | ----- |
+| Use River templates **as supplied** (enable, publish clinic snapshot without clinic-specific rewrite) | yes | yes | operator-scoped |
+| Create/edit **custom** clinic guides with the **normal editor** | yes, max **2** | yes, max **30** | operator-set |
+| **Adapt** a River template into a clinic-owned custom guide | **no** | yes; counts toward 30 | operator-set |
+| Multi-location | no (sales conversation) | sales conversation | custom |
 
 Do not cripple the editor for Essential custom guides. The plan difference is **what they may start from and how many custom documents they may own**, not a reduced editor.
 
@@ -598,15 +598,15 @@ Patient aftercare URLs are durable. **A failed payment must not immediately 404 
 
 ### I.1 Separate concepts
 
-| Concept                         | Meaning                                                                  |
-| ------------------------------- | ------------------------------------------------------------------------ |
-| Billing status                  | Stripe money state                                                       |
-| Entitlement status              | What River allows                                                        |
-| Staff login                     | Auth; may remain possible during grace so they can update payment method |
-| Authoring                       | Create/edit/publish                                                      |
-| Existing published patient URLs | Tenant `PUBLISHED` + `isEnabled`                                         |
-| Account termination             | Explicit operator/legal end; not the same as Stripe cancel               |
-| Data retention                  | Terms already: 30-day export after termination, then possible delete     |
+| Concept | Meaning |
+| ------- | ------- |
+| Billing status | Stripe money state |
+| Entitlement status | What River allows |
+| Staff login | Auth; may remain possible during grace so they can update payment method |
+| Authoring | Create/edit/publish |
+| Existing published patient URLs | Tenant `PUBLISHED` + `isEnabled` |
+| Account termination | Explicit operator/legal end; not the same as Stripe cancel |
+| Data retention | Terms already: 30-day export after termination, then possible delete |
 
 Current Terms: overdue reminders; suspend staff or public pages only after **≥14 days unpaid after due date** and **reasonable notice**; suspension is **not automatic**. After subscription end, River **may** unpublish. Cancellation is **at period end**, no cancel fee, no voluntary pro-rata refund except law/agreement.
 
@@ -616,11 +616,11 @@ Stripe auto-charge **replaces** 14-day bank-transfer terms for Checkout customer
 
 **A. Past-due / failed renewal**
 
-| Option               | Staff authoring                                             | Published patient URLs                                              | Notes                                                          |
-| -------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------- |
-| A1                   | Unchanged during Stripe Smart Retries                       | Unchanged                                                           | Simplest; closest to “suspension is not automatic”             |
+| Option | Staff authoring | Published patient URLs | Notes |
+| ------ | --------------- | ---------------------- | ----- |
+| A1 | Unchanged during Stripe Smart Retries | Unchanged | Simplest; closest to “suspension is not automatic” |
 | A2 **(recommended)** | Unchanged for a **grace window**, then authoring restricted | Unchanged during grace **and** while `UNPAID` until retention clock | Matches “restrict authoring before taking public content down” |
-| A3                   | Authoring restricted on first `invoice.payment_failed`      | Unchanged                                                           | Harsh for BECS/card glitches                                   |
+| A3 | Authoring restricted on first `invoice.payment_failed` | Unchanged | Harsh for BECS/card glitches |
 
 **Recommended default to approve:** **A2**. Grace = **while Stripe is still retrying** (`past_due` with `next_payment_attempt` set), not a second invented number. After retries exhaust (`unpaid` / Dashboard end action), move to authoring restricted immediately; start public retention clock (below). Configure Stripe Smart Retries to **~8 attempts / 2 weeks** (Stripe default recommendation) and BECS Direct Debit retries on. Align written Terms with “we retry, then restrict staff publishing, then unpublish after notice + retention”.
 
@@ -636,11 +636,11 @@ Operator-only exceptional path (abuse, legal). Still apply public retention unle
 
 **D. After paid-through / unpaid end — public URL retention**
 
-| Option               | Public URLs                                                                                         | Staff                                                     |
-| -------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| D1                   | Unpublish at period end                                                                             | Authoring off                                             |
+| Option | Public URLs | Staff |
+| ------ | ----------- | ----- |
+| D1 | Unpublish at period end | Authoring off |
 | D2 **(recommended)** | Keep published URLs for **30 days** (`publicRetentionUntil`), matching existing Terms export window | Authoring off; Account → Billing + export still available |
-| D3                   | Keep public until operator unpublishes                                                              | Too open-ended for a lapsed commercial account            |
+| D3 | Keep public until operator unpublishes | Too open-ended for a lapsed commercial account |
 
 **E. Account deletion** vs billing cancel: deletion is a separate operator action after the retention window (and legal retention of invoices). Never cascade-delete `PracticeGuide` because Stripe canceled.
 
@@ -688,23 +688,23 @@ Manage billing: server action `requireClinicAdmin` → `billingPortal.sessions.c
 
 ### J.4 Portal capabilities at launch
 
-| Feature                                           | Launch              |
-| ------------------------------------------------- | ------------------- |
-| Invoice history                                   | Enable              |
-| Payment method update                             | Enable              |
-| Customer update: name, address, email, tax_id     | Enable              |
-| Subscription update / plan switching / quantities | **Disable**         |
-| Promotion codes                                   | Disable             |
-| Cancel                                            | See trade-off below |
+| Feature | Launch |
+| ------- | ------ |
+| Invoice history | Enable |
+| Payment method update | Enable |
+| Customer update: name, address, email, tax_id | Enable |
+| Subscription update / plan switching / quantities | **Disable** |
+| Promotion codes | Disable |
+| Cancel | See trade-off below |
 
 **Cancellation in Portal vs contact River**
 
-|                                          | Portal cancel at period end | Contact River only   |
-| ---------------------------------------- | --------------------------- | -------------------- |
-| Matches Terms “method we make available” | Yes if we enable it         | Yes                  |
-| Support load                             | Lower                       | Higher               |
-| Accidental cancel                        | Possible                    | Operator can counsel |
-| Assisted-sales model                     | Slightly more self-serve    | Cleaner              |
+| | Portal cancel at period end | Contact River only |
+| --- | --- | --- |
+| Matches Terms “method we make available” | Yes if we enable it | Yes |
+| Support load | Lower | Higher |
+| Accidental cancel | Possible | Operator can counsel |
+| Assisted-sales model | Slightly more self-serve | Cleaner |
 
 **Recommendation:** enable **cancel at period end only** (`mode: at_period_end`, no immediate, no prorations) **if** Joaquín wants clinics to self-serve exit. Otherwise disable cancel in Portal and use “Contact us” on the Billing page. Do not enable immediate cancel in Portal at launch.
 
@@ -712,30 +712,30 @@ Manage billing: server action `requireClinicAdmin` → `billingPortal.sessions.c
 
 ## K. Security
 
-| Boundary                       | Rule                                                                                                                                                                                                                     |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| PCI                            | SAQ-A via Stripe-hosted Checkout + Portal. River never sees PAN/BSB/account.                                                                                                                                             |
-| Keys                           | Vercel sensitive env. Restricted key. Test vs live separation. Never client bundle. Rotate on staff change.                                                                                                              |
-| Webhook                        | Signature required. Unique event ids. Staff-host URL.                                                                                                                                                                    |
+| Boundary | Rule |
+| -------- | ---- |
+| PCI | SAQ-A via Stripe-hosted Checkout + Portal. River never sees PAN/BSB/account. |
+| Keys | Vercel sensitive env. Restricted key. Test vs live separation. Never client bundle. Rotate on staff change. |
+| Webhook | Signature required. Unique event ids. Staff-host URL. |
 | Checkout/Portal session create | Server Action or Route Handler: `requireClinicAdmin` for clinic self-serve Portal; `requirePlatformOperator` for starting Checkout. CSRF via existing staff origin checks (`isTrustedStaffAuthMutationRequest` pattern). |
-| Price selection                | Closed env map. Ignore client Price IDs.                                                                                                                                                                                 |
-| Stripe metadata                | Opaque `clinicId` only. **No patient names, no guide bodies, no clinical content.**                                                                                                                                      |
-| Logging                        | Extend sanitizer for `sk_live_`, `sk_test_`, `rk_`, `whsec_`, `cus_`, `sub_`, `in_`, `pi_`, `pm_`. Do not log Customer `sources` or PaymentMethod objects.                                                               |
-| Idempotency keys               | On Customer create (`clinicId`), Checkout Session create, Portal Session optional.                                                                                                                                       |
-| Trust                          | Browser is untrusted. Stripe is trusted after signature verify. Operator is trusted to pick plan, not to paste arbitrary Stripe IDs. Clinic ADMIN may open Checkout/Portal only for their membership’s clinic.           |
+| Price selection | Closed env map. Ignore client Price IDs. |
+| Stripe metadata | Opaque `clinicId` only. **No patient names, no guide bodies, no clinical content.** |
+| Logging | Extend sanitizer for `sk_live_`, `sk_test_`, `rk_`, `whsec_`, `cus_`, `sub_`, `in_`, `pi_`, `pm_`. Do not log Customer `sources` or PaymentMethod objects. |
+| Idempotency keys | On Customer create (`clinicId`), Checkout Session create, Portal Session optional. |
+| Trust | Browser is untrusted. Stripe is trusted after signature verify. Operator is trusted to pick plan, not to paste arbitrary Stripe IDs. Clinic ADMIN may open Checkout/Portal only for their membership’s clinic. |
 
 ---
 
 ## L. Test strategy
 
-| Layer            | Approach                                                                                                                                                                                                                                                                              |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit (Vitest)    | Projector pure functions: event/subscription snapshot → River statuses. Price map. Entitlement canCreateCustomGuide / canAdapt. **No network.**                                                                                                                                       |
+| Layer | Approach |
+| ----- | -------- |
+| Unit (Vitest) | Projector pure functions: event/subscription snapshot → River statuses. Price map. Entitlement canCreateCustomGuide / canAdapt. **No network.** |
 | Stripe test mode | Dashboard sandbox/test. Test Products/Prices. Test clock for renewals/cancel-at-period-end. Cards `4242…`, 3DS `4000…000034`. BECS test BSB `000000` account `000123456` (success; PI `processing` → `succeeded`). Other documented BECS failure accounts for `async_payment_failed`. |
-| Local webhooks   | Stripe CLI `stripe listen --forward-to http://app.localhost:3000/api/stripe/webhook`. CLI signing secret in local env only.                                                                                                                                                           |
-| CI               | No live Stripe. No CLI dependency in ordinary `pnpm test`. Fixture payloads + mocked `subscriptions.retrieve`.                                                                                                                                                                        |
-| Preview (Vercel) | Test-mode keys. Do not expect Stripe to hit every preview URL; use CLI or a stable staging webhook.                                                                                                                                                                                   |
-| Live             | Forbidden in development. First live Checkout is a gated Phase after legal + GST confirmation.                                                                                                                                                                                        |
+| Local webhooks | Stripe CLI `stripe listen --forward-to http://app.localhost:3000/api/stripe/webhook`. CLI signing secret in local env only. |
+| CI | No live Stripe. No CLI dependency in ordinary `pnpm test`. Fixture payloads + mocked `subscriptions.retrieve`. |
+| Preview (Vercel) | Test-mode keys. Do not expect Stripe to hit every preview URL; use CLI or a stable staging webhook. |
+| Live | Forbidden in development. First live Checkout is a gated Phase after legal + GST confirmation. |
 
 ---
 
@@ -743,15 +743,15 @@ Manage billing: server action `requireClinicAdmin` → `billingPortal.sessions.c
 
 Recommended sequence (safer than billing-before-domain):
 
-| Phase                     | Scope                                                                                                                                                                | Gate before next                                                                              |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **A — Domain**            | `ClinicBillingProfile` + `ClinicEntitlement` + operator capture of identity/plan/interval. No Stripe package yet. No enforcement.                                    | Prisma migration via ADR 0025 (pending build → `prod:db:migrate` → same-SHA redeploy).        |
-| **B — Test catalogue**    | Manual Dashboard: Products, inclusive GST rate, Payment Methods (card + wallets + BECS), invoice template, email settings, test restricted key. Env on Preview only. | Joaquín confirms test invoice PDF looks like a tax invoice (ABN, GST, buyer).                 |
-| **C — Assisted Checkout** | `stripe` SDK, Customer reuse, Checkout Session, copy/link UX. Still test mode.                                                                                       | Duplicate-subscription guard proven; no custom card UI.                                       |
-| **D — Webhooks**          | Route + receipts + projector + `invoice.paid` activation. Operator refresh.                                                                                          | Card **and** BECS test journeys; duplicate delivery; expired session.                         |
-| **E — Billing UI**        | `/account/billing` + Customer Portal (no plan switching).                                                                                                            | ADMIN-only; STAFF cannot open Portal for another clinic.                                      |
-| **F — Enforcement**       | 2/30 limits + as-supplied vs adapt. Guide `sourceGuideTemplateId` migration.                                                                                         | Existing clinics inventoried; no surprise lockout of design partners.                         |
-| **G — Failure/retention** | Grace / authoring restrict / 30-day public retention / operator terminate.                                                                                           | Joaquín has approved section I options; Terms/Privacy updated and (ideally) counsel-reviewed. |
+| Phase | Scope | Gate before next |
+| ----- | ----- | ---------------- |
+| **A — Domain** | `ClinicBillingProfile` + `ClinicEntitlement` + operator capture of identity/plan/interval. No Stripe package yet. No enforcement. | Prisma migration via ADR 0025 (pending build → `prod:db:migrate` → same-SHA redeploy). |
+| **B — Test catalogue** | Manual Dashboard: Products, inclusive GST rate, Payment Methods (card + wallets + BECS), invoice template, email settings, test restricted key. Env on Preview only. | Joaquín confirms test invoice PDF looks like a tax invoice (ABN, GST, buyer). |
+| **C — Assisted Checkout** | `stripe` SDK, Customer reuse, Checkout Session, copy/link UX. Still test mode. | Duplicate-subscription guard proven; no custom card UI. |
+| **D — Webhooks** | Route + receipts + projector + `invoice.paid` activation. Operator refresh. | Card **and** BECS test journeys; duplicate delivery; expired session. |
+| **E — Billing UI** | `/account/billing` + Customer Portal (no plan switching). | ADMIN-only; STAFF cannot open Portal for another clinic. |
+| **F — Enforcement** | 2/30 limits + as-supplied vs adapt. Guide `sourceGuideTemplateId` migration. | Existing clinics inventoried; no surprise lockout of design partners. |
+| **G — Failure/retention** | Grace / authoring restrict / 30-day public retention / operator terminate. | Joaquín has approved section I options; Terms/Privacy updated and (ideally) counsel-reviewed. |
 
 **Live-mode gate (after E at minimum, G before taking public URLs down automatically):** GST registration confirmed; Terms/Privacy mention Stripe and auto-charge; live Products/Prices; live webhook on `app.riveraftercare.com.au`; Better Stack alert on `stripe_webhook_failed`; first paying clinic is operator-watched.
 
