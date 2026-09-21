@@ -26,6 +26,7 @@ const UNWANTED_INTEGRATIONS = [
   "Replay",
   "BrowserTracing",
   "Profiling",
+  "Feedback",
 ];
 
 describe("shared error-tracking privacy floor", () => {

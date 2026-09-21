@@ -11,14 +11,16 @@ vi.mock("@sentry/nextjs", () => ({
 import {
   getServerErrorTrackingConfig,
   isServerErrorTrackingEnabled,
-  isValidBetterStackErrorDsn,
-  readBetterStackErrorDsn,
+  isValidSentryDsn,
   readErrorTrackingRelease,
+  readSentryDsn,
 } from "@/lib/observability/error-tracking-env";
+import { getErrorTrackingConfig } from "@/lib/observability/error-tracking-runtime";
 import {
   createErrorTrackingInitOptions,
   initServerErrorTracking,
 } from "@/lib/observability/init-server-error-tracking";
+import { initClientErrorTracking } from "@/lib/observability/init-client-error-tracking";
 
 const FAKE_DSN = "https://examplePublicKey@o0.ingest.example.test/0";
 
@@ -30,24 +32,30 @@ function restore(name: string, value: string | undefined) {
   }
 }
 
-describe("Better Stack error tracking configuration", () => {
+describe("Sentry error tracking configuration", () => {
   const previous = {
     vercelEnv: process.env.VERCEL_ENV,
-    dsn: process.env.BETTER_STACK_ERROR_DSN,
+    publicVercelEnv: process.env.NEXT_PUBLIC_VERCEL_ENV,
+    dsn: process.env.SENTRY_DSN,
+    publicDsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
     sha: process.env.VERCEL_GIT_COMMIT_SHA,
+    publicSha: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA,
   };
 
   afterEach(() => {
     restore("VERCEL_ENV", previous.vercelEnv);
-    restore("BETTER_STACK_ERROR_DSN", previous.dsn);
+    restore("NEXT_PUBLIC_VERCEL_ENV", previous.publicVercelEnv);
+    restore("SENTRY_DSN", previous.dsn);
+    restore("NEXT_PUBLIC_SENTRY_DSN", previous.publicDsn);
     restore("VERCEL_GIT_COMMIT_SHA", previous.sha);
+    restore("NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA", previous.publicSha);
     sentryState.init.mockReset();
   });
 
-  it("enables only for production with a valid DSN", () => {
+  it("enables production when a valid DSN is present", () => {
     const enabled = getServerErrorTrackingConfig({
       VERCEL_ENV: "production",
-      BETTER_STACK_ERROR_DSN: FAKE_DSN,
+      NEXT_PUBLIC_SENTRY_DSN: FAKE_DSN,
       VERCEL_GIT_COMMIT_SHA: "abc1234def",
     });
     expect(enabled).toEqual({
@@ -59,9 +67,46 @@ describe("Better Stack error tracking configuration", () => {
     expect(
       isServerErrorTrackingEnabled({
         VERCEL_ENV: "production",
-        BETTER_STACK_ERROR_DSN: FAKE_DSN,
+        NEXT_PUBLIC_SENTRY_DSN: FAKE_DSN,
       })
     ).toBe(true);
+  });
+
+  it("uses SENTRY_DSN on the server when both DSNs are set", () => {
+    const serverDsn = "https://serverKey@o0.ingest.example.test/1";
+    expect(
+      readSentryDsn(
+        {
+          SENTRY_DSN: serverDsn,
+          NEXT_PUBLIC_SENTRY_DSN: FAKE_DSN,
+        },
+        "server"
+      )
+    ).toBe(serverDsn);
+    expect(
+      getErrorTrackingConfig(
+        {
+          VERCEL_ENV: "production",
+          SENTRY_DSN: serverDsn,
+          NEXT_PUBLIC_SENTRY_DSN: FAKE_DSN,
+        },
+        "client"
+      )
+    ).toMatchObject({ enabled: true, dsn: FAKE_DSN });
+  });
+
+  it("labels Preview as preview when a DSN is present", () => {
+    expect(
+      getServerErrorTrackingConfig({
+        VERCEL_ENV: "preview",
+        NEXT_PUBLIC_SENTRY_DSN: FAKE_DSN,
+      })
+    ).toEqual({
+      enabled: true,
+      dsn: FAKE_DSN,
+      environment: "preview",
+      release: undefined,
+    });
   });
 
   it("stays disabled in production when the DSN is absent and does not throw", () => {
@@ -75,16 +120,13 @@ describe("Better Stack error tracking configuration", () => {
         VERCEL_ENV: "production",
       })
     ).not.toThrow();
-    expect(sentryState.init).not.toHaveBeenCalled();
-  });
-
-  it("stays disabled in Preview even with a DSN", () => {
-    expect(
-      getServerErrorTrackingConfig({
-        VERCEL_ENV: "preview",
-        BETTER_STACK_ERROR_DSN: FAKE_DSN,
+    expect(() =>
+      initClientErrorTracking({
+        VERCEL_ENV: "production",
+        NEXT_PUBLIC_VERCEL_ENV: "production",
       })
-    ).toEqual({ enabled: false });
+    ).not.toThrow();
+    expect(sentryState.init).not.toHaveBeenCalled();
   });
 
   it("stays disabled in development even with a DSN", () => {
@@ -92,8 +134,17 @@ describe("Better Stack error tracking configuration", () => {
       getServerErrorTrackingConfig({
         VERCEL_ENV: "development",
         NODE_ENV: "development",
-        BETTER_STACK_ERROR_DSN: FAKE_DSN,
+        NEXT_PUBLIC_SENTRY_DSN: FAKE_DSN,
       })
+    ).toEqual({ enabled: false });
+    expect(
+      getErrorTrackingConfig(
+        {
+          NEXT_PUBLIC_VERCEL_ENV: "development",
+          NEXT_PUBLIC_SENTRY_DSN: FAKE_DSN,
+        },
+        "client"
+      )
     ).toEqual({ enabled: false });
   });
 
@@ -101,7 +152,7 @@ describe("Better Stack error tracking configuration", () => {
     expect(
       getServerErrorTrackingConfig({
         NODE_ENV: "test",
-        BETTER_STACK_ERROR_DSN: FAKE_DSN,
+        NEXT_PUBLIC_SENTRY_DSN: FAKE_DSN,
       })
     ).toEqual({ enabled: false });
   });
@@ -114,26 +165,19 @@ describe("Better Stack error tracking configuration", () => {
     expect(
       getServerErrorTrackingConfig({
         VERCEL_ENV: "production",
-        BETTER_STACK_ERROR_DSN: FAKE_DSN,
-      }).enabled
-        ? getServerErrorTrackingConfig({
-            VERCEL_ENV: "production",
-            BETTER_STACK_ERROR_DSN: FAKE_DSN,
-          })
-        : null
+        NEXT_PUBLIC_SENTRY_DSN: FAKE_DSN,
+      })
     ).toMatchObject({ release: undefined });
   });
 
   it("rejects non-https or malformed DSNs without echoing them", () => {
-    expect(isValidBetterStackErrorDsn("http://examplePublicKey@host/1")).toBe(
-      false
-    );
-    expect(readBetterStackErrorDsn({ BETTER_STACK_ERROR_DSN: " " })).toBeNull();
+    expect(isValidSentryDsn("http://examplePublicKey@host/1")).toBe(false);
+    expect(readSentryDsn({ SENTRY_DSN: " " }, "server")).toBeNull();
     expect(
       JSON.stringify(
         getServerErrorTrackingConfig({
           VERCEL_ENV: "production",
-          BETTER_STACK_ERROR_DSN: "not-a-dsn",
+          NEXT_PUBLIC_SENTRY_DSN: "not-a-dsn",
         })
       )
     ).not.toContain("not-a-dsn");
@@ -142,7 +186,7 @@ describe("Better Stack error tracking configuration", () => {
   it("initializes Sentry with privacy-minimal production options", () => {
     initServerErrorTracking({
       VERCEL_ENV: "production",
-      BETTER_STACK_ERROR_DSN: FAKE_DSN,
+      NEXT_PUBLIC_SENTRY_DSN: FAKE_DSN,
       VERCEL_GIT_COMMIT_SHA: "deadbeefcafebabe",
     });
     expect(sentryState.init).toHaveBeenCalledOnce();
@@ -157,6 +201,9 @@ describe("Better Stack error tracking configuration", () => {
       includeLocalVariables: boolean;
       includeServerName: boolean;
       skipOpenTelemetrySetup: boolean;
+      replaysSessionSampleRate: number;
+      replaysOnErrorSampleRate: number;
+      profilesSampleRate: number;
     };
     expect(options.enabled).toBe(true);
     expect(options.environment).toBe("production");
@@ -168,13 +215,21 @@ describe("Better Stack error tracking configuration", () => {
     expect(options.includeLocalVariables).toBe(false);
     expect(options.includeServerName).toBe(false);
     expect(options.skipOpenTelemetrySetup).toBe(true);
+    expect(options.replaysSessionSampleRate).toBe(0);
+    expect(options.replaysOnErrorSampleRate).toBe(0);
+    expect(options.profilesSampleRate).toBe(0);
   });
 
   it("does not initialize when Vitest is running against process env", () => {
     initServerErrorTracking({
       VITEST: "true",
       VERCEL_ENV: "production",
-      BETTER_STACK_ERROR_DSN: FAKE_DSN,
+      NEXT_PUBLIC_SENTRY_DSN: FAKE_DSN,
+    });
+    initClientErrorTracking({
+      VITEST: "true",
+      NEXT_PUBLIC_VERCEL_ENV: "production",
+      NEXT_PUBLIC_SENTRY_DSN: FAKE_DSN,
     });
     expect(sentryState.init).not.toHaveBeenCalled();
   });
@@ -189,5 +244,6 @@ describe("Better Stack error tracking configuration", () => {
     expect(options.tracesSampleRate).toBe(0);
     expect(options.maxBreadcrumbs).toBe(0);
     expect(options.includeServerName).toBe(false);
+    expect(options.replaysSessionSampleRate).toBe(0);
   });
 });

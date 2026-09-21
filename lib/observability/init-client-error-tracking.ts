@@ -1,17 +1,14 @@
-import "server-only";
-
 import * as Sentry from "@sentry/nextjs";
 
-import { getServerErrorTrackingConfig } from "@/lib/observability/error-tracking-env";
 import { createErrorTrackingInitOptions } from "@/lib/observability/error-tracking-privacy";
-import { isTelemetryRuntimeBlocked } from "@/lib/observability/error-tracking-runtime";
-
-export { createErrorTrackingInitOptions } from "@/lib/observability/error-tracking-privacy";
-export type { ErrorTrackingInitOptions } from "@/lib/observability/error-tracking-privacy";
+import {
+  getErrorTrackingConfig,
+  isTelemetryRuntimeBlocked,
+} from "@/lib/observability/error-tracking-runtime";
 
 type SentryInitOptions = NonNullable<Parameters<typeof Sentry.init>[0]>;
 
-export function initServerErrorTracking(
+export function initClientErrorTracking(
   env: Record<string, string | undefined> = process.env
 ): void {
   try {
@@ -19,7 +16,7 @@ export function initServerErrorTracking(
       return;
     }
 
-    const config = getServerErrorTrackingConfig(env);
+    const config = getErrorTrackingConfig(env, "client");
     if (!config.enabled) {
       return;
     }
@@ -33,6 +30,6 @@ export function initServerErrorTracking(
     );
   } catch {
     // Missing DSN, SDK failure, or Sentry unavailability must not
-    // fail Next.js startup or the incoming request.
+    // fail browser startup or hide the application UI.
   }
 }

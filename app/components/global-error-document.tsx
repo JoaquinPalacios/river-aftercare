@@ -3,6 +3,7 @@
 import { PRODUCT_ISOLOGO_SRC } from "@/lib/branding/product-assets";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { ErrorRetryButton } from "@/app/components/error-retry-button";
+import { ClientErrorReporter } from "@/lib/observability/client-error-reporter";
 import {
   GLOBAL_ERROR_BODY,
   GLOBAL_ERROR_TITLE,
@@ -87,6 +88,7 @@ export function GlobalErrorDocument(props: AppRouterErrorProps) {
         <style>{GLOBAL_ERROR_STYLES}</style>
       </head>
       <body>
+        <ClientErrorReporter error={props.error} />
         <main>
           <p className="brand">
             {/* Local static brand file; global-error cannot rely on root CSS or next/image. */}

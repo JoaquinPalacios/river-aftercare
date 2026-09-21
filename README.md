@@ -174,6 +174,8 @@ AUTH_SECRET="replace-with-a-long-random-string"
 
 If `AUTH_SECRET` is missing, the app fails fast with a clear startup error instead of surfacing repeated Auth.js `MissingSecret` errors later during requests.
 
+Optional production error monitoring uses Sentry (`NEXT_PUBLIC_SENTRY_DSN`). The application builds and runs without it. `SENTRY_AUTH_TOKEN` is a build-only secret for source-map upload and must never be `NEXT_PUBLIC_`. See [docs/launch/PRODUCTION-READINESS.md](docs/launch/PRODUCTION-READINESS.md).
+
 ### Seeded demo accounts
 
 The seed creates one fictional clinic plus clinic-scoped staff users when local env vars are present:

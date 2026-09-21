@@ -44,8 +44,10 @@ const SERVER_ONLY_FILES = [
 const CLI_SHARED_OBSERVABILITY_FILES = [
   "lib/observability/error-tracking-allowlists.ts",
   "lib/observability/error-tracking-privacy.ts",
+  "lib/observability/error-tracking-runtime.ts",
   "lib/observability/sensitive-value-sanitizer.ts",
   "lib/observability/sanitize-error-event.ts",
+  "lib/observability/sentry-build-options.ts",
 ];
 
 const CLIENT_FILES = [

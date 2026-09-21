@@ -100,6 +100,27 @@ describe("sensitive value sanitizer", () => {
     );
   });
 
+  it("strips credential-like fragments from production reset and invitation URLs", () => {
+    expect(
+      sanitizeErrorTrackingUrl(
+        "https://app.riveraftercare.com.au/reset-password#token=SECRET"
+      )
+    ).toBe("https://app.riveraftercare.com.au/reset-password");
+    expect(
+      sanitizeErrorTrackingUrl(
+        "https://app.riveraftercare.com.au/accept-invitation#token=SECRET"
+      )
+    ).toBe("https://app.riveraftercare.com.au/accept-invitation");
+    expect(
+      sanitizeErrorTrackingUrl(
+        "https://app.riveraftercare.com.au/guides/extraction#anything=SECRET"
+      )
+    ).toBe("https://app.riveraftercare.com.au/guides/extraction");
+    expect(sanitizeErrorTrackingUrl("/reset-password#token=SECRET")).toBe(
+      "/reset-password"
+    );
+  });
+
   it("caps recursion and does not explode on cycles", () => {
     const cyclic: { self?: unknown; items: unknown[] } = { items: [] };
     cyclic.self = cyclic;
@@ -207,6 +228,61 @@ describe("beforeSend error event sanitization", () => {
     expect(payload).not.toContain("raw-token-value");
     expect(payload).not.toContain("alex@clinic.example.test");
     expect(payload).toContain(REDACTED_MARKER);
+  });
+
+  it("never lets raw reset or invitation tokens, auth headers, or passwords leave beforeSend", () => {
+    const sanitized = sanitizeErrorEvent({
+      message:
+        "failed https://app.riveraftercare.com.au/reset-password#token=SECRET",
+      request: {
+        url: "https://app.riveraftercare.com.au/accept-invitation#token=SECRET",
+        method: "POST",
+        headers: {
+          Authorization: "Bearer super-secret",
+          Cookie: "authjs.session-token=session-secret",
+        },
+        data: {
+          password: "hunter2",
+          currentPassword: "old-pass",
+          newPassword: "new-pass",
+          confirmPassword: "new-pass",
+          token: "SECRET",
+          tokenHash: "hash-secret",
+        },
+      },
+      extra: {
+        password: "hunter2",
+        token: "SECRET",
+      },
+      breadcrumbs: [
+        {
+          category: "navigation",
+          data: {
+            from: "https://app.riveraftercare.com.au/reset-password#token=SECRET",
+            to: "https://app.riveraftercare.com.au/accept-invitation#token=SECRET",
+          },
+        },
+      ],
+    });
+
+    expect(sanitized.request).toEqual({
+      url: "https://app.riveraftercare.com.au/accept-invitation",
+      method: "POST",
+    });
+    expect(sanitized.request).not.toHaveProperty("headers");
+    expect(sanitized.request).not.toHaveProperty("data");
+    expect(sanitized.breadcrumbs).toBeUndefined();
+    expect(sanitized.extra).toBeUndefined();
+    const payload = JSON.stringify(sanitized);
+    expect(payload).not.toContain("SECRET");
+    expect(payload).not.toContain("hunter2");
+    expect(payload).not.toContain("old-pass");
+    expect(payload).not.toContain("new-pass");
+    expect(payload).not.toContain("super-secret");
+    expect(payload).not.toContain("session-secret");
+    expect(payload).not.toContain("hash-secret");
+    expect(payload).not.toMatch(/Authorization/i);
+    expect(payload).not.toMatch(/Cookie/i);
   });
 
   it("strips identifying SDK metadata while keeping useful exception diagnostics", () => {

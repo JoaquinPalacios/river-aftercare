@@ -7,19 +7,23 @@ import {
   errorRecoveryAction,
   type AppRouterErrorProps,
 } from "@/lib/errors/app-router-error";
+import { ClientErrorReporter } from "@/lib/observability/client-error-reporter";
 
 export default function AftercareError(props: AppRouterErrorProps) {
   const recover = errorRecoveryAction(props);
 
   return (
-    <PatientStatusPage
-      title={PATIENT_ERROR_TITLE}
-      description={PATIENT_ERROR_BODY}
-      actions={
-        recover ? (
-          <ErrorRetryButton onRetry={recover} className="notFoundRetry" />
-        ) : null
-      }
-    />
+    <>
+      <ClientErrorReporter error={props.error} />
+      <PatientStatusPage
+        title={PATIENT_ERROR_TITLE}
+        description={PATIENT_ERROR_BODY}
+        actions={
+          recover ? (
+            <ErrorRetryButton onRetry={recover} className="notFoundRetry" />
+          ) : null
+        }
+      />
+    </>
   );
 }

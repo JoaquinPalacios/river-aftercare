@@ -30,6 +30,7 @@ function sourceFiles(): string[] {
     ...walk("lib"),
     ...walk("scripts"),
     "instrumentation.ts",
+    "instrumentation-client.ts",
     "sentry.server.config.ts",
     "next.config.ts",
     "proxy.ts",
@@ -38,21 +39,23 @@ function sourceFiles(): string[] {
   ].filter((path) => existsSync(path));
 }
 
-describe("server error tracking source boundary", () => {
-  it("does not add client Sentry initialization files", () => {
-    expect(existsSync("instrumentation-client.ts")).toBe(false);
-    expect(existsSync("instrumentation-client.js")).toBe(false);
-    expect(existsSync("sentry.client.config.ts")).toBe(false);
-    expect(existsSync("sentry.client.config.js")).toBe(false);
+describe("Sentry error tracking source boundary", () => {
+  it("initializes the client SDK through instrumentation-client.ts", () => {
+    expect(existsSync("instrumentation-client.ts")).toBe(true);
     expect(existsSync("sentry.edge.config.ts")).toBe(false);
+    const source = readFileSync("instrumentation-client.ts", "utf8");
+    expect(source).toContain("initClientErrorTracking");
+    expect(source).not.toContain("captureRouterTransitionStart");
+    expect(source).not.toContain("replayIntegration");
   });
 
-  it("does not expose the DSN through NEXT_PUBLIC or a Better Stack JS tag", () => {
+  it("does not expose source-map secrets or enable Session Replay", () => {
     for (const file of sourceFiles()) {
       if (!/\.(ts|tsx|js|mjs|md|example|json)$/.test(file)) {
         continue;
       }
       const source = readFileSync(file, "utf8");
+      expect(source, file).not.toContain("NEXT_PUBLIC_SENTRY_AUTH_TOKEN");
       expect(source, file).not.toContain("NEXT_PUBLIC_BETTER_STACK_ERROR_DSN");
       expect(source, file).not.toMatch(
         /js\.betterstack\.com|betterstack\.com\/s\//
@@ -63,13 +66,27 @@ describe("server error tracking source boundary", () => {
     }
   });
 
-  it("keeps error boundaries free of Sentry", () => {
+  it("keeps error UI on the River Aftercare reporter without Sentry internals", () => {
+    expect(
+      readFileSync("app/components/global-error-document.tsx", "utf8")
+    ).toContain("ClientErrorReporter");
+
     for (const file of ERROR_UI_FILES) {
       const source = readFileSync(file, "utf8");
       expect(source, file).not.toContain("@sentry/nextjs");
-      expect(source, file).not.toContain("captureException");
+      expect(source, file).not.toContain("eventId");
       expect(source, file).not.toContain("reportServerException");
     }
+
+    expect(readFileSync("app/(marketing)/error.tsx", "utf8")).toContain(
+      "ClientErrorReporter"
+    );
+    expect(readFileSync("app/(staff)/error.tsx", "utf8")).toContain(
+      "ClientErrorReporter"
+    );
+    expect(readFileSync("app/(aftercare)/error.tsx", "utf8")).toContain(
+      "ClientErrorReporter"
+    );
   });
 
   it("does not report telemetry from /api/health", () => {
@@ -79,9 +96,10 @@ describe("server error tracking source boundary", () => {
     expect(source).not.toContain("@sentry/nextjs");
   });
 
-  it("does not wrap next.config with the Sentry wizard client toolchain", () => {
+  it("wraps next.config for optional source maps without requiring secrets", () => {
     const source = readFileSync("next.config.ts", "utf8");
-    expect(source).not.toContain("withSentryConfig");
+    expect(source).toContain("withSentryConfig");
+    expect(source).toContain("createSentryBuildOptions");
     expect(source).toContain('"@sentry/nextjs"');
   });
 
@@ -89,7 +107,6 @@ describe("server error tracking source boundary", () => {
     const instrumentation = readFileSync("instrumentation.ts", "utf8");
     expect(instrumentation).toContain('process.env.NEXT_RUNTIME === "nodejs"');
     expect(instrumentation).toContain('NEXT_RUNTIME !== "nodejs"');
-    expect(instrumentation).not.toContain("instrumentation-client");
     expect(instrumentation).not.toMatch(/NEXT_RUNTIME === ["']edge["']/);
     expect(instrumentation).not.toContain("@sentry/nextjs");
     expect(readFileSync("sentry.server.config.ts", "utf8")).toContain(

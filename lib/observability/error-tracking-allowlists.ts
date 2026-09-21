@@ -59,4 +59,6 @@ export const DISABLED_ERROR_TRACKING_INTEGRATIONS = new Set([
   "Profiling",
   "Replay",
   "BrowserTracing",
+  "Feedback",
+  "BrowserSession",
 ]);

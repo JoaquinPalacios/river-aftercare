@@ -8,15 +8,15 @@ Local Docker dump/restore is a different document: [../development/POSTGRES-18-U
 
 ## Current production facts
 
-| Surface                         | Recorded value                                                                 |
-| ------------------------------- | ------------------------------------------------------------------------------ |
-| Neon project                    | River Aftercare Production                                                     |
-| Production branch               | `production`                                                                   |
-| Engine / region                 | PostgreSQL **18**, AWS Asia Pacific 2 (Sydney)                                 |
-| Verified history retention      | **6 hours** (observed 20 September 2026)                                       |
-| Manual snapshots                | Available                                                                      |
-| Scheduled snapshots             | Require a plan upgrade. An upgraded plan has **not** been purchased.           |
-| In-place production restore     | **Not tested.** Do not treat it as proven.                                     |
+| Surface                     | Recorded value                                                       |
+| --------------------------- | -------------------------------------------------------------------- |
+| Neon project                | River Aftercare Production                                           |
+| Production branch           | `production`                                                         |
+| Engine / region             | PostgreSQL **18**, AWS Asia Pacific 2 (Sydney)                       |
+| Verified history retention  | **6 hours** (observed 20 September 2026)                             |
+| Manual snapshots            | Available                                                            |
+| Scheduled snapshots         | Require a plan upgrade. An upgraded plan has **not** been purchased. |
+| In-place production restore | **Not tested.** Do not treat it as proven.                           |
 
 Application runtime uses pooled `DATABASE_URL`. Trusted-machine migrations use unpooled `DIRECT_URL`. Neither URL belongs in this runbook.
 
@@ -30,6 +30,8 @@ A recovery-readiness drill was completed **manually** on **20 September 2026**. 
 - Preview historic data / historical SQL works (PITR history preview).
 - Historical child-branch recovery works.
 - The recovered child branch is independently queryable.
+
+The isolated recovery branch exists for **validation only**. It is not a live production rewind.
 
 **Not proven**
 
@@ -166,9 +168,9 @@ Do not point Vercel Production `DATABASE_URL` at a recovery branch. Do not run `
 
 ## After verification: recovery scope
 
-| Option                         | When                                                                                         | Status in this repo                                      |
-| ------------------------------ | -------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| A. Selective data recovery     | A bounded set of rows is wrong and a historical copy is enough                               | Preferred once the isolated branch is verified           |
+| Option                           | When                                                                                     | Status in this repo                                      |
+| -------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| A. Selective data recovery       | A bounded set of rows is wrong and a historical copy is enough                           | Preferred once the isolated branch is verified           |
 | B. Controlled production restore | The production branch itself must be rewound, after operator review and an incident plan | **Not tested.** Last resort only. See the warning above. |
 
 Selective recovery still needs an incident-specific plan (which tables, which keys, how to avoid overwriting newer valid writes). This document does not invent that SQL.
