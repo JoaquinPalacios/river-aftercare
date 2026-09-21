@@ -1373,7 +1373,7 @@ Shared premium editorial system for `/dental`, `/physiotherapy`, `/chiropractic`
 | Proof          | Dental: Riverside Dental Demo typographic showcase. Other verticals: profession-specific fit module, no fake demos.                                                                                                                                                                                                                    |
 | CTA / footer   | Closing CTA is Request a demo + View pricing only. Footer is a quiet utility band: For clinics / Product (includes Sign in) / Legal. Account column removed. No “Request a demo” in the footer.                                                                                                                                        |
 | Copy exception | Dental guidance badge is **Current dental demo** / Tooth Extraction. The sample is not clinically reviewed and is not advertised as an approved production starting template. Essential vs Practice guide limits (2 vs 30 active custom guides) are stated on `/dental`; prices stay on `/pricing`.                                    |
-| SEO            | Vertical pages stay indexable WebPage + shared Organization / WebSite / SoftwareApplication. FAQ remains native `details` markup without FAQPage JSON-LD. Dental metadata was refined 2026-09-21 (`lastModified` 2026-09-21); other vertical metadata is unchanged until those pages are reviewed.                                     |
+| SEO            | Vertical pages stay indexable WebPage + shared Organization / WebSite / SoftwareApplication. FAQ remains native `details` markup without FAQPage JSON-LD. Dental and physiotherapy metadata were refined 2026-09-21 (`lastModified` 2026-09-21). Chiropractic and cosmetic metadata stay unchanged until those pages are reviewed.     |
 
 ---
 
@@ -2045,17 +2045,32 @@ Copy/SEO for `/dental` only, plus a shared FAQ accordion geometry fix used by al
 
 ---
 
+## `/physiotherapy` copy + SEO (2026-09-21)
+
+Copy and SEO for `/physiotherapy` only. Not a redesign. Shared FAQ CSS is unchanged. No physiotherapy demo, template name, or exercise-tracking claim. Prices stay on `/pricing`.
+
+| Area          | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SEO role      | Homepage = broad aftercare software. `/clinics` = treatment-based clinic fit. `/dental` = post-treatment instructions. `/physiotherapy` = recovery, home-care and written guidance between appointments. `/pricing` = commercial plans.                                                                                                                                                                  |
+| Metadata      | Title/OG title `Physiotherapy Aftercare Software for Clinics \| River Aftercare`. Description/OG: branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR; no patient app or login. Canonical `/physiotherapy`, index/follow. Existing WebPage / SoftwareApplication / Organization / WebSite JSON-LD only. No FAQPage. `lastModified` 2026-09-21. |
+| Positioning   | Between-appointment recovery and home-care, not a dental copy adaptation and not a home-exercise-programme app. H1 stays “Keep recovery guidance clear between appointments.”                                                                                                                                                                                                                            |
+| Product model | Essential: available River Aftercare templates + up to 2 active custom clinic guides. Practice: up to 30 active custom guides, broader creation/adaptation, local instructions, section controls. Physiotherapy template availability is confirmed during onboarding. If none fits, the clinic publishes its own approved guidance within its plan. No invented physiotherapy template.                  |
+| Boundary      | Publishes clinic-approved written guidance. Does not track exercise completion, adherence or patient progress. Not a PMS, patient health record, messaging platform, clinical monitoring system or exercise-adherence tracker. “How it fits” stays; there is no physiotherapy demo.                                                                                                                      |
+| FAQ           | Six native `details` questions: HEP/tracking boundary, app/account, plan-aware customisation, templates, branding, PMS/records boundary. Server-rendered. No FAQPage schema.                                                                                                                                                                                                                             |
+| Workflow      | Heading stays “Fit aftercare into the workflow you already have.” Steps: prepare guidance, adapt to the clinic, publish under the brand, share the link or QR after the appointment.                                                                                                                                                                                                                     |
+
+---
+
 ## Stripe Billing Phase 1 — test-mode foundation (2026-09-21)
 
 Technical foundation only. No Checkout, Customer Portal, live Stripe, GST, legal-copy edits, or product enforcement.
 
-| Area | Behaviour |
-| ---- | --------- |
-| SDK | `stripe@22.6.2`, default API `2026-08-26.dahlia`. Server-only. Live keys refused. |
-| Mapping | Essential/Practice × monthly/yearly Price IDs from env. Unknown Price IDs fail closed. No Group Price. |
-| Persistence | `ClinicBillingProfile` 1:1 Clinic (nullable Stripe IDs, separate `abn`/`acn`). `ClinicEntitlement` 1:1 observational projection. `StripeEventReceipt` unique `evt_`. Existing clinics not backfilled as paid. |
-| Webhook | `POST /api/stripe/webhook` on staff host. Raw body + `Stripe-Signature`. Idempotent receipts. |
-| Activation | `invoice.paid` can activate mapped Essential/Practice. `checkout.session.completed` cannot. `past_due` keeps ACTIVE entitlement. Terminal unpaid → RESTRICTED. Cancel-at-period-end stays ACTIVE through paid-through. Ended sets `publicGuideRetentionUntil` (+60 days) without unpublishing. |
-| Identity | Stripe Customer/Subscription `metadata.clinicId` (and Checkout `client_reference_id` later). Never email or display name. |
-| Operator UI | Not added. Operator clinic page could later show a read-only projection; out of Phase 1 scope. |
-
+| Area        | Behaviour                                                                                                                                                                                                                                                                                      |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SDK         | `stripe@22.6.2`, default API `2026-08-26.dahlia`. Server-only. Live keys refused.                                                                                                                                                                                                              |
+| Mapping     | Essential/Practice × monthly/yearly Price IDs from env. Unknown Price IDs fail closed. No Group Price.                                                                                                                                                                                         |
+| Persistence | `ClinicBillingProfile` 1:1 Clinic (nullable Stripe IDs, separate `abn`/`acn`). `ClinicEntitlement` 1:1 observational projection. `StripeEventReceipt` unique `evt_`. Existing clinics not backfilled as paid.                                                                                  |
+| Webhook     | `POST /api/stripe/webhook` on staff host. Raw body + `Stripe-Signature`. Idempotent receipts.                                                                                                                                                                                                  |
+| Activation  | `invoice.paid` can activate mapped Essential/Practice. `checkout.session.completed` cannot. `past_due` keeps ACTIVE entitlement. Terminal unpaid → RESTRICTED. Cancel-at-period-end stays ACTIVE through paid-through. Ended sets `publicGuideRetentionUntil` (+60 days) without unpublishing. |
+| Identity    | Stripe Customer/Subscription `metadata.clinicId` (and Checkout `client_reference_id` later). Never email or display name.                                                                                                                                                                      |
+| Operator UI | Not added. Operator clinic page could later show a read-only projection; out of Phase 1 scope.                                                                                                                                                                                                 |
