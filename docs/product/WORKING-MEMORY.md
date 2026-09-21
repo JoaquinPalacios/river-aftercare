@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-21 (patient disclaimer contact sentence matches rendered channels)
+Last updated: 2026-09-21 (Vitest DB tests must not assert global table counts)
 
 ## Durable production release rule
 
@@ -1968,3 +1968,16 @@ Main `a7164f1` full Playwright: **241 tests, 237 passed, 4 failed**. This branch
 Typeface architecture: six allow-listed `next/font` families in `lib/branding/clinic-fonts.ts`, `preload: false`. The tenant layout selects one family at request time. Next.js still emits every statically reachable `@font-face` into the tenant CSS graph, so per-family dynamic import still `<link>`s the whole catalogue and adds stylesheet requests. Font _files_ are fetched only for the applied family (Geist default: 1 WOFF2; Inter selected: 1 Inter WOFF2). Do not drop supported fonts to pass the budget.
 
 Canonical performance write-up: [PERFORMANCE.md](../architecture/PERFORMANCE.md) “Patient CSS budget after clinic typefaces”.
+
+---
+
+## Vitest shared `care_guide` isolation (2026-09-21)
+
+Vitest file parallelism stays on. DB-backed unit/integration tests share local PostgreSQL 18 `care_guide` (`DATABASE_URL`). Playwright keeps dedicated `care_guide_e2e`. There is no per-file schema and no global truncate.
+
+| Rule                       | Detail                                                                                                                                                                                                                                                                               |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Ownership                  | Fixtures use deterministic prefixed IDs/slugs and delete only those rows.                                                                                                                                                                                                            |
+| Assertions                 | Count/filter by owned identity (`slug`, `id`, `userId`, `clinicId`). Never `clinic.count()` / `user.count()` / `guideTemplate.count()` / `accountToken.count()` with an empty `where`.                                                                                               |
+| Demo bootstrap             | `bootstrapDemoExtractionTemplate` writes only `GuideTemplate` slug `extraction` (+ 1 revision + 8 sections). It does not create Clinic/User/PracticeGuide. Prove “exactly one extraction template” and “demodental clinic count unchanged”, not “the whole database has one clinic”. |
+| Why isolated reruns passed | A single file sees only seed’s Rivers Care Demo Clinic (`clinic_demo_rivers` / `demodental`). A parallel worker’s legitimate clinic made global `clinic.count()` 2.                                                                                                                  |
