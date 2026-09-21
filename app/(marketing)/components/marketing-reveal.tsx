@@ -6,9 +6,17 @@ import {
   type UseInViewOptions,
 } from "motion/react";
 import * as m from "motion/react-m";
-import { type ReactNode, useMemo, useRef, useSyncExternalStore } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { MARKETING_SSR_VIEWPORT_WIDTH_PX } from "@/lib/marketing/breakpoints";
+import { isMarketingMotionEnabled } from "@/lib/marketing/marketing-motion-enabled";
 import { marketingRevealMargin } from "@/lib/marketing/reveal-margin";
 import {
   cardRevealDelay,
@@ -72,6 +80,22 @@ function useMarketingRevealViewport(): Pick<
   );
 }
 
+function useClientReady(): boolean {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
+  return ready;
+}
+
+function useMarketingMotionOn(): boolean {
+  const clientReady = useClientReady();
+  const reduced = useReducedMotion();
+  return isMarketingMotionEnabled(clientReady, reduced);
+}
+
 function clearPending(node: HTMLElement | null, definition: unknown) {
   if (definition === "visible") {
     node?.removeAttribute("data-mk-pending");
@@ -87,11 +111,10 @@ export function MarketingRevealGroup({
   viewport?: RevealViewport;
   variants?: typeof revealContainerVariants | typeof heroContainerVariants;
 }) {
-  const reduced = useReducedMotion();
+  const motionOn = useMarketingMotionOn();
   const ref = useRef<HTMLDivElement>(null);
   const revealViewport = useMarketingRevealViewport();
   const inView = useInView(ref, revealViewport);
-  const motionOn = reduced === false;
 
   return (
     <m.div
@@ -128,7 +151,6 @@ export function MarketingRevealItem({
   connector?: boolean;
   ariaHidden?: boolean;
 }) {
-  const reduced = useReducedMotion();
   const nodeRef = useRef<HTMLElement | null>(null);
   const Tag = MotionTag[as];
   const useDelay = delay !== undefined;
@@ -153,7 +175,7 @@ export function MarketingRevealItem({
       data-mk-preview={preview ? "" : undefined}
       data-mk-process-connector={connector ? "" : undefined}
       aria-hidden={rail || connector || ariaHidden ? true : undefined}
-      custom={reduced === true ? 0 : (delay ?? 0)}
+      custom={delay ?? 0}
       variants={resolvedVariants}
       onAnimationComplete={(definition) => {
         clearPending(nodeRef.current, definition);
@@ -185,11 +207,10 @@ export function MarketingRevealCard({
   processCard?: boolean;
   ariaHidden?: boolean;
 }) {
-  const reduced = useReducedMotion();
+  const motionOn = useMarketingMotionOn();
   const ref = useRef<HTMLElement | null>(null);
   const revealViewport = useMarketingRevealViewport();
   const inView = useInView(ref, revealViewport);
-  const motionOn = reduced === false;
   const Tag = MotionTag[as];
   const classes = ["mkReveal", className].filter(Boolean).join(" ");
 
@@ -200,7 +221,7 @@ export function MarketingRevealCard({
       }}
       className={classes}
       data-mk-card=""
-      data-mk-pending={motionOn ? "" : undefined}
+      data-mk-pending=""
       data-mk-entered={inView ? "" : undefined}
       data-mk-rail={rail ? "" : undefined}
       data-mk-process-rail={rail ? "" : undefined}
@@ -209,7 +230,7 @@ export function MarketingRevealCard({
       aria-hidden={rail || connector || ariaHidden ? true : undefined}
       initial={motionOn ? "hidden" : false}
       animate={motionOn ? (inView ? "visible" : "hidden") : false}
-      custom={reduced === true ? 0 : cardRevealDelay(index)}
+      custom={cardRevealDelay(index)}
       variants={variants}
       onAnimationComplete={(definition) => {
         clearPending(ref.current, definition);
@@ -221,12 +242,12 @@ export function MarketingRevealCard({
 }
 
 export function MarketingRevealHero({ children }: { children: ReactNode }) {
-  const reduced = useReducedMotion();
+  const motionOn = useMarketingMotionOn();
 
   return (
     <m.div
-      initial={reduced === false ? "hidden" : false}
-      whileInView="visible"
+      initial={motionOn ? "hidden" : false}
+      whileInView={motionOn ? "visible" : undefined}
       viewport={{ ...HERO_VIEWPORT, once: true }}
       variants={heroContainerVariants}
     >
