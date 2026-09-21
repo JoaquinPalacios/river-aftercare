@@ -25,15 +25,20 @@ const FAQ_EXPECTATIONS = {
   },
   "/physiotherapy": {
     questions: [
-      "Is River Aftercare a home exercise programme app?",
-      "Do patients need another app?",
-      "Can our clinic use its own recovery guidance?",
-      "Does it store patient health records?",
-      "Are physiotherapy templates already available?",
+      "Is River Aftercare a home exercise programme or exercise-tracking app?",
+      "Do patients need an app or account?",
+      "Can our clinic create or adapt its own recovery guidance?",
+      "What physiotherapy templates are available?",
+      "Can River Aftercare match our physiotherapy clinic branding?",
+      "Does River Aftercare replace our practice-management system or store patient health records?",
     ],
     answers: [
-      "it does not currently track exercise completion or adherence",
-      "Physiotherapy template availability is confirmed during onboarding. Where no suitable River Aftercare template exists, the clinic can publish its own approved guidance.",
+      "It can publish clinic-approved written exercise, recovery and home-care guidance, but it does not currently track exercise completion, adherence or patient progress.",
+      "No. Patients open their aftercare page in the browser from a durable link or QR code. No River Aftercare app or patient login is required.",
+      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides",
+      "Physiotherapy template availability is confirmed during onboarding. If no suitable River Aftercare template is available, your clinic can publish its own approved guidance within its plan.",
+      "Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details",
+      "It does not currently replace a practice-management system, store patient health records, provide patient messaging or monitor exercise adherence.",
     ],
   },
   "/chiropractic": {

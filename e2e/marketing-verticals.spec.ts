@@ -19,12 +19,19 @@ const VERTICALS = [
   {
     path: "/physiotherapy",
     h1: "Keep recovery guidance clear between appointments.",
-    title: "Physiotherapy Patient Aftercare Software | River Aftercare",
+    title: "Physiotherapy Aftercare Software for Clinics | River Aftercare",
     description:
-      "Share branded recovery, home-care and written exercise guidance patients can reopen between physiotherapy appointments by link or QR code.",
-    ogTitle: "Recovery guidance that still feels like your clinic",
-    unique: "not for tracking whether a patient completes",
-    absent: ["Riverside Dental Demo", "leave the chair"],
+      "Publish branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR code. No patient app or login required.",
+    ogTitle: "Physiotherapy Aftercare Software for Clinics | River Aftercare",
+    ogDescription:
+      "Publish branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR code. No patient app or login required.",
+    unique:
+      "does not currently track exercise completion, adherence or patient progress",
+    absent: [
+      "Riverside Dental Demo",
+      "leave the chair",
+      "home exercise programme app",
+    ],
   },
   {
     path: "/chiropractic",
@@ -84,7 +91,10 @@ test.describe("clinic vertical acquisition pages", () => {
       );
       await expect(
         page.locator('meta[property="og:description"]')
-      ).toHaveAttribute("content", /./);
+      ).toHaveAttribute(
+        "content",
+        "ogDescription" in vertical ? vertical.ogDescription : /./
+      );
 
       const jsonLd = await page
         .locator('script[type="application/ld+json"]')
@@ -203,14 +213,15 @@ test.describe("clinic vertical acquisition pages", () => {
       path: "/physiotherapy",
       heading: "Questions physiotherapy clinics ask",
       questions: [
-        "Is River Aftercare a home exercise programme app?",
-        "Do patients need another app?",
-        "Can our clinic use its own recovery guidance?",
-        "Does it store patient health records?",
-        "Are physiotherapy templates already available?",
+        "Is River Aftercare a home exercise programme or exercise-tracking app?",
+        "Do patients need an app or account?",
+        "Can our clinic create or adapt its own recovery guidance?",
+        "What physiotherapy templates are available?",
+        "Can River Aftercare match our physiotherapy clinic branding?",
+        "Does River Aftercare replace our practice-management system or store patient health records?",
       ],
       answer:
-        "Physiotherapy template availability is confirmed during onboarding. Where no suitable River Aftercare template exists, the clinic can publish its own approved guidance.",
+        "Physiotherapy template availability is confirmed during onboarding. If no suitable River Aftercare template is available, your clinic can publish its own approved guidance within its plan.",
     },
     {
       path: "/chiropractic",

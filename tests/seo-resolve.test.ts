@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_PLATFORM_SEO } from "@/lib/seo/defaults";
+import {
+  DEFAULT_MARKETING_PAGE_SEO,
+  DEFAULT_PLATFORM_SEO,
+} from "@/lib/seo/defaults";
 import { marketingDocumentTitle } from "@/lib/seo/document-title";
 import { isDedicatedOgImageConfigured } from "@/lib/seo/og-policy";
 import {
@@ -204,6 +207,51 @@ describe("marketing SEO resolution", () => {
       description:
         "Publish branded dental post-treatment instructions patients can revisit by link or QR code. No patient app or login required.",
     });
+  });
+
+  it("resolves physiotherapy metadata for between-visit guidance intent", () => {
+    const physiotherapy = resolveMarketingSeo({
+      path: "/physiotherapy",
+      origin: "https://example.test",
+    });
+    const description =
+      "Publish branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR code. No patient app or login required.";
+
+    expect(physiotherapy.absoluteTitle).toBe(true);
+    expect(physiotherapy.title).toBe(
+      "Physiotherapy Aftercare Software for Clinics | River Aftercare"
+    );
+    expect(physiotherapy.description).toBe(description);
+    expect(physiotherapy.title).not.toBe(
+      resolveMarketingSeo({ path: "/", origin: "https://example.test" }).title
+    );
+    expect(physiotherapy.title).not.toBe(
+      resolveMarketingSeo({ path: "/clinics", origin: "https://example.test" })
+        .title
+    );
+    expect(physiotherapy.description).not.toBe(
+      resolveMarketingSeo({ path: "/clinics", origin: "https://example.test" })
+        .description
+    );
+    expect(brandCountInTitle(physiotherapy.title, "River Aftercare")).toBe(1);
+
+    const metadata = marketingSeoToMetadata(physiotherapy);
+    expect(metadata.title).toEqual({
+      absolute:
+        "Physiotherapy Aftercare Software for Clinics | River Aftercare",
+    });
+    expect(metadata.description).toBe(description);
+    expect(metadata.robots).toEqual({ index: true, follow: true });
+    expect(metadata.alternates?.canonical).toBe(
+      "https://example.test/physiotherapy"
+    );
+    expect(metadata.openGraph).toMatchObject({
+      title: "Physiotherapy Aftercare Software for Clinics | River Aftercare",
+      description,
+    });
+    expect(DEFAULT_MARKETING_PAGE_SEO["/physiotherapy"].lastModified).toBe(
+      "2026-09-21"
+    );
   });
 
   it("does not treat the product logo as a dedicated OG image", () => {

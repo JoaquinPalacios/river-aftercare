@@ -208,6 +208,16 @@ describe("marketing JSON-LD", () => {
     expect(JSON.stringify(dental)).not.toContain("aggregateRating");
     expect(jsonLdContainsOffer(dental)).toBe(false);
     expect(JSON.stringify(physio)).not.toContain("FAQPage");
+    const physioPage = physio["@graph"].find(
+      (node) => node["@id"] === "https://example.test/physiotherapy#webpage"
+    );
+    expect(physioPage?.["@type"]).toBe("WebPage");
+    expect(physioPage?.name).toBe(
+      "Physiotherapy Aftercare Software for Clinics | River Aftercare"
+    );
+    expect(physioPage?.description).toBe(
+      "Publish branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR code. No patient app or login required."
+    );
     expect(
       physio["@graph"].filter((node) => node["@type"] === "SoftwareApplication")
     ).toHaveLength(1);

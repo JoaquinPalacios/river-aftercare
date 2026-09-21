@@ -129,16 +129,16 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     lastModified: "2026-09-21",
   },
   "/physiotherapy": {
-    seoTitle: "Physiotherapy Patient Aftercare Software | River Aftercare",
+    seoTitle: "Physiotherapy Aftercare Software for Clinics | River Aftercare",
     metaDescription:
-      "Share branded recovery, home-care and written exercise guidance patients can reopen between physiotherapy appointments by link or QR code.",
-    ogTitle: "Recovery guidance that still feels like your clinic",
+      "Publish branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR code. No patient app or login required.",
+    ogTitle: "Physiotherapy Aftercare Software for Clinics | River Aftercare",
     ogDescription:
-      "Give patients clear home-care and recovery guidance they can return to between physiotherapy appointments.",
+      "Publish branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR code. No patient app or login required.",
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-09-17",
+    lastModified: "2026-09-21",
   },
   "/chiropractic": {
     seoTitle: "Chiropractic Patient Aftercare Software | River Aftercare",

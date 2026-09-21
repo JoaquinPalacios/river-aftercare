@@ -79,12 +79,19 @@ describe("clinic vertical landing pages", () => {
     expect(cosmetic).not.toContain("Riverside Dental Demo");
     expect(physio).not.toContain("View the dental demo");
 
-    expect(physio).toContain("not for tracking whether a patient completes");
-    expect(physio).toContain("home exercise programme app");
     expect(physio).toContain(
-      "Physiotherapy template availability is confirmed during onboarding. Where no suitable River Aftercare template exists, the clinic can publish its own approved guidance."
+      "does not currently track exercise completion, adherence or patient progress"
     );
+    expect(physio).toContain(
+      "home exercise programme or exercise-tracking app"
+    );
+    expect(physio).toContain(
+      "Physiotherapy template availability is confirmed during onboarding. If no suitable River Aftercare template is available, your clinic can publish its own approved guidance within its plan."
+    );
+    expect(physio).toContain("up to 2 active custom clinic guides");
+    expect(physio).toContain("up to 30 active custom guides");
     expect(physio).not.toContain("adherence monitoring");
+    expect(physio).not.toContain("home exercise programme app");
     expect(physio).not.toContain("video exercise");
     expect(chiro).toContain("does not replace your clinical record");
     expect(chiro).toContain("publishing technology");
@@ -130,7 +137,7 @@ describe("clinic vertical landing pages", () => {
     );
     expect(physioNoteAt).toBeGreaterThan(-1);
     expect(
-      physio.slice(Math.max(0, physioNoteAt - 280), physioNoteAt)
+      physio.slice(Math.max(0, physioNoteAt - 900), physioNoteAt)
     ).toContain("mkReveal");
     expect(dental).toContain("Dental demo");
     expect(dental).not.toContain("Live example");
@@ -192,6 +199,87 @@ describe("clinic vertical landing pages", () => {
         expect(html).toContain(item.answer.replaceAll("'", "&#x27;"));
       }
     }
+  });
+
+  it("keeps physiotherapy copy on between-visit guidance without a demo or tracking claim", async () => {
+    const physio = renderToStaticMarkup(await MarketingPhysiotherapyPage());
+    const landing = VERTICAL_LANDINGS["/physiotherapy"];
+
+    expect(landing.hero.h1).toBe(
+      "Keep recovery guidance clear between appointments."
+    );
+    expect(landing.hero.body).toBe(
+      "Turn clinic-approved recovery, home-care and written exercise guidance into branded pages patients can revisit between appointments — by link or QR code, with no patient app or login."
+    );
+    expect(landing.hero.panel.items.map((item) => item.body)).toEqual([
+      "Clinic-controlled recovery guidance",
+      "Your logo, colours and terminology stay visible",
+      "Patients reopen the same durable link",
+      "The page opens in the browser",
+    ]);
+    expect(landing.solution.h2).toBe(
+      "A branded home for between-visit guidance"
+    );
+    expect(landing.solution.body).toContain(
+      "turns clinic-approved recovery and home-care guidance into branded web pages"
+    );
+    expect(landing.guidance.h2).toBe(
+      "Support the guidance that happens outside the treatment room"
+    );
+    expect(landing.guidance.body).toContain("can publish guidance such as:");
+    expect(landing.guidance.items).toEqual([
+      "post-appointment home-care information",
+      "written recovery instructions",
+      "written exercise reminders or instructions",
+      "self-management guidance",
+      "return-to-activity information",
+      "clinic contact and escalation information",
+    ]);
+    expect(landing.guidance.boundary).toBe(
+      "River Aftercare publishes clinic-approved written guidance. It does not currently track exercise completion, adherence or patient progress."
+    );
+    expect(landing.guidance.note).toContain(
+      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides."
+    );
+    expect(landing.guidance.note).toContain(
+      "Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls."
+    );
+    expect(landing.guidance.note).toContain(
+      "Physiotherapy template availability is confirmed during onboarding."
+    );
+    expect(landing.guidance.note).not.toMatch(/ankle|knee|shoulder|lumbar/i);
+    expect(landing.workflow.h2).toBe(
+      "Fit aftercare into the workflow you already have"
+    );
+    expect(landing.workflow.steps.map((step) => step.title)).toEqual([
+      "Prepare the guidance",
+      "Adapt it to your clinic",
+      "Publish it under your brand",
+      "Share it after the appointment",
+    ]);
+    expect(landing.workflow.steps[0]?.body).toBe(
+      "Use an available River Aftercare template or clinic-approved recovery and home-care content."
+    );
+    expect(landing.extras[0]).toMatchObject({
+      kind: "copy",
+      eyebrow: "How it fits",
+      h2: "Designed to complement clinical software, not replace it",
+    });
+    expect(landing.extras[0]?.kind === "copy" && landing.extras[0].body).toBe(
+      "River Aftercare focuses on clear patient-facing guidance. It is not currently a practice-management system, patient health record, messaging platform, clinical monitoring system or exercise-adherence tracker."
+    );
+    expect(landing.faq.items).toHaveLength(6);
+    expect(physio).toContain('href="#workflow"');
+    expect(physio).toContain('href="/contact"');
+    expect(physio).not.toContain("Riverside");
+    expect(physio).not.toContain("Tooth Extraction");
+    expect(physio).not.toMatch(
+      /exercise logging|activity tracking|adherence dashboard/i
+    );
+    expect(physio).not.toMatch(/\$\d|per month/i);
+    expect(JSON.stringify(landing)).not.toMatch(
+      /tracks whether patients complete|monitors exercise adherence|clinical monitoring of/i
+    );
   });
 
   it("registers the four clinic pages in the operator SEO defaults", () => {

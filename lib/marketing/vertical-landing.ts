@@ -298,7 +298,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
   hero: {
     eyebrow: `${PRODUCT_NAME} for physiotherapy`,
     h1: "Keep recovery guidance clear between appointments.",
-    body: "Turn clinic-approved recovery, home-care and written exercise guidance into branded pages patients can reopen on their phone — without another app or patient account.",
+    body: "Turn clinic-approved recovery, home-care and written exercise guidance into branded pages patients can revisit between appointments — by link or QR code, with no patient app or login.",
     primaryCtaLabel: "Request a demo",
     secondaryCta: {
       kind: "anchor",
@@ -314,15 +314,15 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
         },
         {
           title: "Clinic branded",
-          body: "Your clinic stays visible on the page",
+          body: "Your logo, colours and terminology stay visible",
         },
         {
           title: "Between visits",
-          body: "Patients reopen the same link",
+          body: "Patients reopen the same durable link",
         },
         {
           title: "No app or login",
-          body: "No patient account required",
+          body: "The page opens in the browser",
         },
       ],
     },
@@ -347,30 +347,30 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
   },
   solution: {
     h2: "A branded home for between-visit guidance",
-    body: `${PRODUCT_NAME} gives physiotherapy clinics a simple place to publish the written guidance patients may need between appointments. The clinic controls the content and presentation; patients return through a durable link without creating another account.`,
+    body: `${PRODUCT_NAME} turns clinic-approved recovery and home-care guidance into branded web pages patients can revisit from the same durable link or QR code. Your logo, colours, terminology, contact details and guidance stay together in one patient experience.`,
     benefits: [
       {
         title: "Recovery guidance in one place",
-        body: "Keep relevant written instructions together in an experience patients can revisit.",
+        body: "Keep relevant written recovery, home-care and exercise guidance together in a page patients can revisit.",
       },
       {
         title: "Your clinic stays visible",
-        body: "Use your clinic identity, terminology and contact details throughout the patient page.",
+        body: "Keep your logo, colours, terminology and contact details visible between appointments.",
       },
       {
         title: "Easy access between visits",
-        body: "Patients reopen the same link when they need to check the guidance again.",
+        body: "Patients reopen the same durable link or QR code whenever they need to check the guidance again.",
       },
       {
         title: "Clinic-controlled content",
-        body: "Your clinicians remain responsible for the treatment and guidance they approve for publication.",
+        body: "Your clinic approves what it publishes and remains responsible for its clinical content.",
       },
     ],
   },
   guidance: {
     eyebrow: "Between-visit care",
     h2: "Support the guidance that happens outside the treatment room",
-    body: `Depending on your clinic's services and approved content, ${PRODUCT_NAME} can provide a branded home for guidance such as:`,
+    body: `Depending on your clinic's services and approved content, ${PRODUCT_NAME} can publish guidance such as:`,
     items: [
       "post-appointment home-care information",
       "written recovery instructions",
@@ -379,27 +379,27 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       "return-to-activity information",
       "clinic contact and escalation information",
     ],
-    boundary: `${PRODUCT_NAME} is designed for publishing guidance, not for tracking whether a patient completes an exercise programme.`,
-    note: "Physiotherapy template availability is confirmed during onboarding. Where no suitable River Aftercare template exists, the clinic can publish its own approved guidance.",
+    boundary: `${PRODUCT_NAME} publishes clinic-approved written guidance. It does not currently track exercise completion, adherence or patient progress.`,
+    note: `Essential includes available ${PRODUCT_NAME} templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Physiotherapy template availability is confirmed during onboarding. If no suitable ${PRODUCT_NAME} template is available, your clinic can publish its own approved guidance within its plan.`,
   },
   workflow: {
     h2: "Fit aftercare into the workflow you already have",
     steps: [
       {
         title: "Prepare the guidance",
-        body: "Start with clinic-approved recovery or home-care content.",
+        body: `Use an available ${PRODUCT_NAME} template or clinic-approved recovery and home-care content.`,
       },
       {
-        title: "Brand the experience",
-        body: "Apply the physiotherapy clinic's identity and terminology.",
+        title: "Adapt it to your clinic",
+        body: "Add your branding, terminology and, where your plan allows, local instructions and supported section changes.",
       },
       {
-        title: "Publish a durable page",
-        body: "Keep the guidance accessible at a stable URL.",
+        title: "Publish it under your brand",
+        body: "Publish a durable patient-facing page with your clinic identity and contact details.",
       },
       {
-        title: "Share it with the patient",
-        body: "Send the link or provide a QR code after the appointment.",
+        title: "Share it after the appointment",
+        body: "Give patients the link directly or through a QR code.",
       },
     ],
   },
@@ -408,7 +408,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       kind: "copy",
       eyebrow: "How it fits",
       h2: "Designed to complement clinical software, not replace it",
-      body: `${PRODUCT_NAME} focuses on clear patient-facing guidance. It is not currently a practice-management system, clinical record, messaging platform or exercise-adherence tracker.`,
+      body: `${PRODUCT_NAME} focuses on clear patient-facing guidance. It is not currently a practice-management system, patient health record, messaging platform, clinical monitoring system or exercise-adherence tracker.`,
       highlights: [
         {
           title: "Guidance publishing",
@@ -416,11 +416,11 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
         },
         {
           title: "Not exercise tracking",
-          body: "It is not currently an exercise-adherence tracker.",
+          body: `${PRODUCT_NAME} does not currently track exercise completion, adherence or patient progress.`,
         },
         {
           title: "No patient account",
-          body: "Patients return through a durable link without creating another account.",
+          body: "Patients return through a durable link or QR code without creating another account.",
         },
       ],
     },
@@ -430,27 +430,30 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
     h2: "Questions physiotherapy clinics ask",
     items: [
       {
-        question: `Is ${PRODUCT_NAME} a home exercise programme app?`,
-        answer: `No. ${PRODUCT_NAME} is a branded guidance-publishing platform. It can present clinic-approved written home-care or exercise guidance, but it does not currently track exercise completion or adherence.`,
+        question: `Is ${PRODUCT_NAME} a home exercise programme or exercise-tracking app?`,
+        answer: `No. ${PRODUCT_NAME} is a patient aftercare publishing platform. It can publish clinic-approved written exercise, recovery and home-care guidance, but it does not currently track exercise completion, adherence or patient progress.`,
       },
       {
-        question: "Do patients need another app?",
+        question: "Do patients need an app or account?",
+        answer: `No. Patients open their aftercare page in the browser from a durable link or QR code. No ${PRODUCT_NAME} app or patient login is required.`,
+      },
+      {
+        question: "Can our clinic create or adapt its own recovery guidance?",
         answer:
-          "No. Published guidance opens in the browser from a link or QR code.",
+          "Yes, within your plan. Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Your clinic remains responsible for approving the clinical guidance it publishes.",
       },
       {
-        question: "Can our clinic use its own recovery guidance?",
-        answer: `Yes. ${PRODUCT_NAME} is designed around clinic-approved content and supported clinic customisation. The treating clinic remains responsible for the clinical information it publishes.`,
+        question: "What physiotherapy templates are available?",
+        answer: `Physiotherapy template availability is confirmed during onboarding. If no suitable ${PRODUCT_NAME} template is available, your clinic can publish its own approved guidance within its plan.`,
       },
       {
-        question: "Does it store patient health records?",
+        question: `Can ${PRODUCT_NAME} match our physiotherapy clinic branding?`,
         answer:
-          "No. The current product is not designed to store identifiable patient health records or personalised patient clinical information.",
+          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details, with Light and Dark presentation supported. Practice provides additional branding control.",
       },
       {
-        question: "Are physiotherapy templates already available?",
-        answer:
-          "Physiotherapy template availability is confirmed during onboarding. Where no suitable River Aftercare template exists, the clinic can publish its own approved guidance.",
+        question: `Does ${PRODUCT_NAME} replace our practice-management system or store patient health records?`,
+        answer: `No. ${PRODUCT_NAME} is patient aftercare publishing software. It does not currently replace a practice-management system, store patient health records, provide patient messaging or monitor exercise adherence.`,
       },
     ],
   },
