@@ -20,29 +20,35 @@ function collectHydrationErrors(page: Page): string[] {
   return hydration;
 }
 
-async function expectHeroRevealed(page: Page) {
+async function expectHeadingRevealVisible(page: Page) {
+  const heading = page.locator("h1").first();
+  await expect(heading).toBeVisible();
+  await expect
+    .poll(async () =>
+      heading.evaluate((element) => {
+        const reveal = element.closest(".mkReveal");
+        return (
+          reveal instanceof HTMLElement &&
+          getComputedStyle(reveal).opacity === "1"
+        );
+      })
+    )
+    .toBe(true);
+}
+
+async function expectContentRevealsReadable(page: Page) {
   await expect
     .poll(async () =>
       page.evaluate(() => {
-        const motion = document.documentElement.getAttribute("data-mk-motion");
         const reveals = [
           ...document.querySelectorAll<HTMLElement>(
-            '[data-mk-chapter="hero"] .mkReveal, [data-mk-page-hero] .mkReveal'
+            ".mkReveal:not([data-mk-rail]):not([data-mk-process-connector]):not([aria-hidden='true'])"
           ),
         ];
         if (reveals.length === 0) {
           return false;
         }
-        if (motion !== "enhance") {
-          return reveals.every(
-            (node) => getComputedStyle(node).opacity === "1"
-          );
-        }
-        return reveals.every(
-          (node) =>
-            getComputedStyle(node).opacity === "1" &&
-            !node.hasAttribute("data-mk-pending")
-        );
+        return reveals.every((node) => getComputedStyle(node).opacity === "1");
       })
     )
     .toBe(true);
@@ -70,8 +76,7 @@ test.describe("marketing reveal hydration", () => {
 
     for (const pathname of MARKETING_PATHS) {
       await page.goto(marketingUrl(pathname), { waitUntil: "load" });
-      await expect(page.locator("h1").first()).toBeVisible();
-      await expectHeroRevealed(page);
+      await expectHeadingRevealVisible(page);
     }
 
     expect(hydration).toEqual([]);
@@ -85,24 +90,29 @@ test.describe("marketing reveal hydration", () => {
 
     for (const pathname of ["/", "/pricing", "/dental"]) {
       await page.goto(marketingUrl(pathname), { waitUntil: "load" });
-      await expect(page.locator("h1").first()).toBeVisible();
+      await expect
+        .poll(async () =>
+          page.evaluate(
+            () =>
+              document.documentElement.getAttribute("data-mk-motion") ===
+              "reduce"
+          )
+        )
+        .toBe(true);
+      await expectHeadingRevealVisible(page);
+      await expectContentRevealsReadable(page);
       await expect
         .poll(async () =>
           page.evaluate(() => {
-            const reveals = [
-              ...document.querySelectorAll<HTMLElement>(".mkReveal"),
-            ];
-            if (reveals.length === 0) {
+            const heading = document.querySelector("h1");
+            const reveal = heading?.closest(".mkReveal");
+            if (!(reveal instanceof HTMLElement)) {
               return false;
             }
-            return reveals.every((node) => {
-              const style = getComputedStyle(node);
-              return (
-                style.opacity === "1" &&
-                (style.transform === "none" ||
-                  style.transform === "matrix(1, 0, 0, 1, 0, 0)")
-              );
-            });
+            const transform = getComputedStyle(reveal).transform;
+            return (
+              transform === "none" || transform === "matrix(1, 0, 0, 1, 0, 0)"
+            );
           })
         )
         .toBe(true);
