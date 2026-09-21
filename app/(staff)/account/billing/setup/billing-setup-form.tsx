@@ -263,7 +263,7 @@ export function BillingSetupForm({
           )}
           <button
             type="button"
-            className="staffBtn staffBtnQuiet w-fit px-0"
+            className="staffBtn staffBtnQuiet min-h-11 w-fit px-3"
             aria-pressed={kind === "acn"}
             onClick={() => switchKind(kind === "abn" ? "acn" : "abn")}
           >
