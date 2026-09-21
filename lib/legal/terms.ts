@@ -48,7 +48,15 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `**Customer Commercial Terms** means an accepted quote, proposal, order form, written onboarding agreement or other written commercial arrangement between ${PRODUCT_NAME} and the Customer identifying matters such as the applicable service, price or subscription period.`,
+        text: `**Customer Commercial Terms** means an accepted quote, proposal, order form, written onboarding agreement or other written commercial arrangement between ${PRODUCT_NAME} and the Customer identifying matters such as the applicable plan, price, subscription period, allowances or onboarding arrangements.`,
+      },
+      {
+        type: "p",
+        text: `**Plan** means the applicable ${PRODUCT_NAME} subscription plan for the Customer, as shown in ${PRODUCT_NAME}'s published pricing or as identified in Customer Commercial Terms.`,
+      },
+      {
+        type: "p",
+        text: "**Billing period** means the monthly or annual period for which the Customer's subscription is charged, as established by the selected plan or Customer Commercial Terms.",
       },
       {
         type: "p",
@@ -88,6 +96,10 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
+        text: "The number of Authorised Users included with a Customer's subscription is determined by the applicable plan and any Customer Commercial Terms.",
+      },
+      {
+        type: "p",
         text: "The Customer is responsible for determining which people may act as Authorised Users and for removing access when it is no longer appropriate.",
       },
       {
@@ -110,7 +122,15 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
+        text: "The Customer's included allowances are determined by the applicable plan and any Customer Commercial Terms. Those allowances may include matters such as the number of custom clinic guides the Customer may create or edit, the number of Authorised Users, rights to adapt templates, locations, onboarding or support level, and other capabilities shown in the applicable published pricing or Customer Commercial Terms.",
+      },
+      {
+        type: "p",
         text: `Unless Customer Commercial Terms expressly provide otherwise, ${PRODUCT_NAME} does not provide a numerical uptime service level, managed clinical review, patient monitoring or patient-specific healthcare advice.`,
+      },
+      {
+        type: "p",
+        text: `Support entitlements may vary by plan. Where a plan includes Priority support, that means the Customer's support requests are handled with priority relative to standard support. Unless Customer Commercial Terms expressly provide otherwise, ${PRODUCT_NAME} does not commit to a particular response time.`,
       },
       {
         type: "p",
@@ -270,7 +290,15 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: `${PRODUCT_NAME} may make template or sample aftercare content available as part of the Service.`,
+        text: `${PRODUCT_NAME} may make template or sample aftercare content available as part of the Service. Available template access, and whether the Customer may adapt those templates, may depend on the Customer's plan and any Customer Commercial Terms.`,
+      },
+      {
+        type: "p",
+        text: `Unless Customer Commercial Terms provide otherwise, a Customer on the Essential plan may use available ${PRODUCT_NAME} templates as supplied. A Customer on the Practice plan may adapt available ${PRODUCT_NAME} templates to suit its clinic where that plan permits. Group or other agreed arrangements have the template capabilities set out in the relevant Customer Commercial Terms.`,
+      },
+      {
+        type: "p",
+        text: "A Customer may still create and fully edit its own clinic-authored custom guides, subject to the applicable plan allowances.",
       },
       {
         type: "p",
@@ -278,11 +306,11 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "The Customer may adapt available templates for its practice. The Customer remains responsible for reviewing and approving the final version that it publishes.",
+        text: "The Customer remains responsible for reviewing and approving all material it ultimately publishes, including templates used as supplied, clinic-authored custom guides, and any clinic-specific adaptation of a template.",
       },
       {
         type: "p",
-        text: `Customer-specific adaptations remain Customer Content. ${PRODUCT_NAME} retains its rights in the underlying ${PRODUCT_NAME} template from which an adaptation was made.`,
+        text: `Clinic-authored custom guides, and clinic-specific material or adaptation of a ${PRODUCT_NAME} template, are Customer Content to the extent of that clinic-created or clinic-specific material. ${PRODUCT_NAME} retains its rights in the underlying ${PRODUCT_NAME} template from which an adaptation was made.`,
       },
     ],
   },
@@ -336,7 +364,11 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: `${PRODUCT_NAME} relies on third-party infrastructure and communications providers to operate the Service, including hosting, database, storage, security, network and email providers.`,
+        text: `${PRODUCT_NAME} relies on third-party infrastructure, communications and payment providers to operate the Service, including hosting, database, storage, security, network, email and payment or billing providers.`,
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME} uses Stripe as its payment and billing processor for subscription payments. Stripe-hosted payment and billing pages are operated by Stripe. Further information about Stripe's handling of personal information is set out in the Privacy Policy.`,
       },
       {
         type: "p",
@@ -380,7 +412,7 @@ const SECTIONS: readonly LegalSection[] = [
   },
   {
     id: "fees",
-    title: "18. Fees, invoices and GST",
+    title: "18. Fees, billing and GST",
     blocks: [
       {
         type: "p",
@@ -388,19 +420,31 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `Unless Customer Commercial Terms provide otherwise, ${PRODUCT_NAME} subscriptions are billed monthly in advance and payment is due **14 calendar days** after the invoice date.`,
+        text: "Unless Customer Commercial Terms provide otherwise, subscriptions may be monthly or annual. Fees are normally charged in advance for the applicable billing period using the payment method authorised during billing setup.",
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} currently accepts bank transfer or other manual invoice-payment methods notified to the Customer. Additional payment methods may be introduced later.`,
+        text: `${PRODUCT_NAME} uses Stripe-hosted payment and billing services to collect subscription payments. Supported methods may include card and Australian BECS Direct Debit. Other methods may be made available from time to time. Customer Commercial Terms may specify a different agreed payment arrangement.`,
       },
       {
         type: "p",
-        text: "The amount payable is the amount set out in the applicable Customer Commercial Terms.",
+        text: `Payment credentials, including card details and bank-account details used for Direct Debit, are supplied to Stripe through Stripe-hosted payment surfaces. ${PRODUCT_NAME} itself does not receive or store full card numbers or full bank-account credentials. ${PRODUCT_NAME} may receive billing and payment status information and transaction or invoice references reasonably necessary to administer the subscription.`,
+      },
+      {
+        type: "p",
+        text: `Completing a payment-method setup, including a BECS Direct Debit mandate, does not itself mean that a payment has settled. ${PRODUCT_NAME} may treat a Direct Debit or other payment as pending until settlement is confirmed. Paid-plan entitlements activate only once the first invoice or payment is confirmed as paid, unless Customer Commercial Terms provide otherwise.`,
+      },
+      {
+        type: "p",
+        text: "The amount payable is the amount shown in the applicable published pricing or Customer Commercial Terms.",
       },
       {
         type: "p",
         text: "The Customer remains responsible for undisputed fees incurred before the effective end of its subscription.",
+      },
+      {
+        type: "p",
+        text: "There are no routine refunds for change of mind. Duplicate charges and billing or payment errors may be refunded. Refunds are ordinarily returned to the original payment method. Nothing in this clause limits rights under the Australian Consumer Law or other non-excludable rights.",
       },
     ],
   },
@@ -410,19 +454,35 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "Unless Customer Commercial Terms provide otherwise, subscriptions operate month-to-month and renew for successive monthly periods.",
+        text: "Unless Customer Commercial Terms provide otherwise, a subscription may be monthly or annual. The applicable billing period is established by the selected plan or Customer Commercial Terms.",
       },
       {
         type: "p",
-        text: `The Customer may cancel at any time by giving notice through a method ${PRODUCT_NAME} makes available for cancellation.`,
+        text: "Subscriptions renew automatically for the same billing period unless cancelled before renewal. Cancelling a monthly subscription stops the next monthly renewal. Cancelling an annual subscription stops the next annual renewal.",
       },
       {
         type: "p",
-        text: "Cancellation normally takes effect at the end of the current paid subscription period. There is no cancellation fee.",
+        text: `The Customer may cancel using a cancellation method ${PRODUCT_NAME} makes available, including the billing portal where available.`,
+      },
+      {
+        type: "p",
+        text: "Cancellation takes effect at the end of the current paid billing period. There is no cancellation fee. Access continues through the paid-through date, subject to these Terms, including the security, legal and other restrictions in these Terms.",
       },
       {
         type: "p",
         text: "Amounts already paid for a voluntary cancellation are not refunded on a pro-rata basis, except where required by law or expressly agreed otherwise.",
+      },
+      {
+        type: "p",
+        text: "An upgrade to a higher plan may take effect immediately. Higher-plan entitlements may begin immediately, and an appropriate prorated adjustment may be charged for the remainder of the current billing period. The next renewal is then charged at the upgraded plan rate, unless Customer Commercial Terms provide otherwise.",
+      },
+      {
+        type: "p",
+        text: "A downgrade to a lower plan takes effect at the next renewal or the end of the current paid billing period, unless Customer Commercial Terms provide otherwise. The current plan's access continues until then. There is no automatic pro-rata refund for a scheduled downgrade. Content is not automatically deleted merely because a downgrade is scheduled.",
+      },
+      {
+        type: "p",
+        text: "Completing a downgrade may require the Customer to bring its use within the destination plan's allowances before the lower plan takes effect. That may include custom clinic guides, adapted-template content or Authorised Users beyond the destination plan.",
       },
     ],
   },
@@ -432,15 +492,15 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: `${PRODUCT_NAME} may suspend affected access or public pages where reasonably necessary because of a material security risk, unlawful use, a material breach of these Terms or a materially overdue account.`,
+        text: `If a recurring payment fails or is temporarily overdue while reasonable payment retries or recovery are occurring, normal product access continues. ${PRODUCT_NAME} will not, for that reason alone, immediately suspend the clinic or remove already-published public guides.`,
       },
       {
         type: "p",
-        text: `For overdue invoices, ${PRODUCT_NAME} may send payment reminders after the due date. If an invoice remains unpaid for at least 14 days after its due date, ${PRODUCT_NAME} may suspend affected staff access or public pages after reasonable notice.`,
+        text: `If those retries are exhausted or the account is genuinely unpaid, ${PRODUCT_NAME} may restrict staff authoring, including the creation, editing or publishing of new content, and may require the payment to be resolved before restoring full authoring capability. Already-published patient-facing guides ordinarily remain accessible under clause 22, unless another basis in these Terms applies.`,
       },
       {
         type: "p",
-        text: "Suspension for non-payment is not automatic.",
+        text: `${PRODUCT_NAME} may still suspend affected access or public pages where reasonably necessary because of a material security risk, unlawful or prohibited use, fraud, a legal requirement, a material breach of these Terms other than a temporary payment failure, or similar material harm.`,
       },
       {
         type: "p",
@@ -466,7 +526,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} may also terminate an ongoing month-to-month subscription for convenience by giving at least 30 days' written notice. If ${PRODUCT_NAME} terminates for convenience before the end of a period for which the Customer has prepaid, ${PRODUCT_NAME} will refund the portion of the prepaid subscription attributable to the period after termination.`,
+        text: `${PRODUCT_NAME} may also terminate an ongoing subscription for convenience by giving at least 30 days' written notice. If ${PRODUCT_NAME} terminates for convenience before the end of a period for which the Customer has prepaid, ${PRODUCT_NAME} will refund the portion of the prepaid subscription attributable to the period after termination.`,
       },
       {
         type: "p",
@@ -480,11 +540,19 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: `When a subscription ends, ${PRODUCT_NAME} may unpublish the Customer's public clinic pages and disable staff access.`,
+        text: "When a paid subscription ends, full product functionality continues until the paid-through date. After that date, the former Customer does not have normal paid authoring or publishing rights.",
       },
       {
         type: "p",
-        text: "For 30 days after termination, the Customer may request a reasonable export of available Customer-owned content and clinic configuration in a commonly usable form where technically practicable.",
+        text: `Already-published patient-facing guide URLs, referred to in the Service as durable patient guide URLs, may remain available for up to **60 days** after the paid subscription ends. This is an ordinary maximum availability period, not a promise that ${PRODUCT_NAME} will continue hosting particular content. ${PRODUCT_NAME} may take public guides offline earlier where reasonably necessary because of law, security, prohibited content or use, material harm, a Customer request, account deletion, or another lawful basis. After that period, ${PRODUCT_NAME} may take those public guides offline.`,
+      },
+      {
+        type: "p",
+        text: "Cancellation or expiry of a subscription is not itself a request to delete the Customer's account or data. Account deletion and personal-information deletion requests are separate matters, subject to retention requirements, these Terms, security, accounting and legal requirements, and the Privacy Policy.",
+      },
+      {
+        type: "p",
+        text: "For **30 days** after the subscription ends, the Customer may request a reasonable export of available Customer-owned content and clinic configuration in a commonly usable form where technically practicable.",
       },
       {
         type: "p",
@@ -492,7 +560,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `After that 30-day exit period, ${PRODUCT_NAME} may delete active clinic account and operational data that is no longer reasonably required.`,
+        text: `After that 30-day export period, ${PRODUCT_NAME} may delete active clinic account and operational data that is no longer reasonably required, subject to the public-guide availability described above and to backup, legal, accounting and security retention.`,
       },
       {
         type: "p",

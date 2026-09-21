@@ -15,6 +15,10 @@ import MarketingPricingPage from "@/app/(marketing)/%5Fmarketing/pricing/page";
 import MarketingPrivacyPage from "@/app/(marketing)/%5Fmarketing/privacy/page";
 import MarketingTermsPage from "@/app/(marketing)/%5Fmarketing/terms/page";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import {
+  PRIVACY_LAST_UPDATED_ISO,
+  TERMS_LAST_UPDATED_ISO,
+} from "@/lib/legal/status";
 import { MARKETING_DEMO_PATIENT_THEME_CSS } from "@/lib/marketing/demo-patient-preview";
 import {
   marketingPageMetadata,
@@ -169,12 +173,16 @@ describe("marketing + trust polish", () => {
     expect(privacyHtml).not.toContain("We store all information with Neon");
     expect(privacyHtml).toContain("Vercel");
     expect(privacyHtml).toContain("Cloudflare Turnstile");
+    expect(privacyHtml).toContain("Stripe");
+    expect(privacyHtml).toContain('href="https://stripe.com/privacy"');
+    expect(privacyHtml).toContain("privacy policy");
     expect(privacyHtml).toContain('data-mk-page-hero="legal"');
     expect(privacyHtml).toContain("<time");
-    expect(privacyHtml).toContain('dateTime="2026-09-19"');
+    expect(privacyHtml).toContain(`dateTime="${PRIVACY_LAST_UPDATED_ISO}"`);
 
     expect(termsHtml).toContain("Terms &amp; Conditions");
-    expect(termsHtml).toContain("not a healthcare provider");
+    expect(termsHtml).toContain("Stripe");
+    expect(termsHtml).toContain("Australian BECS Direct Debit");
     expect(termsHtml).toContain("New South Wales, Australia");
     expect(termsHtml).toContain("non-exclusive jurisdiction");
     expect(termsHtml).toContain("Pedro Joaquin Palacios");
@@ -184,11 +192,27 @@ describe("marketing + trust polish", () => {
     expect(termsHtml).not.toContain("[PRIVACY EMAIL]");
     expect(termsHtml).not.toContain("DRAFT FOR LEGAL REVIEW");
     expect(termsHtml).toContain('data-mk-page-hero="legal"');
-    expect(termsHtml).toContain('dateTime="2026-09-19"');
+    expect(termsHtml).toContain(`dateTime="${TERMS_LAST_UPDATED_ISO}"`);
     expect(privacyHtml).toContain("legalArticle");
     expect(privacyHtml).toContain("band");
     expect(privacyHtml).not.toContain("legalBanner");
     expect(termsHtml).not.toContain("legalBanner");
+    expect(privacyHtml).not.toContain('role="note"');
+    expect(termsHtml).not.toContain('role="note"');
+    expect(privacyHtml).not.toContain("Pending legal review");
+    expect(termsHtml).not.toContain("Pending legal review");
+    expect(privacyHtml).not.toContain("Not legally approved");
+    expect(termsHtml).not.toContain("Not legally approved");
+    expect(privacyHtml).not.toContain("Work in progress");
+    expect(termsHtml).not.toContain("Work in progress");
+    expect(termsHtml).not.toContain("intends to use Stripe");
+    expect(privacyHtml).not.toContain("intends to use Stripe");
+    expect(termsHtml).toContain(
+      "uses Stripe as its payment and billing processor"
+    );
+    expect(privacyHtml).toContain(
+      "uses Stripe as the payment and billing processor"
+    );
     expect(termsHtml).toContain("legalArticle");
     expect(termsHtml).toContain("band");
     expect(marketingCss).toContain(".marketingSoft > .band:first-child");

@@ -10,6 +10,10 @@ import {
 
 const PRIVACY_EMAIL_MARKDOWN = `**[${LEGAL_PRIVACY_EMAIL}](mailto:${LEGAL_PRIVACY_EMAIL})**`;
 
+export const STRIPE_PRIVACY_POLICY_URL = "https://stripe.com/privacy";
+
+const STRIPE_PRIVACY_POLICY_MARKDOWN = `[Stripe's privacy policy](${STRIPE_PRIVACY_POLICY_URL})`;
+
 const SECTIONS: readonly LegalSection[] = [
   {
     id: "who",
@@ -57,7 +61,11 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `For subscription and billing administration, we may collect clinic billing contacts, invoice details, payment status, transaction references and related accounting information. ${PRODUCT_NAME} currently uses manual invoicing and does not require customers to provide payment-card details through the Service.`,
+        text: "For subscription and billing administration, we may collect, where relevant, a legal entity name, trading or practice name, billing contact name, billing email, billing address, Australian Business Number (ABN), Australian Company Number (ACN) where used instead of an ABN, subscription and plan information, invoice and payment status, and transaction or reference information. An ABN is the usual Australian business identifier. If a customer has no ABN, an ACN may be used instead. Unusual cases may be handled manually.",
+      },
+      {
+        type: "p",
+        text: `Subscription payment setup and billing are handled using Stripe. Card details and Australian BECS Direct Debit details are entered on Stripe-hosted payment or billing pages. ${PRODUCT_NAME} does not receive or store full card numbers, and does not receive or store full bank-account credentials such as a complete BSB and account-number combination used for payment. Stripe handles those payment credentials. ${PRODUCT_NAME} may receive limited billing metadata, such as payment or subscription status, payment-method type, limited masked or payment-method identifiers where Stripe provides them, invoice identifiers or references, and transaction references.`,
       },
       {
         type: "p",
@@ -109,7 +117,7 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: `We collect personal information directly from people when they contact us, correspond with us, create or use an authorised account, configure a clinic, or otherwise deal with ${PRODUCT_NAME}.`,
+        text: `We collect personal information directly from people when they contact us, correspond with us, create or use an authorised account, configure a clinic, set up billing or a subscription, or otherwise deal with ${PRODUCT_NAME}.`,
       },
       {
         type: "p",
@@ -131,7 +139,11 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "We use personal information to respond to enquiries; onboard and administer customers; create and manage clinic and staff accounts; authenticate authorised users; provide, host and maintain clinic-branded aftercare pages; invoice and administer subscriptions; provide support and service communications; prevent abuse and protect the security of the Service; diagnose technical problems; measure and improve reliability and performance; maintain business and accounting records; establish, exercise or defend legal rights; and comply with applicable legal obligations.",
+        text: "We use personal information to respond to enquiries; onboard and administer customers; create and manage clinic and staff accounts; authenticate authorised users; provide, host and maintain clinic-branded aftercare pages; provide support and service communications; prevent abuse and protect the security of the Service; diagnose technical problems; measure and improve reliability and performance; maintain business and accounting records; establish, exercise or defend legal rights; and comply with applicable legal obligations.",
+      },
+      {
+        type: "p",
+        text: "We also use billing information to set up and administer subscriptions; create and maintain the relevant payment-provider customer record; process recurring payments; administer monthly and annual billing; follow up failed or pending payments; provide billing-portal access; issue and maintain invoice or payment records; and maintain tax or accounting records where applicable.",
       },
       {
         type: "p",
@@ -199,6 +211,10 @@ const SECTIONS: readonly LegalSection[] = [
         type: "p",
         text: `${PRODUCT_NAME} does not currently use behavioural advertising pixels or cookie-based advertising trackers. If this changes, we will update this Policy and implement any consent or notification mechanisms required by applicable law.`,
       },
+      {
+        type: "p",
+        text: `When a Customer follows a link to a Stripe-hosted Checkout or billing portal, that Stripe-hosted page is operated by Stripe and may use cookies or similar technologies under Stripe's own policies. ${PRODUCT_NAME} does not place Stripe advertising cookies on public patient guide pages.`,
+      },
     ],
   },
   {
@@ -207,7 +223,7 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: `${PRODUCT_NAME} uses service providers to operate the Service. Current production providers include Vercel for application hosting, deployment, network delivery and related website measurement; Neon for the production PostgreSQL database; Cloudflare for object storage and Turnstile security services; Resend for application and contact email delivery; and business email providers including Hostinger and Google for email routing, forwarding and mailbox functions.`,
+        text: `${PRODUCT_NAME} uses service providers to operate the Service. Current production providers include Vercel for application hosting, deployment, network delivery and related website measurement; Neon for the production PostgreSQL database; Cloudflare for object storage and Turnstile security services; Resend for application and contact email delivery; and business email providers including Hostinger and Google for email routing, forwarding and mailbox functions. ${PRODUCT_NAME} uses Stripe as the payment and billing processor for subscription payments and billing management. Stripe's handling of personal information is described in ${STRIPE_PRIVACY_POLICY_MARKDOWN}.`,
       },
       {
         type: "p",
@@ -237,7 +253,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "Some other providers operate internationally. In particular, information processed through Vercel, Cloudflare, Resend, Google and other infrastructure providers may be processed outside Australia.",
+        text: "Some other providers operate internationally. In particular, information processed through Vercel, Cloudflare, Resend, Google, Stripe and other infrastructure or payment providers may be processed outside Australia.",
       },
       {
         type: "p",
@@ -285,7 +301,11 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `Following termination, ${PRODUCT_NAME} ordinarily provides a 30-day exit period before deleting active clinic account and operational information that is no longer required. Information may be retained for longer where reasonably required for legal, security, accounting or dispute-related purposes.`,
+        text: "Already-published public patient guides may remain accessible for up to 60 days after the relevant subscription ends, subject to earlier removal where reasonably necessary for legal, security, prohibited-use, harm-prevention, customer-request, account-deletion or other lawful reasons.",
+      },
+      {
+        type: "p",
+        text: `Following the end of a subscription, ${PRODUCT_NAME} ordinarily provides a 30-day period during which the Customer may request an export of available Customer-owned content, after which ${PRODUCT_NAME} may delete active clinic account and operational information that is no longer required. Cancellation or expiry of a subscription is not itself a request to delete an account. Information may be retained for longer where reasonably required for legal, security, accounting or dispute-related purposes.`,
       },
       {
         type: "p",
@@ -325,7 +345,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "Service communications include messages reasonably necessary to respond to an enquiry, administer an account or subscription, issue invoices, communicate security information, or provide support.",
+        text: `Service communications include messages reasonably necessary to respond to an enquiry, administer an account or subscription, communicate security information, or provide support. Billing communications, including invoices, payment receipts, payment-failure messages and payment-method or billing actions, may be sent by ${PRODUCT_NAME} or by Stripe on ${PRODUCT_NAME}'s behalf or as ${PRODUCT_NAME}'s billing provider.`,
       },
       {
         type: "p",
