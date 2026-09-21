@@ -65,7 +65,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `Subscription payment setup and billing may be handled using Stripe. Card details and Australian BECS Direct Debit details are entered on Stripe-hosted payment or billing pages. ${PRODUCT_NAME} does not receive or store full card numbers, and does not receive or store full bank-account credentials such as a complete BSB and account-number combination used for payment. Stripe handles those payment credentials. ${PRODUCT_NAME} may receive limited billing metadata, such as payment or subscription status, payment-method type, limited masked or payment-method identifiers where Stripe provides them, invoice identifiers or references, and transaction references.`,
+        text: `Subscription payment setup and billing are handled using Stripe. Card details and Australian BECS Direct Debit details are entered on Stripe-hosted payment or billing pages. ${PRODUCT_NAME} does not receive or store full card numbers, and does not receive or store full bank-account credentials such as a complete BSB and account-number combination used for payment. Stripe handles those payment credentials. ${PRODUCT_NAME} may receive limited billing metadata, such as payment or subscription status, payment-method type, limited masked or payment-method identifiers where Stripe provides them, invoice identifiers or references, and transaction references.`,
       },
       {
         type: "p",

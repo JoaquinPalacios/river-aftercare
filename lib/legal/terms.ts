@@ -368,7 +368,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} intends to use Stripe as its payment and billing processor for subscription payments. Stripe-hosted payment and billing pages are operated by Stripe. Further information about Stripe's handling of personal information is set out in the Privacy Policy.`,
+        text: `${PRODUCT_NAME} uses Stripe as its payment and billing processor for subscription payments. Stripe-hosted payment and billing pages are operated by Stripe. Further information about Stripe's handling of personal information is set out in the Privacy Policy.`,
       },
       {
         type: "p",
@@ -424,7 +424,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} intends to collect subscription payments using Stripe-hosted payment and billing services. Supported methods may include card and Australian BECS Direct Debit. Other methods may be made available from time to time. Customer Commercial Terms may specify a different agreed payment arrangement.`,
+        text: `${PRODUCT_NAME} uses Stripe-hosted payment and billing services to collect subscription payments. Supported methods may include card and Australian BECS Direct Debit. Other methods may be made available from time to time. Customer Commercial Terms may specify a different agreed payment arrangement.`,
       },
       {
         type: "p",

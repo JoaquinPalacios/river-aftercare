@@ -68,6 +68,15 @@ const FORBIDDEN_COMMERCIAL_LANGUAGE = [
   "reviewed by counsel",
   "legally approved",
   "HIPAA compliance",
+  "intends to use Stripe",
+  "plans to use Stripe",
+  "will use Stripe",
+  "Stripe is coming soon",
+  "once billing launches",
+  "future billing provider",
+  "when Stripe is enabled",
+  "billing is not live",
+  "manual invoicing",
 ];
 
 function flattenLegalDocument(document: LegalDocument): string {
@@ -206,6 +215,10 @@ describe("legal documents", () => {
     expect(fees).toContain("monthly or annual");
     expect(fees).toContain("charged in advance");
     expect(fees).toContain("Stripe-hosted payment and billing services");
+    expect(fees).toContain(
+      "uses Stripe-hosted payment and billing services to collect subscription payments"
+    );
+    expect(fees).not.toContain("intends to collect");
     expect(fees).toContain("card");
     expect(fees).toContain("Australian BECS Direct Debit");
     expect(fees).toContain(
@@ -280,8 +293,10 @@ describe("legal documents", () => {
     const thirdParties = sectionText(TERMS_DOCUMENT, "third-parties");
     expect(thirdParties).toContain("payment or billing providers");
     expect(thirdParties).toContain(
-      "Stripe as its payment and billing processor"
+      "uses Stripe as its payment and billing processor"
     );
+    expect(thirdParties).not.toContain("intends to use Stripe");
+    expect(thirdParties).not.toContain("plans to use Stripe");
 
     const suspension = sectionText(TERMS_DOCUMENT, "suspension");
     expect(suspension).toContain("reasonable payment retries");
@@ -426,6 +441,7 @@ describe("legal documents", () => {
     expect(collected).toContain(
       "If a customer has no ABN, an ACN may be used instead"
     );
+    expect(collected).toContain("are handled using Stripe");
     expect(collected).toContain("Stripe-hosted payment or billing pages");
     expect(collected).toContain("does not receive or store full card numbers");
     expect(collected).toContain("full bank-account credentials");
@@ -440,7 +456,7 @@ describe("legal documents", () => {
     expect(providers).toContain("Hostinger");
     expect(providers).toContain("Google");
     expect(providers).toContain(
-      "Stripe as the payment and billing processor for subscription payments and billing management"
+      "uses Stripe as the payment and billing processor for subscription payments and billing management"
     );
     expect(providers).toContain(STRIPE_PRIVACY_POLICY_URL);
 

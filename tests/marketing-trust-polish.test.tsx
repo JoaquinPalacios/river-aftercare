@@ -197,6 +197,22 @@ describe("marketing + trust polish", () => {
     expect(privacyHtml).toContain("band");
     expect(privacyHtml).not.toContain("legalBanner");
     expect(termsHtml).not.toContain("legalBanner");
+    expect(privacyHtml).not.toContain('role="note"');
+    expect(termsHtml).not.toContain('role="note"');
+    expect(privacyHtml).not.toContain("Pending legal review");
+    expect(termsHtml).not.toContain("Pending legal review");
+    expect(privacyHtml).not.toContain("Not legally approved");
+    expect(termsHtml).not.toContain("Not legally approved");
+    expect(privacyHtml).not.toContain("Work in progress");
+    expect(termsHtml).not.toContain("Work in progress");
+    expect(termsHtml).not.toContain("intends to use Stripe");
+    expect(privacyHtml).not.toContain("intends to use Stripe");
+    expect(termsHtml).toContain(
+      "uses Stripe as its payment and billing processor"
+    );
+    expect(privacyHtml).toContain(
+      "uses Stripe as the payment and billing processor"
+    );
     expect(termsHtml).toContain("legalArticle");
     expect(termsHtml).toContain("band");
     expect(marketingCss).toContain(".marketingSoft > .band:first-child");

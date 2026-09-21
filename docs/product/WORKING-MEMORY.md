@@ -65,7 +65,7 @@ Canonical source: `lib/marketing/plans.ts`.
 
 ## Durable launch-ready Terms/Privacy billing-copy rule
 
-Public `/terms` and `/privacy` now describe the intended Stripe launch state. They are **not** legally approved. Do not merge or deploy that copy until Joaquín reviews the wording, an Australian solicitor reviews the near-final documents, and billing functionality is ready to go live.
+Public `/terms` and `/privacy` describe the Stripe billing model in present tense, as the production-state agreement that will govern customers when billing goes live. They are **not** legally approved. Do not merge or deploy that copy until Joaquín reviews the wording, an Australian solicitor reviews the near-final documents, and billing functionality is ready to go live. Do not use public wording such as “intends to use Stripe”.
 
 Do not flip `TERMS_PAGE_LEGALLY_APPROVED` or `PRIVACY_PAGE_LEGALLY_APPROVED`. Do not change legal-page robots/indexing. GST remains “will be charged where applicable.” Do not add `account@riveraftercare.com.au` until that mailbox is an established production contact.
 
