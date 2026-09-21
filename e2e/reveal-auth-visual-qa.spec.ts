@@ -62,14 +62,14 @@ test.describe("reveal and auth visual QA", () => {
     });
   });
 
-  test("dental starting template reveal", async ({ page }) => {
+  test("dental demo status reveal", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(marketingUrl("/dental"), { waitUntil: "load" });
     await showSection(
       page,
-      "Use River Aftercare for the dental guidance your practice needs"
+      "Start with an available guide, or bring your own clinic-approved aftercare."
     );
-    await expect(page.getByText("Current starting template")).toBeVisible();
+    await expect(page.getByText("Current dental demo")).toBeVisible();
     await page.screenshot({
       path: artifactPath("dental-template-reveal.png"),
       fullPage: false,

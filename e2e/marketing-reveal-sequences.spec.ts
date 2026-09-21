@@ -36,16 +36,16 @@ test.describe("marketing reveal sequence consistency", () => {
     await expectRevealAncestor(note);
   });
 
-  test("dental starting template module joins the guidance reveal sequence", async ({
+  test("dental demo status module joins the guidance reveal sequence", async ({
     page,
   }) => {
     await openWithReducedMotion(page, "/dental");
-    const template = page.getByText("Current starting template", {
+    const template = page.getByText("Current dental demo", {
       exact: true,
     });
     const explanation = page.locator('p[class*="verticalNote"]').filter({
       hasText:
-        "Riverside Dental Demo currently uses a Tooth Extraction sample template.",
+        "Riverside Dental Demo uses a Tooth Extraction sample guide to show the current patient experience.",
     });
     await expectRevealAncestor(template);
     await expectRevealAncestor(explanation);

@@ -57,9 +57,12 @@ describe("premium marketing UX contracts", () => {
     );
     expect(html).toContain('data-faq-position="first"');
     expect(html).toContain('data-faq-position="last"');
+    expect(html.match(/data-faq-position="middle"/g)).toHaveLength(4);
     expect(styles).toContain(".verticalFaqItem:first-child");
     expect(styles).toContain(".verticalFaqItem:last-child");
-    expect(styles).toContain("overflow: visible");
+    expect(styles).toMatch(/\.verticalFaq\s*\{[^}]*overflow:\s*visible/);
+    expect(styles).toMatch(/\.verticalFaqItem\s*\{[^}]*overflow:\s*visible/);
+    expect(styles).not.toMatch(/\.verticalFaqItem\s*\{[^}]*overflow:\s*hidden/);
     expect(styles).toContain(".verticalFaqQuestion:focus-visible");
     expect(styles).toContain("outline-offset: -3px");
     expect(styles).toContain(".verticalFaqItem:first-child::before");
@@ -67,6 +70,13 @@ describe("premium marketing UX contracts", () => {
     expect(styles).toContain(
       ".verticalFaqItem:last-child:not([open]) .verticalFaqQuestionInner"
     );
+    expect(styles).toContain(
+      ".verticalFaqItem:last-child:not([open]) .verticalFaqQuestion"
+    );
+    expect(styles).toMatch(
+      /\.verticalFaqPanel\s*\{[^}]*padding:\s*var\(--mk-body-gap\)/
+    );
+    expect(styles).toContain("border-inline: 1px solid var(--mk-card-line)");
   });
 
   it("renders a truthful Today / Timeline phone preview without client JS", () => {

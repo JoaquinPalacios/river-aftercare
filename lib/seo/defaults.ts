@@ -119,14 +119,14 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
   "/dental": {
     seoTitle: "Dental Aftercare Software for Practices | River Aftercare",
     metaDescription:
-      "Give patients clear, clinic-branded post-treatment instructions they can reopen after dental treatment by link or QR code, with no app or patient login.",
-    ogTitle: "Aftercare that still feels like your dental practice",
+      "Publish branded dental post-treatment instructions patients can revisit by link or QR code. No patient app or login required.",
+    ogTitle: "Dental Aftercare Software for Practices | River Aftercare",
     ogDescription:
-      "Give patients clear post-treatment guidance under your practice brand, with a page they can reopen whenever they need it.",
+      "Publish branded dental post-treatment instructions patients can revisit by link or QR code. No patient app or login required.",
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-09-17",
+    lastModified: "2026-09-21",
   },
   "/physiotherapy": {
     seoTitle: "Physiotherapy Patient Aftercare Software | River Aftercare",

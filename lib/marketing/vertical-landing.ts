@@ -184,11 +184,11 @@ export const DENTAL_LANDING: VerticalLandingContent = {
   },
   solution: {
     h2: "One branded place for post-treatment guidance",
-    body: `${PRODUCT_NAME} turns practice-approved instructions into clear web pages patients can revisit after treatment. Your practice identity, contact details and guidance stay together in one durable experience.`,
+    body: `${PRODUCT_NAME} turns practice-approved aftercare into branded web pages patients can revisit from the same durable link or QR code. Your logo, colours, terminology, contact details and guidance stay together in one patient experience.`,
     benefits: [
       {
         title: "Practice-branded",
-        body: "Keep your name, colours and terminology visible after the patient leaves.",
+        body: "Keep your logo, colours and terminology visible after the patient leaves.",
       },
       {
         title: "Easy to revisit",
@@ -196,38 +196,38 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       },
       {
         title: "Consistent for the team",
-        body: "Use structured guidance instead of recreating the same handout for every appointment.",
+        body: "Publish from approved guidance instead of recreating the same handout appointment by appointment.",
       },
       {
         title: "Clinic controlled",
-        body: "Your practice decides what it publishes and remains responsible for its clinical instructions.",
+        body: "Your practice approves what it publishes and remains responsible for its clinical content.",
       },
     ],
   },
   guidance: {
     eyebrow: "Clinic-approved guidance",
-    h2: `Use ${PRODUCT_NAME} for the dental guidance your practice needs`,
-    body: `Start with an available ${PRODUCT_NAME} template where one exists, or prepare clinic-approved guidance during onboarding. Published pages can be adapted with your local instructions and practice terminology.`,
+    h2: "Start with an available guide, or bring your own clinic-approved aftercare.",
+    body: "Essential gives dental practices a simple branded setup with available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. In every case, your practice approves the clinical guidance it publishes.",
     status: {
-      label: "Current starting template",
+      label: "Current dental demo",
       value: "Tooth Extraction",
     },
-    note: "Riverside Dental Demo currently uses a Tooth Extraction sample template. It is not clinically reviewed. Additional dental templates are confirmed during onboarding.",
+    note: "Riverside Dental Demo uses a Tooth Extraction sample guide to show the current patient experience. It is not clinically reviewed. Available dental templates are confirmed during onboarding.",
   },
   workflow: {
-    h2: "From approved instructions to a page patients can keep",
+    h2: "From approved instructions to a page patients can revisit",
     steps: [
       {
         title: "Choose or prepare the guide",
-        body: "Use an available template or clinic-approved instructions.",
+        body: `Use an available ${PRODUCT_NAME} template or clinic-approved instructions.`,
       },
       {
         title: "Adapt it to your practice",
-        body: "Add clinic terminology, local instructions and supported section overrides.",
+        body: "Add your branding, terminology and, where your plan allows, local instructions and supported section changes.",
       },
       {
         title: "Publish it under your brand",
-        body: `${PRODUCT_NAME} creates a durable patient-facing page.`,
+        body: "Publish a durable patient-facing page with your practice identity and contact details.",
       },
       {
         title: "Share it after treatment",
@@ -238,9 +238,9 @@ export const DENTAL_LANDING: VerticalLandingContent = {
   extras: [
     {
       kind: "demo",
-      eyebrow: "Live example",
-      h2: `See a real ${PRODUCT_NAME} dental example`,
-      body: "Riverside Dental Demo shows the current patient experience using a published Tooth Extraction guide.",
+      eyebrow: "Dental demo",
+      h2: "See the patient experience in action",
+      body: "Riverside Dental Demo shows the current River Aftercare patient experience using a published Tooth Extraction sample guide.",
       ctaLabel: "Open Riverside Dental Demo",
       preview: {
         kicker: "Riverside Dental Demo",
@@ -254,26 +254,32 @@ export const DENTAL_LANDING: VerticalLandingContent = {
     h2: "Questions dental practices ask",
     items: [
       {
-        question: "Do patients need to download an app?",
-        answer: `No. ${PRODUCT_NAME} patient pages open in the browser from a link or QR code.`,
+        question: "Do patients need an app or account?",
+        answer: `No. Patients open their aftercare page in the browser from a durable link or QR code. No ${PRODUCT_NAME} app or patient login is required.`,
       },
       {
-        question: "Do patients need an account?",
+        question: "Can our dental practice change or create the instructions?",
         answer:
-          "No. The current public guide experience does not require a patient login.",
-      },
-      {
-        question: "Can our practice change the instructions?",
-        answer: `Yes. ${PRODUCT_NAME} supports clinic-controlled guidance and supported local overrides. The dental practice remains responsible for approving the clinical information it publishes.`,
-      },
-      {
-        question: `Does ${PRODUCT_NAME} replace our practice-management system?`,
-        answer: `No. ${PRODUCT_NAME} is a patient aftercare publishing platform. It is not currently a PMS, CRM, patient record or messaging platform.`,
+          "Yes, within your plan. Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Your practice remains responsible for approving the clinical guidance it publishes.",
       },
       {
         question: "What dental templates are available?",
         answer:
-          "Riverside Dental Demo currently uses a Tooth Extraction sample template. It is not clinically reviewed. The library is expanding, and template availability is confirmed during onboarding.",
+          "Riverside Dental Demo currently uses a Tooth Extraction sample guide. It is not clinically reviewed. Dental template availability is confirmed during onboarding as the library develops.",
+      },
+      {
+        question: "Can River Aftercare match our dental practice branding?",
+        answer:
+          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details, with Light and Dark presentation supported. Practice provides additional branding control.",
+      },
+      {
+        question: `Does ${PRODUCT_NAME} replace our practice-management system?`,
+        answer: `No. ${PRODUCT_NAME} is patient aftercare publishing software. It is not currently a practice-management system, CRM, patient health record, messaging platform or clinical monitoring system.`,
+      },
+      {
+        question: "How many custom aftercare guides can we publish?",
+        answer:
+          "Essential supports up to 2 active custom clinic guides. Practice supports up to 30 active custom clinic guides with broader creation and adaptation.",
       },
     ],
   },

@@ -194,13 +194,15 @@ describe("marketing SEO resolution", () => {
     expect(metadata.title).toEqual({
       absolute: "Dental Aftercare Software for Practices | River Aftercare",
     });
-    expect(metadata.description).toContain("clinic-branded post-treatment");
+    expect(metadata.description).toBe(
+      "Publish branded dental post-treatment instructions patients can revisit by link or QR code. No patient app or login required."
+    );
     expect(metadata.robots).toEqual({ index: true, follow: true });
     expect(metadata.alternates?.canonical).toBe("https://example.test/dental");
     expect(metadata.openGraph).toMatchObject({
-      title: "Aftercare that still feels like your dental practice",
+      title: "Dental Aftercare Software for Practices | River Aftercare",
       description:
-        "Give patients clear post-treatment guidance under your practice brand, with a page they can reopen whenever they need it.",
+        "Publish branded dental post-treatment instructions patients can revisit by link or QR code. No patient app or login required.",
     });
   });
 

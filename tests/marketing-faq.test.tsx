@@ -7,15 +7,20 @@ import { VERTICAL_LANDINGS } from "@/lib/marketing/vertical-landing";
 const FAQ_EXPECTATIONS = {
   "/dental": {
     questions: [
-      "Do patients need to download an app?",
-      "Do patients need an account?",
-      "Can our practice change the instructions?",
-      "Does River Aftercare replace our practice-management system?",
+      "Do patients need an app or account?",
+      "Can our dental practice change or create the instructions?",
       "What dental templates are available?",
+      "Can River Aftercare match our dental practice branding?",
+      "Does River Aftercare replace our practice-management system?",
+      "How many custom aftercare guides can we publish?",
     ],
     answers: [
-      "No. River Aftercare patient pages open in the browser from a link or QR code.",
-      "Riverside Dental Demo currently uses a Tooth Extraction sample template.",
+      "No. Patients open their aftercare page in the browser from a durable link or QR code. No River Aftercare app or patient login is required.",
+      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides.",
+      "Riverside Dental Demo currently uses a Tooth Extraction sample guide. It is not clinically reviewed.",
+      "Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details",
+      "It is not currently a practice-management system, CRM, patient health record, messaging platform or clinical monitoring system.",
+      "Essential supports up to 2 active custom clinic guides. Practice supports up to 30 active custom clinic guides with broader creation and adaptation.",
     ],
   },
   "/physiotherapy": {
@@ -68,25 +73,25 @@ describe("marketing FAQ accordion", () => {
       />
     );
 
-    expect(html.match(/<details\b/g)).toHaveLength(5);
-    expect(html.match(/<summary\b/g)).toHaveLength(5);
+    expect(html.match(/<details\b/g)).toHaveLength(6);
+    expect(html.match(/<summary\b/g)).toHaveLength(6);
     expect(html).not.toMatch(/<details[^>]*\sopen\b/);
     expect(html).toContain("aria-controls");
     expect(html).toContain('data-faq-position="first"');
     expect(html).toContain('data-faq-position="middle"');
     expect(html).toContain('data-faq-position="last"');
-    expect(html).toContain("Do patients need to download an app?");
+    expect(html).toContain("Do patients need an app or account?");
     expect(html).toContain(
-      "No. River Aftercare patient pages open in the browser from a link or QR code."
+      "No. Patients open their aftercare page in the browser from a durable link or QR code. No River Aftercare app or patient login is required."
     );
   });
 
   it.each(Object.entries(FAQ_EXPECTATIONS))(
-    "keeps five %s FAQ questions and representative answers in the content model",
+    "keeps the current %s FAQ questions and representative answers in the content model",
     (path, expected) => {
       const items =
         VERTICAL_LANDINGS[path as keyof typeof VERTICAL_LANDINGS].faq.items;
-      expect(items).toHaveLength(5);
+      expect(items).toHaveLength(expected.questions.length);
       expect(items.map((item) => item.question)).toEqual(expected.questions);
       const rendered = items
         .map((item) => `${item.question} ${item.answer}`)

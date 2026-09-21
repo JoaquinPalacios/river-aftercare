@@ -366,29 +366,49 @@ test.describe("premium marketing UX", () => {
     await page.goto(marketingUrl("/dental"), { waitUntil: "load" });
 
     const items = page.locator("details");
-    await expect(items).toHaveCount(5);
+    await expect(items).toHaveCount(6);
     const first = items.nth(0);
     const middle = items.nth(2);
-    const last = items.nth(4);
+    const last = items.nth(5);
 
     for (const item of [first, middle, last]) {
       const summary = item.locator("summary");
       await summary.scrollIntoViewIfNeeded();
       await summary.hover();
-      const overflow = await item.evaluate((element) => {
+      const geometry = await item.evaluate((element) => {
         const styles = getComputedStyle(element);
         const parent = element.parentElement
           ? getComputedStyle(element.parentElement)
           : null;
+        const summaryEl = element.querySelector("summary");
+        const panel = element.querySelector("summary + *");
+        const summaryStyles = summaryEl ? getComputedStyle(summaryEl) : null;
+        const panelStyles = panel ? getComputedStyle(panel) : null;
         return {
           itemOverflow: styles.overflow,
           parentOverflow: parent?.overflow ?? "",
+          itemRadius: styles.borderRadius,
+          summaryRadius: summaryStyles?.borderRadius ?? "",
+          panelPaddingTop: panelStyles
+            ? Number.parseFloat(panelStyles.paddingTop)
+            : 0,
         };
       });
-      expect(overflow.parentOverflow).not.toBe("hidden");
-      expect(overflow.itemOverflow).toBe("hidden");
+      expect(geometry.parentOverflow).not.toBe("hidden");
+      expect(geometry.itemOverflow).not.toBe("hidden");
+      expect(geometry.panelPaddingTop).toBeGreaterThanOrEqual(12);
       await summary.focus();
       await expect(summary).toBeFocused();
+      const focusGeometry = await summary.evaluate((element) => {
+        const styles = getComputedStyle(element);
+        return {
+          outlineStyle: styles.outlineStyle,
+          outlineWidth: styles.outlineWidth,
+          outlineOffset: styles.outlineOffset,
+        };
+      });
+      expect(focusGeometry.outlineStyle).not.toBe("none");
+      expect(Number.parseFloat(focusGeometry.outlineWidth)).toBeGreaterThan(0);
       const before = await item.evaluate((element) =>
         element instanceof HTMLElement ? element.offsetTop : 0
       );
@@ -403,6 +423,30 @@ test.describe("premium marketing UX", () => {
       await expect(item).toHaveJSProperty("open", false);
       await expect(summary).toBeFocused();
     }
+
+    const firstClosedRadius = await first.evaluate((element) => {
+      const summary = element.querySelector("summary");
+      return {
+        item: getComputedStyle(element).borderRadius,
+        summary: summary ? getComputedStyle(summary).borderRadius : "",
+      };
+    });
+    expect(firstClosedRadius.item.split(" ")[0]).not.toBe("0px");
+    const lastClosedRadius = await last.evaluate((element) => {
+      const summary = element.querySelector("summary");
+      return {
+        item: getComputedStyle(element).borderRadius,
+        summary: summary ? getComputedStyle(summary).borderRadius : "",
+      };
+    });
+    expect(lastClosedRadius.summary).toContain("px");
+    await last.locator("summary").focus();
+    await page.keyboard.press("Enter");
+    const lastOpenRadius = await last.evaluate((element) => {
+      const summary = element.querySelector("summary");
+      return summary ? getComputedStyle(summary).borderRadius : "";
+    });
+    expect(lastOpenRadius.startsWith("0px")).toBe(true);
   });
 
   test("about page uses editorial modules and the standard demo CTA", async ({
@@ -1222,7 +1266,7 @@ test.describe("premium marketing UX", () => {
     await expect(solutionSection.locator('[class*="eyebrow"]')).toHaveCount(0);
     const workflowSection = page
       .getByRole("heading", {
-        name: "From approved instructions to a page patients can keep",
+        name: "From approved instructions to a page patients can revisit",
       })
       .locator("xpath=ancestor::section[1]");
     await expect(workflowSection.locator('[class*="eyebrow"]')).toHaveCount(0);
