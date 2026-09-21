@@ -141,4 +141,56 @@ test.describe("webmanifest static asset routing", () => {
     const manifest = await page.request.get(marketingUrl(MANIFEST_PATH));
     expect(manifest.status()).toBe(200);
   });
+
+  test("Chromium network for marketing home and patient guide has no manifest 404", async ({
+    page,
+  }) => {
+    const manifestFailures: string[] = [];
+    const rewriteHeaders: string[] = [];
+    const faviconFailures: string[] = [];
+    const assetConsole: string[] = [];
+
+    page.on("response", (response) => {
+      const url = response.url();
+      const headers = response.headers();
+      const rewrite =
+        headers["x-middleware-rewrite"] ??
+        headers["x-nextjs-rewrite"] ??
+        headers["x-matched-path"] ??
+        "";
+      if (url.includes("site.webmanifest") && rewrite) {
+        rewriteHeaders.push(`${url} ${rewrite}`);
+      }
+      if (url.includes("site.webmanifest") && response.status() >= 400) {
+        manifestFailures.push(`${response.status()} ${url}`);
+      }
+      if (
+        (url.includes("/favicons/") || url.endsWith("/favicon.ico")) &&
+        url.includes("site.webmanifest") === false &&
+        response.status() >= 400 &&
+        !url.endsWith("/favicon.ico")
+      ) {
+        faviconFailures.push(`${response.status()} ${url}`);
+      }
+    });
+    page.on("console", (message) => {
+      if (message.type() !== "error") {
+        return;
+      }
+      const text = message.text();
+      if (/webmanifest|favicon/i.test(text)) {
+        assetConsole.push(text);
+      }
+    });
+
+    await page.goto(marketingUrl("/"), { waitUntil: "load" });
+    await page.goto(tenantUrl(DEMO_TENANT_SLUG, "/extraction"), {
+      waitUntil: "load",
+    });
+
+    expect(manifestFailures).toEqual([]);
+    expect(rewriteHeaders).toEqual([]);
+    expect(faviconFailures).toEqual([]);
+    expect(assetConsole).toEqual([]);
+  });
 });
