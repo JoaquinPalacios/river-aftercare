@@ -88,7 +88,7 @@ test.describe("marketing reveal hydration", () => {
     const hydration = collectHydrationErrors(page);
     await page.emulateMedia({ reducedMotion: "reduce" });
 
-    for (const pathname of ["/", "/pricing", "/dental"]) {
+    for (const pathname of ["/", "/clinics", "/pricing", "/dental"]) {
       await page.goto(marketingUrl(pathname), { waitUntil: "load" });
       await expect
         .poll(async () =>

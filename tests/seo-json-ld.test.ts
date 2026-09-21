@@ -225,7 +225,7 @@ describe("marketing JSON-LD", () => {
     expect(page?.["@type"]).toBe("WebPage");
     expect(page?.url).toBe("https://example.test/clinics");
     expect(page?.name).toBe(
-      "Patient Aftercare Software for Clinics & Practices | River Aftercare"
+      "Patient Aftercare for Treatment-Based Clinics | River Aftercare"
     );
     expect(page?.mainEntity).toEqual({
       "@id": "https://example.test/#application",

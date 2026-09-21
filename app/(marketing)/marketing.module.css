@@ -4191,8 +4191,19 @@ html[data-theme-mode="dark"] .wordmarkName {
   font-size: 0.86rem;
 }
 
-.clinicsHubPlatform {
-  max-width: 48rem;
+.clinicsHubPlatform > [data-mk-section] {
+  display: grid;
+  gap: var(--mk-heading-intro-gap);
+}
+
+.clinicsHubPlatformIntro,
+.clinicsHubPlatformBody {
+  min-width: 0;
+}
+
+.clinicsHubPlatformBody .copy {
+  margin: 0;
+  max-width: 40rem;
 }
 
 .clinicsHubDiscovery {
@@ -4365,7 +4376,6 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .clinicsHubOther {
-  max-width: 40rem;
   padding: 1.35rem 1.35rem 1.4rem;
   border: 1px solid color-mix(in srgb, var(--mk-brand) 18%, var(--mk-line));
   border-radius: 1.15rem;
@@ -4376,8 +4386,71 @@ html[data-theme-mode="dark"] .wordmarkName {
   );
 }
 
-.clinicsHubOther .actions {
-  margin-top: 1rem;
+.clinicsHubOther > [data-mk-section] {
+  display: grid;
+  grid-template-areas:
+    "intro"
+    "fit"
+    "cta";
+  gap: 0;
+}
+
+.clinicsHubOtherIntro {
+  grid-area: intro;
+  min-width: 0;
+}
+
+.clinicsHubOtherFit {
+  grid-area: fit;
+  min-width: 0;
+  margin-top: var(--mk-heading-intro-gap);
+  padding-top: var(--mk-heading-intro-gap);
+  border-top: 1px solid color-mix(in srgb, var(--mk-brand) 18%, var(--mk-line));
+}
+
+.clinicsHubOtherCta {
+  grid-area: cta;
+  min-width: 0;
+  margin-top: var(--mk-heading-intro-gap);
+}
+
+.clinicsHubOtherCta .actions {
+  margin-top: 0;
+}
+
+.clinicsHubOtherFitLabel {
+  margin: 0 0 var(--mk-body-gap);
+  color: var(--mk-ink);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.clinicsHubOtherFitList {
+  display: grid;
+  gap: var(--mk-body-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clinicsHubOtherFitList li {
+  position: relative;
+  padding-left: 0.95rem;
+  color: var(--mk-muted);
+  font-size: 1.02rem;
+  line-height: 1.45;
+}
+
+.clinicsHubOtherFitList li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 50%;
+  background: var(--mk-brand);
 }
 
 .verticalBand {
@@ -5652,6 +5725,35 @@ html[data-theme-mode="dark"] .wordmarkName {
     grid-template-columns: minmax(0, 1.05fr) minmax(18rem, 0.92fr);
     column-gap: 3.2rem;
     align-items: center;
+  }
+
+  .clinicsHubPlatform > [data-mk-section] {
+    grid-template-columns: minmax(0, 1.35fr) minmax(16rem, 1fr);
+    column-gap: 2.75rem;
+    align-items: start;
+  }
+
+  .clinicsHubOther > [data-mk-section] {
+    grid-template-columns: minmax(0, 1.35fr) minmax(16rem, 1fr);
+    grid-template-areas:
+      "intro fit"
+      "cta fit";
+    column-gap: 2.75rem;
+    row-gap: var(--mk-body-gap);
+    align-items: start;
+  }
+
+  .clinicsHubOtherFit {
+    margin-top: 0;
+    padding-top: 0.15rem;
+    padding-left: var(--mk-heading-intro-gap);
+    border-top: 0;
+    border-left: 1px solid
+      color-mix(in srgb, var(--mk-brand) 18%, var(--mk-line));
+  }
+
+  .clinicsHubOtherCta {
+    margin-top: 0;
   }
 
   .clinicsHubGrid {
