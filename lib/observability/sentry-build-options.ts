@@ -47,7 +47,7 @@ export function createSentryBuildOptions(env: Env = process.env) {
       excludeReplayIframe: true,
       excludeReplayWorker: true,
     },
-    routeManifestInjection: false,
+    routeManifestInjection: false as const,
     errorHandler() {
       // Source-map upload or Sentry CLI failure must never fail the app build.
     },

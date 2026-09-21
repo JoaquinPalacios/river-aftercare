@@ -45,7 +45,8 @@ describe("Sentry error tracking source boundary", () => {
     expect(existsSync("sentry.edge.config.ts")).toBe(false);
     const source = readFileSync("instrumentation-client.ts", "utf8");
     expect(source).toContain("initClientErrorTracking");
-    expect(source).not.toContain("captureRouterTransitionStart");
+    expect(source).toContain("onRouterTransitionStart");
+    expect(source).toContain("captureRouterTransitionStart");
     expect(source).not.toContain("replayIntegration");
   });
 
@@ -99,8 +100,8 @@ describe("Sentry error tracking source boundary", () => {
   it("wraps next.config for optional source maps without requiring secrets", () => {
     const source = readFileSync("next.config.ts", "utf8");
     expect(source).toContain("withSentryConfig");
+    expect(source).toContain("@sentry/nextjs/config");
     expect(source).toContain("createSentryBuildOptions");
-    expect(source).toContain('"@sentry/nextjs"');
   });
 
   it("registers Node server instrumentation only", () => {
