@@ -91,10 +91,12 @@ describe("product brand assets", () => {
       readFileSync(publicPath(PRODUCT_WEB_MANIFEST_SRC), "utf8")
     ) as {
       name: string;
+      short_name: string;
       icons: { src: string }[];
     };
 
     expect(manifest.name).toBe("River Aftercare");
+    expect(manifest.short_name).toBe("River Aftercare");
     expect(manifest.icons.map((icon) => icon.src)).toEqual([
       PRODUCT_ANDROID_CHROME_192_SRC,
       PRODUCT_ANDROID_CHROME_512_SRC,

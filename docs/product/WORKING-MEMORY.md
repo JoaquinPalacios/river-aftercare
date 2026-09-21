@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-21 (Vitest DB tests must not assert global table counts)
+Last updated: 2026-09-21 (proxy matcher excludes `.webmanifest` static files)
 
 ## Durable production release rule
 
@@ -164,7 +164,7 @@ Hostname tenant resolution. No branded patient UI.
 | Internal routes | `app/%5Fsites/[tenant]/**` (URL `/_sites/<slug>/…`, blocked from the public Host)                |
 | Tenant check    | `requireTenantClinic` → `getClinicBySlug` → `notFound()`                                         |
 
-Local URLs: `localhost:3000` is the public marketing homepage. `app.localhost:3000` stays staff/parked. `demodental.localhost:3000` rewrites internally. `unknown.localhost:3000` is a generic 404. Tenant hosts block `/login`, `/dashboard`, `/sessions`, `/session`, `/display`, `/api/auth`. Direct `/_sites` and `/_marketing` are 404.
+Local URLs: `localhost:3000` is the public marketing homepage. `app.localhost:3000` stays staff/parked. `demodental.localhost:3000` rewrites internally. `unknown.localhost:3000` is a generic 404. Tenant hosts block `/login`, `/dashboard`, `/sessions`, `/session`, `/display`, `/api/auth`. Direct `/_sites` and `/_marketing` are 404. The proxy matcher excludes `_next/static`, `_next/image`, root `favicon.ico`, and static extensions `svg|png|jpg|jpeg|gif|webp|ico|webmanifest` so `public/favicons/site.webmanifest` is not rewritten to `/_marketing/...` or `/_sites/<slug>/...`. Do not add a one-off pathname for that file. Dynamic per-clinic manifests stay out of scope.
 
 Internal aftercare files now live at `app/(aftercare)/%5Fsites/[tenant]`. Public rewrite target remains `/_sites/<slug>/…`. The marketing homepage rewrites to `/_marketing`.
 
