@@ -7,7 +7,7 @@ import { PracticeContact } from "@/app/(aftercare)/components/practice-contact";
 import { PracticeHeader } from "@/app/(aftercare)/components/practice-header";
 import { canRenderPatientAftercareDisclaimer } from "@/lib/aftercare/patient-aftercare-disclaimer";
 import {
-  hasPracticeContact,
+  hasRenderedWebPracticeContactChannel,
   type PracticeChrome,
 } from "@/lib/aftercare/practice-chrome";
 
@@ -38,7 +38,7 @@ export function PatientPage({
         {renderDisclaimer ? (
           <PatientAftercareDisclaimer
             practiceName={chrome.displayName}
-            showContactFollowUp={hasPracticeContact(chrome)}
+            showContactFollowUp={hasRenderedWebPracticeContactChannel(chrome)}
           />
         ) : null}
         <PracticeContact chrome={chrome} />

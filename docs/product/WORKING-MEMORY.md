@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-20 (patient aftercare disclaimer on real-clinic published guides)
+Last updated: 2026-09-21 (patient disclaimer contact sentence matches rendered channels)
 
 ## Durable production release rule
 
@@ -37,7 +37,7 @@ Canonical detail: [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READI
 
 ## Durable first-client clinical governance rule
 
-First paying clinic uses **Model B**: clinic-supplied / clinic-approved content. River Aftercare is the publishing platform. Canonical sample templates are explicit (`GuideTemplate.isSample`); review metadata cannot make them generally available. Real-clinic publish stores a fresh practice attestation on each immutable `PracticeGuideRevision`. That is not River Aftercare clinical approval. Demo publication must not fabricate attestation. Patient pages must not show attestation identity or `MedicalWebPage` / `reviewedBy`. Real-clinic published guides, print, and authenticated preview show a platform **About this guide** disclaimer (`PatientAftercareDisclaimer`); `demodental` keeps separate sample messaging and does not receive it.
+First paying clinic uses **Model B**: clinic-supplied / clinic-approved content. River Aftercare is the publishing platform. Canonical sample templates are explicit (`GuideTemplate.isSample`); review metadata cannot make them generally available. Real-clinic publish stores a fresh practice attestation on each immutable `PracticeGuideRevision`. That is not River Aftercare clinical approval. Demo publication must not fabricate attestation. Patient pages must not show attestation identity or `MedicalWebPage` / `reviewedBy`. Real-clinic published guides, print, and authenticated preview show a platform **About this guide** disclaimer (`PatientAftercareDisclaimer`); the “details below” sentence follows only a rendered contact channel (web: phone or contact URL; print: phone or address). `demodental` keeps separate sample messaging and does not receive it.
 
 Canonical detail: [ADR 0026](../adr/0026-first-client-clinic-supplied-governance.md), [../architecture/CLINIC-PORTAL.md](../architecture/CLINIC-PORTAL.md).
 

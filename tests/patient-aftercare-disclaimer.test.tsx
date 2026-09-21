@@ -46,6 +46,18 @@ const GUIDE_SECTIONS = [
   },
 ];
 
+const EMPTY_CONTACT: Partial<PracticeChromeProfile> = {
+  phone: null,
+  contactUrl: null,
+  emergencyInstructions: null,
+  bookingUrl: null,
+  addressLine1: null,
+  addressLine2: null,
+  city: null,
+  region: null,
+  postalCode: null,
+};
+
 function realChrome(
   profile: Partial<PracticeChromeProfile> | null = REAL_PROFILE
 ) {
@@ -181,14 +193,7 @@ describe("PatientPage disclaimer placement", () => {
 
   it("omits the contact follow-up when a real clinic has no usable contact details", () => {
     const html = renderToStaticMarkup(
-      <PatientPage
-        chrome={realChrome({
-          phone: null,
-          contactUrl: null,
-          emergencyInstructions: null,
-        })}
-        showAftercareDisclaimer
-      >
+      <PatientPage chrome={realChrome(EMPTY_CONTACT)} showAftercareDisclaimer>
         <p>Guide body from the clinic.</p>
       </PatientPage>
     );
@@ -197,6 +202,74 @@ describe("PatientPage disclaimer placement", () => {
     expect(html).not.toContain(PATIENT_AFTERCARE_DISCLAIMER_CONTACT_FOLLOW_UP);
     expect(html).not.toContain("Contact Harbor Family Dental");
     expect(html).not.toContain("Questions about your recovery?");
+  });
+
+  it("includes the web contact sentence for phone-only and contact-URL-only clinics", () => {
+    const phoneOnly = renderToStaticMarkup(
+      <PatientPage
+        chrome={realChrome({ ...EMPTY_CONTACT, phone: "03 5550 0199" })}
+        showAftercareDisclaimer
+      >
+        <p>Guide body from the clinic.</p>
+      </PatientPage>
+    );
+    expect(phoneOnly).toContain(EXPECTED_WITH_CONTACT);
+    expect(phoneOnly).toContain("Call Harbor Family Dental");
+    expect(phoneOnly).not.toContain("Practice contact page");
+
+    const urlOnly = renderToStaticMarkup(
+      <PatientPage
+        chrome={realChrome({
+          ...EMPTY_CONTACT,
+          contactUrl: "https://www.example.com/harbor-family-dental/contact",
+        })}
+        showAftercareDisclaimer
+      >
+        <p>Guide body from the clinic.</p>
+      </PatientPage>
+    );
+    expect(urlOnly).toContain(EXPECTED_WITH_CONTACT);
+    expect(urlOnly).toContain("Practice contact page");
+    expect(urlOnly).not.toContain("Call Harbor Family Dental");
+  });
+
+  it("omits the web contact sentence for address-only and emergency-only clinics", () => {
+    const addressOnly = renderToStaticMarkup(
+      <PatientPage
+        chrome={realChrome({
+          ...EMPTY_CONTACT,
+          addressLine1: "12 Harbor Street",
+          city: "Sydney",
+        })}
+        showAftercareDisclaimer
+      >
+        <p>Guide body from the clinic.</p>
+      </PatientPage>
+    );
+    expect(addressOnly).toContain(EXPECTED_WITHOUT_CONTACT);
+    expect(addressOnly).not.toContain(
+      PATIENT_AFTERCARE_DISCLAIMER_CONTACT_FOLLOW_UP
+    );
+    expect(addressOnly).not.toContain("12 Harbor Street");
+    expect(addressOnly).toContain("Contact Harbor Family Dental");
+
+    const emergencyOnly = renderToStaticMarkup(
+      <PatientPage
+        chrome={realChrome({
+          ...EMPTY_CONTACT,
+          emergencyInstructions: "Call if swelling worsens.",
+        })}
+        showAftercareDisclaimer
+      >
+        <p>Guide body from the clinic.</p>
+      </PatientPage>
+    );
+    expect(emergencyOnly).toContain(EXPECTED_WITHOUT_CONTACT);
+    expect(emergencyOnly).not.toContain(
+      PATIENT_AFTERCARE_DISCLAIMER_CONTACT_FOLLOW_UP
+    );
+    expect(emergencyOnly).toContain("If you need urgent help");
+    expect(emergencyOnly).toContain("Call if swelling worsens.");
   });
 
   it("does not stack the real-clinic disclaimer on demodental sample messaging", () => {
@@ -272,5 +345,71 @@ describe("printable guide disclaimer", () => {
     expect(html).not.toContain(PATIENT_AFTERCARE_DISCLAIMER_HEADING);
     expect(html).not.toContain("This aftercare information is provided by");
     expect(html).toContain("Contact Riverside Dental Demo");
+  });
+
+  it("includes the print contact sentence for address-only clinics because print shows the address", () => {
+    const html = renderToStaticMarkup(
+      <PrintableGuide
+        chrome={realChrome({
+          ...EMPTY_CONTACT,
+          addressLine1: "12 Harbor Street",
+          city: "Sydney",
+        })}
+        procedureTitle="Tooth Extraction"
+        instructionsLabel="Aftercare instructions"
+        sections={GUIDE_SECTIONS}
+        showDemoSample={false}
+        guideHref="/extraction"
+      />
+    );
+
+    expect(html).toContain(EXPECTED_WITH_CONTACT);
+    expect(html).toContain("12 Harbor Street, Sydney");
+    expect(html.indexOf(PATIENT_AFTERCARE_DISCLAIMER_HEADING)).toBeLessThan(
+      html.indexOf("12 Harbor Street, Sydney")
+    );
+    expect(html).not.toContain("Phone ");
+    expect(html).not.toContain("SAMPLE / NOT CLINICAL ADVICE");
+  });
+
+  it("omits the print contact sentence when print shows emergency copy but no phone or address", () => {
+    const html = renderToStaticMarkup(
+      <PrintableGuide
+        chrome={realChrome({
+          ...EMPTY_CONTACT,
+          emergencyInstructions: "Call if swelling worsens.",
+        })}
+        procedureTitle="Tooth Extraction"
+        instructionsLabel="Aftercare instructions"
+        sections={GUIDE_SECTIONS}
+        showDemoSample={false}
+        guideHref="/extraction"
+      />
+    );
+
+    expect(html).toContain(EXPECTED_WITHOUT_CONTACT);
+    expect(html).not.toContain(PATIENT_AFTERCARE_DISCLAIMER_CONTACT_FOLLOW_UP);
+    expect(html).toContain("If you need urgent help");
+  });
+
+  it("omits the print contact sentence for contact-URL-only clinics because print does not show the URL", () => {
+    const html = renderToStaticMarkup(
+      <PrintableGuide
+        chrome={realChrome({
+          ...EMPTY_CONTACT,
+          contactUrl: "https://www.example.com/harbor-family-dental/contact",
+        })}
+        procedureTitle="Tooth Extraction"
+        instructionsLabel="Aftercare instructions"
+        sections={GUIDE_SECTIONS}
+        showDemoSample={false}
+        guideHref="/extraction"
+      />
+    );
+
+    expect(html).toContain(EXPECTED_WITHOUT_CONTACT);
+    expect(html).not.toContain(PATIENT_AFTERCARE_DISCLAIMER_CONTACT_FOLLOW_UP);
+    expect(html).not.toContain("Practice contact page");
+    expect(html).toContain("Contact Harbor Family Dental");
   });
 });

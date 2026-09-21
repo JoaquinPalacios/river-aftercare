@@ -6,6 +6,7 @@ import { DEMO_PRINT_SAMPLE_NOTICE } from "@/lib/aftercare/demo-tenant";
 import { canRenderPatientAftercareDisclaimer } from "@/lib/aftercare/patient-aftercare-disclaimer";
 import {
   hasPracticeContact,
+  hasRenderedPrintPracticeContactDetails,
   type PracticeChrome,
 } from "@/lib/aftercare/practice-chrome";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
@@ -72,7 +73,7 @@ export function PrintableGuide({
       }) ? (
         <PatientAftercareDisclaimer
           practiceName={chrome.displayName}
-          showContactFollowUp={hasPracticeContact(chrome)}
+          showContactFollowUp={hasRenderedPrintPracticeContactDetails(chrome)}
         />
       ) : null}
       <PrintPracticeDetails chrome={chrome} />

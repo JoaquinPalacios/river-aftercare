@@ -90,6 +90,28 @@ export function hasPracticeContact(chrome: PracticeChrome): boolean {
   );
 }
 
+/**
+ * Phone or contact-page link actually rendered by `PracticeContact`.
+ * Web does not show address. Emergency copy is clinic-authored urgent
+ * guidance, not a practice contact channel.
+ */
+export function hasRenderedWebPracticeContactChannel(
+  chrome: PracticeChrome
+): boolean {
+  return Boolean(chrome.phoneHref || chrome.contactHref);
+}
+
+/**
+ * Phone or address actually rendered in the print contact block.
+ * Print does not emit the contact URL. Emergency copy is not a contact
+ * channel.
+ */
+export function hasRenderedPrintPracticeContactDetails(
+  chrome: PracticeChrome
+): boolean {
+  return Boolean(chrome.phoneDisplay || chrome.addressText);
+}
+
 export function formatPracticeAddress(
   profile: PracticeChromeProfile | null | undefined
 ): string | null {

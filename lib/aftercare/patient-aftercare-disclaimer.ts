@@ -11,11 +11,13 @@
  * React text node so it stays escaped. If it is empty after trim, omit the
  * disclaimer rather than producing ungrammatical copy.
  *
- * Contact follow-up is truthful only when PracticeContact (or print contact)
- * will actually render. Publication does not currently require a phone,
- * contact URL, email, address, or emergencyInstructions — those are setup
- * checklist items, not publish gates. `contactEmail` is stored but not shown
- * on patient pages.
+ * Contact follow-up is truthful only when the following surface actually
+ * renders a practice contact channel:
+ * web uses phone or contact URL (`hasRenderedWebPracticeContactChannel`);
+ * print uses phone or address (`hasRenderedPrintPracticeContactDetails`).
+ * Address is not shown on web. Emergency copy is not a contact channel.
+ * `contactEmail` is stored but not shown on patient pages. Publication does
+ * not require any contact method.
  */
 
 export const PATIENT_AFTERCARE_DISCLAIMER_HEADING = "About this guide";
