@@ -251,7 +251,7 @@ See [TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md).
 
 ## Operator clinic invitations
 
-Operator-managed clinic provisioning. Clinic ADMIN/STAFF cannot invite. There is no clinic-admin Team self-service in this change.
+Operator Team remains the full provisioning surface (invite, resend, cancel, role change, remove, restore). Clinic ADMIN can also send an invitation from Practice → Members. Clinic STAFF cannot. There is still no clinic-admin resend, cancel, role change, or remove. Seat allowances are not enforced.
 
 ```text
 Operator creates clinic
@@ -370,9 +370,14 @@ To work inside the clinic portal (Overview / Guides / Practice), an operator sub
 
 Operators must not set another user's password. Password recovery stays on forgot/reset or invitation resend.
 
+Practice → Members shows **Invite member** to a clinic ADMIN and to an operator who is assisting that clinic. The clinic id comes from the authorized session, not the form. `authorizeClinicMemberInvite` returns `clinic_admin` or `platform_operator`. Operator support is the platform-operator branch even though the portal context is synthesized as ADMIN; inviting does not create a `ClinicMembership` for the operator. While assisting, **Manage team** links to the existing operator Team page for pending invitations, resend, cancel, role changes, and remove. Clinic STAFF cannot open Practice and cannot invite.
+
+Plan limits (Essential 2, Practice 5, pending invitations reserving a seat, operator override) are not enforced. When they are, the check belongs in `decideClinicMemberInvite` / `authorizeClinicMemberInvite`: clinic administrators follow the allowance, and a platform operator passes an explicit override on the `platform_operator` branch. `inviteClinicUser` stays the shared creation path and does not know about plans.
+
 ## Not yet implemented
 
-- clinic ADMIN / STAFF inviting users
+- clinic STAFF inviting users
+- clinic ADMIN resend, cancel, role change, and remove (operator Team only)
 - last-admin protection (revisit when clinic-admin Team self-service ships; operator retains platform control)
 - multi-clinic picker
 - global account disable

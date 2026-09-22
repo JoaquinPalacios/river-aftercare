@@ -35,17 +35,17 @@ Contact already keeps the baseline: server Zod validation, honeypot (`website`),
 
 ### Team / Users
 
-**Operator-managed invitations are implemented** (Operator → Clinics → Team). Do **not** implement clinic-admin Team self-service or seat enforcement from this note.
+**Operator-managed invitations are implemented** (Operator → Clinics → Team). Clinic ADMIN can send an invitation from Practice → Members. Do **not** implement clinic-admin resend, cancel, role change, remove, or seat enforcement from this note.
 
 Later portal capability:
 
-- clinic ADMIN inviting users
 - clinic STAFF must not invite
-- last-admin protection when clinic-admin Team self-service exists
-- seat-limit enforcement
+- clinic ADMIN resend, cancel, role change, and remove
+- last-admin protection when that clinic-admin Team management exists
+- seat-limit enforcement, with an explicit platform-operator allowance override
 - transfer admin
 
-**Operator ADMIN ↔ STAFF role change after invite is implemented** on operator Team. Do **not** add last-admin protection, self-demotion rules, or clinic-admin Team management from this note.
+**Operator ADMIN ↔ STAFF role change after invite is implemented** on operator Team. Do **not** add last-admin protection, self-demotion rules, or clinic-admin Team management beyond Practice invite from this note.
 
 Provisional named-seat policy (documentation only, not billed or enforced):
 

@@ -1829,11 +1829,20 @@ a.staffOverflowItem {
   }
 }
 
+.staffPracticePage {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: 64rem;
+  margin-inline: auto;
+  flex-direction: column;
+  gap: 2rem;
+}
+
 .staffPracticeHeader {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin-bottom: 2.25rem;
 }
 
 .staffPracticeSave {

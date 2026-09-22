@@ -13,6 +13,7 @@ const SERVER_ONLY_FILES = [
   "lib/auth/operator-support-clinic.ts",
   "lib/clinic-portal/update-clinic-membership-status.ts",
   "lib/clinic-portal/list-practice-members.ts",
+  "lib/clinic-portal/authorize-clinic-member-invite.ts",
   "lib/auth/request-password-reset.ts",
   "lib/auth/reset-password.ts",
   "lib/auth/request-email-change.ts",
@@ -76,7 +77,7 @@ function walk(directory: string): string[] {
 }
 
 describe("account lifecycle invitation boundary", () => {
-  it("adds operator invitation UI without clinic-admin Team permissions", () => {
+  it("keeps clinic-portal invites on the shared invitation service", () => {
     expect(existsSync("app/(staff)/accept-invitation")).toBe(true);
     expect(existsSync("app/api/auth/accept-invitation")).toBe(true);
     expect(existsSync("app/(staff)/confirm-email-change")).toBe(true);
@@ -90,11 +91,28 @@ describe("account lifecycle invitation boundary", () => {
     const clinicPortal = walk("app/(staff)/(clinic-portal)").filter((path) =>
       /\.(ts|tsx)$/.test(path)
     );
+    const practiceInvite = readFileSync(
+      "app/(staff)/(clinic-portal)/practice/membership-actions.ts",
+      "utf8"
+    );
+    expect(practiceInvite).toContain("inviteClinicUser");
+    expect(practiceInvite).toContain("authorizeClinicMemberInvite");
+    expect(practiceInvite).not.toContain('formData.get("clinicId")');
+    expect(practiceInvite).not.toContain('formData.get("platformRole")');
+    expect(practiceInvite).not.toContain("createInvitationToken");
+    expect(practiceInvite).not.toContain("CommercialPlan");
+    expect(practiceInvite).not.toContain("stripe");
+
     for (const file of clinicPortal) {
       const source = readFileSync(file, "utf8");
-      expect(source, file).not.toContain("inviteClinicUser");
-      expect(source, file).not.toContain("Invite user");
       expect(source, file).not.toContain("createInvitationToken");
+      expect(source, file).not.toContain("resendClinicInvitation");
+      expect(source, file).not.toContain("cancelClinicInvitation");
+      expect(source, file).not.toContain("removeClinicAccess");
+      expect(source, file).not.toContain("changeClinicMembershipRole");
+      if (!file.endsWith("practice/membership-actions.ts")) {
+        expect(source, file).not.toContain("inviteClinicUser");
+      }
     }
   });
 

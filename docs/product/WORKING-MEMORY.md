@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-21 (Stripe Billing Phase 2 customer Checkout)
+Last updated: 2026-09-22 (Practice member invite; seat limits still not enforced)
 
 ## Durable production release rule
 
@@ -1728,7 +1728,7 @@ Replaces the 19 September 2026 `/terms` invoice/bank-transfer description with l
 
 ## Operator clinic invitations (2026-09-19)
 
-Operator-managed clinic provisioning. Live after PR #51. No new Prisma migration. Clinic ADMIN/STAFF cannot invite.
+Operator-managed clinic provisioning. Live after PR #51. No new Prisma migration. Historical: this note said clinic ADMIN/STAFF cannot invite. Clinic ADMIN invite from Practice was added 2026-09-22; STAFF still cannot invite. See the later Practice member invite note.
 
 | Area            | Behaviour                                                                                                                                                                                                                                                                                                    |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -2099,4 +2099,19 @@ Demo-approved Checkout only. Not public self-service. Do not merge or deploy fro
 | Checkout   | Server action `continueToSecurePaymentAction`. Session clinic only. Price from server plan + interval. Customer idempotency `river-customer-${clinicId}`. Session reuses an open matching Price or expires a mismatch. Methods `card` and `au_becs_debit`. No tax.                                              |
 | Return     | `/account/billing/complete` never activates. ACTIVE copy, or “Payment processing” while `PAYMENT_PENDING` (including BECS before `invoice.paid`). Polls `GET /api/billing/status` up to 15 times, every 8 seconds, then tells the customer they can close the page. Cancel returns to setup with saved details. |
 | Activation | Still only the Phase 1 webhook projection, chiefly `invoice.paid`. Practice active state shows a lightweight assisted-setup cue. No CRM, calendar, or SLA.                                                                                                                                                      |
-| Deferred   | Customer Portal, invoices, payment-method edit, cancel, upgrade/downgrade, guide/seat limits, past-due lockout, 60-day takedown, Buy now, Group Checkout, GST.                                                                                                                                                  |
+| Deferred   | Customer Portal, invoices, payment-method edit, cancel, upgrade/downgrade, guide/seat limits, past-due lockout, 60-day takedown, Buy now, Group Checkout, GST. Seat allowances are still not enforced.                                                                                                          |
+
+---
+
+## Practice member invite (2026-09-22)
+
+The missing Add / Invite control on Practice → Members was already true on `main`. Invitations lived only on operator Team. PR #85 did not remove them. Seat limits were not the cause.
+
+| Area         | Behaviour                                                                                                                                                                                                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Clinic ADMIN | Practice → Members → Invite member. Administrator or Staff only. Same `inviteClinicUser` path. Cannot create a platform operator. Cannot resend, cancel, change role, or remove.                                                                                       |
+| STAFF        | Cannot open Practice and cannot invite.                                                                                                                                                                                                                                |
+| Operator     | While assisting, the same Invite member form. Authorized as `platform_operator` via `authorizeClinicMemberInvite`, not by the synthesized ADMIN membership. Does not create a ClinicMembership for the operator. Manage team links to the existing operator Team page. |
+| Clinic id    | Session clinic only. A posted clinic id is ignored.                                                                                                                                                                                                                    |
+| Limits       | Essential 2 and Practice 5 are not enforced. Do not show “seats used”. Future allowance checks belong on `decideClinicMemberInvite`: clinic admins follow the plan; an explicit operator override belongs on the `platform_operator` branch.                           |
+| Billing      | Inviting does not change Stripe, Checkout, webhooks, or entitlement rows.                                                                                                                                                                                              |

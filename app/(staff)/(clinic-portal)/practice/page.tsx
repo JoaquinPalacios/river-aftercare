@@ -31,8 +31,10 @@ export default async function PracticePage() {
     notFound();
   }
 
+  const assisting = clinicMembership.source === "operator_support";
+
   return (
-    <div className="mx-auto min-w-0 w-full max-w-5xl">
+    <div className="staffPracticePage">
       <header className="staffPracticeHeader">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
           Practice
@@ -48,11 +50,18 @@ export default async function PracticePage() {
       <PracticeMembersSection
         clinicName={overview.displayName}
         rows={members}
+        canInvite={
+          assisting || clinicMembership.role === ClinicMembershipRole.ADMIN
+        }
+        operatorTeamHref={
+          assisting
+            ? `/operator/clinics/${clinicMembership.clinic.id}/team`
+            : null
+        }
       />
       <PracticeSettingsForm
         canEdit={
-          clinicMembership.source === "operator_support" ||
-          clinicMembership.role === ClinicMembershipRole.ADMIN
+          assisting || clinicMembership.role === ClinicMembershipRole.ADMIN
         }
         patientSiteHref={overview.patientSiteHref}
         storageAvailable={isClinicAssetStorageConfigured()}
