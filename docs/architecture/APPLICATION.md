@@ -33,7 +33,7 @@ Business rules should not live only inside React components. Current server modu
 | Account tokens               | `lib/auth/account-token.ts`, `lib/auth/account-token-service.ts`                                                                                                          |
 | Transactional email          | `lib/email/transactional-mailer.ts`, `lib/email/auth-email.ts`, [TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md)                                                          |
 | Error tracking               | `lib/observability/*`, `instrumentation.ts`, `instrumentation-client.ts`, `sentry.server.config.ts`                                                                       |
-| Billing projection           | `lib/billing/*`, `POST /api/stripe/webhook` — test-mode Stripe event ingestion and local entitlement projection. No Checkout, Portal, or enforcement.                    |
+| Billing projection           | `lib/billing/*`, `POST /api/stripe/webhook` — test-mode Checkout, Customer Portal, and local entitlement projection. No plan-limit enforcement.                           |
 | Operator clinic queries      | `lib/operator/list-operator-clinics.ts`                                                                                                                                   |
 | Platform SEO                 | `lib/seo/*`                                                                                                                                                               |
 | Logo storage boundary        | `lib/clinic-assets/*`                                                                                                                                                     |

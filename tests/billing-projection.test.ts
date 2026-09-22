@@ -244,6 +244,95 @@ describe("entitlement projection", () => {
     expect(result.entitlement.entitlementStatus).toBe(EntitlementStatus.ACTIVE);
   });
 
+  it("removes a scheduled cancellation without ending the subscription", () => {
+    const result = project({
+      eventType: "customer.subscription.updated",
+      subscriptionStatus: "active",
+      cancelAtPeriodEnd: false,
+      previous: emptyEntitlement({
+        commercialPlan: "ESSENTIAL",
+        billingInterval: "MONTHLY",
+        billingStatus: BillingStatus.CANCEL_AT_PERIOD_END,
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        paidThrough: PERIOD_END,
+        currentPeriodEnd: PERIOD_END,
+        cancelAtPeriodEnd: true,
+      }),
+    });
+    expect(result.kind).toBe("apply");
+    if (result.kind !== "apply") {
+      return;
+    }
+    expect(result.entitlement.billingStatus).toBe(BillingStatus.ACTIVE);
+    expect(result.entitlement.entitlementStatus).toBe(EntitlementStatus.ACTIVE);
+    expect(result.entitlement.cancelAtPeriodEnd).toBe(false);
+    expect(result.entitlement.paidThrough).toEqual(PERIOD_END);
+    expect(result.entitlement.subscriptionEndedAt).toBeNull();
+  });
+
+  it("does not let a delayed payment failure regress a recovered active subscription", () => {
+    const result = project({
+      eventType: "invoice.payment_failed",
+      subscriptionStatus: "active",
+      previous: emptyEntitlement({
+        billingStatus: BillingStatus.ACTIVE,
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        paidThrough: PERIOD_END,
+      }),
+    });
+    expect(result.kind).toBe("apply");
+    if (result.kind !== "apply") {
+      return;
+    }
+    expect(result.entitlement.billingStatus).toBe(BillingStatus.ACTIVE);
+    expect(result.entitlement.entitlementStatus).toBe(EntitlementStatus.ACTIVE);
+  });
+
+  it("does not let a stale subscription update reopen an ended clinic", () => {
+    const retention = publicGuideRetentionUntil(PERIOD_END, PERIOD_END);
+    const result = project({
+      eventType: "customer.subscription.updated",
+      subscriptionStatus: "active",
+      previous: emptyEntitlement({
+        billingStatus: BillingStatus.ENDED,
+        entitlementStatus: EntitlementStatus.ENDED,
+        paidThrough: PERIOD_END,
+        subscriptionEndedAt: PERIOD_END,
+        publicGuideRetentionUntil: retention,
+      }),
+    });
+    expect(result.kind).toBe("apply");
+    if (result.kind !== "apply") {
+      return;
+    }
+    expect(result.entitlement.entitlementStatus).toBe(EntitlementStatus.ENDED);
+    expect(result.entitlement.publicGuideRetentionUntil).toEqual(retention);
+  });
+
+  it("maps an already-active subscription onto Practice when Stripe reports the new price", () => {
+    const result = project({
+      eventType: "customer.subscription.updated",
+      subscriptionStatus: "active",
+      stripePriceId: "price_test_practice_monthly",
+      mappedPrice: { plan: "PRACTICE", interval: "MONTHLY" },
+      previous: emptyEntitlement({
+        commercialPlan: "ESSENTIAL",
+        billingInterval: "MONTHLY",
+        billingStatus: BillingStatus.ACTIVE,
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        stripePriceId: "price_test_essential_monthly",
+        paidThrough: PERIOD_END,
+      }),
+    });
+    expect(result.kind).toBe("apply");
+    if (result.kind !== "apply") {
+      return;
+    }
+    expect(result.entitlement.commercialPlan).toBe("PRACTICE");
+    expect(result.entitlement.billingInterval).toBe("MONTHLY");
+    expect(result.entitlement.entitlementStatus).toBe(EntitlementStatus.ACTIVE);
+  });
+
   it("fails closed for an unknown clinic or unknown Price ID", () => {
     expect(project({ clinicId: null }).kind).toBe("unmapped_clinic");
     expect(

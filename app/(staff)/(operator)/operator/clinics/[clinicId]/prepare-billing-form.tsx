@@ -21,6 +21,9 @@ export function PrepareBillingForm({
   billingLabel,
   customerLinked,
   subscriptionLinked,
+  paidThroughLabel,
+  cancellationScheduled,
+  cancellationDateLabel,
 }: {
   clinicId: string;
   plan: "ESSENTIAL" | "PRACTICE" | null;
@@ -33,6 +36,9 @@ export function PrepareBillingForm({
   billingLabel: string;
   customerLinked: "Yes" | "No";
   subscriptionLinked: "Yes" | "No";
+  paidThroughLabel: string | null;
+  cancellationScheduled: "Yes" | "No";
+  cancellationDateLabel: string | null;
 }) {
   const [state, action, pending] = useActionState(
     prepareClinicBillingAction,
@@ -71,6 +77,17 @@ export function PrepareBillingForm({
         <div>
           <dt className="text-staff-muted">Stripe subscription</dt>
           <dd>{subscriptionLinked}</dd>
+        </div>
+        <div>
+          <dt className="text-staff-muted">Paid through</dt>
+          <dd>{paidThroughLabel ?? "Not available"}</dd>
+        </div>
+        <div>
+          <dt className="text-staff-muted">Cancellation scheduled</dt>
+          <dd>
+            {cancellationScheduled}
+            {cancellationDateLabel ? ` · ${cancellationDateLabel}` : ""}
+          </dd>
         </div>
       </dl>
 

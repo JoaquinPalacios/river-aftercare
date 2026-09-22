@@ -84,20 +84,35 @@ Pin the Dashboard endpoint API version to the Stripe Node SDK default for this r
 
 River activates paid entitlement from **`invoice.paid`**, after the Price ID maps to Essential or Practice, and never from Checkout completion alone.
 
-## Customer Portal — later phase (do not implement yet)
+## Customer Portal — Phase 3 (manual TEST MODE configuration)
 
-When Portal is configured later, the approved launch settings are:
+River does not create the Portal configuration. Joaquín creates one Billing Portal configuration in **TEST MODE** and stores its id in `STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID` (`bpc_...`). The app retrieves that configuration before every session and refuses to open the portal if it does not match the settings below. There is no fallback to the Stripe account default.
 
-| Capability                    | Setting                         |
-| ----------------------------- | ------------------------------- |
-| Invoice history               | Enabled                         |
-| Payment method update         | Enabled                         |
-| Cancellation                  | Enabled                         |
-| Cancellation mode             | At period end (`at_period_end`) |
-| Immediate cancellation        | Disabled                        |
-| Subscription / plan switching | **Disabled**                    |
+Do not enable the hosted portal login page. A login link would let someone reach the portal with the billing email and skip River’s clinic-admin check.
 
-Essential → Practice is immediate (proration may apply). Practice → Essential is at next renewal with entitlement-conflict checks. Do not expose generic Stripe Portal plan switching until that workflow is built deliberately.
+In Stripe Dashboard → Settings → Billing → Customer portal, create a configuration (or edit a non-default one) with:
+
+| Capability                            | Setting                                                                                                      |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Invoice history                       | Enabled                                                                                                      |
+| Payment method update                 | Enabled                                                                                                      |
+| Customer information updates          | Off, or on without **Tax ID**                                                                                |
+| Cancellation                          | Enabled                                                                                                      |
+| Cancellation mode                     | At period end (`at_period_end`)                                                                              |
+| Cancellation proration                | None (`none`). Do not use `create_prorations` or `always_invoice`.                                           |
+| Cancellation reasons                  | Optional. Collecting a reason does not change the period-end rule.                                           |
+| Subscription updates / plan switching | **Disabled**                                                                                                 |
+| Quantity / seat changes               | Disabled (they live under subscription updates)                                                              |
+| Promotion codes                       | Disabled (they live under subscription updates)                                                              |
+| Trials                                | Not offered. Do not enable subscription updates.                                                             |
+| Hosted portal login page              | **Disabled**                                                                                                 |
+| Default return URL                    | May be left blank. River sets `return_url` to the staff-host `/account/billing` when it creates the session. |
+
+Copy the configuration id into server-only `STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID`. Never prefix it with `NEXT_PUBLIC_`. Do not create this configuration in live mode as part of Phase 3.
+
+Essential → Practice is an operator action in River, not a Portal plan switch. It updates the existing subscription item to the Practice price for the current interval, with `proration_behavior=always_invoice`, `payment_behavior=pending_if_incomplete`, and `billing_cycle_anchor=unchanged`. Practice → Essential stays unavailable until guide and team limits can be checked. Monthly ↔ annual is not a self-serve or operator action in this phase.
+
+Webhook events stay the Phase 2 set. Portal cancellation, cancellation removal, payment failure, and the plan change are projected from `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, and `invoice.payment_failed`. No new event types are required. Returning from the portal does not change River entitlement; the webhook does.
 
 ## GST / tax
 

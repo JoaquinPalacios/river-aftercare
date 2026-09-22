@@ -67,7 +67,7 @@ describe("Stripe billing security boundary", () => {
     expect(example).toMatch(/Never prefix with\s*\n# NEXT_PUBLIC_/);
   });
 
-  it("keeps Checkout server-side and does not add Customer Portal", () => {
+  it("keeps Checkout and Customer Portal session creation on the server", () => {
     const featureFiles = APP_AND_LIB_TS.filter(
       (path) =>
         !path.startsWith("lib/billing/") &&
@@ -89,5 +89,13 @@ describe("Stripe billing security boundary", () => {
     const packageJson = readFileSync("package.json", "utf8");
     expect(packageJson).toContain('"stripe"');
     expect(packageJson).not.toContain("@stripe/stripe-js");
+
+    const portal = readFileSync("lib/billing/customer-portal.ts", "utf8");
+    expect(portal).toContain("billingPortal.sessions.create");
+    expect(portal).toContain("STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID");
+    const upgrade = readFileSync("lib/billing/plan-change.ts", "utf8");
+    expect(upgrade).toContain("subscriptions.update");
+    expect(upgrade).not.toContain("subscriptions.create");
+    expect(upgrade).not.toContain("checkout.sessions.create");
   });
 });

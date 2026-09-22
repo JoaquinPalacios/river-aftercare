@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { PrepareBillingForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/prepare-billing-form";
+import { UpgradePlanForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/upgrade-plan-form";
 import { startOperatorClinicSupportAction } from "@/app/(staff)/(operator)/operator/support-actions";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { loadOperatorBillingPanel } from "@/lib/billing/billing-page";
@@ -171,6 +172,15 @@ export default async function OperatorClinicDetailPage({
         billingLabel={billing.billingLabel}
         customerLinked={billing.customerLinked}
         subscriptionLinked={billing.subscriptionLinked}
+        paidThroughLabel={billing.paidThroughLabel}
+        cancellationScheduled={billing.cancellationScheduled}
+        cancellationDateLabel={billing.cancellationDateLabel}
+      />
+
+      <UpgradePlanForm
+        clinicId={clinic.id}
+        canUpgradeToPractice={billing.canUpgradeToPractice}
+        downgradeDeferred={billing.downgradeDeferred}
       />
 
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5">

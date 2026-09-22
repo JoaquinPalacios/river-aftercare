@@ -27,13 +27,15 @@ export type ClinicProductAccessDecision =
     };
 
 /**
- * Phase 2 activation gate.
+ * Product access gate.
  *
  * No entitlement row is the legacy compatibility path.
- * A billing-onboarding clinic opens product routes only while entitlement
- * is ACTIVE. Every other entitlement state stays closed. Billing status
- * chooses a recovery page and never grants product access.
- * Operator support keeps its existing exemption.
+ * A billing clinic opens product routes only while entitlement is ACTIVE.
+ * That includes a subscription Stripe is still retrying (PAST_DUE) and a
+ * cancellation scheduled for the end of the paid period. PENDING,
+ * RESTRICTED, and ENDED stay closed. Billing status chooses a recovery
+ * page and never grants product access. Account billing routes are not
+ * behind this gate. Operator support keeps its existing exemption.
  */
 export function decideClinicProductAccess(input: {
   membershipSource: "membership" | "operator_support";

@@ -50,6 +50,26 @@ describe("pre-payment activation gate", () => {
     });
   });
 
+  it("keeps product access open while a payment is retrying", () => {
+    expect(
+      decideClinicProductAccess({
+        membershipSource: "membership",
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        billingStatus: BillingStatus.PAST_DUE,
+      })
+    ).toEqual({ kind: "allow", reason: "active" });
+  });
+
+  it("keeps product access open after cancellation is scheduled", () => {
+    expect(
+      decideClinicProductAccess({
+        membershipSource: "membership",
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        billingStatus: BillingStatus.CANCEL_AT_PERIOD_END,
+      })
+    ).toEqual({ kind: "allow", reason: "active" });
+  });
+
   it("opens product access once the entitlement is active", () => {
     expect(
       decideClinicProductAccess({

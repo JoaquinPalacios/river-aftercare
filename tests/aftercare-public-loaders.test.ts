@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { GuideRevisionStatus, PracticeGuideStatus } from "@prisma/client";
+import {
+  EntitlementStatus,
+  GuideRevisionStatus,
+  PracticeGuideStatus,
+} from "@prisma/client";
 
 const prismaMock = vi.hoisted(() => ({
   clinic: { findUnique: vi.fn() },
+  clinicEntitlement: { findUnique: vi.fn() },
   practiceGuide: { findFirst: vi.fn(), findMany: vi.fn() },
 }));
 
@@ -270,6 +275,77 @@ describe("aftercare public loaders", () => {
           clinic: { slug: "missingclinic" },
         }),
       })
+    );
+  });
+
+  it("keeps a published guide available during the retention window", async () => {
+    prismaMock.practiceGuide.findFirst.mockResolvedValue(
+      publishedGuideRecord()
+    );
+    prismaMock.clinicEntitlement.findUnique.mockResolvedValue({
+      entitlementStatus: EntitlementStatus.ENDED,
+      publicGuideRetentionUntil: new Date("2099-01-01T00:00:00.000Z"),
+    });
+
+    const result = await getPublishedPracticeGuide({
+      clinicSlug: "demodental",
+      publicSlug: "extraction",
+    });
+
+    expect(result?.practiceGuide.publicSlug).toBe("extraction");
+  });
+
+  it("takes a published guide offline after retention expires", async () => {
+    prismaMock.practiceGuide.findFirst.mockResolvedValue(
+      publishedGuideRecord()
+    );
+    prismaMock.clinicEntitlement.findUnique.mockResolvedValue({
+      entitlementStatus: EntitlementStatus.ENDED,
+      publicGuideRetentionUntil: new Date("2020-01-01T00:00:00.000Z"),
+    });
+
+    await expect(
+      getPublishedPracticeGuide({
+        clinicSlug: "demodental",
+        publicSlug: "extraction",
+      })
+    ).resolves.toBeNull();
+  });
+
+  it("keeps published guides available when the clinic is restricted for non-payment", async () => {
+    prismaMock.clinic.findUnique.mockResolvedValue(CLINIC_A);
+    prismaMock.clinicEntitlement.findUnique.mockResolvedValue({
+      entitlementStatus: EntitlementStatus.RESTRICTED,
+      publicGuideRetentionUntil: null,
+    });
+    prismaMock.practiceGuide.findMany.mockResolvedValue([
+      {
+        id: "pg_extraction",
+        publicSlug: "extraction",
+        sortOrder: 1,
+        publishedAt: PUBLISHED_AT,
+        title: "Tooth Extraction",
+        guideTemplate: { title: "Tooth Extraction" },
+        contentRevisions: [],
+      },
+    ]);
+
+    const listed = await listPublishedPracticeGuides("demodental");
+    expect(listed?.guides).toHaveLength(1);
+  });
+
+  it("lists no guides after retention expires and does not publish drafts", async () => {
+    prismaMock.clinic.findUnique.mockResolvedValue(CLINIC_A);
+    prismaMock.clinicEntitlement.findUnique.mockResolvedValue({
+      entitlementStatus: EntitlementStatus.ENDED,
+      publicGuideRetentionUntil: new Date("2020-01-01T00:00:00.000Z"),
+    });
+
+    const listed = await listPublishedPracticeGuides("demodental");
+    expect(listed?.guides).toEqual([]);
+    expect(prismaMock.practiceGuide.findMany).not.toHaveBeenCalled();
+    expect(PUBLIC_PRACTICE_GUIDE_WHERE.status).toBe(
+      PracticeGuideStatus.PUBLISHED
     );
   });
 });
