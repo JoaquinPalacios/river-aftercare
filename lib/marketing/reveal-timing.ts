@@ -9,10 +9,10 @@ export const REVEAL_Y_PREVIEW = 10;
  * `lib/marketing/reveal-margin.ts` and should stay unchanged.
  */
 export const MARKETING_MOTION_TIMING = {
-  editorialDuration: 0.9,
-  editorialStagger: 0.15,
-  cardDuration: 0.8,
-  cardStagger: 0.12,
+  editorialDuration: 1.0,
+  editorialStagger: 0.152,
+  cardDuration: 0.9,
+  cardStagger: 0.13,
   cardStaggerCap: 0.4,
 } as const;
 
