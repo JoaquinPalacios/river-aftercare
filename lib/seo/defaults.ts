@@ -141,16 +141,16 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     lastModified: "2026-09-21",
   },
   "/chiropractic": {
-    seoTitle: "Chiropractic Patient Aftercare Software | River Aftercare",
+    seoTitle: "Chiropractic Aftercare Software for Practices | River Aftercare",
     metaDescription:
-      "Publish branded home-care and post-appointment guidance patients can reopen between chiropractic visits by link or QR code, with no app or login.",
-    ogTitle: "Between-visit guidance that still feels like your practice",
+      "Publish branded chiropractic home-care and post-appointment guidance patients can revisit between visits by link or QR code. No patient app or login required.",
+    ogTitle: "Chiropractic Aftercare Software for Practices | River Aftercare",
     ogDescription:
-      "Keep clinic-approved home-care and post-appointment guidance clear, branded and easy for patients to revisit.",
+      "Publish branded chiropractic home-care and post-appointment guidance patients can revisit between visits by link or QR code. No patient app or login required.",
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-09-17",
+    lastModified: "2026-09-22",
   },
   "/cosmetic-clinics": {
     seoTitle: "Cosmetic Clinic Aftercare Software | River Aftercare",

@@ -64,9 +64,15 @@ test.describe("marketing reveal sequence consistency", () => {
 
     await openWithReducedMotion(page, "/chiropractic");
     await expectRevealAncestor(
+      page.locator('p[class*="verticalBoundary"]').filter({
+        hasText:
+          "These are examples of guidance a practice may choose to publish.",
+      })
+    );
+    await expectRevealAncestor(
       page.locator('p[class*="verticalNote"]').filter({
         hasText:
-          "These are examples of guidance a practice may choose to publish, not a pre-built chiropractic template library.",
+          "Chiropractic template availability is confirmed during onboarding.",
       })
     );
 

@@ -254,6 +254,65 @@ describe("marketing SEO resolution", () => {
     );
   });
 
+  it("resolves chiropractic metadata for between-visit home-care intent", () => {
+    const chiropractic = resolveMarketingSeo({
+      path: "/chiropractic",
+      origin: "https://example.test",
+    });
+    const description =
+      "Publish branded chiropractic home-care and post-appointment guidance patients can revisit between visits by link or QR code. No patient app or login required.";
+
+    expect(chiropractic.absoluteTitle).toBe(true);
+    expect(chiropractic.title).toBe(
+      "Chiropractic Aftercare Software for Practices | River Aftercare"
+    );
+    expect(chiropractic.description).toBe(description);
+    expect(chiropractic.title).not.toBe(
+      resolveMarketingSeo({ path: "/", origin: "https://example.test" }).title
+    );
+    expect(chiropractic.title).not.toBe(
+      resolveMarketingSeo({ path: "/clinics", origin: "https://example.test" })
+        .title
+    );
+    expect(chiropractic.title).not.toBe(
+      resolveMarketingSeo({ path: "/dental", origin: "https://example.test" })
+        .title
+    );
+    expect(chiropractic.title).not.toBe(
+      resolveMarketingSeo({
+        path: "/physiotherapy",
+        origin: "https://example.test",
+      }).title
+    );
+    expect(chiropractic.description).not.toBe(
+      resolveMarketingSeo({ path: "/clinics", origin: "https://example.test" })
+        .description
+    );
+    expect(chiropractic.description).not.toBe(
+      resolveMarketingSeo({ path: "/dental", origin: "https://example.test" })
+        .description
+    );
+    expect(brandCountInTitle(chiropractic.title, "River Aftercare")).toBe(1);
+
+    const metadata = marketingSeoToMetadata(chiropractic);
+    expect(metadata.title).toEqual({
+      absolute:
+        "Chiropractic Aftercare Software for Practices | River Aftercare",
+    });
+    expect(metadata.description).toBe(description);
+    expect(metadata.robots).toEqual({ index: true, follow: true });
+    expect(metadata.alternates?.canonical).toBe(
+      "https://example.test/chiropractic"
+    );
+    expect(metadata.openGraph).toMatchObject({
+      title: "Chiropractic Aftercare Software for Practices | River Aftercare",
+      description,
+    });
+    expect(DEFAULT_MARKETING_PAGE_SEO["/chiropractic"].lastModified).toBe(
+      "2026-09-22"
+    );
+  });
+
   it("does not treat the product logo as a dedicated OG image", () => {
     expect(
       isDedicatedOgImageConfigured("/brand/river-aftercare-logo.svg")

@@ -472,7 +472,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
   hero: {
     eyebrow: `${PRODUCT_NAME} for chiropractic practices`,
     h1: "Give patients clearer guidance between chiropractic visits.",
-    body: "Publish practice-branded home-care and post-appointment guidance patients can revisit when they need it — by link or QR code, without an app or patient login.",
+    body: "Publish practice-branded home-care and post-appointment guidance patients can revisit between visits — by link or QR code, with no patient app or login.",
     primaryCtaLabel: "Request a demo",
     secondaryCta: {
       kind: "anchor",
@@ -488,15 +488,15 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
         },
         {
           title: "Practice branded",
-          body: "Your identity stays visible",
+          body: "Your logo, colours and terminology stay visible",
         },
         {
           title: "Between visits",
-          body: "A stable page patients can return to",
+          body: "Patients reopen the same durable link",
         },
         {
           title: "No app or login",
-          body: "No patient account required",
+          body: "The page opens in the browser",
         },
       ],
     },
@@ -521,30 +521,30 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
   },
   solution: {
     h2: "A consistent home for your practice's guidance",
-    body: `${PRODUCT_NAME} turns clinic-approved home-care and post-appointment information into branded web pages patients can return to between visits.`,
+    body: `${PRODUCT_NAME} turns clinic-approved home-care and post-appointment guidance into branded web pages patients can revisit from the same durable link or QR code. Your logo, colours, terminology, contact details and guidance stay together in one patient experience.`,
     benefits: [
       {
         title: "Practice branded",
-        body: "Keep your identity and contact details visible throughout the guidance.",
+        body: "Keep your logo, colours, terminology and contact details visible between visits.",
       },
       {
         title: "Easy to revisit",
-        body: "A stable URL gives patients one familiar place to return to.",
+        body: "Patients return through the same durable link or QR code whenever they need to check the guidance again.",
       },
       {
         title: "Consistent presentation",
-        body: "Use structured pages rather than rebuilding or resending the same instructions.",
+        body: "Publish from structured guidance instead of rebuilding or resending the same instructions.",
       },
       {
         title: "Clinician controlled",
-        body: "The practice remains responsible for reviewing and approving the clinical information it publishes.",
+        body: "Your practice approves what it publishes and remains responsible for its clinical content.",
       },
     ],
   },
   guidance: {
     eyebrow: "Home-care guidance",
     h2: "Publish the guidance that supports your care",
-    body: `Depending on the services your practice provides and the content your clinicians approve, ${PRODUCT_NAME} can provide a branded place for written guidance such as:`,
+    body: `Depending on your practice's services and approved content, ${PRODUCT_NAME} can publish written guidance such as:`,
     items: [
       "post-appointment care",
       "home-care instructions",
@@ -553,26 +553,28 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       "posture or everyday activity information",
       "clinic contact and escalation information",
     ],
-    note: "These are examples of guidance a practice may choose to publish, not a pre-built chiropractic template library. Clinical content remains clinic-approved.",
+    boundary:
+      "These are examples of guidance a practice may choose to publish. Clinical content remains practice-approved.",
+    note: `Essential includes available ${PRODUCT_NAME} templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Chiropractic template availability is confirmed during onboarding. If no suitable ${PRODUCT_NAME} template is available, your practice can publish its own approved guidance within its plan.`,
   },
   workflow: {
-    h2: "From clinic-approved notes to a page patients can keep",
+    h2: "From clinic-approved guidance to a page patients can revisit",
     steps: [
       {
-        title: "Prepare clinic-approved guidance",
-        body: "Start with the home-care and post-appointment information your clinicians already use.",
+        title: "Prepare the guidance",
+        body: `Use an available ${PRODUCT_NAME} template or clinic-approved home-care and post-appointment content.`,
       },
       {
-        title: "Apply the practice brand",
-        body: "Carry your identity, terminology and contact details into the patient page.",
+        title: "Adapt it to your practice",
+        body: "Add your branding, terminology and, where your plan allows, local instructions and supported section changes.",
       },
       {
-        title: "Publish a durable patient page",
-        body: "Keep the guidance available at a stable URL between visits.",
+        title: "Publish it under your brand",
+        body: "Publish a durable patient-facing page with your practice identity and contact details.",
       },
       {
-        title: "Share the link or QR code",
-        body: "Give patients a way to reopen the same guidance after they leave.",
+        title: "Share it after the appointment",
+        body: "Give patients the link directly or through a QR code.",
       },
     ],
   },
@@ -581,7 +583,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       kind: "copy",
       eyebrow: "How it fits",
       h2: "A publishing layer for patient guidance",
-      body: `${PRODUCT_NAME} does not replace your clinical record, practice-management system or practitioner judgement. It provides a simple patient-facing place for guidance the clinic has chosen to publish.`,
+      body: `${PRODUCT_NAME} does not replace your practice-management system, patient health record or practitioner judgement. It provides a clinic-controlled patient-facing place for the guidance your practice chooses to publish.`,
       highlights: [
         {
           title: "Practice controlled",
@@ -589,11 +591,11 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
         },
         {
           title: "Durable patient page",
-          body: "A simple patient-facing place for approved home-care and post-appointment information.",
+          body: "A patient-facing place for approved home-care and post-appointment guidance.",
         },
         {
           title: "Not a clinical record",
-          body: "It does not replace your clinical record or practice-management system.",
+          body: `${PRODUCT_NAME} does not replace your patient health record or practice-management system.`,
         },
       ],
     },
@@ -603,26 +605,31 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
     h2: "Questions chiropractic practices ask",
     items: [
       {
-        question: "Do patients need an app?",
-        answer:
-          "No. Patient guidance opens in the browser from a link or QR code.",
+        question: "Do patients need an app or account?",
+        answer: `No. Patients open their aftercare page in the browser from a durable link or QR code. No ${PRODUCT_NAME} app or patient login is required.`,
       },
       {
-        question: "Can our practice publish its own instructions?",
-        answer: `Yes. ${PRODUCT_NAME} supports clinic-approved guidance within the platform's publishing controls. The practice remains responsible for the clinical information it publishes.`,
+        question:
+          "Can our practice create or adapt its own home-care guidance?",
+        answer:
+          "Yes, within your plan. Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Your practice remains responsible for approving the clinical guidance it publishes.",
       },
       {
         question: `Does ${PRODUCT_NAME} provide chiropractic treatment advice?`,
-        answer: `No. ${PRODUCT_NAME} provides publishing technology. The treating practice remains responsible for the clinical information and instructions it publishes.`,
+        answer: `No. ${PRODUCT_NAME} provides patient aftercare publishing technology. The treating practice remains responsible for the clinical information and instructions it chooses to publish.`,
       },
       {
-        question: "Does it replace our practice-management software?",
-        answer: `No. ${PRODUCT_NAME} is a patient-facing publishing layer, not a practice-management system or clinical record.`,
+        question: "What chiropractic templates are available?",
+        answer: `Chiropractic template availability is confirmed during onboarding. If no suitable ${PRODUCT_NAME} template is available, your practice can publish its own approved guidance within its plan.`,
       },
       {
-        question: "Is there already a chiropractic template library?",
+        question: `Can ${PRODUCT_NAME} match our chiropractic practice branding?`,
         answer:
-          "No pre-built chiropractic template library is currently being advertised. Content and setup requirements are confirmed during onboarding.",
+          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and practice contact details, with Light and Dark presentation supported. Practice provides additional branding control.",
+      },
+      {
+        question: `Does ${PRODUCT_NAME} replace our practice-management system or patient health record?`,
+        answer: `No. ${PRODUCT_NAME} is patient aftercare publishing software. It does not currently replace a practice-management system, patient health record, messaging platform or clinical monitoring system.`,
       },
     ],
   },

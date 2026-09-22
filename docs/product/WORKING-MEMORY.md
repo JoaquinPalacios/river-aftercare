@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-22 (Stripe Billing Phase 2 local acceptance passed)
+Last updated: 2026-09-22 (`/chiropractic` copy + SEO)
 
 ## Durable production release rule
 
@@ -2069,6 +2069,23 @@ Copy and SEO for `/physiotherapy` only. Not a redesign. Shared FAQ CSS is unchan
 | Boundary      | Publishes clinic-approved written guidance. Does not track exercise completion, adherence or patient progress. Not a PMS, patient health record, messaging platform, clinical monitoring system or exercise-adherence tracker. “How it fits” stays; there is no physiotherapy demo.                                                                                                                      |
 | FAQ           | Six native `details` questions: HEP/tracking boundary, app/account, plan-aware customisation, templates, branding, PMS/records boundary. Server-rendered. No FAQPage schema.                                                                                                                                                                                                                             |
 | Workflow      | Heading stays “Fit aftercare into the workflow you already have.” Steps: prepare guidance, adapt to the clinic, publish under the brand, share the link or QR after the appointment.                                                                                                                                                                                                                     |
+
+---
+
+## `/chiropractic` copy + SEO (2026-09-22)
+
+Copy and SEO for `/chiropractic` only. Not a redesign. Shared FAQ CSS is unchanged. No chiropractic demo, named template, or treatment advice. Prices stay on `/pricing`.
+
+| Area          | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SEO role      | Homepage = broad aftercare software. `/clinics` = treatment-based clinic fit. `/dental` = post-treatment instructions. `/physiotherapy` = recovery and home-care between appointments. `/chiropractic` = home-care and post-appointment guidance between visits. `/pricing` = commercial plans.                                                                                                           |
+| Metadata      | Title/OG title `Chiropractic Aftercare Software for Practices \| River Aftercare`. Description/OG: branded chiropractic home-care and post-appointment guidance patients can revisit between visits by link or QR; no patient app or login. Canonical `/chiropractic`, index/follow. Existing WebPage / SoftwareApplication / Organization / WebSite JSON-LD only. No FAQPage. `lastModified` 2026-09-22. |
+| Positioning   | Clinic-approved home-care and post-appointment guidance patients can revisit between visits. Not a dental or physiotherapy copy adaptation. H1 stays “Give patients clearer guidance between chiropractic visits.”                                                                                                                                                                                        |
+| Product model | Essential: available River Aftercare templates + up to 2 active custom clinic guides. Practice: up to 30 active custom guides, broader creation/adaptation, local instructions, section controls. Chiropractic template availability is confirmed during onboarding. If none fits, the practice publishes its own approved guidance within its plan. No invented chiropractic template.                   |
+| Boundary      | Publishing technology only. The treating practice remains responsible for clinical content. Does not provide chiropractic treatment advice, clinical monitoring, or a patient health record. “How it fits” stays; there is no chiropractic demo.                                                                                                                                                          |
+| Guidance      | Examples a practice may publish (post-appointment care, home-care, movement or mobility reminders, self-management, posture or everyday activity, contact and escalation). Right-side panels: examples are not a template library; then the Essential / Practice limits.                                                                                                                                  |
+| FAQ           | Six native `details` questions: app/account, plan-aware customisation, treatment-advice boundary, templates, branding, PMS/patient-health-record boundary. Server-rendered. No FAQPage schema.                                                                                                                                                                                                            |
+| Workflow      | Heading is “From clinic-approved guidance to a page patients can revisit.” Steps: prepare the guidance, adapt it to the practice, publish under the brand, share the link or QR after the appointment.                                                                                                                                                                                                    |
 
 ---
 
