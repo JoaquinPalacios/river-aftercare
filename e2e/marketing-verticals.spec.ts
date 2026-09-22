@@ -36,12 +36,18 @@ const VERTICALS = [
   {
     path: "/chiropractic",
     h1: "Give patients clearer guidance between chiropractic visits.",
-    title: "Chiropractic Patient Aftercare Software | River Aftercare",
+    title: "Chiropractic Aftercare Software for Practices | River Aftercare",
     description:
-      "Publish branded home-care and post-appointment guidance patients can reopen between chiropractic visits by link or QR code, with no app or login.",
-    ogTitle: "Between-visit guidance that still feels like your practice",
-    unique: "publishing technology",
-    absent: ["spinal alignment", "Riverside Dental Demo"],
+      "Publish branded chiropractic home-care and post-appointment guidance patients can revisit between visits by link or QR code. No patient app or login required.",
+    ogTitle: "Chiropractic Aftercare Software for Practices | River Aftercare",
+    ogDescription:
+      "Publish branded chiropractic home-care and post-appointment guidance patients can revisit between visits by link or QR code. No patient app or login required.",
+    unique: "patient aftercare publishing technology",
+    absent: [
+      "spinal alignment",
+      "Riverside Dental Demo",
+      "pre-built chiropractic template library",
+    ],
   },
   {
     path: "/cosmetic-clinics",
@@ -227,14 +233,15 @@ test.describe("clinic vertical acquisition pages", () => {
       path: "/chiropractic",
       heading: "Questions chiropractic practices ask",
       questions: [
-        "Do patients need an app?",
-        "Can our practice publish its own instructions?",
+        "Do patients need an app or account?",
+        "Can our practice create or adapt its own home-care guidance?",
         "Does River Aftercare provide chiropractic treatment advice?",
-        "Does it replace our practice-management software?",
-        "Is there already a chiropractic template library?",
+        "What chiropractic templates are available?",
+        "Can River Aftercare match our chiropractic practice branding?",
+        "Does River Aftercare replace our practice-management system or patient health record?",
       ],
       answer:
-        "No pre-built chiropractic template library is currently being advertised.",
+        "Chiropractic template availability is confirmed during onboarding. If no suitable River Aftercare template is available, your practice can publish its own approved guidance within its plan.",
     },
     {
       path: "/cosmetic-clinics",

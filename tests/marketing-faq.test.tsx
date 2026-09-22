@@ -43,15 +43,20 @@ const FAQ_EXPECTATIONS = {
   },
   "/chiropractic": {
     questions: [
-      "Do patients need an app?",
-      "Can our practice publish its own instructions?",
+      "Do patients need an app or account?",
+      "Can our practice create or adapt its own home-care guidance?",
       "Does River Aftercare provide chiropractic treatment advice?",
-      "Does it replace our practice-management software?",
-      "Is there already a chiropractic template library?",
+      "What chiropractic templates are available?",
+      "Can River Aftercare match our chiropractic practice branding?",
+      "Does River Aftercare replace our practice-management system or patient health record?",
     ],
     answers: [
-      "No. Patient guidance opens in the browser from a link or QR code.",
-      "No pre-built chiropractic template library is currently being advertised.",
+      "No. Patients open their aftercare page in the browser from a durable link or QR code. No River Aftercare app or patient login is required.",
+      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides",
+      "No. River Aftercare provides patient aftercare publishing technology. The treating practice remains responsible for the clinical information and instructions it chooses to publish.",
+      "Chiropractic template availability is confirmed during onboarding. If no suitable River Aftercare template is available, your practice can publish its own approved guidance within its plan.",
+      "Patient pages can carry your logo, colours, curated typography, terminology and practice contact details",
+      "It does not currently replace a practice-management system, patient health record, messaging platform or clinical monitoring system.",
     ],
   },
   "/cosmetic-clinics": {

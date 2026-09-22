@@ -93,10 +93,17 @@ describe("clinic vertical landing pages", () => {
     expect(physio).not.toContain("adherence monitoring");
     expect(physio).not.toContain("home exercise programme app");
     expect(physio).not.toContain("video exercise");
-    expect(chiro).toContain("does not replace your clinical record");
-    expect(chiro).toContain("publishing technology");
     expect(chiro).toContain(
-      "These are examples of guidance a practice may choose to publish, not a pre-built chiropractic template library. Clinical content remains clinic-approved."
+      "does not replace your practice-management system, patient health record"
+    );
+    expect(chiro).toContain("patient aftercare publishing technology");
+    expect(chiro).toContain(
+      "These are examples of guidance a practice may choose to publish. Clinical content remains practice-approved."
+    );
+    expect(chiro).toContain("up to 2 active custom clinic guides");
+    expect(chiro).toContain("up to 30 active custom guides");
+    expect(chiro).not.toContain(
+      "No pre-built chiropractic template library is currently being advertised."
     );
     expect(chiro).not.toContain("spinal alignment");
     expect(chiro).not.toContain("clinical outcomes");
@@ -279,6 +286,136 @@ describe("clinic vertical landing pages", () => {
     expect(physio).not.toMatch(/\$\d|per month/i);
     expect(JSON.stringify(landing)).not.toMatch(
       /tracks whether patients complete|monitors exercise adherence|clinical monitoring of/i
+    );
+  });
+
+  it("keeps chiropractic copy on between-visit home-care without a demo or treatment advice", async () => {
+    const chiro = renderToStaticMarkup(await MarketingChiropracticPage());
+    const landing = VERTICAL_LANDINGS["/chiropractic"];
+
+    expect(landing.hero.h1).toBe(
+      "Give patients clearer guidance between chiropractic visits."
+    );
+    expect(landing.hero.body).toBe(
+      "Publish practice-branded home-care and post-appointment guidance patients can revisit between visits — by link or QR code, with no patient app or login."
+    );
+    expect(landing.hero.secondaryCta).toEqual({
+      kind: "anchor",
+      label: "See how it works",
+      href: "#workflow",
+    });
+    expect(landing.hero.panel.items.map((item) => item.body)).toEqual([
+      "Practice-controlled home-care guidance",
+      "Your logo, colours and terminology stay visible",
+      "Patients reopen the same durable link",
+      "The page opens in the browser",
+    ]);
+    expect(landing.solution.h2).toBe(
+      "A consistent home for your practice's guidance"
+    );
+    expect(landing.solution.body).toContain(
+      "turns clinic-approved home-care and post-appointment guidance into branded web pages"
+    );
+    expect(landing.solution.benefits.map((benefit) => benefit.body)).toEqual([
+      "Keep your logo, colours, terminology and contact details visible between visits.",
+      "Patients return through the same durable link or QR code whenever they need to check the guidance again.",
+      "Publish from structured guidance instead of rebuilding or resending the same instructions.",
+      "Your practice approves what it publishes and remains responsible for its clinical content.",
+    ]);
+    expect(landing.guidance.eyebrow).toBe("Home-care guidance");
+    expect(landing.guidance.h2).toBe(
+      "Publish the guidance that supports your care"
+    );
+    expect(landing.guidance.body).toBe(
+      "Depending on your practice's services and approved content, River Aftercare can publish written guidance such as:"
+    );
+    expect(landing.guidance.items).toEqual([
+      "post-appointment care",
+      "home-care instructions",
+      "written movement or mobility reminders",
+      "self-management guidance",
+      "posture or everyday activity information",
+      "clinic contact and escalation information",
+    ]);
+    expect(landing.guidance.boundary).toBe(
+      "These are examples of guidance a practice may choose to publish. Clinical content remains practice-approved."
+    );
+    expect(landing.guidance.note).toContain(
+      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides."
+    );
+    expect(landing.guidance.note).toContain(
+      "Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls."
+    );
+    expect(landing.guidance.note).toContain(
+      "Chiropractic template availability is confirmed during onboarding."
+    );
+    expect(landing.guidance.note).toContain(
+      "If no suitable River Aftercare template is available, your practice can publish its own approved guidance within its plan."
+    );
+    expect(landing.workflow.h2).toBe(
+      "From clinic-approved guidance to a page patients can revisit"
+    );
+    expect(landing.workflow.steps.map((step) => step.title)).toEqual([
+      "Prepare the guidance",
+      "Adapt it to your practice",
+      "Publish it under your brand",
+      "Share it after the appointment",
+    ]);
+    expect(landing.workflow.steps[0]?.body).toBe(
+      "Use an available River Aftercare template or clinic-approved home-care and post-appointment content."
+    );
+    expect(landing.extras[0]).toMatchObject({
+      kind: "copy",
+      eyebrow: "How it fits",
+      h2: "A publishing layer for patient guidance",
+    });
+    expect(landing.extras[0]?.kind === "copy" && landing.extras[0].body).toBe(
+      "River Aftercare does not replace your practice-management system, patient health record or practitioner judgement. It provides a clinic-controlled patient-facing place for the guidance your practice chooses to publish."
+    );
+    expect(
+      landing.extras[0]?.kind === "copy" &&
+        landing.extras[0].highlights.map((item) => item.body)
+    ).toEqual([
+      "The treating practice remains responsible for the guidance it publishes.",
+      "A patient-facing place for approved home-care and post-appointment guidance.",
+      "River Aftercare does not replace your patient health record or practice-management system.",
+    ]);
+    expect(landing.faq.items).toHaveLength(6);
+    expect(landing.faq.items.map((item) => item.question)).toEqual([
+      "Do patients need an app or account?",
+      "Can our practice create or adapt its own home-care guidance?",
+      "Does River Aftercare provide chiropractic treatment advice?",
+      "What chiropractic templates are available?",
+      "Can River Aftercare match our chiropractic practice branding?",
+      "Does River Aftercare replace our practice-management system or patient health record?",
+    ]);
+    expect(chiro).toContain('href="#workflow"');
+    expect(chiro).toContain('href="/contact"');
+    expect(chiro).toContain('href="/pricing"');
+    expect(chiro).not.toContain("Riverside");
+    expect(chiro).not.toContain("Tooth Extraction");
+    expect(chiro).not.toContain("pre-built chiropractic template library");
+    expect(chiro).not.toContain("From clinic-approved notes");
+    expect(chiro).not.toMatch(/\$\d|per month/i);
+    expect(JSON.stringify(landing)).not.toMatch(
+      /spinal adjustment|subluxation|treatment protocol|clinically reviewed/i
+    );
+    expect(JSON.stringify(landing)).toContain(
+      "does not currently replace a practice-management system, patient health record, messaging platform or clinical monitoring system"
+    );
+    const boundaryAt = chiro.indexOf(
+      "These are examples of guidance a practice may choose to publish."
+    );
+    const noteAt = chiro.indexOf(
+      "Chiropractic template availability is confirmed during onboarding."
+    );
+    expect(boundaryAt).toBeGreaterThan(-1);
+    expect(noteAt).toBeGreaterThan(boundaryAt);
+    expect(chiro.slice(Math.max(0, boundaryAt - 400), boundaryAt)).toContain(
+      "mkReveal"
+    );
+    expect(chiro.slice(Math.max(0, noteAt - 1200), noteAt)).toContain(
+      "mkReveal"
     );
   });
 

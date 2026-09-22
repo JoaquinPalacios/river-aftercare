@@ -18,7 +18,7 @@ const VERTICAL_LLMS_BLURBS: Record<string, string> = {
   "/physiotherapy":
     "Physiotherapy clinics: recovery, home-care and written exercise guidance between appointments. Not an exercise-tracking app.",
   "/chiropractic":
-    "Chiropractic practices: home-care and post-appointment guidance in a branded patient page.",
+    "Chiropractic practices: clinic-approved home-care and post-appointment guidance patients can revisit between visits by link or QR code.",
   "/cosmetic-clinics":
     "Cosmetic and aesthetic clinics: post-treatment aftercare that stays under the clinic brand.",
 };
