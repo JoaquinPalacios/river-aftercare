@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-22 (Practice member invite; seat limits still not enforced)
+Last updated: 2026-09-22 (Stripe Billing Phase 2 local acceptance passed)
 
 ## Durable production release rule
 
@@ -55,6 +55,8 @@ Phase 2 **is implemented** for new billing-onboarding clinics only:
 - The clinic ADMIN completes billing identity, accepts Terms (`2026-09-21`) and acknowledges Privacy (`2026-09-21`) on an append-only `LegalAcceptance`, then continues to hosted Checkout.
 - Checkout uses one Stripe Customer per Clinic, the server Price ID, quantity 1, `metadata.clinicId`, and payment methods `card` + `au_becs_debit`. Success (`/account/billing/complete`) and cancel (`/account/billing/setup?checkout=cancelled`) read local state only.
 - The activation gate opens product routes only when entitlement is `ACTIVE`. Clinics with no entitlement row stay on today's access. `PENDING`, `RESTRICTED`, `ENDED`, and any other non-active entitlement stay on billing recovery pages. Billing status does not grant product access.
+
+Manual local acceptance passed on 2026-09-22 against local PostgreSQL, Stripe Sandbox, and CLI webhook forwarding. Card Checkout (Essential / Monthly) activated on `invoice.paid` and restored product navigation. AU BECS (Practice / Monthly) stayed on Payment processing, with the clinic still gated, from Checkout completion until `checkout.session.async_payment_succeeded` and then `invoice.paid`. Checkout completion does not activate a BECS subscription. Operator billing then matched the Stripe-backed active state. Practice member invites found missing during that pass are fixed; Essential 2 and Practice 5 allowances stay unenforced.
 
 Customer Portal, invoice history, payment-method editing, cancellation, upgrades, downgrades, live keys, GST/Stripe Tax, and full plan enforcement stay out until a later phase explicitly asks.
 
@@ -136,7 +138,7 @@ Published-guide QR sharing is implemented for clinic staff (durable public URL, 
 | 2A.5                      | LOCAL — VISUAL SYSTEM CORRECTIONS READY FOR JOAQUÍN REVIEW                                                                                |
 | 2B                        | LOCAL — SEO / DISCOVERY / LAUNCH AUDIT READY FOR JOAQUÍN REVIEW                                                                           |
 | Stripe Billing Phase 1    | LOCAL — TEST-MODE FOUNDATION (SDK, PROJECTION, WEBHOOK). NO PRODUCT ENFORCEMENT                                                           |
-| Stripe Billing Phase 2    | LOCAL — DEMO-APPROVED CHECKOUT. PRODUCT OPENS ONLY FOR ACTIVE ENTITLEMENT. PORTAL AND PLAN LIMITS NOT BUILT                               |
+| Stripe Billing Phase 2    | LOCAL ACCEPTANCE PASSED — CARD AND AU BECS. PRODUCT OPENS ONLY AFTER invoice.paid. PORTAL, PLAN CHANGES, AND SEAT LIMITS NOT BUILT        |
 | Marketing + trust polish  | LOCAL — LISTS, PREVIEWS, LEGAL DRAFTS READY FOR JOAQUÍN REVIEW                                                                            |
 | Public UI + share polish  | LOCAL — NAV, SPACING, CONTACT CTA, PUBLISHED QR READY FOR REVIEW                                                                          |
 | Public legal copy rewrite | LOCAL — PRIVACY AND TERMS PUBLISHED WITHOUT DRAFT BANNERS                                                                                 |
@@ -2099,7 +2101,8 @@ Demo-approved Checkout only. Not public self-service. Do not merge or deploy fro
 | Checkout   | Server action `continueToSecurePaymentAction`. Session clinic only. Price from server plan + interval. Customer idempotency `river-customer-${clinicId}`. Session reuses an open matching Price or expires a mismatch. Methods `card` and `au_becs_debit`. No tax.                                              |
 | Return     | `/account/billing/complete` never activates. ACTIVE copy, or “Payment processing” while `PAYMENT_PENDING` (including BECS before `invoice.paid`). Polls `GET /api/billing/status` up to 15 times, every 8 seconds, then tells the customer they can close the page. Cancel returns to setup with saved details. |
 | Activation | Still only the Phase 1 webhook projection, chiefly `invoice.paid`. Practice active state shows a lightweight assisted-setup cue. No CRM, calendar, or SLA.                                                                                                                                                      |
-| Deferred   | Customer Portal, invoices, payment-method edit, cancel, upgrade/downgrade, guide/seat limits, past-due lockout, 60-day takedown, Buy now, Group Checkout, GST. Seat allowances are still not enforced.                                                                                                          |
+| Acceptance | 2026-09-22 local pass: card path activated on `invoice.paid` and restored Overview, Guides, Practice, Account, and Billing. AU BECS stayed gated on Payment processing between Checkout completion and `invoice.paid`, then became Practice / Monthly / Active. Operator projection matched.                    |
+| Deferred   | Customer Portal, invoices, payment-method edit, cancel, upgrade/downgrade, guide/seat limits, past-due lockout, 60-day takedown, Buy now, Group Checkout, GST. Essential 2 and Practice 5 member allowances are still not enforced.                                                                             |
 
 ---
 

@@ -16,6 +16,9 @@ const describeDb = hasDatabase ? describe : describe.skip;
 const PREFIX = "test_billing_phase1_";
 const CLINIC_A = `${PREFIX}clinic_a`;
 const CLINIC_B = `${PREFIX}clinic_b`;
+// Clinic.slug rejects underscores. These match the production format check.
+const SLUG_A = "test-billing-phase1-a";
+const SLUG_B = "test-billing-phase1-b";
 
 describeDb("billing persistence constraints", () => {
   function prisma() {
@@ -51,7 +54,7 @@ describeDb("billing persistence constraints", () => {
       data: {
         id: CLINIC_A,
         name: "Billing Phase 1 Clinic A",
-        slug: `${PREFIX}a`,
+        slug: SLUG_A,
       },
     });
 
@@ -70,7 +73,7 @@ describeDb("billing persistence constraints", () => {
       data: {
         id: CLINIC_A,
         name: "Billing Phase 1 Clinic A",
-        slug: `${PREFIX}a`,
+        slug: SLUG_A,
       },
     });
 
@@ -114,12 +117,12 @@ describeDb("billing persistence constraints", () => {
         {
           id: CLINIC_A,
           name: "Billing Phase 1 Clinic A",
-          slug: `${PREFIX}a`,
+          slug: SLUG_A,
         },
         {
           id: CLINIC_B,
           name: "Billing Phase 1 Clinic B",
-          slug: `${PREFIX}b`,
+          slug: SLUG_B,
         },
       ],
     });
@@ -172,12 +175,12 @@ describeDb("billing persistence constraints", () => {
         {
           id: CLINIC_A,
           name: "Billing Phase 1 Clinic A",
-          slug: `${PREFIX}a`,
+          slug: SLUG_A,
         },
         {
           id: CLINIC_B,
           name: "Billing Phase 1 Clinic B",
-          slug: `${PREFIX}b`,
+          slug: SLUG_B,
         },
       ],
     });

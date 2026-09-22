@@ -27,7 +27,7 @@ export default async function BillingSetupPage({
   const view = context.view;
 
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-xl flex-col gap-6">
+    <div className="staffBillingSetup mx-auto flex w-full min-w-0 max-w-xl flex-col gap-6">
       <header>
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
           Account

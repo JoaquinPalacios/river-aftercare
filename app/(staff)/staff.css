@@ -1029,6 +1029,12 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
   }
 }
 
+/* Billing setup is a long form. The shell still owns spacing; only the
+   bottom grows so the payment action is not tight against the viewport. */
+.staffAppContent:has(.staffBillingSetup) {
+  padding-bottom: 4rem;
+}
+
 @media (min-width: 768px) {
   .staffAppShell {
     flex: 1 1 0;

@@ -1,8 +1,8 @@
 # Stripe billing and plan entitlement — architecture investigation
 
-**Status:** Phase 2 (demo-approved Checkout) is implemented in application code. Sections A onward remain the historical investigation. **Approved commercial decisions in the Phase 1 and Phase 2 implementation override stale recommendations below.**
+**Status:** Phase 2 (demo-approved Checkout) is implemented in application code. Manual local acceptance passed on 2026-09-22: card payment activated on `invoice.paid`, and AU BECS stayed gated until that same paid projection. Sections A onward remain the historical investigation. **Approved commercial decisions in the Phase 1 and Phase 2 implementation override stale recommendations below.**
 
-**Date:** 2026-09-20 (investigation). Phase 1 landed 2026-09-21. Phase 2 customer payment flow landed the same day.  
+**Date:** 2026-09-20 (investigation). Phase 1 landed 2026-09-21. Phase 2 customer payment flow landed the same day. Local card and AU BECS acceptance passed 2026-09-22.  
 **Base:** investigation was written against `origin/main` at `2441d9a`.  
 **This document is not tax, legal, or accounting advice.**
 

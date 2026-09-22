@@ -41,6 +41,20 @@ describe("billing setup UI", () => {
     expect(form).not.toContain("@/lib/billing");
   });
 
+  it("gives the billing setup page 4rem of shell bottom padding", () => {
+    const page = readFileSync(
+      "app/(staff)/account/billing/setup/page.tsx",
+      "utf8"
+    );
+    const css = readFileSync("app/(staff)/staff.css", "utf8");
+    expect(page).toContain("staffBillingSetup");
+    expect(css).toContain(".staffAppContent:has(.staffBillingSetup)");
+    expect(css).toMatch(
+      /\.staffAppContent:has\(\.staffBillingSetup\)\s*\{[^}]*padding-bottom:\s*4rem;/
+    );
+    expect(css).toMatch(/\.staffAppContent\s*\{[^}]*padding:\s*1\.5rem 1rem;/);
+  });
+
   it("does not add Buy now to public pricing", () => {
     const pricing = readFileSync(
       "app/(marketing)/%5Fmarketing/pricing/page.tsx",
