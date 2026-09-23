@@ -333,6 +333,117 @@ describe("entitlement projection", () => {
     expect(result.entitlement.entitlementStatus).toBe(EntitlementStatus.ACTIVE);
   });
 
+  it("does not activate a never-paid subscription because cancellation is scheduled", () => {
+    const result = project({
+      eventType: "customer.subscription.updated",
+      subscriptionStatus: "active",
+      cancelAtPeriodEnd: true,
+      invoiceIsPaid: false,
+      previous: null,
+    });
+    expect(result.kind).toBe("apply");
+    if (result.kind !== "apply") {
+      return;
+    }
+    expect(result.entitlement.entitlementStatus).toBe(
+      EntitlementStatus.PENDING
+    );
+    expect(result.entitlement.billingStatus).toBe(
+      BillingStatus.PAYMENT_PENDING
+    );
+  });
+
+  it("does not let scheduled cancellation reopen restricted or ended clinics", () => {
+    const restricted = project({
+      eventType: "customer.subscription.updated",
+      subscriptionStatus: "active",
+      cancelAtPeriodEnd: true,
+      previous: emptyEntitlement({
+        billingStatus: BillingStatus.UNPAID,
+        entitlementStatus: EntitlementStatus.RESTRICTED,
+        paidThrough: PERIOD_END,
+      }),
+    });
+    const ended = project({
+      eventType: "customer.subscription.updated",
+      subscriptionStatus: "active",
+      cancelAtPeriodEnd: true,
+      previous: emptyEntitlement({
+        billingStatus: BillingStatus.ENDED,
+        entitlementStatus: EntitlementStatus.ENDED,
+        paidThrough: PERIOD_END,
+        subscriptionEndedAt: PERIOD_END,
+      }),
+    });
+    expect(restricted.kind).toBe("apply");
+    expect(ended.kind).toBe("apply");
+    if (restricted.kind !== "apply" || ended.kind !== "apply") {
+      return;
+    }
+    expect(restricted.entitlement.entitlementStatus).toBe(
+      EntitlementStatus.RESTRICTED
+    );
+    expect(ended.entitlement.entitlementStatus).toBe(EntitlementStatus.ENDED);
+  });
+
+  it("keeps past-due access and terminal unpaid when cancellation is also scheduled", () => {
+    const pastDue = project({
+      eventType: "customer.subscription.updated",
+      subscriptionStatus: "past_due",
+      cancelAtPeriodEnd: true,
+      previous: emptyEntitlement({
+        billingStatus: BillingStatus.ACTIVE,
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        paidThrough: PERIOD_END,
+      }),
+    });
+    const unpaid = project({
+      eventType: "invoice.payment_failed",
+      subscriptionStatus: "unpaid",
+      cancelAtPeriodEnd: true,
+      previous: emptyEntitlement({
+        billingStatus: BillingStatus.PAST_DUE,
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        paidThrough: PERIOD_END,
+      }),
+    });
+    expect(pastDue.kind).toBe("apply");
+    expect(unpaid.kind).toBe("apply");
+    if (pastDue.kind !== "apply" || unpaid.kind !== "apply") {
+      return;
+    }
+    expect(pastDue.entitlement).toMatchObject({
+      billingStatus: BillingStatus.PAST_DUE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      cancelAtPeriodEnd: true,
+    });
+    expect(unpaid.entitlement).toMatchObject({
+      billingStatus: BillingStatus.UNPAID,
+      entitlementStatus: EntitlementStatus.RESTRICTED,
+    });
+  });
+
+  it("still activates a scheduled-cancel subscription from invoice.paid", () => {
+    const result = project({
+      eventType: "invoice.paid",
+      subscriptionStatus: "active",
+      cancelAtPeriodEnd: true,
+      invoiceIsPaid: true,
+      previous: emptyEntitlement({
+        billingStatus: BillingStatus.PAYMENT_PENDING,
+        entitlementStatus: EntitlementStatus.PENDING,
+      }),
+    });
+    expect(result.kind).toBe("apply");
+    if (result.kind !== "apply") {
+      return;
+    }
+    expect(result.entitlement.billingStatus).toBe(
+      BillingStatus.CANCEL_AT_PERIOD_END
+    );
+    expect(result.entitlement.entitlementStatus).toBe(EntitlementStatus.ACTIVE);
+  });
+
   it("fails closed for an unknown clinic or unknown Price ID", () => {
     expect(project({ clinicId: null }).kind).toBe("unmapped_clinic");
     expect(

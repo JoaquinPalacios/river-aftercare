@@ -472,6 +472,82 @@ describe("processVerifiedStripeEvent", () => {
     expect(entitlement?.publicGuideRetentionUntil).toBeInstanceOf(Date);
   });
 
+  it("projects Portal cancel_at as scheduled cancellation and can reverse it", async () => {
+    const db = createDb();
+    const periodEnd = 1_792_647_594;
+    const scheduled = {
+      ...activeSubscription,
+      cancel_at: periodEnd,
+      cancel_at_period_end: false,
+      canceled_at: 1_758_614_400,
+      cancellation_details: { reason: "cancellation_requested" },
+      ended_at: null,
+      items: {
+        object: "list",
+        data: [
+          {
+            id: "si_1",
+            price: { id: "price_test_essential_monthly" },
+            current_period_start: 1_789_969_194,
+            current_period_end: periodEnd,
+          },
+        ],
+        has_more: false,
+        url: "/v1/subscription_items",
+      },
+    } as Stripe.Subscription;
+    await processVerifiedStripeEvent(invoicePaidEvent(), {
+      prisma: db,
+      reader: { retrieveSubscription: async () => activeSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    const updated = {
+      id: "evt_portal_cancel_at",
+      object: "event",
+      created: 1_758_614_400,
+      type: "customer.subscription.updated",
+      data: { object: scheduled },
+    } as Stripe.Event;
+    await processVerifiedStripeEvent(updated, {
+      prisma: db,
+      reader: { retrieveSubscription: async () => scheduled },
+      env: BILLING_TEST_ENV,
+    });
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      billingStatus: BillingStatus.CANCEL_AT_PERIOD_END,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      cancelAtPeriodEnd: true,
+      paidThrough: new Date(periodEnd * 1000),
+      subscriptionEndedAt: null,
+    });
+
+    const reversed = {
+      ...scheduled,
+      cancel_at: null,
+      cancel_at_period_end: false,
+      canceled_at: 1_758_614_400,
+    } as Stripe.Subscription;
+    await processVerifiedStripeEvent(
+      {
+        ...updated,
+        id: "evt_portal_cancel_reversed",
+        data: { object: reversed },
+      } as Stripe.Event,
+      {
+        prisma: db,
+        reader: { retrieveSubscription: async () => reversed },
+        env: BILLING_TEST_ENV,
+      }
+    );
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      cancelAtPeriodEnd: false,
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+    });
+  });
+
   it("projects terminal unpaid as RESTRICTED, not ENDED", async () => {
     const db = createDb();
     await processVerifiedStripeEvent(invoicePaidEvent(), {

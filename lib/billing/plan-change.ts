@@ -15,6 +15,7 @@ import {
 } from "@/lib/billing/price-map";
 import { getPrisma } from "@/lib/prisma";
 import { getStripeClient } from "@/lib/billing/stripe-client";
+import { subscriptionCancellationScheduled } from "@/lib/billing/stripe-event";
 
 export const PLAN_UPGRADE_PRORATION_BEHAVIOR = "always_invoice" as const;
 export const PLAN_UPGRADE_PAYMENT_BEHAVIOR = "pending_if_incomplete" as const;
@@ -134,6 +135,8 @@ type SubscriptionItemPrice = { id: string } | string;
 
 export type PlanChangeSubscription = {
   id: string;
+  cancel_at?: number | null;
+  cancel_at_period_end?: boolean | null;
   items: {
     data: Array<{
       id: string;
@@ -220,6 +223,14 @@ export async function executeOperatorPlanUpgrade(input: {
     const subscription = await input.stripe.subscriptions.retrieve(
       assessed.stripeSubscriptionId
     );
+    if (subscriptionCancellationScheduled(subscription)) {
+      logStripeBilling({
+        event: "plan_upgrade_failed",
+        clinicId: assessed.clinicId,
+        reason: "cancel_scheduled",
+      });
+      return { ok: false, code: "cancel_scheduled" };
+    }
     const items = subscription.items.data;
     if (items.length !== 1) {
       logStripeBilling({

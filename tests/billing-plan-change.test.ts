@@ -26,7 +26,13 @@ function state(overrides: Partial<PlanChangeState> = {}): PlanChangeState {
   };
 }
 
-function stripePort(priceId = "price_test_essential_monthly"): {
+function stripePort(
+  priceId = "price_test_essential_monthly",
+  subscription: {
+    cancel_at?: number | null;
+    cancel_at_period_end?: boolean | null;
+  } = {}
+): {
   stripe: PlanChangeStripePort & { subscriptions: { create?: () => void } };
   updates: Array<{
     id: string;
@@ -56,6 +62,7 @@ function stripePort(priceId = "price_test_essential_monthly"): {
         async retrieve(id) {
           return {
             id,
+            ...subscription,
             items: {
               data: [
                 { id: "si_clinic_a", quantity: 1, price: { id: priceId } },
@@ -123,6 +130,21 @@ describe("operator plan changes", () => {
       "ESSENTIAL"
     );
     expect(assessed).toMatchObject({ ok: false, code: "downgrade_deferred" });
+  });
+
+  it("blocks an upgrade when Stripe scheduled cancellation via cancel_at", async () => {
+    const port = stripePort("price_test_essential_monthly", {
+      cancel_at: 1_792_647_594,
+      cancel_at_period_end: false,
+    });
+    const result = await executeOperatorPlanUpgrade({
+      state: state(),
+      requestedPlan: "PRACTICE",
+      env: BILLING_TEST_ENV,
+      stripe: port.stripe,
+    });
+    expect(result).toMatchObject({ ok: false, code: "cancel_scheduled" });
+    expect(port.updates).toHaveLength(0);
   });
 
   it("does not upgrade a past-due, cancelled, or group clinic", () => {

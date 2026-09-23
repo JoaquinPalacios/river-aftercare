@@ -13,6 +13,7 @@ import {
   type SelfServePlanCode,
 } from "@/lib/billing/offer-display";
 import {
+  billingPeriodLabel,
   billingStateLabel,
   entitlementStateLabel,
   formatBillingDate,
@@ -219,7 +220,7 @@ export async function loadClinicBillingView(
     planLabel: commercialPlanLabel(entitlement?.commercialPlan ?? null),
     intervalLabel: billingIntervalLabel(entitlement?.billingInterval ?? null),
     paidThroughLabel: periodDate ? formatBillingDate(periodDate) : null,
-    periodLabel: cancelScheduled ? "Access until" : "Next renewal",
+    periodLabel: billingPeriodLabel(cancelScheduled),
     portalEligible: clinicSupportsCustomerPortal({
       stripeCustomerId: profile?.stripeCustomerId ?? null,
       entitlementStatus: entitlement?.entitlementStatus ?? null,

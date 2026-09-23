@@ -42,6 +42,12 @@ export function formatBillingDate(date: Date): string {
   }).format(date);
 }
 
+export function billingPeriodLabel(
+  cancelScheduled: boolean
+): "Access until" | "Next renewal" {
+  return cancelScheduled ? "Access until" : "Next renewal";
+}
+
 export function cancellationScheduledMessage(effectiveEnd: Date): string {
   return `Your subscription is scheduled to end on ${formatBillingDate(effectiveEnd)}.`;
 }
