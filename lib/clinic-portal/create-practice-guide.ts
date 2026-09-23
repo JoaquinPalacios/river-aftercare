@@ -16,6 +16,7 @@ import {
   WORKING_DRAFT_VERSION,
 } from "@/lib/aftercare/practice-revision-document";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { reserveCustomGuidePlace } from "@/lib/entitlements/guide-usage";
 import type {
   CreateCustomGuideInput,
   CreateTemplateGuideInput,
@@ -73,6 +74,16 @@ export async function createCustomPracticeGuide(input: {
   const sortOrder = await nextSortOrder(input.clinicId);
 
   return getPrisma().$transaction(async (tx) => {
+    const reserved = await reserveCustomGuidePlace(tx, input.clinicId);
+    if (!reserved.ok) {
+      throw new ClinicPortalError(
+        reserved.error,
+        reserved.code === "COMBINED_GUIDE_LIMIT_REACHED"
+          ? "combined_guide_limit"
+          : "custom_guide_limit"
+      );
+    }
+
     const guide = await tx.practiceGuide.create({
       data: {
         clinicId: input.clinicId,

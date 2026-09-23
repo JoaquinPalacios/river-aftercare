@@ -300,7 +300,7 @@ describe("invitePracticeMemberAction", () => {
     expect(inviteMock).not.toHaveBeenCalled();
   });
 
-  it("does not enforce plan allowances or touch billing modules", () => {
+  it("does not hard-code plan numbers or call Stripe from the invite action", () => {
     const action = readFileSync(
       "app/(staff)/(clinic-portal)/practice/membership-actions.ts",
       "utf8"

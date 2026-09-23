@@ -452,19 +452,20 @@ model ClinicProfile {
 }
 
 model GuideTemplate {
-  id             String                  @id @default(cuid())
-  specialty      Specialty
-  slug           String                  @unique
-  title          String
-  isActive       Boolean                 @default(true)
+  id                    String                  @id @default(cuid())
+  specialty             Specialty
+  slug                  String                  @unique
+  title                 String
+  isActive              Boolean                 @default(true)
   /// Sample/demo library content. Never eligible for ordinary real-clinic
   /// enablement, even if revision review metadata is later populated.
   /// Distinct from clinic publish attestation on PracticeGuideRevision.
-  isSample       Boolean                 @default(false)
-  revisions      GuideTemplateRevision[]
-  practiceGuides PracticeGuide[]
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
+  isSample              Boolean                 @default(false)
+  revisions             GuideTemplateRevision[]
+  practiceGuides        PracticeGuide[]
+  sourcedPracticeGuides PracticeGuide[]         @relation("PracticeGuideSourceTemplate")
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
 
   @@index([specialty, isActive])
 }
@@ -513,30 +514,40 @@ model GuideTemplateSection {
 /// guides leave both null. Patient-visible content is served from an immutable
 /// published `PracticeGuideRevision` snapshot, not from live overrides.
 model PracticeGuide {
-  id               String                  @id @default(cuid())
-  clinicId         String
-  title            String
-  guideTemplateId  String?
-  pinnedRevisionId String?
-  publicSlug       String
-  isEnabled        Boolean                 @default(false)
-  status           PracticeGuideStatus     @default(DRAFT)
-  sortOrder        Int                     @default(0)
-  publishedAt      DateTime?
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-  clinic           Clinic                  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  guideTemplate    GuideTemplate?          @relation(fields: [guideTemplateId], references: [id], onDelete: Restrict)
-  pinnedRevision   GuideTemplateRevision?  @relation(fields: [pinnedRevisionId, guideTemplateId], references: [id, guideTemplateId], onDelete: Restrict)
-  overrides        PracticeGuideOverride[]
-  additions        PracticeGuideAddition[]
-  contentRevisions PracticeGuideRevision[]
+  id                    String                  @id @default(cuid())
+  clinicId              String
+  title                 String
+  guideTemplateId       String?
+  pinnedRevisionId      String?
+  /// Set when this row is forked from a River template into a clinic-owned
+  /// editable copy. Provenance only: it does not keep the canonical pin.
+  /// Existing rows stay null. Production has no historical adaptations to backfill.
+  adaptedAt             DateTime?
+  /// Canonical River template this copy came from. Counts toward the
+  /// adapted-template allowance, not the original custom-guide allowance.
+  /// Null for original custom guides and for templates still used as supplied.
+  sourceGuideTemplateId String?
+  publicSlug            String
+  isEnabled             Boolean                 @default(false)
+  status                PracticeGuideStatus     @default(DRAFT)
+  sortOrder             Int                     @default(0)
+  publishedAt           DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  clinic                Clinic                  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  guideTemplate         GuideTemplate?          @relation(fields: [guideTemplateId], references: [id], onDelete: Restrict)
+  pinnedRevision        GuideTemplateRevision?  @relation(fields: [pinnedRevisionId, guideTemplateId], references: [id, guideTemplateId], onDelete: Restrict)
+  sourceGuideTemplate   GuideTemplate?          @relation("PracticeGuideSourceTemplate", fields: [sourceGuideTemplateId], references: [id], onDelete: SetNull)
+  overrides             PracticeGuideOverride[]
+  additions             PracticeGuideAddition[]
+  contentRevisions      PracticeGuideRevision[]
 
   @@unique([clinicId, guideTemplateId])
   @@unique([clinicId, publicSlug])
   @@index([clinicId, status, isEnabled])
   @@index([guideTemplateId])
   @@index([pinnedRevisionId])
+  @@index([sourceGuideTemplateId])
 }
 
 /// Clinic-owned guide document. Version 0 is the mutable working draft.
@@ -756,6 +767,11 @@ model ClinicEntitlement {
   publicGuideRetentionUntil DateTime?
   lastStripeEventId         String?
   lastProjectedAt           DateTime?
+  /// Persistent operator-granted additions. Effective allowance is the plan
+  /// base plus these values. They do not change Stripe or commercialPlan.
+  extraTeamMemberAllowance          Int @default(0)
+  extraCustomGuideAllowance         Int @default(0)
+  extraTemplateAdaptationAllowance  Int @default(0)
   clinic                    Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   createdAt                 DateTime          @default(now())
   updatedAt                 DateTime          @updatedAt

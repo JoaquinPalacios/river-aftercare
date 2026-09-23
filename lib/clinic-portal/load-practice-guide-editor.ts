@@ -33,6 +33,8 @@ export interface PracticeGuideEditorRecord {
     slug: string;
     title: string;
   } | null;
+  /** Clinic-owned copy of a River template. Not an original custom guide. */
+  adaptedFromTemplate: boolean;
   reviewAttestation: {
     confirmedAt: Date;
     confirmedByLabel: string;
@@ -207,6 +209,7 @@ export async function loadPracticeGuideEditor(input: {
     lifecycle,
     statusLabel: clinicGuideStatusLabel(lifecycle),
     template: guide.guideTemplate,
+    adaptedFromTemplate: guide.sourceGuideTemplateId !== null,
     reviewAttestation:
       published?.reviewAttestedAt && published.reviewAttestedByUserId
         ? {

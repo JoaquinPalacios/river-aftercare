@@ -7,6 +7,7 @@ import { getPrisma } from "@/lib/prisma";
 import { assessCommercialOfferRevision } from "@/lib/billing/prepare-offer";
 import { clinicSupportsCustomerPortal } from "@/lib/billing/customer-portal";
 import { assessOperatorPlanUpgrade } from "@/lib/billing/plan-change";
+import { loadEssentialDowngradeReadiness } from "@/lib/entitlements/downgrade-readiness";
 import {
   billingIntervalLabel,
   commercialPlanLabel,
@@ -38,6 +39,17 @@ export type OperatorBillingPanel = {
   cancellationDateLabel: string | null;
   canUpgradeToPractice: boolean;
   downgradeDeferred: boolean;
+  downgradeReadiness: {
+    ready: boolean;
+    teamCurrent: number;
+    teamLimit: number;
+    guideCurrent: number;
+    guideLimit: number;
+    adaptedCurrent: number;
+    adaptedLimit: number;
+    combinedCurrent: number;
+    combinedLimit: number;
+  } | null;
   canRevise: boolean;
   reviseBlockedReason: string | null;
 };
@@ -86,6 +98,10 @@ export async function loadOperatorBillingPanel(
   );
   const downgradeDeferred =
     !downgrade.ok && downgrade.code === "downgrade_deferred";
+  const downgradeReadiness =
+    entitlement?.commercialPlan === "PRACTICE"
+      ? await loadEssentialDowngradeReadiness(clinicId)
+      : null;
   const planChangeVisible = planChange.ok || downgradeDeferred;
   const periodDate =
     entitlement?.paidThrough ?? entitlement?.currentPeriodEnd ?? null;
@@ -122,6 +138,19 @@ export async function loadOperatorBillingPanel(
         : null,
     canUpgradeToPractice: planChange.ok,
     downgradeDeferred,
+    downgradeReadiness: downgradeReadiness
+      ? {
+          ready: downgradeReadiness.ready,
+          teamCurrent: downgradeReadiness.team.current,
+          teamLimit: downgradeReadiness.team.limit,
+          guideCurrent: downgradeReadiness.guides.current,
+          guideLimit: downgradeReadiness.guides.limit,
+          adaptedCurrent: downgradeReadiness.adaptedTemplates.current,
+          adaptedLimit: downgradeReadiness.adaptedTemplates.limit,
+          combinedCurrent: downgradeReadiness.combinedGuides.current,
+          combinedLimit: downgradeReadiness.combinedGuides.limit,
+        }
+      : null,
     canRevise: revision.ok,
     reviseBlockedReason: revision.ok
       ? null

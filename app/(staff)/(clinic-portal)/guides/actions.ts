@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
 import { enforcePrePaymentActivationGate } from "@/lib/billing/activation-gate";
 import { fieldErrorsFromZod } from "@/lib/clinic-portal/field-errors";
+import { adaptPracticeGuideFromTemplate } from "@/lib/clinic-portal/adapt-practice-guide";
 import {
   createCustomPracticeGuide,
   createPracticeGuideFromTemplate,
@@ -74,6 +75,32 @@ export async function createGuideFromTemplateAction(
       values: parsed.data,
     });
     redirect(`/guides/${created.id}/edit`);
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+    return errorState(error);
+  }
+}
+
+export async function adaptGuideFromTemplateAction(
+  _previous: GuideActionState,
+  formData: FormData
+): Promise<GuideActionState> {
+  const { clinicMembership } = await requireGuideAdmin();
+  const guideId = String(formData.get("guideId") ?? "");
+  if (!guideId) {
+    return { error: "Missing guide." };
+  }
+
+  try {
+    await adaptPracticeGuideFromTemplate({
+      clinicId: clinicMembership.clinic.id,
+      guideId,
+    });
+    revalidatePath("/guides");
+    revalidatePath(`/guides/${guideId}/edit`);
+    return { ok: true };
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;

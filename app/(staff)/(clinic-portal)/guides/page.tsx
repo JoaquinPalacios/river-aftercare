@@ -8,7 +8,12 @@ import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import { getClinicPortalOverview } from "@/lib/clinic-portal/get-clinic-portal";
 import { listClinicPortalGuides } from "@/lib/clinic-portal/list-clinic-guides";
 import { formatPortalDate } from "@/lib/clinic-portal/format-portal-date";
+import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import {
+  marketingContactHref,
+  marketingPublicLinks,
+} from "@/lib/marketing/public-links";
 
 export const metadata: Metadata = {
   title: `Guides · ${PRODUCT_NAME}`,
@@ -21,10 +26,13 @@ export default async function ClinicGuidesPage() {
   const canManage =
     clinicMembership.source === "operator_support" ||
     clinicMembership.role === ClinicMembershipRole.ADMIN;
-  const [overview, guides] = await Promise.all([
+  const [overview, guides, allowance, links] = await Promise.all([
     getClinicPortalOverview(clinicId),
     listClinicPortalGuides(clinicId),
+    loadGuideAllowance(clinicId),
+    marketingPublicLinks(),
   ]);
+  const contactHref = marketingContactHref(links);
   const displayName = overview?.displayName ?? clinicMembership.clinic.name;
 
   return (
@@ -40,6 +48,45 @@ export default async function ClinicGuidesPage() {
           <p className="mt-2 max-w-xl text-sm leading-6 text-staff-muted">
             Patient aftercare instructions for {displayName}.
           </p>
+          {allowance.customGuides.usageLabel ? (
+            <p className="mt-2 text-sm font-medium text-staff-ink">
+              {allowance.customGuides.usageLabel}
+            </p>
+          ) : null}
+          {allowance.adaptedTemplates.usageLabel ? (
+            <p className="mt-1 text-sm font-medium text-staff-ink">
+              {allowance.adaptedTemplates.usageLabel}
+            </p>
+          ) : null}
+          {allowance.combinedGuides.usageLabel ? (
+            <p className="mt-1 text-sm font-medium text-staff-ink">
+              {allowance.combinedGuides.usageLabel}
+            </p>
+          ) : null}
+          {allowance.customGuides.atLimit &&
+          allowance.customGuides.limitMessage ? (
+            <p className="mt-1 max-w-xl text-sm leading-6 text-staff-muted">
+              {allowance.customGuides.limitMessage} Existing custom guides can
+              still be edited. River templates can still be used as supplied.{" "}
+              <a href={contactHref} className="underline">
+                Contact River Aftercare
+              </a>
+            </p>
+          ) : null}
+          {allowance.adaptedTemplates.atLimit &&
+          allowance.adaptedTemplates.limitMessage ? (
+            <p className="mt-1 max-w-xl text-sm leading-6 text-staff-muted">
+              {allowance.adaptedTemplates.limitMessage} Existing editable copies
+              can still be edited.
+            </p>
+          ) : null}
+          {allowance.combinedGuides.atLimit &&
+          allowance.combinedGuides.limitMessage ? (
+            <p className="mt-1 max-w-xl text-sm leading-6 text-staff-muted">
+              {allowance.combinedGuides.limitMessage} Existing guides can still
+              be edited. River templates can still be used as supplied.
+            </p>
+          ) : null}
         </div>
         {canManage ? (
           <Link href="/guides/new" className="staffBtn staffBtnPrimary">

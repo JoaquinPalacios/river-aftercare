@@ -127,8 +127,9 @@ describe("operator upgrade refresh", () => {
       canUpgradeToPractice: false,
       downgradeDeferred: true,
     });
+    expect(container.textContent).toContain("Practice → Essential");
     expect(container.textContent).toContain(
-      "Practice to Essential is not available here yet."
+      "Downgrade scheduling is not available yet."
     );
     expect(container.textContent).not.toContain(UPGRADE_PROCESSING_MESSAGE);
     expect(container.textContent).not.toContain("Upgrade to Practice");

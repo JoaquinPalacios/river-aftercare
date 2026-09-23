@@ -181,9 +181,10 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("Guide and section controls");
     expect(html).not.toContain("Local clinic instructions");
     expect(html).not.toContain("Create and edit your own aftercare guides");
-    expect(html).toContain(
-      "Adapt River Aftercare templates to suit your clinic"
-    );
+    expect(html).toContain("Edit up to 2 River Aftercare templates");
+    expect(html).toContain("Edit up to 30 River Aftercare templates");
+    expect(html).toContain("Up to 4 clinic-owned guides in total");
+    expect(html).toContain("Up to 40 clinic-owned guides in total");
     expect(html).not.toContain("Add clinic-specific instructions");
     expect(html).not.toContain("Richer branding");
     expect(html).not.toContain("hide River Aftercare attribution");
@@ -281,9 +282,8 @@ describe("marketing pricing page", () => {
     expect(essentialBlock).not.toContain("Additional locations");
     expect(practiceBlock).toContain("Everything in Essential");
     expect(practiceBlock).toContain("Up to 30 custom clinic guides");
-    expect(practiceBlock).toContain(
-      "Adapt River Aftercare templates to suit your clinic"
-    );
+    expect(practiceBlock).toContain("Edit up to 30 River Aftercare templates");
+    expect(practiceBlock).toContain("Up to 40 clinic-owned guides in total");
     expect(practiceBlock).toContain("Up to 5 clinic team members");
     expect(practiceBlock).toContain("Assisted setup");
     expect(practiceBlock).toContain(PRICING_PRIORITY_SUPPORT_LABEL);
@@ -331,7 +331,8 @@ describe("marketing pricing page", () => {
     expect(comparisonBlock).toContain("Up to 2");
     expect(comparisonBlock).toContain("Up to 30");
     expect(comparisonBlock).toContain("Up to 5");
-    expect(comparisonBlock).toContain("Not included");
+    expect(comparisonBlock).toContain("Editable River Aftercare templates");
+    expect(comparisonBlock).toContain("Up to 40");
     expect(comparisonBlock).toContain("Print / Save PDF");
     expect(comparisonBlock).toContain("QR sharing");
     expect(comparisonBlock).toContain(
@@ -350,7 +351,9 @@ describe("marketing pricing page", () => {
     expect(comparisonBlock).not.toContain(
       'data-comparison-row="priority-support"'
     );
-    expect(comparisonBlock).toContain(`scope="row">${PLAN_COMPARISON_SUPPORT_FEATURE}<`);
+    expect(comparisonBlock).toContain(
+      `scope="row">${PLAN_COMPARISON_SUPPORT_FEATURE}<`
+    );
     expect(comparisonBlock).toContain(PRICING_STANDARD_SUPPORT_LABEL);
     expect(comparisonBlock).toContain(PRICING_PRIORITY_SUPPORT_LABEL);
     for (const copy of UNSUPPORTED_SUPPORT_COPY) {
@@ -405,6 +408,8 @@ describe("canonical plan prices", () => {
       "1 practice / location",
       "River Aftercare guide templates",
       "Create and edit up to 2 custom clinic guides",
+      "Edit up to 2 River Aftercare templates",
+      "Up to 4 clinic-owned guides in total",
       "Up to 2 clinic team members",
       "Clinic branding and curated typography",
       "QR sharing, PDF and durable patient guide URLs",
@@ -421,7 +426,8 @@ describe("canonical plan prices", () => {
     expect([...LAUNCH_PLANS[1].features]).toEqual([
       "Everything in Essential",
       "Up to 30 custom clinic guides",
-      "Adapt River Aftercare templates to suit your clinic",
+      "Edit up to 30 River Aftercare templates",
+      "Up to 40 clinic-owned guides in total",
       "Up to 5 clinic team members",
       "Assisted setup",
       PRICING_PRIORITY_SUPPORT_LABEL,
@@ -445,8 +451,8 @@ describe("canonical plan prices", () => {
       "For organisations that need coordinated rollout and tailored support across their practices."
     );
     expect(LAUNCH_PLANS[2].position).not.toContain("central management");
-    expect(LAUNCH_PLANS[0].features).toHaveLength(6);
-    expect(LAUNCH_PLANS[1].features).toHaveLength(6);
+    expect(LAUNCH_PLANS[0].features).toHaveLength(8);
+    expect(LAUNCH_PLANS[1].features).toHaveLength(7);
     expect(LAUNCH_PLANS[2].features).toHaveLength(4);
   });
 
@@ -496,13 +502,22 @@ describe("canonical plan prices", () => {
       String(PLAN_PRICES.practice.includedLocations)
     );
     expect(adapt?.essential).toEqual({
-      kind: "not-included",
-      label: "Not included",
+      kind: "text",
+      label: `Up to ${PLAN_PRICES.essential.editableTemplates}`,
     });
     expect(adapt?.practice).toEqual({
-      kind: "included",
-      label: "Included",
+      kind: "text",
+      label: `Up to ${PLAN_PRICES.practice.editableTemplates}`,
     });
+    const combined = PLAN_COMPARISON_ROWS.find(
+      (row) => row.id === "combined-guides"
+    );
+    expect(combined?.essential.label).toBe(
+      `Up to ${PLAN_PRICES.essential.combinedClinicOwnedGuides}`
+    );
+    expect(combined?.practice.label).toBe(
+      `Up to ${PLAN_PRICES.practice.combinedClinicOwnedGuides}`
+    );
     expect(urls?.feature).toBe("Durable patient guide URLs");
     expect(qr?.feature).toBe("QR sharing");
     expect(pdf?.feature).toBe("Print / Save PDF");
@@ -521,9 +536,9 @@ describe("canonical plan prices", () => {
       kind: "text",
       label: PRICING_PRIORITY_SUPPORT_LABEL,
     });
-    expect(PLAN_COMPARISON_ROWS.some((row) => row.id === "priority-support")).toBe(
-      false
-    );
+    expect(
+      PLAN_COMPARISON_ROWS.some((row) => row.id === "priority-support")
+    ).toBe(false);
     expect(JSON.stringify(LAUNCH_PLANS)).not.toContain("Permanent guide URLs");
     expect(JSON.stringify(PLAN_COMPARISON_ROWS)).not.toContain(
       "Permanent guide URLs"

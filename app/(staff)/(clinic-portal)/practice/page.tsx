@@ -9,8 +9,13 @@ import { isClinicAssetStorageConfigured } from "@/lib/clinic-assets/config";
 import { resolveClinicLogoSrc } from "@/lib/clinic-assets/public-url";
 import { getClinicPortalOverview } from "@/lib/clinic-portal/get-clinic-portal";
 import { listPracticeMembers } from "@/lib/clinic-portal/list-practice-members";
+import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
 import { getPrisma } from "@/lib/prisma";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import {
+  marketingContactHref,
+  marketingPublicLinks,
+} from "@/lib/marketing/public-links";
 
 export const metadata: Metadata = {
   title: `Practice · ${PRODUCT_NAME}`,
@@ -19,12 +24,14 @@ export const metadata: Metadata = {
 
 export default async function PracticePage() {
   const { clinicMembership } = await requireClinicAdmin();
-  const [overview, profile, members] = await Promise.all([
+  const [overview, profile, members, allowance, links] = await Promise.all([
     getClinicPortalOverview(clinicMembership.clinic.id),
     getPrisma().clinicProfile.findUnique({
       where: { clinicId: clinicMembership.clinic.id },
     }),
     listPracticeMembers(clinicMembership.clinic.id),
+    loadTeamAllowance(clinicMembership.clinic.id),
+    marketingPublicLinks(),
   ]);
 
   if (!overview) {
@@ -58,6 +65,8 @@ export default async function PracticePage() {
             ? `/operator/clinics/${clinicMembership.clinic.id}/team`
             : null
         }
+        allowance={allowance}
+        contactHref={marketingContactHref(links)}
       />
       <PracticeSettingsForm
         canEdit={

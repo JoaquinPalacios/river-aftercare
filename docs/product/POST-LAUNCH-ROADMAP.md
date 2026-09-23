@@ -35,19 +35,20 @@ Contact already keeps the baseline: server Zod validation, honeypot (`website`),
 
 ### Team / Users
 
-**Operator-managed invitations are implemented** (Operator → Clinics → Team). Clinic ADMIN can send an invitation from Practice → Members. Do **not** implement clinic-admin resend, cancel, role change, remove, or seat enforcement from this note.
+**Operator-managed invitations are implemented** (Operator → Clinics → Team). Clinic ADMIN can send an invitation from Practice → Members. Do **not** implement clinic-admin resend, cancel, role change, or remove from this note.
+
+Phase 4 enforces team, custom-guide, and editable-template allowances, plus a combined clinic-owned guide ceiling. Essential base is 2 team members, 2 original custom guides, 2 editable River templates, and 4 clinic-owned guides in total. Practice base is 5, 30, 30, and 40. Practice may mix the two guide categories inside that ceiling. Operator-granted extras add to the matching category, and each guide extra also adds one combined place. They do not change Stripe. Group has no fixed cap. There is no per-seat billing and no per-invitation override. See [BILLING.md](../architecture/BILLING.md).
 
 Later portal capability:
 
 - clinic STAFF must not invite
 - clinic ADMIN resend, cancel, role change, and remove
 - last-admin protection when that clinic-admin Team management exists
-- seat-limit enforcement, with an explicit platform-operator allowance override
 - transfer admin
 
 **Operator ADMIN ↔ STAFF role change after invite is implemented** on operator Team. Do **not** add last-admin protection, self-demotion rules, or clinic-admin Team management beyond Practice invite from this note.
 
-Provisional named-seat policy (documentation only, not billed or enforced):
+Named team-member allowances (product entitlements, not billed seats):
 
 | Plan      | Named users included |
 | --------- | -------------------- |

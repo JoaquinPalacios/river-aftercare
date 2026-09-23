@@ -5,11 +5,14 @@ import { notFound } from "next/navigation";
 
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
+import { AllowanceExtrasForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/allowance-extras-form";
 import { PrepareBillingForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/prepare-billing-form";
 import { UpgradePlanForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/upgrade-plan-form";
 import { startOperatorClinicSupportAction } from "@/app/(staff)/(operator)/operator/support-actions";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { loadOperatorBillingPanel } from "@/lib/billing/billing-page";
+import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
+import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import { getOperatorClinic } from "@/lib/operator/get-operator-clinic";
 import { clinicTypefaceLabel } from "@/lib/branding/clinic-typeface";
@@ -32,7 +35,11 @@ export default async function OperatorClinicDetailPage({
   if (!clinic) {
     notFound();
   }
-  const billing = await loadOperatorBillingPanel(clinic.id);
+  const [billing, teamAllowance, guideAllowance] = await Promise.all([
+    loadOperatorBillingPanel(clinic.id),
+    loadTeamAllowance(clinic.id),
+    loadGuideAllowance(clinic.id),
+  ]);
 
   const requestHeaders = await headers();
   const host =
@@ -181,7 +188,41 @@ export default async function OperatorClinicDetailPage({
         clinicId={clinic.id}
         canUpgradeToPractice={billing.canUpgradeToPractice}
         downgradeDeferred={billing.downgradeDeferred}
+        downgradeReadiness={billing.downgradeReadiness}
       />
+
+      {billing.plan &&
+      teamAllowance.baseLimit !== null &&
+      teamAllowance.extraAllowance !== null &&
+      guideAllowance.customGuides.baseLimit !== null &&
+      guideAllowance.customGuides.extraAllowance !== null &&
+      guideAllowance.adaptedTemplates.baseLimit !== null &&
+      guideAllowance.adaptedTemplates.extraAllowance !== null &&
+      guideAllowance.combinedGuides.baseLimit !== null ? (
+        <AllowanceExtrasForm
+          clinicId={clinic.id}
+          planName={billing.plan === "ESSENTIAL" ? "Essential" : "Practice"}
+          team={{
+            used: teamAllowance.occupiedPlaces,
+            base: teamAllowance.baseLimit,
+            extra: teamAllowance.extraAllowance,
+          }}
+          customGuides={{
+            used: guideAllowance.customGuides.used,
+            base: guideAllowance.customGuides.baseLimit,
+            extra: guideAllowance.customGuides.extraAllowance,
+          }}
+          adaptedTemplates={{
+            used: guideAllowance.adaptedTemplates.used,
+            base: guideAllowance.adaptedTemplates.baseLimit,
+            extra: guideAllowance.adaptedTemplates.extraAllowance,
+          }}
+          combinedGuides={{
+            used: guideAllowance.combinedGuides.used,
+            base: guideAllowance.combinedGuides.baseLimit,
+          }}
+        />
+      ) : null}
 
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
         <h2 className="text-base font-semibold">Team</h2>

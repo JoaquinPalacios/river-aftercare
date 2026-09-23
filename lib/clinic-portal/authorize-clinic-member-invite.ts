@@ -18,12 +18,11 @@ export const FORBIDDEN_MEMBER_INVITE_MESSAGE =
  * `platform_operator` is a platform operator. Operators do not need, and
  * this check does not create, a ClinicMembership.
  *
- * Plan allowances are not enforced. When they are, apply them here:
- * clinic administrators follow the included allowance (a pending invitation
- * reserves one); a platform operator does not consume a seat and can pass
- * an explicit override on this branch. Do not bury that override inside
- * inviteClinicUser, and do not treat every operator as exempt from
- * unrelated clinic rules.
+ * Plan allowances are enforced inside the membership transaction
+ * (`reserveTeamPlace`). The effective limit is the plan base plus any
+ * persistent operator-granted extra. Neither a clinic administrator nor a
+ * platform operator bypasses that limit. Operators do not become clinic
+ * members.
  */
 export type ClinicMemberInviteAuthority = {
   kind: "clinic_admin" | "platform_operator";

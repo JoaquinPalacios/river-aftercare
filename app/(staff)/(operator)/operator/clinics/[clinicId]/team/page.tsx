@@ -9,6 +9,8 @@ import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { teamStatusMessage } from "@/lib/operator/clinic-team-status";
+import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
+import { PENDING_INVITATION_RESERVATION_NOTE } from "@/lib/entitlements/messages";
 import { listClinicTeam } from "@/lib/operator/list-clinic-team";
 
 interface ClinicTeamPageProps {
@@ -30,7 +32,10 @@ export default async function ClinicTeamPage({
   const { clinicId } = await params;
   const paramsStatus = searchParams ? await searchParams : {};
   const statusCopy = teamStatusMessage(paramsStatus.status);
-  const team = await listClinicTeam(clinicId);
+  const [team, allowance] = await Promise.all([
+    listClinicTeam(clinicId),
+    loadTeamAllowance(clinicId),
+  ]);
   if (!team) {
     notFound();
   }
@@ -53,6 +58,21 @@ export default async function ClinicTeamPage({
           <p className="mt-2 text-sm text-staff-muted">
             Manage who can access {team.clinicName}.
           </p>
+          {allowance.usageLabel ? (
+            <div className="mt-3 text-sm leading-6">
+              <p className="font-medium text-staff-ink">
+                {allowance.usageLabel}
+              </p>
+              {allowance.detailLabel ? (
+                <p className="text-staff-muted">{allowance.detailLabel}</p>
+              ) : null}
+              {allowance.pendingInvitationCount > 0 ? (
+                <p className="text-staff-muted">
+                  {PENDING_INVITATION_RESERVATION_NOTE}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         <Link
           href={`/operator/clinics/${clinicId}/team/invite`}

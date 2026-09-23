@@ -12,11 +12,25 @@ import {
   TEAM_ADMIN_ROLE_LABEL,
   TEAM_STAFF_ROLE_LABEL,
 } from "@/lib/clinic-portal/role-labels";
+import {
+  PENDING_INVITATION_RESERVATION_NOTE,
+  teamMemberLimitMessage,
+} from "@/lib/entitlements/messages";
 
 const initial: ClinicTeamActionState = {};
 const PENDING_STATUS = "Sending invitation. Please wait.";
 
-export function InviteUserForm({ clinicId }: { clinicId: string }) {
+export function InviteUserForm({
+  clinicId,
+  atLimit,
+  usageLabel,
+  limitMessage,
+}: {
+  clinicId: string;
+  atLimit: boolean;
+  usageLabel: string | null;
+  limitMessage: string | null;
+}) {
   const [state, action, pending] = useActionState(
     inviteClinicUserAction,
     initial
@@ -38,6 +52,16 @@ export function InviteUserForm({ clinicId }: { clinicId: string }) {
         {pending ? PENDING_STATUS : ""}
       </div>
       <input type="hidden" name="clinicId" value={clinicId} />
+      {usageLabel ? (
+        <p className="text-sm font-medium text-staff-ink">{usageLabel}</p>
+      ) : null}
+      {atLimit ? (
+        <p className="text-sm leading-6 text-staff-muted">
+          {limitMessage ?? teamMemberLimitMessage(0)}{" "}
+          {PENDING_INVITATION_RESERVATION_NOTE} Grant extra team allowance on
+          the clinic page before inviting another person.
+        </p>
+      ) : null}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium" htmlFor="invite-name">
           Name
@@ -47,7 +71,7 @@ export function InviteUserForm({ clinicId }: { clinicId: string }) {
           name="name"
           required
           maxLength={INVITED_NAME_MAX_LENGTH}
-          disabled={pending}
+          disabled={pending || atLimit}
           className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
         />
         {state.fieldErrors?.name ? (
@@ -64,7 +88,7 @@ export function InviteUserForm({ clinicId }: { clinicId: string }) {
           type="email"
           required
           maxLength={LOGIN_EMAIL_MAX_LENGTH}
-          disabled={pending}
+          disabled={pending || atLimit}
           autoComplete="email"
           className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
         />
@@ -84,7 +108,7 @@ export function InviteUserForm({ clinicId }: { clinicId: string }) {
           id="invite-role"
           name="role"
           required
-          disabled={pending}
+          disabled={pending || atLimit}
           defaultValue="STAFF"
           className="staffSelect h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
         >
@@ -107,7 +131,7 @@ export function InviteUserForm({ clinicId }: { clinicId: string }) {
       ) : null}
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || atLimit}
         className="staffBtn staffBtnPrimary staffLoginSubmit h-11 w-fit"
         aria-busy={pending || undefined}
       >

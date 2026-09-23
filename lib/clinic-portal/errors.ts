@@ -2,7 +2,16 @@ export class ClinicPortalError extends Error {
   constructor(
     message: string,
     readonly code:
-      "not_found" | "forbidden" | "conflict" | "invalid" | "slug_published"
+      | "not_found"
+      | "forbidden"
+      | "conflict"
+      | "invalid"
+      | "slug_published"
+      | "custom_guide_limit"
+      | "adapted_template_limit"
+      | "combined_guide_limit"
+      | "template_adaptation_unavailable"
+      | "template_adaptation_required"
   ) {
     super(message);
     this.name = "ClinicPortalError";

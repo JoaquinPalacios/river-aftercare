@@ -55,6 +55,7 @@ export async function listClinicPortalGuides(
       isEnabled: true,
       publishedAt: true,
       updatedAt: true,
+      sourceGuideTemplateId: true,
       guideTemplate: {
         select: {
           title: true,
@@ -140,7 +141,9 @@ export async function listClinicPortalGuides(
       isEnabled: guide.isEnabled,
       sourceLabel: guide.guideTemplate
         ? `Template · ${guide.guideTemplate.title}`
-        : "Custom guide",
+        : guide.sourceGuideTemplateId
+          ? "Editable River template"
+          : "Custom guide",
       templateSlug: guide.guideTemplate?.slug ?? null,
       specialty: guide.guideTemplate?.specialty ?? null,
       updatedAt: draft?.updatedAt ?? guide.updatedAt,

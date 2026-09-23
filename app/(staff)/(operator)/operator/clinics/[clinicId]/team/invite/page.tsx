@@ -7,6 +7,7 @@ import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
 import { getOperatorClinic } from "@/lib/operator/get-operator-clinic";
 
 interface InviteUserPageProps {
@@ -20,7 +21,10 @@ export const metadata: Metadata = {
 export default async function InviteUserPage({ params }: InviteUserPageProps) {
   await requirePlatformOperator();
   const { clinicId } = await params;
-  const clinic = await getOperatorClinic(clinicId);
+  const [clinic, allowance] = await Promise.all([
+    getOperatorClinic(clinicId),
+    loadTeamAllowance(clinicId),
+  ]);
   if (!clinic) {
     notFound();
   }
@@ -50,7 +54,16 @@ export default async function InviteUserPage({ params }: InviteUserPageProps) {
           their own password. Access becomes active only after they accept.
         </p>
       </header>
-      <InviteUserForm clinicId={clinicId} />
+      <InviteUserForm
+        clinicId={clinicId}
+        atLimit={allowance.atLimit}
+        usageLabel={allowance.usageLabel}
+        limitMessage={
+          allowance.planLimit
+            ? `This clinic is using all ${allowance.planLimit} included team members.`
+            : null
+        }
+      />
       <p>
         <Link
           href={`/operator/clinics/${clinicId}/team`}

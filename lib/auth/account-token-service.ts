@@ -17,6 +17,7 @@ import {
   passwordResetExpiresAt,
 } from "@/lib/auth/account-token";
 import { LOGIN_EMAIL_MAX_LENGTH } from "@/lib/auth/login-input";
+import { lockClinicTeamCapacity } from "@/lib/entitlements/locks";
 import { parseEmailAddress } from "@/lib/email/mailbox";
 import { getPrisma } from "@/lib/prisma";
 
@@ -520,6 +521,11 @@ export async function completeInvitation(input: {
       return { ok: false, reason: "stale_user" };
     }
 
+    // Hold the team-capacity lock across token consumption and membership
+    // creation so a concurrent invite cannot observe a gap where neither
+    // the reservation nor the membership occupies the place. Acceptance
+    // does not take a second place.
+    await lockClinicTeamCapacity(tx, existing.clinicId);
     await lockOutstandingScope(tx, `clinic-access:${existing.userId}`);
     await lockOutstandingScope(
       tx,

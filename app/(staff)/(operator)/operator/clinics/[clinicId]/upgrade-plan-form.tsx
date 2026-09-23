@@ -24,10 +24,22 @@ export function UpgradePlanForm({
   clinicId,
   canUpgradeToPractice,
   downgradeDeferred,
+  downgradeReadiness = null,
 }: {
   clinicId: string;
   canUpgradeToPractice: boolean;
   downgradeDeferred: boolean;
+  downgradeReadiness?: {
+    ready: boolean;
+    teamCurrent: number;
+    teamLimit: number;
+    guideCurrent: number;
+    guideLimit: number;
+    adaptedCurrent: number;
+    adaptedLimit: number;
+    combinedCurrent: number;
+    combinedLimit: number;
+  } | null;
 }) {
   const router = useRouter();
   const refresh = router.refresh;
@@ -100,11 +112,40 @@ export function UpgradePlanForm({
         </>
       ) : null}
       {downgradeDeferred ? (
-        <p className="mt-2 text-sm text-staff-muted" role="status">
-          Practice to Essential is not available here yet. Guide and team limits
-          have to be checked before a downgrade can be scheduled. Monthly and
-          annual billing are not switched from this page.
-        </p>
+        <div className="mt-4 text-sm leading-6 text-staff-muted" role="status">
+          <p className="font-medium text-staff-ink">Practice → Essential</p>
+          {downgradeReadiness ? (
+            <>
+              <p>
+                {downgradeReadiness.ready
+                  ? "Usage is within Essential limits."
+                  : "Not ready"}
+              </p>
+              <p>
+                Custom guides: {downgradeReadiness.guideCurrent} /{" "}
+                {downgradeReadiness.guideLimit}
+              </p>
+              <p>
+                Team members: {downgradeReadiness.teamCurrent} /{" "}
+                {downgradeReadiness.teamLimit}
+              </p>
+              <p>
+                Editable River templates: {downgradeReadiness.adaptedCurrent} /{" "}
+                {downgradeReadiness.adaptedLimit}
+              </p>
+              <p>
+                Total clinic-owned guides: {downgradeReadiness.combinedCurrent}{" "}
+                / {downgradeReadiness.combinedLimit}
+              </p>
+            </>
+          ) : (
+            <p>
+              Guide and team limits have to be checked before a downgrade can be
+              scheduled.
+            </p>
+          )}
+          <p>Downgrade scheduling is not available yet.</p>
+        </div>
       ) : null}
       {state.error ? (
         <p className="mt-3 text-sm text-red-600" role="alert">

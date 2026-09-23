@@ -52,6 +52,13 @@ export async function marketingPublicLinks(): Promise<MarketingPublicLinks> {
   };
 }
 
+export function marketingContactHref(links: MarketingPublicLinks): string {
+  const home = links.homeHref.endsWith("/")
+    ? links.homeHref
+    : `${links.homeHref}/`;
+  return new URL("contact", home).href;
+}
+
 export function homepageAnchor(path: MarketingSeoPath, hash: string): string {
   return path === "/" ? `#${hash}` : `/#${hash}`;
 }
