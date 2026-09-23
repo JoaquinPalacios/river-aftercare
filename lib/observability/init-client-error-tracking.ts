@@ -4,19 +4,22 @@ import { createErrorTrackingInitOptions } from "@/lib/observability/error-tracki
 import {
   getErrorTrackingConfig,
   isTelemetryRuntimeBlocked,
+  readClientErrorTrackingEnv,
 } from "@/lib/observability/error-tracking-runtime";
 
 type SentryInitOptions = NonNullable<Parameters<typeof Sentry.init>[0]>;
 
 export function initClientErrorTracking(
-  env: Record<string, string | undefined> = process.env
+  env?: Record<string, string | undefined>
 ): void {
+  const resolvedEnv = env ?? readClientErrorTrackingEnv();
+
   try {
-    if (isTelemetryRuntimeBlocked(env)) {
+    if (isTelemetryRuntimeBlocked(resolvedEnv)) {
       return;
     }
 
-    const config = getErrorTrackingConfig(env, "client");
+    const config = getErrorTrackingConfig(resolvedEnv, "client");
     if (!config.enabled) {
       return;
     }

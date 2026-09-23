@@ -84,6 +84,24 @@ export function readSentryDsn(
   );
 }
 
+/**
+ * Environment seen by browser Sentry bootstrap.
+ *
+ * Each `NEXT_PUBLIC_*` value is a direct member expression so Next.js can
+ * inline it into the client bundle. Do not copy `process.env` or read these
+ * names through a variable. Vitest blocking stays on an explicit env object
+ * passed by tests; this reader does not expose `VITEST`.
+ */
+export function readClientErrorTrackingEnv(): Env {
+  return {
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA:
+      process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA,
+  };
+}
+
 export function readErrorTrackingRelease(
   env: Env = process.env
 ): string | undefined {

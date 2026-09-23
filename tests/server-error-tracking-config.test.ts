@@ -240,6 +240,7 @@ describe("Sentry error tracking configuration", () => {
       environment: "verification",
     });
     expect(options.environment).toBe("verification");
+    expect(options).not.toHaveProperty("release");
     expect(options.sendDefaultPii).toBe(false);
     expect(options.tracesSampleRate).toBe(0);
     expect(options.maxBreadcrumbs).toBe(0);
