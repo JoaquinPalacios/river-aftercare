@@ -16,6 +16,7 @@ import {
   serializeAftercareThemeCss,
 } from "@/lib/branding/aftercare-theme";
 import { clinicFontPresentation } from "@/lib/branding/clinic-fonts";
+import { formatBillingDate } from "@/lib/billing/billing-presentation";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
 import {
@@ -104,8 +105,17 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
           guide={guide}
           patientUrlExample={patientUrlExample}
           canEdit={
-            clinicMembership.source === "operator_support" ||
-            clinicMembership.role === ClinicMembershipRole.ADMIN
+            (clinicMembership.source === "operator_support" ||
+              clinicMembership.role === ClinicMembershipRole.ADMIN) &&
+            !guide.downgradeRetainedAt
+          }
+          retainedNotice={
+            guide.downgradeRetainedAt
+              ? guide.downgradeRetentionUntil &&
+                Date.now() < guide.downgradeRetentionUntil.getTime()
+                ? `Retained after your move to Essential. Available for recovery until ${formatBillingDate(guide.downgradeRetentionUntil)}. This guide is read-only.`
+                : "The 60-day recovery period for this guide has ended. This guide is read-only."
+              : null
           }
           requiresReviewAttestation={!isDemoTenant(overview?.slug ?? "")}
           clinicThemeMode={clinic?.profile?.themeMode}

@@ -1,6 +1,7 @@
 import { PracticeGuideStatus } from "@prisma/client";
 
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import { getPrisma } from "@/lib/prisma";
 
 export async function deletePracticeGuide(input: {
@@ -17,12 +18,15 @@ export async function deletePracticeGuide(input: {
       id: true,
       status: true,
       guideTemplateId: true,
+      downgradeRetainedAt: true,
     },
   });
 
   if (!guide) {
     throw new ClinicPortalError("Guide not found.", "not_found");
   }
+
+  assertPracticeGuideWritable(guide);
 
   if (guide.status === PracticeGuideStatus.PUBLISHED) {
     throw new ClinicPortalError(

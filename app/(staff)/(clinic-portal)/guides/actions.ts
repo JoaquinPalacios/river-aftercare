@@ -22,6 +22,10 @@ import {
 import { publishPracticeGuide } from "@/lib/clinic-portal/publish-practice-guide";
 import { savePracticeGuideDraft } from "@/lib/clinic-portal/save-practice-guide-draft";
 import { unpublishPracticeGuide } from "@/lib/clinic-portal/unpublish-practice-guide";
+import {
+  guideRestoreMessage,
+  restoreDowngradeRetainedGuide,
+} from "@/lib/entitlements/downgrade-selection";
 import { revalidatePath } from "next/cache";
 
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
@@ -294,6 +298,32 @@ export async function unpublishGuideAction(
   } catch (error) {
     return errorState(error);
   }
+}
+
+export async function restoreRetainedGuideAction(
+  _previous: GuideActionState,
+  formData: FormData
+): Promise<GuideActionState> {
+  const { user, clinicMembership } = await requireGuideAdmin();
+  if (clinicMembership.source === "operator_support") {
+    return { error: guideRestoreMessage("forbidden") };
+  }
+  const guideId = String(formData.get("guideId") ?? "");
+  if (!guideId) {
+    return { error: "Missing guide." };
+  }
+  const result = await restoreDowngradeRetainedGuide({
+    actorUserId: user.id,
+    clinicId: clinicMembership.clinic.id,
+    guideId,
+    operatorSupport: false,
+  });
+  revalidatePath("/guides");
+  revalidatePath(`/guides/${guideId}/edit`);
+  if (!result.ok) {
+    return { error: result.error };
+  }
+  return { ok: true };
 }
 
 function isRedirectError(error: unknown): boolean {

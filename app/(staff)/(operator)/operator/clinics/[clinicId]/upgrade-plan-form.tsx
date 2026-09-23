@@ -6,6 +6,7 @@ import { useActionState } from "react";
 
 import {
   keepPracticePlanAction,
+  prepareClinicDowngradeAction,
   scheduleClinicPlanDowngradeAction,
   upgradeClinicPlanAction,
   type PlanDowngradeActionState,
@@ -69,6 +70,20 @@ export const UPGRADE_PROCESSING_MESSAGE =
 export const UPGRADE_STILL_PROCESSING_MESSAGE =
   "Stripe is still processing the upgrade. Refresh to check again.";
 
+export const DOWNGRADE_PREPARED_MESSAGE =
+  "Downgrade preparation started. The clinic administrator can choose guides.";
+
+export const TEAM_DOWNGRADE_BLOCK_MESSAGE =
+  "Team usage must be resolved before downgrade.";
+
+export const GUIDE_SELECTION_REQUIRED_MESSAGE =
+  "Clinic guide selection required.";
+
+export const GUIDE_SELECTION_WAITING_MESSAGE =
+  "Waiting for clinic administrator to choose guides.";
+
+export const GUIDE_SELECTION_COMPLETE_MESSAGE = "Guide selection complete.";
+
 export function UpgradePlanForm({
   clinicId,
   canUpgradeToPractice,
@@ -79,6 +94,8 @@ export function UpgradePlanForm({
   downgradeBlockedReason = null,
   scheduledPlanChange = null,
   downgradeReadiness = null,
+  canPrepareDowngrade = false,
+  guidePreparation = null,
 }: {
   clinicId: string;
   canUpgradeToPractice: boolean;
@@ -105,6 +122,13 @@ export function UpgradePlanForm({
     combinedCurrent: number;
     combinedLimit: number;
   } | null;
+  canPrepareDowngrade?: boolean;
+  guidePreparation?: {
+    status: "none" | "awaiting" | "confirmed";
+    selectedCustom: number;
+    selectedAdapted: number;
+    selectedCombined: number;
+  } | null;
 }) {
   const router = useRouter();
   const refresh = router.refresh;
@@ -114,6 +138,10 @@ export function UpgradePlanForm({
   );
   const [planChange, planChangeAction, planChangePending] = useActionState(
     planChangeFeedbackAction,
+    downgradeInitial
+  );
+  const [prepareState, prepareAction, preparePending] = useActionState(
+    prepareClinicDowngradeAction,
     downgradeInitial
   );
   const [dismissedPlanChange, setDismissedPlanChange] = useState(0);
@@ -203,46 +231,11 @@ export function UpgradePlanForm({
             </div>
           ) : downgradeReadiness ? (
             <div role="status">
-              <p>
-                {downgradeReadiness.ready
-                  ? "Usage is within Essential limits."
-                  : "Not ready to schedule."}
-              </p>
-              <p>
-                Team members: {downgradeReadiness.teamCurrent} used /{" "}
-                {downgradeReadiness.teamLimit} allowed
-              </p>
-              <p>
-                Custom guides: {downgradeReadiness.guideCurrent} used /{" "}
-                {downgradeReadiness.guideLimit} allowed
-              </p>
-              <p>
-                Editable River templates: {downgradeReadiness.adaptedCurrent}{" "}
-                used / {downgradeReadiness.adaptedLimit} allowed
-              </p>
-              <p>
-                Total clinic-owned guides: {downgradeReadiness.combinedCurrent}{" "}
-                used / {downgradeReadiness.combinedLimit} allowed
-              </p>
-              {downgradeReadiness.ready && downgradeEffectiveLabel ? (
-                <>
-                  <p>
-                    Downgrade will take effect at the end of the current paid
-                    period: {downgradeEffectiveLabel}
-                  </p>
-                  <p>
-                    Practice remains active until that date. There is no refund
-                    and no immediate billing change. Essential begins at the
-                    next renewal.
-                  </p>
-                </>
-              ) : null}
-              {!downgradeReadiness.ready ? (
-                <p>
-                  Reduce usage or grant a persistent extra before scheduling.
-                  Nothing is removed automatically.
-                </p>
-              ) : null}
+              <DowngradeReadinessCopy
+                readiness={downgradeReadiness}
+                preparation={guidePreparation}
+                effectiveLabel={downgradeEffectiveLabel}
+              />
             </div>
           ) : (
             <p>
@@ -254,6 +247,23 @@ export function UpgradePlanForm({
             <p className="mt-2" role="status">
               {downgradeBlockedReason}
             </p>
+          ) : null}
+          {canPrepareDowngrade ? (
+            <form action={prepareAction} className="mt-4">
+              <input type="hidden" name="clinicId" value={clinicId} />
+              <button
+                type="submit"
+                className="staffBtn staffBtnSecondary h-11"
+                disabled={preparePending}
+              >
+                {preparePending ? "Preparing…" : "Prepare downgrade"}
+              </button>
+            </form>
+          ) : null}
+          {prepareState.error ? (
+            <TransientNotice variant="error" noticeKey={prepareState.error}>
+              {prepareState.error}
+            </TransientNotice>
           ) : null}
           {canScheduleDowngrade ? (
             <form action={planChangeAction} className="mt-4">
@@ -345,5 +355,90 @@ export function UpgradePlanForm({
         </TransientNotice>
       ) : null}
     </section>
+  );
+}
+
+function DowngradeReadinessCopy({
+  readiness,
+  preparation,
+  effectiveLabel,
+}: {
+  readiness: {
+    ready: boolean;
+    teamCurrent: number;
+    teamLimit: number;
+    guideCurrent: number;
+    guideLimit: number;
+    adaptedCurrent: number;
+    adaptedLimit: number;
+    combinedCurrent: number;
+    combinedLimit: number;
+  };
+  preparation: {
+    status: "none" | "awaiting" | "confirmed";
+    selectedCustom: number;
+    selectedAdapted: number;
+    selectedCombined: number;
+  } | null;
+  effectiveLabel: string | null;
+}) {
+  const teamBlocked = readiness.teamCurrent > readiness.teamLimit;
+  const guidesOver =
+    readiness.guideCurrent > readiness.guideLimit ||
+    readiness.adaptedCurrent > readiness.adaptedLimit ||
+    readiness.combinedCurrent > readiness.combinedLimit;
+  const status = preparation?.status ?? "none";
+  return (
+    <>
+      {readiness.ready ? <p>Usage is within Essential limits.</p> : null}
+      {teamBlocked ? <p>{TEAM_DOWNGRADE_BLOCK_MESSAGE}</p> : null}
+      {guidesOver && status === "none" ? (
+        <p>{GUIDE_SELECTION_REQUIRED_MESSAGE}</p>
+      ) : null}
+      {guidesOver && status === "awaiting" ? (
+        <p>{GUIDE_SELECTION_WAITING_MESSAGE}</p>
+      ) : null}
+      {guidesOver && status === "confirmed" ? (
+        <>
+          <p>{GUIDE_SELECTION_COMPLETE_MESSAGE}</p>
+          <p>Selected custom guides: {preparation?.selectedCustom ?? 0}</p>
+          <p>
+            Selected editable River templates:{" "}
+            {preparation?.selectedAdapted ?? 0}
+          </p>
+          <p>
+            Selected clinic-owned guides: {preparation?.selectedCombined ?? 0}
+          </p>
+        </>
+      ) : null}
+      <p>
+        Team members: {readiness.teamCurrent} used / {readiness.teamLimit}{" "}
+        allowed
+      </p>
+      <p>
+        Custom guides: {readiness.guideCurrent} used / {readiness.guideLimit}{" "}
+        allowed
+      </p>
+      <p>
+        Editable River templates: {readiness.adaptedCurrent} used /{" "}
+        {readiness.adaptedLimit} allowed
+      </p>
+      <p>
+        Total clinic-owned guides: {readiness.combinedCurrent} used /{" "}
+        {readiness.combinedLimit} allowed
+      </p>
+      {!teamBlocked && !guidesOver && effectiveLabel ? (
+        <>
+          <p>
+            Downgrade will take effect at the end of the current paid period:{" "}
+            {effectiveLabel}
+          </p>
+          <p>
+            Practice remains active until that date. There is no refund and no
+            immediate billing change. Essential begins at the next renewal.
+          </p>
+        </>
+      ) : null}
+    </>
   );
 }

@@ -124,10 +124,11 @@ model Clinic {
   billingProfile     ClinicBillingProfile?
   entitlement        ClinicEntitlement?
   legalAcceptances   LegalAcceptance[]
-  practiceGuides     PracticeGuide[]
-  accountTokens      AccountToken[]
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
+  practiceGuides        PracticeGuide[]
+  accountTokens         AccountToken[]
+  downgradePreparation  ClinicDowngradePreparation?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 }
 
 model User {
@@ -146,8 +147,9 @@ model User {
   accountTokens                  AccountToken[]          @relation("AccountTokenSubject")
   invitedAccountTokens           AccountToken[]          @relation("AccountTokenInviter")
   legalAcceptances               LegalAcceptance[]
-  createdAt                      DateTime                @default(now())
-  updatedAt                      DateTime                @updatedAt
+  confirmedDowngradePreparations ClinicDowngradePreparation[] @relation("DowngradeSelectionConfirmedBy")
+  createdAt                      DateTime                      @default(now())
+  updatedAt                      DateTime                      @updatedAt
 }
 
 model ClinicMembership {
@@ -532,6 +534,12 @@ model PracticeGuide {
   status                PracticeGuideStatus     @default(DRAFT)
   sortOrder             Int                     @default(0)
   publishedAt           DateTime?
+  /// Set when this clinic-owned guide enters 60-day downgrade retention.
+  /// Null means the guide is active. Publication status is unchanged.
+  downgradeRetainedAt   DateTime?
+  /// First effective Practice → Essential transition plus 60 UTC days.
+  /// Not moved by a replayed webhook. Null when the guide is active.
+  downgradeRetentionUntil DateTime?
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
   clinic                Clinic                  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
@@ -541,10 +549,12 @@ model PracticeGuide {
   overrides             PracticeGuideOverride[]
   additions             PracticeGuideAddition[]
   contentRevisions      PracticeGuideRevision[]
+  downgradeSelections   DowngradeGuideSelection[]
 
   @@unique([clinicId, guideTemplateId])
   @@unique([clinicId, publicSlug])
   @@index([clinicId, status, isEnabled])
+  @@index([clinicId, downgradeRetainedAt])
   @@index([guideTemplateId])
   @@index([pinnedRevisionId])
   @@index([sourceGuideTemplateId])
@@ -711,6 +721,46 @@ enum StripeEventProcessingStatus {
   PROCESSED
   IGNORED
   FAILED
+}
+
+/// One current Practice → Essential preparation per clinic.
+/// This is not the Stripe schedule. Scheduling stays on ClinicEntitlement.
+enum DowngradePreparationStatus {
+  AWAITING_SELECTION
+  SELECTION_CONFIRMED
+}
+
+/// Local preparation for a Practice → Essential downgrade.
+/// At most one row per clinic. Selected guides are child rows, not JSON.
+/// Confirming a selection does not call Stripe and does not retain guides.
+model ClinicDowngradePreparation {
+  id                String                     @id @default(cuid())
+  clinicId          String                     @unique
+  targetPlan        CommercialPlan
+  status            DowngradePreparationStatus
+  confirmedAt       DateTime?
+  confirmedByUserId String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  clinic            Clinic                     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  confirmedBy       User?                      @relation("DowngradeSelectionConfirmedBy", fields: [confirmedByUserId], references: [id], onDelete: SetNull)
+  selections        DowngradeGuideSelection[]
+
+  @@index([confirmedByUserId])
+}
+
+/// Clinic-owned guides the clinic administrator chose to keep active.
+/// Deleting the guide or the preparation removes the row.
+model DowngradeGuideSelection {
+  id              String                     @id @default(cuid())
+  preparationId   String
+  practiceGuideId String
+  createdAt       DateTime                   @default(now())
+  preparation     ClinicDowngradePreparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+  practiceGuide   PracticeGuide              @relation(fields: [practiceGuideId], references: [id], onDelete: Cascade)
+
+  @@unique([preparationId, practiceGuideId])
+  @@index([practiceGuideId])
 }
 
 /// Legal/billing identity and Stripe Customer/Subscription linkage.

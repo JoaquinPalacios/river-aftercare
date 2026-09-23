@@ -12,7 +12,15 @@ import {
   planDowngradeMessage,
   type PlanDowngradeState,
 } from "@/lib/billing/plan-downgrade";
-import { loadEssentialDowngradeReadiness } from "@/lib/entitlements/downgrade-readiness";
+import {
+  loadEssentialDowngradeReadiness,
+  readinessHasGuideOverage,
+} from "@/lib/entitlements/downgrade-readiness";
+import {
+  loadClinicGuideSelectionPanel,
+  loadDowngradePreparationSnapshot,
+  type ClinicGuideSelectionPanel,
+} from "@/lib/entitlements/downgrade-selection";
 import {
   billingIntervalLabel,
   commercialPlanLabel,
@@ -50,6 +58,13 @@ export type OperatorBillingPanel = {
   canKeepPractice: boolean;
   downgradeEffectiveLabel: string | null;
   downgradeBlockedReason: string | null;
+  canPrepareDowngrade: boolean;
+  guidePreparation: {
+    status: "none" | "awaiting" | "confirmed";
+    selectedCustom: number;
+    selectedAdapted: number;
+    selectedCombined: number;
+  } | null;
   scheduledPlanChange: ScheduledPlanChangePresentation | null;
   downgradeReadiness: {
     ready: boolean;
@@ -102,6 +117,19 @@ export async function loadOperatorBillingPanel(
     entitlement?.commercialPlan === "PRACTICE"
       ? await loadEssentialDowngradeReadiness(clinicId)
       : null;
+  const preparation =
+    entitlement?.commercialPlan === "PRACTICE"
+      ? await loadDowngradePreparationSnapshot(clinicId)
+      : null;
+  const guideSelection =
+    preparation?.status === "confirmed"
+      ? {
+          confirmed: true as const,
+          customCount: preparation.selectedCustom,
+          adaptedCount: preparation.selectedAdapted,
+          combinedCount: preparation.selectedCombined,
+        }
+      : null;
   const downgradeState: PlanDowngradeState = {
     clinicId,
     commercialPlan: entitlement?.commercialPlan ?? null,
@@ -119,6 +147,7 @@ export async function loadOperatorBillingPanel(
     ? assessOperatorPlanDowngrade({
         state: downgradeState,
         readiness: downgradeReadiness,
+        guideSelection,
       })
     : { ok: false as const, code: "unsupported" as const };
   const scheduledPlanChange = presentScheduledPlanChange({
@@ -171,7 +200,8 @@ export async function loadOperatorBillingPanel(
       showDowngrade &&
       !scheduledPlanChange &&
       !downgradeAssessed.ok &&
-      downgradeAssessed.code !== "not_ready"
+      downgradeAssessed.code !== "not_ready" &&
+      downgradeAssessed.code !== "selection_required"
         ? planDowngradeMessage(
             downgradeAssessed.code,
             downgradeReadiness ?? undefined
@@ -189,6 +219,21 @@ export async function loadOperatorBillingPanel(
           adaptedLimit: downgradeReadiness.adaptedTemplates.limit,
           combinedCurrent: downgradeReadiness.combinedGuides.current,
           combinedLimit: downgradeReadiness.combinedGuides.limit,
+        }
+      : null,
+    canPrepareDowngrade: Boolean(
+      showDowngrade &&
+      !scheduledPlanChange &&
+      downgradeReadiness &&
+      readinessHasGuideOverage(downgradeReadiness) &&
+      !preparation
+    ),
+    guidePreparation: downgradeReadiness
+      ? {
+          status: preparation?.status ?? "none",
+          selectedCustom: preparation?.selectedCustom ?? 0,
+          selectedAdapted: preparation?.selectedAdapted ?? 0,
+          selectedCombined: preparation?.selectedCombined ?? 0,
         }
       : null,
     canRevise: revision.ok,
@@ -215,6 +260,7 @@ export type ClinicBillingView = {
   billingStatus: BillingStatus | null;
   publicGuideRetentionLabel: string | null;
   scheduledPlanChange: ScheduledPlanChangePresentation | null;
+  guideSelection: ClinicGuideSelectionPanel | null;
   identity: {
     legalEntityName: string;
     tradingName: string;
@@ -316,6 +362,10 @@ export async function loadClinicBillingView(
       effectiveAt: entitlement?.scheduledPlanEffectiveAt ?? null,
       cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
     }),
+    guideSelection:
+      entitlement?.commercialPlan === "PRACTICE"
+        ? await loadClinicGuideSelectionPanel(clinicId)
+        : null,
     identity,
   };
 }

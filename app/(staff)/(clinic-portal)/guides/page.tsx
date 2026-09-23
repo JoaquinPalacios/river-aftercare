@@ -3,11 +3,14 @@ import Link from "next/link";
 import { ClinicMembershipRole } from "@prisma/client";
 
 import { GuideRowActions } from "@/app/(staff)/(clinic-portal)/guides/guide-row-actions";
+import { RetainedGuideRestoreForm } from "@/app/(staff)/(clinic-portal)/guides/retained-guide-restore-form";
 import { GuideStatusPills } from "@/app/(staff)/components/guide-status-pills";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
+import { formatBillingDate } from "@/lib/billing/billing-presentation";
 import { getClinicPortalOverview } from "@/lib/clinic-portal/get-clinic-portal";
 import { listClinicPortalGuides } from "@/lib/clinic-portal/list-clinic-guides";
 import { formatPortalDate } from "@/lib/clinic-portal/format-portal-date";
+import { loadDowngradePreparationSnapshot } from "@/lib/entitlements/downgrade-selection";
 import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import {
@@ -26,14 +29,22 @@ export default async function ClinicGuidesPage() {
   const canManage =
     clinicMembership.source === "operator_support" ||
     clinicMembership.role === ClinicMembershipRole.ADMIN;
-  const [overview, guides, allowance, links] = await Promise.all([
+  const [overview, guides, allowance, links, preparation] = await Promise.all([
     getClinicPortalOverview(clinicId),
     listClinicPortalGuides(clinicId),
     loadGuideAllowance(clinicId),
     marketingPublicLinks(),
+    loadDowngradePreparationSnapshot(clinicId),
   ]);
   const contactHref = marketingContactHref(links);
   const displayName = overview?.displayName ?? clinicMembership.clinic.name;
+  const activeGuides = guides.filter((guide) => !guide.downgradeRetention);
+  const retainedGuides = guides.filter(
+    (guide) => guide.downgradeRetention?.open
+  );
+  const canRestore =
+    clinicMembership.source !== "operator_support" &&
+    clinicMembership.role === ClinicMembershipRole.ADMIN;
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
@@ -95,13 +106,23 @@ export default async function ClinicGuidesPage() {
         ) : null}
       </header>
 
-      {guides.length === 0 ? (
+      {preparation?.status === "awaiting" ? (
+        <p className="rounded-xl border border-staff-line bg-staff-panel px-5 py-4 text-sm leading-6">
+          A move to Essential needs a choice of which clinic-owned guides stay
+          active.{" "}
+          <Link href="/account/billing" className="underline">
+            Choose guides
+          </Link>
+        </p>
+      ) : null}
+
+      {activeGuides.length === 0 && retainedGuides.length === 0 ? (
         <p className="rounded-xl border border-dashed border-staff-line bg-staff-panel px-5 py-8 text-sm leading-6 text-staff-muted">
           No guides have been configured for this practice yet.
         </p>
-      ) : (
+      ) : activeGuides.length > 0 ? (
         <ul className="divide-y divide-staff-line overflow-hidden rounded-xl border border-staff-line bg-staff-panel shadow-sm">
-          {guides.map((guide) => (
+          {activeGuides.map((guide) => (
             <li key={guide.id} className="flex flex-col gap-3 px-5 py-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
@@ -129,7 +150,36 @@ export default async function ClinicGuidesPage() {
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
+
+      {retainedGuides.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold text-staff-ink">
+            Retained guides
+          </h2>
+          <ul className="divide-y divide-staff-line overflow-hidden rounded-xl border border-staff-line bg-staff-panel shadow-sm">
+            {retainedGuides.map((guide) => (
+              <li key={guide.id} className="px-5 py-4">
+                <p className="font-medium text-staff-ink">{guide.title}</p>
+                <p className="mt-1 text-sm text-staff-muted">
+                  {guide.sourceLabel}
+                  <span aria-hidden="true"> · </span>
+                  {guide.statusLabel}
+                </p>
+                <p className="mt-2 text-sm leading-6">
+                  Retained after your move to Essential. Available for recovery
+                  until{" "}
+                  {formatBillingDate(guide.downgradeRetention!.retentionUntil)}.
+                  This guide is read-only.
+                </p>
+                {canRestore ? (
+                  <RetainedGuideRestoreForm guideId={guide.id} />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }

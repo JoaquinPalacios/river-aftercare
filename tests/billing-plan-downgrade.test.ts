@@ -245,15 +245,15 @@ describe("Practice to Essential downgrade readiness", () => {
   });
 
   it.each([
-    ["TEAM_MEMBERS", { team: 3 }],
-    ["CUSTOM_GUIDES", { custom: 3, adapted: 0 }],
-    ["TEMPLATE_ADAPTATIONS", { custom: 0, adapted: 3 }],
-    ["COMBINED_GUIDES", { custom: 3, adapted: 2 }],
+    ["TEAM_MEMBERS", { team: 3 }, "not_ready"],
+    ["CUSTOM_GUIDES", { custom: 3, adapted: 0 }, "selection_required"],
+    ["TEMPLATE_ADAPTATIONS", { custom: 0, adapted: 3 }, "selection_required"],
+    ["COMBINED_GUIDES", { custom: 3, adapted: 2 }, "selection_required"],
   ] as const)(
     "does not call Stripe for a %s conflict",
-    async (conflict, usage) => {
+    async (_conflict, usage, code) => {
       const assessed = readiness(usage);
-      expect(assessed.conflicts).toContain(conflict);
+      expect(assessed.conflicts).toContain(_conflict);
       const fake = port({});
       const result = await executeOperatorPlanDowngrade({
         state: state(),
@@ -262,12 +262,53 @@ describe("Practice to Essential downgrade readiness", () => {
         stripe: fake.stripe,
         persist: async () => undefined,
       });
-      expect(result).toMatchObject({ ok: false, code: "not_ready" });
+      expect(result).toMatchObject({ ok: false, code });
       expect(fake.calls.retrieveSubscription).toBe(0);
       expect(fake.calls.create).toHaveLength(0);
       expect(fake.calls.update).toHaveLength(0);
     }
   );
+
+  it("schedules when guide usage is over Essential but a confirmed keep-set fits", async () => {
+    const assessed = readiness({ custom: 30, adapted: 10 });
+    expect(assessed.ready).toBe(false);
+    const fake = port({});
+    const result = await executeOperatorPlanDowngrade({
+      state: state(),
+      readiness: assessed,
+      guideSelection: {
+        confirmed: true,
+        customCount: 2,
+        adaptedCount: 2,
+        combinedCount: 4,
+      },
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      persist: async () => undefined,
+    });
+    expect(result.ok).toBe(true);
+    expect(fake.calls.create).toHaveLength(1);
+  });
+
+  it("still blocks scheduling when team usage is over even with a valid guide selection", async () => {
+    const assessed = readiness({ team: 3, custom: 30, adapted: 10 });
+    const fake = port({});
+    const result = await executeOperatorPlanDowngrade({
+      state: state(),
+      readiness: assessed,
+      guideSelection: {
+        confirmed: true,
+        customCount: 2,
+        adaptedCount: 2,
+        combinedCount: 4,
+      },
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      persist: async () => undefined,
+    });
+    expect(result).toMatchObject({ ok: false, code: "not_ready" });
+    expect(fake.calls.create).toHaveLength(0);
+  });
 
   it("treats persistent extras as part of the Essential allowance", async () => {
     const withinExtras = readiness({

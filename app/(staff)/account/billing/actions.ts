@@ -2,8 +2,13 @@
 
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
+import {
+  confirmClinicDowngradeSelection,
+  keepSelectionMessage,
+} from "@/lib/entitlements/downgrade-selection";
 import {
   BILLING_COMPLETE_PATH,
   BILLING_SETUP_PATH,
@@ -152,4 +157,37 @@ export async function openCustomerPortalAction(
     }
     return { error: portalFailureMessage("portal_failed") };
   }
+}
+
+export interface GuideSelectionActionState {
+  error?: string;
+  accepted?: boolean;
+}
+
+export async function confirmDowngradeGuideSelectionAction(
+  _previous: GuideSelectionActionState,
+  formData: FormData
+): Promise<GuideSelectionActionState> {
+  const session = await requireClinicAdmin();
+  if (session.clinicMembership.source === "operator_support") {
+    return { error: keepSelectionMessage("forbidden") };
+  }
+  const selectedIds = formData
+    .getAll("guideId")
+    .filter(
+      (value): value is string => typeof value === "string" && value.length > 0
+    );
+  const result = await confirmClinicDowngradeSelection({
+    actorUserId: session.user.id,
+    clinicId: session.clinicMembership.clinic.id,
+    selectedIds,
+    operatorSupport: false,
+  });
+  revalidatePath("/account/billing");
+  revalidatePath("/guides");
+  revalidatePath(`/operator/clinics/${session.clinicMembership.clinic.id}`);
+  if (!result.ok) {
+    return { error: keepSelectionMessage(result.code) };
+  }
+  return { accepted: true };
 }

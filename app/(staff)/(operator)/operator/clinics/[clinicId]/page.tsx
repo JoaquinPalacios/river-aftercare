@@ -11,6 +11,7 @@ import { UpgradePlanForm } from "@/app/(staff)/(operator)/operator/clinics/[clin
 import { startOperatorClinicSupportAction } from "@/app/(staff)/(operator)/operator/support-actions";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { loadOperatorBillingPanel } from "@/lib/billing/billing-page";
+import { formatBillingDate } from "@/lib/billing/billing-presentation";
 import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
 import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
@@ -161,6 +162,12 @@ export default async function OperatorClinicDetailPage({
               <li key={guide.id} className="py-2 text-sm">
                 {guide.title} · /{guide.publicSlug} · {guide.status}
                 {guide.isEnabled ? "" : " · disabled"}
+                {guide.downgradeRetainedAt
+                  ? guide.downgradeRetentionUntil &&
+                    Date.now() < guide.downgradeRetentionUntil.getTime()
+                    ? ` · retained until ${formatBillingDate(guide.downgradeRetentionUntil)}`
+                    : " · retention expired"
+                  : ""}
               </li>
             ))}
           </ul>
@@ -194,6 +201,8 @@ export default async function OperatorClinicDetailPage({
         downgradeBlockedReason={billing.downgradeBlockedReason}
         scheduledPlanChange={billing.scheduledPlanChange}
         downgradeReadiness={billing.downgradeReadiness}
+        canPrepareDowngrade={billing.canPrepareDowngrade}
+        guidePreparation={billing.guidePreparation}
       />
 
       {billing.plan &&

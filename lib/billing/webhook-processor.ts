@@ -30,6 +30,7 @@ import {
   projectEntitlement,
   type LocalEntitlementSnapshot,
 } from "@/lib/billing/projection";
+import { applyDowngradeGuideTransition } from "@/lib/entitlements/downgrade-retention";
 import { getPrisma } from "@/lib/prisma";
 import {
   mergeSubscriptionIntoSnapshot,
@@ -551,6 +552,14 @@ export async function processVerifiedStripeEvent(
         scheduledCommercialPlan: scheduledFields.scheduledCommercialPlan,
         scheduledPlanEffectiveAt: scheduledFields.scheduledPlanEffectiveAt,
         clearScheduleId,
+      });
+      await applyDowngradeGuideTransition({
+        db: tx,
+        clinicId: identity.clinicId!,
+        previousPlan: previousRow?.commercialPlan ?? null,
+        projectedPlan: projection.entitlement.commercialPlan,
+        transitionAt: snapshot.stripeCreatedAt,
+        cancellationSuperseded,
       });
       await tx.stripeEventReceipt.update({
         where: { id: receipt.id },

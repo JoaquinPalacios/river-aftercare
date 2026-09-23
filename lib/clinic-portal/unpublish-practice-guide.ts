@@ -1,6 +1,7 @@
 import { GuideRevisionStatus, PracticeGuideStatus } from "@prisma/client";
 
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import { getPrisma } from "@/lib/prisma";
 
 export async function unpublishPracticeGuide(input: {
@@ -16,6 +17,7 @@ export async function unpublishPracticeGuide(input: {
     select: {
       id: true,
       status: true,
+      downgradeRetainedAt: true,
       contentRevisions: {
         select: {
           version: true,
@@ -28,6 +30,8 @@ export async function unpublishPracticeGuide(input: {
   if (!guide) {
     throw new ClinicPortalError("Guide not found.", "not_found");
   }
+
+  assertPracticeGuideWritable(guide);
 
   const hasPublishedRevision = guide.contentRevisions.some(
     (revision) =>

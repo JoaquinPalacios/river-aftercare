@@ -8,6 +8,7 @@ const refreshMock = vi.hoisted(() => vi.fn());
 const upgradeMock = vi.hoisted(() => vi.fn());
 const scheduleMock = vi.hoisted(() => vi.fn());
 const keepMock = vi.hoisted(() => vi.fn());
+const prepareMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -22,6 +23,8 @@ vi.mock("@/app/(staff)/(operator)/operator/billing-actions", () => ({
     scheduleMock(previous, formData),
   keepPracticePlanAction: (previous: unknown, formData: FormData) =>
     keepMock(previous, formData),
+  prepareClinicDowngradeAction: (previous: unknown, formData: FormData) =>
+    prepareMock(previous, formData),
 }));
 
 import {
@@ -45,8 +48,10 @@ describe("operator upgrade refresh", () => {
     upgradeMock.mockReset();
     scheduleMock.mockReset();
     keepMock.mockReset();
+    prepareMock.mockReset();
     scheduleMock.mockResolvedValue({});
     keepMock.mockResolvedValue({});
+    prepareMock.mockResolvedValue({});
     vi.useFakeTimers();
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -317,6 +322,10 @@ describe("operator upgrade refresh", () => {
     });
     expect(container.textContent).toContain("Team members: 3 used / 2 allowed");
     expect(container.textContent).toContain(
+      "Team usage must be resolved before downgrade."
+    );
+    expect(container.textContent).toContain("Clinic guide selection required.");
+    expect(container.textContent).toContain(
       "Custom guides: 4 used / 2 allowed"
     );
     expect(container.textContent).toContain(
@@ -325,7 +334,7 @@ describe("operator upgrade refresh", () => {
     expect(container.textContent).toContain(
       "Total clinic-owned guides: 5 used / 4 allowed"
     );
-    expect(container.textContent).toContain(
+    expect(container.textContent).not.toContain(
       "Reduce usage or grant a persistent extra before scheduling. Nothing is removed automatically."
     );
     expect(container.textContent).not.toContain("Schedule downgrade");
@@ -355,8 +364,10 @@ describe("plan change action feedback", () => {
     upgradeMock.mockReset();
     scheduleMock.mockReset();
     keepMock.mockReset();
+    prepareMock.mockReset();
     scheduleMock.mockResolvedValue({ accepted: true });
     keepMock.mockResolvedValue({ accepted: true });
+    prepareMock.mockResolvedValue({});
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);

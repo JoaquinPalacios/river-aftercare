@@ -11,6 +11,7 @@ import {
   validateTimelineRanges,
 } from "@/lib/aftercare/timeline-range";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import type { SaveGuideDraftInput } from "@/lib/clinic-portal/guide-schemas";
 import { suppliedTemplateContentChanged } from "@/lib/entitlements/guide-content";
 import { governedTemplateEditBlock } from "@/lib/entitlements/guide-usage";
@@ -64,6 +65,8 @@ export async function savePracticeGuideDraft(input: {
   if (!guide) {
     throw new ClinicPortalError("Guide not found.", "not_found");
   }
+
+  assertPracticeGuideWritable(guide);
 
   if (
     guide.status === PracticeGuideStatus.PUBLISHED &&

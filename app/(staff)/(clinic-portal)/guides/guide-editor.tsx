@@ -85,6 +85,7 @@ export function GuideEditor({
   guide,
   patientUrlExample,
   canEdit,
+  retainedNotice = null,
   requiresReviewAttestation = true,
   clinicThemeMode,
   fontClassName,
@@ -93,6 +94,7 @@ export function GuideEditor({
   guide: PracticeGuideEditorRecord;
   patientUrlExample: string;
   canEdit: boolean;
+  retainedNotice?: string | null;
   requiresReviewAttestation?: boolean;
   clinicThemeMode?: string | null;
   fontClassName?: string;
@@ -540,7 +542,11 @@ export function GuideEditor({
             </p>
           ) : null}
 
-          {canEdit ? null : (
+          {retainedNotice ? (
+            <p className="text-sm text-staff-muted" role="status">
+              {retainedNotice}
+            </p>
+          ) : canEdit ? null : (
             <p className="text-sm text-staff-muted">
               Staff can view this guide but cannot edit it.
             </p>

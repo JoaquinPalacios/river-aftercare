@@ -24,7 +24,13 @@ import { subscriptionCancellationScheduled } from "@/lib/billing/stripe-event";
 import {
   type EssentialDowngradeReadiness,
   loadEssentialDowngradeReadiness,
+  readinessHasGuideOverage,
 } from "@/lib/entitlements/downgrade-readiness";
+import {
+  confirmedSelectionFitsReadiness,
+  loadConfirmedDowngradeSelection,
+  type ConfirmedGuideKeep,
+} from "@/lib/entitlements/downgrade-selection";
 import { getPrisma } from "@/lib/prisma";
 
 /**
@@ -56,6 +62,7 @@ export const PLAN_DOWNGRADE_BILLING_CYCLE_ANCHOR = "automatic" as const;
 
 export type PlanDowngradeCode =
   | "not_ready"
+  | "selection_required"
   | "not_active"
   | "past_due"
   | "cancel_scheduled"
@@ -188,6 +195,8 @@ export function planDowngradeMessage(
   switch (code) {
     case "not_ready":
       return planDowngradeConflictMessage(readiness);
+    case "selection_required":
+      return "Clinic guide selection required. Nothing was changed.";
     case "past_due":
       return "A downgrade cannot be scheduled while a payment retry is still open.";
     case "cancel_scheduled":
@@ -222,32 +231,11 @@ export function planDowngradeConflictMessage(
   readiness?: EssentialDowngradeReadiness
 ): string {
   const intro =
-    "Usage is above the Essential allowance. Reduce usage or grant a persistent extra before scheduling. Nothing was changed.";
-  if (!readiness) {
+    "Team usage must be resolved before downgrade. Nothing was changed.";
+  if (!readiness?.conflicts.includes("TEAM_MEMBERS")) {
     return intro;
   }
-  const lines: string[] = [];
-  if (readiness.conflicts.includes("TEAM_MEMBERS")) {
-    lines.push(
-      `Team members: ${readiness.team.current} used / ${readiness.team.limit} allowed`
-    );
-  }
-  if (readiness.conflicts.includes("CUSTOM_GUIDES")) {
-    lines.push(
-      `Custom guides: ${readiness.guides.current} used / ${readiness.guides.limit} allowed`
-    );
-  }
-  if (readiness.conflicts.includes("TEMPLATE_ADAPTATIONS")) {
-    lines.push(
-      `Editable River templates: ${readiness.adaptedTemplates.current} used / ${readiness.adaptedTemplates.limit} allowed`
-    );
-  }
-  if (readiness.conflicts.includes("COMBINED_GUIDES")) {
-    lines.push(
-      `Total clinic-owned guides: ${readiness.combinedGuides.current} used / ${readiness.combinedGuides.limit} allowed`
-    );
-  }
-  return [intro, ...lines].join(" ");
+  return `${intro} Team members: ${readiness.team.current} used / ${readiness.team.limit} allowed`;
 }
 
 function checkoutPending(state: PlanDowngradeState): boolean {
@@ -264,6 +252,7 @@ function checkoutPending(state: PlanDowngradeState): boolean {
 export function assessOperatorPlanDowngrade(input: {
   state: PlanDowngradeState;
   readiness: EssentialDowngradeReadiness;
+  guideSelection?: ConfirmedGuideKeep | null;
 }):
   | { ok: true; stripeSubscriptionId: string; interval: BillingInterval }
   | { ok: false; code: PlanDowngradeCode } {
@@ -304,8 +293,14 @@ export function assessOperatorPlanDowngrade(input: {
   ) {
     return { ok: false, code: "not_active" };
   }
-  if (!readiness.ready) {
+  if (readiness.conflicts.includes("TEAM_MEMBERS")) {
     return { ok: false, code: "not_ready" };
+  }
+  if (
+    readinessHasGuideOverage(readiness) &&
+    !confirmedSelectionFitsReadiness(readiness, input.guideSelection)
+  ) {
+    return { ok: false, code: "selection_required" };
   }
   return {
     ok: true,
@@ -513,12 +508,13 @@ async function clearScheduledDowngrade(input: {
         scheduledPlanEffectiveAt: null,
       },
     }),
+    prisma.clinicDowngradePreparation.deleteMany({
+      where: { clinicId: input.clinicId },
+    }),
   ]);
 }
 
-function locallyScheduled(
-  state: PlanDowngradeState
-): {
+function locallyScheduled(state: PlanDowngradeState): {
   scheduleId: string;
   effectiveAt: Date;
   stripeSubscriptionId: string;
@@ -568,6 +564,7 @@ function subscriptionShapeBlocked(
 export async function executeOperatorPlanDowngrade(input: {
   state: PlanDowngradeState;
   readiness: EssentialDowngradeReadiness;
+  guideSelection?: ConfirmedGuideKeep | null;
   env?: Env;
   stripe?: PlanDowngradeStripePort;
   persist?: typeof persistScheduledDowngrade;
@@ -584,6 +581,7 @@ export async function executeOperatorPlanDowngrade(input: {
   const assessed = assessOperatorPlanDowngrade({
     state: input.state,
     readiness: input.readiness,
+    guideSelection: input.guideSelection,
   });
   const persist = input.persist ?? persistScheduledDowngrade;
   const existingLocal = locallyScheduled(input.state);
@@ -1276,9 +1274,11 @@ export async function submitOperatorPlanDowngrade(input: {
     return { ok: false, code: "unsupported" };
   }
   const readiness = await loadEssentialDowngradeReadiness(input.clinicId);
+  const guideSelection = await loadConfirmedDowngradeSelection(input.clinicId);
   const result = await executeOperatorPlanDowngrade({
     state,
     readiness,
+    guideSelection,
     env: input.env,
     stripe: input.stripe,
   });

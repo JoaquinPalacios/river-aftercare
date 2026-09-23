@@ -1,9 +1,15 @@
 import "server-only";
 
-import { PlatformRole } from "@prisma/client";
+import { DowngradePreparationStatus, PlatformRole } from "@prisma/client";
 
 import { MAX_OPERATOR_EXTRA_ALLOWANCE } from "@/lib/entitlements/allowance-input";
 import { logOperatorAllowanceExtra } from "@/lib/entitlements/allowance-log";
+import {
+  assessOperatorExtraChangeForDowngrade,
+  loadExtraDowngradeContext,
+  nextEssentialGuideLimits,
+} from "@/lib/entitlements/downgrade-selection";
+import { selectionFitsLimits } from "@/lib/entitlements/downgrade-retention";
 import {
   lockClinicGuideCapacity,
   lockClinicTeamCapacity,
@@ -35,8 +41,10 @@ function isNonNegativeInt(value: number): boolean {
 /**
  * Persists operator-granted extras on the clinic entitlement.
  * Does not change commercialPlan, Stripe, or existing guides and members.
- * Reducing an extra below current usage is allowed and leaves the clinic
- * over the new effective allowance.
+ * Reducing an extra below current usage is allowed unless that reduction
+ * would invalidate a scheduled Essential keep-set. While a downgrade is
+ * only being prepared, a confirmed selection that no longer fits is
+ * marked unconfirmed so the clinic administrator chooses again.
  */
 export async function updateOperatorAllowanceExtras(input: {
   actorUserId: string;
@@ -83,6 +91,46 @@ export async function updateOperatorAllowanceExtras(input: {
     }
 
     const previous = allowanceExtrasFrom(current);
+    const downgrade = await loadExtraDowngradeContext(tx, input.clinicId);
+    const nextLimits = nextEssentialGuideLimits(input.extras);
+    const selectionFits = selectionFitsLimits(
+      {
+        custom: downgrade.selection.custom,
+        adapted: downgrade.selection.adapted,
+        combined: downgrade.selection.combined,
+      },
+      nextLimits
+    );
+    const activeFits = selectionFitsLimits(
+      {
+        custom: downgrade.activeCustom,
+        adapted: downgrade.activeAdapted,
+        combined: downgrade.activeCustom + downgrade.activeAdapted,
+      },
+      nextLimits
+    );
+    const extraDecision = assessOperatorExtraChangeForDowngrade({
+      scheduled: downgrade.scheduled,
+      preparationConfirmed: downgrade.confirmed,
+      selectionFitsNextLimits: selectionFits,
+      activeUsageFitsNextLimits: activeFits,
+    });
+    if (extraDecision.blocked) {
+      return {
+        ok: false as const,
+        error: extraDecision.error ?? "That allowance change was not saved.",
+      };
+    }
+    if (extraDecision.unconfirmSelection) {
+      await tx.clinicDowngradePreparation.update({
+        where: { clinicId: input.clinicId },
+        data: {
+          status: DowngradePreparationStatus.AWAITING_SELECTION,
+          confirmedAt: null,
+          confirmedByUserId: null,
+        },
+      });
+    }
     await tx.clinicEntitlement.update({
       where: { clinicId: input.clinicId },
       data: {

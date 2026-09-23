@@ -5,6 +5,7 @@ import {
   type ClinicBySlugRecord,
 } from "@/lib/aftercare/get-clinic-by-slug";
 import { PUBLIC_PRACTICE_GUIDE_WHERE } from "@/lib/aftercare/public-practice-guide-predicates";
+import { ACTIVE_PRACTICE_GUIDE_WHERE } from "@/lib/entitlements/active-guide";
 import { publishedPatientGuidesRemainPublic } from "@/lib/billing/public-guide-access";
 import { isValidCareGuideSlug } from "@/lib/aftercare/slug";
 import type { PublishedPracticeGuideSummary } from "@/lib/aftercare/types";
@@ -51,6 +52,7 @@ export async function listPublishedPracticeGuides(
   const guides = await getPrisma().practiceGuide.findMany({
     where: {
       clinicId: clinic.id,
+      ...ACTIVE_PRACTICE_GUIDE_WHERE,
       ...PUBLIC_PRACTICE_GUIDE_WHERE,
     },
     orderBy: [{ sortOrder: "asc" }, { publicSlug: "asc" }],

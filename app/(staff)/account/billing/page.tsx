@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { loadBillingPageContext } from "@/app/(staff)/account/billing/billing-context";
 import { ManageBillingForm } from "@/app/(staff)/account/billing/manage-billing-form";
+import { DowngradeGuideSelectionForm } from "@/app/(staff)/account/billing/downgrade-guide-selection-form";
 import {
   BILLING_COMPLETE_PATH,
   BILLING_SETUP_PATH,
@@ -108,6 +109,23 @@ export default async function BillingStatusPage() {
               {view.scheduledPlanChange.operatorLines.scheduledChange}.{" "}
               {view.scheduledPlanChange.customerMessage}
             </p>
+          ) : null}
+          {view.guideSelection ? (
+            <div className="mt-5 border-t border-staff-line pt-5">
+              <h3 className="text-sm font-semibold">Practice → Essential</h3>
+              <p className="mt-2 text-sm" role="status">
+                {view.guideSelection.status === "confirmed"
+                  ? "Guide selection complete."
+                  : "Choose the guides you want to keep when Essential begins."}
+              </p>
+              <DowngradeGuideSelectionForm
+                panel={view.guideSelection}
+                canConfirm={
+                  context.membership?.role === "ADMIN" &&
+                  context.membership.source !== "operator_support"
+                }
+              />
+            </div>
           ) : null}
           {presentation.kind === "active" &&
           !presentation.attention &&

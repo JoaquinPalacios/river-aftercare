@@ -35,6 +35,8 @@ export interface PracticeGuideEditorRecord {
   } | null;
   /** Clinic-owned copy of a River template. Not an original custom guide. */
   adaptedFromTemplate: boolean;
+  downgradeRetainedAt: Date | null;
+  downgradeRetentionUntil: Date | null;
   reviewAttestation: {
     confirmedAt: Date;
     confirmedByLabel: string;
@@ -210,6 +212,8 @@ export async function loadPracticeGuideEditor(input: {
     statusLabel: clinicGuideStatusLabel(lifecycle),
     template: guide.guideTemplate,
     adaptedFromTemplate: guide.sourceGuideTemplateId !== null,
+    downgradeRetainedAt: guide.downgradeRetainedAt,
+    downgradeRetentionUntil: guide.downgradeRetentionUntil,
     reviewAttestation:
       published?.reviewAttestedAt && published.reviewAttestedByUserId
         ? {

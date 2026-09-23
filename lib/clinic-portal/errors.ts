@@ -12,6 +12,7 @@ export class ClinicPortalError extends Error {
       | "combined_guide_limit"
       | "template_adaptation_unavailable"
       | "template_adaptation_required"
+      | "retained_read_only"
   ) {
     super(message);
     this.name = "ClinicPortalError";

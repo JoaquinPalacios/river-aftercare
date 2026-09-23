@@ -4,6 +4,7 @@ import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import { WORKING_DRAFT_VERSION } from "@/lib/aftercare/practice-revision-document";
 import { actorCanManageClinic } from "@/lib/auth/clinic-authorization";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import {
   isPracticeReviewAttested,
   PRACTICE_REVIEW_ATTESTATION_REQUIRED_MESSAGE,
@@ -44,6 +45,8 @@ export async function publishPracticeGuide(input: {
   if (!guide) {
     throw new ClinicPortalError("Guide not found.", "not_found");
   }
+
+  assertPracticeGuideWritable(guide);
 
   if (!clinic || !canManage) {
     throw new ClinicPortalError("You cannot publish this guide.", "forbidden");

@@ -124,17 +124,18 @@ Accountant approval to register for GST has been received. Do not configure Stri
 
 ## Phase 5 Sandbox acceptance — do not use live mode
 
-Use Stripe **test mode** and a non-production database. Apply `prisma/migrations/20260923200000_add_scheduled_plan_downgrade` only on that database. Do not change the live Portal configuration, live Prices, or production data.
+Use Stripe **test mode** and a non-production database. Apply `prisma/migrations/20260923200000_add_scheduled_plan_downgrade` and `prisma/migrations/20260923220000_add_downgrade_guide_selection` only on that database. Do not change the live Portal configuration, live Prices, or production data.
 
-Existing Sandbox Practice subscription (scheduling and reversal only):
+Guide selection on a disposable local Practice clinic, before any further Stripe action:
 
-1. Sign in as OPERATOR and open that clinic’s Plan change panel.
-2. When usage is within Essential (base plus any extras already granted), choose **Schedule downgrade**.
-3. In Stripe, confirm one Subscription Schedule on the **same** subscription id. The current phase is the Practice Price until the current period end. The next phase is the Essential Price for the same interval. Proration is `none`. No new invoice, credit, or refund appears at this moment.
-4. River still shows Plan: Practice, plus a scheduled Essential date. `commercialPlan` is still Practice.
-5. Choose **Keep Practice**.
-6. The schedule is `released`. The subscription id is unchanged and its Price is still Practice.
-7. River no longer shows a scheduled change.
+1. Create 5 original custom guides and 4 edited River-template copies. Essential base is 2, 2, and 4 combined.
+2. As OPERATOR, open the clinic. The panel should say guide selection is required. Choose **Prepare downgrade**. River must not call Stripe, and `commercialPlan` stays Practice.
+3. As clinic ADMIN, open `/account/billing`. Choose 3 custom guides and confirm. River rejects it.
+4. Choose 2 custom guides and 2 edited templates and confirm. The operator panel should say guide selection is complete.
+5. Choose **Schedule downgrade**. River stays Practice. The Stripe schedule shape is the one already accepted in Sandbox.
+6. Choose **Keep Practice**. Preparation and the keep-set are cleared. No guide is retained or deleted.
+
+Renewal retention uses a **Test Clock** and a disposable clinic, not the already-accepted Sandbox subscription. The Subscription Schedule request itself was already proven and must not be redesigned.
 
 Renewal without waiting for the real period end uses a **Test Clock**. An existing customer cannot be attached to a clock. Create a disposable one:
 
@@ -144,7 +145,7 @@ Renewal without waiting for the real period end uses a **Test Clock**. An existi
 4. On a disposable local clinic only, store that test customer id and subscription id. Do not point this at production.
 5. Schedule the downgrade from the operator panel.
 6. Advance the clock to just after `current_period_end` and forward the resulting webhooks (`invoice.paid` or `invoice.payment_failed`, `customer.subscription.updated`, and the schedule events).
-7. Expect the same subscription id, the Essential Price, local `commercialPlan` Essential, and the scheduled-change message gone. Extras are unchanged. A failed renewal payment should show Essential with the existing past-due retry message, not a deleted clinic.
+7. Expect the same subscription id, the Essential Price, local `commercialPlan` Essential, and the scheduled-change message gone. Guides in the keep-set stay active. Other clinic-owned guides show under Retained guides, are read-only, and a previously published one still opens at its existing URL. Extras are unchanged. A failed renewal payment should show Essential with the existing past-due retry message, with the same retention outcome, not a deleted clinic.
 
 Also check cancellation: schedule a downgrade, then cancel at period end in the Portal. The subscription should end at the paid-period boundary instead of continuing on Essential. Removing that cancellation must leave the clinic on Practice and must not put the downgrade back. If the Portal cannot set either `cancel_at` / `cancel_at_period_end` or schedule `end_behavior: cancel` while a schedule is attached, stop and report that before inventing another mechanism.
 
