@@ -28,18 +28,19 @@ import {
 describe("marketing reveal variants", () => {
   it("slows editorial and card reveals slightly without going theatrical", () => {
     expect(MARKETING_MOTION_TIMING).toEqual({
-      editorialDuration: 0.9,
-      editorialStagger: 0.15,
-      cardDuration: 0.8,
-      cardStagger: 0.12,
+      editorialDuration: 1,
+      editorialStagger: 0.152,
+      cardDuration: 0.9,
+      cardStagger: 0.13,
       cardStaggerCap: 0.4,
     });
     expect(REVEAL_STAGGER).toBe(MARKETING_MOTION_TIMING.editorialStagger);
     expect(EDITORIAL_REVEAL_STEP).toBe(
       MARKETING_MOTION_TIMING.editorialStagger
     );
-    expect(editorialRevealDelay(1)).toBe(0.15);
-    expect(editorialRevealDelay(2)).toBe(0.3);
+    expect(editorialRevealDelay(1)).toBe(0.152);
+    expect(editorialRevealDelay(1)).toBe(EDITORIAL_REVEAL_STEP);
+    expect(editorialRevealDelay(2)).toBe(0.304);
     expect(revealContainerVariants.visible).toEqual({});
     expect(EDITORIAL_REVEAL_DURATION).toBe(
       MARKETING_MOTION_TIMING.editorialDuration

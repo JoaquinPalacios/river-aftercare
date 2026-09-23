@@ -6,6 +6,7 @@ import { isMarketingMotionEnabled } from "@/lib/marketing/marketing-motion-enabl
 import {
   CARD_REVEAL_STAGGER,
   CARD_REVEAL_STAGGER_MAX,
+  EDITORIAL_REVEAL_STEP,
   cardRevealDelay,
   editorialRevealDelay,
 } from "@/lib/marketing/reveal-timing";
@@ -42,11 +43,19 @@ describe("marketing reveal hydration contract", () => {
   });
 
   it("preserves existing stagger metadata", () => {
+    expect(EDITORIAL_REVEAL_STEP).toBe(0.152);
+    expect(CARD_REVEAL_STAGGER).toBe(0.13);
+    expect(CARD_REVEAL_STAGGER_MAX).toBe(0.4);
     expect(editorialRevealDelay(0)).toBe(0);
-    expect(editorialRevealDelay(1)).toBe(0.15);
-    expect(editorialRevealDelay(2)).toBe(0.3);
+    expect(editorialRevealDelay(1)).toBe(0.152);
+    expect(editorialRevealDelay(1)).toBe(EDITORIAL_REVEAL_STEP);
+    expect(editorialRevealDelay(2)).toBe(0.304);
     expect(cardRevealDelay(0)).toBe(0);
+    expect(cardRevealDelay(1)).toBe(0.13);
     expect(cardRevealDelay(1)).toBe(CARD_REVEAL_STAGGER);
+    expect(cardRevealDelay(3)).toBe(0.39);
+    expect(cardRevealDelay(3)).toBeLessThan(CARD_REVEAL_STAGGER_MAX);
+    expect(cardRevealDelay(8)).toBe(0.4);
     expect(cardRevealDelay(8)).toBe(CARD_REVEAL_STAGGER_MAX);
   });
 });
