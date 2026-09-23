@@ -50,6 +50,21 @@ function unixToDate(value: number | null | undefined): Date | null {
   return new Date(value * 1000);
 }
 
+/**
+ * Portal at-period-end cancellation may set `cancel_at` to the period end
+ * and leave `cancel_at_period_end` false. `canceled_at` is when the request
+ * was made, not the effective end, so it is not part of this check.
+ */
+export function subscriptionCancellationScheduled(input: {
+  cancel_at_period_end?: boolean | null;
+  cancel_at?: number | null;
+}): boolean {
+  if (input.cancel_at_period_end === true) {
+    return true;
+  }
+  return unixToDate(input.cancel_at) !== null;
+}
+
 function periodFromSubscriptionItems(
   subscription: Pick<Stripe.Subscription, "items">
 ): { start: Date | null; end: Date | null } {
@@ -121,7 +136,7 @@ export function snapshotFromSubscription(
     stripeSubscriptionId: subscription.id,
     stripePriceId: priceIdFromSubscription(subscription),
     subscriptionStatus: subscription.status,
-    cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
+    cancelAtPeriodEnd: subscriptionCancellationScheduled(subscription),
     currentPeriodStart: period.start,
     currentPeriodEnd: period.end,
     invoiceIsPaid: false,

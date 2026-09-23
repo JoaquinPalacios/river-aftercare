@@ -241,6 +241,19 @@ function wasActive(previous: LocalEntitlementSnapshot | null): boolean {
   return previous?.entitlementStatus === EntitlementStatus.ACTIVE;
 }
 
+function keepEstablished(
+  previous: LocalEntitlementSnapshot | null,
+  input: EntitlementProjectionInput
+): EntitlementProjectionResult {
+  if (
+    previous?.entitlementStatus === EntitlementStatus.ENDED ||
+    previous?.entitlementStatus === EntitlementStatus.RESTRICTED
+  ) {
+    return { kind: "apply", entitlement: previous };
+  }
+  return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
+}
+
 export function projectEntitlement(
   input: EntitlementProjectionInput
 ): EntitlementProjectionResult {
@@ -266,6 +279,12 @@ export function projectEntitlement(
   const subscriptionStatus = input.subscriptionStatus;
 
   if (CHECKOUT_EVENTS.has(eventType)) {
+    if (
+      previous?.entitlementStatus === EntitlementStatus.ENDED ||
+      previous?.entitlementStatus === EntitlementStatus.RESTRICTED
+    ) {
+      return { kind: "apply", entitlement: previous };
+    }
     if (isPaidLike(previous?.entitlementStatus)) {
       return {
         kind: "apply",
@@ -279,6 +298,21 @@ export function projectEntitlement(
   }
 
   if (eventType === "invoice.payment_failed") {
+    if (previous?.entitlementStatus === EntitlementStatus.ENDED) {
+      return { kind: "apply", entitlement: previous };
+    }
+    if (subscriptionStatus === "active" || subscriptionStatus === "trialing") {
+      if (wasActive(previous)) {
+        const billingStatus = input.cancelAtPeriodEnd
+          ? BillingStatus.CANCEL_AT_PERIOD_END
+          : BillingStatus.ACTIVE;
+        return {
+          kind: "apply",
+          entitlement: activeSnapshot(previous, input, billingStatus),
+        };
+      }
+      return keepEstablished(previous, input);
+    }
     if (subscriptionStatus === "unpaid") {
       if (
         wasActive(previous) ||
@@ -289,7 +323,7 @@ export function projectEntitlement(
           entitlement: restrictedSnapshot(previous, input),
         };
       }
-      return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
+      return keepEstablished(previous, input);
     }
     if (wasActive(previous)) {
       return {
@@ -297,7 +331,7 @@ export function projectEntitlement(
         entitlement: activeSnapshot(previous, input, BillingStatus.PAST_DUE),
       };
     }
-    return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
+    return keepEstablished(previous, input);
   }
 
   if (eventType === "customer.subscription.deleted") {
@@ -350,6 +384,9 @@ export function projectEntitlement(
       };
     }
     if (subscriptionStatus === "unpaid") {
+      if (previous?.entitlementStatus === EntitlementStatus.ENDED) {
+        return { kind: "apply", entitlement: previous };
+      }
       if (
         wasActive(previous) ||
         previous?.entitlementStatus === EntitlementStatus.RESTRICTED
@@ -359,7 +396,7 @@ export function projectEntitlement(
           entitlement: restrictedSnapshot(previous, input),
         };
       }
-      return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
+      return keepEstablished(previous, input);
     }
     if (subscriptionStatus === "past_due") {
       if (wasActive(previous)) {
@@ -368,7 +405,7 @@ export function projectEntitlement(
           entitlement: activeSnapshot(previous, input, BillingStatus.PAST_DUE),
         };
       }
-      return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
+      return keepEstablished(previous, input);
     }
     if (subscriptionStatus === "active" || subscriptionStatus === "trialing") {
       if (wasActive(previous)) {
@@ -380,9 +417,9 @@ export function projectEntitlement(
           entitlement: activeSnapshot(previous, input, billingStatus),
         };
       }
-      return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
+      return keepEstablished(previous, input);
     }
-    return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
+    return keepEstablished(previous, input);
   }
 
   if (previous) {

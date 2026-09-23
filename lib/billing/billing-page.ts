@@ -1,18 +1,25 @@
 import "server-only";
 
+import { BillingStatus, EntitlementStatus } from "@prisma/client";
+
 import { getPrisma } from "@/lib/prisma";
 
 import { assessCommercialOfferRevision } from "@/lib/billing/prepare-offer";
+import { clinicSupportsCustomerPortal } from "@/lib/billing/customer-portal";
+import { assessOperatorPlanUpgrade } from "@/lib/billing/plan-change";
 import {
   billingIntervalLabel,
   commercialPlanLabel,
   type SelfServePlanCode,
 } from "@/lib/billing/offer-display";
 import {
+  billingPeriodLabel,
   billingStateLabel,
   entitlementStateLabel,
+  formatBillingDate,
   offerSummaryForEntitlement,
   presentBillingReturn,
+  presentOperatorOfferBlock,
   type BillingReturnPresentation,
 } from "@/lib/billing/billing-presentation";
 
@@ -26,6 +33,11 @@ export type OperatorBillingPanel = {
   billingLabel: string;
   customerLinked: "Yes" | "No";
   subscriptionLinked: "Yes" | "No";
+  paidThroughLabel: string | null;
+  cancellationScheduled: "Yes" | "No";
+  cancellationDateLabel: string | null;
+  canUpgradeToPractice: boolean;
+  downgradeDeferred: boolean;
   canRevise: boolean;
   reviseBlockedReason: string | null;
 };
@@ -48,6 +60,35 @@ export async function loadOperatorBillingPanel(
     billingStatus: entitlement?.billingStatus ?? null,
     stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
   });
+  const planChange = assessOperatorPlanUpgrade(
+    {
+      clinicId,
+      commercialPlan: entitlement?.commercialPlan ?? null,
+      billingInterval: entitlement?.billingInterval ?? null,
+      entitlementStatus: entitlement?.entitlementStatus ?? null,
+      billingStatus: entitlement?.billingStatus ?? null,
+      cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
+      stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
+    },
+    "PRACTICE"
+  );
+  const downgrade = assessOperatorPlanUpgrade(
+    {
+      clinicId,
+      commercialPlan: entitlement?.commercialPlan ?? null,
+      billingInterval: entitlement?.billingInterval ?? null,
+      entitlementStatus: entitlement?.entitlementStatus ?? null,
+      billingStatus: entitlement?.billingStatus ?? null,
+      cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
+      stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
+    },
+    "ESSENTIAL"
+  );
+  const downgradeDeferred =
+    !downgrade.ok && downgrade.code === "downgrade_deferred";
+  const planChangeVisible = planChange.ok || downgradeDeferred;
+  const periodDate =
+    entitlement?.paidThrough ?? entitlement?.currentPeriodEnd ?? null;
   const plan =
     entitlement?.commercialPlan === "ESSENTIAL" ||
     entitlement?.commercialPlan === "PRACTICE"
@@ -68,11 +109,26 @@ export async function loadOperatorBillingPanel(
     entitlementLabel: entitlementStateLabel(
       entitlement?.entitlementStatus ?? null
     ),
-    billingLabel: billingStateLabel(entitlement?.billingStatus ?? null),
+    billingLabel: entitlement?.cancelAtPeriodEnd
+      ? "Scheduled to end"
+      : billingStateLabel(entitlement?.billingStatus ?? null),
     customerLinked: profile?.stripeCustomerId ? "Yes" : "No",
     subscriptionLinked: profile?.stripeSubscriptionId ? "Yes" : "No",
+    paidThroughLabel: periodDate ? formatBillingDate(periodDate) : null,
+    cancellationScheduled: entitlement?.cancelAtPeriodEnd ? "Yes" : "No",
+    cancellationDateLabel:
+      entitlement?.cancelAtPeriodEnd && periodDate
+        ? formatBillingDate(periodDate)
+        : null,
+    canUpgradeToPractice: planChange.ok,
+    downgradeDeferred,
     canRevise: revision.ok,
-    reviseBlockedReason: revision.ok ? null : revision.message,
+    reviseBlockedReason: revision.ok
+      ? null
+      : presentOperatorOfferBlock({
+          domainMessage: revision.message,
+          planChangeVisible,
+        }),
   };
 }
 
@@ -83,6 +139,12 @@ export type ClinicBillingView = {
   billingLabel: string;
   planLabel: string;
   intervalLabel: string;
+  paidThroughLabel: string | null;
+  periodLabel: string;
+  portalEligible: boolean;
+  entitlementStatus: EntitlementStatus | null;
+  billingStatus: BillingStatus | null;
+  publicGuideRetentionLabel: string | null;
   identity: {
     legalEntityName: string;
     tradingName: string;
@@ -129,7 +191,13 @@ export async function loadClinicBillingView(
     billingInterval: entitlement?.billingInterval ?? null,
     checkoutStarted: Boolean(profile?.stripeCheckoutSessionId),
     stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
+    paidThrough: entitlement?.paidThrough ?? null,
+    currentPeriodEnd: entitlement?.currentPeriodEnd ?? null,
+    cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
   });
+  const periodDate =
+    entitlement?.paidThrough ?? entitlement?.currentPeriodEnd ?? null;
+  const cancelScheduled = Boolean(entitlement?.cancelAtPeriodEnd);
 
   const identity = profile
     ? {
@@ -160,6 +228,18 @@ export async function loadClinicBillingView(
     billingLabel: billingStateLabel(entitlement?.billingStatus ?? null),
     planLabel: commercialPlanLabel(entitlement?.commercialPlan ?? null),
     intervalLabel: billingIntervalLabel(entitlement?.billingInterval ?? null),
+    paidThroughLabel: periodDate ? formatBillingDate(periodDate) : null,
+    periodLabel: billingPeriodLabel(cancelScheduled),
+    portalEligible: clinicSupportsCustomerPortal({
+      stripeCustomerId: profile?.stripeCustomerId ?? null,
+      entitlementStatus: entitlement?.entitlementStatus ?? null,
+      billingStatus: entitlement?.billingStatus ?? null,
+    }),
+    entitlementStatus: entitlement?.entitlementStatus ?? null,
+    billingStatus: entitlement?.billingStatus ?? null,
+    publicGuideRetentionLabel: entitlement?.publicGuideRetentionUntil
+      ? formatBillingDate(entitlement.publicGuideRetentionUntil)
+      : null,
     identity,
   };
 }

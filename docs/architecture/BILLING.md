@@ -1,8 +1,8 @@
 # Stripe billing and plan entitlement — architecture investigation
 
-**Status:** Phase 2 (demo-approved Checkout) is implemented in application code. Manual local acceptance passed on 2026-09-22: card payment activated on `invoice.paid`, and AU BECS stayed gated until that same paid projection. Sections A onward remain the historical investigation. **Approved commercial decisions in the Phase 1 and Phase 2 implementation override stale recommendations below.**
+**Status:** Phase 3 (Customer Portal, cancellation, payment-failure UX, public-guide retention, and operator Essential → Practice upgrade) is implemented in application code. It is not deployed and it does not configure live Stripe. Phase 2 remains the paid-activation contract: card and AU BECS become `ACTIVE` only from `invoice.paid`. Sections A onward remain the historical investigation. **Approved Phase 1–3 decisions override stale recommendations below.**
 
-**Date:** 2026-09-20 (investigation). Phase 1 landed 2026-09-21. Phase 2 customer payment flow landed the same day. Local card and AU BECS acceptance passed 2026-09-22.  
+**Date:** 2026-09-20 (investigation). Phase 1 landed 2026-09-21. Phase 2 customer payment flow landed the same day. Local card and AU BECS acceptance passed 2026-09-22. Phase 3 landed 2026-09-22 in application code only.  
 **Base:** investigation was written against `origin/main` at `2441d9a`.  
 **This document is not tax, legal, or accounting advice.**
 
@@ -23,7 +23,7 @@ Request demo
 → onboarding
 ```
 
-GROUP stays custom/manual. Customer Portal, invoice history, payment-method editing, cancellation, upgrades, downgrades, and full plan enforcement are later phases.
+GROUP stays custom/manual. Phase 3 adds Customer Portal for payment methods, invoices, and cancellation at period end. It does not add self-serve plan switching, downgrades, interval changes, refunds, or guide/seat enforcement.
 
 ### Phase 1 remains
 
@@ -43,10 +43,20 @@ GROUP stays custom/manual. Customer Portal, invoice history, payment-method edit
 - Success and cancel URLs do not activate entitlement. The complete page reads the local projection: active, payment processing, or a recovery/support state. Processing polls `GET /api/billing/status` (local state only).
 - Activation gate: no `ClinicEntitlement` row means legacy access and is not blocked. A billing-onboarding clinic opens product routes only while entitlement is `ACTIVE`. `PENDING`, `RESTRICTED`, `ENDED`, and any later non-active state stay on billing recovery (`/account/billing`, setup, or payment status). Billing status does not grant product access. Operator support stays exempt. Phase 3 can later distinguish paid-customer restriction from this initial fail-closed gate.
 
+### Phase 3
+
+- Clinic ADMIN opens Stripe Customer Portal from `/account/billing`. STAFF cannot. Operator support mode cannot. The customer id comes from `ClinicBillingProfile`. The return URL is the staff origin plus `/account/billing`. Sessions use `STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID` and are refused unless that configuration allows invoices, payment-method updates, and cancel-at-period-end only.
+- Cancellation scheduled keeps entitlement `ACTIVE` through `paidThrough`. Stripe Customer Portal may represent at-period-end cancellation as `cancel_at` (equal to the period end in the approved portal mode) with `cancel_at_period_end` still false. River normalizes either form into `cancelAtPeriodEnd`. `canceled_at` is the request time and is not the end date. Removing the schedule returns billing status to `ACTIVE`. `customer.subscription.deleted` sets `ENDED`, `subscriptionEndedAt`, and `publicGuideRetentionUntil` (existing 60-day rule).
+- `PAST_DUE` keeps entitlement `ACTIVE`. Terminal `unpaid` becomes `RESTRICTED`. A delayed `invoice.payment_failed` does not move a live `active` subscription back to `PAST_DUE`. A stale `subscription.updated` does not reopen `ENDED` or `RESTRICTED`.
+- Public guide retention is evaluated on the patient request. There is no cron. Legacy clinics and non-ended entitlements, including `RESTRICTED`, keep already-published guides. After `publicGuideRetentionUntil`, those URLs 404. Drafts stay unpublished.
+- Operator-assisted Essential → Practice updates the existing subscription item. Proration is `always_invoice`. Payment behavior is `pending_if_incomplete`, so the Practice price is not current until Stripe accepts payment. The operator page refreshes from River’s local projection for about 30 seconds after Stripe accepts the change. It does not show Practice until that projection does. Practice → Essential is deferred until guide and team limits exist. Monthly ↔ annual is not offered. The initial-offer form stays closed once a subscription exists and points at Plan change.
+- No new Prisma migration. No new webhook event types. No new `LegalAcceptance` for portal, cancellation, or this upgrade. Stripe keeps invoice and dunning email. No GST / Stripe Tax.
+
 ### Not yet present
 
-- Customer Portal, invoice history, payment-method editing, cancellation UI
-- Plan-limit enforcement (guide caps, seats, template adaptation, past-due lockout, 60-day public cleanup)
+- Practice → Essential downgrade, and monthly ↔ annual changes
+- Plan-limit enforcement (guide caps, seats, template adaptation)
+- Self-serve plan switching, refunds, coupons, trials, Group Stripe prices
 - Production / live Stripe configuration
 - Live payments
 - GST / Stripe Tax
@@ -55,16 +65,16 @@ GROUP stays custom/manual. Customer Portal, invoice history, payment-method edit
 
 Treat the rest of this file as context. Do not re-introduce these stale recommendations:
 
-| Topic                   | Investigation said                                    | Current approved decision                                                                    |
-| ----------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| GST                     | Manual inclusive 10% GST / Tax Invoice extras         | **Not GST registered.** Do not configure GST-inclusive behaviour, automatic tax, or 10% GST. |
-| Public retention        | 30 days aligned to Terms export                       | **Up to 60 days** after the paid subscription ends. Field only in Phase 1.                   |
-| Past-due entitlement    | `GRACE`                                               | Keep **ACTIVE** entitlement while Stripe is retrying (`past_due`).                           |
-| Essential → Practice    | Prefer period-end                                     | **Immediate**, proration may apply, once payment state allows.                               |
-| Portal cancel           | Undecided                                             | Enable later, **at period end only**. Do not enable Portal plan switching.                   |
-| Enums                   | Richer `GRACE` / `PUBLIC_RETENTION` / `CHECKOUT_OPEN` | Phase 1 uses `BillingStatus` + `EntitlementStatus` as implemented in Prisma.                 |
-| Invoice table           | Optional `StripeInvoiceRef`                           | **Not added.** Stripe remains the invoice system of record.                                  |
-| Implementation sequence | Domain before Stripe package                          | Phase 1 ships domain + webhook together, still without Checkout.                             |
+| Topic                   | Investigation said                                    | Current approved decision                                                                       |
+| ----------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| GST                     | Manual inclusive 10% GST / Tax Invoice extras         | **Not GST registered.** Do not configure GST-inclusive behaviour, automatic tax, or 10% GST.    |
+| Public retention        | 30 days aligned to Terms export                       | **Up to 60 days** after the paid subscription ends. Phase 3 checks this on each public request. |
+| Past-due entitlement    | `GRACE`                                               | Keep **ACTIVE** entitlement while Stripe is retrying (`past_due`).                              |
+| Essential → Practice    | Prefer period-end                                     | **Immediate**, proration may apply, once payment state allows.                                  |
+| Portal cancel           | Undecided                                             | Phase 3 enables it, **at period end only**. Do not enable Portal plan switching.                |
+| Enums                   | Richer `GRACE` / `PUBLIC_RETENTION` / `CHECKOUT_OPEN` | Phase 1 uses `BillingStatus` + `EntitlementStatus` as implemented in Prisma.                    |
+| Invoice table           | Optional `StripeInvoiceRef`                           | **Not added.** Stripe remains the invoice system of record.                                     |
+| Implementation sequence | Domain before Stripe package                          | Phase 1 ships domain + webhook together, still without Checkout.                                |
 
 Public `/pricing` stays assisted-sales (`Request a demo` / `Talk to us`). Do not change it to Buy now. Do not create live Stripe objects from this note.
 

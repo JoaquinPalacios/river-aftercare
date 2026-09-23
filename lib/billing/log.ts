@@ -83,6 +83,29 @@ export type StripeBillingLogEvent =
       event: "billing_entitlement_activated";
       clinicId: string;
       eventType: string;
+    }
+  | {
+      event: "customer_portal_session_created";
+      clinicId: string;
+    }
+  | {
+      event: "customer_portal_session_failed";
+      clinicId: string;
+      reason: string;
+    }
+  | {
+      event: "plan_upgrade_submitted";
+      clinicId: string;
+      billingInterval: string;
+    }
+  | {
+      event: "plan_upgrade_failed";
+      clinicId: string;
+      reason: string;
+    }
+  | {
+      event: "plan_downgrade_deferred";
+      clinicId: string;
     };
 
 export function logStripeBilling(entry: StripeBillingLogEvent): void {
@@ -91,7 +114,9 @@ export function logStripeBilling(entry: StripeBillingLogEvent): void {
     entry.event === "stripe_webhook_unknown_price" ||
     entry.event === "stripe_webhook_unknown_clinic" ||
     entry.event === "stripe_webhook_not_configured" ||
-    entry.event === "checkout_session_failed"
+    entry.event === "checkout_session_failed" ||
+    entry.event === "customer_portal_session_failed" ||
+    entry.event === "plan_upgrade_failed"
   ) {
     console.error(entry);
     return;

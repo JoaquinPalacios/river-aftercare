@@ -8,6 +8,7 @@ import {
   BILLING_SETUP_PATH,
   BILLING_STATUS_PATH,
 } from "@/lib/billing/activation-gate";
+import { RESTRICTED_BILLING_MESSAGE } from "@/lib/billing/billing-presentation";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 export const metadata: Metadata = {
@@ -47,7 +48,9 @@ export default async function BillingCompletePage() {
           <p className="mt-2 text-sm text-staff-muted">
             {presentation.planName} · {presentation.intervalLabel}
           </p>
-          {presentation.assistedSetup ? (
+          {presentation.attentionMessage ? (
+            <p className="mt-3 text-sm">{presentation.attentionMessage}</p>
+          ) : presentation.assistedSetup ? (
             <p className="mt-3 text-sm">
               Your Practice plan is active. We’ll help you get your River
               Aftercare setup ready.
@@ -109,6 +112,27 @@ export default async function BillingCompletePage() {
           >
             Contact River Aftercare
           </a>
+        </section>
+      ) : presentation.kind === "restricted" ? (
+        <section
+          className="rounded-xl border border-staff-line bg-staff-panel p-5 sm:p-6"
+          role="status"
+        >
+          <p className="staffStatusPill" data-tone="warning">
+            Unpaid
+          </p>
+          <h2 className="mt-4 text-lg font-semibold">
+            Payment needs attention
+          </h2>
+          <p className="mt-2 text-sm text-staff-muted">
+            {RESTRICTED_BILLING_MESSAGE}
+          </p>
+          <Link
+            href={BILLING_STATUS_PATH}
+            className="staffBtn staffBtnPrimary mt-5 inline-flex h-11 items-center"
+          >
+            Review billing
+          </Link>
         </section>
       ) : presentation.kind === "retry" ? (
         <section

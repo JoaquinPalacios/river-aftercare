@@ -52,7 +52,7 @@ describe("billing setup UI", () => {
     expect(css).toMatch(
       /\.staffAppContent:has\(\.staffBillingSetup\)\s*\{[^}]*padding-bottom:\s*4rem;/
     );
-    expect(css).toMatch(/\.staffAppContent\s*\{[^}]*padding:\s*1\.5rem 1rem;/);
+    expect(css).toMatch(/\.staffAppContent\s*\{[^}]*padding:\s*2rem 1rem;/);
   });
 
   it("does not add Buy now to public pricing", () => {

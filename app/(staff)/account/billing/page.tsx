@@ -2,10 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { loadBillingPageContext } from "@/app/(staff)/account/billing/billing-context";
+import { ManageBillingForm } from "@/app/(staff)/account/billing/manage-billing-form";
 import {
   BILLING_COMPLETE_PATH,
   BILLING_SETUP_PATH,
 } from "@/lib/billing/activation-gate";
+import {
+  ENDED_BILLING_MESSAGE,
+  RESTRICTED_BILLING_MESSAGE,
+} from "@/lib/billing/billing-presentation";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 export const metadata: Metadata = {
@@ -16,6 +21,10 @@ export default async function BillingStatusPage() {
   const context = await loadBillingPageContext();
   const view = context.view;
   const presentation = view?.presentation;
+  const canManageBilling =
+    view?.portalEligible === true &&
+    context.membership?.role === "ADMIN" &&
+    context.membership.source !== "operator_support";
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-xl flex-col gap-6">
@@ -53,32 +62,70 @@ export default async function BillingStatusPage() {
                 <span
                   className="staffStatusPill"
                   data-tone={
-                    presentation.kind === "active"
+                    presentation.kind === "active" && !presentation.attention
                       ? "success"
                       : presentation.kind === "inactive"
                         ? "inactive"
                         : "warning"
                   }
                 >
-                  {presentation.kind === "active"
-                    ? "Active"
-                    : presentation.kind === "processing"
-                      ? "Payment processing"
-                      : presentation.kind === "inactive"
-                        ? "Not active"
-                        : view.billingLabel}
+                  {presentation.kind === "active" &&
+                  presentation.attention === "cancel_scheduled"
+                    ? "Scheduled to end"
+                    : presentation.kind === "active" &&
+                        presentation.attention === "past_due"
+                      ? "Payment issue"
+                      : presentation.kind === "active"
+                        ? "Active"
+                        : presentation.kind === "processing"
+                          ? "Payment processing"
+                          : presentation.kind === "restricted"
+                            ? "Unpaid"
+                            : presentation.kind === "inactive"
+                              ? "Ended"
+                              : view.billingLabel}
                 </span>
               </dd>
             </div>
+            {view.paidThroughLabel &&
+            (presentation.kind === "active" ||
+              presentation.kind === "restricted" ||
+              presentation.kind === "inactive") ? (
+              <div>
+                <dt className="text-staff-muted">{view.periodLabel}</dt>
+                <dd className="font-medium">{view.paidThroughLabel}</dd>
+              </div>
+            ) : null}
           </dl>
-          {presentation.kind === "active" && presentation.assistedSetup ? (
+          {presentation.kind === "active" && presentation.attentionMessage ? (
+            <p className="mt-4 text-sm" role="status">
+              {presentation.attentionMessage}
+            </p>
+          ) : null}
+          {presentation.kind === "active" &&
+          !presentation.attention &&
+          presentation.assistedSetup ? (
             <p className="mt-4 text-sm" role="status">
               Your Practice plan is active. We’ll help you get your River
               Aftercare setup ready.
             </p>
           ) : null}
+          {presentation.kind === "restricted" ? (
+            <p className="mt-4 text-sm text-staff-muted" role="status">
+              {RESTRICTED_BILLING_MESSAGE}
+            </p>
+          ) : null}
+          {presentation.kind === "inactive" ? (
+            <p className="mt-4 text-sm text-staff-muted" role="status">
+              {ENDED_BILLING_MESSAGE}
+              {view.publicGuideRetentionLabel
+                ? ` Published patient guides remain available until ${view.publicGuideRetentionLabel}.`
+                : ""}
+            </p>
+          ) : null}
           {presentation.kind === "setup" &&
-          context.membership?.role === "ADMIN" ? (
+          context.membership?.role === "ADMIN" &&
+          context.membership.source !== "operator_support" ? (
             <Link
               href={BILLING_SETUP_PATH}
               className="staffBtn staffBtnPrimary mt-5 inline-flex h-11 items-center"
@@ -100,12 +147,6 @@ export default async function BillingStatusPage() {
               payment is confirmed.
             </p>
           ) : null}
-          {presentation.kind === "inactive" ? (
-            <p className="mt-4 text-sm text-staff-muted" role="status">
-              Your River Aftercare subscription is not active. Clinic access
-              stays closed until a subscription is active.
-            </p>
-          ) : null}
           {presentation.kind === "retry" && presentation.canRestartCheckout ? (
             <Link
               href={BILLING_SETUP_PATH}
@@ -114,7 +155,23 @@ export default async function BillingStatusPage() {
               Return to billing setup
             </Link>
           ) : null}
-          {presentation.kind === "retry" || presentation.kind === "inactive" ? (
+          {canManageBilling ? <ManageBillingForm /> : null}
+          {view.portalEligible && !canManageBilling ? (
+            <p className="mt-4 text-sm text-staff-muted">
+              A clinic administrator can manage payment methods, invoices, and
+              cancellation.
+            </p>
+          ) : null}
+          {canManageBilling ? (
+            <p className="mt-3 text-sm text-staff-muted">
+              Payment methods, invoices, and cancellation are managed in Stripe.
+              This page updates after Stripe confirms a change.
+            </p>
+          ) : null}
+          {presentation.kind === "active" ||
+          presentation.kind === "restricted" ||
+          presentation.kind === "inactive" ||
+          presentation.kind === "retry" ? (
             <a
               href={context.contactHref}
               className="staffBtn staffBtnSecondary mt-5 inline-flex h-11 items-center"
@@ -125,7 +182,11 @@ export default async function BillingStatusPage() {
           {presentation.kind === "active" ? (
             <Link
               href="/dashboard"
-              className="staffBtn staffBtnPrimary mt-5 inline-flex h-11 items-center"
+              className={
+                canManageBilling || presentation.attention
+                  ? "staffBtn staffBtnSecondary mt-5 inline-flex h-11 items-center"
+                  : "staffBtn staffBtnPrimary mt-5 inline-flex h-11 items-center"
+              }
             >
               Continue
             </Link>

@@ -2,6 +2,10 @@ import { BillingStatus, EntitlementStatus } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
 import {
+  ACTIVE_SUBSCRIPTION_PLAN_CHANGE_NOTICE,
+  presentOperatorOfferBlock,
+} from "@/lib/billing/billing-presentation";
+import {
   assessCommercialOfferRevision,
   prepareClinicCommercialOffer,
 } from "@/lib/billing/prepare-offer";
@@ -39,6 +43,31 @@ describe("operator commercial offer", () => {
         stripeSubscriptionId: null,
       }).ok
     ).toBe(false);
+  });
+
+  it("points an active subscription at Plan change without changing the domain block", () => {
+    const blocked = assessCommercialOfferRevision({
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.ACTIVE,
+      stripeSubscriptionId: "sub_test",
+    });
+    expect(blocked.ok).toBe(false);
+    if (blocked.ok) {
+      return;
+    }
+    expect(blocked.message).toContain("later workflow");
+    expect(
+      presentOperatorOfferBlock({
+        domainMessage: blocked.message,
+        planChangeVisible: true,
+      })
+    ).toBe(ACTIVE_SUBSCRIPTION_PLAN_CHANGE_NOTICE);
+    expect(
+      presentOperatorOfferBlock({
+        domainMessage: blocked.message,
+        planChangeVisible: false,
+      })
+    ).toBe(blocked.message);
   });
 
   it("stores the offer as pending and prepared, not active", async () => {

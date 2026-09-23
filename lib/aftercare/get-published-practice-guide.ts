@@ -9,6 +9,7 @@ import {
 } from "@/lib/aftercare/get-clinic-by-slug";
 import { composedSectionsFromPracticeRevision } from "@/lib/aftercare/practice-revision-document";
 import { PUBLIC_PRACTICE_GUIDE_WHERE } from "@/lib/aftercare/public-practice-guide-predicates";
+import { publishedPatientGuidesRemainPublic } from "@/lib/billing/public-guide-access";
 import { isValidCareGuideSlug } from "@/lib/aftercare/slug";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
 import { getPrisma } from "@/lib/prisma";
@@ -148,6 +149,13 @@ export async function getPublishedPracticeGuide(input: {
   });
 
   if (!practiceGuide) {
+    return null;
+  }
+
+  const guidesRemainPublic = await publishedPatientGuidesRemainPublic(
+    practiceGuide.clinic.id
+  );
+  if (!guidesRemainPublic) {
     return null;
   }
 

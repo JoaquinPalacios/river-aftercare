@@ -73,7 +73,70 @@ describe("billing return flow", () => {
         checkoutStarted: false,
         stripeSubscriptionId: "sub_restricted",
       })
-    ).toMatchObject({ kind: "retry", productAccess: false });
+    ).toMatchObject({ kind: "restricted", productAccess: false });
+  });
+
+  it("keeps a past-due subscription active in the product while flagging billing", () => {
+    expect(
+      presentBillingReturn({
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        billingStatus: BillingStatus.PAST_DUE,
+        commercialPlan: "ESSENTIAL",
+        billingInterval: "MONTHLY",
+        checkoutStarted: true,
+        stripeSubscriptionId: "sub_past_due",
+        paidThrough: new Date("2026-10-01T00:00:00.000Z"),
+      })
+    ).toMatchObject({
+      kind: "active",
+      productAccess: true,
+      attention: "past_due",
+    });
+  });
+
+  it("shows a scheduled end date without marking the subscription ended", () => {
+    const presented = presentBillingReturn({
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.CANCEL_AT_PERIOD_END,
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      checkoutStarted: true,
+      stripeSubscriptionId: "sub_cancel",
+      cancelAtPeriodEnd: true,
+      paidThrough: new Date("2026-10-01T00:00:00.000Z"),
+    });
+    expect(presented).toMatchObject({
+      kind: "active",
+      productAccess: true,
+      attention: "cancel_scheduled",
+    });
+    if (presented.kind !== "active") {
+      return;
+    }
+    expect(presented.attentionMessage).toContain(
+      "Your subscription is scheduled to end on"
+    );
+    expect(presented.attentionMessage).not.toContain("Ended");
+  });
+
+  it("does not treat a portal return page as a billing mutation", () => {
+    const page = readFileSync("app/(staff)/account/billing/page.tsx", "utf8");
+    const form = readFileSync(
+      "app/(staff)/account/billing/manage-billing-form.tsx",
+      "utf8"
+    );
+    const actions = readFileSync(
+      "app/(staff)/account/billing/actions.ts",
+      "utf8"
+    );
+    expect(page).toContain("ManageBillingForm");
+    expect(form).toContain("Manage billing");
+    expect(page).not.toContain("subscriptions.update");
+    expect(page).not.toContain("invoice.paid");
+    expect(actions).not.toContain("stripeCustomerId");
+    expect(actions).not.toContain("priceId");
+    expect(actions).toContain("BILLING_PORTAL_RETURN_PATH");
+    expect(actions).not.toContain("entitlement.update");
   });
 
   it("does not let a success URL override a still-pending entitlement", () => {
