@@ -1,10 +1,15 @@
 import * as Sentry from "@sentry/nextjs";
 
-import { getErrorTrackingConfig } from "@/lib/observability/error-tracking-runtime";
+import {
+  getErrorTrackingConfig,
+  readClientErrorTrackingEnv,
+} from "@/lib/observability/error-tracking-runtime";
 
 export function reportClientException(error: unknown): void {
   try {
-    if (!getErrorTrackingConfig(process.env, "client").enabled) {
+    if (
+      !getErrorTrackingConfig(readClientErrorTrackingEnv(), "client").enabled
+    ) {
       return;
     }
 

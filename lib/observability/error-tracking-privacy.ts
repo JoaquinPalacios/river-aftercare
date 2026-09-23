@@ -28,7 +28,7 @@ export function createErrorTrackingInitOptions(
     dsn: config.dsn,
     enabled: true,
     environment: config.environment,
-    release: config.release,
+    ...(config.release ? { release: config.release } : {}),
     sendDefaultPii: false,
     tracesSampleRate: 0,
     maxBreadcrumbs: 0,
