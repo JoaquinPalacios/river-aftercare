@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 
 import {
@@ -8,6 +10,15 @@ import {
 } from "@/app/(staff)/(operator)/operator/billing-actions";
 
 const initial: PlanUpgradeActionState = {};
+
+export const UPGRADE_POLL_INTERVAL_MS = 2_000;
+export const UPGRADE_POLL_ATTEMPTS = 15;
+
+export const UPGRADE_PROCESSING_MESSAGE =
+  "Upgrade started. Stripe is applying Practice to the existing subscription. River will update when payment is confirmed.";
+
+export const UPGRADE_STILL_PROCESSING_MESSAGE =
+  "Stripe is still processing the upgrade. Refresh to check again.";
 
 export function UpgradePlanForm({
   clinicId,
@@ -18,14 +29,52 @@ export function UpgradePlanForm({
   canUpgradeToPractice: boolean;
   downgradeDeferred: boolean;
 }) {
+  const router = useRouter();
+  const refresh = router.refresh;
   const [state, action, pending] = useActionState(
     upgradeClinicPlanAction,
     initial
   );
+  const [timeoutFor, setTimeoutFor] = useState<number | null>(null);
+  const timedOut = state.startedAt != null && timeoutFor === state.startedAt;
+  const waitingForProjection =
+    Boolean(state.accepted) && canUpgradeToPractice && !timedOut;
+
+  useEffect(() => {
+    if (!state.accepted || !canUpgradeToPractice || state.startedAt == null) {
+      return;
+    }
+
+    let attempts = 0;
+    let timer = 0;
+    let cancelled = false;
+    const startedAt = state.startedAt;
+
+    const tick = () => {
+      if (cancelled) {
+        return;
+      }
+      attempts += 1;
+      refresh();
+      if (attempts >= UPGRADE_POLL_ATTEMPTS) {
+        setTimeoutFor(startedAt);
+        return;
+      }
+      timer = window.setTimeout(tick, UPGRADE_POLL_INTERVAL_MS);
+    };
+
+    timer = window.setTimeout(tick, UPGRADE_POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [state.accepted, state.startedAt, canUpgradeToPractice, refresh]);
 
   if (!canUpgradeToPractice && !downgradeDeferred) {
     return null;
   }
+
+  const upgrading = pending || waitingForProjection;
 
   return (
     <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
@@ -43,9 +92,9 @@ export function UpgradePlanForm({
             <button
               type="submit"
               className="staffBtn staffBtnPrimary h-11"
-              disabled={pending}
+              disabled={upgrading}
             >
-              {pending ? "Sending upgrade…" : "Upgrade to Practice"}
+              {upgrading ? "Upgrading…" : "Upgrade to Practice"}
             </button>
           </form>
         </>
@@ -62,9 +111,14 @@ export function UpgradePlanForm({
           {state.error}
         </p>
       ) : null}
-      {state.success ? (
+      {waitingForProjection ? (
         <p className="staffFormStatus mt-3" role="status">
-          {state.success}
+          {UPGRADE_PROCESSING_MESSAGE}
+        </p>
+      ) : null}
+      {state.accepted && canUpgradeToPractice && timedOut ? (
+        <p className="staffFormStatus mt-3" role="status">
+          {UPGRADE_STILL_PROCESSING_MESSAGE}
         </p>
       ) : null}
     </section>

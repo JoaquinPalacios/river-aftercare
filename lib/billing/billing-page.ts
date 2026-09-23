@@ -19,6 +19,7 @@ import {
   formatBillingDate,
   offerSummaryForEntitlement,
   presentBillingReturn,
+  presentOperatorOfferBlock,
   type BillingReturnPresentation,
 } from "@/lib/billing/billing-presentation";
 
@@ -83,6 +84,9 @@ export async function loadOperatorBillingPanel(
     },
     "ESSENTIAL"
   );
+  const downgradeDeferred =
+    !downgrade.ok && downgrade.code === "downgrade_deferred";
+  const planChangeVisible = planChange.ok || downgradeDeferred;
   const periodDate =
     entitlement?.paidThrough ?? entitlement?.currentPeriodEnd ?? null;
   const plan =
@@ -117,9 +121,14 @@ export async function loadOperatorBillingPanel(
         ? formatBillingDate(periodDate)
         : null,
     canUpgradeToPractice: planChange.ok,
-    downgradeDeferred: !downgrade.ok && downgrade.code === "downgrade_deferred",
+    downgradeDeferred,
     canRevise: revision.ok,
-    reviseBlockedReason: revision.ok ? null : revision.message,
+    reviseBlockedReason: revision.ok
+      ? null
+      : presentOperatorOfferBlock({
+          domainMessage: revision.message,
+          planChangeVisible,
+        }),
   };
 }
 

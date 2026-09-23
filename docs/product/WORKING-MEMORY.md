@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-23 (Phase 3 portal cancel_at normalization)
+Last updated: 2026-09-23 (Phase 3 operator upgrade refresh)
 
 ## Durable production release rule
 
@@ -62,7 +62,7 @@ Phase 3 **is implemented in application code** and is not deployed:
 
 - Clinic ADMIN can open Stripe Customer Portal from `/account/billing` when `STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID` points at a TEST MODE configuration that allows invoices, payment-method updates, and cancellation at period end only. STAFF and operator support mode cannot. The browser does not supply the customer id or return URL.
 - Scheduled cancellation keeps entitlement `ACTIVE` until the paid period ends. Portal may send `cancel_at` with `cancel_at_period_end` false; River normalizes both. `canceled_at` is not the end date. `customer.subscription.deleted` sets `ENDED` and the existing 60-day `publicGuideRetentionUntil`. Public guide URLs are checked on the request. There is no cron. Drafts do not become public. `RESTRICTED` (terminal unpaid) still serves already-published guides. `PAST_DUE` keeps product access.
-- Operator Essential → Practice updates the existing subscription (`always_invoice`, `pending_if_incomplete`, billing cycle unchanged). Practice → Essential and monthly ↔ annual stay deferred until guide and team limits exist. No new migration. No GST / Stripe Tax. No live Stripe configuration.
+- Operator Essential → Practice updates the existing subscription (`always_invoice`, `pending_if_incomplete`, billing cycle unchanged). The clinic page polls River’s local projection after Stripe accepts the change and does not show Practice before that. Practice → Essential and monthly ↔ annual stay deferred until guide and team limits exist. No new migration. No GST / Stripe Tax. No live Stripe configuration.
 
 Manual Sandbox acceptance for Portal, cancellation, payment failure, ended retention, and the upgrade is still for Joaquín. See `docs/launch/STRIPE-SETUP.md`.
 

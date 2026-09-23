@@ -20,7 +20,8 @@ export interface PrepareBillingActionState {
 
 export interface PlanUpgradeActionState {
   error?: string;
-  success?: string;
+  accepted?: boolean;
+  startedAt?: number;
 }
 
 export async function prepareClinicBillingAction(
@@ -91,8 +92,5 @@ export async function upgradeClinicPlanAction(
   if (!result.ok) {
     return { error: planChangeMessage(result.code) };
   }
-  return {
-    success:
-      "Stripe is updating this subscription to Practice on the current billing period. The plan shown here changes after Stripe confirms the payment. A second subscription was not created.",
-  };
+  return { accepted: true, startedAt: Date.now() };
 }

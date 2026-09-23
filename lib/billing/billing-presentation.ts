@@ -61,6 +61,19 @@ export const RESTRICTED_BILLING_MESSAGE =
 export const ENDED_BILLING_MESSAGE =
   "Your subscription has ended. Clinic editing is unavailable.";
 
+export const ACTIVE_SUBSCRIPTION_PLAN_CHANGE_NOTICE =
+  "This clinic has an active Stripe subscription. Use the Plan change section below for supported changes.";
+
+export function presentOperatorOfferBlock(input: {
+  domainMessage: string;
+  planChangeVisible: boolean;
+}): string {
+  if (input.planChangeVisible) {
+    return ACTIVE_SUBSCRIPTION_PLAN_CHANGE_NOTICE;
+  }
+  return input.domainMessage;
+}
+
 export function presentBillingReturn(input: {
   entitlementStatus: EntitlementStatus | null;
   billingStatus: BillingStatus | null;

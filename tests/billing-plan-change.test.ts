@@ -91,6 +91,7 @@ describe("operator plan changes", () => {
     expect(result).toEqual({ ok: true });
     expect(port.stripe.subscriptions.create).toBeUndefined();
     expect(port.updates).toHaveLength(1);
+    expect(port.updates[0]?.id).toBe(state().stripeSubscriptionId);
     expect(port.updates[0]).toMatchObject({
       id: "sub_clinic_a",
       params: {
