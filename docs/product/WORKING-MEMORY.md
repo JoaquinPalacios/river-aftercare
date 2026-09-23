@@ -92,6 +92,8 @@ Public `/pricing` shows **base** allowances only. Operator extras, per-seat pric
 
 Cards omit Standard support. Practice’s combined-guide bullet uses the “across custom guides and edited River Aftercare templates” sentence. The comparison row stays **Clinic-owned guides in total** (Up to 4 / Up to 40 / Tailored). The old “Create and edit clinic-owned guides / Included” row is removed so it cannot be read as unlimited authoring. Annual copy stays A$790 / A$1,490, 2 months free, with no GST claim. CTAs stay Request a demo / Talk to us.
 
+`docs/architecture/CLINIC-PORTAL.md` states the same bases: Essential 2 / 2 / 4 and Practice 30 / 30 / 40. Do not restore “Practice includes 10” editable copies. An edited River template does not consume the custom-guide allowance. 30 custom plus 30 edited is 60 and does not fit Practice.
+
 ## Durable launch-ready Terms/Privacy billing-copy rule
 
 Public `/terms` and `/privacy` describe the Stripe billing model in present tense, as the production-state agreement that will govern customers when billing goes live. They are **not** legally approved. Do not merge or deploy that copy until Joaquín reviews the wording, an Australian solicitor reviews the near-final documents, and billing functionality is ready to go live. Do not use public wording such as “intends to use Stripe”.

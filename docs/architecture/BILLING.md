@@ -455,6 +455,8 @@ Do **not** store card numbers, BSB, account numbers, mandate text, or invoice PD
 
 ### D.3 Guide provenance addition (later enforcement phase, not billing launch)
 
+Phase 4 replaced the recommendation in this section. An edited River template counts toward the editable-template allowance and the combined clinic-owned ceiling. It does not consume the custom-guide allowance. Essential base is 2 custom / 2 editable / 4 combined. Practice base is 30 custom / 30 editable / 40 combined. Practice cannot hold 60 clinic-owned guides. The paragraphs below are the earlier investigation.
+
 Today an “adapted template” is still template-backed (`guideTemplateId` set). The commercial rule wants an adapted River template to **become a clinic-owned custom guide** and count toward the allowance.
 
 When enforcement is built, add:
@@ -666,6 +668,8 @@ If processing throws after signature verify: return **500** so Stripe retries. A
 
 ### H.1 Capabilities
 
+This table is the superseded investigation. Current bases are in **Phase 4 — plan allowances** above: Essential 2 custom / 2 editable / 4 combined / 2 team members; Practice 30 custom / 30 editable / 40 combined / 5 team members. An edited River template does not consume the custom-guide allowance. Practice cannot hold 60 clinic-owned guides. Group has no numeric cap.
+
 | Capability                                                                                            | Essential               | Practice              | Group           |
 | ----------------------------------------------------------------------------------------------------- | ----------------------- | --------------------- | --------------- |
 | Use River templates **as supplied** (enable, publish clinic snapshot without clinic-specific rewrite) | yes                     | yes                   | operator-scoped |
@@ -689,6 +693,8 @@ Not true yet:
 - No adapt action, no count, no plan gate.
 
 ### H.3 Recommended enforcement semantics (Phase F)
+
+Phase 4 did not implement item 2 below. An edited River template has its own allowance. It does not count toward `customGuideLimit`. Practice base is 30 editable templates and 40 clinic-owned guides combined, not 60.
 
 1. **As supplied:** template-backed `PracticeGuide` remains `guideTemplateId` set. Saving draft **rejects content changes** that would move sections off `CANONICAL` for Essential (and for Practice unless they confirm Adapt). Cosmetic clinic chrome (`ClinicProfile`) is unrelated.
 2. **Adapt (Practice):** explicit action converts the row to custom (section D.3). Counts toward `customGuideLimit`.
