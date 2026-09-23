@@ -153,16 +153,16 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     lastModified: "2026-09-22",
   },
   "/cosmetic-clinics": {
-    seoTitle: "Cosmetic Clinic Aftercare Software | River Aftercare",
+    seoTitle: "Cosmetic & Aesthetic Aftercare Software | River Aftercare",
     metaDescription:
-      "Give clients clear, clinic-branded post-treatment aftercare they can reopen after cosmetic and aesthetic treatments by link or QR code.",
-    ogTitle: "Post-treatment aftercare that stays under your clinic brand",
+      "Publish branded post-treatment aftercare for cosmetic and aesthetic clinics. Patients or clients can revisit guidance by link or QR code, with no app or login.",
+    ogTitle: "Cosmetic & Aesthetic Aftercare Software | River Aftercare",
     ogDescription:
-      "Extend the treatment experience with clear, branded aftercare clients can return to once they leave the clinic.",
+      "Publish branded post-treatment aftercare for cosmetic and aesthetic clinics. Patients or clients can revisit guidance by link or QR code, with no app or login.",
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-09-17",
+    lastModified: "2026-09-23",
   },
 };
 

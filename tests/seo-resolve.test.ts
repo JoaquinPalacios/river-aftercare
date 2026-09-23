@@ -313,6 +313,70 @@ describe("marketing SEO resolution", () => {
     );
   });
 
+  it("resolves cosmetic metadata for post-treatment aftercare intent", () => {
+    const cosmetic = resolveMarketingSeo({
+      path: "/cosmetic-clinics",
+      origin: "https://example.test",
+    });
+    const description =
+      "Publish branded post-treatment aftercare for cosmetic and aesthetic clinics. Patients or clients can revisit guidance by link or QR code, with no app or login.";
+
+    expect(cosmetic.absoluteTitle).toBe(true);
+    expect(cosmetic.title).toBe(
+      "Cosmetic & Aesthetic Aftercare Software | River Aftercare"
+    );
+    expect(cosmetic.description).toBe(description);
+    expect(cosmetic.title).not.toBe(
+      resolveMarketingSeo({ path: "/", origin: "https://example.test" }).title
+    );
+    expect(cosmetic.title).not.toBe(
+      resolveMarketingSeo({ path: "/clinics", origin: "https://example.test" })
+        .title
+    );
+    expect(cosmetic.title).not.toBe(
+      resolveMarketingSeo({ path: "/dental", origin: "https://example.test" })
+        .title
+    );
+    expect(cosmetic.title).not.toBe(
+      resolveMarketingSeo({
+        path: "/physiotherapy",
+        origin: "https://example.test",
+      }).title
+    );
+    expect(cosmetic.title).not.toBe(
+      resolveMarketingSeo({
+        path: "/chiropractic",
+        origin: "https://example.test",
+      }).title
+    );
+    expect(cosmetic.description).not.toBe(
+      resolveMarketingSeo({ path: "/clinics", origin: "https://example.test" })
+        .description
+    );
+    expect(cosmetic.description).not.toBe(
+      resolveMarketingSeo({ path: "/dental", origin: "https://example.test" })
+        .description
+    );
+    expect(brandCountInTitle(cosmetic.title, "River Aftercare")).toBe(1);
+
+    const metadata = marketingSeoToMetadata(cosmetic);
+    expect(metadata.title).toEqual({
+      absolute: "Cosmetic & Aesthetic Aftercare Software | River Aftercare",
+    });
+    expect(metadata.description).toBe(description);
+    expect(metadata.robots).toEqual({ index: true, follow: true });
+    expect(metadata.alternates?.canonical).toBe(
+      "https://example.test/cosmetic-clinics"
+    );
+    expect(metadata.openGraph).toMatchObject({
+      title: "Cosmetic & Aesthetic Aftercare Software | River Aftercare",
+      description,
+    });
+    expect(DEFAULT_MARKETING_PAGE_SEO["/cosmetic-clinics"].lastModified).toBe(
+      "2026-09-23"
+    );
+  });
+
   it("does not treat the product logo as a dedicated OG image", () => {
     expect(
       isDedicatedOgImageConfigured("/brand/river-aftercare-logo.svg")

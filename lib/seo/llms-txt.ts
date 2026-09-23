@@ -20,7 +20,7 @@ const VERTICAL_LLMS_BLURBS: Record<string, string> = {
   "/chiropractic":
     "Chiropractic practices: clinic-approved home-care and post-appointment guidance patients can revisit between visits by link or QR code.",
   "/cosmetic-clinics":
-    "Cosmetic and aesthetic clinics: post-treatment aftercare that stays under the clinic brand.",
+    "Cosmetic and aesthetic clinics: branded post-treatment aftercare patients or clients can revisit by link or QR code, with no app or login.",
 };
 
 export function buildLlmsTxt(input: {

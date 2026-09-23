@@ -80,7 +80,7 @@ test.describe("marketing reveal sequence consistency", () => {
     await expectRevealAncestor(
       page.locator('p[class*="verticalNote"]').filter({
         hasText:
-          "Template availability is confirmed during onboarding as the River Aftercare library expands.",
+          "Cosmetic and aesthetic template availability is confirmed during onboarding.",
       })
     );
   });

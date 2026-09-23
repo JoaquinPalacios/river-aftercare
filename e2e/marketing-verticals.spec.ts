@@ -52,11 +52,14 @@ const VERTICALS = [
   {
     path: "/cosmetic-clinics",
     h1: "Make post-treatment aftercare feel as considered as the treatment.",
-    title: "Cosmetic Clinic Aftercare Software | River Aftercare",
+    title: "Cosmetic & Aesthetic Aftercare Software | River Aftercare",
     description:
-      "Give clients clear, clinic-branded post-treatment aftercare they can reopen after cosmetic and aesthetic treatments by link or QR code.",
-    ogTitle: "Post-treatment aftercare that stays under your clinic brand",
-    unique: "does not provide live clinical monitoring",
+      "Publish branded post-treatment aftercare for cosmetic and aesthetic clinics. Patients or clients can revisit guidance by link or QR code, with no app or login.",
+    ogTitle: "Cosmetic & Aesthetic Aftercare Software | River Aftercare",
+    ogDescription:
+      "Publish branded post-treatment aftercare for cosmetic and aesthetic clinics. Patients or clients can revisit guidance by link or QR code, with no app or login.",
+    unique:
+      "does not currently provide live clinical monitoring, treatment monitoring or emergency triage",
     absent: ["injectables", "Riverside Dental Demo"],
   },
 ] as const;
@@ -247,14 +250,15 @@ test.describe("clinic vertical acquisition pages", () => {
       path: "/cosmetic-clinics",
       heading: "Questions cosmetic and aesthetic clinics ask",
       questions: [
-        "Do patients or clients need to install an app?",
-        "Can our clinic use its own aftercare instructions?",
+        "Do patients or clients need an app or account?",
+        "Can our clinic create or adapt its own aftercare instructions?",
         "Does River Aftercare monitor patients after treatment?",
-        "Does River Aftercare replace our clinic-management software?",
-        "Are cosmetic treatment templates already available?",
+        "What cosmetic and aesthetic templates are available?",
+        "Can River Aftercare match our clinic branding?",
+        "Does River Aftercare replace our clinic-management software or patient health record?",
       ],
       answer:
-        "it does not provide live clinical monitoring or emergency triage",
+        "Cosmetic and aesthetic template availability is confirmed during onboarding. If no suitable River Aftercare template is available, your clinic can publish its own approved aftercare within its plan.",
     },
   ] as const;
 
