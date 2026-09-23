@@ -11,6 +11,50 @@ import type { ClinicGuideSelectionPanel } from "@/lib/entitlements/downgrade-sel
 
 const initial: GuideSelectionActionState = {};
 
+const LIMIT_NOTE_ID = "downgrade-guide-limit-note";
+
+export function uncheckedGuideExceedsEssentialAllowance(input: {
+  kind: "custom" | "adapted";
+  customSelected: number;
+  adaptedSelected: number;
+  limits: ClinicGuideSelectionPanel["limits"];
+}): boolean {
+  const combined = input.customSelected + input.adaptedSelected;
+  if (combined + 1 > input.limits.combined) {
+    return true;
+  }
+  if (input.kind === "custom") {
+    return input.customSelected + 1 > input.limits.custom;
+  }
+  return input.adaptedSelected + 1 > input.limits.adapted;
+}
+
+function limitReachedNote(input: {
+  customSelected: number;
+  adaptedSelected: number;
+  limits: ClinicGuideSelectionPanel["limits"];
+  hasBlockedChoice: boolean;
+}): string | null {
+  if (!input.hasBlockedChoice) {
+    return null;
+  }
+  const combined = input.customSelected + input.adaptedSelected;
+  if (
+    combined >= input.limits.combined ||
+    (input.customSelected >= input.limits.custom &&
+      input.adaptedSelected >= input.limits.adapted)
+  ) {
+    return "Guide limit reached";
+  }
+  if (input.customSelected >= input.limits.custom) {
+    return "Custom guide limit reached";
+  }
+  if (input.adaptedSelected >= input.limits.adapted) {
+    return "Editable River template limit reached";
+  }
+  return "Guide limit reached";
+}
+
 export function DowngradeGuideSelectionForm({
   panel,
   canConfirm,
@@ -35,13 +79,36 @@ export function DowngradeGuideSelectionForm({
     customSelected <= panel.limits.custom &&
     adaptedSelected <= panel.limits.adapted &&
     combinedSelected <= panel.limits.combined;
+  const blockedIds = new Set(
+    panel.guides
+      .filter(
+        (guide) =>
+          !selectedSet.has(guide.id) &&
+          uncheckedGuideExceedsEssentialAllowance({
+            kind: guide.kind,
+            customSelected,
+            adaptedSelected,
+            limits: panel.limits,
+          })
+      )
+      .map((guide) => guide.id)
+  );
+  const limitNote = limitReachedNote({
+    customSelected,
+    adaptedSelected,
+    limits: panel.limits,
+    hasBlockedChoice: blockedIds.size > 0,
+  });
 
   function toggle(id: string, checked: boolean) {
     setSelected((current) => {
-      if (checked) {
-        return current.includes(id) ? current : [...current, id];
+      if (!checked) {
+        return current.filter((value) => value !== id);
       }
-      return current.filter((value) => value !== id);
+      if (current.includes(id) || blockedIds.has(id)) {
+        return current;
+      }
+      return [...current, id];
     });
   }
 
@@ -64,6 +131,7 @@ export function DowngradeGuideSelectionForm({
           Total clinic-owned guides {combinedSelected} of{" "}
           {panel.limits.combined} selected
         </p>
+        {limitNote ? <p id={LIMIT_NOTE_ID}>{limitNote}</p> : null}
       </div>
       <fieldset className="grid gap-3" disabled={!canConfirm || pending}>
         <legend className="text-sm font-medium">Clinic-owned guides</legend>
@@ -72,31 +140,43 @@ export function DowngradeGuideSelectionForm({
             There are no active clinic-owned guides to choose.
           </p>
         ) : (
-          <ul className="grid gap-2">
-            {panel.guides.map((guide) => (
-              <li key={guide.id}>
-                <label className="flex items-start gap-3 rounded-lg border border-staff-line px-3 py-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name="guideId"
-                    value={guide.id}
-                    className="mt-1"
-                    checked={selectedSet.has(guide.id)}
-                    onChange={(event) => toggle(guide.id, event.target.checked)}
-                  />
-                  <span>
-                    <span className="font-medium">{guide.title}</span>
-                    <span className="mt-1 block text-staff-muted">
-                      {guide.kindLabel}
-                      <span aria-hidden="true"> · </span>
-                      {guide.publicationLabel}
-                      <span aria-hidden="true"> · </span>
-                      Updated {guide.updatedLabel}
+          <ul className="grid min-w-0 gap-2 md:grid-cols-2">
+            {panel.guides.map((guide) => {
+              const checked = selectedSet.has(guide.id);
+              const blocked = blockedIds.has(guide.id);
+              return (
+                <li key={guide.id} className="min-w-0">
+                  <label
+                    className={`flex min-w-0 items-start gap-3 rounded-lg border border-staff-line px-3 py-2 text-sm ${
+                      blocked ? "text-staff-muted" : ""
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      name="guideId"
+                      value={guide.id}
+                      className="mt-1"
+                      checked={checked}
+                      disabled={blocked}
+                      aria-describedby={blocked ? LIMIT_NOTE_ID : undefined}
+                      onChange={(event) =>
+                        toggle(guide.id, event.target.checked)
+                      }
+                    />
+                    <span>
+                      <span className="font-medium">{guide.title}</span>
+                      <span className="mt-1 block text-staff-muted">
+                        {guide.kindLabel}
+                        <span aria-hidden="true"> · </span>
+                        {guide.publicationLabel}
+                        <span aria-hidden="true"> · </span>
+                        Updated {guide.updatedLabel}
+                      </span>
                     </span>
-                  </span>
-                </label>
-              </li>
-            ))}
+                  </label>
+                </li>
+              );
+            })}
           </ul>
         )}
       </fieldset>
