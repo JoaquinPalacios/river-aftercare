@@ -2,7 +2,7 @@
 
 **Status:** Operator documentation for manual Dashboard configuration. This repository does not create Stripe Dashboard objects, live-mode keys, or charges.
 
-Phase 1 ships the webhook endpoint and local projection. Phase 2 ships demo-approved hosted Checkout (card + AU BECS) for an operator-prepared Essential or Practice offer. Do **not** enable live mode. Do **not** configure GST, Stripe Tax, or Tax Invoice extras. Accountant confirmation is still pending; River Aftercare is not currently GST registered.
+Phase 1 ships the webhook endpoint and local projection. Phase 2 ships demo-approved hosted Checkout (card + AU BECS) for an operator-prepared Essential or Practice offer. Do **not** enable live mode. Do **not** configure GST, Stripe Tax, or Tax Invoice extras. Accountant approval to register has been received; GST implementation is a separate task and public prices still make no GST claim.
 
 Safe testing uses a local or other non-production database, Stripe TEST MODE keys, and Stripe CLI webhook forwarding. Do not point test Checkout or test webhooks at production Clinic billing records. Vercel Preview should receive test keys only when that preview uses a non-production database.
 
@@ -73,6 +73,10 @@ Subscribe to at least:
 - `customer.subscription.created`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
+- `subscription_schedule.updated`
+- `subscription_schedule.released`
+- `subscription_schedule.completed`
+- `subscription_schedule.canceled`
 
 Do **not** subscribe to `invoice.created` unless River later mutates draft invoices. A failing `invoice.created` listener can delay automatic finalization.
 
@@ -110,13 +114,39 @@ In Stripe Dashboard → Settings → Billing → Customer portal, create a confi
 
 Copy the configuration id into server-only `STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID`. Never prefix it with `NEXT_PUBLIC_`. Do not create this configuration in live mode as part of Phase 3.
 
-Essential → Practice is an operator action in River, not a Portal plan switch. It updates the existing subscription item to the Practice price for the current interval, with `proration_behavior=always_invoice`, `payment_behavior=pending_if_incomplete`, and `billing_cycle_anchor=unchanged`. Practice → Essential stays unavailable until guide and team limits can be checked. Monthly ↔ annual is not a self-serve or operator action in this phase.
+Essential → Practice is an operator action in River, not a Portal plan switch. It updates the existing subscription item to the Practice price for the current interval, with `proration_behavior=always_invoice`, `payment_behavior=pending_if_incomplete`, and `billing_cycle_anchor=unchanged`. Monthly ↔ annual is not a Portal or operator action.
 
-Webhook events stay the Phase 2 set. Portal cancellation, cancellation removal, payment failure, and the plan change are projected from `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, and `invoice.payment_failed`. No new event types are required. Returning from the portal does not change River entitlement; the webhook does.
+Practice → Essential is also operator-only, and it is scheduled for the next renewal of the same interval. Do not enable Portal subscription updates to do it. The schedule events above let River reconcile cancellation against that schedule. The actual plan change is still projected from `customer.subscription.updated`, `invoice.paid`, and `invoice.payment_failed` when the Essential Price appears. Returning from the portal does not change River entitlement; the webhook does.
 
 ## GST / tax
 
-Do not configure Stripe Tax. Do not add a 10% GST rate. Do not claim Tax Invoice support from this phase.
+Accountant approval to register for GST has been received. Do not configure Stripe Tax, a 10% GST rate, or Tax Invoice wording in the downgrade work. That is a separate task after the ATO effective date is known. Public prices stay the current AUD amounts with no GST claim.
+
+## Phase 5 Sandbox acceptance — do not use live mode
+
+Use Stripe **test mode** and a non-production database. Apply `prisma/migrations/20260923200000_add_scheduled_plan_downgrade` only on that database. Do not change the live Portal configuration, live Prices, or production data.
+
+Existing Sandbox Practice subscription (scheduling and reversal only):
+
+1. Sign in as OPERATOR and open that clinic’s Plan change panel.
+2. When usage is within Essential (base plus any extras already granted), choose **Schedule downgrade**.
+3. In Stripe, confirm one Subscription Schedule on the **same** subscription id. The current phase is the Practice Price until the current period end. The next phase is the Essential Price for the same interval. Proration is `none`. No new invoice, credit, or refund appears at this moment.
+4. River still shows Plan: Practice, plus a scheduled Essential date. `commercialPlan` is still Practice.
+5. Choose **Keep Practice**.
+6. The schedule is `released`. The subscription id is unchanged and its Price is still Practice.
+7. River no longer shows a scheduled change.
+
+Renewal without waiting for the real period end uses a **Test Clock**. An existing customer cannot be attached to a clock. Create a disposable one:
+
+1. In test mode, create a Test Clock.
+2. Create a new Customer with that clock. Do not reuse the existing Sandbox customer.
+3. Create a subscription on that customer with the Practice Price for the interval under test, quantity 1.
+4. On a disposable local clinic only, store that test customer id and subscription id. Do not point this at production.
+5. Schedule the downgrade from the operator panel.
+6. Advance the clock to just after `current_period_end` and forward the resulting webhooks (`invoice.paid` or `invoice.payment_failed`, `customer.subscription.updated`, and the schedule events).
+7. Expect the same subscription id, the Essential Price, local `commercialPlan` Essential, and the scheduled-change message gone. Extras are unchanged. A failed renewal payment should show Essential with the existing past-due retry message, not a deleted clinic.
+
+Also check cancellation: schedule a downgrade, then cancel at period end in the Portal. The subscription should end at the paid-period boundary instead of continuing on Essential. Removing that cancellation must leave the clinic on Practice and must not put the downgrade back. If the Portal cannot set either `cancel_at` / `cancel_at_period_end` or schedule `end_behavior: cancel` while a schedule is attached, stop and report that before inventing another mechanism.
 
 ## Local Checkout test path
 

@@ -7,6 +7,11 @@ import { getPrisma } from "@/lib/prisma";
 import { assessCommercialOfferRevision } from "@/lib/billing/prepare-offer";
 import { clinicSupportsCustomerPortal } from "@/lib/billing/customer-portal";
 import { assessOperatorPlanUpgrade } from "@/lib/billing/plan-change";
+import {
+  assessOperatorPlanDowngrade,
+  planDowngradeMessage,
+  type PlanDowngradeState,
+} from "@/lib/billing/plan-downgrade";
 import { loadEssentialDowngradeReadiness } from "@/lib/entitlements/downgrade-readiness";
 import {
   billingIntervalLabel,
@@ -21,7 +26,9 @@ import {
   offerSummaryForEntitlement,
   presentBillingReturn,
   presentOperatorOfferBlock,
+  presentScheduledPlanChange,
   type BillingReturnPresentation,
+  type ScheduledPlanChangePresentation,
 } from "@/lib/billing/billing-presentation";
 
 export type OperatorBillingPanel = {
@@ -38,7 +45,12 @@ export type OperatorBillingPanel = {
   cancellationScheduled: "Yes" | "No";
   cancellationDateLabel: string | null;
   canUpgradeToPractice: boolean;
-  downgradeDeferred: boolean;
+  showDowngrade: boolean;
+  canScheduleDowngrade: boolean;
+  canKeepPractice: boolean;
+  downgradeEffectiveLabel: string | null;
+  downgradeBlockedReason: string | null;
+  scheduledPlanChange: ScheduledPlanChangePresentation | null;
   downgradeReadiness: {
     ready: boolean;
     teamCurrent: number;
@@ -65,6 +77,8 @@ export async function loadOperatorBillingPanel(
     select: {
       stripeCustomerId: true,
       stripeSubscriptionId: true,
+      stripeSubscriptionScheduleId: true,
+      stripeCheckoutSessionId: true,
     },
   });
   const revision = assessCommercialOfferRevision({
@@ -84,25 +98,37 @@ export async function loadOperatorBillingPanel(
     },
     "PRACTICE"
   );
-  const downgrade = assessOperatorPlanUpgrade(
-    {
-      clinicId,
-      commercialPlan: entitlement?.commercialPlan ?? null,
-      billingInterval: entitlement?.billingInterval ?? null,
-      entitlementStatus: entitlement?.entitlementStatus ?? null,
-      billingStatus: entitlement?.billingStatus ?? null,
-      cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
-      stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
-    },
-    "ESSENTIAL"
-  );
-  const downgradeDeferred =
-    !downgrade.ok && downgrade.code === "downgrade_deferred";
   const downgradeReadiness =
     entitlement?.commercialPlan === "PRACTICE"
       ? await loadEssentialDowngradeReadiness(clinicId)
       : null;
-  const planChangeVisible = planChange.ok || downgradeDeferred;
+  const downgradeState: PlanDowngradeState = {
+    clinicId,
+    commercialPlan: entitlement?.commercialPlan ?? null,
+    billingInterval: entitlement?.billingInterval ?? null,
+    entitlementStatus: entitlement?.entitlementStatus ?? null,
+    billingStatus: entitlement?.billingStatus ?? null,
+    cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
+    stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
+    stripeSubscriptionScheduleId: profile?.stripeSubscriptionScheduleId ?? null,
+    stripeCheckoutSessionId: profile?.stripeCheckoutSessionId ?? null,
+    scheduledCommercialPlan: entitlement?.scheduledCommercialPlan ?? null,
+    scheduledPlanEffectiveAt: entitlement?.scheduledPlanEffectiveAt ?? null,
+  };
+  const downgradeAssessed = downgradeReadiness
+    ? assessOperatorPlanDowngrade({
+        state: downgradeState,
+        readiness: downgradeReadiness,
+      })
+    : { ok: false as const, code: "unsupported" as const };
+  const scheduledPlanChange = presentScheduledPlanChange({
+    commercialPlan: entitlement?.commercialPlan ?? null,
+    scheduledCommercialPlan: entitlement?.scheduledCommercialPlan ?? null,
+    effectiveAt: entitlement?.scheduledPlanEffectiveAt ?? null,
+    cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
+  });
+  const showDowngrade = entitlement?.commercialPlan === "PRACTICE";
+  const planChangeVisible = planChange.ok || showDowngrade;
   const periodDate =
     entitlement?.paidThrough ?? entitlement?.currentPeriodEnd ?? null;
   const plan =
@@ -137,7 +163,21 @@ export async function loadOperatorBillingPanel(
         ? formatBillingDate(periodDate)
         : null,
     canUpgradeToPractice: planChange.ok,
-    downgradeDeferred,
+    showDowngrade,
+    canScheduleDowngrade: downgradeAssessed.ok && !scheduledPlanChange,
+    canKeepPractice: Boolean(scheduledPlanChange),
+    downgradeEffectiveLabel: periodDate ? formatBillingDate(periodDate) : null,
+    downgradeBlockedReason:
+      showDowngrade &&
+      !scheduledPlanChange &&
+      !downgradeAssessed.ok &&
+      downgradeAssessed.code !== "not_ready"
+        ? planDowngradeMessage(
+            downgradeAssessed.code,
+            downgradeReadiness ?? undefined
+          )
+        : null,
+    scheduledPlanChange,
     downgradeReadiness: downgradeReadiness
       ? {
           ready: downgradeReadiness.ready,
@@ -174,6 +214,7 @@ export type ClinicBillingView = {
   entitlementStatus: EntitlementStatus | null;
   billingStatus: BillingStatus | null;
   publicGuideRetentionLabel: string | null;
+  scheduledPlanChange: ScheduledPlanChangePresentation | null;
   identity: {
     legalEntityName: string;
     tradingName: string;
@@ -269,6 +310,12 @@ export async function loadClinicBillingView(
     publicGuideRetentionLabel: entitlement?.publicGuideRetentionUntil
       ? formatBillingDate(entitlement.publicGuideRetentionUntil)
       : null,
+    scheduledPlanChange: presentScheduledPlanChange({
+      commercialPlan: entitlement?.commercialPlan ?? null,
+      scheduledCommercialPlan: entitlement?.scheduledCommercialPlan ?? null,
+      effectiveAt: entitlement?.scheduledPlanEffectiveAt ?? null,
+      cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
+    }),
     identity,
   };
 }

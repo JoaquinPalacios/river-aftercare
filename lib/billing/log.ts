@@ -106,6 +106,32 @@ export type StripeBillingLogEvent =
   | {
       event: "plan_downgrade_deferred";
       clinicId: string;
+    }
+  | {
+      event: "plan_downgrade_scheduled";
+      clinicId: string;
+      billingInterval: string;
+    }
+  | {
+      event: "plan_downgrade_already_scheduled";
+      clinicId: string;
+    }
+  | {
+      event: "plan_downgrade_reversed";
+      clinicId: string;
+    }
+  | {
+      event: "plan_downgrade_failed";
+      clinicId: string;
+      reason: string;
+    }
+  | {
+      event: "plan_downgrade_superseded_by_cancellation";
+      clinicId: string;
+    }
+  | {
+      event: "plan_downgrade_released_after_cancel_reversal";
+      clinicId: string;
     };
 
 export function logStripeBilling(entry: StripeBillingLogEvent): void {
@@ -116,7 +142,8 @@ export function logStripeBilling(entry: StripeBillingLogEvent): void {
     entry.event === "stripe_webhook_not_configured" ||
     entry.event === "checkout_session_failed" ||
     entry.event === "customer_portal_session_failed" ||
-    entry.event === "plan_upgrade_failed"
+    entry.event === "plan_upgrade_failed" ||
+    entry.event === "plan_downgrade_failed"
   ) {
     console.error(entry);
     return;

@@ -28,6 +28,7 @@ function createDb() {
       clinicId: string;
       stripeCustomerId: string | null;
       stripeSubscriptionId: string | null;
+      stripeSubscriptionScheduleId: string | null;
     }
   >();
   const entitlements = new Map<string, Record<string, unknown>>();
@@ -43,8 +44,25 @@ function createDb() {
       findUnique: async ({
         where,
       }: {
-        where: { stripeCustomerId?: string; stripeSubscriptionId?: string };
+        where: {
+          stripeCustomerId?: string;
+          stripeSubscriptionId?: string;
+          clinicId?: string;
+          stripeSubscriptionScheduleId?: string;
+        };
       }) => {
+        if (where.clinicId) {
+          return profiles.get(where.clinicId) ?? null;
+        }
+        if (where.stripeSubscriptionScheduleId) {
+          return (
+            [...profiles.values()].find(
+              (row) =>
+                row.stripeSubscriptionScheduleId ===
+                where.stripeSubscriptionScheduleId
+            ) ?? null
+          );
+        }
         if (where.stripeCustomerId) {
           return (
             [...profiles.values()].find(
@@ -61,6 +79,21 @@ function createDb() {
         }
         return null;
       },
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { clinicId: string };
+        data: Record<string, unknown>;
+      }) => {
+        const existing = profiles.get(where.clinicId);
+        if (!existing) {
+          throw new Error("missing profile");
+        }
+        const next = { ...existing, ...data };
+        profiles.set(where.clinicId, next);
+        return next;
+      },
       upsert: async ({
         where,
         create,
@@ -75,6 +108,7 @@ function createDb() {
         update: {
           stripeCustomerId?: string;
           stripeSubscriptionId?: string;
+          stripeSubscriptionScheduleId?: string | null;
         };
       }) => {
         const existing = profiles.get(where.clinicId);
@@ -85,8 +119,15 @@ function createDb() {
                 update.stripeCustomerId ?? existing.stripeCustomerId,
               stripeSubscriptionId:
                 update.stripeSubscriptionId ?? existing.stripeSubscriptionId,
+              stripeSubscriptionScheduleId:
+                "stripeSubscriptionScheduleId" in update
+                  ? (update.stripeSubscriptionScheduleId ?? null)
+                  : existing.stripeSubscriptionScheduleId,
             }
-          : create;
+          : {
+              stripeSubscriptionScheduleId: null,
+              ...create,
+            };
         for (const row of profiles.values()) {
           if (
             next.stripeCustomerId &&
@@ -106,6 +147,21 @@ function createDb() {
       }: {
         where: { clinicId: string };
       }) => entitlements.get(clinicId) ?? null,
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { clinicId: string };
+        data: Record<string, unknown>;
+      }) => {
+        const next = {
+          ...(entitlements.get(where.clinicId) ?? {}),
+          ...data,
+          clinicId: where.clinicId,
+        };
+        entitlements.set(where.clinicId, next);
+        return next;
+      },
       upsert: async ({
         where,
         create,
@@ -275,6 +331,141 @@ const activeSubscription = {
     url: "/v1/subscription_items",
   },
 } as unknown as Stripe.Subscription;
+
+function subscriptionWith(input: {
+  priceId: string;
+  status?: string;
+  cancelAtPeriodEnd?: boolean;
+  cancelAt?: number | null;
+}): Stripe.Subscription {
+  return {
+    ...activeSubscription,
+    status: input.status ?? "active",
+    cancel_at_period_end: input.cancelAtPeriodEnd ?? false,
+    cancel_at: input.cancelAt ?? null,
+    items: {
+      object: "list",
+      data: [
+        {
+          id: "si_1",
+          price: { id: input.priceId },
+          quantity: 1,
+          current_period_start: 1_746_000_000,
+          current_period_end: 1_748_600_000,
+        },
+      ],
+      has_more: false,
+      url: "/v1/subscription_items",
+    },
+  } as Stripe.Subscription;
+}
+
+function invoiceEvent(input: {
+  id: string;
+  type: "invoice.paid" | "invoice.payment_failed";
+  priceId: string;
+}): Stripe.Event {
+  const event = invoicePaidEvent();
+  event.id = input.id;
+  event.type = input.type;
+  const invoice = event.data.object as {
+    lines: { data: Array<{ pricing: { price_details: { price: string } } }> };
+  };
+  invoice.lines.data[0].pricing.price_details.price = input.priceId;
+  return event;
+}
+
+function subscriptionEvent(input: {
+  id: string;
+  subscription: Stripe.Subscription;
+}): Stripe.Event {
+  return {
+    id: input.id,
+    object: "event",
+    created: 1_747_100_000,
+    type: "customer.subscription.updated",
+    data: { object: input.subscription },
+  } as Stripe.Event;
+}
+
+function seedPracticeDowngrade(
+  db: ReturnType<typeof createDb>,
+  input: {
+    priceId?: string;
+    interval?: "MONTHLY" | "YEARLY";
+    cancelAtPeriodEnd?: boolean;
+  } = {}
+) {
+  db.profiles.set("clinic_1", {
+    clinicId: "clinic_1",
+    stripeCustomerId: "cus_1",
+    stripeSubscriptionId: "sub_1",
+    stripeSubscriptionScheduleId: "sub_sched_1",
+  });
+  db.entitlements.set("clinic_1", {
+    commercialPlan: "PRACTICE",
+    billingInterval: input.interval ?? "MONTHLY",
+    billingStatus: input.cancelAtPeriodEnd
+      ? BillingStatus.CANCEL_AT_PERIOD_END
+      : BillingStatus.ACTIVE,
+    entitlementStatus: EntitlementStatus.ACTIVE,
+    stripePriceId: input.priceId ?? "price_test_practice_monthly",
+    cancelAtPeriodEnd: input.cancelAtPeriodEnd ?? false,
+    scheduledCommercialPlan: input.cancelAtPeriodEnd ? null : "ESSENTIAL",
+    scheduledPlanEffectiveAt: input.cancelAtPeriodEnd
+      ? null
+      : new Date("2026-10-22T00:00:00.000Z"),
+    extraTeamMemberAllowance: 1,
+    extraCustomGuideAllowance: 2,
+    extraTemplateAdaptationAllowance: 0,
+  });
+}
+
+function scheduleEvent(input: {
+  id: string;
+  type?: string;
+  status?: string;
+  endBehavior: string;
+  phases: Array<{
+    price: string;
+    start: number;
+    end: number;
+    quantity?: number;
+  }>;
+}): Stripe.Event {
+  return {
+    id: input.id,
+    object: "event",
+    created: 1_747_200_000,
+    type: input.type ?? "subscription_schedule.updated",
+    data: {
+      object: {
+        id: "sub_sched_1",
+        object: "subscription_schedule",
+        status: input.status ?? "active",
+        end_behavior: input.endBehavior,
+        subscription: "sub_1",
+        released_subscription: null,
+        metadata: {
+          clinicId: "clinic_1",
+          riverSchedulePurpose: "practice_to_essential",
+        },
+        current_phase: input.phases[0]
+          ? {
+              start_date: input.phases[0].start,
+              end_date: input.phases[0].end,
+            }
+          : null,
+        phases: input.phases.map((phase) => ({
+          start_date: phase.start,
+          end_date: phase.end,
+          proration_behavior: "none",
+          items: [{ price: phase.price, quantity: phase.quantity ?? 1 }],
+        })),
+      },
+    },
+  } as unknown as Stripe.Event;
+}
 
 describe("processVerifiedStripeEvent", () => {
   it("does not grant paid entitlement from Checkout completion alone", async () => {
@@ -573,5 +764,394 @@ describe("processVerifiedStripeEvent", () => {
       entitlementStatus: EntitlementStatus.RESTRICTED,
       publicGuideRetentionUntil: null,
     });
+  });
+
+  it("projects Essential at renewal from either invoice.paid or subscription.updated", async () => {
+    for (const priceId of [
+      "price_test_essential_monthly",
+      "price_test_essential_yearly",
+    ] as const) {
+      const interval =
+        priceId === "price_test_essential_yearly" ? "YEARLY" : "MONTHLY";
+      const practicePrice =
+        interval === "YEARLY"
+          ? "price_test_practice_yearly"
+          : "price_test_practice_monthly";
+      const invoiceFirst = createDb();
+      seedPracticeDowngrade(invoiceFirst, {
+        interval,
+        priceId: practicePrice,
+      });
+      await processVerifiedStripeEvent(
+        invoiceEvent({
+          id: `evt_paid_${interval}`,
+          type: "invoice.paid",
+          priceId,
+        }),
+        {
+          prisma: invoiceFirst,
+          reader: {
+            retrieveSubscription: async () =>
+              subscriptionWith({ priceId: practicePrice }),
+          },
+          env: BILLING_TEST_ENV,
+        }
+      );
+      expect(invoiceFirst.entitlements.get("clinic_1")).toMatchObject({
+        commercialPlan: "ESSENTIAL",
+        billingInterval: interval,
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        billingStatus: BillingStatus.ACTIVE,
+        scheduledCommercialPlan: null,
+        extraTeamMemberAllowance: 1,
+        extraCustomGuideAllowance: 2,
+      });
+      expect(invoiceFirst.profiles.get("clinic_1")).toMatchObject({
+        stripeSubscriptionId: "sub_1",
+        stripeSubscriptionScheduleId: "sub_sched_1",
+      });
+
+      const subscriptionFirst = createDb();
+      seedPracticeDowngrade(subscriptionFirst, {
+        interval,
+        priceId: practicePrice,
+      });
+      const essentialSubscription = subscriptionWith({ priceId });
+      await processVerifiedStripeEvent(
+        subscriptionEvent({
+          id: `evt_sub_${interval}`,
+          subscription: essentialSubscription,
+        }),
+        {
+          prisma: subscriptionFirst,
+          reader: { retrieveSubscription: async () => essentialSubscription },
+          env: BILLING_TEST_ENV,
+        }
+      );
+      await processVerifiedStripeEvent(
+        invoiceEvent({
+          id: `evt_paid_after_${interval}`,
+          type: "invoice.paid",
+          priceId,
+        }),
+        {
+          prisma: subscriptionFirst,
+          reader: { retrieveSubscription: async () => essentialSubscription },
+          env: BILLING_TEST_ENV,
+        }
+      );
+      expect(subscriptionFirst.entitlements.get("clinic_1")).toMatchObject({
+        commercialPlan: "ESSENTIAL",
+        billingInterval: interval,
+        scheduledCommercialPlan: null,
+        extraTeamMemberAllowance: 1,
+      });
+      expect(
+        subscriptionFirst.profiles.get("clinic_1")?.stripeSubscriptionId
+      ).toBe("sub_1");
+    }
+  });
+
+  it("keeps Essential retry access when the downgrade renewal payment fails", async () => {
+    const db = createDb();
+    seedPracticeDowngrade(db);
+    const pastDue = subscriptionWith({
+      priceId: "price_test_essential_monthly",
+      status: "past_due",
+    });
+    await processVerifiedStripeEvent(
+      invoiceEvent({
+        id: "evt_downgrade_failed",
+        type: "invoice.payment_failed",
+        priceId: "price_test_essential_monthly",
+      }),
+      {
+        prisma: db,
+        reader: { retrieveSubscription: async () => pastDue },
+        env: BILLING_TEST_ENV,
+        downgradeStripe: null,
+      }
+    );
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.PAST_DUE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      scheduledCommercialPlan: null,
+      extraTeamMemberAllowance: 1,
+      extraCustomGuideAllowance: 2,
+    });
+
+    const unpaid = subscriptionWith({
+      priceId: "price_test_essential_monthly",
+      status: "unpaid",
+    });
+    await processVerifiedStripeEvent(
+      subscriptionEvent({ id: "evt_downgrade_unpaid", subscription: unpaid }),
+      {
+        prisma: db,
+        reader: { retrieveSubscription: async () => unpaid },
+        env: BILLING_TEST_ENV,
+      }
+    );
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.UNPAID,
+      entitlementStatus: EntitlementStatus.RESTRICTED,
+      extraTeamMemberAllowance: 1,
+    });
+    expect(db.profiles.get("clinic_1")?.stripeSubscriptionId).toBe("sub_1");
+  });
+
+  it("lets cancellation win over a scheduled downgrade and does not restore it", async () => {
+    const db = createDb();
+    seedPracticeDowngrade(db);
+    const releases: Array<{ preserve_cancel_date?: boolean }> = [];
+    const updates: unknown[] = [];
+    const stripe = {
+      subscriptions: {
+        retrieve: async () => {
+          throw new Error("subscription retrieve is not used here");
+        },
+      },
+      subscriptionSchedules: {
+        retrieve: async (id: string) => ({
+          id,
+          status: "active",
+          endBehavior: "release",
+          subscriptionId: "sub_1",
+          releasedSubscriptionId: null,
+          metadataClinicId: "clinic_1",
+          metadataPurpose: "practice_to_essential",
+          phases: [],
+        }),
+        update: async (_id: string, params: unknown) => {
+          updates.push(params);
+          return {
+            id: "sub_sched_1",
+            status: "active",
+            endBehavior: "cancel",
+            subscriptionId: "sub_1",
+            releasedSubscriptionId: null,
+            metadataClinicId: "clinic_1",
+            metadataPurpose: "practice_to_essential",
+            phases: [],
+          };
+        },
+        release: async (
+          _id: string,
+          params: { preserve_cancel_date?: boolean }
+        ) => {
+          releases.push(params);
+          return {
+            id: "sub_sched_1",
+            status: "released",
+            endBehavior: "release",
+            subscriptionId: null,
+            releasedSubscriptionId: "sub_1",
+            metadataClinicId: "clinic_1",
+            metadataPurpose: "practice_to_essential",
+            phases: [],
+          };
+        },
+        create: async () => {
+          throw new Error("must not create a schedule");
+        },
+      },
+    };
+    const cancelled = subscriptionWith({
+      priceId: "price_test_practice_monthly",
+      cancelAtPeriodEnd: true,
+    });
+    await processVerifiedStripeEvent(
+      subscriptionEvent({ id: "evt_cancel_wins", subscription: cancelled }),
+      {
+        prisma: db,
+        reader: { retrieveSubscription: async () => cancelled },
+        env: BILLING_TEST_ENV,
+        downgradeStripe: stripe,
+      }
+    );
+    expect(releases).toEqual([{ preserve_cancel_date: true }]);
+    expect(updates).toHaveLength(0);
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "PRACTICE",
+      billingInterval: "MONTHLY",
+      cancelAtPeriodEnd: true,
+      billingStatus: BillingStatus.CANCEL_AT_PERIOD_END,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      scheduledCommercialPlan: null,
+      scheduledPlanEffectiveAt: null,
+      extraTeamMemberAllowance: 1,
+    });
+    expect(db.profiles.get("clinic_1")).toMatchObject({
+      stripeSubscriptionId: "sub_1",
+      stripeSubscriptionScheduleId: null,
+    });
+
+    const restored = subscriptionWith({
+      priceId: "price_test_practice_monthly",
+    });
+    await processVerifiedStripeEvent(
+      subscriptionEvent({ id: "evt_cancel_reversed", subscription: restored }),
+      {
+        prisma: db,
+        reader: { retrieveSubscription: async () => restored },
+        env: BILLING_TEST_ENV,
+        downgradeStripe: stripe,
+      }
+    );
+    expect(releases).toHaveLength(1);
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "PRACTICE",
+      cancelAtPeriodEnd: false,
+      billingStatus: BillingStatus.ACTIVE,
+      scheduledCommercialPlan: null,
+      extraTeamMemberAllowance: 1,
+    });
+  });
+
+  it("collapses a schedule when cancellation is only on the schedule", async () => {
+    const db = createDb();
+    seedPracticeDowngrade(db);
+    const updates: Array<{ end_behavior: string; phases: unknown[] }> = [];
+    const stripe = {
+      subscriptions: { retrieve: async () => ({}) },
+      subscriptionSchedules: {
+        retrieve: async () => {
+          throw new Error("release retrieve should not run");
+        },
+        release: async () => {
+          throw new Error(
+            "must not release while cancellation is schedule-managed"
+          );
+        },
+        create: async () => {
+          throw new Error("must not create a schedule");
+        },
+        update: async (
+          id: string,
+          params: { end_behavior: string; phases: unknown[] }
+        ) => {
+          updates.push(params);
+          return {
+            id,
+            status: "active",
+            endBehavior: "cancel",
+            subscriptionId: "sub_1",
+            releasedSubscriptionId: null,
+            metadataClinicId: "clinic_1",
+            metadataPurpose: "practice_to_essential",
+            phases: [],
+          };
+        },
+      },
+    } as unknown as import("@/lib/billing/plan-downgrade").PlanDowngradeStripePort;
+    await processVerifiedStripeEvent(
+      scheduleEvent({
+        id: "evt_sched_cancel",
+        endBehavior: "cancel",
+        phases: [
+          {
+            price: "price_test_practice_monthly",
+            start: 1_746_000_000,
+            end: 1_748_600_000,
+          },
+          {
+            price: "price_test_essential_monthly",
+            start: 1_748_600_000,
+            end: 1_751_200_000,
+          },
+        ],
+      }),
+      {
+        prisma: db,
+        env: BILLING_TEST_ENV,
+        downgradeStripe: stripe,
+      }
+    );
+    expect(updates).toHaveLength(1);
+    expect(updates[0]).toMatchObject({
+      end_behavior: "cancel",
+      proration_behavior: "none",
+      phases: [
+        {
+          items: [{ price: "price_test_practice_monthly", quantity: 1 }],
+          start_date: 1_746_000_000,
+          end_date: 1_748_600_000,
+          proration_behavior: "none",
+        },
+      ],
+    });
+    expect(db.profiles.get("clinic_1")?.stripeSubscriptionScheduleId).toBe(
+      "sub_sched_1"
+    );
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "PRACTICE",
+      cancelAtPeriodEnd: true,
+      billingStatus: BillingStatus.CANCEL_AT_PERIOD_END,
+      scheduledCommercialPlan: null,
+      extraTeamMemberAllowance: 1,
+    });
+
+    const restored = subscriptionWith({
+      priceId: "price_test_practice_monthly",
+    });
+    const releases: Array<{ preserve_cancel_date?: boolean }> = [];
+    await processVerifiedStripeEvent(
+      subscriptionEvent({
+        id: "evt_undo_schedule_cancel",
+        subscription: restored,
+      }),
+      {
+        prisma: db,
+        reader: { retrieveSubscription: async () => restored },
+        env: BILLING_TEST_ENV,
+        downgradeStripe: {
+          ...stripe,
+          subscriptionSchedules: {
+            ...stripe.subscriptionSchedules,
+            retrieve: async (id: string) => ({
+              id,
+              status: "active",
+              endBehavior: "cancel",
+              subscriptionId: "sub_1",
+              releasedSubscriptionId: null,
+              metadataClinicId: "clinic_1",
+              metadataPurpose: "practice_to_essential",
+              phases: [],
+            }),
+            release: async (
+              _id: string,
+              params: { preserve_cancel_date?: boolean }
+            ) => {
+              releases.push(params);
+              return {
+                id: "sub_sched_1",
+                status: "released",
+                endBehavior: "cancel",
+                subscriptionId: null,
+                releasedSubscriptionId: "sub_1",
+                metadataClinicId: "clinic_1",
+                metadataPurpose: "practice_to_essential",
+                phases: [],
+              };
+            },
+          },
+        } as unknown as import("@/lib/billing/plan-downgrade").PlanDowngradeStripePort,
+      }
+    );
+    expect(releases).toEqual([{ preserve_cancel_date: false }]);
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "PRACTICE",
+      scheduledCommercialPlan: null,
+      cancelAtPeriodEnd: false,
+      billingStatus: BillingStatus.ACTIVE,
+    });
+    expect(db.profiles.get("clinic_1")?.stripeSubscriptionId).toBe("sub_1");
+    expect(db.profiles.get("clinic_1")?.stripeSubscriptionScheduleId).toBe(
+      null
+    );
   });
 });

@@ -187,7 +187,12 @@ export default async function OperatorClinicDetailPage({
       <UpgradePlanForm
         clinicId={clinic.id}
         canUpgradeToPractice={billing.canUpgradeToPractice}
-        downgradeDeferred={billing.downgradeDeferred}
+        showDowngrade={billing.showDowngrade}
+        canScheduleDowngrade={billing.canScheduleDowngrade}
+        canKeepPractice={billing.canKeepPractice}
+        downgradeEffectiveLabel={billing.downgradeEffectiveLabel}
+        downgradeBlockedReason={billing.downgradeBlockedReason}
+        scheduledPlanChange={billing.scheduledPlanChange}
         downgradeReadiness={billing.downgradeReadiness}
       />
 

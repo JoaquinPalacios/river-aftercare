@@ -52,6 +52,52 @@ export function cancellationScheduledMessage(effectiveEnd: Date): string {
   return `Your subscription is scheduled to end on ${formatBillingDate(effectiveEnd)}.`;
 }
 
+export type ScheduledPlanChangePresentation = {
+  targetLabel: string;
+  effectiveLabel: string;
+  operatorLines: {
+    plan: string;
+    scheduledChange: string;
+    currentAccess: string;
+  };
+  customerMessage: string;
+};
+
+/**
+ * A scheduled Practice → Essential change. Hidden once the current plan is
+ * Essential, and hidden when cancellation is already scheduled.
+ */
+export function presentScheduledPlanChange(input: {
+  commercialPlan: CommercialPlan | null;
+  scheduledCommercialPlan: CommercialPlan | null;
+  effectiveAt: Date | null;
+  cancelAtPeriodEnd: boolean;
+}): ScheduledPlanChangePresentation | null {
+  if (input.cancelAtPeriodEnd) {
+    return null;
+  }
+  if (input.commercialPlan !== "PRACTICE") {
+    return null;
+  }
+  if (
+    input.scheduledCommercialPlan !== "ESSENTIAL" ||
+    input.effectiveAt == null
+  ) {
+    return null;
+  }
+  const effectiveLabel = formatBillingDate(input.effectiveAt);
+  return {
+    targetLabel: "Essential",
+    effectiveLabel,
+    operatorLines: {
+      plan: "Practice",
+      scheduledChange: `Essential on ${effectiveLabel}`,
+      currentAccess: `Practice until ${effectiveLabel}`,
+    },
+    customerMessage: `Essential begins on ${effectiveLabel}. Practice stays active until then.`,
+  };
+}
+
 export const PAST_DUE_BILLING_MESSAGE =
   "There’s a payment issue. Stripe is retrying it, and your clinic can keep using River Aftercare.";
 

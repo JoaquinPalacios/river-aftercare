@@ -10,7 +10,22 @@ import {
 import type Stripe from "stripe";
 
 import { logStripeBilling } from "@/lib/billing/log";
-import { lookupStripePriceId } from "@/lib/billing/price-map";
+import {
+  decideSubscriptionScheduleEvent,
+  downgradeStripePort,
+  noticeFromSubscriptionSchedule,
+  RIVER_DOWNGRADE_SCHEDULE_PURPOSE,
+  releaseSchedulePreservingCancellation,
+  scheduledDowngradeFieldsAfterProjection,
+  shouldReleaseScheduleAfterCancellationReversed,
+  shouldReleaseScheduleForCancellation,
+  type PlanDowngradeStripePort,
+} from "@/lib/billing/plan-downgrade";
+import {
+  lookupStripePriceId,
+  stripePriceIdForPlan,
+  StripePriceMappingError,
+} from "@/lib/billing/price-map";
 import {
   projectEntitlement,
   type LocalEntitlementSnapshot,
@@ -48,6 +63,13 @@ type BillingDb = Pick<
   | "stripeEventReceipt"
   | "$transaction"
 >;
+
+type StripeEventOptions = {
+  prisma?: BillingDb;
+  reader?: StripeSubscriptionReader | null;
+  env?: Record<string, string | undefined>;
+  downgradeStripe?: PlanDowngradeStripePort | null;
+};
 
 function isUniqueViolation(error: unknown): boolean {
   if (
@@ -171,6 +193,9 @@ async function applyProjection(options: {
   snapshot: StripeProjectionSnapshot;
   entitlement: LocalEntitlementSnapshot;
   stripeEventId: string;
+  scheduledCommercialPlan: LocalEntitlementSnapshot["commercialPlan"];
+  scheduledPlanEffectiveAt: Date | null;
+  clearScheduleId: boolean;
 }): Promise<void> {
   const { db, clinicId, snapshot, entitlement, stripeEventId } = options;
   const now = new Date();
@@ -188,6 +213,9 @@ async function applyProjection(options: {
         : {}),
       ...(snapshot.stripeSubscriptionId
         ? { stripeSubscriptionId: snapshot.stripeSubscriptionId }
+        : {}),
+      ...(options.clearScheduleId
+        ? { stripeSubscriptionScheduleId: null }
         : {}),
     },
   });
@@ -209,6 +237,8 @@ async function applyProjection(options: {
       publicGuideRetentionUntil: entitlement.publicGuideRetentionUntil,
       lastStripeEventId: stripeEventId,
       lastProjectedAt: now,
+      scheduledCommercialPlan: options.scheduledCommercialPlan,
+      scheduledPlanEffectiveAt: options.scheduledPlanEffectiveAt,
     },
     update: {
       commercialPlan: entitlement.commercialPlan,
@@ -224,17 +254,15 @@ async function applyProjection(options: {
       publicGuideRetentionUntil: entitlement.publicGuideRetentionUntil,
       lastStripeEventId: stripeEventId,
       lastProjectedAt: now,
+      scheduledCommercialPlan: options.scheduledCommercialPlan,
+      scheduledPlanEffectiveAt: options.scheduledPlanEffectiveAt,
     },
   });
 }
 
 export async function processVerifiedStripeEvent(
   event: Stripe.Event,
-  options?: {
-    prisma?: BillingDb;
-    reader?: StripeSubscriptionReader | null;
-    env?: Record<string, string | undefined>;
-  }
+  options?: StripeEventOptions
 ): Promise<ProcessStripeEventResult> {
   const db = options?.prisma ?? getPrisma();
   const env = options?.env ?? process.env;
@@ -316,6 +344,16 @@ export async function processVerifiedStripeEvent(
       stripeEventId,
       eventType,
     };
+  }
+
+  if (eventType.startsWith("subscription_schedule.")) {
+    return applySubscriptionScheduleEvent({
+      event,
+      db,
+      env,
+      mark,
+      downgradeStripe: options?.downgradeStripe,
+    });
   }
 
   let snapshot = snapshotFromStripeEvent(event);
@@ -438,6 +476,70 @@ export async function processVerifiedStripeEvent(
     };
   }
 
+  const profile = identity.clinicId
+    ? await db.clinicBillingProfile.findUnique({
+        where: { clinicId: identity.clinicId },
+        select: {
+          stripeSubscriptionId: true,
+          stripeSubscriptionScheduleId: true,
+        },
+      })
+    : null;
+  let cancellationSuperseded = false;
+  let clearScheduleId = false;
+  const scheduleId = profile?.stripeSubscriptionScheduleId ?? null;
+  const cancelNow = projection.entitlement.cancelAtPeriodEnd;
+  const releaseForCancellation = shouldReleaseScheduleForCancellation({
+    scheduleId,
+    cancelAtPeriodEnd: cancelNow,
+  });
+  const releaseAfterReversal = shouldReleaseScheduleAfterCancellationReversed({
+    scheduleId,
+    previousCancelAtPeriodEnd: previousRow?.cancelAtPeriodEnd ?? false,
+    cancelAtPeriodEnd: cancelNow,
+  });
+  if (releaseForCancellation || releaseAfterReversal) {
+    const port =
+      options?.downgradeStripe === undefined
+        ? downgradeStripePort(getStripeClient(env))
+        : options.downgradeStripe;
+    if (!port) {
+      throw new Error("Downgrade schedule could not be released.");
+    }
+    const released = await releaseSchedulePreservingCancellation({
+      stripe: port,
+      scheduleId: scheduleId ?? "",
+      expectedSubscriptionId:
+        snapshot.stripeSubscriptionId ?? profile?.stripeSubscriptionId ?? "",
+      preserveCancelDate: releaseForCancellation,
+    });
+    if (!released.ok) {
+      throw new Error("Downgrade schedule could not be released.");
+    }
+    clearScheduleId = true;
+    if (releaseForCancellation) {
+      cancellationSuperseded =
+        projection.entitlement.commercialPlan !== "ESSENTIAL";
+      if (identity.clinicId) {
+        logStripeBilling({
+          event: "plan_downgrade_superseded_by_cancellation",
+          clinicId: identity.clinicId,
+        });
+      }
+    } else if (identity.clinicId) {
+      logStripeBilling({
+        event: "plan_downgrade_released_after_cancel_reversal",
+        clinicId: identity.clinicId,
+      });
+    }
+  }
+  const scheduledFields = scheduledDowngradeFieldsAfterProjection({
+    previousScheduledPlan: previousRow?.scheduledCommercialPlan ?? null,
+    previousEffectiveAt: previousRow?.scheduledPlanEffectiveAt ?? null,
+    projectedPlan: projection.entitlement.commercialPlan,
+    cancellationSuperseded,
+  });
+
   try {
     await db.$transaction(async (tx) => {
       await applyProjection({
@@ -446,6 +548,9 @@ export async function processVerifiedStripeEvent(
         snapshot,
         entitlement: projection.entitlement,
         stripeEventId,
+        scheduledCommercialPlan: scheduledFields.scheduledCommercialPlan,
+        scheduledPlanEffectiveAt: scheduledFields.scheduledPlanEffectiveAt,
+        clearScheduleId,
       });
       await tx.stripeEventReceipt.update({
         where: { id: receipt.id },
@@ -511,6 +616,223 @@ export async function processVerifiedStripeEvent(
   return {
     outcome: "processed",
     clinicId: identity.clinicId,
+    stripeEventId,
+    eventType,
+  };
+}
+
+async function applySubscriptionScheduleEvent(input: {
+  event: Stripe.Event;
+  db: BillingDb;
+  env: Record<string, string | undefined>;
+  downgradeStripe: PlanDowngradeStripePort | null | undefined;
+  mark: (
+    processingStatus: StripeEventProcessingStatus,
+    failureText: string | null,
+    clinicId: string | null
+  ) => Promise<void>;
+}): Promise<ProcessStripeEventResult> {
+  const stripeEventId = input.event.id;
+  const eventType = input.event.type;
+  const object = input.event.data.object as { object?: string };
+  if (object.object !== "subscription_schedule") {
+    await input.mark(StripeEventProcessingStatus.IGNORED, null, null);
+    return {
+      outcome: "ignored",
+      clinicId: null,
+      stripeEventId,
+      eventType,
+    };
+  }
+
+  const notice = noticeFromSubscriptionSchedule(
+    input.event.data.object as Stripe.SubscriptionSchedule
+  );
+  let profile = await input.db.clinicBillingProfile.findUnique({
+    where: { stripeSubscriptionScheduleId: notice.scheduleId },
+    select: {
+      clinicId: true,
+      stripeSubscriptionId: true,
+      stripeSubscriptionScheduleId: true,
+    },
+  });
+
+  if (
+    !profile &&
+    notice.metadataPurpose === RIVER_DOWNGRADE_SCHEDULE_PURPOSE &&
+    notice.metadataClinicId
+  ) {
+    const clinic = await input.db.clinic.findUnique({
+      where: { id: notice.metadataClinicId },
+      select: { id: true },
+    });
+    if (clinic) {
+      const candidate = await input.db.clinicBillingProfile.findUnique({
+        where: { clinicId: clinic.id },
+        select: {
+          clinicId: true,
+          stripeSubscriptionId: true,
+          stripeSubscriptionScheduleId: true,
+        },
+      });
+      const sameSubscription =
+        !notice.subscriptionId ||
+        candidate?.stripeSubscriptionId === notice.subscriptionId;
+      const sameSchedule =
+        !candidate?.stripeSubscriptionScheduleId ||
+        candidate.stripeSubscriptionScheduleId === notice.scheduleId;
+      if (candidate && sameSubscription && sameSchedule) {
+        profile = candidate;
+      }
+    }
+  }
+
+  if (!profile) {
+    await input.mark(StripeEventProcessingStatus.IGNORED, null, null);
+    logStripeBilling({
+      event: "stripe_webhook_ignored",
+      stripeEventId,
+      eventType,
+    });
+    return {
+      outcome: "ignored",
+      clinicId: null,
+      stripeEventId,
+      eventType,
+    };
+  }
+
+  const entitlement = await input.db.clinicEntitlement.findUnique({
+    where: { clinicId: profile.clinicId },
+  });
+  let practicePriceId: string | null = null;
+  let essentialPriceId: string | null = null;
+  const interval = entitlement?.billingInterval;
+  if (interval === "MONTHLY" || interval === "YEARLY") {
+    try {
+      practicePriceId = stripePriceIdForPlan("PRACTICE", interval, input.env);
+      essentialPriceId = stripePriceIdForPlan("ESSENTIAL", interval, input.env);
+    } catch (error) {
+      if (!(error instanceof StripePriceMappingError)) {
+        throw error;
+      }
+    }
+  }
+
+  const decision = decideSubscriptionScheduleEvent({
+    notice,
+    clinicId: profile.clinicId,
+    localScheduleId: profile.stripeSubscriptionScheduleId,
+    practicePriceId,
+    essentialPriceId,
+  });
+
+  if (decision.action === "ignore") {
+    await input.mark(
+      StripeEventProcessingStatus.IGNORED,
+      null,
+      profile.clinicId
+    );
+    logStripeBilling({
+      event: "stripe_webhook_ignored",
+      stripeEventId,
+      eventType,
+    });
+    return {
+      outcome: "ignored",
+      clinicId: profile.clinicId,
+      stripeEventId,
+      eventType,
+    };
+  }
+
+  if (decision.action === "fail") {
+    await input.mark(
+      StripeEventProcessingStatus.FAILED,
+      "Subscription schedule could not be reconciled.",
+      profile.clinicId
+    );
+    throw new Error("Subscription schedule could not be reconciled.");
+  }
+
+  if (decision.action === "cancellation_supersedes") {
+    const port =
+      input.downgradeStripe === undefined
+        ? downgradeStripePort(getStripeClient(input.env))
+        : input.downgradeStripe;
+    if (!port) {
+      throw new Error("Downgrade schedule could not be changed.");
+    }
+    const updated = await port.subscriptionSchedules.update(
+      notice.scheduleId,
+      decision.update
+    );
+    const kept = updated.subscriptionId ?? updated.releasedSubscriptionId;
+    if (
+      (notice.subscriptionId && kept && kept !== notice.subscriptionId) ||
+      (profile.stripeSubscriptionId &&
+        kept &&
+        kept !== profile.stripeSubscriptionId)
+    ) {
+      throw new Error("Downgrade schedule changed the subscription.");
+    }
+  }
+
+  const clearSchedule = decision.action === "clear_schedule";
+  const markCancel = decision.action === "cancellation_supersedes";
+  const dropScheduled =
+    clearSchedule || markCancel || decision.action === "mark_cancel";
+
+  await input.db.$transaction(async (tx) => {
+    const transaction = tx as unknown as BillingDb;
+    if (clearSchedule) {
+      await transaction.clinicBillingProfile.update({
+        where: { clinicId: profile.clinicId },
+        data: { stripeSubscriptionScheduleId: null },
+      });
+    }
+    if (entitlement && dropScheduled) {
+      await transaction.clinicEntitlement.update({
+        where: { clinicId: profile.clinicId },
+        data: {
+          scheduledCommercialPlan: null,
+          scheduledPlanEffectiveAt: null,
+          ...(markCancel
+            ? {
+                cancelAtPeriodEnd: true,
+                ...(entitlement.billingStatus === BillingStatus.ACTIVE
+                  ? { billingStatus: BillingStatus.CANCEL_AT_PERIOD_END }
+                  : {}),
+              }
+            : {}),
+        },
+      });
+    }
+  });
+  await input.mark(
+    StripeEventProcessingStatus.PROCESSED,
+    null,
+    profile.clinicId
+  );
+
+  if (markCancel) {
+    logStripeBilling({
+      event: "plan_downgrade_superseded_by_cancellation",
+      clinicId: profile.clinicId,
+    });
+  }
+
+  logStripeBilling({
+    event: "stripe_webhook_processed",
+    stripeEventId,
+    eventType,
+    clinicId: profile.clinicId,
+    outcome: clearSchedule ? "schedule_cleared" : "schedule_reconciled",
+  });
+
+  return {
+    outcome: "processed",
+    clinicId: profile.clinicId,
     stripeEventId,
     eventType,
   };

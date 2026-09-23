@@ -39,7 +39,8 @@ export type EssentialDowngradeReadiness = {
 /**
  * Whether current usage would fit Essential after a later plan change.
  * Limits are Essential base plus the clinic's current persistent extras.
- * Extras are not discarded. This does not schedule a Stripe downgrade.
+ * Extras are not discarded. Scheduling lives in plan-downgrade and calls
+ * this assessment before any Stripe request.
  */
 export function assessEssentialDowngradeReadiness(input: {
   occupiedTeamPlaces: number;

@@ -5,11 +5,21 @@ import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 
 import {
+  keepPracticePlanAction,
+  scheduleClinicPlanDowngradeAction,
   upgradeClinicPlanAction,
+  type PlanDowngradeActionState,
   type PlanUpgradeActionState,
 } from "@/app/(staff)/(operator)/operator/billing-actions";
 
 const initial: PlanUpgradeActionState = {};
+const downgradeInitial: PlanDowngradeActionState = {};
+
+export const DOWNGRADE_SCHEDULED_MESSAGE =
+  "Downgrade scheduled. Practice stays active until the date below.";
+
+export const DOWNGRADE_KEPT_MESSAGE =
+  "Scheduled downgrade removed. This clinic stays on Practice.";
 
 export const UPGRADE_POLL_INTERVAL_MS = 2_000;
 export const UPGRADE_POLL_ATTEMPTS = 15;
@@ -23,12 +33,28 @@ export const UPGRADE_STILL_PROCESSING_MESSAGE =
 export function UpgradePlanForm({
   clinicId,
   canUpgradeToPractice,
-  downgradeDeferred,
+  showDowngrade = false,
+  canScheduleDowngrade = false,
+  canKeepPractice = false,
+  downgradeEffectiveLabel = null,
+  downgradeBlockedReason = null,
+  scheduledPlanChange = null,
   downgradeReadiness = null,
 }: {
   clinicId: string;
   canUpgradeToPractice: boolean;
-  downgradeDeferred: boolean;
+  showDowngrade?: boolean;
+  canScheduleDowngrade?: boolean;
+  canKeepPractice?: boolean;
+  downgradeEffectiveLabel?: string | null;
+  downgradeBlockedReason?: string | null;
+  scheduledPlanChange?: {
+    operatorLines: {
+      plan: string;
+      scheduledChange: string;
+      currentAccess: string;
+    };
+  } | null;
   downgradeReadiness?: {
     ready: boolean;
     teamCurrent: number;
@@ -46,6 +72,14 @@ export function UpgradePlanForm({
   const [state, action, pending] = useActionState(
     upgradeClinicPlanAction,
     initial
+  );
+  const [downgradeState, downgradeAction, downgradePending] = useActionState(
+    scheduleClinicPlanDowngradeAction,
+    downgradeInitial
+  );
+  const [keepState, keepAction, keepPending] = useActionState(
+    keepPracticePlanAction,
+    downgradeInitial
   );
   const [timeoutFor, setTimeoutFor] = useState<number | null>(null);
   const timedOut = state.startedAt != null && timeoutFor === state.startedAt;
@@ -82,7 +116,7 @@ export function UpgradePlanForm({
     };
   }, [state.accepted, state.startedAt, canUpgradeToPractice, refresh]);
 
-  if (!canUpgradeToPractice && !downgradeDeferred) {
+  if (!canUpgradeToPractice && !showDowngrade) {
     return null;
   }
 
@@ -111,40 +145,123 @@ export function UpgradePlanForm({
           </form>
         </>
       ) : null}
-      {downgradeDeferred ? (
-        <div className="mt-4 text-sm leading-6 text-staff-muted" role="status">
+      {showDowngrade ? (
+        <div className="mt-4 text-sm leading-6 text-staff-muted">
           <p className="font-medium text-staff-ink">Practice → Essential</p>
-          {downgradeReadiness ? (
-            <>
+          {scheduledPlanChange ? (
+            <div role="status">
+              <p>Plan: {scheduledPlanChange.operatorLines.plan}</p>
+              <p>
+                Scheduled change:{" "}
+                {scheduledPlanChange.operatorLines.scheduledChange}
+              </p>
+              <p>
+                Current access:{" "}
+                {scheduledPlanChange.operatorLines.currentAccess}
+              </p>
+              <p>
+                Practice remains active until that date. Essential has not
+                started.
+              </p>
+            </div>
+          ) : downgradeReadiness ? (
+            <div role="status">
               <p>
                 {downgradeReadiness.ready
                   ? "Usage is within Essential limits."
-                  : "Not ready"}
+                  : "Not ready to schedule."}
               </p>
               <p>
-                Custom guides: {downgradeReadiness.guideCurrent} /{" "}
-                {downgradeReadiness.guideLimit}
+                Team members: {downgradeReadiness.teamCurrent} used /{" "}
+                {downgradeReadiness.teamLimit} allowed
               </p>
               <p>
-                Team members: {downgradeReadiness.teamCurrent} /{" "}
-                {downgradeReadiness.teamLimit}
+                Custom guides: {downgradeReadiness.guideCurrent} used /{" "}
+                {downgradeReadiness.guideLimit} allowed
               </p>
               <p>
-                Editable River templates: {downgradeReadiness.adaptedCurrent} /{" "}
-                {downgradeReadiness.adaptedLimit}
+                Editable River templates: {downgradeReadiness.adaptedCurrent}{" "}
+                used / {downgradeReadiness.adaptedLimit} allowed
               </p>
               <p>
                 Total clinic-owned guides: {downgradeReadiness.combinedCurrent}{" "}
-                / {downgradeReadiness.combinedLimit}
+                used / {downgradeReadiness.combinedLimit} allowed
               </p>
-            </>
+              {downgradeReadiness.ready && downgradeEffectiveLabel ? (
+                <>
+                  <p>
+                    Downgrade will take effect at the end of the current paid
+                    period: {downgradeEffectiveLabel}
+                  </p>
+                  <p>
+                    Practice remains active until that date. There is no refund
+                    and no immediate billing change. Essential begins at the
+                    next renewal.
+                  </p>
+                </>
+              ) : null}
+              {!downgradeReadiness.ready ? (
+                <p>
+                  Reduce usage or grant a persistent extra before scheduling.
+                  Nothing is removed automatically.
+                </p>
+              ) : null}
+            </div>
           ) : (
             <p>
               Guide and team limits have to be checked before a downgrade can be
               scheduled.
             </p>
           )}
-          <p>Downgrade scheduling is not available yet.</p>
+          {downgradeBlockedReason ? (
+            <p className="mt-2" role="status">
+              {downgradeBlockedReason}
+            </p>
+          ) : null}
+          {canScheduleDowngrade ? (
+            <form action={downgradeAction} className="mt-4">
+              <input type="hidden" name="clinicId" value={clinicId} />
+              <button
+                type="submit"
+                className="staffBtn staffBtnPrimary h-11"
+                disabled={downgradePending}
+              >
+                {downgradePending ? "Scheduling…" : "Schedule downgrade"}
+              </button>
+            </form>
+          ) : null}
+          {canKeepPractice ? (
+            <form action={keepAction} className="mt-4">
+              <input type="hidden" name="clinicId" value={clinicId} />
+              <button
+                type="submit"
+                className="staffBtn staffBtnSecondary h-11"
+                disabled={keepPending}
+              >
+                {keepPending ? "Updating…" : "Keep Practice"}
+              </button>
+            </form>
+          ) : null}
+          {downgradeState.error ? (
+            <p className="mt-3 text-sm text-red-600" role="alert">
+              {downgradeState.error}
+            </p>
+          ) : null}
+          {downgradeState.accepted ? (
+            <p className="staffFormStatus mt-3" role="status">
+              {DOWNGRADE_SCHEDULED_MESSAGE}
+            </p>
+          ) : null}
+          {keepState.error ? (
+            <p className="mt-3 text-sm text-red-600" role="alert">
+              {keepState.error}
+            </p>
+          ) : null}
+          {keepState.accepted ? (
+            <p className="staffFormStatus mt-3" role="status">
+              {DOWNGRADE_KEPT_MESSAGE}
+            </p>
+          ) : null}
         </div>
       ) : null}
       {state.error ? (

@@ -18,6 +18,10 @@ export const STRIPE_WEBHOOK_EVENT_TYPES = [
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
+  "subscription_schedule.updated",
+  "subscription_schedule.released",
+  "subscription_schedule.completed",
+  "subscription_schedule.canceled",
 ] as const;
 
 export type StripeWebhookEventType =

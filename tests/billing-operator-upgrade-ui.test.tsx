@@ -16,6 +16,8 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/app/(staff)/(operator)/operator/billing-actions", () => ({
   upgradeClinicPlanAction: (previous: unknown, formData: FormData) =>
     upgradeMock(previous, formData),
+  scheduleClinicPlanDowngradeAction: async () => ({}),
+  keepPracticePlanAction: async () => ({}),
 }));
 
 import {
@@ -54,14 +56,43 @@ describe("operator upgrade refresh", () => {
 
   async function renderForm(props: {
     canUpgradeToPractice: boolean;
-    downgradeDeferred: boolean;
+    showDowngrade: boolean;
+    canScheduleDowngrade?: boolean;
+    canKeepPractice?: boolean;
+    downgradeEffectiveLabel?: string | null;
+    downgradeReadiness?: {
+      ready: boolean;
+      teamCurrent: number;
+      teamLimit: number;
+      guideCurrent: number;
+      guideLimit: number;
+      adaptedCurrent: number;
+      adaptedLimit: number;
+      combinedCurrent: number;
+      combinedLimit: number;
+    } | null;
+    scheduledPlanChange?: {
+      targetLabel: string;
+      effectiveLabel: string;
+      operatorLines: {
+        plan: string;
+        scheduledChange: string;
+        currentAccess: string;
+      };
+      customerMessage: string;
+    } | null;
   }) {
     await act(async () => {
       root.render(
         <UpgradePlanForm
           clinicId="clinic_a"
           canUpgradeToPractice={props.canUpgradeToPractice}
-          downgradeDeferred={props.downgradeDeferred}
+          showDowngrade={props.showDowngrade}
+          canScheduleDowngrade={props.canScheduleDowngrade}
+          canKeepPractice={props.canKeepPractice}
+          downgradeEffectiveLabel={props.downgradeEffectiveLabel}
+          downgradeReadiness={props.downgradeReadiness}
+          scheduledPlanChange={props.scheduledPlanChange}
         />
       );
     });
@@ -83,7 +114,7 @@ describe("operator upgrade refresh", () => {
   it("shows Upgrade to Practice for an eligible Essential clinic", async () => {
     await renderForm({
       canUpgradeToPractice: true,
-      downgradeDeferred: false,
+      showDowngrade: false,
     });
     expect(submitButton().textContent).toBe("Upgrade to Practice");
     expect(container.textContent).not.toContain("Upgrading…");
@@ -103,7 +134,7 @@ describe("operator upgrade refresh", () => {
     );
     await renderForm({
       canUpgradeToPractice: true,
-      downgradeDeferred: false,
+      showDowngrade: false,
     });
 
     await submitUpgrade();
@@ -125,12 +156,13 @@ describe("operator upgrade refresh", () => {
 
     await renderForm({
       canUpgradeToPractice: false,
-      downgradeDeferred: true,
+      showDowngrade: true,
     });
     expect(container.textContent).toContain("Practice → Essential");
     expect(container.textContent).toContain(
-      "Downgrade scheduling is not available yet."
+      "Guide and team limits have to be checked before a downgrade can be scheduled."
     );
+    expect(container.textContent).not.toContain("Schedule downgrade");
     expect(container.textContent).not.toContain(UPGRADE_PROCESSING_MESSAGE);
     expect(container.textContent).not.toContain("Upgrade to Practice");
     expect(refreshMock).toHaveBeenCalledTimes(1);
@@ -145,7 +177,7 @@ describe("operator upgrade refresh", () => {
     upgradeMock.mockResolvedValue({ accepted: true, startedAt: 2 });
     await renderForm({
       canUpgradeToPractice: true,
-      downgradeDeferred: false,
+      showDowngrade: false,
     });
     await submitUpgrade();
     await act(async () => {
@@ -169,7 +201,7 @@ describe("operator upgrade refresh", () => {
     upgradeMock.mockResolvedValue({ accepted: true, startedAt: 3 });
     await renderForm({
       canUpgradeToPractice: true,
-      downgradeDeferred: false,
+      showDowngrade: false,
     });
     await submitUpgrade();
     await act(async () => {
@@ -185,5 +217,107 @@ describe("operator upgrade refresh", () => {
       await vi.advanceTimersByTimeAsync(UPGRADE_POLL_INTERVAL_MS * 4);
     });
     expect(refreshMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers a renewal downgrade when usage fits Essential", async () => {
+    await renderForm({
+      canUpgradeToPractice: false,
+      showDowngrade: true,
+      canScheduleDowngrade: true,
+      downgradeEffectiveLabel: "22 October 2026",
+      downgradeReadiness: {
+        ready: true,
+        teamCurrent: 2,
+        teamLimit: 2,
+        guideCurrent: 1,
+        guideLimit: 2,
+        adaptedCurrent: 1,
+        adaptedLimit: 2,
+        combinedCurrent: 2,
+        combinedLimit: 4,
+      },
+    });
+    expect(container.textContent).toContain("Practice → Essential");
+    expect(container.textContent).toContain(
+      "Usage is within Essential limits."
+    );
+    expect(container.textContent).toContain(
+      "Downgrade will take effect at the end of the current paid period: 22 October 2026"
+    );
+    expect(container.textContent).toContain(
+      "Practice remains active until that date. There is no refund and no immediate billing change. Essential begins at the next renewal."
+    );
+    expect(container.textContent).toContain("Schedule downgrade");
+    expect(container.textContent).not.toContain("already Essential");
+    const clinicField = container.querySelector(
+      'input[name="clinicId"]'
+    ) as HTMLInputElement;
+    expect(clinicField.value).toBe("clinic_a");
+    expect(container.querySelector('input[name="targetPlan"]')).toBeNull();
+    expect(container.querySelector('input[name="priceId"]')).toBeNull();
+  });
+
+  it("shows the scheduled change and Keep Practice without calling the clinic Essential", async () => {
+    await renderForm({
+      canUpgradeToPractice: false,
+      showDowngrade: true,
+      canKeepPractice: true,
+      scheduledPlanChange: {
+        targetLabel: "Essential",
+        effectiveLabel: "22 October 2026",
+        operatorLines: {
+          plan: "Practice",
+          scheduledChange: "Essential on 22 October 2026",
+          currentAccess: "Practice until 22 October 2026",
+        },
+        customerMessage:
+          "Essential begins on 22 October 2026. Practice stays active until then.",
+      },
+    });
+    expect(container.textContent).toContain("Plan: Practice");
+    expect(container.textContent).toContain(
+      "Scheduled change: Essential on 22 October 2026"
+    );
+    expect(container.textContent).toContain(
+      "Current access: Practice until 22 October 2026"
+    );
+    expect(container.textContent).toContain(
+      "Practice remains active until that date. Essential has not started."
+    );
+    expect(container.textContent).toContain("Keep Practice");
+    expect(container.textContent).not.toContain("Schedule downgrade");
+  });
+
+  it("names the exact conflict and does not offer scheduling", async () => {
+    await renderForm({
+      canUpgradeToPractice: false,
+      showDowngrade: true,
+      canScheduleDowngrade: false,
+      downgradeReadiness: {
+        ready: false,
+        teamCurrent: 3,
+        teamLimit: 2,
+        guideCurrent: 4,
+        guideLimit: 2,
+        adaptedCurrent: 3,
+        adaptedLimit: 2,
+        combinedCurrent: 5,
+        combinedLimit: 4,
+      },
+    });
+    expect(container.textContent).toContain("Team members: 3 used / 2 allowed");
+    expect(container.textContent).toContain(
+      "Custom guides: 4 used / 2 allowed"
+    );
+    expect(container.textContent).toContain(
+      "Editable River templates: 3 used / 2 allowed"
+    );
+    expect(container.textContent).toContain(
+      "Total clinic-owned guides: 5 used / 4 allowed"
+    );
+    expect(container.textContent).toContain(
+      "Reduce usage or grant a persistent extra before scheduling. Nothing is removed automatically."
+    );
+    expect(container.textContent).not.toContain("Schedule downgrade");
   });
 });

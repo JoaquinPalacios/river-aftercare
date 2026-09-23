@@ -39,6 +39,8 @@ Contact already keeps the baseline: server Zod validation, honeypot (`website`),
 
 Phase 4 enforces team, custom-guide, and editable-template allowances, plus a combined clinic-owned guide ceiling. Essential base is 2 team members, 2 original custom guides, 2 editable River templates, and 4 clinic-owned guides in total. Practice base is 5, 30, 30, and 40. Practice may mix the two guide categories inside that ceiling. Operator-granted extras add to the matching category, and each guide extra also adds one combined place. They do not change Stripe. Group has no fixed cap. There is no per-seat billing and no per-invitation override. See [BILLING.md](../architecture/BILLING.md).
 
+Phase 5 schedules Practice → Essential at the next renewal on the same subscription. It is operator-assisted, same interval only, with no proration or refund. Essential starts when Stripe applies that Price. Extras stay. Cancellation takes precedence over a scheduled downgrade. Monthly ↔ annual is still later work. GST registration has accountant approval and stays a separate task: do not add Stripe Tax or public GST wording from the downgrade.
+
 Later portal capability:
 
 - clinic STAFF must not invite

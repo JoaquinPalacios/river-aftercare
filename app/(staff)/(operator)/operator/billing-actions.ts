@@ -9,6 +9,12 @@ import {
   planChangeMessage,
   submitOperatorPlanUpgrade,
 } from "@/lib/billing/plan-change";
+import {
+  planDowngradeMessage,
+  submitOperatorDowngradeReversal,
+  submitOperatorPlanDowngrade,
+} from "@/lib/billing/plan-downgrade";
+import { loadEssentialDowngradeReadiness } from "@/lib/entitlements/downgrade-readiness";
 import { prepareClinicCommercialOffer } from "@/lib/billing/prepare-offer";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 
@@ -22,6 +28,11 @@ export interface PlanUpgradeActionState {
   error?: string;
   accepted?: boolean;
   startedAt?: number;
+}
+
+export interface PlanDowngradeActionState {
+  error?: string;
+  accepted?: boolean;
 }
 
 export async function prepareClinicBillingAction(
@@ -93,4 +104,56 @@ export async function upgradeClinicPlanAction(
     return { error: planChangeMessage(result.code) };
   }
   return { accepted: true, startedAt: Date.now() };
+}
+
+export async function scheduleClinicPlanDowngradeAction(
+  _previous: PlanDowngradeActionState,
+  formData: FormData
+): Promise<PlanDowngradeActionState> {
+  const host = (await headers()).get("host");
+  if (!isStaffAppHost(host)) {
+    notFound();
+  }
+  await requirePlatformOperator();
+
+  const clinicId = String(formData.get("clinicId") ?? "").trim();
+  if (!clinicId) {
+    notFound();
+  }
+
+  const result = await submitOperatorPlanDowngrade({ clinicId });
+  revalidatePath(`/operator/clinics/${clinicId}`);
+  revalidatePath("/account/billing");
+  if (!result.ok) {
+    const readiness =
+      result.code === "not_ready"
+        ? await loadEssentialDowngradeReadiness(clinicId)
+        : undefined;
+    return { error: planDowngradeMessage(result.code, readiness) };
+  }
+  return { accepted: true };
+}
+
+export async function keepPracticePlanAction(
+  _previous: PlanDowngradeActionState,
+  formData: FormData
+): Promise<PlanDowngradeActionState> {
+  const host = (await headers()).get("host");
+  if (!isStaffAppHost(host)) {
+    notFound();
+  }
+  await requirePlatformOperator();
+
+  const clinicId = String(formData.get("clinicId") ?? "").trim();
+  if (!clinicId) {
+    notFound();
+  }
+
+  const result = await submitOperatorDowngradeReversal({ clinicId });
+  revalidatePath(`/operator/clinics/${clinicId}`);
+  revalidatePath("/account/billing");
+  if (!result.ok) {
+    return { error: planDowngradeMessage(result.code) };
+  }
+  return { accepted: true };
 }

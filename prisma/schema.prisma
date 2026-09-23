@@ -736,6 +736,10 @@ model ClinicBillingProfile {
   acn                     String?
   stripeCustomerId        String?  @unique
   stripeSubscriptionId    String?  @unique
+  /// River-managed Subscription Schedule for a Practice → Essential change
+  /// at the next renewal. Opaque Stripe id. Not a second subscription.
+  /// Null when no downgrade is scheduled. Multiple nulls are allowed.
+  stripeSubscriptionScheduleId String? @unique
   /// Latest hosted Checkout Session, so a repeated click can reuse it.
   /// Cleared when the operator changes the offer. Not a payment credential.
   stripeCheckoutSessionId String?  @unique
@@ -772,6 +776,12 @@ model ClinicEntitlement {
   extraTeamMemberAllowance          Int @default(0)
   extraCustomGuideAllowance         Int @default(0)
   extraTemplateAdaptationAllowance  Int @default(0)
+  /// Scheduled plan. Null when nothing is scheduled. commercialPlan stays
+  /// the current plan until a trusted Stripe event shows the new Price.
+  scheduledCommercialPlan   CommercialPlan?
+  /// When scheduledCommercialPlan becomes effective. The current paid-period
+  /// end. Not a cancellation date.
+  scheduledPlanEffectiveAt  DateTime?
   clinic                    Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   createdAt                 DateTime          @default(now())
   updatedAt                 DateTime          @updatedAt

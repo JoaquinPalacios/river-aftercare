@@ -102,6 +102,13 @@ export default async function BillingStatusPage() {
               {presentation.attentionMessage}
             </p>
           ) : null}
+          {view.scheduledPlanChange ? (
+            <p className="mt-4 text-sm" role="status">
+              Scheduled change:{" "}
+              {view.scheduledPlanChange.operatorLines.scheduledChange}.{" "}
+              {view.scheduledPlanChange.customerMessage}
+            </p>
+          ) : null}
           {presentation.kind === "active" &&
           !presentation.attention &&
           presentation.assistedSetup ? (

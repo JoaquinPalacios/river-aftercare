@@ -1,6 +1,6 @@
 # Stripe billing and plan entitlement — architecture investigation
 
-**Status:** Phase 4 enforces Essential and Practice product allowances for custom guides and clinic team members. Phase 3 (Customer Portal, cancellation, payment-failure UX, public-guide retention, and operator Essential → Practice upgrade) stays as implemented. It is not deployed and it does not configure live Stripe. Phase 2 remains the paid-activation contract: card and AU BECS become `ACTIVE` only from `invoice.paid`. Sections A onward remain the historical investigation. **Approved Phase 1–4 decisions override stale recommendations below.**
+**Status:** Phase 5 schedules a Practice → Essential downgrade at the next renewal. Phase 4 enforces Essential and Practice product allowances. Phase 3 (Customer Portal, cancellation, payment-failure UX, public-guide retention, and operator Essential → Practice upgrade) stays as implemented. It is not deployed and it does not configure live Stripe. Phase 2 remains the paid-activation contract: card and AU BECS become `ACTIVE` only from `invoice.paid`. Sections A onward remain the historical investigation. **Approved Phase 1–5 decisions override stale recommendations below.** GST registration has accountant approval and is a separate follow-up; this phase does not configure Stripe Tax.
 
 **Date:** 2026-09-20 (investigation). Phase 1 landed 2026-09-21. Phase 2 customer payment flow landed the same day. Local card and AU BECS acceptance passed 2026-09-22. Phase 3 landed 2026-09-22 in application code only.  
 **Base:** investigation was written against `origin/main` at `2441d9a`.  
@@ -83,33 +83,63 @@ A read-only production audit found one pinned Practice guide (Tooth Extraction),
 
 Clinics already above an effective allowance keep members, invitations, and guides. New capacity-increasing actions for that dimension stay blocked. Another dimension with remaining capacity stays available. Reducing an operator extra below current usage is allowed and does not delete anything. The operator UI warns before that save.
 
-`loadEssentialDowngradeReadiness` reports `TEAM_MEMBERS`, `CUSTOM_GUIDES`, `TEMPLATE_ADAPTATIONS`, and `COMBINED_GUIDES` against Essential base plus the clinic’s current extras. The Essential combined target is 4 plus both guide extras. It does not schedule a Stripe downgrade and does not discard extras.
+`loadEssentialDowngradeReadiness` reports `TEAM_MEMBERS`, `CUSTOM_GUIDES`, `TEMPLATE_ADAPTATIONS`, and `COMBINED_GUIDES` against Essential base plus the clinic’s current extras. The Essential combined target is 4 plus both guide extras. It does not discard extras. Phase 5 calls this assessment before any Stripe schedule request.
 
 Phase 4 uses one additive migration, `20260923120000_add_practice_guide_template_adaptation` (`PracticeGuide.adaptedAt`, `PracticeGuide.sourceGuideTemplateId`, and the three extra-allowance columns). Do not apply it to production from this change.
 
+### Phase 5 — Practice → Essential at the next renewal
+
+Operator-only. A platform OPERATOR schedules the change from the clinic Plan change panel. Clinic ADMIN, STAFF, and Customer Portal cannot. Portal plan switching stays off. The browser sends only `clinicId`. Price, date, readiness, and subscription id are read on the server.
+
+The change is not immediate. Practice stays the local `commercialPlan` through `paidThrough`. There is no refund, credit, invoice, proration, or billing-cycle reset at scheduling time. The interval stays the same: Practice monthly becomes Essential monthly, and Practice annual becomes Essential annual. Monthly ↔ annual is still not offered.
+
+Stripe Node SDK `22.6.2` / API `2026-08-26.dahlia` uses Subscription Schedules. `subscriptionSchedules.create({ from_subscription })` cannot be combined with phases. River then `update`s two phases: the current Practice price through the item `current_period_end`, then one Essential interval (`duration.interval` `month` or `year`, not `iterations`). Both phases and the request use `proration_behavior: none`. The future phase uses `billing_cycle_anchor: automatic`. `phase_start` is not sent, because that resets the anchor. `end_behavior: release` lets the same subscription continue on Essential after that one Essential interval. The schedule is management state, not a second subscription. `subscriptionSchedules.cancel()` is not used.
+
+Scheduling is allowed only when readiness is `READY`, the local plan is Practice, entitlement and billing are `ACTIVE`, a River subscription exists, and cancellation is not already scheduled. `PAST_DUE`, ended, pending checkout, and an unknown existing schedule fail closed with no Stripe write. An unknown schedule is not released or overwritten. Repeating the action is idempotent (`river-plan-downgrade-{step}-{clinicId}-{subscriptionId}-{essentialPriceId}-{periodEnd}`).
+
+Local projection, so pages do not read Stripe on each request:
+
+- `ClinicBillingProfile.stripeSubscriptionScheduleId` — opaque id of the River schedule (`practice_to_essential` metadata plus `clinicId`). Not shown in clinic UI.
+- `ClinicEntitlement.scheduledCommercialPlan` and `scheduledPlanEffectiveAt` — target Essential and the current period end.
+
+`cancelAtPeriodEnd` is not reused. `commercialPlan` becomes Essential only when a trusted `invoice.paid`, `invoice.payment_failed`, or `customer.subscription.updated` projection sees the Essential Price. That clears the scheduled fields. The schedule id stays until `subscription_schedule.released`, `.completed`, or `.canceled`, so a later cancellation can still be reconciled. Operator extras are not cleared and nothing is deleted.
+
+Keep Practice calls `subscriptionSchedules.release({ preserve_cancel_date: false })` and clears the local schedule only after Stripe accepts it. The Practice subscription id is unchanged.
+
+Cancellation wins. Scheduling is blocked when cancellation is already set. If the customer later schedules cancellation:
+
+- When `cancel_at` or `cancel_at_period_end` is already on the subscription, River releases the schedule with `preserve_cancel_date: true`. The subscription still ends at the paid-period boundary.
+- When the schedule’s `end_behavior` becomes `cancel` while the current phase is still Practice and a future phase is Essential, River updates that schedule to the current Practice phase only, with `end_behavior: cancel` and `proration_behavior: none`. It does not release in that case: Stripe does not copy the cancel date onto the subscription until the final phase.
+
+Undoing cancellation does not recreate the Essential phase. If a collapsed schedule is still attached, River releases it with `preserve_cancel_date: false` so the subscription continues as Practice.
+
+Webhook events added: `subscription_schedule.updated`, `.released`, `.completed`, `.canceled`. Receipts stay idempotent. Payloads are not stored. A failed Essential renewal uses the existing past-due / unpaid policy: once the Price is Essential, the local plan is Essential during retries (`ACTIVE` + `PAST_DUE`), and terminal `unpaid` still restricts authoring. No second lifecycle.
+
+Migration `20260923200000_add_scheduled_plan_downgrade` is additive. Do not apply it to production from this change. Do not change live Stripe configuration.
+
 ### Not yet present
 
-- Practice → Essential Stripe downgrade scheduling, and monthly ↔ annual changes
+- Monthly ↔ annual interval changes
 - Per-seat billing, extra-seat prices, or subscription quantities
 - Self-serve plan switching, refunds, coupons, trials, Group Stripe prices, Group fixed caps
 - Production / live Stripe configuration
 - Live payments
-- GST / Stripe Tax
+- GST / Stripe Tax (accountant has approved registering; implementation waits for the ATO effective date and is not part of Phase 5)
 
 ### Superseded investigation recommendations
 
 Treat the rest of this file as context. Do not re-introduce these stale recommendations:
 
-| Topic                   | Investigation said                                    | Current approved decision                                                                       |
-| ----------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| GST                     | Manual inclusive 10% GST / Tax Invoice extras         | **Not GST registered.** Do not configure GST-inclusive behaviour, automatic tax, or 10% GST.    |
-| Public retention        | 30 days aligned to Terms export                       | **Up to 60 days** after the paid subscription ends. Phase 3 checks this on each public request. |
-| Past-due entitlement    | `GRACE`                                               | Keep **ACTIVE** entitlement while Stripe is retrying (`past_due`).                              |
-| Essential → Practice    | Prefer period-end                                     | **Immediate**, proration may apply, once payment state allows.                                  |
-| Portal cancel           | Undecided                                             | Phase 3 enables it, **at period end only**. Do not enable Portal plan switching.                |
-| Enums                   | Richer `GRACE` / `PUBLIC_RETENTION` / `CHECKOUT_OPEN` | Phase 1 uses `BillingStatus` + `EntitlementStatus` as implemented in Prisma.                    |
-| Invoice table           | Optional `StripeInvoiceRef`                           | **Not added.** Stripe remains the invoice system of record.                                     |
-| Implementation sequence | Domain before Stripe package                          | Phase 1 ships domain + webhook together, still without Checkout.                                |
+| Topic                   | Investigation said                                    | Current approved decision                                                                                                     |
+| ----------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| GST                     | Manual inclusive 10% GST / Tax Invoice extras         | Accountant has approved registering. Public copy still must not claim GST. Do not configure Stripe Tax in the downgrade work. |
+| Public retention        | 30 days aligned to Terms export                       | **Up to 60 days** after the paid subscription ends. Phase 3 checks this on each public request.                               |
+| Past-due entitlement    | `GRACE`                                               | Keep **ACTIVE** entitlement while Stripe is retrying (`past_due`).                                                            |
+| Essential → Practice    | Prefer period-end                                     | **Immediate**, proration may apply, once payment state allows.                                                                |
+| Portal cancel           | Undecided                                             | Phase 3 enables it, **at period end only**. Do not enable Portal plan switching.                                              |
+| Enums                   | Richer `GRACE` / `PUBLIC_RETENTION` / `CHECKOUT_OPEN` | Phase 1 uses `BillingStatus` + `EntitlementStatus` as implemented in Prisma.                                                  |
+| Invoice table           | Optional `StripeInvoiceRef`                           | **Not added.** Stripe remains the invoice system of record.                                                                   |
+| Implementation sequence | Domain before Stripe package                          | Phase 1 ships domain + webhook together, still without Checkout.                                                              |
 
 Public `/pricing` stays assisted-sales (`Request a demo` / `Talk to us`). Do not change it to Buy now. Do not create live Stripe objects from this note.
 
