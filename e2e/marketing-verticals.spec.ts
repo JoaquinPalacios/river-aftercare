@@ -58,7 +58,8 @@ const VERTICALS = [
     ogTitle: "Cosmetic & Aesthetic Aftercare Software | River Aftercare",
     ogDescription:
       "Publish branded post-treatment aftercare for cosmetic and aesthetic clinics. Patients or clients can revisit guidance by link or QR code, with no app or login.",
-    unique: "does not provide live clinical monitoring",
+    unique:
+      "does not currently provide live clinical monitoring, treatment monitoring or emergency triage",
     absent: ["injectables", "Riverside Dental Demo"],
   },
 ] as const;
