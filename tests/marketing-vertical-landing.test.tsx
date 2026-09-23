@@ -107,7 +107,9 @@ describe("clinic vertical landing pages", () => {
     );
     expect(chiro).not.toContain("spinal alignment");
     expect(chiro).not.toContain("clinical outcomes");
-    expect(cosmetic).toContain("does not provide live clinical monitoring");
+    expect(cosmetic).toContain(
+      "does not currently provide live clinical monitoring, treatment monitoring or emergency triage"
+    );
     expect(cosmetic).not.toContain("reduced complications");
     expect(cosmetic).not.toContain("injectables");
     expect(cosmetic).not.toContain("fillers");
@@ -415,6 +417,117 @@ describe("clinic vertical landing pages", () => {
       "mkReveal"
     );
     expect(chiro.slice(Math.max(0, noteAt - 1200), noteAt)).toContain(
+      "mkReveal"
+    );
+  });
+
+  it("keeps cosmetic copy on branded post-treatment aftercare without a demo or monitoring claim", async () => {
+    const cosmetic = renderToStaticMarkup(await MarketingCosmeticClinicsPage());
+    const landing = VERTICAL_LANDINGS["/cosmetic-clinics"];
+
+    expect(landing.hero.h1).toBe(
+      "Make post-treatment aftercare feel as considered as the treatment."
+    );
+    expect(landing.hero.body).toBe(
+      "Give patients or clients clear, clinic-branded aftercare they can revisit after cosmetic and aesthetic treatments — by link or QR code, with no patient app or login."
+    );
+    expect(landing.hero.secondaryCta).toEqual({
+      kind: "anchor",
+      label: "See how it works",
+      href: "#workflow",
+    });
+    expect(landing.hero.panel.items.map((item) => item.body)).toEqual([
+      "Clinic-controlled post-treatment aftercare",
+      "Your logo, colours and terminology stay visible",
+      "Patients or clients reopen the same durable link",
+      "The page opens in the browser",
+    ]);
+    expect(landing.solution.h2).toBe(
+      "A polished, branded home for post-treatment guidance"
+    );
+    expect(landing.solution.body).toContain(
+      "turns clinic-approved post-treatment aftercare into branded web pages"
+    );
+    expect(landing.solution.benefits.map((benefit) => benefit.body)).toEqual([
+      "Keep your logo, colours, terminology and contact details visible after treatment.",
+      "Patients or clients return through the same durable link or QR code whenever they need to check the guidance again.",
+      "Publish from structured guidance instead of recreating or resending the same aftercare instructions.",
+      "Your clinic approves what it publishes and remains responsible for its treatment and aftercare information.",
+    ]);
+    expect(landing.guidance.eyebrow).toBe("Post-treatment experience");
+    expect(landing.guidance.h2).toBe(
+      "Build aftercare around the treatments your clinic provides"
+    );
+    expect(landing.guidance.body).toBe(
+      "Use an available River Aftercare template where appropriate, or publish clinic-approved post-treatment guidance within the clinic's plan."
+    );
+    expect(landing.guidance.items).toBeUndefined();
+    expect(landing.guidance.note).toContain(
+      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides."
+    );
+    expect(landing.guidance.note).toContain(
+      "Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls."
+    );
+    expect(landing.guidance.note).toContain(
+      "Cosmetic and aesthetic template availability is confirmed during onboarding."
+    );
+    expect(landing.guidance.note).toContain(
+      "If no suitable River Aftercare template is available, your clinic can publish its own approved aftercare within its plan."
+    );
+    expect(landing.workflow.h2).toBe(
+      "From clinic-approved guidance to branded aftercare"
+    );
+    expect(landing.workflow.steps.map((step) => step.title)).toEqual([
+      "Prepare the aftercare guidance",
+      "Adapt it to your clinic",
+      "Publish it under your brand",
+      "Share it after treatment",
+    ]);
+    expect(landing.workflow.steps[0]?.body).toBe(
+      "Use an available River Aftercare template or clinic-approved post-treatment content."
+    );
+    expect(landing.extras[0]).toMatchObject({
+      kind: "copy",
+      eyebrow: "How it fits",
+      h2: "Keep the experience recognisably yours",
+    });
+    expect(landing.extras[0]?.kind === "copy" && landing.extras[0].body).toBe(
+      "River Aftercare is deliberately clinic-first. It gives your clinic a branded place to publish approved aftercare without asking patients or clients to join another consumer app."
+    );
+    expect(
+      landing.extras[0]?.kind === "copy" &&
+        landing.extras[0].highlights.map((item) => item.title)
+    ).toEqual(["Clinic identity", "Durable aftercare", "No app or account"]);
+    expect(landing.faq.items).toHaveLength(6);
+    expect(landing.faq.items.map((item) => item.question)).toEqual([
+      "Do patients or clients need an app or account?",
+      "Can our clinic create or adapt its own aftercare instructions?",
+      "Does River Aftercare monitor patients after treatment?",
+      "What cosmetic and aesthetic templates are available?",
+      "Can River Aftercare match our clinic branding?",
+      "Does River Aftercare replace our clinic-management software or patient health record?",
+    ]);
+    expect(cosmetic).toContain('href="#workflow"');
+    expect(cosmetic).toContain('href="/contact"');
+    expect(cosmetic).toContain('href="/pricing"');
+    expect(cosmetic).toContain("See how it works");
+    expect(cosmetic).not.toContain("Riverside");
+    expect(cosmetic).not.toContain("Tooth Extraction");
+    expect(cosmetic).not.toContain("generic social feed");
+    expect(cosmetic).not.toContain("pre-built treatment library");
+    expect(cosmetic).not.toContain("we don't have templates");
+    expect(cosmetic).not.toMatch(/\$\d|per month/i);
+    expect(JSON.stringify(landing)).not.toMatch(
+      /injectable|filler|botox|reduced complications|treatment protocol/i
+    );
+    expect(JSON.stringify(landing)).toContain(
+      "does not currently provide live clinical monitoring, treatment monitoring or emergency triage"
+    );
+    const noteAt = cosmetic.indexOf(
+      "Cosmetic and aesthetic template availability is confirmed during onboarding."
+    );
+    expect(noteAt).toBeGreaterThan(-1);
+    expect(cosmetic.slice(Math.max(0, noteAt - 1200), noteAt)).toContain(
       "mkReveal"
     );
   });

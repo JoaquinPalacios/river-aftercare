@@ -648,7 +648,7 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
   hero: {
     eyebrow: `${PRODUCT_NAME} for cosmetic & aesthetic clinics`,
     h1: "Make post-treatment aftercare feel as considered as the treatment.",
-    body: "Give patients and clients clear, clinic-branded aftercare they can reopen after cosmetic and aesthetic treatments — by link or QR code, with no app or patient login.",
+    body: "Give patients or clients clear, clinic-branded aftercare they can revisit after cosmetic and aesthetic treatments — by link or QR code, with no patient app or login.",
     primaryCtaLabel: "Request a demo",
     secondaryCta: {
       kind: "anchor",
@@ -664,15 +664,15 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
         },
         {
           title: "Clinic branded",
-          body: "The experience stays recognisably yours",
+          body: "Your logo, colours and terminology stay visible",
         },
         {
           title: "Reopen anytime",
-          body: "Same link or QR after treatment",
+          body: "Patients or clients reopen the same durable link",
         },
         {
           title: "No app or login",
-          body: "No patient account required",
+          body: "The page opens in the browser",
         },
       ],
     },
@@ -683,7 +683,7 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
     cards: [
       {
         title: "The important questions often come later",
-        body: "Patients and clients may want to recheck aftercare once they're home and the appointment itself is over.",
+        body: "Patients or clients may want to recheck aftercare once they're home and the appointment itself is over.",
       },
       {
         title: "Paper doesn't match a premium experience",
@@ -697,50 +697,50 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
   },
   solution: {
     h2: "A polished, branded home for post-treatment guidance",
-    body: `${PRODUCT_NAME} gives cosmetic and aesthetic clinics a consistent place to publish clinic-approved aftercare under their own brand. Patients or clients return to the same page whenever they need to check the guidance again.`,
+    body: `${PRODUCT_NAME} turns clinic-approved post-treatment aftercare into branded web pages patients or clients can revisit from the same durable link or QR code. Your logo, colours, terminology, contact details and guidance stay together in one patient experience.`,
     benefits: [
       {
         title: "Keeps the clinic experience intact",
-        body: "Carry your clinic name, colours and presentation into the aftercare experience.",
+        body: "Keep your logo, colours, terminology and contact details visible after treatment.",
       },
       {
         title: "Easy to revisit",
-        body: "Share one stable link or QR code instead of relying on a printed sheet.",
+        body: "Patients or clients return through the same durable link or QR code whenever they need to check the guidance again.",
       },
       {
         title: "Consistent across the clinic",
-        body: "Publish structured guidance in a consistent format across the treatments your clinic supports.",
+        body: "Publish from structured guidance instead of recreating or resending the same aftercare instructions.",
       },
       {
         title: "Clinic controlled",
-        body: "Your clinic remains responsible for reviewing and approving the aftercare information it publishes.",
+        body: "Your clinic approves what it publishes and remains responsible for its treatment and aftercare information.",
       },
     ],
   },
   guidance: {
     eyebrow: "Post-treatment experience",
     h2: "Build aftercare around the treatments your clinic provides",
-    body: `Use an available ${PRODUCT_NAME} template where appropriate, or prepare clinic-approved post-treatment guidance during onboarding. The published experience can carry your clinic terminology, contact information and supported local instructions.`,
-    note: `Template availability is confirmed during onboarding as the ${PRODUCT_NAME} library expands. Cosmetic and aesthetic aftercare is typically prepared from clinic-approved instructions rather than from a pre-built treatment library.`,
+    body: `Use an available ${PRODUCT_NAME} template where appropriate, or publish clinic-approved post-treatment guidance within the clinic's plan.`,
+    note: `Essential includes available ${PRODUCT_NAME} templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Cosmetic and aesthetic template availability is confirmed during onboarding. If no suitable ${PRODUCT_NAME} template is available, your clinic can publish its own approved aftercare within its plan.`,
   },
   workflow: {
     h2: "From clinic-approved guidance to branded aftercare",
     steps: [
       {
         title: "Prepare the aftercare guidance",
-        body: "Start with the post-treatment information your clinic already approves.",
+        body: `Use an available ${PRODUCT_NAME} template or clinic-approved post-treatment content.`,
       },
       {
-        title: "Adapt it to the clinic",
-        body: "Apply your identity, terminology and supported local instructions.",
+        title: "Adapt it to your clinic",
+        body: "Add your branding, terminology and, where your plan allows, local instructions and supported section changes.",
       },
       {
-        title: "Publish the branded page",
-        body: "Give patients or clients a durable place to return to the guidance.",
+        title: "Publish it under your brand",
+        body: "Publish a durable patient- or client-facing page with your clinic identity and contact details.",
       },
       {
         title: "Share it after treatment",
-        body: "Send the link or provide a QR code before they leave the clinic.",
+        body: "Give patients or clients the link directly or through a QR code.",
       },
     ],
   },
@@ -749,19 +749,19 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
       kind: "copy",
       eyebrow: "How it fits",
       h2: "Keep the experience recognisably yours",
-      body: `${PRODUCT_NAME} is deliberately clinic-first. Patients or clients see the clinic's identity and guidance, not a generic social feed or consumer health app.`,
+      body: `${PRODUCT_NAME} is deliberately clinic-first. It gives your clinic a branded place to publish approved aftercare without asking patients or clients to join another consumer app.`,
       highlights: [
         {
           title: "Clinic identity",
-          body: "Patients or clients see the clinic's identity and guidance.",
+          body: "Your logo, colours, terminology and contact details remain part of the aftercare experience.",
         },
         {
           title: "Durable aftercare",
-          body: "They return to the same branded page whenever they need to check the guidance.",
+          body: "Patients or clients return to the same branded page whenever they need to check the guidance.",
         },
         {
-          title: "No app",
-          body: "Aftercare opens in the browser from a link or QR code.",
+          title: "No app or account",
+          body: "Aftercare opens in the browser from a durable link or QR code.",
         },
       ],
     },
@@ -771,26 +771,31 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
     h2: "Questions cosmetic and aesthetic clinics ask",
     items: [
       {
-        question: "Do patients or clients need to install an app?",
-        answer:
-          "No. Published aftercare opens in the browser from a link or QR code.",
+        question: "Do patients or clients need an app or account?",
+        answer: `No. Aftercare opens in the browser from a durable link or QR code. No ${PRODUCT_NAME} app or patient login is required.`,
       },
       {
-        question: "Can our clinic use its own aftercare instructions?",
-        answer: `Yes. ${PRODUCT_NAME} is designed around clinic-approved content and supported clinic customisation. The clinic remains responsible for reviewing and approving the information it publishes.`,
+        question:
+          "Can our clinic create or adapt its own aftercare instructions?",
+        answer:
+          "Yes, within your plan. Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Your clinic remains responsible for approving the aftercare information it publishes.",
       },
       {
         question: `Does ${PRODUCT_NAME} monitor patients after treatment?`,
+        answer: `No. ${PRODUCT_NAME} publishes post-treatment guidance. It does not currently provide live clinical monitoring, treatment monitoring or emergency triage.`,
+      },
+      {
+        question: "What cosmetic and aesthetic templates are available?",
+        answer: `Cosmetic and aesthetic template availability is confirmed during onboarding. If no suitable ${PRODUCT_NAME} template is available, your clinic can publish its own approved aftercare within its plan.`,
+      },
+      {
+        question: `Can ${PRODUCT_NAME} match our clinic branding?`,
         answer:
-          "No. The current platform publishes guidance; it does not provide live clinical monitoring or emergency triage.",
+          "Yes. Patient or client pages can carry your logo, colours, curated typography, terminology and clinic contact details, with Light and Dark presentation supported. Practice provides additional branding control.",
       },
       {
-        question: `Does ${PRODUCT_NAME} replace our clinic-management software?`,
-        answer: `No. ${PRODUCT_NAME} is an aftercare publishing platform, not a CRM, clinical record or clinic-management system.`,
-      },
-      {
-        question: "Are cosmetic treatment templates already available?",
-        answer: `Template availability is confirmed during onboarding as the ${PRODUCT_NAME} library expands. Cosmetic and aesthetic aftercare is typically prepared from clinic-approved instructions rather than from a pre-built treatment library.`,
+        question: `Does ${PRODUCT_NAME} replace our clinic-management software or patient health record?`,
+        answer: `No. ${PRODUCT_NAME} is patient aftercare publishing software. It does not currently replace clinic-management software, a patient health record, CRM, messaging platform or clinical monitoring system.`,
       },
     ],
   },

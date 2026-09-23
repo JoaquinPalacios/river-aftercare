@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-23 (Phase 3 operator upgrade refresh)
+Last updated: 2026-09-23 (cosmetic vertical copy + SEO)
 
 ## Durable production release rule
 
@@ -1391,7 +1391,7 @@ Shared premium editorial system for `/dental`, `/physiotherapy`, `/chiropractic`
 | Proof          | Dental: Riverside Dental Demo typographic showcase. Other verticals: profession-specific fit module, no fake demos.                                                                                                                                                                                                                    |
 | CTA / footer   | Closing CTA is Request a demo + View pricing only. Footer is a quiet utility band: For clinics / Product (includes Sign in) / Legal. Account column removed. No “Request a demo” in the footer.                                                                                                                                        |
 | Copy exception | Dental guidance badge is **Current dental demo** / Tooth Extraction. The sample is not clinically reviewed and is not advertised as an approved production starting template. Essential vs Practice guide limits (2 vs 30 active custom guides) are stated on `/dental`; prices stay on `/pricing`.                                    |
-| SEO            | Vertical pages stay indexable WebPage + shared Organization / WebSite / SoftwareApplication. FAQ remains native `details` markup without FAQPage JSON-LD. Dental and physiotherapy metadata were refined 2026-09-21 (`lastModified` 2026-09-21). Chiropractic and cosmetic metadata stay unchanged until those pages are reviewed.     |
+| SEO            | Vertical pages stay indexable WebPage + shared Organization / WebSite / SoftwareApplication. FAQ remains native `details` markup without FAQPage JSON-LD. Dental and physiotherapy `lastModified` 2026-09-21. Chiropractic `lastModified` 2026-09-22. Cosmetic & aesthetic `lastModified` 2026-09-23.                                  |
 
 ---
 
@@ -2093,6 +2093,23 @@ Copy and SEO for `/chiropractic` only. Not a redesign. Shared FAQ CSS is unchang
 | Guidance      | Examples a practice may publish (post-appointment care, home-care, movement or mobility reminders, self-management, posture or everyday activity, contact and escalation). Right-side panels: examples are not a template library; then the Essential / Practice limits.                                                                                                                                  |
 | FAQ           | Six native `details` questions: app/account, plan-aware customisation, treatment-advice boundary, templates, branding, PMS/patient-health-record boundary. Server-rendered. No FAQPage schema.                                                                                                                                                                                                            |
 | Workflow      | Heading is “From clinic-approved guidance to a page patients can revisit.” Steps: prepare the guidance, adapt it to the practice, publish under the brand, share the link or QR after the appointment.                                                                                                                                                                                                    |
+
+---
+
+## `/cosmetic-clinics` copy + SEO (2026-09-23)
+
+Copy and SEO for `/cosmetic-clinics` only. Not a redesign. Shared FAQ CSS is unchanged. No cosmetic demo, named treatment template, or clinical claim. Prices stay on `/pricing`.
+
+| Area          | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SEO role      | Homepage = broad aftercare software. `/clinics` = treatment-based clinic fit. `/dental` = post-treatment instructions. `/physiotherapy` = recovery and home-care between appointments. `/chiropractic` = home-care and post-appointment guidance between visits. `/cosmetic-clinics` = branded post-treatment aftercare as an extension of the treatment experience. `/pricing` = commercial plans.           |
+| Metadata      | Title/OG title `Cosmetic & Aesthetic Aftercare Software \| River Aftercare`. Description/OG: branded post-treatment aftercare for cosmetic and aesthetic clinics; patients or clients revisit guidance by link or QR, with no app or login. Canonical `/cosmetic-clinics`, index/follow. Existing WebPage / SoftwareApplication / Organization / WebSite JSON-LD only. No FAQPage. `lastModified` 2026-09-23. |
+| Positioning   | Post-treatment aftercare should feel like a considered extension of the treatment and the clinic brand. H1 stays “Make post-treatment aftercare feel as considered as the treatment.” Solution heading stays “A polished, branded home for post-treatment guidance.” “How it fits” stays “Keep the experience recognisably yours.”                                                                            |
+| Terminology   | Uses “patients or clients” where the audience could be either. Does not force one term.                                                                                                                                                                                                                                                                                                                       |
+| Product model | Essential: available River Aftercare templates + up to 2 active custom clinic guides. Practice: up to 30 active custom guides, broader creation/adaptation, local instructions, section controls. Cosmetic and aesthetic template availability is confirmed during onboarding. If none fits, the clinic publishes its own approved aftercare within its plan. No invented treatment or template name.         |
+| Boundary      | Publishes post-treatment guidance. Does not provide live clinical monitoring, treatment monitoring, emergency triage, patient surveillance, or messaging/check-ins. Does not replace clinic-management software, a patient health record, CRM, or a clinical monitoring system.                                                                                                                               |
+| FAQ           | Six native `details` questions: app/account, plan-aware customisation, monitoring/triage boundary, templates, branding, clinic-software/record boundary. Server-rendered. No FAQPage schema.                                                                                                                                                                                                                  |
+| Workflow      | Heading stays “From clinic-approved guidance to branded aftercare.” Steps: prepare the aftercare guidance, adapt it to the clinic, publish under the brand, share the link or QR after treatment.                                                                                                                                                                                                             |
 
 ---
 

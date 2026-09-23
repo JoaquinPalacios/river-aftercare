@@ -61,15 +61,20 @@ const FAQ_EXPECTATIONS = {
   },
   "/cosmetic-clinics": {
     questions: [
-      "Do patients or clients need to install an app?",
-      "Can our clinic use its own aftercare instructions?",
+      "Do patients or clients need an app or account?",
+      "Can our clinic create or adapt its own aftercare instructions?",
       "Does River Aftercare monitor patients after treatment?",
-      "Does River Aftercare replace our clinic-management software?",
-      "Are cosmetic treatment templates already available?",
+      "What cosmetic and aesthetic templates are available?",
+      "Can River Aftercare match our clinic branding?",
+      "Does River Aftercare replace our clinic-management software or patient health record?",
     ],
     answers: [
-      "it does not provide live clinical monitoring or emergency triage",
-      "rather than from a pre-built treatment library",
+      "No. Aftercare opens in the browser from a durable link or QR code. No River Aftercare app or patient login is required.",
+      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides",
+      "No. River Aftercare publishes post-treatment guidance. It does not currently provide live clinical monitoring, treatment monitoring or emergency triage.",
+      "Cosmetic and aesthetic template availability is confirmed during onboarding. If no suitable River Aftercare template is available, your clinic can publish its own approved aftercare within its plan.",
+      "Patient or client pages can carry your logo, colours, curated typography, terminology and clinic contact details",
+      "It does not currently replace clinic-management software, a patient health record, CRM, messaging platform or clinical monitoring system.",
     ],
   },
 } as const;
