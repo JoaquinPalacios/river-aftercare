@@ -1,15 +1,54 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useActionState } from "react";
 
 import {
   confirmDowngradeGuideSelectionAction,
   type GuideSelectionActionState,
 } from "@/app/(staff)/account/billing/actions";
-import type { ClinicGuideSelectionPanel } from "@/lib/entitlements/downgrade-selection";
+import { TransientNotice } from "@/app/(staff)/components/transient-notice";
+import type {
+  ClinicGuideSelectionGuide,
+  ClinicGuideSelectionPanel,
+} from "@/lib/entitlements/downgrade-selection";
 
-const initial: GuideSelectionActionState = {};
+export const GUIDE_SELECTION_SAVED_MESSAGE = "Guide selection saved.";
+
+const FUTURE_RETENTION_EXPLANATION =
+  "These guides will remain available on Practice until Essential begins. When the downgrade takes effect, they will be retained for 60 days.";
+
+type SelectionFeedback = GuideSelectionActionState & {
+  submittedIds: string[];
+  generation: number;
+};
+
+const initialFeedback: SelectionFeedback = {
+  submittedIds: [],
+  generation: 0,
+};
+
+async function selectionFeedbackAction(
+  previous: SelectionFeedback,
+  formData: FormData
+): Promise<SelectionFeedback> {
+  const submittedIds = formData
+    .getAll("guideId")
+    .filter(
+      (value): value is string => typeof value === "string" && value.length > 0
+    );
+  const result = await confirmDowngradeGuideSelectionAction(previous, formData);
+  return {
+    error: result.error,
+    accepted: result.accepted,
+    submittedIds: result.accepted ? submittedIds : previous.submittedIds,
+    generation: previous.generation + 1,
+  };
+}
+
+function selectionKey(ids: readonly string[]): string {
+  return [...ids].sort().join("\0");
+}
 
 const LIMIT_NOTE_ID = "downgrade-guide-limit-note";
 
@@ -55,6 +94,51 @@ function limitReachedNote(input: {
   return "Guide limit reached";
 }
 
+function GuideChoiceDetails({ guide }: { guide: ClinicGuideSelectionGuide }) {
+  return (
+    <span>
+      <span className="font-medium">{guide.title}</span>
+      <span className="mt-1 block text-staff-muted">
+        {guide.kindLabel}
+        <span aria-hidden="true"> · </span>
+        {guide.publicationLabel}
+        <span aria-hidden="true"> · </span>
+        Updated {guide.updatedLabel}
+      </span>
+    </span>
+  );
+}
+
+function SelectionCounts({
+  customSelected,
+  adaptedSelected,
+  combinedSelected,
+  limits,
+  limitNote,
+}: {
+  customSelected: number;
+  adaptedSelected: number;
+  combinedSelected: number;
+  limits: ClinicGuideSelectionPanel["limits"];
+  limitNote: string | null;
+}) {
+  return (
+    <div className="grid gap-1 text-sm" aria-live="polite">
+      <p>
+        Custom guides {customSelected} of {limits.custom} selected
+      </p>
+      <p>
+        Editable River templates {adaptedSelected} of {limits.adapted} selected
+      </p>
+      <p>
+        Total clinic-owned guides {combinedSelected} of {limits.combined}{" "}
+        selected
+      </p>
+      {limitNote ? <p id={LIMIT_NOTE_ID}>{limitNote}</p> : null}
+    </div>
+  );
+}
+
 export function DowngradeGuideSelectionForm({
   panel,
   canConfirm,
@@ -63,10 +147,27 @@ export function DowngradeGuideSelectionForm({
   canConfirm: boolean;
 }) {
   const [state, action, pending] = useActionState(
-    confirmDowngradeGuideSelectionAction,
-    initial
+    selectionFeedbackAction,
+    initialFeedback
   );
+  const [editing, setEditing] = useState(panel.status !== "confirmed");
+  const [dismissedNotice, setDismissedNotice] = useState(0);
   const [selected, setSelected] = useState<string[]>(panel.selectedIds);
+  const savedKey = selectionKey(panel.selectedIds);
+  const submittedKey = selectionKey(state.submittedIds);
+  const summaryIds =
+    state.accepted && state.generation > 0 && submittedKey !== savedKey
+      ? state.submittedIds
+      : panel.status === "confirmed"
+        ? panel.selectedIds
+        : state.submittedIds;
+
+  useEffect(() => {
+    if (!state.accepted || state.generation === 0) {
+      return;
+    }
+    setEditing(false);
+  }, [state.accepted, state.generation]);
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const customSelected = panel.guides.filter(
     (guide) => guide.kind === "custom" && selectedSet.has(guide.id)
@@ -112,27 +213,124 @@ export function DowngradeGuideSelectionForm({
     });
   }
 
+  function beginEdit() {
+    setSelected(summaryIds);
+    setEditing(true);
+  }
+
+  const showSummary =
+    !editing && (panel.status === "confirmed" || Boolean(state.accepted));
+  const previouslyConfirmed =
+    panel.status === "confirmed" || Boolean(state.accepted);
+  const notice =
+    state.generation > dismissedNotice && state.accepted ? (
+      <TransientNotice
+        variant="success"
+        noticeKey={`guide-selection-${state.generation}`}
+        onDismiss={() => setDismissedNotice(state.generation)}
+      >
+        {GUIDE_SELECTION_SAVED_MESSAGE}
+      </TransientNotice>
+    ) : null;
+
+  if (showSummary) {
+    const summarySet = new Set(summaryIds);
+    const kept = panel.guides.filter((guide) => summarySet.has(guide.id));
+    const futureRetained = panel.guides.filter(
+      (guide) => !summarySet.has(guide.id)
+    );
+    const summaryCustom = kept.filter(
+      (guide) => guide.kind === "custom"
+    ).length;
+    const summaryAdapted = kept.filter(
+      (guide) => guide.kind === "adapted"
+    ).length;
+    return (
+      <div className="mt-4 flex flex-col gap-4">
+        {notice}
+        <p className="text-sm font-medium" role="status">
+          Guide selection confirmed
+        </p>
+        <SelectionCounts
+          customSelected={summaryCustom}
+          adaptedSelected={summaryAdapted}
+          combinedSelected={summaryCustom + summaryAdapted}
+          limits={panel.limits}
+          limitNote={null}
+        />
+        <section className="flex flex-col gap-2">
+          <h4 className="text-sm font-medium">Will stay active on Essential</h4>
+          {kept.length === 0 ? (
+            <p className="text-sm text-staff-muted">
+              No clinic-owned guides are selected to stay active.
+            </p>
+          ) : (
+            <ul className="grid min-w-0 gap-2 md:grid-cols-2">
+              {kept.map((guide) => (
+                <li
+                  key={guide.id}
+                  className="min-w-0 rounded-lg border border-staff-line px-3 py-2 text-sm"
+                >
+                  <GuideChoiceDetails guide={guide} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section className="flex flex-col gap-2">
+          <h4 className="text-sm font-medium">Will be retained for 60 days</h4>
+          <p className="text-sm leading-6 text-staff-muted">
+            {FUTURE_RETENTION_EXPLANATION}
+          </p>
+          {futureRetained.length === 0 ? (
+            <p className="text-sm text-staff-muted">
+              No clinic-owned guides are set aside for that retention period.
+            </p>
+          ) : (
+            <ul className="grid min-w-0 gap-2 md:grid-cols-2">
+              {futureRetained.map((guide) => (
+                <li
+                  key={guide.id}
+                  className="min-w-0 rounded-lg border border-staff-line px-3 py-2 text-sm"
+                >
+                  <GuideChoiceDetails guide={guide} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        {canConfirm ? (
+          <button
+            type="button"
+            className="staffBtn staffBtnSecondary h-11"
+            onClick={beginEdit}
+          >
+            Edit guide selection
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
-    <form action={action} className="mt-4 flex flex-col gap-4">
+    <form
+      action={action}
+      className="mt-4 flex flex-col gap-4"
+      onReset={(event) => event.preventDefault()}
+    >
+      {notice}
       <p className="text-sm leading-6">
         Your Practice subscription includes more clinic-owned guides than
         Essential. Choose which guides you want to keep active when Essential
         begins. Other guides will be retained for 60 days.
       </p>
-      <div className="grid gap-1 text-sm" aria-live="polite">
-        <p>
-          Custom guides {customSelected} of {panel.limits.custom} selected
-        </p>
-        <p>
-          Editable River templates {adaptedSelected} of {panel.limits.adapted}{" "}
-          selected
-        </p>
-        <p>
-          Total clinic-owned guides {combinedSelected} of{" "}
-          {panel.limits.combined} selected
-        </p>
-        {limitNote ? <p id={LIMIT_NOTE_ID}>{limitNote}</p> : null}
-      </div>
+      <SelectionCounts
+        customSelected={customSelected}
+        adaptedSelected={adaptedSelected}
+        combinedSelected={combinedSelected}
+        limits={panel.limits}
+        limitNote={limitNote}
+      />
       <fieldset className="grid gap-3" disabled={!canConfirm || pending}>
         <legend className="text-sm font-medium">Clinic-owned guides</legend>
         {panel.guides.length === 0 ? (
@@ -163,16 +361,7 @@ export function DowngradeGuideSelectionForm({
                         toggle(guide.id, event.target.checked)
                       }
                     />
-                    <span>
-                      <span className="font-medium">{guide.title}</span>
-                      <span className="mt-1 block text-staff-muted">
-                        {guide.kindLabel}
-                        <span aria-hidden="true"> · </span>
-                        {guide.publicationLabel}
-                        <span aria-hidden="true"> · </span>
-                        Updated {guide.updatedLabel}
-                      </span>
-                    </span>
+                    <GuideChoiceDetails guide={guide} />
                   </label>
                 </li>
               );
@@ -190,18 +379,17 @@ export function DowngradeGuideSelectionForm({
           {state.error}
         </p>
       ) : null}
-      {state.accepted ? (
-        <p className="text-sm" role="status">
-          Guide selection complete.
-        </p>
-      ) : null}
       {canConfirm ? (
         <button
           type="submit"
           className="staffBtn staffBtnPrimary h-11"
           disabled={pending || !withinLimits}
         >
-          {pending ? "Saving…" : "Confirm guide selection"}
+          {pending
+            ? "Saving…"
+            : previouslyConfirmed
+              ? "Update guide selection"
+              : "Confirm guide selection"}
         </button>
       ) : (
         <p className="text-sm text-staff-muted">

@@ -115,11 +115,6 @@ export default async function BillingStatusPage() {
           {view.guideSelection ? (
             <div className="mt-5 border-t border-staff-line pt-5">
               <h3 className="text-sm font-semibold">Practice → Essential</h3>
-              <p className="mt-2 text-sm" role="status">
-                {view.guideSelection.status === "confirmed"
-                  ? "Guide selection complete."
-                  : "Choose the guides you want to keep when Essential begins."}
-              </p>
               <DowngradeGuideSelectionForm
                 panel={view.guideSelection}
                 canConfirm={
