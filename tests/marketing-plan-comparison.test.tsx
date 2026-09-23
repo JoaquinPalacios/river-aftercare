@@ -82,6 +82,45 @@ describe("marketing plan comparison disclosure", () => {
     expect(
       comparison.querySelector('[data-comparison-row="priority-support"]')
     ).toBeNull();
+    expect(
+      comparison.querySelector('[data-comparison-row="create-edit-guides"]')
+    ).toBeNull();
+    const assistedRow = comparison.querySelector(
+      '[data-comparison-row="assisted-setup"]'
+    ) as HTMLTableRowElement;
+    expect(assistedRow.querySelector("th")?.textContent).toBe("Assisted setup");
+    expect(
+      assistedRow.querySelector('[data-plan="essential"]')?.textContent
+    ).toContain("Not included");
+    expect(
+      assistedRow.querySelector('[data-plan="essential"]')?.textContent
+    ).not.toContain("Included");
+    expect(
+      assistedRow.querySelector('[data-plan="practice"]')?.textContent
+    ).toContain("Included");
+    expect(
+      assistedRow.querySelector('[data-plan="group"]')?.textContent
+    ).toContain("Custom onboarding");
+    const templatesRow = comparison.querySelector(
+      '[data-comparison-row="templates"]'
+    );
+    expect(templatesRow?.textContent).toContain("River Aftercare templates");
+    expect(templatesRow?.textContent).toContain("Included");
+    expect(
+      comparison.querySelector(
+        '[data-comparison-row="combined-guides"] [data-plan="essential"]'
+      )?.textContent
+    ).toContain("Up to 4");
+    expect(
+      comparison.querySelector(
+        '[data-comparison-row="combined-guides"] [data-plan="practice"]'
+      )?.textContent
+    ).toContain("Up to 40");
+    expect(
+      comparison.querySelector(
+        '[data-comparison-row="combined-guides"] [data-plan="group"]'
+      )?.textContent
+    ).toContain("Tailored");
 
     await act(async () => {
       button.click();

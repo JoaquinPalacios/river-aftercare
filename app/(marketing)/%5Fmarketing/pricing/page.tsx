@@ -225,9 +225,7 @@ export default async function MarketingPricingPage() {
               <div className={styles.headingBlock}>
                 <MarketingRevealGroup>
                   <MarketingRevealItem delay={0}>
-                    <p className={styles.eyebrow}>
-                      Clear pricing, assisted setup
-                    </p>
+                    <p className={styles.eyebrow}>Clear pricing</p>
                   </MarketingRevealItem>
                   <MarketingRevealItem delay={editorialRevealDelay(1)}>
                     <h2 id="notes-heading" className={styles.sectionTitle}>

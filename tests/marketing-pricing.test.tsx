@@ -69,7 +69,8 @@ describe("marketing pricing page", () => {
     expect(html).toContain("headingBlock");
     expect(html).toContain("headingFollow");
     expect(html).toContain("noteCard");
-    expect(html).toContain("Clear pricing, assisted setup");
+    expect(html).toContain("Clear pricing");
+    expect(html).not.toContain("Clear pricing, assisted setup");
     expect(html).toContain("What these prices include");
     expect(html).not.toContain("laterList");
     expect(html).not.toContain("Coming after launch");
@@ -184,7 +185,11 @@ describe("marketing pricing page", () => {
     expect(html).toContain("Edit up to 2 River Aftercare templates");
     expect(html).toContain("Edit up to 30 River Aftercare templates");
     expect(html).toContain("Up to 4 clinic-owned guides in total");
-    expect(html).toContain("Up to 40 clinic-owned guides in total");
+    expect(html).toContain(
+      "Up to 40 clinic-owned guides across custom guides and edited River Aftercare templates"
+    );
+    expect(html).not.toContain("Up to 40 clinic-owned guides in total");
+    expect(html).not.toContain("Up to 60");
     expect(html).not.toContain("Add clinic-specific instructions");
     expect(html).not.toContain("Richer branding");
     expect(html).not.toContain("hide River Aftercare attribution");
@@ -196,6 +201,13 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("named seats");
     expect(html).not.toContain("per-seat");
     expect(html).not.toContain("extra seat");
+    expect(html).not.toContain("extra-seat");
+    expect(html).not.toContain("Extra seats");
+    expect(html).not.toContain("per-guide");
+    expect(html).not.toContain("extra guide");
+    expect(html).not.toContain("extra-guide");
+    expect(html).not.toContain("Additional guides");
+    expect(html).not.toContain("operator extra");
     expect(html).not.toContain("users billed separately");
     expect(html).toContain('id="pricing-typography-note"');
     expect(html).toContain("planFootnote");
@@ -283,7 +295,10 @@ describe("marketing pricing page", () => {
     expect(practiceBlock).toContain("Everything in Essential");
     expect(practiceBlock).toContain("Up to 30 custom clinic guides");
     expect(practiceBlock).toContain("Edit up to 30 River Aftercare templates");
-    expect(practiceBlock).toContain("Up to 40 clinic-owned guides in total");
+    expect(practiceBlock).toContain(
+      "Up to 40 clinic-owned guides across custom guides and edited River Aftercare templates"
+    );
+    expect(essentialBlock).not.toContain("Assisted setup");
     expect(practiceBlock).toContain("Up to 5 clinic team members");
     expect(practiceBlock).toContain("Assisted setup");
     expect(practiceBlock).toContain(PRICING_PRIORITY_SUPPORT_LABEL);
@@ -332,7 +347,14 @@ describe("marketing pricing page", () => {
     expect(comparisonBlock).toContain("Up to 30");
     expect(comparisonBlock).toContain("Up to 5");
     expect(comparisonBlock).toContain("Editable River Aftercare templates");
+    expect(comparisonBlock).toContain("Clinic-owned guides in total");
     expect(comparisonBlock).toContain("Up to 40");
+    expect(comparisonBlock).not.toContain(
+      "Create and edit clinic-owned guides"
+    );
+    expect(comparisonBlock).not.toContain(
+      'data-comparison-row="create-edit-guides"'
+    );
     expect(comparisonBlock).toContain("Print / Save PDF");
     expect(comparisonBlock).toContain("QR sharing");
     expect(comparisonBlock).toContain(
@@ -356,6 +378,31 @@ describe("marketing pricing page", () => {
     );
     expect(comparisonBlock).toContain(PRICING_STANDARD_SUPPORT_LABEL);
     expect(comparisonBlock).toContain(PRICING_PRIORITY_SUPPORT_LABEL);
+    const assistedRow = comparisonBlock.slice(
+      comparisonBlock.indexOf('data-comparison-row="assisted-setup"')
+    );
+    const assistedEssential = assistedRow.slice(
+      assistedRow.indexOf('data-plan="essential"'),
+      assistedRow.indexOf('data-plan="practice"')
+    );
+    const assistedPractice = assistedRow.slice(
+      assistedRow.indexOf('data-plan="practice"'),
+      assistedRow.indexOf('data-plan="group"')
+    );
+    const assistedGroup = assistedRow.slice(
+      assistedRow.indexOf('data-plan="group"'),
+      assistedRow.indexOf("</tr>")
+    );
+    expect(assistedEssential).toContain("Not included");
+    expect(assistedEssential).not.toContain("planCompareValueIncluded");
+    expect(assistedPractice).toContain("Included");
+    expect(assistedPractice).toContain("planCompareValueIncluded");
+    expect(assistedPractice).not.toContain("Not included");
+    expect(assistedGroup).toContain("Custom onboarding");
+    expect(html).toContain(
+      "Practice includes assisted setup for branding, guidance and patient-facing launch. Group includes custom onboarding."
+    );
+    expect(html).not.toMatch(/Essential includes assisted setup/i);
     for (const copy of UNSUPPORTED_SUPPORT_COPY) {
       expect(html.toLowerCase()).not.toContain(copy.toLowerCase());
     }
@@ -417,6 +464,7 @@ describe("canonical plan prices", () => {
     expect(LAUNCH_PLANS[0].features).not.toContain(
       "Up to 2 custom clinic guides"
     );
+    expect(LAUNCH_PLANS[0].features).not.toContain("Assisted setup");
     expect(LAUNCH_PLANS[0].features).not.toContain(
       PRICING_STANDARD_SUPPORT_LABEL
     );
@@ -427,7 +475,7 @@ describe("canonical plan prices", () => {
       "Everything in Essential",
       "Up to 30 custom clinic guides",
       "Edit up to 30 River Aftercare templates",
-      "Up to 40 clinic-owned guides in total",
+      "Up to 40 clinic-owned guides across custom guides and edited River Aftercare templates",
       "Up to 5 clinic team members",
       "Assisted setup",
       PRICING_PRIORITY_SUPPORT_LABEL,
@@ -515,9 +563,33 @@ describe("canonical plan prices", () => {
     expect(combined?.essential.label).toBe(
       `Up to ${PLAN_PRICES.essential.combinedClinicOwnedGuides}`
     );
+    expect(combined?.feature).toBe("Clinic-owned guides in total");
     expect(combined?.practice.label).toBe(
       `Up to ${PLAN_PRICES.practice.combinedClinicOwnedGuides}`
     );
+    expect(combined?.group.label).toBe("Tailored");
+    const templates = PLAN_COMPARISON_ROWS.find(
+      (row) => row.id === "templates"
+    );
+    expect(templates?.feature).toBe("River Aftercare templates");
+    expect(templates?.essential.label).toBe("Included");
+    expect(templates?.practice.label).toBe("Included");
+    expect(templates?.group.label).toBe("Included");
+    expect(adapt?.feature).toBe("Editable River Aftercare templates");
+    expect(adapt?.group.label).toBe("Tailored");
+    expect(guides?.group.label).toBe("Tailored");
+    const assisted = PLAN_COMPARISON_ROWS.find(
+      (row) => row.id === "assisted-setup"
+    );
+    expect(assisted?.essential).toEqual({ kind: "dash", label: "—" });
+    expect(assisted?.practice).toEqual({ kind: "included", label: "Included" });
+    expect(assisted?.group).toEqual({
+      kind: "text",
+      label: "Custom onboarding",
+    });
+    expect(
+      PLAN_COMPARISON_ROWS.some((row) => row.id === "create-edit-guides")
+    ).toBe(false);
     expect(urls?.feature).toBe("Durable patient guide URLs");
     expect(qr?.feature).toBe("QR sharing");
     expect(pdf?.feature).toBe("Print / Save PDF");
@@ -547,5 +619,26 @@ describe("canonical plan prices", () => {
     expect(groupCopy).not.toMatch(/master guide governance/i);
     expect(groupCopy).not.toMatch(/hierarchy/i);
     expect(groupCopy).not.toMatch(/named-seat|per-seat|seats/i);
+
+    const publicPricing = JSON.stringify({
+      plans: LAUNCH_PLANS,
+      rows: PLAN_COMPARISON_ROWS,
+      notes: PRICING_NOTES,
+    });
+    expect(publicPricing).not.toMatch(/operator extra/i);
+    expect(publicPricing).not.toMatch(/additional guides available/i);
+    expect(publicPricing).not.toMatch(/extra seats available/i);
+    expect(publicPricing).not.toMatch(/extra-seat|per-seat|per seat/i);
+    expect(publicPricing).not.toMatch(/extra-guide|per-guide|per guide/i);
+    expect(publicPricing).not.toMatch(/stripe/i);
+    expect(publicPricing).not.toMatch(/\bquantity\b/i);
+    expect(publicPricing).not.toMatch(/up to 60/i);
+    expect(PLAN_PRICES.essential.editableTemplates).toBe(2);
+    expect(PLAN_PRICES.essential.combinedClinicOwnedGuides).toBe(4);
+    expect(PLAN_PRICES.practice.editableTemplates).toBe(30);
+    expect(PLAN_PRICES.practice.combinedClinicOwnedGuides).toBe(40);
+    expect(
+      PLAN_PRICES.practice.customGuides + PLAN_PRICES.practice.editableTemplates
+    ).toBeGreaterThan(PLAN_PRICES.practice.combinedClinicOwnedGuides);
   });
 });
