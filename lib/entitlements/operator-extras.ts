@@ -2,6 +2,7 @@ import "server-only";
 
 import { PlatformRole } from "@prisma/client";
 
+import { MAX_OPERATOR_EXTRA_ALLOWANCE } from "@/lib/entitlements/allowance-input";
 import { logOperatorAllowanceExtra } from "@/lib/entitlements/allowance-log";
 import {
   lockClinicGuideCapacity,
@@ -12,15 +13,15 @@ import {
   isGovernedCommercialPlan,
   PLAN_ENTITLEMENT_POLICIES,
   type AllowanceAmounts,
+  type EffectiveAllowances,
 } from "@/lib/entitlements/plan-policy";
 import { allowanceExtrasFrom } from "@/lib/entitlements/team-usage";
 import { getPrisma } from "@/lib/prisma";
 
-/** PostgreSQL integer upper bound. This is not a commercial price cap. */
-export const MAX_OPERATOR_EXTRA_ALLOWANCE = 2_147_483_647;
+export { MAX_OPERATOR_EXTRA_ALLOWANCE };
 
 export type OperatorExtrasResult =
-  | { ok: true; extras: AllowanceAmounts; effective: AllowanceAmounts }
+  | { ok: true; extras: AllowanceAmounts; effective: EffectiveAllowances }
   | { ok: false; error: string };
 
 function isNonNegativeInt(value: number): boolean {

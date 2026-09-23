@@ -4,6 +4,7 @@ export const ENTITLEMENT_CODES = {
   TEAM_MEMBER_LIMIT_REACHED: "TEAM_MEMBER_LIMIT_REACHED",
   CUSTOM_GUIDE_LIMIT_REACHED: "CUSTOM_GUIDE_LIMIT_REACHED",
   ADAPTED_TEMPLATE_LIMIT_REACHED: "ADAPTED_TEMPLATE_LIMIT_REACHED",
+  COMBINED_GUIDE_LIMIT_REACHED: "COMBINED_GUIDE_LIMIT_REACHED",
   TEMPLATE_ADAPTATION_NOT_AVAILABLE: "TEMPLATE_ADAPTATION_NOT_AVAILABLE",
   TEMPLATE_ADAPTATION_REQUIRED: "TEMPLATE_ADAPTATION_REQUIRED",
 } as const;
@@ -29,6 +30,14 @@ export function adaptedTemplateLimitMessage(
 ): string {
   const planName = plan === "ESSENTIAL" ? "Essential" : "Practice";
   return `${planName} includes up to ${limit} editable River templates.`;
+}
+
+export function combinedGuideLimitMessage(
+  plan: GovernedCommercialPlan,
+  limit: number
+): string {
+  const planName = plan === "ESSENTIAL" ? "Essential" : "Practice";
+  return `${planName} includes up to ${limit} clinic-owned guides in total.`;
 }
 
 export function templateAdaptationUnavailableMessage(): string {
@@ -62,6 +71,10 @@ export function customGuideUsageLabel(used: number, limit: number): string {
 
 export function adaptedTemplateUsageLabel(used: number, limit: number): string {
   return `${used} of ${limit} editable River templates used`;
+}
+
+export function combinedGuideUsageLabel(used: number, limit: number): string {
+  return `${used} of ${limit} clinic-owned guides used`;
 }
 
 export const PENDING_INVITATION_RESERVATION_NOTE =

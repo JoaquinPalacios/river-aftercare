@@ -6,22 +6,27 @@ import type { CommercialPlan } from "@prisma/client";
  * These numbers are product entitlements. They are not Stripe quantities,
  * per-seat prices, or values read from marketing copy or Price metadata.
  *
- * Original custom guides and River-template adaptations are independent
- * pools. An adapted copy does not consume a custom-guide place.
+ * A clinic-owned guide is either an original custom guide or an editable
+ * River-template copy. Each category has its own maximum. Their sum also has
+ * a combined ceiling. Pinned River templates used as supplied count in neither
+ * category. Practice may mix the two categories up to that combined ceiling.
  *
  * GROUP has no fixed allowance here. A clinic with no ClinicEntitlement row
  * stays on the legacy open path. A row whose commercial plan is null is
  * unspecified and is also not given an Essential or Practice cap.
  *
- * Operator-granted extras are added to the base. They are not stored as the
- * effective total, because the base plan can change.
+ * Operator-granted extras are added to the matching category. Each custom or
+ * editable-template extra also adds one place to the combined ceiling. The
+ * combined extra is that sum. It is not stored.
  */
 export const ESSENTIAL_TEAM_MEMBER_LIMIT = 2;
 export const ESSENTIAL_CUSTOM_GUIDE_LIMIT = 2;
 export const ESSENTIAL_TEMPLATE_ADAPTATION_LIMIT = 2;
+export const ESSENTIAL_COMBINED_GUIDE_LIMIT = 4;
 export const PRACTICE_TEAM_MEMBER_LIMIT = 5;
 export const PRACTICE_CUSTOM_GUIDE_LIMIT = 30;
-export const PRACTICE_TEMPLATE_ADAPTATION_LIMIT = 10;
+export const PRACTICE_TEMPLATE_ADAPTATION_LIMIT = 30;
+export const PRACTICE_COMBINED_GUIDE_LIMIT = 40;
 
 export type GovernedCommercialPlan = "ESSENTIAL" | "PRACTICE";
 
@@ -31,9 +36,15 @@ export type AllowanceAmounts = {
   templateAdaptations: number;
 };
 
+export type PlanBaseAllowances = AllowanceAmounts & {
+  combinedClinicOwnedGuides: number;
+};
+
+export type EffectiveAllowances = PlanBaseAllowances;
+
 export type PlanEntitlementPolicy = {
   commercialPlan: GovernedCommercialPlan;
-  base: AllowanceAmounts;
+  base: PlanBaseAllowances;
 };
 
 export const ZERO_ALLOWANCE_EXTRAS: AllowanceAmounts = {
@@ -52,6 +63,7 @@ export const PLAN_ENTITLEMENT_POLICIES: Record<
       teamMembers: ESSENTIAL_TEAM_MEMBER_LIMIT,
       customGuides: ESSENTIAL_CUSTOM_GUIDE_LIMIT,
       templateAdaptations: ESSENTIAL_TEMPLATE_ADAPTATION_LIMIT,
+      combinedClinicOwnedGuides: ESSENTIAL_COMBINED_GUIDE_LIMIT,
     },
   },
   PRACTICE: {
@@ -60,6 +72,7 @@ export const PLAN_ENTITLEMENT_POLICIES: Record<
       teamMembers: PRACTICE_TEAM_MEMBER_LIMIT,
       customGuides: PRACTICE_CUSTOM_GUIDE_LIMIT,
       templateAdaptations: PRACTICE_TEMPLATE_ADAPTATION_LIMIT,
+      combinedClinicOwnedGuides: PRACTICE_COMBINED_GUIDE_LIMIT,
     },
   },
 };
@@ -98,14 +111,20 @@ export function isGovernedCommercialPlan(
   return plan === "ESSENTIAL" || plan === "PRACTICE";
 }
 
+export function combinedGuideExtra(extras: AllowanceAmounts): number {
+  return extras.customGuides + extras.templateAdaptations;
+}
+
 export function effectiveAllowances(
-  base: AllowanceAmounts,
+  base: PlanBaseAllowances,
   extras: AllowanceAmounts
-): AllowanceAmounts {
+): EffectiveAllowances {
   return {
     teamMembers: base.teamMembers + extras.teamMembers,
     customGuides: base.customGuides + extras.customGuides,
     templateAdaptations: base.templateAdaptations + extras.templateAdaptations,
+    combinedClinicOwnedGuides:
+      base.combinedClinicOwnedGuides + combinedGuideExtra(extras),
   };
 }
 

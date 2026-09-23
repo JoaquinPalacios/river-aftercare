@@ -146,4 +146,75 @@ describe("operator allowance extras action", () => {
     ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
     expect(updateMock).not.toHaveBeenCalled();
   });
+
+  it("accepts zero, one, and the largest safe extra allowance", async () => {
+    getAuthContextMock.mockResolvedValue({
+      user: {
+        id: "user_operator",
+        email: "operator@example.test",
+        name: "Operator",
+        platformRole: "OPERATOR",
+      },
+      clinicMembership: null,
+    });
+
+    await expect(
+      updateAllowanceExtrasAction(
+        {},
+        form({
+          clinicId: "clinic_1",
+          extraTeamMembers: "0",
+          extraCustomGuides: "1",
+          extraTemplateAdaptations: "2147483647",
+        })
+      )
+    ).resolves.toEqual({ success: "Extra allowances saved." });
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extras: {
+          teamMembers: 0,
+          customGuides: 1,
+          templateAdaptations: 2147483647,
+        },
+      })
+    );
+  });
+
+  it.each([
+    ["-1", "0", "0"],
+    ["1.5", "0", "0"],
+    ["abc", "0", "0"],
+    ["0dfdij", "1", "1"],
+    ["NaN", "0", "0"],
+    ["Infinity", "0", "0"],
+    ["2147483648", "0", "0"],
+  ])(
+    "rejects invalid extra allowance %s without saving or coercing it",
+    async (team, custom, adapted) => {
+      getAuthContextMock.mockResolvedValue({
+        user: {
+          id: "user_operator",
+          email: "operator@example.test",
+          name: "Operator",
+          platformRole: "OPERATOR",
+        },
+        clinicMembership: null,
+      });
+
+      await expect(
+        updateAllowanceExtrasAction(
+          {},
+          form({
+            clinicId: "clinic_1",
+            extraTeamMembers: team,
+            extraCustomGuides: custom,
+            extraTemplateAdaptations: adapted,
+          })
+        )
+      ).resolves.toEqual({
+        error: "Extra allowances must be whole numbers of zero or more.",
+      });
+      expect(updateMock).not.toHaveBeenCalled();
+    }
+  );
 });

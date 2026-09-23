@@ -6,6 +6,8 @@ import { getPrisma } from "@/lib/prisma";
 import {
   adaptedTemplateLimitMessage,
   adaptedTemplateUsageLabel,
+  combinedGuideLimitMessage,
+  combinedGuideUsageLabel,
   customGuideLimitMessage,
   customGuideUsageLabel,
   ENTITLEMENT_CODES,
@@ -17,8 +19,10 @@ import { lockClinicGuideCapacity } from "@/lib/entitlements/locks";
 import {
   allowanceDimension,
   canCreateTemplateAdaptation,
+  combinedGuideExtra,
   effectiveAllowances,
   planGovernanceFromEntitlement,
+  type AllowanceAmounts,
   type PlanGovernance,
 } from "@/lib/entitlements/plan-policy";
 import {
@@ -101,6 +105,7 @@ export type GuideAllowanceSummary = {
   commercialPlan: "ESSENTIAL" | "PRACTICE" | null;
   customGuides: GuidePoolSummary;
   adaptedTemplates: GuidePoolSummary;
+  combinedGuides: GuidePoolSummary;
 };
 
 function emptyPool(used: number): GuidePoolSummary {
@@ -134,20 +139,18 @@ export async function loadGuideAllowance(
 
 export function guideAllowanceFrom(
   governance: PlanGovernance,
-  extras: {
-    teamMembers: number;
-    customGuides: number;
-    templateAdaptations: number;
-  },
+  extras: AllowanceAmounts,
   customGuideCount: number,
   adaptedCount: number
 ): GuideAllowanceSummary {
+  const combinedUsed = customGuideCount + adaptedCount;
   if (!governance.governed) {
     return {
       governed: false,
       commercialPlan: null,
       customGuides: emptyPool(customGuideCount),
       adaptedTemplates: emptyPool(adaptedCount),
+      combinedGuides: emptyPool(combinedUsed),
     };
   }
 
@@ -161,6 +164,11 @@ export function guideAllowanceFrom(
     used: adaptedCount,
     base: governance.policy.base.templateAdaptations,
     extra: extras.templateAdaptations,
+  });
+  const combined = allowanceDimension({
+    used: combinedUsed,
+    base: governance.policy.base.combinedClinicOwnedGuides,
+    extra: combinedGuideExtra(extras),
   });
   return {
     governed: true,
@@ -191,6 +199,19 @@ export function guideAllowanceFrom(
         effective.templateAdaptations
       ),
     },
+    combinedGuides: {
+      used: combined.used,
+      baseLimit: combined.base,
+      extraAllowance: combined.extra,
+      planLimit: combined.effective,
+      remainingPlaces: combined.remaining,
+      atLimit: combined.atLimit,
+      usageLabel: combinedGuideUsageLabel(combined.used, combined.effective),
+      limitMessage: combinedGuideLimitMessage(
+        governance.policy.commercialPlan,
+        effective.combinedClinicOwnedGuides
+      ),
+    },
   };
 }
 
@@ -211,18 +232,30 @@ export async function reserveCustomGuidePlace(
   const extras = allowanceExtrasFrom(entitlement);
   const effective = effectiveAllowances(governance.policy.base, extras);
   const customGuideCount = await countOriginalCustomGuides(tx, clinicId);
-  if (customGuideCount < effective.customGuides) {
-    return { ok: true };
+  if (customGuideCount >= effective.customGuides) {
+    return {
+      ok: false,
+      code: ENTITLEMENT_CODES.CUSTOM_GUIDE_LIMIT_REACHED,
+      error: customGuideLimitMessage(
+        governance.policy.commercialPlan,
+        effective.customGuides
+      ),
+    };
   }
 
-  return {
-    ok: false,
-    code: ENTITLEMENT_CODES.CUSTOM_GUIDE_LIMIT_REACHED,
-    error: customGuideLimitMessage(
-      governance.policy.commercialPlan,
-      effective.customGuides
-    ),
-  };
+  const adaptedCount = await countAdaptedTemplateGuides(tx, clinicId);
+  if (customGuideCount + adaptedCount >= effective.combinedClinicOwnedGuides) {
+    return {
+      ok: false,
+      code: ENTITLEMENT_CODES.COMBINED_GUIDE_LIMIT_REACHED,
+      error: combinedGuideLimitMessage(
+        governance.policy.commercialPlan,
+        effective.combinedClinicOwnedGuides
+      ),
+    };
+  }
+
+  return { ok: true };
 }
 
 export type TemplateAdaptationDecision =
@@ -230,9 +263,13 @@ export type TemplateAdaptationDecision =
 
 /**
  * First edit of a pinned River template forks a clinic-owned copy.
- * Essential and Practice both may do this while adapted-template capacity
- * remains. The copy does not consume an original custom-guide place.
- * Group and legacy clinics keep in-place editing and are not given this fork.
+ * Essential and Practice both may do this while the editable-template
+ * category and the combined clinic-owned ceiling both have room. The copy
+ * does not consume an original custom-guide place. Group and legacy clinics
+ * keep in-place editing and are not given this fork.
+ *
+ * Custom creation and this fork share `clinic-guide-capacity`. Both re-check
+ * category usage and combined usage after taking that lock.
  */
 export async function decideTemplateAdaptation(
   tx: Prisma.TransactionClient,
@@ -264,6 +301,18 @@ export async function decideTemplateAdaptation(
       error: adaptedTemplateLimitMessage(
         governance.policy.commercialPlan,
         effective.templateAdaptations
+      ),
+    };
+  }
+
+  const customGuideCount = await countOriginalCustomGuides(tx, clinicId);
+  if (customGuideCount + adaptedCount >= effective.combinedClinicOwnedGuides) {
+    return {
+      ok: false,
+      code: ENTITLEMENT_CODES.COMBINED_GUIDE_LIMIT_REACHED,
+      error: combinedGuideLimitMessage(
+        governance.policy.commercialPlan,
+        effective.combinedClinicOwnedGuides
       ),
     };
   }

@@ -17,6 +17,7 @@ describe("commercial plan entitlement policy", () => {
         teamMembers: 2,
         customGuides: 2,
         templateAdaptations: 2,
+        combinedClinicOwnedGuides: 4,
       },
     });
     expect(PLAN_ENTITLEMENT_POLICIES.PRACTICE).toEqual({
@@ -24,7 +25,8 @@ describe("commercial plan entitlement policy", () => {
       base: {
         teamMembers: 5,
         customGuides: 30,
-        templateAdaptations: 10,
+        templateAdaptations: 30,
+        combinedClinicOwnedGuides: 40,
       },
     });
     expect(PLAN_ENTITLEMENT_POLICIES).not.toHaveProperty("GROUP");
@@ -42,18 +44,20 @@ describe("commercial plan entitlement policy", () => {
       teamMembers: 5,
       customGuides: 3,
       templateAdaptations: 6,
+      combinedClinicOwnedGuides: 9,
     });
     const practice = PLAN_ENTITLEMENT_POLICIES.PRACTICE.base;
     expect(
       effectiveAllowances(practice, {
-        teamMembers: 5,
-        customGuides: 10,
-        templateAdaptations: 20,
+        teamMembers: 0,
+        customGuides: 2,
+        templateAdaptations: 3,
       })
     ).toEqual({
-      teamMembers: 10,
-      customGuides: 40,
-      templateAdaptations: 30,
+      teamMembers: 5,
+      customGuides: 32,
+      templateAdaptations: 33,
+      combinedClinicOwnedGuides: 45,
     });
     expect(ZERO_ALLOWANCE_EXTRAS).toEqual({
       teamMembers: 0,
@@ -111,7 +115,7 @@ describe("commercial plan entitlement policy", () => {
 
     const adapted = assessEssentialDowngradeReadiness({
       occupiedTeamPlaces: essential.teamMembers,
-      customGuideCount: essential.customGuides,
+      customGuideCount: 0,
       adaptedTemplateCount: essential.templateAdaptations + 1,
     });
     expect(adapted.conflicts).toEqual(["TEMPLATE_ADAPTATIONS"]);
@@ -119,9 +123,19 @@ describe("commercial plan entitlement policy", () => {
     const guides = assessEssentialDowngradeReadiness({
       occupiedTeamPlaces: essential.teamMembers,
       customGuideCount: essential.customGuides + 1,
-      adaptedTemplateCount: essential.templateAdaptations,
+      adaptedTemplateCount: 0,
     });
     expect(guides.conflicts).toEqual(["CUSTOM_GUIDES"]);
+
+    const overCombined = assessEssentialDowngradeReadiness({
+      occupiedTeamPlaces: essential.teamMembers,
+      customGuideCount: essential.customGuides,
+      adaptedTemplateCount: essential.templateAdaptations + 1,
+    });
+    expect(overCombined.conflicts).toEqual([
+      "TEMPLATE_ADAPTATIONS",
+      "COMBINED_GUIDES",
+    ]);
 
     const team = assessEssentialDowngradeReadiness({
       occupiedTeamPlaces: essential.teamMembers + 1,
@@ -139,6 +153,7 @@ describe("commercial plan entitlement policy", () => {
       "TEAM_MEMBERS",
       "CUSTOM_GUIDES",
       "TEMPLATE_ADAPTATIONS",
+      "COMBINED_GUIDES",
     ]);
 
     const withExtras = assessEssentialDowngradeReadiness({
@@ -151,5 +166,25 @@ describe("commercial plan entitlement policy", () => {
     expect(withExtras.team.limit).toBe(3);
     expect(withExtras.guides.limit).toBe(4);
     expect(withExtras.adaptedTemplates.limit).toBe(5);
+    expect(withExtras.combinedGuides).toEqual({ current: 9, limit: 9 });
+
+    const combinedOnly = assessEssentialDowngradeReadiness({
+      occupiedTeamPlaces: 2,
+      customGuideCount: 2,
+      adaptedTemplateCount: 2,
+      extras: { teamMembers: 0, customGuides: 0, templateAdaptations: 0 },
+    });
+    expect(combinedOnly.ready).toBe(true);
+
+    const flexibleReady = assessEssentialDowngradeReadiness({
+      occupiedTeamPlaces: 2,
+      customGuideCount: 3,
+      adaptedTemplateCount: 2,
+      extras: { teamMembers: 0, customGuides: 1, templateAdaptations: 0 },
+    });
+    expect(flexibleReady.ready).toBe(true);
+    expect(flexibleReady.guides.limit).toBe(3);
+    expect(flexibleReady.adaptedTemplates.limit).toBe(2);
+    expect(flexibleReady.combinedGuides).toEqual({ current: 5, limit: 5 });
   });
 });

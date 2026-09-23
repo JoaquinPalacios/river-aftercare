@@ -1,8 +1,10 @@
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import {
+  ESSENTIAL_COMBINED_GUIDE_LIMIT,
   ESSENTIAL_CUSTOM_GUIDE_LIMIT,
   ESSENTIAL_TEAM_MEMBER_LIMIT,
   ESSENTIAL_TEMPLATE_ADAPTATION_LIMIT,
+  PRACTICE_COMBINED_GUIDE_LIMIT,
   PRACTICE_CUSTOM_GUIDE_LIMIT,
   PRACTICE_TEAM_MEMBER_LIMIT,
   PRACTICE_TEMPLATE_ADAPTATION_LIMIT,
@@ -24,6 +26,7 @@ export const PLAN_PRICES = {
     customGuides: ESSENTIAL_CUSTOM_GUIDE_LIMIT,
     clinicTeamMembers: ESSENTIAL_TEAM_MEMBER_LIMIT,
     editableTemplates: ESSENTIAL_TEMPLATE_ADAPTATION_LIMIT,
+    combinedClinicOwnedGuides: ESSENTIAL_COMBINED_GUIDE_LIMIT,
   },
   practice: {
     monthlyAudInclGst: 149,
@@ -32,6 +35,7 @@ export const PLAN_PRICES = {
     customGuides: PRACTICE_CUSTOM_GUIDE_LIMIT,
     clinicTeamMembers: PRACTICE_TEAM_MEMBER_LIMIT,
     editableTemplates: PRACTICE_TEMPLATE_ADAPTATION_LIMIT,
+    combinedClinicOwnedGuides: PRACTICE_COMBINED_GUIDE_LIMIT,
     /**
      * Internal commercial reference only. There is no Location model yet.
      * Do not format these amounts into public UI, metadata, or JSON-LD.
@@ -90,6 +94,7 @@ const ESSENTIAL_CARD_FEATURES = [
   `${PRODUCT_NAME} guide templates`,
   `Create and edit up to ${PLAN_PRICES.essential.customGuides} custom clinic guides`,
   `Edit up to ${PLAN_PRICES.essential.editableTemplates} ${PRODUCT_NAME} templates`,
+  `Up to ${PLAN_PRICES.essential.combinedClinicOwnedGuides} clinic-owned guides in total`,
   `Up to ${PLAN_PRICES.essential.clinicTeamMembers} clinic team members`,
   PRICING_TYPOGRAPHY_FEATURE_LABEL,
   PRICING_SHARING_FEATURE_LABEL,
@@ -99,6 +104,7 @@ const PRACTICE_CARD_FEATURES = [
   "Everything in Essential",
   `Up to ${PLAN_PRICES.practice.customGuides} custom clinic guides`,
   `Edit up to ${PLAN_PRICES.practice.editableTemplates} ${PRODUCT_NAME} templates`,
+  `Up to ${PLAN_PRICES.practice.combinedClinicOwnedGuides} clinic-owned guides in total`,
   `Up to ${PLAN_PRICES.practice.clinicTeamMembers} clinic team members`,
   "Assisted setup",
   PRICING_PRIORITY_SUPPORT_LABEL,
@@ -273,6 +279,13 @@ export const PLAN_COMPARISON_ROWS: readonly PlanComparisonRow[] = [
     feature: `Editable ${PRODUCT_NAME} templates`,
     essential: upTo(PLAN_PRICES.essential.editableTemplates),
     practice: upTo(PLAN_PRICES.practice.editableTemplates),
+    group: textValue("Tailored"),
+  },
+  {
+    id: "combined-guides",
+    feature: "Clinic-owned guides in total",
+    essential: upTo(PLAN_PRICES.essential.combinedClinicOwnedGuides),
+    practice: upTo(PLAN_PRICES.practice.combinedClinicOwnedGuides),
     group: textValue("Tailored"),
   },
   {

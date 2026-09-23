@@ -37,7 +37,7 @@ Contact already keeps the baseline: server Zod validation, honeypot (`website`),
 
 **Operator-managed invitations are implemented** (Operator → Clinics → Team). Clinic ADMIN can send an invitation from Practice → Members. Do **not** implement clinic-admin resend, cancel, role change, or remove from this note.
 
-Phase 4 enforces three independent allowances. Essential base is 2 team members, 2 original custom guides, and 2 editable River templates. Practice base is 5, 30, and 10. Operator-granted extras add to those bases and do not change Stripe. Group has no fixed cap. There is no per-seat billing and no per-invitation override. See [BILLING.md](../architecture/BILLING.md).
+Phase 4 enforces team, custom-guide, and editable-template allowances, plus a combined clinic-owned guide ceiling. Essential base is 2 team members, 2 original custom guides, 2 editable River templates, and 4 clinic-owned guides in total. Practice base is 5, 30, 30, and 40. Practice may mix the two guide categories inside that ceiling. Operator-granted extras add to the matching category, and each guide extra also adds one combined place. They do not change Stripe. Group has no fixed cap. There is no per-seat billing and no per-invitation override. See [BILLING.md](../architecture/BILLING.md).
 
 Later portal capability:
 

@@ -9,6 +9,7 @@ export class ClinicPortalError extends Error {
       | "slug_published"
       | "custom_guide_limit"
       | "adapted_template_limit"
+      | "combined_guide_limit"
       | "template_adaptation_unavailable"
       | "template_adaptation_required"
   ) {

@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
+import { parseOperatorExtraAllowance } from "@/lib/entitlements/allowance-input";
 import { updateOperatorAllowanceExtras } from "@/lib/entitlements/operator-extras";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 
@@ -14,18 +15,7 @@ export interface AllowanceExtrasActionState {
 }
 
 function parseExtra(formData: FormData, name: string): number | null {
-  const raw = formData.get(name);
-  if (typeof raw !== "string" || raw.trim() === "") {
-    return null;
-  }
-  if (!/^\d+$/.test(raw.trim())) {
-    return null;
-  }
-  const value = Number(raw);
-  if (!Number.isSafeInteger(value)) {
-    return null;
-  }
-  return value;
+  return parseOperatorExtraAllowance(formData.get(name));
 }
 
 export async function updateAllowanceExtrasAction(

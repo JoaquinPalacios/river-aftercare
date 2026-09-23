@@ -21,6 +21,7 @@ export const DOWNGRADE_CONFLICTS = {
   TEAM_MEMBERS: "TEAM_MEMBERS",
   CUSTOM_GUIDES: "CUSTOM_GUIDES",
   TEMPLATE_ADAPTATIONS: "TEMPLATE_ADAPTATIONS",
+  COMBINED_GUIDES: "COMBINED_GUIDES",
 } as const;
 
 export type DowngradeConflict =
@@ -32,6 +33,7 @@ export type EssentialDowngradeReadiness = {
   team: { current: number; limit: number };
   guides: { current: number; limit: number };
   adaptedTemplates: { current: number; limit: number };
+  combinedGuides: { current: number; limit: number };
 };
 
 /**
@@ -60,6 +62,11 @@ export function assessEssentialDowngradeReadiness(input: {
   if (input.adaptedTemplateCount > limits.templateAdaptations) {
     conflicts.push(DOWNGRADE_CONFLICTS.TEMPLATE_ADAPTATIONS);
   }
+  const combinedGuideCount =
+    input.customGuideCount + input.adaptedTemplateCount;
+  if (combinedGuideCount > limits.combinedClinicOwnedGuides) {
+    conflicts.push(DOWNGRADE_CONFLICTS.COMBINED_GUIDES);
+  }
 
   return {
     ready: conflicts.length === 0,
@@ -69,6 +76,10 @@ export function assessEssentialDowngradeReadiness(input: {
     adaptedTemplates: {
       current: input.adaptedTemplateCount,
       limit: limits.templateAdaptations,
+    },
+    combinedGuides: {
+      current: combinedGuideCount,
+      limit: limits.combinedClinicOwnedGuides,
     },
   };
 }

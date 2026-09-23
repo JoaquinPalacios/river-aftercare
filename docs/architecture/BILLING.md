@@ -56,31 +56,34 @@ GROUP stays custom/manual. Phase 3 adds Customer Portal for payment methods, inv
 
 Policy lives in `lib/entitlements/plan-policy.ts`. It is not read from marketing copy or Stripe Price metadata. Allowances apply only when `ClinicEntitlement.commercialPlan` is `ESSENTIAL` or `PRACTICE`. No entitlement row stays legacy-open: product access is not given Essential limits. `GROUP` and a null plan are not given Essential or Practice caps. Billing lifecycle is unchanged: limits apply to the current local plan while product access follows the existing activation gate (`ACTIVE`, including cancel-at-period-end and `PAST_DUE`).
 
-Original custom guides and editable River-template copies are independent pools. Effective allowance is the plan base plus persistent operator extras. Extras are stored on `ClinicEntitlement` (`extraTeamMemberAllowance`, `extraCustomGuideAllowance`, `extraTemplateAdaptationAllowance`). They default to 0, are not the computed total, and do not change Stripe, subscription quantity, Price, invoices, or `commercialPlan`.
+Original custom guides and editable River-template copies are separate categories, and their sum has a combined clinic-owned ceiling. Pinned River templates used as supplied count in neither category. Effective category allowance is the plan base plus the matching persistent operator extra. Each custom or editable-template extra also adds one place to the combined ceiling. That combined extra is the sum of the two guide extras. It is not stored. Extras live on `ClinicEntitlement` (`extraTeamMemberAllowance`, `extraCustomGuideAllowance`, `extraTemplateAdaptationAllowance`). They default to 0, are not the computed total, and do not change Stripe, subscription quantity, Price, invoices, or `commercialPlan`.
 
-|                          | Essential base | Practice base |
-| ------------------------ | -------------- | ------------- |
-| Team members             | 2              | 5             |
-| Original custom guides   | 2              | 30            |
-| Editable River templates | 2              | 10            |
+|                              | Essential base | Practice base |
+| ---------------------------- | -------------- | ------------- |
+| Team members                 | 2              | 5             |
+| Original custom guides       | 2              | 30            |
+| Editable River templates     | 2              | 30            |
+| Clinic-owned guides in total | 4              | 40            |
 
-An Essential clinic may therefore hold 2 original custom guides and 2 adapted copies at the same time. A Practice clinic may hold 30 and 10. Operator extras add to those bases and survive a later Essential ↔ Practice projection change unless an operator changes them.
+An Essential clinic may hold 2 original custom guides and 2 editable copies at the same time. A Practice clinic may mix the two categories up to 40 clinic-owned guides, with neither category above 30. Examples that fit Practice: 30 and 10, 20 and 20, 10 and 30. 31 of either category is blocked by that category. 25 and 16 is blocked by the combined ceiling. Operator extras add to the matching category and to the combined ceiling, and they survive a later Essential ↔ Practice projection change unless an operator changes them.
 
 Occupied team places are active `ADMIN` and `STAFF` memberships plus one reservation per distinct user with a valid pending invitation. Inactive memberships, revoked, consumed, and expired tokens, and platform `OPERATOR` accounts do not count. Resend replaces the token and does not reserve a second place. Acceptance swaps the reservation for a membership under the same clinic capacity lock (`clinic-team-capacity:<clinicId>`). The effective team limit is the base plus `extraTeamMemberAllowance`. A clinic administrator and a platform operator are both blocked at that limit. There is no per-invitation override. Extra capacity is granted on the operator clinic page and logged as `operator_allowance_extra_updated` (operator user id, clinic id, dimension, previous extra, new extra, effective allowance).
 
 Guide origin:
 
-- As supplied: `guideTemplateId` set. Counts in neither clinic-owned pool.
-- Original custom: `guideTemplateId` and `sourceGuideTemplateId` both null. Counts only toward the custom-guide allowance, including drafts, published guides, and unpublished guides that still exist.
-- Adapted copy: `guideTemplateId` null, `sourceGuideTemplateId` set, `adaptedAt` set. Counts only toward the adapted-template allowance. Later edits do not consume another place and do not clear the source. Deleting the row frees that pool’s place. Unpublishing does not.
+- As supplied: `guideTemplateId` set. Counts in neither clinic-owned category.
+- Original custom: `guideTemplateId` and `sourceGuideTemplateId` both null. Counts toward the custom-guide allowance and the combined ceiling, including drafts, published guides, and unpublished guides that still exist.
+- Adapted copy: `guideTemplateId` null, `sourceGuideTemplateId` set, `adaptedAt` set. Counts toward the editable-template allowance and the combined ceiling. Later edits do not consume another place and do not clear the source. Deleting the row frees that category and the combined place. Unpublishing does not.
 
-Editing a pinned River template forks a clinic-owned copy inside `clinic-guide-capacity:<clinicId>` before clinic-specific content is saved. The canonical `GuideTemplate` and its revisions stay unchanged. Essential and Practice may both fork while adapted-template capacity remains. Group and legacy clinics keep in-place template editing and are not given this fork. There is no duplicate-guide flow; copying an adapted guide is out of scope. One custom create and one adaptation may both succeed when each pool has room. Two requests for the last place in the same pool cannot both succeed.
+Creating an original custom guide requires both a free custom-guide place and a free combined place. The first edit of a pinned River template requires both a free editable-template place and a free combined place. Both operations take `clinic-guide-capacity:<clinicId>` and re-check the category count and the combined count inside that lock. A custom create and a template adaptation competing for the last combined place cannot both succeed. Two requests for the last place in the same category cannot both succeed either.
+
+Editing a pinned River template forks a clinic-owned copy before clinic-specific content is saved. The canonical `GuideTemplate` and its revisions stay unchanged. Essential and Practice may both fork while both limits remain. Group and legacy clinics keep in-place template editing and are not given this fork. There is no duplicate-guide flow; copying an adapted guide is out of scope.
 
 A read-only production audit found one pinned Practice guide (Tooth Extraction), zero `PracticeGuideOverride` rows, and zero `PracticeGuideAddition` rows. Its revisions match the normal publish lifecycle. No adaptation backfill is required. The existing pin stays as supplied.
 
 Clinics already above an effective allowance keep members, invitations, and guides. New capacity-increasing actions for that dimension stay blocked. Another dimension with remaining capacity stays available. Reducing an operator extra below current usage is allowed and does not delete anything. The operator UI warns before that save.
 
-`loadEssentialDowngradeReadiness` reports `TEAM_MEMBERS`, `CUSTOM_GUIDES`, and `TEMPLATE_ADAPTATIONS` against Essential base plus the clinic’s current extras. It does not schedule a Stripe downgrade and does not discard extras.
+`loadEssentialDowngradeReadiness` reports `TEAM_MEMBERS`, `CUSTOM_GUIDES`, `TEMPLATE_ADAPTATIONS`, and `COMBINED_GUIDES` against Essential base plus the clinic’s current extras. The Essential combined target is 4 plus both guide extras. It does not schedule a Stripe downgrade and does not discard extras.
 
 Phase 4 uses one additive migration, `20260923120000_add_practice_guide_template_adaptation` (`PracticeGuide.adaptedAt`, `PracticeGuide.sourceGuideTemplateId`, and the three extra-allowance columns). Do not apply it to production from this change.
 

@@ -197,7 +197,8 @@ export default async function OperatorClinicDetailPage({
       guideAllowance.customGuides.baseLimit !== null &&
       guideAllowance.customGuides.extraAllowance !== null &&
       guideAllowance.adaptedTemplates.baseLimit !== null &&
-      guideAllowance.adaptedTemplates.extraAllowance !== null ? (
+      guideAllowance.adaptedTemplates.extraAllowance !== null &&
+      guideAllowance.combinedGuides.baseLimit !== null ? (
         <AllowanceExtrasForm
           clinicId={clinic.id}
           planName={billing.plan === "ESSENTIAL" ? "Essential" : "Practice"}
@@ -215,6 +216,10 @@ export default async function OperatorClinicDetailPage({
             used: guideAllowance.adaptedTemplates.used,
             base: guideAllowance.adaptedTemplates.baseLimit,
             extra: guideAllowance.adaptedTemplates.extraAllowance,
+          }}
+          combinedGuides={{
+            used: guideAllowance.combinedGuides.used,
+            base: guideAllowance.combinedGuides.baseLimit,
           }}
         />
       ) : null}

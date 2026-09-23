@@ -72,6 +72,7 @@ describe("operator allowance extras", () => {
         teamMembers: 5,
         customGuides: 3,
         templateAdaptations: 6,
+        combinedClinicOwnedGuides: 9,
       });
     }
     const stored = await prisma.clinicEntitlement.findUniqueOrThrow({
@@ -180,7 +181,11 @@ describe("operator allowance extras", () => {
     expect(readiness.adaptedTemplates.limit).toBe(
       PLAN_ENTITLEMENT_POLICIES.ESSENTIAL.base.templateAdaptations + 2
     );
+    expect(readiness.combinedGuides.limit).toBe(
+      PLAN_ENTITLEMENT_POLICIES.ESSENTIAL.base.combinedClinicOwnedGuides + 3 + 2
+    );
     expect(readiness.conflicts).not.toContain("CUSTOM_GUIDES");
+    expect(readiness.conflicts).not.toContain("COMBINED_GUIDES");
   });
 
   it("does not reference Stripe from the extras service", () => {

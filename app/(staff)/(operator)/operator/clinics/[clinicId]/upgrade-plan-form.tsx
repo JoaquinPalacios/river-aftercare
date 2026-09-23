@@ -37,6 +37,8 @@ export function UpgradePlanForm({
     guideLimit: number;
     adaptedCurrent: number;
     adaptedLimit: number;
+    combinedCurrent: number;
+    combinedLimit: number;
   } | null;
 }) {
   const router = useRouter();
@@ -130,6 +132,10 @@ export function UpgradePlanForm({
               <p>
                 Editable River templates: {downgradeReadiness.adaptedCurrent} /{" "}
                 {downgradeReadiness.adaptedLimit}
+              </p>
+              <p>
+                Total clinic-owned guides: {downgradeReadiness.combinedCurrent}{" "}
+                / {downgradeReadiness.combinedLimit}
               </p>
             </>
           ) : (

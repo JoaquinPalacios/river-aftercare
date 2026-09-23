@@ -58,6 +58,11 @@ export default async function ClinicGuidesPage() {
               {allowance.adaptedTemplates.usageLabel}
             </p>
           ) : null}
+          {allowance.combinedGuides.usageLabel ? (
+            <p className="mt-1 text-sm font-medium text-staff-ink">
+              {allowance.combinedGuides.usageLabel}
+            </p>
+          ) : null}
           {allowance.customGuides.atLimit &&
           allowance.customGuides.limitMessage ? (
             <p className="mt-1 max-w-xl text-sm leading-6 text-staff-muted">
@@ -73,6 +78,13 @@ export default async function ClinicGuidesPage() {
             <p className="mt-1 max-w-xl text-sm leading-6 text-staff-muted">
               {allowance.adaptedTemplates.limitMessage} Existing editable copies
               can still be edited.
+            </p>
+          ) : null}
+          {allowance.combinedGuides.atLimit &&
+          allowance.combinedGuides.limitMessage ? (
+            <p className="mt-1 max-w-xl text-sm leading-6 text-staff-muted">
+              {allowance.combinedGuides.limitMessage} Existing guides can still
+              be edited. River templates can still be used as supplied.
             </p>
           ) : null}
         </div>

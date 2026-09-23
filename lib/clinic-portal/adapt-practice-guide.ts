@@ -45,7 +45,9 @@ export async function adaptPracticeGuideFromTemplate(input: {
         decision.error,
         decision.code === ENTITLEMENT_CODES.ADAPTED_TEMPLATE_LIMIT_REACHED
           ? "adapted_template_limit"
-          : "template_adaptation_unavailable"
+          : decision.code === ENTITLEMENT_CODES.COMBINED_GUIDE_LIMIT_REACHED
+            ? "combined_guide_limit"
+            : "template_adaptation_unavailable"
       );
     }
 

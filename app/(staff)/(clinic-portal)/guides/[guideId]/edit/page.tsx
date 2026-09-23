@@ -86,8 +86,17 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
             <TemplateAdaptationPanel
               guideId={guide.id}
               contactHref={marketingContactHref(links)}
-              limitMessage={allowance.adaptedTemplates.limitMessage}
-              mode={allowance.adaptedTemplates.atLimit ? "full" : "available"}
+              limitMessage={
+                allowance.adaptedTemplates.atLimit
+                  ? allowance.adaptedTemplates.limitMessage
+                  : allowance.combinedGuides.limitMessage
+              }
+              mode={
+                allowance.adaptedTemplates.atLimit ||
+                allowance.combinedGuides.atLimit
+                  ? "full"
+                  : "available"
+              }
             />
           </div>
         ) : null}

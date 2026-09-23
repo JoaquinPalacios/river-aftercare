@@ -76,7 +76,7 @@ test.describe("marketing conversion routes", () => {
       page.getByText("Edit up to 2 River Aftercare templates")
     ).toBeVisible();
     await expect(
-      page.getByText("Edit up to 10 River Aftercare templates")
+      page.getByText("Edit up to 30 River Aftercare templates")
     ).toBeVisible();
     const essentialCard = page.getByRole("article", {
       name: "Essential",
@@ -229,7 +229,7 @@ test.describe("marketing conversion routes", () => {
         page.getByText("Edit up to 2 River Aftercare templates")
       ).toBeVisible();
       await expect(
-        page.getByText("Edit up to 10 River Aftercare templates")
+        page.getByText("Edit up to 30 River Aftercare templates")
       ).toBeVisible();
       await expect(
         page
@@ -361,7 +361,12 @@ test.describe("marketing conversion routes", () => {
       panel.locator(
         '[data-comparison-row="adapt-templates"] [data-plan="practice"]'
       )
-    ).toContainText("Up to 10");
+    ).toContainText("Up to 30");
+    await expect(
+      panel.locator(
+        '[data-comparison-row="combined-guides"] [data-plan="practice"]'
+      )
+    ).toContainText("Up to 40");
     await expect(panel.getByText("Durable patient guide URLs")).toBeVisible();
     await expect(panel.getByText("QR sharing")).toBeVisible();
     await expect(panel.getByText("Print / Save PDF")).toBeVisible();

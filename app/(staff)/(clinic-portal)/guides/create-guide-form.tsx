@@ -113,11 +113,18 @@ export function CreateGuideForm({
             {allowance.adaptedTemplates.usageLabel}
           </p>
         ) : null}
-        {allowance.customGuides.atLimit ? (
+        {allowance.combinedGuides.usageLabel ? (
+          <p className="mt-1 text-sm font-medium text-staff-ink">
+            {allowance.combinedGuides.usageLabel}
+          </p>
+        ) : null}
+        {allowance.customGuides.atLimit || allowance.combinedGuides.atLimit ? (
           <div className="mt-3 text-sm leading-6 text-staff-muted">
             <p>
-              {allowance.customGuides.limitMessage} Existing custom guides can
-              still be edited.
+              {allowance.customGuides.atLimit
+                ? allowance.customGuides.limitMessage
+                : allowance.combinedGuides.limitMessage}{" "}
+              Existing custom guides can still be edited.
             </p>
             <a
               href={contactHref}
@@ -136,7 +143,11 @@ export function CreateGuideForm({
               id="title"
               name="title"
               required
-              disabled={customPending || allowance.customGuides.atLimit}
+              disabled={
+                customPending ||
+                allowance.customGuides.atLimit ||
+                allowance.combinedGuides.atLimit
+              }
               className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
             />
             {customState.fieldErrors?.title ? (
@@ -153,7 +164,11 @@ export function CreateGuideForm({
               id="publicSlug"
               name="publicSlug"
               required
-              disabled={customPending || allowance.customGuides.atLimit}
+              disabled={
+                customPending ||
+                allowance.customGuides.atLimit ||
+                allowance.combinedGuides.atLimit
+              }
               placeholder="extraction"
               className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
             />
@@ -168,7 +183,8 @@ export function CreateGuideForm({
               {customState.error}
             </p>
           ) : null}
-          {allowance.customGuides.atLimit ? null : (
+          {allowance.customGuides.atLimit ||
+          allowance.combinedGuides.atLimit ? null : (
             <button
               type="submit"
               disabled={customPending}
