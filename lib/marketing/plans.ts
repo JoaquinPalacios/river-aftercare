@@ -100,11 +100,13 @@ const ESSENTIAL_CARD_FEATURES = [
   PRICING_SHARING_FEATURE_LABEL,
 ] as const;
 
+const PRACTICE_COMBINED_GUIDES_FEATURE = `Up to ${PLAN_PRICES.practice.combinedClinicOwnedGuides} clinic-owned guides across custom guides and edited ${PRODUCT_NAME} templates`;
+
 const PRACTICE_CARD_FEATURES = [
   "Everything in Essential",
   `Up to ${PLAN_PRICES.practice.customGuides} custom clinic guides`,
   `Edit up to ${PLAN_PRICES.practice.editableTemplates} ${PRODUCT_NAME} templates`,
-  `Up to ${PLAN_PRICES.practice.combinedClinicOwnedGuides} clinic-owned guides in total`,
+  PRACTICE_COMBINED_GUIDES_FEATURE,
   `Up to ${PLAN_PRICES.practice.clinicTeamMembers} clinic team members`,
   "Assisted setup",
   PRICING_PRIORITY_SUPPORT_LABEL,
@@ -171,7 +173,7 @@ export const PRICING_NOTES = [
   },
   {
     title: "Assisted onboarding",
-    body: `${PRODUCT_NAME} helps practices configure their branding, guidance and patient-facing setup for launch.`,
+    body: "Practice includes assisted setup for branding, guidance and patient-facing launch. Group includes custom onboarding.",
   },
   {
     title: "Current product scope",
@@ -268,13 +270,6 @@ export const PLAN_COMPARISON_ROWS: readonly PlanComparisonRow[] = [
     group: included,
   },
   {
-    id: "create-edit-guides",
-    feature: "Create and edit clinic-owned guides",
-    essential: included,
-    practice: included,
-    group: included,
-  },
-  {
     id: "adapt-templates",
     feature: `Editable ${PRODUCT_NAME} templates`,
     essential: upTo(PLAN_PRICES.essential.editableTemplates),
@@ -347,7 +342,7 @@ export const PLAN_COMPARISON_ROWS: readonly PlanComparisonRow[] = [
   {
     id: "assisted-setup",
     feature: "Assisted setup",
-    essential: included,
+    essential: dash,
     practice: included,
     group: textValue("Custom onboarding"),
   },

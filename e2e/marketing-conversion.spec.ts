@@ -78,6 +78,14 @@ test.describe("marketing conversion routes", () => {
     await expect(
       page.getByText("Edit up to 30 River Aftercare templates")
     ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Up to 40 clinic-owned guides across custom guides and edited River Aftercare templates"
+      )
+    ).toBeVisible();
+    await expect(
+      page.getByText("Up to 40 clinic-owned guides in total")
+    ).toHaveCount(0);
     const essentialCard = page.getByRole("article", {
       name: "Essential",
       exact: true,
@@ -364,9 +372,50 @@ test.describe("marketing conversion routes", () => {
     ).toContainText("Up to 30");
     await expect(
       panel.locator(
+        '[data-comparison-row="combined-guides"] [data-plan="essential"]'
+      )
+    ).toContainText("Up to 4");
+    await expect(
+      panel.locator(
         '[data-comparison-row="combined-guides"] [data-plan="practice"]'
       )
     ).toContainText("Up to 40");
+    await expect(
+      panel.locator(
+        '[data-comparison-row="combined-guides"] [data-plan="group"]'
+      )
+    ).toContainText("Tailored");
+    await expect(
+      panel.locator('[data-comparison-row="templates"] [data-plan="essential"]')
+    ).toContainText("Included");
+    await expect(
+      panel.locator(
+        '[data-comparison-row="adapt-templates"] [data-plan="group"]'
+      )
+    ).toContainText("Tailored");
+    await expect(
+      panel.locator('[data-comparison-row="custom-guides"] [data-plan="group"]')
+    ).toContainText("Tailored");
+    const assistedEssential = panel.locator(
+      '[data-comparison-row="assisted-setup"] [data-plan="essential"]'
+    );
+    const assistedPractice = panel.locator(
+      '[data-comparison-row="assisted-setup"] [data-plan="practice"]'
+    );
+    const assistedGroup = panel.locator(
+      '[data-comparison-row="assisted-setup"] [data-plan="group"]'
+    );
+    await expect(assistedEssential).toHaveText(/Not included/);
+    expect(await assistedEssential.innerText()).not.toMatch(/\bIncluded\b/);
+    await expect(assistedPractice).toHaveText(/\bIncluded\b/);
+    expect(await assistedPractice.innerText()).not.toContain("Not included");
+    await expect(assistedGroup).toContainText("Custom onboarding");
+    await expect(
+      panel.getByText("Create and edit clinic-owned guides")
+    ).toHaveCount(0);
+    await expect(page.getByText("operator extra")).toHaveCount(0);
+    await expect(page.getByText("Additional guides available")).toHaveCount(0);
+    await expect(page.getByText("Extra seats available")).toHaveCount(0);
     await expect(panel.getByText("Durable patient guide URLs")).toBeVisible();
     await expect(panel.getByText("QR sharing")).toBeVisible();
     await expect(panel.getByText("Print / Save PDF")).toBeVisible();
