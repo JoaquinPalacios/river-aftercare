@@ -5,7 +5,12 @@ import { CreateGuideForm } from "@/app/(staff)/(clinic-portal)/guides/create-gui
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
 import { listCanonicalGuideTemplates } from "@/lib/clinic-portal/list-canonical-templates";
+import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import {
+  marketingContactHref,
+  marketingPublicLinks,
+} from "@/lib/marketing/public-links";
 
 export const metadata: Metadata = {
   title: `Create guide · ${PRODUCT_NAME}`,
@@ -15,9 +20,11 @@ export const metadata: Metadata = {
 
 export default async function CreateGuidePage() {
   const { clinicMembership } = await requireClinicAdmin();
-  const { templates, isDemoTenant } = await listCanonicalGuideTemplates(
-    clinicMembership.clinic.id
-  );
+  const [{ templates, isDemoTenant }, allowance, links] = await Promise.all([
+    listCanonicalGuideTemplates(clinicMembership.clinic.id),
+    loadGuideAllowance(clinicMembership.clinic.id),
+    marketingPublicLinks(),
+  ]);
 
   if (!clinicMembership) {
     notFound();
@@ -38,7 +45,12 @@ export default async function CreateGuidePage() {
             : "Start from a reviewed template, or create a custom guide for this practice."}
         </p>
       </header>
-      <CreateGuideForm templates={templates} isDemoTenant={isDemoTenant} />
+      <CreateGuideForm
+        templates={templates}
+        isDemoTenant={isDemoTenant}
+        allowance={allowance}
+        contactHref={marketingContactHref(links)}
+      />
     </div>
   );
 }

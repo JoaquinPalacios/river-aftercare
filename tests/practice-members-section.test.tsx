@@ -71,6 +71,19 @@ describe("Practice members invite UI", () => {
           rows={props.rows ?? []}
           canInvite={props.canInvite ?? false}
           operatorTeamHref={props.operatorTeamHref ?? null}
+          allowance={{
+            governed: false,
+            occupiedPlaces: 0,
+            activeMemberCount: 0,
+            pendingInvitationCount: 0,
+            planLimit: null,
+            remainingPlaces: null,
+            atLimit: false,
+            usageLabel: null,
+            detailLabel: null,
+          }}
+          contactHref="https://example.test/contact"
+          operatorCanOverride={false}
         />
       );
     });

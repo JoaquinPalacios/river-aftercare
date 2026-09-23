@@ -11,6 +11,8 @@ import {
   actorCanManageClinic,
   type ClinicActor,
 } from "@/lib/auth/clinic-authorization";
+import { reserveTeamPlace } from "@/lib/entitlements/capacity";
+import { lockClinicTeamCapacity } from "@/lib/entitlements/locks";
 import { CLINIC_NOT_FOUND_MESSAGE } from "@/lib/operator/invite-clinic-user";
 import { MEMBERSHIP_NOT_FOUND_MESSAGE } from "@/lib/operator/remove-clinic-access";
 import { getPrisma } from "@/lib/prisma";
@@ -24,18 +26,23 @@ export const FORBIDDEN_MEMBERSHIP_STATUS_MESSAGE =
 
 export type UpdateClinicMembershipStatusResult =
   | { ok: true; membershipId: string; active: boolean; unchanged: boolean }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code?: string };
 
 export async function updateClinicMembershipStatus(input: {
   actor: ClinicActor;
   clinicId: string;
   membershipId: string;
   active: boolean;
+  operatorOverride?: boolean;
+  now?: Date;
   prisma?: PrismaClient;
 }): Promise<UpdateClinicMembershipStatusResult> {
   const prisma = input.prisma ?? getPrisma();
 
+  const now = input.now ?? new Date();
+
   return prisma.$transaction(async (tx) => {
+    await lockClinicTeamCapacity(tx, input.clinicId);
     const clinic = await tx.clinic.findUnique({
       where: { id: input.clinicId },
       select: { id: true },
@@ -90,6 +97,24 @@ export async function updateClinicMembershipStatus(input: {
         active: membership.active,
         unchanged: true,
       };
+    }
+
+    if (input.active) {
+      const reserved = await reserveTeamPlace(tx, {
+        clinicId: clinic.id,
+        now,
+        actorUserId: input.actor.id,
+        actorPlatformRole: input.actor.platformRole,
+        operatorOverride: input.operatorOverride === true,
+        action: "reactivation",
+      });
+      if (!reserved.ok) {
+        return {
+          ok: false as const,
+          error: reserved.error,
+          code: reserved.code,
+        };
+      }
     }
 
     const updated = await tx.clinicMembership.updateMany({

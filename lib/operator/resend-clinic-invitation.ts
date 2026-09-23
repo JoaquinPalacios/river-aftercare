@@ -8,6 +8,7 @@ import {
 
 import { createInvitationToken } from "@/lib/auth/account-token-service";
 import { logInvitationLifecycle } from "@/lib/auth/invitation-lifecycle-log";
+import { lockClinicTeamCapacity } from "@/lib/entitlements/locks";
 import { deliverClinicInvitationEmail } from "@/lib/operator/deliver-clinic-invitation-email";
 import {
   CLINIC_NOT_FOUND_MESSAGE,
@@ -61,6 +62,7 @@ export async function resendClinicInvitation(input: {
   const prisma = input.prisma ?? getPrisma();
 
   const created = await prisma.$transaction(async (tx) => {
+    await lockClinicTeamCapacity(tx, input.clinicId);
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`clinic-access:${input.userId}`}))`;
 
     const clinic = await tx.clinic.findUnique({

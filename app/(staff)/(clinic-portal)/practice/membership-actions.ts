@@ -75,6 +75,7 @@ export async function updateStaffMembershipStatusAction(
       clinicId: clinicMembership.clinic.id,
       membershipId,
       active,
+      operatorOverride: formData.get("operatorOverride") === "true",
     });
     if (!result.ok) {
       return { error: result.error };
@@ -147,6 +148,8 @@ export async function invitePracticeMemberAction(
       name: parsed.data.name,
       email: parsed.data.email,
       role: parsed.data.role,
+      actorPlatformRole: user.platformRole,
+      operatorOverride: formData.get("operatorOverride") === "true",
     });
     if (!result.ok) {
       return {

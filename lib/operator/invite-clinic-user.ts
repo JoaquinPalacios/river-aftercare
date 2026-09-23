@@ -24,6 +24,9 @@ import {
   normalizeInvitedName,
 } from "@/lib/operator/clinic-invitation-input";
 import { deliverClinicInvitationEmail } from "@/lib/operator/deliver-clinic-invitation-email";
+import { reserveTeamPlace } from "@/lib/entitlements/capacity";
+import { lockClinicTeamCapacity } from "@/lib/entitlements/locks";
+import { ENTITLEMENT_CODES } from "@/lib/entitlements/messages";
 import { getPrisma } from "@/lib/prisma";
 
 export const ALREADY_MEMBER_MESSAGE =
@@ -51,7 +54,9 @@ export type InviteClinicUserErrorCode =
   | "other_clinic_member"
   | "platform_operator"
   | "pending_same_clinic"
-  | "pending_other_clinic";
+  | "pending_other_clinic"
+  | typeof ENTITLEMENT_CODES.TEAM_MEMBER_LIMIT_REACHED
+  | typeof ENTITLEMENT_CODES.OPERATOR_OVERRIDE_REQUIRED;
 
 export type InviteClinicUserOutcome = "INVITATION_SENT" | "ACCESS_RESTORED";
 
@@ -132,6 +137,8 @@ export async function inviteClinicUser(input: {
   role: string;
   now?: Date;
   prisma?: PrismaClient;
+  actorPlatformRole?: PlatformRole;
+  operatorOverride?: boolean;
 }): Promise<InviteClinicUserResult> {
   const nameError = invitedNameError(input.name);
   if (nameError) {
@@ -191,8 +198,11 @@ export async function inviteClinicUser(input: {
 
   const now = input.now ?? new Date();
   const prisma = input.prisma ?? getPrisma();
+  const actorPlatformRole = input.actorPlatformRole ?? PlatformRole.NONE;
+  const operatorOverride = input.operatorOverride === true;
 
   const created = await prisma.$transaction(async (tx) => {
+    await lockClinicTeamCapacity(tx, input.clinicId);
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`clinic-invite-email:${email}`}))`;
 
     const clinic = await tx.clinic.findUnique({
@@ -224,6 +234,22 @@ export async function inviteClinicUser(input: {
     const clinicName = clinic.profile?.displayName?.trim() || clinic.name;
 
     if (!existing) {
+      const reserved = await reserveTeamPlace(tx, {
+        clinicId: clinic.id,
+        now,
+        actorUserId: input.invitedByUserId,
+        actorPlatformRole,
+        operatorOverride,
+        action: "invitation",
+      });
+      if (!reserved.ok) {
+        return {
+          ok: false as const,
+          code: reserved.code,
+          error: reserved.error,
+        };
+      }
+
       const user = await tx.user.create({
         data: {
           name,
@@ -293,6 +319,22 @@ export async function inviteClinicUser(input: {
     }
 
     if (latestUser.passwordHash) {
+      const reserved = await reserveTeamPlace(tx, {
+        clinicId: clinic.id,
+        now,
+        actorUserId: input.invitedByUserId,
+        actorPlatformRole,
+        operatorOverride,
+        action: "access_restored",
+      });
+      if (!reserved.ok) {
+        return {
+          ok: false as const,
+          code: reserved.code,
+          error: reserved.error,
+        };
+      }
+
       await tx.clinicMembership.create({
         data: {
           clinicId: clinic.id,
@@ -352,6 +394,22 @@ export async function inviteClinicUser(input: {
       });
     }
 
+    const reserved = await reserveTeamPlace(tx, {
+      clinicId: clinic.id,
+      now,
+      actorUserId: input.invitedByUserId,
+      actorPlatformRole,
+      operatorOverride,
+      action: "invitation",
+    });
+    if (!reserved.ok) {
+      return {
+        ok: false as const,
+        code: reserved.code,
+        error: reserved.error,
+      };
+    }
+
     const createdToken = await createInvitationToken({
       userId: latestUser.id,
       clinicId: clinic.id,
@@ -376,10 +434,25 @@ export async function inviteClinicUser(input: {
   });
 
   if (!created.ok) {
+    if (
+      created.code === ENTITLEMENT_CODES.TEAM_MEMBER_LIMIT_REACHED ||
+      created.code === ENTITLEMENT_CODES.OPERATOR_OVERRIDE_REQUIRED
+    ) {
+      return {
+        ok: false,
+        code: created.code,
+        error: created.error,
+      };
+    }
+
     const messages: Record<
       Exclude<
         InviteClinicUserErrorCode,
-        "invalid_name" | "invalid_email" | "invalid_role"
+        | "invalid_name"
+        | "invalid_email"
+        | "invalid_role"
+        | typeof ENTITLEMENT_CODES.TEAM_MEMBER_LIMIT_REACHED
+        | typeof ENTITLEMENT_CODES.OPERATOR_OVERRIDE_REQUIRED
       >,
       string
     > = {

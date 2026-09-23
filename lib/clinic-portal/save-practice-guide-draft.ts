@@ -12,6 +12,10 @@ import {
 } from "@/lib/aftercare/timeline-range";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import type { SaveGuideDraftInput } from "@/lib/clinic-portal/guide-schemas";
+import { suppliedTemplateContentChanged } from "@/lib/entitlements/guide-content";
+import { governedTemplateEditBlock } from "@/lib/entitlements/guide-usage";
+import { ENTITLEMENT_CODES } from "@/lib/entitlements/messages";
+import { readPlanGovernance } from "@/lib/entitlements/team-usage";
 import { getPrisma } from "@/lib/prisma";
 
 function provenanceForSection(input: {
@@ -104,6 +108,52 @@ export async function savePracticeGuideDraft(input: {
   }
 
   let draft = guide.contentRevisions[0];
+
+  if (guide.guideTemplateId) {
+    const governance = await readPlanGovernance(input.clinicId);
+    const currentSections = (draft?.sections ?? [])
+      .toSorted((left, right) => left.sortOrder - right.sortOrder)
+      .map((section) => ({
+        key: section.key,
+        kind: section.kind,
+        title: section.title,
+        body: section.body,
+        periodLabel: section.periodLabel,
+        startDay: section.startDay,
+        endDay: section.endDay,
+        sortOrder: section.sortOrder,
+      }));
+    const block = governedTemplateEditBlock({
+      governance,
+      templateBacked: true,
+      contentChanged: suppliedTemplateContentChanged({
+        currentTitle: draft?.title ?? guide.title,
+        nextTitle: input.values.title,
+        currentIntroduction: draft?.introduction ?? null,
+        nextIntroduction: input.values.introduction ?? "",
+        currentSections,
+        nextSections: input.values.sections.map((section, index) => ({
+          key: section.key,
+          kind: section.kind,
+          title: section.title,
+          body: section.body,
+          periodLabel: section.periodLabel ?? null,
+          startDay: section.startDay ?? null,
+          endDay: section.endDay ?? null,
+          sortOrder: index + 1,
+        })),
+      }),
+    });
+    if (block) {
+      throw new ClinicPortalError(
+        block.error,
+        block.code === ENTITLEMENT_CODES.TEMPLATE_ADAPTATION_REQUIRED
+          ? "template_adaptation_required"
+          : "template_adaptation_unavailable"
+      );
+    }
+  }
+
   const previousByKey = new Map(
     (draft?.sections ?? []).map((section) => [section.key, section])
   );

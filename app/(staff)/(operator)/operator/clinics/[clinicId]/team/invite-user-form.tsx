@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import {
   inviteClinicUserAction,
@@ -12,15 +12,25 @@ import {
   TEAM_ADMIN_ROLE_LABEL,
   TEAM_STAFF_ROLE_LABEL,
 } from "@/lib/clinic-portal/role-labels";
+import { OPERATOR_OVERRIDE_NOTE } from "@/lib/entitlements/messages";
 
 const initial: ClinicTeamActionState = {};
 const PENDING_STATUS = "Sending invitation. Please wait.";
 
-export function InviteUserForm({ clinicId }: { clinicId: string }) {
+export function InviteUserForm({
+  clinicId,
+  overrideRequired,
+  usageLabel,
+}: {
+  clinicId: string;
+  overrideRequired: boolean;
+  usageLabel: string | null;
+}) {
   const [state, action, pending] = useActionState(
     inviteClinicUserAction,
     initial
   );
+  const [overrideConfirmed, setOverrideConfirmed] = useState(false);
 
   return (
     <form
@@ -38,6 +48,29 @@ export function InviteUserForm({ clinicId }: { clinicId: string }) {
         {pending ? PENDING_STATUS : ""}
       </div>
       <input type="hidden" name="clinicId" value={clinicId} />
+      {usageLabel ? (
+        <p className="text-sm font-medium text-staff-ink">{usageLabel}</p>
+      ) : null}
+      {overrideRequired ? (
+        <div className="rounded-lg border border-staff-line px-4 py-3 text-sm leading-6">
+          <p>{OPERATOR_OVERRIDE_NOTE}</p>
+          <label
+            className="mt-3 flex items-start gap-3"
+            htmlFor="invite-override"
+          >
+            <input
+              id="invite-override"
+              name="operatorOverride"
+              type="checkbox"
+              value="true"
+              className="mt-1"
+              checked={overrideConfirmed}
+              onChange={(event) => setOverrideConfirmed(event.target.checked)}
+            />
+            <span>Override included team-member limit for this invitation</span>
+          </label>
+        </div>
+      ) : null}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium" htmlFor="invite-name">
           Name
@@ -107,14 +140,18 @@ export function InviteUserForm({ clinicId }: { clinicId: string }) {
       ) : null}
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || (overrideRequired && !overrideConfirmed)}
         className="staffBtn staffBtnPrimary staffLoginSubmit h-11 w-fit"
         aria-busy={pending || undefined}
       >
         {pending ? (
           <span className="staffLoginSpinner" aria-hidden="true" />
         ) : null}
-        {pending ? "Sending…" : "Send invitation"}
+        {pending
+          ? "Sending…"
+          : overrideRequired
+            ? "Invite with operator override"
+            : "Send invitation"}
       </button>
     </form>
   );

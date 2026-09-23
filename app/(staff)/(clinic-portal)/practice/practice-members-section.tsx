@@ -20,6 +20,12 @@ import {
 import { INVITED_NAME_MAX_LENGTH } from "@/lib/operator/clinic-invitation-input";
 import { ClinicMembershipRole } from "@prisma/client";
 import type { PracticeMemberRow } from "@/lib/clinic-portal/list-practice-members";
+import type { TeamAllowanceSummary } from "@/lib/entitlements/team-usage";
+import {
+  OPERATOR_OVERRIDE_NOTE,
+  PENDING_INVITATION_RESERVATION_NOTE,
+  teamMemberLimitMessage,
+} from "@/lib/entitlements/messages";
 
 const empty: MembershipStatusActionState = {};
 const emptyInvite: InvitePracticeMemberState = {};
@@ -36,11 +42,17 @@ export function PracticeMembersSection({
   rows,
   canInvite,
   operatorTeamHref = null,
+  allowance,
+  contactHref,
+  operatorCanOverride,
 }: {
   clinicName: string;
   rows: PracticeMemberRow[];
   canInvite: boolean;
   operatorTeamHref?: string | null;
+  allowance: TeamAllowanceSummary;
+  contactHref: string;
+  operatorCanOverride: boolean;
 }) {
   const router = useRouter();
   const reactId = useId().replace(/:/g, "");
@@ -100,11 +112,32 @@ export function PracticeMembersSection({
         Clinic staff access is per membership. Deactivating someone removes
         access to {clinicName} only. Their River Aftercare account stays intact.
       </p>
+      {allowance.usageLabel ? (
+        <div className="mt-3 text-sm leading-6">
+          <p className="font-medium text-staff-ink">{allowance.usageLabel}</p>
+          {allowance.detailLabel ? (
+            <p className="text-staff-muted">{allowance.detailLabel}</p>
+          ) : null}
+          {allowance.pendingInvitationCount > 0 ? (
+            <p className="text-staff-muted">
+              {PENDING_INVITATION_RESERVATION_NOTE}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {canInvite ? (
         <InviteMemberForm
           action={inviteAction}
           pending={invitePending}
           state={inviteState}
+          atLimit={allowance.atLimit}
+          limitMessage={
+            allowance.planLimit
+              ? teamMemberLimitMessage(allowance.planLimit)
+              : null
+          }
+          contactHref={contactHref}
+          operatorCanOverride={operatorCanOverride}
         />
       ) : null}
       {state.success ? (
@@ -128,6 +161,9 @@ export function PracticeMembersSection({
           name="active"
           value={desiredActive ? "true" : "false"}
         />
+        {desiredActive && allowance.atLimit && operatorCanOverride ? (
+          <input type="hidden" name="operatorOverride" value="true" />
+        ) : null}
       </form>
       {rows.length === 0 ? (
         <p className="mt-4 text-sm text-staff-muted">No members yet.</p>
@@ -223,11 +259,19 @@ export function PracticeMembersSection({
         title={target ? `Activate ${memberDisplayName(target)}?` : ""}
         description={
           target
-            ? `They will regain access to ${clinicName} with their existing membership.`
+            ? allowance.atLimit && operatorCanOverride
+              ? `They will regain access to ${clinicName} with their existing membership. ${OPERATOR_OVERRIDE_NOTE}`
+              : allowance.atLimit
+                ? `This clinic is already using its included team members, so restoring access is unavailable until a place is free. ${PENDING_INVITATION_RESERVATION_NOTE}`
+                : `They will regain access to ${clinicName} with their existing membership.`
             : ""
         }
         cancelLabel="Cancel"
-        confirmLabel="Activate"
+        confirmLabel={
+          allowance.atLimit && operatorCanOverride
+            ? "Activate with operator override"
+            : "Activate"
+        }
         pending={pending}
         pendingLabel="Activating…"
         pendingStatus={ACTIVATE_PENDING_STATUS}
@@ -253,15 +297,28 @@ function InviteMemberForm({
   action,
   pending,
   state,
+  atLimit,
+  limitMessage,
+  contactHref,
+  operatorCanOverride,
 }: {
   action: (payload: FormData) => void;
   pending: boolean;
   state: InvitePracticeMemberState;
+  atLimit: boolean;
+  limitMessage: string | null;
+  contactHref: string;
+  operatorCanOverride: boolean;
 }) {
   const reactId = useId().replace(/:/g, "");
   const nameId = `invite-name-${reactId}`;
   const emailId = `invite-email-${reactId}`;
   const roleId = `invite-role-${reactId}`;
+  const overrideId = `invite-override-${reactId}`;
+  const [overrideConfirmed, setOverrideConfirmed] = useState(false);
+  const blocked = atLimit && !operatorCanOverride;
+  const needsOverride = atLimit && operatorCanOverride;
+  const fieldsDisabled = pending || blocked;
 
   return (
     <form
@@ -288,7 +345,7 @@ function InviteMemberForm({
             name="name"
             required
             maxLength={INVITED_NAME_MAX_LENGTH}
-            disabled={pending}
+            disabled={fieldsDisabled}
             autoComplete="name"
             className="staffField"
           />
@@ -306,7 +363,7 @@ function InviteMemberForm({
             type="email"
             required
             maxLength={LOGIN_EMAIL_MAX_LENGTH}
-            disabled={pending}
+            disabled={fieldsDisabled}
             autoComplete="email"
             className="staffField"
           />
@@ -322,7 +379,7 @@ function InviteMemberForm({
             id={roleId}
             name="role"
             required
-            disabled={pending}
+            disabled={fieldsDisabled}
             defaultValue="STAFF"
             className="staffSelect"
           >
@@ -334,6 +391,34 @@ function InviteMemberForm({
           ) : null}
         </div>
       </fieldset>
+      {blocked && limitMessage ? (
+        <div className="text-sm leading-6 text-staff-muted">
+          <p>{limitMessage}</p>
+          <a
+            href={contactHref}
+            className="staffBtn staffBtnSecondary mt-3 inline-flex h-11 items-center"
+          >
+            Contact River Aftercare
+          </a>
+        </div>
+      ) : null}
+      {needsOverride ? (
+        <div className="rounded-lg border border-staff-line px-4 py-3 text-sm leading-6">
+          <p>{OPERATOR_OVERRIDE_NOTE}</p>
+          <label className="mt-3 flex items-start gap-3" htmlFor={overrideId}>
+            <input
+              id={overrideId}
+              name="operatorOverride"
+              type="checkbox"
+              value="true"
+              className="mt-1"
+              checked={overrideConfirmed}
+              onChange={(event) => setOverrideConfirmed(event.target.checked)}
+            />
+            <span>Override included team-member limit for this invitation</span>
+          </label>
+        </div>
+      ) : null}
       {state.error ? (
         <p className="text-sm text-red-600" role="alert">
           {state.error}
@@ -344,17 +429,23 @@ function InviteMemberForm({
           {state.success}
         </p>
       ) : null}
-      <button
-        type="submit"
-        disabled={pending}
-        className="staffBtn staffBtnPrimary staffLoginSubmit h-11 w-full sm:w-fit"
-        aria-busy={pending || undefined}
-      >
-        {pending ? (
-          <span className="staffLoginSpinner" aria-hidden="true" />
-        ) : null}
-        {pending ? "Sending…" : "Send invitation"}
-      </button>
+      {blocked ? null : (
+        <button
+          type="submit"
+          disabled={pending || (needsOverride && !overrideConfirmed)}
+          className="staffBtn staffBtnPrimary staffLoginSubmit h-11 w-full sm:w-fit"
+          aria-busy={pending || undefined}
+        >
+          {pending ? (
+            <span className="staffLoginSpinner" aria-hidden="true" />
+          ) : null}
+          {pending
+            ? "Sending…"
+            : needsOverride
+              ? "Invite with operator override"
+              : "Send invitation"}
+        </button>
+      )}
     </form>
   );
 }

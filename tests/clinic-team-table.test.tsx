@@ -106,6 +106,7 @@ describe("clinic team table actions", () => {
           clinicId="clinic_1"
           clinicName="Riverside Dental Demo"
           rows={rows}
+          reactivationNeedsOverride={false}
         />
       );
     });

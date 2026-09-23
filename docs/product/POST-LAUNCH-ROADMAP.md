@@ -35,19 +35,20 @@ Contact already keeps the baseline: server Zod validation, honeypot (`website`),
 
 ### Team / Users
 
-**Operator-managed invitations are implemented** (Operator → Clinics → Team). Clinic ADMIN can send an invitation from Practice → Members. Do **not** implement clinic-admin resend, cancel, role change, remove, or seat enforcement from this note.
+**Operator-managed invitations are implemented** (Operator → Clinics → Team). Clinic ADMIN can send an invitation from Practice → Members. Do **not** implement clinic-admin resend, cancel, role change, or remove from this note.
+
+Phase 4 enforces Essential (2) and Practice (5) team-member allowances, including pending invitations, with an explicit platform-operator override for one operation. Group has no fixed cap. There is no per-seat billing. See [BILLING.md](../architecture/BILLING.md).
 
 Later portal capability:
 
 - clinic STAFF must not invite
 - clinic ADMIN resend, cancel, role change, and remove
 - last-admin protection when that clinic-admin Team management exists
-- seat-limit enforcement, with an explicit platform-operator allowance override
 - transfer admin
 
 **Operator ADMIN ↔ STAFF role change after invite is implemented** on operator Team. Do **not** add last-admin protection, self-demotion rules, or clinic-admin Team management beyond Practice invite from this note.
 
-Provisional named-seat policy (documentation only, not billed or enforced):
+Named team-member allowances (product entitlements, not billed seats):
 
 | Plan      | Named users included |
 | --------- | -------------------- |

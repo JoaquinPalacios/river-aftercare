@@ -181,6 +181,7 @@ export default async function OperatorClinicDetailPage({
         clinicId={clinic.id}
         canUpgradeToPractice={billing.canUpgradeToPractice}
         downgradeDeferred={billing.downgradeDeferred}
+        downgradeReadiness={billing.downgradeReadiness}
       />
 
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5">

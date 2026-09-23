@@ -1,6 +1,6 @@
 # Stripe billing and plan entitlement — architecture investigation
 
-**Status:** Phase 3 (Customer Portal, cancellation, payment-failure UX, public-guide retention, and operator Essential → Practice upgrade) is implemented in application code. It is not deployed and it does not configure live Stripe. Phase 2 remains the paid-activation contract: card and AU BECS become `ACTIVE` only from `invoice.paid`. Sections A onward remain the historical investigation. **Approved Phase 1–3 decisions override stale recommendations below.**
+**Status:** Phase 4 enforces Essential and Practice product allowances for custom guides and clinic team members. Phase 3 (Customer Portal, cancellation, payment-failure UX, public-guide retention, and operator Essential → Practice upgrade) stays as implemented. It is not deployed and it does not configure live Stripe. Phase 2 remains the paid-activation contract: card and AU BECS become `ACTIVE` only from `invoice.paid`. Sections A onward remain the historical investigation. **Approved Phase 1–4 decisions override stale recommendations below.**
 
 **Date:** 2026-09-20 (investigation). Phase 1 landed 2026-09-21. Phase 2 customer payment flow landed the same day. Local card and AU BECS acceptance passed 2026-09-22. Phase 3 landed 2026-09-22 in application code only.  
 **Base:** investigation was written against `origin/main` at `2441d9a`.  
@@ -23,7 +23,7 @@ Request demo
 → onboarding
 ```
 
-GROUP stays custom/manual. Phase 3 adds Customer Portal for payment methods, invoices, and cancellation at period end. It does not add self-serve plan switching, downgrades, interval changes, refunds, or guide/seat enforcement.
+GROUP stays custom/manual. Phase 3 adds Customer Portal for payment methods, invoices, and cancellation at period end. It does not add self-serve plan switching, downgrades, interval changes, or refunds. Phase 4 enforces product allowances. It does not add per-seat billing.
 
 ### Phase 1 remains
 
@@ -49,14 +49,34 @@ GROUP stays custom/manual. Phase 3 adds Customer Portal for payment methods, inv
 - Cancellation scheduled keeps entitlement `ACTIVE` through `paidThrough`. Stripe Customer Portal may represent at-period-end cancellation as `cancel_at` (equal to the period end in the approved portal mode) with `cancel_at_period_end` still false. River normalizes either form into `cancelAtPeriodEnd`. `canceled_at` is the request time and is not the end date. Removing the schedule returns billing status to `ACTIVE`. `customer.subscription.deleted` sets `ENDED`, `subscriptionEndedAt`, and `publicGuideRetentionUntil` (existing 60-day rule).
 - `PAST_DUE` keeps entitlement `ACTIVE`. Terminal `unpaid` becomes `RESTRICTED`. A delayed `invoice.payment_failed` does not move a live `active` subscription back to `PAST_DUE`. A stale `subscription.updated` does not reopen `ENDED` or `RESTRICTED`.
 - Public guide retention is evaluated on the patient request. There is no cron. Legacy clinics and non-ended entitlements, including `RESTRICTED`, keep already-published guides. After `publicGuideRetentionUntil`, those URLs 404. Drafts stay unpublished.
-- Operator-assisted Essential → Practice updates the existing subscription item. Proration is `always_invoice`. Payment behavior is `pending_if_incomplete`, so the Practice price is not current until Stripe accepts payment. The operator page refreshes from River’s local projection for about 30 seconds after Stripe accepts the change. It does not show Practice until that projection does. Practice → Essential is deferred until guide and team limits exist. Monthly ↔ annual is not offered. The initial-offer form stays closed once a subscription exists and points at Plan change.
-- No new Prisma migration. No new webhook event types. No new `LegalAcceptance` for portal, cancellation, or this upgrade. Stripe keeps invoice and dunning email. No GST / Stripe Tax.
+- Operator-assisted Essential → Practice updates the existing subscription item. Proration is `always_invoice`. Payment behavior is `pending_if_incomplete`, so the Practice price is not current until Stripe accepts payment. The operator page refreshes from River’s local projection for about 30 seconds after Stripe accepts the change. It does not show Practice until that projection does. Practice → Essential is not scheduled in Phase 3. Monthly ↔ annual is not offered. The initial-offer form stays closed once a subscription exists and points at Plan change.
+- No new Prisma migration in Phase 3. No new webhook event types. No new `LegalAcceptance` for portal, cancellation, or this upgrade. Stripe keeps invoice and dunning email. No GST / Stripe Tax.
+
+### Phase 4 — plan allowances
+
+Policy lives in `lib/entitlements/plan-policy.ts`. It is not read from marketing copy or Stripe Price metadata. Allowances apply only when `ClinicEntitlement.commercialPlan` is `ESSENTIAL` or `PRACTICE`. No entitlement row stays legacy-open. `GROUP` and a null plan are not given Essential or Practice caps. Billing lifecycle is unchanged: limits apply to the current local plan while product access follows the existing activation gate (`ACTIVE`, including cancel-at-period-end and `PAST_DUE`).
+
+|                        | Essential | Practice                 |
+| ---------------------- | --------- | ------------------------ |
+| Team members           | 2         | 5                        |
+| Custom clinic guides   | 2         | 30                       |
+| Adapt a River template | no        | yes, and the copy counts |
+
+Occupied team places are active `ADMIN` and `STAFF` memberships plus one reservation per distinct user with a valid pending invitation. Inactive memberships, revoked, consumed, and expired tokens, and platform `OPERATOR` accounts do not count. Resend replaces the token and does not reserve a second place. Acceptance swaps the reservation for a membership under the same clinic capacity lock (`clinic-team-capacity:<clinicId>`). A clinic administrator at the allowance is blocked. An operator may override that one invitation, access restore, or reactivation. The override is explicit, logged as `operator_team_allowance_override` (operator id, clinic id, action, usage, limit), and does not change Stripe, `CommercialPlan`, or later operations.
+
+A counted custom guide is a `PracticeGuide` with `guideTemplateId` null. That includes blank guides, adapted copies, drafts, published guides, and disabled or unpublished guides that still exist. Deleting the row frees a place. Enabling a River template as supplied keeps the pin and does not count. Practice adaptation clears the pin, sets `sourceGuideTemplateId` and `adaptedAt`, and then uses the normal editor. Essential cannot adapt. In-place content edits of a pinned template are refused for governed clinics so the allowance cannot be bypassed. Legacy and Group clinics keep in-place template editing. There is no operator override for the guide cap. Creates and adaptations share `clinic-guide-capacity:<clinicId>`.
+
+Existing rows are not backfilled. A historical in-place edit that still has `guideTemplateId` set does not count and is not guessed from section text. Governed clinics must adapt before further clinic-specific edits. Clinics already above an allowance keep their data. New capacity-increasing actions are blocked for clinic administrators until usage drops. Nothing is auto-deleted.
+
+`loadEssentialDowngradeReadiness` reports `TEAM_MEMBERS` and `CUSTOM_GUIDES` conflicts against the Essential limits. The operator clinic page shows that summary for a Practice clinic. It does not schedule a Stripe downgrade.
+
+Phase 4 adds one additive migration, `20260923120000_add_practice_guide_template_adaptation`. Do not apply it to production from this change.
 
 ### Not yet present
 
-- Practice → Essential downgrade, and monthly ↔ annual changes
-- Plan-limit enforcement (guide caps, seats, template adaptation)
-- Self-serve plan switching, refunds, coupons, trials, Group Stripe prices
+- Practice → Essential Stripe downgrade scheduling, and monthly ↔ annual changes
+- Per-seat billing, extra-seat prices, or subscription quantities
+- Self-serve plan switching, refunds, coupons, trials, Group Stripe prices, Group fixed caps
 - Production / live Stripe configuration
 - Live payments
 - GST / Stripe Tax

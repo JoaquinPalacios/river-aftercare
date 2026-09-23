@@ -122,7 +122,7 @@ Canonical template or custom guide → working draft (`PracticeGuideRevision` ve
 
 - Explicit `GuideTemplate.isSample`. Sample templates are never enableable for ordinary real clinics, even if `reviewedAt` / `reviewedBy` are later populated. Demo tenant `demodental` may still use them.
 - Normal clinics only see **reviewed non-sample** templates: `isSample = false` and the **latest** published revision itself has `reviewedAt` plus a named `reviewedBy` (not a demo/seed label). Availability and enablement pin that exact revision. Reviewed v1 + unreviewed v2 is not eligible.
-- Custom guides (`guideTemplateId` and `pinnedRevisionId` both null) remain supported and are the first-clinic path.
+- Custom guides (`guideTemplateId` and `pinnedRevisionId` both null) remain supported and are the first-clinic path. On Essential or Practice they count toward the custom-guide allowance, including drafts and unpublished guides. A pinned River template does not count. Practice can adapt a pinned template into a counted custom guide (`adaptedAt`, `sourceGuideTemplateId`); Essential cannot. Legacy and Group clinics are not given those caps. See [BILLING.md](BILLING.md).
 - Every new published clinic revision for a real clinic stores `reviewAttestedAt` and `reviewAttestedByUserId`. Republish requires a fresh attestation. Prior published rows are not mutated. Demo publication does not write those fields.
 - Clinic admin UI may show “Clinical review confirmed by {name} · {date/time}” after publication. Patient pages must not.
 

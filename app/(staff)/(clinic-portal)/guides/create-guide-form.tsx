@@ -9,15 +9,20 @@ import {
 } from "@/app/(staff)/(clinic-portal)/guides/actions";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import type { CanonicalGuideTemplateOption } from "@/lib/clinic-portal/list-canonical-templates";
+import type { GuideAllowanceSummary } from "@/lib/entitlements/guide-usage";
 
 const initialState: GuideActionState = {};
 
 export function CreateGuideForm({
   templates,
   isDemoTenant,
+  allowance,
+  contactHref,
 }: {
   templates: CanonicalGuideTemplateOption[];
   isDemoTenant: boolean;
+  allowance: GuideAllowanceSummary;
+  contactHref: string;
 }) {
   const [templateState, templateAction, templatePending] = useActionState(
     createGuideFromTemplateAction,
@@ -39,7 +44,11 @@ export function CreateGuideForm({
         <p className="mt-2 text-sm leading-6 text-staff-muted">
           {isDemoTenant
             ? `Use a ${PRODUCT_NAME} sample template, then adapt it for this demo.`
-            : `Enable a reviewed ${PRODUCT_NAME} template, then adapt it for this practice.`}
+            : allowance.governed && !allowance.canAdaptRiverTemplates
+              ? `Use a ${PRODUCT_NAME} template as supplied. This plan does not adapt templates into clinic-specific guides.`
+              : allowance.canAdaptRiverTemplates
+                ? `Enable a ${PRODUCT_NAME} template as supplied. Adapting it into a custom clinic guide is done from the editor and uses a custom-guide place.`
+                : `Enable a reviewed ${PRODUCT_NAME} template for this practice.`}
         </p>
         {templates.length === 0 ? (
           <p className="mt-4 text-sm text-staff-muted">
@@ -96,6 +105,25 @@ export function CreateGuideForm({
         <p className="mt-2 text-sm leading-6 text-staff-muted">
           Start from a blank guide for a treatment unique to this clinic.
         </p>
+        {allowance.usageLabel ? (
+          <p className="mt-3 text-sm font-medium text-staff-ink">
+            {allowance.usageLabel}
+          </p>
+        ) : null}
+        {allowance.atLimit ? (
+          <div className="mt-3 text-sm leading-6 text-staff-muted">
+            <p>
+              {allowance.limitMessage} Existing custom guides can still be
+              edited.
+            </p>
+            <a
+              href={contactHref}
+              className="staffBtn staffBtnSecondary mt-3 inline-flex h-11 items-center"
+            >
+              Contact River Aftercare
+            </a>
+          </div>
+        ) : null}
         <form action={customAction} className="mt-4 flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium" htmlFor="title">
@@ -105,6 +133,7 @@ export function CreateGuideForm({
               id="title"
               name="title"
               required
+              disabled={customPending || allowance.atLimit}
               className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
             />
             {customState.fieldErrors?.title ? (
@@ -121,6 +150,7 @@ export function CreateGuideForm({
               id="publicSlug"
               name="publicSlug"
               required
+              disabled={customPending || allowance.atLimit}
               placeholder="extraction"
               className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
             />
@@ -135,13 +165,15 @@ export function CreateGuideForm({
               {customState.error}
             </p>
           ) : null}
-          <button
-            type="submit"
-            disabled={customPending}
-            className="staffBtn staffBtnPrimary"
-          >
-            {customPending ? "Creating…" : "Create custom guide"}
-          </button>
+          {allowance.atLimit ? null : (
+            <button
+              type="submit"
+              disabled={customPending}
+              className="staffBtn staffBtnPrimary"
+            >
+              {customPending ? "Creating…" : "Create custom guide"}
+            </button>
+          )}
         </form>
       </section>
     </div>

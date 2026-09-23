@@ -217,7 +217,7 @@ Forgot/reset/accept-invitation/email-change Route Handlers also require a staff 
 
 ## Security logging
 
-Structured events only: `password_changed`, `password_reset_requested`, `password_reset_email_failed`, `password_reset_completed`, `profile_name_changed`, `email_change_requested`, `email_change_completed`, `email_change_email_failed`, `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`, `clinic_role_updated`, `clinic_membership_deactivated`, `clinic_membership_reactivated`, `operator_clinic_settings_updated`. Prefer user id (and clinic id for invitations / membership / operator clinic edits). Never log passwords, raw tokens, token hashes, reset/invite URLs, session tokens, API keys, or mail bodies. Unknown emails are not logged.
+Structured events only: `password_changed`, `password_reset_requested`, `password_reset_email_failed`, `password_reset_completed`, `profile_name_changed`, `email_change_requested`, `email_change_completed`, `email_change_email_failed`, `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`, `clinic_role_updated`, `clinic_membership_deactivated`, `clinic_membership_reactivated`, `operator_clinic_settings_updated`, `operator_team_allowance_override`. Prefer user id (and clinic id for invitations / membership / operator clinic edits). The team-allowance override event records the operator user id, clinic id, action (`invitation`, `access_restored`, or `reactivation`), occupied places, and plan limit. Never log passwords, raw tokens, token hashes, reset/invite URLs, session tokens, API keys, mail bodies, or invitee names and emails on that override event. Unknown emails are not logged.
 
 ## AccountToken
 
@@ -251,7 +251,7 @@ See [TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md).
 
 ## Operator clinic invitations
 
-Operator Team remains the full provisioning surface (invite, resend, cancel, role change, remove, restore). Clinic ADMIN can also send an invitation from Practice → Members. Clinic STAFF cannot. There is still no clinic-admin resend, cancel, role change, or remove. Seat allowances are not enforced.
+Operator Team remains the full provisioning surface (invite, resend, cancel, role change, remove, restore). Clinic ADMIN can also send an invitation from Practice → Members. Clinic STAFF cannot. There is still no clinic-admin resend, cancel, role change, or remove. Essential and Practice team-member allowances are enforced in `reserveTeamPlace` (see below). Group and clinics with no entitlement row are not given those caps.
 
 ```text
 Operator creates clinic
@@ -360,7 +360,7 @@ Clinic ADMIN (and a platform operator assisting that clinic) can set **STAFF** m
 - **Resend** (pending or expired, same clinic, still `passwordHash` null, no membership): new token, previous outstanding invite revoked.
 - **Cancel**: revoke outstanding INVITATION tokens for that user+clinic. User row kept. Login still generic 401.
 
-Security logging: `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`, `clinic_role_updated`, `clinic_membership_deactivated`, `clinic_membership_reactivated`. User id + clinic id (plus actor user id for status changes). Never passwords, raw tokens, hashes, URLs, or provider errors.
+Security logging: `invitation_created`, `invitation_email_failed`, `invitation_resent`, `invitation_cancelled`, `invitation_accepted`, `clinic_access_removed`, `clinic_access_restored`, `clinic_role_updated`, `clinic_membership_deactivated`, `clinic_membership_reactivated`, `operator_team_allowance_override`. User id + clinic id (plus actor user id for status changes). The override event records operator user id, clinic id, action, occupied places, and plan limit, without invitee email or name. Never passwords, raw tokens, hashes, URLs, or provider errors.
 
 ## Operator clinic support
 
@@ -372,7 +372,9 @@ Operators must not set another user's password. Password recovery stays on forgo
 
 Practice → Members shows **Invite member** to a clinic ADMIN and to an operator who is assisting that clinic. The clinic id comes from the authorized session, not the form. `authorizeClinicMemberInvite` returns `clinic_admin` or `platform_operator`. Operator support is the platform-operator branch even though the portal context is synthesized as ADMIN; inviting does not create a `ClinicMembership` for the operator. While assisting, **Manage team** links to the existing operator Team page for pending invitations, resend, cancel, role changes, and remove. Clinic STAFF cannot open Practice and cannot invite.
 
-Plan limits (Essential 2, Practice 5, pending invitations reserving a seat, operator override) are not enforced. When they are, the check belongs in `decideClinicMemberInvite` / `authorizeClinicMemberInvite`: clinic administrators follow the allowance, and a platform operator passes an explicit override on the `platform_operator` branch. `inviteClinicUser` stays the shared creation path and does not know about plans.
+Essential and Practice team allowances are enforced inside `inviteClinicUser` and `updateClinicMembershipStatus` by `reserveTeamPlace`, after `authorizeClinicMemberInvite` has already decided the actor is a clinic administrator or a platform operator. The allowance comes from `lib/entitlements/plan-policy.ts` and the clinic’s `ClinicEntitlement.commercialPlan`. Occupied places are active ADMIN and STAFF memberships plus one reservation per distinct user with a valid pending invitation. Platform operators, inactive memberships, and revoked, consumed, or expired invitations do not count. Resend replaces the token under the same clinic capacity lock and does not take a second place. Acceptance swaps the reservation for a membership under that lock and does not re-check the cap.
+
+A clinic administrator at the allowance cannot invite or reactivate. A platform operator at the allowance must pass an explicit override for that operation. The server uses the session `platformRole`; a posted override flag from a clinic administrator is refused. The override does not change the plan, Stripe, or later operations. Group and clinics with no entitlement row stay open. UI copy says “team members”, not seats.
 
 ## Not yet implemented
 
