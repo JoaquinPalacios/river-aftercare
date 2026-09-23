@@ -22,7 +22,6 @@ import { ClinicMembershipRole } from "@prisma/client";
 import type { PracticeMemberRow } from "@/lib/clinic-portal/list-practice-members";
 import type { TeamAllowanceSummary } from "@/lib/entitlements/team-usage";
 import {
-  OPERATOR_OVERRIDE_NOTE,
   PENDING_INVITATION_RESERVATION_NOTE,
   teamMemberLimitMessage,
 } from "@/lib/entitlements/messages";
@@ -44,7 +43,6 @@ export function PracticeMembersSection({
   operatorTeamHref = null,
   allowance,
   contactHref,
-  operatorCanOverride,
 }: {
   clinicName: string;
   rows: PracticeMemberRow[];
@@ -52,7 +50,6 @@ export function PracticeMembersSection({
   operatorTeamHref?: string | null;
   allowance: TeamAllowanceSummary;
   contactHref: string;
-  operatorCanOverride: boolean;
 }) {
   const router = useRouter();
   const reactId = useId().replace(/:/g, "");
@@ -137,7 +134,6 @@ export function PracticeMembersSection({
               : null
           }
           contactHref={contactHref}
-          operatorCanOverride={operatorCanOverride}
         />
       ) : null}
       {state.success ? (
@@ -161,9 +157,6 @@ export function PracticeMembersSection({
           name="active"
           value={desiredActive ? "true" : "false"}
         />
-        {desiredActive && allowance.atLimit && operatorCanOverride ? (
-          <input type="hidden" name="operatorOverride" value="true" />
-        ) : null}
       </form>
       {rows.length === 0 ? (
         <p className="mt-4 text-sm text-staff-muted">No members yet.</p>
@@ -259,19 +252,13 @@ export function PracticeMembersSection({
         title={target ? `Activate ${memberDisplayName(target)}?` : ""}
         description={
           target
-            ? allowance.atLimit && operatorCanOverride
-              ? `They will regain access to ${clinicName} with their existing membership. ${OPERATOR_OVERRIDE_NOTE}`
-              : allowance.atLimit
-                ? `This clinic is already using its included team members, so restoring access is unavailable until a place is free. ${PENDING_INVITATION_RESERVATION_NOTE}`
-                : `They will regain access to ${clinicName} with their existing membership.`
+            ? allowance.atLimit
+              ? `This clinic is already using its included team members, so restoring access is unavailable until a place is free. ${PENDING_INVITATION_RESERVATION_NOTE}`
+              : `They will regain access to ${clinicName} with their existing membership.`
             : ""
         }
         cancelLabel="Cancel"
-        confirmLabel={
-          allowance.atLimit && operatorCanOverride
-            ? "Activate with operator override"
-            : "Activate"
-        }
+        confirmLabel="Activate"
         pending={pending}
         pendingLabel="Activating…"
         pendingStatus={ACTIVATE_PENDING_STATUS}
@@ -300,7 +287,6 @@ function InviteMemberForm({
   atLimit,
   limitMessage,
   contactHref,
-  operatorCanOverride,
 }: {
   action: (payload: FormData) => void;
   pending: boolean;
@@ -308,16 +294,12 @@ function InviteMemberForm({
   atLimit: boolean;
   limitMessage: string | null;
   contactHref: string;
-  operatorCanOverride: boolean;
 }) {
   const reactId = useId().replace(/:/g, "");
   const nameId = `invite-name-${reactId}`;
   const emailId = `invite-email-${reactId}`;
   const roleId = `invite-role-${reactId}`;
-  const overrideId = `invite-override-${reactId}`;
-  const [overrideConfirmed, setOverrideConfirmed] = useState(false);
-  const blocked = atLimit && !operatorCanOverride;
-  const needsOverride = atLimit && operatorCanOverride;
+  const blocked = atLimit;
   const fieldsDisabled = pending || blocked;
 
   return (
@@ -402,23 +384,6 @@ function InviteMemberForm({
           </a>
         </div>
       ) : null}
-      {needsOverride ? (
-        <div className="rounded-lg border border-staff-line px-4 py-3 text-sm leading-6">
-          <p>{OPERATOR_OVERRIDE_NOTE}</p>
-          <label className="mt-3 flex items-start gap-3" htmlFor={overrideId}>
-            <input
-              id={overrideId}
-              name="operatorOverride"
-              type="checkbox"
-              value="true"
-              className="mt-1"
-              checked={overrideConfirmed}
-              onChange={(event) => setOverrideConfirmed(event.target.checked)}
-            />
-            <span>Override included team-member limit for this invitation</span>
-          </label>
-        </div>
-      ) : null}
       {state.error ? (
         <p className="text-sm text-red-600" role="alert">
           {state.error}
@@ -432,18 +397,14 @@ function InviteMemberForm({
       {blocked ? null : (
         <button
           type="submit"
-          disabled={pending || (needsOverride && !overrideConfirmed)}
+          disabled={pending}
           className="staffBtn staffBtnPrimary staffLoginSubmit h-11 w-full sm:w-fit"
           aria-busy={pending || undefined}
         >
           {pending ? (
             <span className="staffLoginSpinner" aria-hidden="true" />
           ) : null}
-          {pending
-            ? "Sending…"
-            : needsOverride
-              ? "Invite with operator override"
-              : "Send invitation"}
+          {pending ? "Sending…" : "Send invitation"}
         </button>
       )}
     </form>

@@ -8,6 +8,7 @@ export class ClinicPortalError extends Error {
       | "invalid"
       | "slug_published"
       | "custom_guide_limit"
+      | "adapted_template_limit"
       | "template_adaptation_unavailable"
       | "template_adaptation_required"
   ) {

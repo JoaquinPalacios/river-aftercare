@@ -48,21 +48,31 @@ export default async function ClinicGuidesPage() {
           <p className="mt-2 max-w-xl text-sm leading-6 text-staff-muted">
             Patient aftercare instructions for {displayName}.
           </p>
-          {allowance.usageLabel ? (
+          {allowance.customGuides.usageLabel ? (
             <p className="mt-2 text-sm font-medium text-staff-ink">
-              {allowance.usageLabel}
+              {allowance.customGuides.usageLabel}
             </p>
           ) : null}
-          {allowance.atLimit && allowance.limitMessage ? (
+          {allowance.adaptedTemplates.usageLabel ? (
+            <p className="mt-1 text-sm font-medium text-staff-ink">
+              {allowance.adaptedTemplates.usageLabel}
+            </p>
+          ) : null}
+          {allowance.customGuides.atLimit &&
+          allowance.customGuides.limitMessage ? (
             <p className="mt-1 max-w-xl text-sm leading-6 text-staff-muted">
-              {allowance.limitMessage} Existing guides can still be edited.
-              River Aftercare templates can still be used as supplied.
-              {allowance.commercialPlan === "ESSENTIAL"
-                ? " Practice includes a larger custom-guide allowance."
-                : null}{" "}
+              {allowance.customGuides.limitMessage} Existing custom guides can
+              still be edited. River templates can still be used as supplied.{" "}
               <a href={contactHref} className="underline">
                 Contact River Aftercare
               </a>
+            </p>
+          ) : null}
+          {allowance.adaptedTemplates.atLimit &&
+          allowance.adaptedTemplates.limitMessage ? (
+            <p className="mt-1 max-w-xl text-sm leading-6 text-staff-muted">
+              {allowance.adaptedTemplates.limitMessage} Existing editable copies
+              can still be edited.
             </p>
           ) : null}
         </div>

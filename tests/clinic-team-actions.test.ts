@@ -147,8 +147,6 @@ describe("clinic team operator actions", () => {
       name: "Jane Example",
       email: "jane@example.test",
       role: "STAFF",
-      actorPlatformRole: "OPERATOR",
-      operatorOverride: false,
     });
   });
 

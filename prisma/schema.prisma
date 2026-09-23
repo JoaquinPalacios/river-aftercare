@@ -519,12 +519,13 @@ model PracticeGuide {
   title                 String
   guideTemplateId       String?
   pinnedRevisionId      String?
-  /// Set when this row is adapted from a River template into a clinic-owned
-  /// custom guide. Provenance only: it does not keep the canonical pin.
-  /// Existing rows stay null. Historical in-place edits are not backfilled.
+  /// Set when this row is forked from a River template into a clinic-owned
+  /// editable copy. Provenance only: it does not keep the canonical pin.
+  /// Existing rows stay null. Production has no historical adaptations to backfill.
   adaptedAt             DateTime?
-  /// Former canonical template. Not a live pin. Null for guides that were
-  /// never adapted through the adaptation action.
+  /// Canonical River template this copy came from. Counts toward the
+  /// adapted-template allowance, not the original custom-guide allowance.
+  /// Null for original custom guides and for templates still used as supplied.
   sourceGuideTemplateId String?
   publicSlug            String
   isEnabled             Boolean                 @default(false)
@@ -766,6 +767,11 @@ model ClinicEntitlement {
   publicGuideRetentionUntil DateTime?
   lastStripeEventId         String?
   lastProjectedAt           DateTime?
+  /// Persistent operator-granted additions. Effective allowance is the plan
+  /// base plus these values. They do not change Stripe or commercialPlan.
+  extraTeamMemberAllowance          Int @default(0)
+  extraCustomGuideAllowance         Int @default(0)
+  extraTemplateAdaptationAllowance  Int @default(0)
   clinic                    Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   createdAt                 DateTime          @default(now())
   updatedAt                 DateTime          @updatedAt

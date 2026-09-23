@@ -35,6 +35,8 @@ export function UpgradePlanForm({
     teamLimit: number;
     guideCurrent: number;
     guideLimit: number;
+    adaptedCurrent: number;
+    adaptedLimit: number;
   } | null;
 }) {
   const router = useRouter();
@@ -124,6 +126,10 @@ export function UpgradePlanForm({
               <p>
                 Team members: {downgradeReadiness.teamCurrent} /{" "}
                 {downgradeReadiness.teamLimit}
+              </p>
+              <p>
+                Editable River templates: {downgradeReadiness.adaptedCurrent} /{" "}
+                {downgradeReadiness.adaptedLimit}
               </p>
             </>
           ) : (

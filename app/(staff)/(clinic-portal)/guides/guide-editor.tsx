@@ -244,7 +244,9 @@ export function GuideEditor({
 
   const sourceLabel = guide.template
     ? `Template · ${guide.template.title}`
-    : "Custom guide";
+    : guide.adaptedFromTemplate
+      ? "Editable River template"
+      : "Custom guide";
   const statusPills = clinicGuideStatusPills(guide.lifecycle);
   const slugLocked = !canEdit || guide.isPublished;
   const publicUrl = patientUrlExample.startsWith("http")

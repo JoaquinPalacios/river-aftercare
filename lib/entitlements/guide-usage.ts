@@ -4,6 +4,8 @@ import type { Prisma } from "@prisma/client";
 
 import { getPrisma } from "@/lib/prisma";
 import {
+  adaptedTemplateLimitMessage,
+  adaptedTemplateUsageLabel,
   customGuideLimitMessage,
   customGuideUsageLabel,
   ENTITLEMENT_CODES,
@@ -12,25 +14,51 @@ import {
   type EntitlementCode,
 } from "@/lib/entitlements/messages";
 import { lockClinicGuideCapacity } from "@/lib/entitlements/locks";
-import type { PlanGovernance } from "@/lib/entitlements/plan-policy";
-import { readPlanGovernance } from "@/lib/entitlements/team-usage";
+import {
+  allowanceDimension,
+  canCreateTemplateAdaptation,
+  effectiveAllowances,
+  planGovernanceFromEntitlement,
+  type PlanGovernance,
+} from "@/lib/entitlements/plan-policy";
+import {
+  allowanceExtrasFrom,
+  readStoredEntitlement,
+} from "@/lib/entitlements/team-usage";
 
 type UsageClient = Prisma.TransactionClient | ReturnType<typeof getPrisma>;
 
-/**
- * A counted custom clinic guide is any PracticeGuide that is not pinned to a
- * canonical River template. That includes blank custom guides, adapted
- * copies (the pin is cleared), drafts, published guides, and disabled or
- * unpublished guides that still exist. Deleting the row frees the place.
- * Platform GuideTemplate rows are not PracticeGuides and do not count.
- */
-export function practiceGuideCountsAsCustom(guide: {
+export type GuideOriginFields = {
+  guideTemplateId: string | null;
+  sourceGuideTemplateId: string | null;
+  adaptedAt?: Date | null;
+};
+
+/** River template enabled for the clinic and still pinned to the canonical revision. */
+export function isPinnedRiverTemplate(guide: {
   guideTemplateId: string | null;
 }): boolean {
-  return guide.guideTemplateId === null;
+  return guide.guideTemplateId !== null;
 }
 
-export async function countCustomGuides(
+/** Clinic-owned guide that did not originate from a River template. */
+export function isOriginalCustomGuide(guide: GuideOriginFields): boolean {
+  return guide.guideTemplateId === null && guide.sourceGuideTemplateId === null;
+}
+
+/**
+ * Clinic-owned editable copy of a River template.
+ * The pin is cleared. sourceGuideTemplateId keeps the origin.
+ */
+export function isAdaptedTemplateGuide(guide: GuideOriginFields): boolean {
+  return (
+    guide.guideTemplateId === null &&
+    guide.sourceGuideTemplateId !== null &&
+    guide.adaptedAt != null
+  );
+}
+
+export async function countOriginalCustomGuides(
   prisma: UsageClient,
   clinicId: string
 ): Promise<number> {
@@ -38,81 +66,152 @@ export async function countCustomGuides(
     where: {
       clinicId,
       guideTemplateId: null,
+      sourceGuideTemplateId: null,
     },
   });
 }
 
-export type GuideAllowanceSummary = {
-  governed: boolean;
-  commercialPlan: "ESSENTIAL" | "PRACTICE" | null;
-  customGuideCount: number;
+export async function countAdaptedTemplateGuides(
+  prisma: UsageClient,
+  clinicId: string
+): Promise<number> {
+  return prisma.practiceGuide.count({
+    where: {
+      clinicId,
+      guideTemplateId: null,
+      sourceGuideTemplateId: { not: null },
+    },
+  });
+}
+
+export type GuidePoolSummary = {
+  used: number;
+  baseLimit: number | null;
+  extraAllowance: number | null;
+  /** Effective allowance shown to the clinic. */
   planLimit: number | null;
   remainingPlaces: number | null;
   atLimit: boolean;
-  canAdaptRiverTemplates: boolean;
   usageLabel: string | null;
   limitMessage: string | null;
 };
+
+export type GuideAllowanceSummary = {
+  governed: boolean;
+  commercialPlan: "ESSENTIAL" | "PRACTICE" | null;
+  customGuides: GuidePoolSummary;
+  adaptedTemplates: GuidePoolSummary;
+};
+
+function emptyPool(used: number): GuidePoolSummary {
+  return {
+    used,
+    baseLimit: null,
+    extraAllowance: null,
+    planLimit: null,
+    remainingPlaces: null,
+    atLimit: false,
+    usageLabel: null,
+    limitMessage: null,
+  };
+}
 
 export async function loadGuideAllowance(
   clinicId: string
 ): Promise<GuideAllowanceSummary> {
   const prisma = getPrisma();
-  const governance = await readPlanGovernance(clinicId, prisma);
-  const customGuideCount = await countCustomGuides(prisma, clinicId);
-  return guideAllowanceFrom(governance, customGuideCount);
+  const entitlement = await readStoredEntitlement(clinicId, prisma);
+  const governance = planGovernanceFromEntitlement({ entitlement });
+  const customGuideCount = await countOriginalCustomGuides(prisma, clinicId);
+  const adaptedCount = await countAdaptedTemplateGuides(prisma, clinicId);
+  return guideAllowanceFrom(
+    governance,
+    allowanceExtrasFrom(entitlement),
+    customGuideCount,
+    adaptedCount
+  );
 }
 
 export function guideAllowanceFrom(
   governance: PlanGovernance,
-  customGuideCount: number
+  extras: {
+    teamMembers: number;
+    customGuides: number;
+    templateAdaptations: number;
+  },
+  customGuideCount: number,
+  adaptedCount: number
 ): GuideAllowanceSummary {
   if (!governance.governed) {
     return {
       governed: false,
       commercialPlan: null,
-      customGuideCount,
-      planLimit: null,
-      remainingPlaces: null,
-      atLimit: false,
-      canAdaptRiverTemplates: false,
-      usageLabel: null,
-      limitMessage: null,
+      customGuides: emptyPool(customGuideCount),
+      adaptedTemplates: emptyPool(adaptedCount),
     };
   }
 
-  const planLimit = governance.policy.customGuideLimit;
+  const effective = effectiveAllowances(governance.policy.base, extras);
+  const custom = allowanceDimension({
+    used: customGuideCount,
+    base: governance.policy.base.customGuides,
+    extra: extras.customGuides,
+  });
+  const adapted = allowanceDimension({
+    used: adaptedCount,
+    base: governance.policy.base.templateAdaptations,
+    extra: extras.templateAdaptations,
+  });
   return {
     governed: true,
     commercialPlan: governance.policy.commercialPlan,
-    customGuideCount,
-    planLimit,
-    remainingPlaces: Math.max(planLimit - customGuideCount, 0),
-    atLimit: customGuideCount >= planLimit,
-    canAdaptRiverTemplates: governance.policy.canAdaptRiverTemplates,
-    usageLabel: customGuideUsageLabel(customGuideCount, planLimit),
-    limitMessage: customGuideLimitMessage(
-      governance.policy.commercialPlan,
-      planLimit
-    ),
+    customGuides: {
+      used: custom.used,
+      baseLimit: custom.base,
+      extraAllowance: custom.extra,
+      planLimit: custom.effective,
+      remainingPlaces: custom.remaining,
+      atLimit: custom.atLimit,
+      usageLabel: customGuideUsageLabel(custom.used, custom.effective),
+      limitMessage: customGuideLimitMessage(
+        governance.policy.commercialPlan,
+        effective.customGuides
+      ),
+    },
+    adaptedTemplates: {
+      used: adapted.used,
+      baseLimit: adapted.base,
+      extraAllowance: adapted.extra,
+      planLimit: adapted.effective,
+      remainingPlaces: adapted.remaining,
+      atLimit: adapted.atLimit,
+      usageLabel: adaptedTemplateUsageLabel(adapted.used, adapted.effective),
+      limitMessage: adaptedTemplateLimitMessage(
+        governance.policy.commercialPlan,
+        effective.templateAdaptations
+      ),
+    },
   };
 }
 
-export type CustomGuideCapacityResult =
+export type GuideCapacityResult =
   { ok: true } | { ok: false; code: EntitlementCode; error: string };
 
 export async function reserveCustomGuidePlace(
   tx: Prisma.TransactionClient,
   clinicId: string
-): Promise<CustomGuideCapacityResult> {
+): Promise<GuideCapacityResult> {
   await lockClinicGuideCapacity(tx, clinicId);
-  const governance = await readPlanGovernance(clinicId, tx);
+  const entitlement = await readStoredEntitlement(clinicId, tx);
+  const governance = planGovernanceFromEntitlement({ entitlement });
   if (!governance.governed) {
     return { ok: true };
   }
 
-  const customGuideCount = await countCustomGuides(tx, clinicId);
-  if (customGuideCount < governance.policy.customGuideLimit) {
+  const extras = allowanceExtrasFrom(entitlement);
+  const effective = effectiveAllowances(governance.policy.base, extras);
+  const customGuideCount = await countOriginalCustomGuides(tx, clinicId);
+  if (customGuideCount < effective.customGuides) {
     return { ok: true };
   }
 
@@ -121,7 +220,7 @@ export async function reserveCustomGuidePlace(
     code: ENTITLEMENT_CODES.CUSTOM_GUIDE_LIMIT_REACHED,
     error: customGuideLimitMessage(
       governance.policy.commercialPlan,
-      governance.policy.customGuideLimit
+      effective.customGuides
     ),
   };
 }
@@ -130,18 +229,19 @@ export type TemplateAdaptationDecision =
   { ok: true } | { ok: false; code: EntitlementCode; error: string };
 
 /**
- * Explicit adaptation is a Practice capability. Essential is refused.
- * Group and legacy clinics are not given a new adapt/fork action; they keep
- * in-place template editing. Practice also needs a free custom-guide place
- * because the adapted copy becomes a counted clinic-owned guide.
+ * First edit of a pinned River template forks a clinic-owned copy.
+ * Essential and Practice both may do this while adapted-template capacity
+ * remains. The copy does not consume an original custom-guide place.
+ * Group and legacy clinics keep in-place editing and are not given this fork.
  */
 export async function decideTemplateAdaptation(
   tx: Prisma.TransactionClient,
   clinicId: string
 ): Promise<TemplateAdaptationDecision> {
   await lockClinicGuideCapacity(tx, clinicId);
-  const governance = await readPlanGovernance(clinicId, tx);
-  if (!governance.governed || !governance.policy.canAdaptRiverTemplates) {
+  const entitlement = await readStoredEntitlement(clinicId, tx);
+  const governance = planGovernanceFromEntitlement({ entitlement });
+  if (!governance.governed) {
     return {
       ok: false,
       code: ENTITLEMENT_CODES.TEMPLATE_ADAPTATION_NOT_AVAILABLE,
@@ -149,14 +249,21 @@ export async function decideTemplateAdaptation(
     };
   }
 
-  const customGuideCount = await countCustomGuides(tx, clinicId);
-  if (customGuideCount >= governance.policy.customGuideLimit) {
+  const extras = allowanceExtrasFrom(entitlement);
+  const effective = effectiveAllowances(governance.policy.base, extras);
+  const adaptedCount = await countAdaptedTemplateGuides(tx, clinicId);
+  if (
+    !canCreateTemplateAdaptation({
+      used: adaptedCount,
+      effective: effective.templateAdaptations,
+    })
+  ) {
     return {
       ok: false,
-      code: ENTITLEMENT_CODES.CUSTOM_GUIDE_LIMIT_REACHED,
-      error: customGuideLimitMessage(
+      code: ENTITLEMENT_CODES.ADAPTED_TEMPLATE_LIMIT_REACHED,
+      error: adaptedTemplateLimitMessage(
         governance.policy.commercialPlan,
-        governance.policy.customGuideLimit
+        effective.templateAdaptations
       ),
     };
   }
@@ -174,12 +281,6 @@ export function governedTemplateEditBlock(input: {
   }
   if (!input.governance.governed) {
     return null;
-  }
-  if (!input.governance.policy.canAdaptRiverTemplates) {
-    return {
-      code: ENTITLEMENT_CODES.TEMPLATE_ADAPTATION_NOT_AVAILABLE,
-      error: templateAdaptationUnavailableMessage(),
-    };
   }
   return {
     code: ENTITLEMENT_CODES.TEMPLATE_ADAPTATION_REQUIRED,

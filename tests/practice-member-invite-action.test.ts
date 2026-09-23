@@ -160,8 +160,6 @@ describe("invitePracticeMemberAction", () => {
       name: "New Admin",
       email: "new.admin@example.test",
       role: "ADMIN",
-      actorPlatformRole: PlatformRole.OPERATOR,
-      operatorOverride: false,
     });
     expect(revalidatePathMock).toHaveBeenCalledWith(
       "/operator/clinics/clinic_empty/team"
@@ -208,8 +206,6 @@ describe("invitePracticeMemberAction", () => {
       name: "New Staff",
       email: "new.staff@example.test",
       role: "STAFF",
-      actorPlatformRole: PlatformRole.NONE,
-      operatorOverride: false,
     });
     expect(revalidatePathMock).not.toHaveBeenCalledWith(
       "/operator/clinics/clinic_a/team"

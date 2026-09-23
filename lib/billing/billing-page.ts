@@ -45,6 +45,8 @@ export type OperatorBillingPanel = {
     teamLimit: number;
     guideCurrent: number;
     guideLimit: number;
+    adaptedCurrent: number;
+    adaptedLimit: number;
   } | null;
   canRevise: boolean;
   reviseBlockedReason: string | null;
@@ -141,6 +143,8 @@ export async function loadOperatorBillingPanel(
           teamLimit: downgradeReadiness.team.limit,
           guideCurrent: downgradeReadiness.guides.current,
           guideLimit: downgradeReadiness.guides.limit,
+          adaptedCurrent: downgradeReadiness.adaptedTemplates.current,
+          adaptedLimit: downgradeReadiness.adaptedTemplates.limit,
         }
       : null,
     canRevise: revision.ok,

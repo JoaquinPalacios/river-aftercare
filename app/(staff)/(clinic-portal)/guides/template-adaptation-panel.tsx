@@ -6,6 +6,7 @@ import {
   adaptGuideFromTemplateAction,
   type GuideActionState,
 } from "@/app/(staff)/(clinic-portal)/guides/actions";
+import { TEMPLATE_EDIT_NOTE } from "@/lib/entitlements/messages";
 
 const initial: GuideActionState = {};
 
@@ -16,7 +17,7 @@ export function TemplateAdaptationPanel({
   limitMessage,
 }: {
   guideId: string;
-  mode: "essential" | "practice" | "practice_full";
+  mode: "available" | "full";
   contactHref: string;
   limitMessage: string | null;
 }) {
@@ -27,12 +28,11 @@ export function TemplateAdaptationPanel({
 
   return (
     <section className="mb-6 rounded-xl border border-staff-line bg-staff-panel p-5">
-      {mode === "essential" ? (
-        <>
-          <p className="text-sm leading-6 text-staff-muted">
-            This River Aftercare template is used as supplied. Essential does
-            not adapt templates into clinic-specific guides. Custom clinic
-            guides keep the normal editor.
+      {mode === "full" ? (
+        <div className="text-sm leading-6 text-staff-muted">
+          <p>
+            {limitMessage} This River template can still be used as supplied.
+            Existing editable copies can still be edited.
           </p>
           <a
             href={contactHref}
@@ -40,21 +40,11 @@ export function TemplateAdaptationPanel({
           >
             Contact River Aftercare
           </a>
-        </>
-      ) : null}
-      {mode === "practice_full" ? (
-        <p className="text-sm leading-6 text-staff-muted">
-          {limitMessage} Adapting this template would create another custom
-          clinic guide. Existing guides can still be edited. Delete a custom
-          guide you no longer need to free a place.
-        </p>
-      ) : null}
-      {mode === "practice" ? (
+        </div>
+      ) : (
         <>
           <p className="text-sm leading-6 text-staff-muted">
-            Adapting keeps the River Aftercare template unchanged and turns this
-            guide into a clinic-owned custom guide. That custom guide uses one
-            place in the clinic allowance. Later edits use the normal editor.
+            {TEMPLATE_EDIT_NOTE} The River template itself stays unchanged.
           </p>
           <form action={action} className="mt-4">
             <input type="hidden" name="guideId" value={guideId} />
@@ -63,11 +53,11 @@ export function TemplateAdaptationPanel({
               className="staffBtn staffBtnPrimary h-11"
               disabled={pending}
             >
-              {pending ? "Adapting…" : "Adapt template"}
+              {pending ? "Editing…" : "Edit template"}
             </button>
           </form>
         </>
-      ) : null}
+      )}
       {state.error ? (
         <p className="mt-3 text-sm text-red-600" role="alert">
           {state.error}
@@ -75,7 +65,7 @@ export function TemplateAdaptationPanel({
       ) : null}
       {state.ok ? (
         <p className="mt-3 text-sm text-staff-ink" role="status">
-          This guide is now a custom clinic guide.
+          This is now your clinic’s editable copy.
         </p>
       ) : null}
     </section>

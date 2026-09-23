@@ -54,23 +54,35 @@ GROUP stays custom/manual. Phase 3 adds Customer Portal for payment methods, inv
 
 ### Phase 4 — plan allowances
 
-Policy lives in `lib/entitlements/plan-policy.ts`. It is not read from marketing copy or Stripe Price metadata. Allowances apply only when `ClinicEntitlement.commercialPlan` is `ESSENTIAL` or `PRACTICE`. No entitlement row stays legacy-open. `GROUP` and a null plan are not given Essential or Practice caps. Billing lifecycle is unchanged: limits apply to the current local plan while product access follows the existing activation gate (`ACTIVE`, including cancel-at-period-end and `PAST_DUE`).
+Policy lives in `lib/entitlements/plan-policy.ts`. It is not read from marketing copy or Stripe Price metadata. Allowances apply only when `ClinicEntitlement.commercialPlan` is `ESSENTIAL` or `PRACTICE`. No entitlement row stays legacy-open: product access is not given Essential limits. `GROUP` and a null plan are not given Essential or Practice caps. Billing lifecycle is unchanged: limits apply to the current local plan while product access follows the existing activation gate (`ACTIVE`, including cancel-at-period-end and `PAST_DUE`).
 
-|                        | Essential | Practice                 |
-| ---------------------- | --------- | ------------------------ |
-| Team members           | 2         | 5                        |
-| Custom clinic guides   | 2         | 30                       |
-| Adapt a River template | no        | yes, and the copy counts |
+Original custom guides and editable River-template copies are independent pools. Effective allowance is the plan base plus persistent operator extras. Extras are stored on `ClinicEntitlement` (`extraTeamMemberAllowance`, `extraCustomGuideAllowance`, `extraTemplateAdaptationAllowance`). They default to 0, are not the computed total, and do not change Stripe, subscription quantity, Price, invoices, or `commercialPlan`.
 
-Occupied team places are active `ADMIN` and `STAFF` memberships plus one reservation per distinct user with a valid pending invitation. Inactive memberships, revoked, consumed, and expired tokens, and platform `OPERATOR` accounts do not count. Resend replaces the token and does not reserve a second place. Acceptance swaps the reservation for a membership under the same clinic capacity lock (`clinic-team-capacity:<clinicId>`). A clinic administrator at the allowance is blocked. An operator may override that one invitation, access restore, or reactivation. The override is explicit, logged as `operator_team_allowance_override` (operator id, clinic id, action, usage, limit), and does not change Stripe, `CommercialPlan`, or later operations.
+|                          | Essential base | Practice base |
+| ------------------------ | -------------- | ------------- |
+| Team members             | 2              | 5             |
+| Original custom guides   | 2              | 30            |
+| Editable River templates | 2              | 10            |
 
-A counted custom guide is a `PracticeGuide` with `guideTemplateId` null. That includes blank guides, adapted copies, drafts, published guides, and disabled or unpublished guides that still exist. Deleting the row frees a place. Enabling a River template as supplied keeps the pin and does not count. Practice adaptation clears the pin, sets `sourceGuideTemplateId` and `adaptedAt`, and then uses the normal editor. Essential cannot adapt. In-place content edits of a pinned template are refused for governed clinics so the allowance cannot be bypassed. Legacy and Group clinics keep in-place template editing. There is no operator override for the guide cap. Creates and adaptations share `clinic-guide-capacity:<clinicId>`.
+An Essential clinic may therefore hold 2 original custom guides and 2 adapted copies at the same time. A Practice clinic may hold 30 and 10. Operator extras add to those bases and survive a later Essential ↔ Practice projection change unless an operator changes them.
 
-Existing rows are not backfilled. A historical in-place edit that still has `guideTemplateId` set does not count and is not guessed from section text. Governed clinics must adapt before further clinic-specific edits. Clinics already above an allowance keep their data. New capacity-increasing actions are blocked for clinic administrators until usage drops. Nothing is auto-deleted.
+Occupied team places are active `ADMIN` and `STAFF` memberships plus one reservation per distinct user with a valid pending invitation. Inactive memberships, revoked, consumed, and expired tokens, and platform `OPERATOR` accounts do not count. Resend replaces the token and does not reserve a second place. Acceptance swaps the reservation for a membership under the same clinic capacity lock (`clinic-team-capacity:<clinicId>`). The effective team limit is the base plus `extraTeamMemberAllowance`. A clinic administrator and a platform operator are both blocked at that limit. There is no per-invitation override. Extra capacity is granted on the operator clinic page and logged as `operator_allowance_extra_updated` (operator user id, clinic id, dimension, previous extra, new extra, effective allowance).
 
-`loadEssentialDowngradeReadiness` reports `TEAM_MEMBERS` and `CUSTOM_GUIDES` conflicts against the Essential limits. The operator clinic page shows that summary for a Practice clinic. It does not schedule a Stripe downgrade.
+Guide origin:
 
-Phase 4 adds one additive migration, `20260923120000_add_practice_guide_template_adaptation`. Do not apply it to production from this change.
+- As supplied: `guideTemplateId` set. Counts in neither clinic-owned pool.
+- Original custom: `guideTemplateId` and `sourceGuideTemplateId` both null. Counts only toward the custom-guide allowance, including drafts, published guides, and unpublished guides that still exist.
+- Adapted copy: `guideTemplateId` null, `sourceGuideTemplateId` set, `adaptedAt` set. Counts only toward the adapted-template allowance. Later edits do not consume another place and do not clear the source. Deleting the row frees that pool’s place. Unpublishing does not.
+
+Editing a pinned River template forks a clinic-owned copy inside `clinic-guide-capacity:<clinicId>` before clinic-specific content is saved. The canonical `GuideTemplate` and its revisions stay unchanged. Essential and Practice may both fork while adapted-template capacity remains. Group and legacy clinics keep in-place template editing and are not given this fork. There is no duplicate-guide flow; copying an adapted guide is out of scope. One custom create and one adaptation may both succeed when each pool has room. Two requests for the last place in the same pool cannot both succeed.
+
+A read-only production audit found one pinned Practice guide (Tooth Extraction), zero `PracticeGuideOverride` rows, and zero `PracticeGuideAddition` rows. Its revisions match the normal publish lifecycle. No adaptation backfill is required. The existing pin stays as supplied.
+
+Clinics already above an effective allowance keep members, invitations, and guides. New capacity-increasing actions for that dimension stay blocked. Another dimension with remaining capacity stays available. Reducing an operator extra below current usage is allowed and does not delete anything. The operator UI warns before that save.
+
+`loadEssentialDowngradeReadiness` reports `TEAM_MEMBERS`, `CUSTOM_GUIDES`, and `TEMPLATE_ADAPTATIONS` against Essential base plus the clinic’s current extras. It does not schedule a Stripe downgrade and does not discard extras.
+
+Phase 4 uses one additive migration, `20260923120000_add_practice_guide_template_adaptation` (`PracticeGuide.adaptedAt`, `PracticeGuide.sourceGuideTemplateId`, and the three extra-allowance columns). Do not apply it to production from this change.
 
 ### Not yet present
 

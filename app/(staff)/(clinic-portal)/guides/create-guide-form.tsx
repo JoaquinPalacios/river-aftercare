@@ -43,12 +43,10 @@ export function CreateGuideForm({
         </h2>
         <p className="mt-2 text-sm leading-6 text-staff-muted">
           {isDemoTenant
-            ? `Use a ${PRODUCT_NAME} sample template, then adapt it for this demo.`
-            : allowance.governed && !allowance.canAdaptRiverTemplates
-              ? `Use a ${PRODUCT_NAME} template as supplied. This plan does not adapt templates into clinic-specific guides.`
-              : allowance.canAdaptRiverTemplates
-                ? `Enable a ${PRODUCT_NAME} template as supplied. Adapting it into a custom clinic guide is done from the editor and uses a custom-guide place.`
-                : `Enable a reviewed ${PRODUCT_NAME} template for this practice.`}
+            ? `Use a ${PRODUCT_NAME} sample template, then adapt it for this demo. Editing it creates your clinic’s own copy and uses one editable-template allowance.`
+            : allowance.governed
+              ? `Enable a ${PRODUCT_NAME} template as supplied. Using it unchanged does not use a custom-guide or editable-template place. Editing it later creates your clinic’s own copy and uses one editable-template allowance.`
+              : `Enable a reviewed ${PRODUCT_NAME} template for this practice.`}
         </p>
         {templates.length === 0 ? (
           <p className="mt-4 text-sm text-staff-muted">
@@ -105,16 +103,21 @@ export function CreateGuideForm({
         <p className="mt-2 text-sm leading-6 text-staff-muted">
           Start from a blank guide for a treatment unique to this clinic.
         </p>
-        {allowance.usageLabel ? (
+        {allowance.customGuides.usageLabel ? (
           <p className="mt-3 text-sm font-medium text-staff-ink">
-            {allowance.usageLabel}
+            {allowance.customGuides.usageLabel}
           </p>
         ) : null}
-        {allowance.atLimit ? (
+        {allowance.adaptedTemplates.usageLabel ? (
+          <p className="mt-1 text-sm font-medium text-staff-ink">
+            {allowance.adaptedTemplates.usageLabel}
+          </p>
+        ) : null}
+        {allowance.customGuides.atLimit ? (
           <div className="mt-3 text-sm leading-6 text-staff-muted">
             <p>
-              {allowance.limitMessage} Existing custom guides can still be
-              edited.
+              {allowance.customGuides.limitMessage} Existing custom guides can
+              still be edited.
             </p>
             <a
               href={contactHref}
@@ -133,7 +136,7 @@ export function CreateGuideForm({
               id="title"
               name="title"
               required
-              disabled={customPending || allowance.atLimit}
+              disabled={customPending || allowance.customGuides.atLimit}
               className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
             />
             {customState.fieldErrors?.title ? (
@@ -150,7 +153,7 @@ export function CreateGuideForm({
               id="publicSlug"
               name="publicSlug"
               required
-              disabled={customPending || allowance.atLimit}
+              disabled={customPending || allowance.customGuides.atLimit}
               placeholder="extraction"
               className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
             />
@@ -165,7 +168,7 @@ export function CreateGuideForm({
               {customState.error}
             </p>
           ) : null}
-          {allowance.atLimit ? null : (
+          {allowance.customGuides.atLimit ? null : (
             <button
               type="submit"
               disabled={customPending}

@@ -55,8 +55,7 @@ export type InviteClinicUserErrorCode =
   | "platform_operator"
   | "pending_same_clinic"
   | "pending_other_clinic"
-  | typeof ENTITLEMENT_CODES.TEAM_MEMBER_LIMIT_REACHED
-  | typeof ENTITLEMENT_CODES.OPERATOR_OVERRIDE_REQUIRED;
+  | typeof ENTITLEMENT_CODES.TEAM_MEMBER_LIMIT_REACHED;
 
 export type InviteClinicUserOutcome = "INVITATION_SENT" | "ACCESS_RESTORED";
 
@@ -137,8 +136,6 @@ export async function inviteClinicUser(input: {
   role: string;
   now?: Date;
   prisma?: PrismaClient;
-  actorPlatformRole?: PlatformRole;
-  operatorOverride?: boolean;
 }): Promise<InviteClinicUserResult> {
   const nameError = invitedNameError(input.name);
   if (nameError) {
@@ -198,8 +195,6 @@ export async function inviteClinicUser(input: {
 
   const now = input.now ?? new Date();
   const prisma = input.prisma ?? getPrisma();
-  const actorPlatformRole = input.actorPlatformRole ?? PlatformRole.NONE;
-  const operatorOverride = input.operatorOverride === true;
 
   const created = await prisma.$transaction(async (tx) => {
     await lockClinicTeamCapacity(tx, input.clinicId);
@@ -237,10 +232,6 @@ export async function inviteClinicUser(input: {
       const reserved = await reserveTeamPlace(tx, {
         clinicId: clinic.id,
         now,
-        actorUserId: input.invitedByUserId,
-        actorPlatformRole,
-        operatorOverride,
-        action: "invitation",
       });
       if (!reserved.ok) {
         return {
@@ -322,10 +313,6 @@ export async function inviteClinicUser(input: {
       const reserved = await reserveTeamPlace(tx, {
         clinicId: clinic.id,
         now,
-        actorUserId: input.invitedByUserId,
-        actorPlatformRole,
-        operatorOverride,
-        action: "access_restored",
       });
       if (!reserved.ok) {
         return {
@@ -397,10 +384,6 @@ export async function inviteClinicUser(input: {
     const reserved = await reserveTeamPlace(tx, {
       clinicId: clinic.id,
       now,
-      actorUserId: input.invitedByUserId,
-      actorPlatformRole,
-      operatorOverride,
-      action: "invitation",
     });
     if (!reserved.ok) {
       return {
@@ -434,10 +417,7 @@ export async function inviteClinicUser(input: {
   });
 
   if (!created.ok) {
-    if (
-      created.code === ENTITLEMENT_CODES.TEAM_MEMBER_LIMIT_REACHED ||
-      created.code === ENTITLEMENT_CODES.OPERATOR_OVERRIDE_REQUIRED
-    ) {
+    if (created.code === ENTITLEMENT_CODES.TEAM_MEMBER_LIMIT_REACHED) {
       return {
         ok: false,
         code: created.code,
@@ -452,7 +432,6 @@ export async function inviteClinicUser(input: {
         | "invalid_email"
         | "invalid_role"
         | typeof ENTITLEMENT_CODES.TEAM_MEMBER_LIMIT_REACHED
-        | typeof ENTITLEMENT_CODES.OPERATOR_OVERRIDE_REQUIRED
       >,
       string
     > = {

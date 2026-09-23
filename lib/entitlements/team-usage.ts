@@ -8,11 +8,14 @@ import {
 } from "@prisma/client";
 
 import { getPrisma } from "@/lib/prisma";
+import { teamUsageDetail, teamUsageLabel } from "@/lib/entitlements/messages";
 import {
+  effectiveAllowances,
   planGovernanceFromEntitlement,
+  ZERO_ALLOWANCE_EXTRAS,
+  type AllowanceAmounts,
   type PlanGovernance,
 } from "@/lib/entitlements/plan-policy";
-import { teamUsageDetail, teamUsageLabel } from "@/lib/entitlements/messages";
 
 type UsageClient = Prisma.TransactionClient | ReturnType<typeof getPrisma>;
 
@@ -74,14 +77,46 @@ export async function countTeamUsage(
   };
 }
 
+export type StoredEntitlement = {
+  commercialPlan: "ESSENTIAL" | "PRACTICE" | "GROUP" | null;
+  extraTeamMemberAllowance: number;
+  extraCustomGuideAllowance: number;
+  extraTemplateAdaptationAllowance: number;
+};
+
+export async function readStoredEntitlement(
+  clinicId: string,
+  prisma: UsageClient = getPrisma()
+): Promise<StoredEntitlement | null> {
+  return prisma.clinicEntitlement.findUnique({
+    where: { clinicId },
+    select: {
+      commercialPlan: true,
+      extraTeamMemberAllowance: true,
+      extraCustomGuideAllowance: true,
+      extraTemplateAdaptationAllowance: true,
+    },
+  });
+}
+
+export function allowanceExtrasFrom(
+  entitlement: StoredEntitlement | null
+): AllowanceAmounts {
+  if (!entitlement) {
+    return ZERO_ALLOWANCE_EXTRAS;
+  }
+  return {
+    teamMembers: entitlement.extraTeamMemberAllowance,
+    customGuides: entitlement.extraCustomGuideAllowance,
+    templateAdaptations: entitlement.extraTemplateAdaptationAllowance,
+  };
+}
+
 export async function readPlanGovernance(
   clinicId: string,
   prisma: UsageClient = getPrisma()
 ): Promise<PlanGovernance> {
-  const entitlement = await prisma.clinicEntitlement.findUnique({
-    where: { clinicId },
-    select: { commercialPlan: true },
-  });
+  const entitlement = await readStoredEntitlement(clinicId, prisma);
   return planGovernanceFromEntitlement({ entitlement });
 }
 
@@ -90,6 +125,9 @@ export type TeamAllowanceSummary = {
   occupiedPlaces: number;
   activeMemberCount: number;
   pendingInvitationCount: number;
+  baseLimit: number | null;
+  extraAllowance: number | null;
+  /** Effective allowance: base plus persistent operator extras. */
   planLimit: number | null;
   remainingPlaces: number | null;
   atLimit: boolean;
@@ -102,13 +140,16 @@ export async function loadTeamAllowance(
   now: Date = new Date()
 ): Promise<TeamAllowanceSummary> {
   const prisma = getPrisma();
-  const governance = await readPlanGovernance(clinicId, prisma);
+  const entitlement = await readStoredEntitlement(clinicId, prisma);
+  const governance = planGovernanceFromEntitlement({ entitlement });
   const usage = await countTeamUsage(prisma, clinicId, now);
 
   if (!governance.governed) {
     return {
       governed: false,
       ...usage,
+      baseLimit: null,
+      extraAllowance: null,
       planLimit: null,
       remainingPlaces: null,
       atLimit: false,
@@ -117,11 +158,15 @@ export async function loadTeamAllowance(
     };
   }
 
-  const planLimit = governance.policy.teamMemberLimit;
+  const extras = allowanceExtrasFrom(entitlement);
+  const effective = effectiveAllowances(governance.policy.base, extras);
+  const planLimit = effective.teamMembers;
   const remainingPlaces = Math.max(planLimit - usage.occupiedPlaces, 0);
   return {
     governed: true,
     ...usage,
+    baseLimit: governance.policy.base.teamMembers,
+    extraAllowance: extras.teamMembers,
     planLimit,
     remainingPlaces,
     atLimit: usage.occupiedPlaces >= planLimit,

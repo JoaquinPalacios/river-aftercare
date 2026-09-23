@@ -67,7 +67,6 @@ export default async function PracticePage() {
         }
         allowance={allowance}
         contactHref={marketingContactHref(links)}
-        operatorCanOverride={assisting}
       />
       <PracticeSettingsForm
         canEdit={

@@ -58,14 +58,6 @@ export type InvitationLifecycleLogEvent =
       event: "operator_clinic_settings_updated";
       userId: string;
       clinicId: string;
-    }
-  | {
-      event: "operator_team_allowance_override";
-      actorUserId: string;
-      clinicId: string;
-      action: "invitation" | "access_restored" | "reactivation";
-      occupiedPlaces: number;
-      planLimit: number;
     };
 
 export function logInvitationLifecycle(

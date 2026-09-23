@@ -29,8 +29,8 @@ import { getPrisma } from "@/lib/prisma";
 const prisma = getPrisma();
 const PREFIX = "test_ent_team_";
 const CLINIC_ID = `${PREFIX}clinic`;
-const essentialLimit = PLAN_ENTITLEMENT_POLICIES.ESSENTIAL.teamMemberLimit;
-const practiceLimit = PLAN_ENTITLEMENT_POLICIES.PRACTICE.teamMemberLimit;
+const essentialLimit = PLAN_ENTITLEMENT_POLICIES.ESSENTIAL.base.teamMembers;
+const practiceLimit = PLAN_ENTITLEMENT_POLICIES.PRACTICE.base.teamMembers;
 
 function email(label: string) {
   return `${PREFIX}${label}@example.test`;
@@ -70,8 +70,16 @@ async function setPlan(plan: "ESSENTIAL" | "PRACTICE" | "GROUP" | null) {
       commercialPlan: plan,
       billingStatus: BillingStatus.ACTIVE,
       entitlementStatus: EntitlementStatus.ACTIVE,
+      extraTeamMemberAllowance: 0,
+      extraCustomGuideAllowance: 0,
+      extraTemplateAdaptationAllowance: 0,
     },
-    update: { commercialPlan: plan },
+    update: {
+      commercialPlan: plan,
+      extraTeamMemberAllowance: 0,
+      extraCustomGuideAllowance: 0,
+      extraTemplateAdaptationAllowance: 0,
+    },
   });
 }
 
@@ -305,8 +313,6 @@ describe("clinic team allowance", () => {
       name: "Third",
       email: email("third"),
       role: "STAFF",
-      actorPlatformRole: PlatformRole.NONE,
-      operatorOverride: true,
     });
     expect(third).toMatchObject({
       ok: false,
@@ -334,7 +340,6 @@ describe("clinic team allowance", () => {
       clinicId: CLINIC_ID,
       membershipId: staff.membership.id,
       active: true,
-      operatorOverride: true,
     });
     expect(blockedReactivate).toMatchObject({
       ok: false,
@@ -380,10 +385,25 @@ describe("clinic team allowance", () => {
     });
   });
 
-  it("lets an operator override one team operation without changing the plan", async () => {
-    await setPlan("ESSENTIAL");
+  it("uses a persistent team extra and still blocks an operator at the effective limit", async () => {
     await prisma.accountToken.deleteMany({ where: { clinicId: CLINIC_ID } });
-    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    await prisma.clinicMembership.deleteMany({
+      where: { clinicId: CLINIC_ID },
+    });
+    await prisma.user.deleteMany({ where: { email: { startsWith: PREFIX } } });
+    await setPlan("ESSENTIAL");
+    await prisma.clinicEntitlement.update({
+      where: { clinicId: CLINIC_ID },
+      data: { extraTeamMemberAllowance: 1 },
+    });
+    const beforePlan = await prisma.clinicEntitlement.findUniqueOrThrow({
+      where: { clinicId: CLINIC_ID },
+    });
+    const admin = await addMember({
+      label: "extra-admin",
+      role: ClinicMembershipRole.ADMIN,
+    });
+    await addMember({ label: "extra-staff" });
     const operator = await prisma.user.create({
       data: {
         email: email("platform-operator"),
@@ -391,61 +411,43 @@ describe("clinic team allowance", () => {
         platformRole: PlatformRole.OPERATOR,
       },
     });
-    const beforePlan = await prisma.clinicEntitlement.findUniqueOrThrow({
-      where: { clinicId: CLINIC_ID },
-    });
-    const usageBefore = await countTeamUsage(prisma, CLINIC_ID);
 
-    const refused = await inviteClinicUser({
+    const third = await inviteClinicUser({
+      clinicId: CLINIC_ID,
+      invitedByUserId: admin.user.id,
+      name: "Third place",
+      email: email("extra-place"),
+      role: "STAFF",
+    });
+    expect(third.ok).toBe(true);
+    expect((await countTeamUsage(prisma, CLINIC_ID)).occupiedPlaces).toBe(
+      essentialLimit + 1
+    );
+
+    const blocked = await inviteClinicUser({
       clinicId: CLINIC_ID,
       invitedByUserId: operator.id,
-      name: "Extra",
-      email: email("operator-extra"),
+      name: "Fourth",
+      email: email("operator-fourth"),
       role: "STAFF",
-      actorPlatformRole: PlatformRole.OPERATOR,
     });
-    expect(refused).toMatchObject({
+    expect(blocked).toMatchObject({
       ok: false,
-      code: ENTITLEMENT_CODES.OPERATOR_OVERRIDE_REQUIRED,
+      code: ENTITLEMENT_CODES.TEAM_MEMBER_LIMIT_REACHED,
     });
-
-    const overridden = await inviteClinicUser({
-      clinicId: CLINIC_ID,
-      invitedByUserId: operator.id,
-      name: "Extra",
-      email: email("operator-extra"),
-      role: "STAFF",
-      actorPlatformRole: PlatformRole.OPERATOR,
-      operatorOverride: true,
-    });
-    expect(overridden.ok).toBe(true);
-    const usageAfter = await countTeamUsage(prisma, CLINIC_ID);
-    expect(usageAfter.occupiedPlaces).toBe(usageBefore.occupiedPlaces + 1);
-    expect(usageAfter.occupiedPlaces).toBeGreaterThan(essentialLimit);
-
     const afterPlan = await prisma.clinicEntitlement.findUniqueOrThrow({
       where: { clinicId: CLINIC_ID },
     });
-    expect(afterPlan.commercialPlan).toBe(beforePlan.commercialPlan);
+    expect(afterPlan.commercialPlan).toBe("ESSENTIAL");
     expect(afterPlan.stripePriceId).toBe(beforePlan.stripePriceId);
-    const operatorMembership = await prisma.clinicMembership.findUnique({
-      where: {
-        clinicId_userId: { clinicId: CLINIC_ID, userId: operator.id },
-      },
-    });
-    expect(operatorMembership).toBeNull();
-    expect(info).toHaveBeenCalledWith(
-      expect.objectContaining({
-        event: "operator_team_allowance_override",
-        actorUserId: operator.id,
-        clinicId: CLINIC_ID,
-        action: "invitation",
-        planLimit: essentialLimit,
+    expect(afterPlan.extraTeamMemberAllowance).toBe(1);
+    expect(
+      await prisma.clinicMembership.findUnique({
+        where: {
+          clinicId_userId: { clinicId: CLINIC_ID, userId: operator.id },
+        },
       })
-    );
-    const logged = JSON.stringify(info.mock.calls);
-    expect(logged).not.toContain(email("operator-extra"));
-    info.mockRestore();
+    ).toBeNull();
   });
 
   it("does not let two concurrent invitations take the last place", async () => {

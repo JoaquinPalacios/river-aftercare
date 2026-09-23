@@ -2,25 +2,74 @@ import { describe, expect, it } from "vitest";
 
 import { assessEssentialDowngradeReadiness } from "@/lib/entitlements/downgrade-readiness";
 import {
+  allowanceDimension,
+  effectiveAllowances,
   PLAN_ENTITLEMENT_POLICIES,
   planGovernanceFromEntitlement,
+  ZERO_ALLOWANCE_EXTRAS,
 } from "@/lib/entitlements/plan-policy";
 
 describe("commercial plan entitlement policy", () => {
-  it("fixes Essential and Practice allowances without a Group cap", () => {
+  it("fixes Essential and Practice base allowances without a Group cap", () => {
     expect(PLAN_ENTITLEMENT_POLICIES.ESSENTIAL).toEqual({
       commercialPlan: "ESSENTIAL",
-      teamMemberLimit: 2,
-      customGuideLimit: 2,
-      canAdaptRiverTemplates: false,
+      base: {
+        teamMembers: 2,
+        customGuides: 2,
+        templateAdaptations: 2,
+      },
     });
     expect(PLAN_ENTITLEMENT_POLICIES.PRACTICE).toEqual({
       commercialPlan: "PRACTICE",
-      teamMemberLimit: 5,
-      customGuideLimit: 30,
-      canAdaptRiverTemplates: true,
+      base: {
+        teamMembers: 5,
+        customGuides: 30,
+        templateAdaptations: 10,
+      },
     });
     expect(PLAN_ENTITLEMENT_POLICIES).not.toHaveProperty("GROUP");
+  });
+
+  it("adds persistent extras to the base without storing the effective total", () => {
+    const essential = PLAN_ENTITLEMENT_POLICIES.ESSENTIAL.base;
+    expect(
+      effectiveAllowances(essential, {
+        teamMembers: 3,
+        customGuides: 1,
+        templateAdaptations: 4,
+      })
+    ).toEqual({
+      teamMembers: 5,
+      customGuides: 3,
+      templateAdaptations: 6,
+    });
+    const practice = PLAN_ENTITLEMENT_POLICIES.PRACTICE.base;
+    expect(
+      effectiveAllowances(practice, {
+        teamMembers: 5,
+        customGuides: 10,
+        templateAdaptations: 20,
+      })
+    ).toEqual({
+      teamMembers: 10,
+      customGuides: 40,
+      templateAdaptations: 30,
+    });
+    expect(ZERO_ALLOWANCE_EXTRAS).toEqual({
+      teamMembers: 0,
+      customGuides: 0,
+      templateAdaptations: 0,
+    });
+    expect(allowanceDimension({ used: 3, base: 2, extra: 1 })).toMatchObject({
+      effective: 3,
+      remaining: 0,
+      atLimit: true,
+      overLimit: false,
+    });
+    expect(allowanceDimension({ used: 4, base: 2, extra: 1 })).toMatchObject({
+      overLimit: true,
+      remaining: 0,
+    });
   });
 
   it("keeps legacy, group, and unspecified clinics outside the fixed caps", () => {
@@ -50,34 +99,57 @@ describe("commercial plan entitlement policy", () => {
     ).toBe(true);
   });
 
-  it("reports Practice to Essential conflicts from usage, not from copy", () => {
-    const essential = PLAN_ENTITLEMENT_POLICIES.ESSENTIAL;
+  it("compares Practice to Essential readiness against Essential base plus extras", () => {
+    const essential = PLAN_ENTITLEMENT_POLICIES.ESSENTIAL.base;
     const ready = assessEssentialDowngradeReadiness({
-      occupiedTeamPlaces: essential.teamMemberLimit,
-      customGuideCount: essential.customGuideLimit,
+      occupiedTeamPlaces: essential.teamMembers,
+      customGuideCount: essential.customGuides,
+      adaptedTemplateCount: essential.templateAdaptations,
     });
     expect(ready.ready).toBe(true);
     expect(ready.conflicts).toEqual([]);
 
-    const guides = assessEssentialDowngradeReadiness({
-      occupiedTeamPlaces: essential.teamMemberLimit,
-      customGuideCount: essential.customGuideLimit + 1,
+    const adapted = assessEssentialDowngradeReadiness({
+      occupiedTeamPlaces: essential.teamMembers,
+      customGuideCount: essential.customGuides,
+      adaptedTemplateCount: essential.templateAdaptations + 1,
     });
-    expect(guides.ready).toBe(false);
+    expect(adapted.conflicts).toEqual(["TEMPLATE_ADAPTATIONS"]);
+
+    const guides = assessEssentialDowngradeReadiness({
+      occupiedTeamPlaces: essential.teamMembers,
+      customGuideCount: essential.customGuides + 1,
+      adaptedTemplateCount: essential.templateAdaptations,
+    });
     expect(guides.conflicts).toEqual(["CUSTOM_GUIDES"]);
 
     const team = assessEssentialDowngradeReadiness({
-      occupiedTeamPlaces: essential.teamMemberLimit + 1,
-      customGuideCount: essential.customGuideLimit,
+      occupiedTeamPlaces: essential.teamMembers + 1,
+      customGuideCount: essential.customGuides,
+      adaptedTemplateCount: essential.templateAdaptations,
     });
     expect(team.conflicts).toEqual(["TEAM_MEMBERS"]);
 
-    const both = assessEssentialDowngradeReadiness({
-      occupiedTeamPlaces: essential.teamMemberLimit + 1,
-      customGuideCount: essential.customGuideLimit + 1,
+    const all = assessEssentialDowngradeReadiness({
+      occupiedTeamPlaces: essential.teamMembers + 1,
+      customGuideCount: essential.customGuides + 1,
+      adaptedTemplateCount: essential.templateAdaptations + 1,
     });
-    expect(both.conflicts).toEqual(["TEAM_MEMBERS", "CUSTOM_GUIDES"]);
-    expect(both.team.limit).toBe(essential.teamMemberLimit);
-    expect(both.guides.limit).toBe(essential.customGuideLimit);
+    expect(all.conflicts).toEqual([
+      "TEAM_MEMBERS",
+      "CUSTOM_GUIDES",
+      "TEMPLATE_ADAPTATIONS",
+    ]);
+
+    const withExtras = assessEssentialDowngradeReadiness({
+      occupiedTeamPlaces: 3,
+      customGuideCount: 4,
+      adaptedTemplateCount: 5,
+      extras: { teamMembers: 1, customGuides: 2, templateAdaptations: 3 },
+    });
+    expect(withExtras.ready).toBe(true);
+    expect(withExtras.team.limit).toBe(3);
+    expect(withExtras.guides.limit).toBe(4);
+    expect(withExtras.adaptedTemplates.limit).toBe(5);
   });
 });

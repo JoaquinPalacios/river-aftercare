@@ -1,4 +1,12 @@
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import {
+  ESSENTIAL_CUSTOM_GUIDE_LIMIT,
+  ESSENTIAL_TEAM_MEMBER_LIMIT,
+  ESSENTIAL_TEMPLATE_ADAPTATION_LIMIT,
+  PRACTICE_CUSTOM_GUIDE_LIMIT,
+  PRACTICE_TEAM_MEMBER_LIMIT,
+  PRACTICE_TEMPLATE_ADAPTATION_LIMIT,
+} from "@/lib/entitlements/plan-policy";
 
 export const PRICING_CURRENCY = "AUD";
 
@@ -13,15 +21,17 @@ export const PLAN_PRICES = {
     monthlyAudInclGst: 79,
     annualAudInclGst: 790,
     includedLocations: 1,
-    customGuides: 2,
-    clinicTeamMembers: 2,
+    customGuides: ESSENTIAL_CUSTOM_GUIDE_LIMIT,
+    clinicTeamMembers: ESSENTIAL_TEAM_MEMBER_LIMIT,
+    editableTemplates: ESSENTIAL_TEMPLATE_ADAPTATION_LIMIT,
   },
   practice: {
     monthlyAudInclGst: 149,
     annualAudInclGst: 1490,
     includedLocations: 1,
-    customGuides: 30,
-    clinicTeamMembers: 5,
+    customGuides: PRACTICE_CUSTOM_GUIDE_LIMIT,
+    clinicTeamMembers: PRACTICE_TEAM_MEMBER_LIMIT,
+    editableTemplates: PRACTICE_TEMPLATE_ADAPTATION_LIMIT,
     /**
      * Internal commercial reference only. There is no Location model yet.
      * Do not format these amounts into public UI, metadata, or JSON-LD.
@@ -79,6 +89,7 @@ const ESSENTIAL_CARD_FEATURES = [
   `${PLAN_PRICES.essential.includedLocations} practice / location`,
   `${PRODUCT_NAME} guide templates`,
   `Create and edit up to ${PLAN_PRICES.essential.customGuides} custom clinic guides`,
+  `Edit up to ${PLAN_PRICES.essential.editableTemplates} ${PRODUCT_NAME} templates`,
   `Up to ${PLAN_PRICES.essential.clinicTeamMembers} clinic team members`,
   PRICING_TYPOGRAPHY_FEATURE_LABEL,
   PRICING_SHARING_FEATURE_LABEL,
@@ -87,7 +98,7 @@ const ESSENTIAL_CARD_FEATURES = [
 const PRACTICE_CARD_FEATURES = [
   "Everything in Essential",
   `Up to ${PLAN_PRICES.practice.customGuides} custom clinic guides`,
-  `Adapt ${PRODUCT_NAME} templates to suit your clinic`,
+  `Edit up to ${PLAN_PRICES.practice.editableTemplates} ${PRODUCT_NAME} templates`,
   `Up to ${PLAN_PRICES.practice.clinicTeamMembers} clinic team members`,
   "Assisted setup",
   PRICING_PRIORITY_SUPPORT_LABEL,
@@ -202,11 +213,6 @@ const included: PlanComparisonValue = {
   label: "Included",
 };
 
-const notIncluded: PlanComparisonValue = {
-  kind: "not-included",
-  label: "Not included",
-};
-
 const dash: PlanComparisonValue = {
   kind: "dash",
   label: "—",
@@ -264,9 +270,9 @@ export const PLAN_COMPARISON_ROWS: readonly PlanComparisonRow[] = [
   },
   {
     id: "adapt-templates",
-    feature: `Adapt ${PRODUCT_NAME} templates`,
-    essential: notIncluded,
-    practice: included,
+    feature: `Editable ${PRODUCT_NAME} templates`,
+    essential: upTo(PLAN_PRICES.essential.editableTemplates),
+    practice: upTo(PLAN_PRICES.practice.editableTemplates),
     group: textValue("Tailored"),
   },
   {

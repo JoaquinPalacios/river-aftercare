@@ -76,6 +76,8 @@ describe("Practice members invite UI", () => {
             occupiedPlaces: 0,
             activeMemberCount: 0,
             pendingInvitationCount: 0,
+            baseLimit: null,
+            extraAllowance: null,
             planLimit: null,
             remainingPlaces: null,
             atLimit: false,
@@ -83,7 +85,6 @@ describe("Practice members invite UI", () => {
             detailLabel: null,
           }}
           contactHref="https://example.test/contact"
-          operatorCanOverride={false}
         />
       );
     });

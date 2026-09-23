@@ -19,11 +19,10 @@ export const FORBIDDEN_MEMBER_INVITE_MESSAGE =
  * this check does not create, a ClinicMembership.
  *
  * Plan allowances are enforced inside the membership transaction
- * (`reserveTeamPlace`), not by skipping the check for every operator.
- * Clinic administrators follow the included allowance. A platform operator
- * may pass an explicit override for that one operation. A posted override
- * flag from a clinic administrator is ignored. Operators do not become
- * clinic members and are not silently exempt from unrelated clinic rules.
+ * (`reserveTeamPlace`). The effective limit is the plan base plus any
+ * persistent operator-granted extra. Neither a clinic administrator nor a
+ * platform operator bypasses that limit. Operators do not become clinic
+ * members.
  */
 export type ClinicMemberInviteAuthority = {
   kind: "clinic_admin" | "platform_operator";

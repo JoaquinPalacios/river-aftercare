@@ -3,9 +3,9 @@ import type { GovernedCommercialPlan } from "@/lib/entitlements/plan-policy";
 export const ENTITLEMENT_CODES = {
   TEAM_MEMBER_LIMIT_REACHED: "TEAM_MEMBER_LIMIT_REACHED",
   CUSTOM_GUIDE_LIMIT_REACHED: "CUSTOM_GUIDE_LIMIT_REACHED",
+  ADAPTED_TEMPLATE_LIMIT_REACHED: "ADAPTED_TEMPLATE_LIMIT_REACHED",
   TEMPLATE_ADAPTATION_NOT_AVAILABLE: "TEMPLATE_ADAPTATION_NOT_AVAILABLE",
   TEMPLATE_ADAPTATION_REQUIRED: "TEMPLATE_ADAPTATION_REQUIRED",
-  OPERATOR_OVERRIDE_REQUIRED: "OPERATOR_OVERRIDE_REQUIRED",
 } as const;
 
 export type EntitlementCode =
@@ -15,26 +15,28 @@ export function teamMemberLimitMessage(limit: number): string {
   return `This clinic is using all ${limit} included team members. Pending invitations reserve a team-member place.`;
 }
 
-export function operatorOverrideRequiredMessage(): string {
-  return "This exceeds the clinic’s included team-member allowance. Confirm an operator override to continue. No billing change will be made.";
-}
-
 export function customGuideLimitMessage(
   plan: GovernedCommercialPlan,
   limit: number
 ): string {
-  if (plan === "ESSENTIAL") {
-    return `Essential includes up to ${limit} custom clinic guides.`;
-  }
-  return `Practice includes up to ${limit} custom clinic guides.`;
+  const planName = plan === "ESSENTIAL" ? "Essential" : "Practice";
+  return `${planName} includes up to ${limit} original custom clinic guides.`;
+}
+
+export function adaptedTemplateLimitMessage(
+  plan: GovernedCommercialPlan,
+  limit: number
+): string {
+  const planName = plan === "ESSENTIAL" ? "Essential" : "Practice";
+  return `${planName} includes up to ${limit} editable River templates.`;
 }
 
 export function templateAdaptationUnavailableMessage(): string {
-  return "Essential uses River Aftercare templates as supplied. Adapting a template into a clinic-specific guide is not included. Custom clinic guides keep the normal editor.";
+  return "This clinic does not use a fixed editable-template allowance.";
 }
 
 export function templateAdaptationRequiredMessage(): string {
-  return "Adapt this River Aftercare template before editing it. Adapting keeps the canonical template unchanged and creates a clinic-owned custom guide that uses one custom-guide place.";
+  return "Editing this River template creates your clinic’s own copy and uses one of your editable template allowances.";
 }
 
 export function teamUsageLabel(occupied: number, limit: number): string {
@@ -58,8 +60,12 @@ export function customGuideUsageLabel(used: number, limit: number): string {
   return `${used} of ${limit} custom guides used`;
 }
 
+export function adaptedTemplateUsageLabel(used: number, limit: number): string {
+  return `${used} of ${limit} editable River templates used`;
+}
+
 export const PENDING_INVITATION_RESERVATION_NOTE =
   "Pending invitations reserve a team-member place.";
 
-export const OPERATOR_OVERRIDE_NOTE =
-  "This exceeds the clinic’s included plan allowance. No automatic billing change will be made.";
+export const TEMPLATE_EDIT_NOTE =
+  "Editing this River template creates your clinic’s own copy and uses one of your editable template allowances.";

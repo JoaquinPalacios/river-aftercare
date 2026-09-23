@@ -86,7 +86,6 @@ export default async function ClinicTeamPage({
         clinicId={clinicId}
         clinicName={team.clinicName}
         rows={team.rows}
-        reactivationNeedsOverride={allowance.atLimit}
       />
       <p>
         <Link

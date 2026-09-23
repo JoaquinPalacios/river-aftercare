@@ -24,7 +24,6 @@ import type {
   ClinicTeamRow,
 } from "@/lib/operator/list-clinic-team";
 import { ClinicMembershipRole } from "@prisma/client";
-import { OPERATOR_OVERRIDE_NOTE } from "@/lib/entitlements/messages";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 const empty: ClinicTeamActionState = {};
@@ -76,12 +75,10 @@ export function ClinicTeamTable({
   clinicId,
   clinicName,
   rows,
-  reactivationNeedsOverride,
 }: {
   clinicId: string;
   clinicName: string;
   rows: ClinicTeamRow[];
-  reactivationNeedsOverride: boolean;
 }) {
   const router = useRouter();
   const reactId = useId().replace(/:/g, "");
@@ -204,9 +201,6 @@ export function ClinicTeamTable({
           name="active"
           value={statusActive ? "true" : "false"}
         />
-        {statusActive && reactivationNeedsOverride ? (
-          <input type="hidden" name="operatorOverride" value="true" />
-        ) : null}
       </form>
       <div className="staffOperatorTableWrap">
         <table className="min-w-full text-left text-sm">
@@ -453,17 +447,11 @@ export function ClinicTeamTable({
         }
         description={
           statusTarget
-            ? reactivationNeedsOverride
-              ? `They will regain access to ${clinicName} with their existing membership. ${OPERATOR_OVERRIDE_NOTE}`
-              : `They will regain access to ${clinicName} with their existing membership.`
+            ? `They will regain access to ${clinicName} with their existing membership.`
             : ""
         }
         cancelLabel="Cancel"
-        confirmLabel={
-          reactivationNeedsOverride
-            ? "Activate with operator override"
-            : "Activate"
-        }
+        confirmLabel="Activate"
         pending={changingStatus}
         pendingLabel="Activating…"
         pendingStatus={STATUS_PENDING_STATUS}

@@ -33,7 +33,6 @@ export async function updateClinicMembershipStatus(input: {
   clinicId: string;
   membershipId: string;
   active: boolean;
-  operatorOverride?: boolean;
   now?: Date;
   prisma?: PrismaClient;
 }): Promise<UpdateClinicMembershipStatusResult> {
@@ -103,10 +102,6 @@ export async function updateClinicMembershipStatus(input: {
       const reserved = await reserveTeamPlace(tx, {
         clinicId: clinic.id,
         now,
-        actorUserId: input.actor.id,
-        actorPlatformRole: input.actor.platformRole,
-        operatorOverride: input.operatorOverride === true,
-        action: "reactivation",
       });
       if (!reserved.ok) {
         return {

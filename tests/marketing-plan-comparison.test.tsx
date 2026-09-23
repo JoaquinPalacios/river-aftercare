@@ -61,7 +61,7 @@ describe("marketing plan comparison disclosure", () => {
     ).toBeTruthy();
     expect(comparison.textContent).toContain("Up to 2");
     expect(comparison.textContent).toContain("Up to 30");
-    expect(comparison.textContent).toContain("Not included");
+    expect(comparison.textContent).toContain("Up to 10");
     const supportRow = comparison.querySelector(
       '[data-comparison-row="support"]'
     ) as HTMLTableRowElement;

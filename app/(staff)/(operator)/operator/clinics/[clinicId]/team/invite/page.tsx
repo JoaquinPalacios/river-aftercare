@@ -56,8 +56,13 @@ export default async function InviteUserPage({ params }: InviteUserPageProps) {
       </header>
       <InviteUserForm
         clinicId={clinicId}
-        overrideRequired={allowance.atLimit}
+        atLimit={allowance.atLimit}
         usageLabel={allowance.usageLabel}
+        limitMessage={
+          allowance.planLimit
+            ? `This clinic is using all ${allowance.planLimit} included team members.`
+            : null
+        }
       />
       <p>
         <Link

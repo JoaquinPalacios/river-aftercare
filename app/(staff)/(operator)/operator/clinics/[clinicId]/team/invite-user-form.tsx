@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 
 import {
   inviteClinicUserAction,
@@ -12,25 +12,29 @@ import {
   TEAM_ADMIN_ROLE_LABEL,
   TEAM_STAFF_ROLE_LABEL,
 } from "@/lib/clinic-portal/role-labels";
-import { OPERATOR_OVERRIDE_NOTE } from "@/lib/entitlements/messages";
+import {
+  PENDING_INVITATION_RESERVATION_NOTE,
+  teamMemberLimitMessage,
+} from "@/lib/entitlements/messages";
 
 const initial: ClinicTeamActionState = {};
 const PENDING_STATUS = "Sending invitation. Please wait.";
 
 export function InviteUserForm({
   clinicId,
-  overrideRequired,
+  atLimit,
   usageLabel,
+  limitMessage,
 }: {
   clinicId: string;
-  overrideRequired: boolean;
+  atLimit: boolean;
   usageLabel: string | null;
+  limitMessage: string | null;
 }) {
   const [state, action, pending] = useActionState(
     inviteClinicUserAction,
     initial
   );
-  const [overrideConfirmed, setOverrideConfirmed] = useState(false);
 
   return (
     <form
@@ -51,25 +55,12 @@ export function InviteUserForm({
       {usageLabel ? (
         <p className="text-sm font-medium text-staff-ink">{usageLabel}</p>
       ) : null}
-      {overrideRequired ? (
-        <div className="rounded-lg border border-staff-line px-4 py-3 text-sm leading-6">
-          <p>{OPERATOR_OVERRIDE_NOTE}</p>
-          <label
-            className="mt-3 flex items-start gap-3"
-            htmlFor="invite-override"
-          >
-            <input
-              id="invite-override"
-              name="operatorOverride"
-              type="checkbox"
-              value="true"
-              className="mt-1"
-              checked={overrideConfirmed}
-              onChange={(event) => setOverrideConfirmed(event.target.checked)}
-            />
-            <span>Override included team-member limit for this invitation</span>
-          </label>
-        </div>
+      {atLimit ? (
+        <p className="text-sm leading-6 text-staff-muted">
+          {limitMessage ?? teamMemberLimitMessage(0)}{" "}
+          {PENDING_INVITATION_RESERVATION_NOTE} Grant extra team allowance on
+          the clinic page before inviting another person.
+        </p>
       ) : null}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium" htmlFor="invite-name">
@@ -80,7 +71,7 @@ export function InviteUserForm({
           name="name"
           required
           maxLength={INVITED_NAME_MAX_LENGTH}
-          disabled={pending}
+          disabled={pending || atLimit}
           className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
         />
         {state.fieldErrors?.name ? (
@@ -97,7 +88,7 @@ export function InviteUserForm({
           type="email"
           required
           maxLength={LOGIN_EMAIL_MAX_LENGTH}
-          disabled={pending}
+          disabled={pending || atLimit}
           autoComplete="email"
           className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
         />
@@ -117,7 +108,7 @@ export function InviteUserForm({
           id="invite-role"
           name="role"
           required
-          disabled={pending}
+          disabled={pending || atLimit}
           defaultValue="STAFF"
           className="staffSelect h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
         >
@@ -140,18 +131,14 @@ export function InviteUserForm({
       ) : null}
       <button
         type="submit"
-        disabled={pending || (overrideRequired && !overrideConfirmed)}
+        disabled={pending || atLimit}
         className="staffBtn staffBtnPrimary staffLoginSubmit h-11 w-fit"
         aria-busy={pending || undefined}
       >
         {pending ? (
           <span className="staffLoginSpinner" aria-hidden="true" />
         ) : null}
-        {pending
-          ? "Sending…"
-          : overrideRequired
-            ? "Invite with operator override"
-            : "Send invitation"}
+        {pending ? "Sending…" : "Send invitation"}
       </button>
     </form>
   );

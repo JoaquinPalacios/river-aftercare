@@ -7,10 +7,11 @@ import { ENTITLEMENT_CODES } from "@/lib/entitlements/messages";
 import { getPrisma } from "@/lib/prisma";
 
 /**
- * Converts a template-backed practice guide into a clinic-owned custom guide.
- * The canonical GuideTemplate is not changed. The clinic row stops pinning
- * the template, records the source, and then counts toward the custom-guide
- * allowance. Later edits use the normal custom-guide editor.
+ * Forks a pinned River template into a clinic-owned editable copy.
+ * The canonical GuideTemplate and its revisions are not changed.
+ * The clinic row clears the pin, records sourceGuideTemplateId and adaptedAt,
+ * and consumes one adapted-template allowance. It does not consume an
+ * original custom-guide place. Later edits stay on this copy.
  */
 export async function adaptPracticeGuideFromTemplate(input: {
   clinicId: string;
@@ -42,8 +43,8 @@ export async function adaptPracticeGuideFromTemplate(input: {
     if (!decision.ok) {
       throw new ClinicPortalError(
         decision.error,
-        decision.code === ENTITLEMENT_CODES.CUSTOM_GUIDE_LIMIT_REACHED
-          ? "custom_guide_limit"
+        decision.code === ENTITLEMENT_CODES.ADAPTED_TEMPLATE_LIMIT_REACHED
+          ? "adapted_template_limit"
           : "template_adaptation_unavailable"
       );
     }
