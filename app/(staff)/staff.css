@@ -1284,6 +1284,54 @@ tr[data-active="false"] td:nth-child(2) {
   color: var(--staff-status-success-text);
 }
 
+.staffTransientNotice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.375rem;
+  background: var(--staff-canvas);
+  padding: 0.25rem 0.35rem 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--staff-ink);
+}
+
+.staffTransientNotice[data-variant="success"] {
+  border-color: var(--staff-status-success-line);
+  background: var(--staff-status-success-surface);
+  color: var(--staff-status-success-text);
+}
+
+.staffTransientNotice[data-variant="warning"] {
+  border-color: var(--staff-status-warning-line);
+  background: var(--staff-status-warning-surface);
+  color: var(--staff-status-warning-text);
+}
+
+.staffTransientNotice[data-variant="error"] {
+  border-color: color-mix(in srgb, var(--staff-danger) 32%, var(--staff-line));
+  background: color-mix(in srgb, var(--staff-danger) 10%, var(--staff-panel));
+  color: var(--staff-danger);
+}
+
+.staffTransientNoticeBody {
+  min-width: 0;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+.staffTransientNoticeDismiss {
+  width: 2.5rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
 html[data-theme-mode="dark"] .staffAuthCard {
   box-shadow:
     0 1px 0 rgb(255 255 255 / 4%),

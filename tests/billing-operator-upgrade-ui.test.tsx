@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const refreshMock = vi.hoisted(() => vi.fn());
 const upgradeMock = vi.hoisted(() => vi.fn());
+const scheduleMock = vi.hoisted(() => vi.fn());
+const keepMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -16,11 +18,15 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/app/(staff)/(operator)/operator/billing-actions", () => ({
   upgradeClinicPlanAction: (previous: unknown, formData: FormData) =>
     upgradeMock(previous, formData),
-  scheduleClinicPlanDowngradeAction: async () => ({}),
-  keepPracticePlanAction: async () => ({}),
+  scheduleClinicPlanDowngradeAction: (previous: unknown, formData: FormData) =>
+    scheduleMock(previous, formData),
+  keepPracticePlanAction: (previous: unknown, formData: FormData) =>
+    keepMock(previous, formData),
 }));
 
 import {
+  DOWNGRADE_KEPT_MESSAGE,
+  DOWNGRADE_SCHEDULED_MESSAGE,
   UPGRADE_POLL_ATTEMPTS,
   UPGRADE_POLL_INTERVAL_MS,
   UPGRADE_PROCESSING_MESSAGE,
@@ -37,6 +43,10 @@ describe("operator upgrade refresh", () => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
     refreshMock.mockReset();
     upgradeMock.mockReset();
+    scheduleMock.mockReset();
+    keepMock.mockReset();
+    scheduleMock.mockResolvedValue({});
+    keepMock.mockResolvedValue({});
     vi.useFakeTimers();
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -319,5 +329,154 @@ describe("operator upgrade refresh", () => {
       "Reduce usage or grant a persistent extra before scheduling. Nothing is removed automatically."
     );
     expect(container.textContent).not.toContain("Schedule downgrade");
+  });
+});
+
+const scheduledChange = {
+  targetLabel: "Essential",
+  effectiveLabel: "22 October 2026",
+  operatorLines: {
+    plan: "Practice",
+    scheduledChange: "Essential on 22 October 2026",
+    currentAccess: "Practice until 22 October 2026",
+  },
+  customerMessage:
+    "Essential begins on 22 October 2026. Practice stays active until then.",
+};
+
+describe("plan change action feedback", () => {
+  let container: HTMLDivElement;
+  let root: Root;
+  let mounted = false;
+
+  beforeEach(() => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    refreshMock.mockReset();
+    upgradeMock.mockReset();
+    scheduleMock.mockReset();
+    keepMock.mockReset();
+    scheduleMock.mockResolvedValue({ accepted: true });
+    keepMock.mockResolvedValue({ accepted: true });
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    mounted = true;
+  });
+
+  afterEach(() => {
+    if (mounted) {
+      act(() => {
+        root.unmount();
+      });
+    }
+    container.remove();
+  });
+
+  async function renderForm(props: {
+    canScheduleDowngrade?: boolean;
+    canKeepPractice?: boolean;
+    scheduledPlanChange?: typeof scheduledChange | null;
+  }) {
+    await act(async () => {
+      root.render(
+        <UpgradePlanForm
+          clinicId="clinic_a"
+          canUpgradeToPractice={false}
+          showDowngrade
+          canScheduleDowngrade={props.canScheduleDowngrade}
+          canKeepPractice={props.canKeepPractice}
+          scheduledPlanChange={props.scheduledPlanChange}
+        />
+      );
+    });
+  }
+
+  async function submitLabel(label: string) {
+    const button = [...container.querySelectorAll("button")].find(
+      (candidate) => candidate.textContent === label
+    ) as HTMLButtonElement;
+    const form = button.closest("form") as HTMLFormElement;
+    await act(async () => {
+      form.requestSubmit();
+    });
+  }
+
+  function dismiss() {
+    return container.querySelector(
+      'button[aria-label="Dismiss notification"]'
+    ) as HTMLButtonElement;
+  }
+
+  it("keeps only the latest schedule or reversal confirmation", async () => {
+    await renderForm({ canScheduleDowngrade: true });
+    await submitLabel("Schedule downgrade");
+    expect(container.textContent).toContain(DOWNGRADE_SCHEDULED_MESSAGE);
+    expect(container.textContent).not.toContain(DOWNGRADE_KEPT_MESSAGE);
+
+    await renderForm({
+      canKeepPractice: true,
+      scheduledPlanChange: scheduledChange,
+    });
+    await submitLabel("Keep Practice");
+    expect(container.textContent).toContain(DOWNGRADE_KEPT_MESSAGE);
+    expect(container.textContent).not.toContain(DOWNGRADE_SCHEDULED_MESSAGE);
+
+    await renderForm({ canScheduleDowngrade: true });
+    await submitLabel("Schedule downgrade");
+    expect(container.textContent).toContain(DOWNGRADE_SCHEDULED_MESSAGE);
+    expect(container.textContent).not.toContain(DOWNGRADE_KEPT_MESSAGE);
+  });
+
+  it("replaces a success confirmation with a later error", async () => {
+    await renderForm({ canScheduleDowngrade: true });
+    await submitLabel("Schedule downgrade");
+    expect(container.textContent).toContain(DOWNGRADE_SCHEDULED_MESSAGE);
+
+    scheduleMock.mockResolvedValue({
+      error:
+        "The downgrade could not be scheduled. The subscription was left unchanged.",
+    });
+    await submitLabel("Schedule downgrade");
+    expect(container.textContent).not.toContain(DOWNGRADE_SCHEDULED_MESSAGE);
+    expect(container.textContent).toContain(
+      "The downgrade could not be scheduled. The subscription was left unchanged."
+    );
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+  });
+
+  it("dismisses the confirmation without clearing the scheduled plan", async () => {
+    await renderForm({
+      canScheduleDowngrade: true,
+      canKeepPractice: true,
+      scheduledPlanChange: scheduledChange,
+    });
+    await submitLabel("Schedule downgrade");
+    expect(dismiss().getAttribute("type")).toBe("button");
+    expect(dismiss().getAttribute("aria-label")).toBe("Dismiss notification");
+    const calls = scheduleMock.mock.calls.length;
+
+    await act(async () => {
+      dismiss().click();
+    });
+    expect(container.textContent).not.toContain(DOWNGRADE_SCHEDULED_MESSAGE);
+    expect(container.textContent).toContain("Plan: Practice");
+    expect(container.textContent).toContain(
+      "Scheduled change: Essential on 22 October 2026"
+    );
+    expect(container.textContent).toContain(
+      "Current access: Practice until 22 October 2026"
+    );
+    expect(container.textContent).toContain("Keep Practice");
+    expect(scheduleMock).toHaveBeenCalledTimes(calls);
+    expect(keepMock).not.toHaveBeenCalled();
+
+    await renderForm({
+      canKeepPractice: true,
+      scheduledPlanChange: scheduledChange,
+    });
+    expect(container.textContent).not.toContain(DOWNGRADE_SCHEDULED_MESSAGE);
+    expect(container.textContent).toContain(
+      "Scheduled change: Essential on 22 October 2026"
+    );
   });
 });

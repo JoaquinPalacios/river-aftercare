@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { TransientNotice } from "@/app/(staff)/components/transient-notice";
+
 export function TeamStatusBanner({ message }: { message: string }) {
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -18,8 +20,8 @@ export function TeamStatusBanner({ message }: { message: string }) {
   }, []);
 
   return (
-    <p className="text-sm text-staff-ink" role="status">
+    <TransientNotice variant="success" noticeKey={message}>
       {message}
-    </p>
+    </TransientNotice>
   );
 }

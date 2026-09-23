@@ -11,9 +11,48 @@ import {
   type PlanDowngradeActionState,
   type PlanUpgradeActionState,
 } from "@/app/(staff)/(operator)/operator/billing-actions";
+import { TransientNotice } from "@/app/(staff)/components/transient-notice";
 
-const initial: PlanUpgradeActionState = {};
-const downgradeInitial: PlanDowngradeActionState = {};
+type UpgradeFeedback = PlanUpgradeActionState & { generation: number };
+type DowngradeFeedback = {
+  error?: string;
+  notice?: "scheduled" | "kept";
+  generation: number;
+};
+
+const upgradeInitial: UpgradeFeedback = { generation: 0 };
+const downgradeInitial: DowngradeFeedback = { generation: 0 };
+
+async function upgradeFeedbackAction(
+  previous: UpgradeFeedback,
+  formData: FormData
+): Promise<UpgradeFeedback> {
+  const result = await upgradeClinicPlanAction(previous, formData);
+  return {
+    ...result,
+    generation: previous.generation + 1,
+  };
+}
+
+async function planChangeFeedbackAction(
+  previous: DowngradeFeedback,
+  formData: FormData
+): Promise<DowngradeFeedback> {
+  const intent = String(formData.get("intent") ?? "");
+  const result: PlanDowngradeActionState =
+    intent === "keep"
+      ? await keepPracticePlanAction(previous, formData)
+      : await scheduleClinicPlanDowngradeAction(previous, formData);
+  return {
+    error: result.error,
+    notice: result.accepted
+      ? intent === "keep"
+        ? "kept"
+        : "scheduled"
+      : undefined,
+    generation: previous.generation + 1,
+  };
+}
 
 export const DOWNGRADE_SCHEDULED_MESSAGE =
   "Downgrade scheduled. Practice stays active until the date below.";
@@ -70,17 +109,15 @@ export function UpgradePlanForm({
   const router = useRouter();
   const refresh = router.refresh;
   const [state, action, pending] = useActionState(
-    upgradeClinicPlanAction,
-    initial
+    upgradeFeedbackAction,
+    upgradeInitial
   );
-  const [downgradeState, downgradeAction, downgradePending] = useActionState(
-    scheduleClinicPlanDowngradeAction,
+  const [planChange, planChangeAction, planChangePending] = useActionState(
+    planChangeFeedbackAction,
     downgradeInitial
   );
-  const [keepState, keepAction, keepPending] = useActionState(
-    keepPracticePlanAction,
-    downgradeInitial
-  );
+  const [dismissedPlanChange, setDismissedPlanChange] = useState(0);
+  const [dismissedUpgrade, setDismissedUpgrade] = useState(0);
   const [timeoutFor, setTimeoutFor] = useState<number | null>(null);
   const timedOut = state.startedAt != null && timeoutFor === state.startedAt;
   const waitingForProjection =
@@ -219,65 +256,93 @@ export function UpgradePlanForm({
             </p>
           ) : null}
           {canScheduleDowngrade ? (
-            <form action={downgradeAction} className="mt-4">
+            <form action={planChangeAction} className="mt-4">
               <input type="hidden" name="clinicId" value={clinicId} />
+              <input type="hidden" name="intent" value="schedule" />
               <button
                 type="submit"
                 className="staffBtn staffBtnPrimary h-11"
-                disabled={downgradePending}
+                disabled={planChangePending}
               >
-                {downgradePending ? "Scheduling…" : "Schedule downgrade"}
+                {planChangePending ? "Scheduling…" : "Schedule downgrade"}
               </button>
             </form>
           ) : null}
           {canKeepPractice ? (
-            <form action={keepAction} className="mt-4">
+            <form action={planChangeAction} className="mt-4">
               <input type="hidden" name="clinicId" value={clinicId} />
+              <input type="hidden" name="intent" value="keep" />
               <button
                 type="submit"
                 className="staffBtn staffBtnSecondary h-11"
-                disabled={keepPending}
+                disabled={planChangePending}
               >
-                {keepPending ? "Updating…" : "Keep Practice"}
+                {planChangePending ? "Updating…" : "Keep Practice"}
               </button>
             </form>
           ) : null}
-          {downgradeState.error ? (
-            <p className="mt-3 text-sm text-red-600" role="alert">
-              {downgradeState.error}
-            </p>
+          {planChange.generation > dismissedPlanChange && planChange.error ? (
+            <TransientNotice
+              variant="error"
+              noticeKey={`plan-change-${planChange.generation}`}
+              onDismiss={() => setDismissedPlanChange(planChange.generation)}
+            >
+              {planChange.error}
+            </TransientNotice>
           ) : null}
-          {downgradeState.accepted ? (
-            <p className="staffFormStatus mt-3" role="status">
+          {planChange.generation > dismissedPlanChange &&
+          !planChange.error &&
+          planChange.notice === "scheduled" ? (
+            <TransientNotice
+              variant="success"
+              noticeKey={`plan-change-${planChange.generation}`}
+              onDismiss={() => setDismissedPlanChange(planChange.generation)}
+            >
               {DOWNGRADE_SCHEDULED_MESSAGE}
-            </p>
+            </TransientNotice>
           ) : null}
-          {keepState.error ? (
-            <p className="mt-3 text-sm text-red-600" role="alert">
-              {keepState.error}
-            </p>
-          ) : null}
-          {keepState.accepted ? (
-            <p className="staffFormStatus mt-3" role="status">
+          {planChange.generation > dismissedPlanChange &&
+          !planChange.error &&
+          planChange.notice === "kept" ? (
+            <TransientNotice
+              variant="success"
+              noticeKey={`plan-change-${planChange.generation}`}
+              onDismiss={() => setDismissedPlanChange(planChange.generation)}
+            >
               {DOWNGRADE_KEPT_MESSAGE}
-            </p>
+            </TransientNotice>
           ) : null}
         </div>
       ) : null}
-      {state.error ? (
-        <p className="mt-3 text-sm text-red-600" role="alert">
+      {state.generation > dismissedUpgrade && state.error ? (
+        <TransientNotice
+          variant="error"
+          noticeKey={`upgrade-${state.generation}`}
+          onDismiss={() => setDismissedUpgrade(state.generation)}
+        >
           {state.error}
-        </p>
+        </TransientNotice>
       ) : null}
-      {waitingForProjection ? (
-        <p className="staffFormStatus mt-3" role="status">
+      {state.generation > dismissedUpgrade && waitingForProjection ? (
+        <TransientNotice
+          variant="info"
+          noticeKey={`upgrade-${state.generation}`}
+          onDismiss={() => setDismissedUpgrade(state.generation)}
+        >
           {UPGRADE_PROCESSING_MESSAGE}
-        </p>
+        </TransientNotice>
       ) : null}
-      {state.accepted && canUpgradeToPractice && timedOut ? (
-        <p className="staffFormStatus mt-3" role="status">
+      {state.generation > dismissedUpgrade &&
+      state.accepted &&
+      canUpgradeToPractice &&
+      timedOut ? (
+        <TransientNotice
+          variant="info"
+          noticeKey={`upgrade-${state.generation}-waiting`}
+          onDismiss={() => setDismissedUpgrade(state.generation)}
+        >
           {UPGRADE_STILL_PROCESSING_MESSAGE}
-        </p>
+        </TransientNotice>
       ) : null}
     </section>
   );
