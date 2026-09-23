@@ -57,6 +57,7 @@ test.describe("clinic logo upload", () => {
 
     await signInAsLocalAdmin(page);
     await page.goto(staffUrl("/practice"), { waitUntil: "load" });
+    const logoControl = page.getByRole("group", { name: "Practice logo" });
     await expect(page.getByText("Choose logo")).toBeVisible();
     await expect(page.getByText("No logo configured.")).toHaveCount(0);
     await page.screenshot({
@@ -79,7 +80,9 @@ test.describe("clinic logo upload", () => {
       fullPage: true,
     });
     await page.getByRole("button", { name: "Upload logo" }).click();
-    await expect(page.getByRole("status")).toHaveText("Practice logo updated.");
+    await expect(logoControl.getByRole("status")).toHaveText(
+      "Practice logo updated."
+    );
     const uploaded = page.locator("img.staffLogoPreview");
     await expect(uploaded).toHaveAttribute(
       "src",
@@ -125,7 +128,9 @@ test.describe("clinic logo upload", () => {
     });
     await expect(page.getByText("clinic-mark.svg")).toBeVisible();
     await page.getByRole("button", { name: "Upload replacement" }).click();
-    await expect(page.getByRole("status")).toHaveText("Practice logo updated.");
+    await expect(logoControl.getByRole("status")).toHaveText(
+      "Practice logo updated."
+    );
     await expect(page.locator("img.staffLogoPreview")).toHaveAttribute(
       "src",
       /\/clinic-branding\/clinic_demo_rivers\/.+\.svg$/
@@ -149,7 +154,9 @@ test.describe("clinic logo upload", () => {
       .getByRole("button", { name: "Remove logo" })
       .click();
     await expect(page.getByText("Choose logo")).toBeVisible();
-    await expect(page.getByRole("status")).toHaveText("Practice logo removed.");
+    await expect(logoControl.getByRole("status")).toHaveText(
+      "Practice logo removed."
+    );
     await expect(page.getByRole("button", { name: "Upload logo" })).toHaveCount(
       0
     );
@@ -164,7 +171,7 @@ test.describe("clinic logo upload", () => {
       buffer: Buffer.from("not an image"),
     });
     await page.getByRole("button", { name: "Upload logo" }).click();
-    await expect(page.getByRole("alert")).toBeVisible();
+    await expect(logoControl.getByRole("alert")).toBeVisible();
     await page.screenshot({
       path: `${ARTIFACT_DIR}/practice-validation-error.png`,
       fullPage: true,
