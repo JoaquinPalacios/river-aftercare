@@ -31,15 +31,13 @@ Authoritative product contract:
 
 Phase 1A added the **data/domain foundation**. Phase 1B added **tenant hostname routing** (`proxy.ts` rewrite to `/_sites/<slug>/…`). Phase 1B.5 added the **patient styling/performance foundation** (CSS Modules, server CSS variables, Tailwind isolated to staff). **Phase 1C** added the first public patient aftercare homepage and guide UI. **Phase 1D was absorbed into 1C** (composition, overrides, additions, and semantic guide rendering already shipped there). **Phase 1E** added Playwright browser acceptance, axe checks, and performance gates. **Phase 1F** added the public marketing homepage, patient UX/UI uplift, and a controlled branding-token foundation (including light/dark and radius presets). **Phase 1F.1** refined the River Aftercare marketing identity, tenant presentation settings (terminology, theme policy, optional patient theme toggle), and premium visual language. **Phase 1F.2** added marketing section surfaces and footer, a compact theme popover, a data-driven recovery timeline, and explicit local login env accounts. **Phase 1G** added a day-aware patient demo on `demodental` (Today / Timeline / printable recovery guide). **Phase 1G.1** removed Check-in from launch UI, slowed marketing reveal slightly, and made Print / Save PDF a dedicated resolved-guide document. Check-in is post-launch premium/add-on work. **Marketing completion** added platform `/pricing` and `/contact` on the root host only. Future RecoveryPlan is not `ProcedureSession` ([ADR 0015](docs/adr/0015-recovery-plan-is-not-procedure-session.md)).
 
-This repository also contains a **parked product capability**: clinic-staff authentication plus an in-chair procedure-session workflow (rooms, doctors, live stages, `/display/[token]`, Supabase Realtime, and a completed-session link to an external `aftercareUrl`).
+Chairside / live-session functionality (rooms, doctors, live stages, `/display/[token]`, and Supabase Realtime) was **removed as legacy**. It is not part of River Aftercare. Dormant Prisma models from that feature remain so this change does not drop production tables. **Aftercare must not depend on `ProcedureSession`.** Auth.js `Session` records are unrelated.
 
-That chairside workflow is **parked / future optional**. Do not delete it. Do not use it as the aftercare architecture. **Aftercare must not depend on `ProcedureSession`.**
-
-|                   |                                                                                                                                                                                                                                                                                                       |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Product direction | Branded aftercare infrastructure (PRD v1.0)                                                                                                                                                                                                                                                           |
-| Current code      | Staff auth + parked chairside sessions + Phase 1A–1G.1 aftercare (domain, hostname routing, public patient pages, marketing homepage, Today/Timeline demo on `demodental`, platform `/pricing` + `/contact`, browser/performance acceptance). No persisted RecoveryPlan, no Check-in, no patient PII. |
-| Aftercare MVP     | Planned (Phases 1–3 in the PRD). Phase 1 technical slice is implemented; commercial MVP is later.                                                                                                                                                                                                     |
+|                   |                                                                                                                                                                                                                                                                                                            |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product direction | Branded aftercare infrastructure (PRD v1.0)                                                                                                                                                                                                                                                                |
+| Current code      | Staff auth + Phase 1A–1G.1 aftercare (domain, hostname routing, public patient pages, marketing homepage, Today/Timeline demo on `demodental`, platform `/pricing` + `/contact`, browser/performance acceptance). Chairside live sessions removed. No persisted RecoveryPlan, no Check-in, no patient PII. |
+| Aftercare MVP     | Planned (Phases 1–3 in the PRD). Phase 1 technical slice is implemented; commercial MVP is later.                                                                                                                                                                                                          |
 
 Examples of **intended** product behaviour that do **not** exist in code yet:
 
@@ -62,7 +60,7 @@ This is a [Next.js](https://nextjs.org) App Router project.
 pnpm dev
 ```
 
-Staff / parked chairside:
+Staff:
 
 - [http://app.localhost:3000](http://app.localhost:3000)
 - [http://app.localhost:3000/login](http://app.localhost:3000/login)
@@ -131,7 +129,7 @@ Issue #2 replaced the temporary Prisma bootstrap model with the first real clini
 - `Session`
 - `VerificationToken`
 
-The Auth.js adapter models use the canonical Prisma names for adapter compatibility. The parked chairside workflow uses the explicit name `ProcedureSession` rather than a generic `Session` name. **New aftercare models must not reuse `ProcedureTemplate` / `ProcedureSession` for the aftercare domain** (see the PRD glossary).
+The Auth.js adapter models use the canonical Prisma names for adapter compatibility. The removed chairside workflow used the explicit name `ProcedureSession` rather than a generic `Session` name. Those Prisma models are dormant. **New aftercare models must not reuse `ProcedureTemplate` / `ProcedureSession` for the aftercare domain** (see the PRD glossary).
 
 ### Local PostgreSQL 18
 
@@ -188,9 +186,9 @@ The seed creates one fictional clinic plus clinic-scoped staff users when local 
 
 Copy the `LOCAL_*` examples from `.env.example`. They are fake local-only values and are not created if `NODE_ENV=production`.
 
-The seed also creates parked chairside fixtures (room, doctor, procedure templates) and one **sample / non-clinical** aftercare **Tooth Extraction** template plus a demo clinic guide. Chairside templates are **not** the aftercare Guide Template library. Aftercare demo copy is labelled non-clinical. That template is visible only to the `demodental` tenant.
+The seed also creates one **sample / non-clinical** aftercare **Tooth Extraction** template plus a demo clinic guide. Aftercare demo copy is labelled non-clinical. That template is visible only to the `demodental` tenant. It does not seed chairside rooms, doctors, or procedure templates.
 
-`pnpm db:seed` is **not** safe for production: it upserts the demo clinic, users (when allowed), rooms, doctors, chairside templates, and a published practice guide. Production migrate helpers never invoke it.
+`pnpm db:seed` is **not** safe for production: it upserts the demo clinic, users (when allowed), and a published practice guide. Production migrate helpers never invoke it.
 
 To create **only** the sample Tooth Extraction canonical library rows (1 `GuideTemplate`, 1 published unreviewed revision, 8 sections) against a database:
 
@@ -241,55 +239,7 @@ Related routes:
 - `/dashboard` — clinic Overview
 - `/guides` — clinic Guides
 
-Signed-out visits to `/dashboard` and `/guides` redirect to `/login`. Signed-in visits to `/login` redirect to `/dashboard`. Only users with one effective clinic membership can establish a valid staff session for that shell. Parked chairside routes such as `/dashboard/procedures` and `/sessions/new` remain directly reachable and are not linked from the portal.
-
-Later **aftercare operator admin** should reuse this kind of server-side protection on an admin host; it is not the same product surface as clinic chairside controls. Clinic self-service aftercare admin is **out of MVP**.
-
-## Parked chairside implementation notes
-
-The following describes **current code**, classified as parked / future optional. It is not the aftercare MVP.
-
-Historical issue notes below are kept so existing staff/session work stays understandable. Do not extend this domain to “implement aftercare.”
-
-### Procedure templates (chairside)
-
-Clinic-owned chairside content (not the Care Guide canonical aftercare library):
-
-- `ProcedureTemplate` is owned by a `Clinic` via `clinicId`, has a `name`, a clinic-unique `slug`, and an `isActive` flag. Optional `aftercareUrl` is an **external** link shown after a completed live session.
-- `ProcedureStageTemplate` models linear in-chair stages via `stageOrder`, with `title` plus `calmCopy`, `patientCopy`, and `detailedCopy`.
-- `ProcedureTemplateSelectedAreaOption` is a constrained selected-area list.
-
-Conventions that still apply to this parked domain:
-
-- Template queries must filter by the signed-in user's effective clinic membership from `getAuthContext()` / `requireStaffSession()`.
-- Default selection surfaces should filter to `isActive = true`.
-- Read-only display must respect explicit `stageOrder` and selected-area `sortOrder`, not creation order.
-- Seed data lives in [prisma/seed.mjs](prisma/seed.mjs).
-
-### Procedure template browser
-
-- Route: `/dashboard/procedures`, inside the protected dashboard shell.
-- Read-only inspection of active clinic chairside templates.
-- Query helper: [lib/procedures/list-clinic-templates.ts](lib/procedures/list-clinic-templates.ts).
-
-### Live sessions and patient display
-
-- Start a session: `/sessions/new`
-- Staff stage control: `/session/[id]/control`
-- Patient display: `/display/[token]` (token-scoped, no staff auth, large-format live view)
-- Realtime: optional Supabase broadcast (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` in `.env.example`). When unset, live updates are inert; persisted stage changes still appear on refresh.
-
-A completed session may show “Open aftercare instructions” if `ProcedureTemplate.aftercareUrl` is set. That outbound URL is **not** Care Guide Aftercare SaaS.
-
-### Issue history constraints (staff/chairside)
-
-These constraints applied to the parked/staff work as it was built. They remain true for that code. They do **not** authorise using sessions as aftercare:
-
-- Treat clinic access as membership-derived.
-- Keep Auth.js on the canonical `Account`, `Session`, and `VerificationToken` models.
-- Do not add invites, OAuth providers, or extra auth UI without a new product decision. Password change/reset for existing staff accounts is implemented; invitations are not.
-- Do not repurpose `/dashboard/procedures` for aftercare publishing.
-- Continue deriving clinic context from `requireStaffSession()` on staff routes; do not add a `clinicId` URL param or stash it on the session payload.
+Signed-out visits to `/dashboard` and `/guides` redirect to `/login`. Signed-in visits to `/login` redirect to `/dashboard`. Only users with one effective clinic membership can establish a valid staff session for that shell. Retired chairside URLs (`/dashboard/procedures`, `/sessions/new`, `/session/[id]/control`, `/display/[token]`) are not application routes and return 404.
 
 ## Learn more
 

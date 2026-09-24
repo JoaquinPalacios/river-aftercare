@@ -178,12 +178,12 @@ Related: [`lib/marketing/plans.ts`](../../lib/marketing/plans.ts) (canonical adv
 
 Hostname tenancy ([ADR 0003](../adr/0003-tenant-identity-uses-hostname.md), [ADR 0012](../adr/0012-apex-host-is-the-public-marketing-face.md)):
 
-| Host                           | Kind      | Surface                                                         |
-| ------------------------------ | --------- | --------------------------------------------------------------- |
-| Apex / `riveraftercare.com.au` | marketing | `/`, `/pricing`, `/contact`, legal pages. **All `/api/*` 404.** |
-| `app.<root>`                   | staff     | Clinic portal, operator, parked chairside, **`/api/*`**.        |
-| `<slug>.<root>`                | tenant    | Patient aftercare only.                                         |
-| `assets.<root>`                | reserved  | Clinic branding + platform SEO assets.                          |
+| Host                           | Kind      | Surface                                                            |
+| ------------------------------ | --------- | ------------------------------------------------------------------ |
+| Apex / `riveraftercare.com.au` | marketing | `/`, `/pricing`, `/contact`, legal pages. **All `/api/*` 404.**    |
+| `app.<root>`                   | staff     | Clinic portal, operator, **`/api/*`**. Retired chairside URLs 404. |
+| `<slug>.<root>`                | tenant    | Patient aftercare only.                                            |
+| `assets.<root>`                | reserved  | Clinic branding + platform SEO assets.                             |
 
 Routing: [`proxy.ts`](../../proxy.ts) (Next.js 16 Node proxy, not Edge). Staff host allows all paths through. Marketing 404s `/api/*` via `isMarketingBlockedPath`. A Stripe webhook **must** be posted to the staff origin, for example `https://app.riveraftercare.com.au/api/stripe/webhook`.
 
@@ -278,7 +278,7 @@ Clinic portal: Overview, Guides, Practice (ADMIN). Account today is **Account se
 | Env             | [`.env.example`](../../.env.example); Vercel injects Production/Preview secrets. Server-only secrets are never `NEXT_PUBLIC_*`.                                                                                                                                                                 |
 | Email           | Resend via [`transactional-mailer.ts`](../../lib/email/transactional-mailer.ts). Contact vs auth identities stay separate ([TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md)).                                                                                                                   |
 | Background jobs | **None.** No Inngest, queues, or Vercel cron.                                                                                                                                                                                                                                                   |
-| Audit log       | **None** (parked chairside stage transitions only).                                                                                                                                                                                                                                             |
+| Audit log       | **None.** Dormant chairside `ProcedureSessionStageTransition` rows may still exist in the database; the application no longer writes them.                                                                                                                                                      |
 | Stripe          | **Absent.** No `stripe` package. Privacy copy currently says manual invoicing and that customers do not provide cards through the Service.                                                                                                                                                      |
 | Observability   | Sentry via `@sentry/nextjs` for production/preview exceptions. Session Replay off. [`sensitive-value-sanitizer.ts`](../../lib/observability/sensitive-value-sanitizer.ts) redacts secrets/emails/tokens; extend it for `sk_`, `rk_`, `whsec_`, Stripe IDs in logs. Uptime remains Better Stack. |
 | Runtime         | Next.js 16.3.5 App Router monolith on Vercel. Node 24 LTS.                                                                                                                                                                                                                                      |

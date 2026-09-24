@@ -16,7 +16,7 @@ export const DEMO_PRINT_SAMPLE_NOTICE = "SAMPLE / NOT CLINICAL ADVICE";
 /**
  * Explicit demo fixture. Do not infer recovery day from the real calendar.
  * A future product version requires a persisted RecoveryPlan with startedAt —
- * not Date.now() and not the parked chairside session model.
+ * not Date.now() and not the removed chairside session model.
  *
  * The generic /extraction guide does not know a real patient's treatment day.
  * Before Today is sold as a per-patient capability, an anonymous RecoveryPlan

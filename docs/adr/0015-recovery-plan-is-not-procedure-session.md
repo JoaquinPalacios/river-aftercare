@@ -24,7 +24,7 @@ GuideTemplate
   → composed resolved guide
 ```
 
-A future **RecoveryPlan** (also called CarePlanInstance in product conversation) is a new aftercare record. It is **not** `ProcedureSession`. It must not reuse chairside session tables, tokens, or stage machines.
+A future **RecoveryPlan** (also called CarePlanInstance in product conversation) is a new aftercare record. It is **not** `ProcedureSession`. It must not reuse chairside session tables, tokens, or stage machines. The chairside application was later removed; any remaining `ProcedureSession` tables are dormant and still must not be reused.
 
 Proposed RecoveryPlan fields (not implemented):
 

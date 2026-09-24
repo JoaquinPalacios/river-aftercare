@@ -1,6 +1,6 @@
 # Performance — patient aftercare surface
 
-This is an engineering contract for the **patient** multi-tenant surface. Staff/admin and parked chairside may keep Tailwind.
+This is an engineering contract for the **patient** multi-tenant surface. Staff and operator surfaces keep Tailwind.
 
 Authoritative styling decision: [ADR 0011](../adr/0011-patient-styling-uses-css-modules-and-semantic-runtime-tokens.md).
 
@@ -11,7 +11,7 @@ Authoritative styling decision: [ADR 0011](../adr/0011-patient-styling-uses-css-
 3. Patient components use **CSS Modules** (`*.module.css`) against semantic tokens (`--cg-brand`, `--cg-on-brand`, …), not raw `primaryColor` field names.
 4. No runtime CSS-in-JS (no styled-components, Emotion, runtime class generators).
 5. No arbitrary tenant CSS. `ClinicProfile` must not grow `customCss`, `cssOverride`, `stylesheet`, or `headerHtml` fields. Future options (typography preset, corner style, logo placement) map to predefined tokens.
-6. Tailwind is isolated to the staff/admin (and parked chairside) root layout. Do not `@import "tailwindcss"` from the aftercare root.
+6. Tailwind is isolated to the staff/operator root layout. Do not `@import "tailwindcss"` from the aftercare root.
 7. Route CSS payload is measured from a **production** `next build` + `next start`, not from `next dev`.
 8. Custom fonts and other third-party assets require an explicit performance review. Clinic typefaces are a curated `next/font` allowlist, self-hosted, loaded from the patient tenant layout with `preload: false`. Marketing and staff keep Geist. Do not load `fonts.googleapis.com` / `fonts.gstatic.com` at runtime.
 9. Performance regressions should be measured before acceptance. Do not optimise from assumptions alone.

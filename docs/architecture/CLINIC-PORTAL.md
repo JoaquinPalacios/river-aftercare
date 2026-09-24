@@ -4,11 +4,11 @@ Staff/admin UI for River Aftercare. Patient tenant rendering remains the source 
 
 ## Hosts
 
-| Host               | Audience               | Surface                                                                         |
-| ------------------ | ---------------------- | ------------------------------------------------------------------------------- |
-| Apex / `localhost` | Public                 | Marketing (`/`, `/pricing`, `/contact`)                                         |
-| `app.<root>`       | Clinic staff, operator | Clinic portal, operator, parked chairside. Anonymous `/` redirects to `/login`. |
-| `<slug>.<root>`    | Patients               | Branded aftercare only                                                          |
+| Host               | Audience               | Surface                                                                                      |
+| ------------------ | ---------------------- | -------------------------------------------------------------------------------------------- |
+| Apex / `localhost` | Public                 | Marketing (`/`, `/pricing`, `/contact`)                                                      |
+| `app.<root>`       | Clinic staff, operator | Clinic portal and operator. Anonymous `/` redirects to `/login`. Retired chairside URLs 404. |
+| `<slug>.<root>`    | Patients               | Branded aftercare only                                                                       |
 
 ## Clinic portal
 

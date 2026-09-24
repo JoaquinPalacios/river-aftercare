@@ -51,6 +51,7 @@ export const ROBOTS_DISALLOW_INTERNAL = [
   "/guides",
   "/practice",
   "/operator",
+  // Retired chairside URLs. Disallowed so old links are not advertised as crawl targets.
   "/sessions",
   "/session",
   "/display",

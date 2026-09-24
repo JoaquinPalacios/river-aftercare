@@ -36,7 +36,6 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@sentry/nextjs": "10.75.0",
-    "@supabase/supabase-js": "^2.116.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "dompurify": "3.4.15",

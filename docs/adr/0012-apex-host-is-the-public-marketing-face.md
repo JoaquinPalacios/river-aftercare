@@ -12,7 +12,7 @@ The intended public positioning is:
 
 ```text
 <platform-domain>                  public marketing homepage
-app.<platform-domain>              staff / parked chairside
+app.<platform-domain>              staff (chairside routes later removed)
 <tenant>.<platform-domain>         patient aftercare
 ```
 
@@ -30,7 +30,7 @@ The marketing surface has its own root layout and CSS. It must not import staff 
 
 - Local `http://localhost:<port>/` is the product homepage.
 - Local `http://localhost:<port>/pricing` and `/contact` are platform sales pages.
-- Local `http://app.localhost:<port>/` keeps the internal staff workspace, login, dashboard, and parked chairside routes.
+- Local `http://app.localhost:<port>/` keeps the internal staff workspace, login, and dashboard. Retired chairside URLs 404.
 - Tenant routing is unchanged. Tenant `/pricing` and `/contact` are not platform sales pages.
 - Later cookie, CORS, and host configuration must keep staff cookies off the marketing and tenant hosts.
 

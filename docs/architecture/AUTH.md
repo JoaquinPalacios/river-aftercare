@@ -1,6 +1,6 @@
 # Staff authentication — current production login
 
-River Aftercare staff and operator authentication is a custom `POST /api/auth/login` Route Handler plus Auth.js-compatible **database sessions**. It is not a Server Action. Chairside `ProcedureSession` is unrelated.
+River Aftercare staff and operator authentication is a custom `POST /api/auth/login` Route Handler plus Auth.js-compatible **database sessions**. It is not a Server Action. The removed chairside `ProcedureSession` model is unrelated to these Auth.js session records.
 
 Production login host: `https://app.riveraftercare.com.au/login`. Anonymous requests to `https://app.riveraftercare.com.au/` redirect server-side to `/login`. Authenticated requests reuse `signedInHomePath()` (`/dashboard` or `/operator/clinics`). Clinic and operator users share this one form; role is derived after authentication.
 

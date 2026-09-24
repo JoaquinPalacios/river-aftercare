@@ -23,7 +23,7 @@ Product objects are **Guide Template**, **Practice Guide**, practice branding/co
 ## Consequences
 
 - Later Prisma work (not Phase 0) must add aftercare models rather than overload parked session models.
-- Existing `ProcedureTemplate.aftercareUrl` remains a parked external link on completed chairside sessions.
+- Dormant `ProcedureTemplate.aftercareUrl` is not the aftercare product. The chairside application was later removed. See [ADR 0009](0009-existing-chairside-product-is-parked.md).
 - Implementers must not “just add sections” to stage templates to ship aftercare.
 
 ## Notes for later implementation

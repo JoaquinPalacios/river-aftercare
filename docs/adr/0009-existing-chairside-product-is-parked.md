@@ -1,8 +1,10 @@
 # ADR 0009 — Existing chairside product is parked, not deleted
 
-- **Status:** Accepted
+- **Status:** Superseded
 - **Date:** 2026-08-31
 - **PRD:** [../product/PRD.md](../product/PRD.md) §18, §20, §26
+
+> **Subsequent outcome (2026-09-24):** The chairside application was removed as legacy. Routes `/sessions/new`, `/session/[id]/control`, `/display/[token]`, and `/dashboard/procedures` 404. Supabase Realtime client code and `@supabase/supabase-js` are gone. Dormant Prisma models remain so production tables were not dropped. The historical decision below is unchanged. The binding rule that aftercare must not depend on `ProcedureSession` still applies. See PRD §26.
 
 ## Context
 

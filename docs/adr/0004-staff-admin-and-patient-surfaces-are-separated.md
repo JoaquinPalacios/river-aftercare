@@ -27,7 +27,7 @@ Clinic self-service is not required for MVP; operator admin still belongs on the
 
 - Public aftercare rendering must work without a staff session.
 - Later cookie, CORS, and host configuration must respect this split.
-- Existing single-origin staff + `/display/[token]` setup stays as parked chairside behaviour until an explicit later decision.
+- The later decision removed `/display/[token]` with the chairside application. Staff and patient hosts stay separated. See [ADR 0009](0009-existing-chairside-product-is-parked.md).
 
 ## Implementation notes (Phase 1B)
 

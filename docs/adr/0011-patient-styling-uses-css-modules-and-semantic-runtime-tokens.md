@@ -10,7 +10,7 @@ Care Guide serves many practices from one application (`demodental.<platform-dom
 
 A new tenant must not cause a new Tailwind build, runtime CSS compilation, tenant-specific JS bundles, or arbitrary tenant CSS.
 
-The staff/admin surface (and parked chairside UI) already uses Tailwind and should keep it for development speed. The patient aftercare surface has a stricter performance and security contract.
+The staff/admin surface already uses Tailwind and should keep it for development speed. Chairside UI, which also used Tailwind, was later removed. The patient aftercare surface has a stricter performance and security contract.
 
 ## Decision
 
@@ -35,7 +35,7 @@ Commercial clinic typefaces must be **presets** mapped to predefined tokens, sel
 ## Consequences
 
 - Tenant hostname routing (`/_sites/<tenant>/…`) stays URL-transparent.
-- Existing staff URLs and parked chairside UI stay on Tailwind.
+- Staff URLs stay on Tailwind. Chairside UI was later removed with the legacy live-session feature.
 - Patient CSS payload must be measured in production and kept within the budget in [../architecture/PERFORMANCE.md](../architecture/PERFORMANCE.md).
 - Colour values are validated hex only; readable `--cg-on-brand` is computed server-side with a WCAG 4.5:1 fallback to defaults.
 
