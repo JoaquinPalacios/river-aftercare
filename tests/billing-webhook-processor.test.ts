@@ -1169,4 +1169,53 @@ describe("processVerifiedStripeEvent", () => {
       null
     );
   });
+
+  it("keeps an open downgrade attempt when a raw schedule attachment is projected", async () => {
+    const db = createDb();
+    db.profiles.set("clinic_1", {
+      clinicId: "clinic_1",
+      stripeCustomerId: "cus_1",
+      stripeSubscriptionId: "sub_1",
+      stripeSubscriptionScheduleId: null,
+      stripePlanDowngradeAttemptId: "attempt-open",
+    });
+    db.entitlements.set("clinic_1", {
+      commercialPlan: "PRACTICE",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: "price_test_practice_monthly",
+      cancelAtPeriodEnd: false,
+      scheduledCommercialPlan: null,
+      scheduledPlanEffectiveAt: null,
+      extraTeamMemberAllowance: 0,
+      extraCustomGuideAllowance: 0,
+      extraTemplateAdaptationAllowance: 0,
+    });
+    const practice = subscriptionWith({
+      priceId: "price_test_practice_monthly",
+    });
+    const result = await processVerifiedStripeEvent(
+      subscriptionEvent({
+        id: "evt_raw_schedule_attached",
+        subscription: practice,
+      }),
+      {
+        prisma: db,
+        reader: { retrieveSubscription: async () => practice },
+        env: BILLING_TEST_ENV,
+      }
+    );
+    expect(result).toMatchObject({ outcome: "processed" });
+    expect(db.profiles.get("clinic_1")).toMatchObject({
+      stripePlanDowngradeAttemptId: "attempt-open",
+      stripeSubscriptionScheduleId: null,
+    });
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "PRACTICE",
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      scheduledCommercialPlan: null,
+    });
+  });
 });

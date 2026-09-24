@@ -45,13 +45,18 @@ import { getPrisma } from "@/lib/prisma";
  * Confirmed on the installed types:
  * - `subscriptionSchedules.create({ from_subscription })` migrates the
  *   current subscription. Other parameters, including metadata, cannot be
- *   combined with it. The attempt id is written on the following update.
- *   Live retrieval after that update is the source of truth.
+ *   combined with it. The copied phase has empty metadata and Stripe's
+ *   default phase `proration_behavior` of `create_prorations`. The attempt
+ *   id, `proration_behavior: none`, and the Essential phase are written on
+ *   the following update. Live retrieval after that update is the source
+ *   of truth.
  * - Phases use `duration` (`interval` + `interval_count`) or `end_date`.
  *   `iterations` is not in this SDK.
  * - `end_behavior`: `release` keeps the underlying subscription when the
  *   schedule ends. `cancel` cancels it when the schedule ends.
- * - Phase and request `proration_behavior` accept `none`.
+ * - The update's phase and request `proration_behavior` are `none`.
+ *   `create_prorations` is accepted only on the one-phase copy that
+ *   `from_subscription` returns, before that update.
  * - `release()` stops later phases and leaves the subscription in place.
  *   `preserve_cancel_date` keeps a cancellation the schedule has set.
  * - `billing_cycle_anchor: "phase_start"` resets the anchor. This flow
@@ -492,15 +497,27 @@ export type DowngradeVerificationReason =
   | "schedule_status"
   | "schedule_subscription"
   | "schedule_metadata"
+  | "schedule_attempt"
   | "schedule_end_behavior"
   | "schedule_phases"
+  | "schedule_phase_count"
+  | "schedule_price"
+  | "schedule_quantity"
+  | "schedule_period_end"
+  | "schedule_proration"
+  | "schedule_extras"
   | "subscription_attachment"
   | "subscription_price"
   | "subscription_period"
   | "subscription_status";
 
-export type AttachedScheduleKind =
-  "complete" | "intermediate" | "other_attempt" | "unknown" | "ended";
+export type AttachedScheduleClassification =
+  | { kind: "complete" }
+  | { kind: "intermediate" }
+  | {
+      kind: "other_attempt" | "unknown" | "ended";
+      reason: DowngradeVerificationReason;
+    };
 
 export type DowngradeAttemptAllocation = {
   attemptId: string;
@@ -535,32 +552,46 @@ export function verifyLiveDowngradeSchedule(input: {
   }
   if (
     input.schedule.metadataClinicId !== input.clinicId ||
-    input.schedule.metadataPurpose !== RIVER_DOWNGRADE_SCHEDULE_PURPOSE ||
-    input.schedule.metadataAttemptId !== input.attemptId
+    input.schedule.metadataPurpose !== RIVER_DOWNGRADE_SCHEDULE_PURPOSE
   ) {
     return { ok: false, reason: "schedule_metadata" };
+  }
+  if (input.schedule.metadataAttemptId !== input.attemptId) {
+    return { ok: false, reason: "schedule_attempt" };
   }
   if (input.schedule.endBehavior !== PLAN_DOWNGRADE_END_BEHAVIOR) {
     return { ok: false, reason: "schedule_end_behavior" };
   }
   const current = input.schedule.phases[0];
   const next = input.schedule.phases[1];
+  if (input.schedule.phases.length !== 2 || !current || !next) {
+    return { ok: false, reason: "schedule_phase_count" };
+  }
+  if (current.hasExtras || next.hasExtras) {
+    return { ok: false, reason: "schedule_extras" };
+  }
   if (
-    input.schedule.phases.length !== 2 ||
-    !current ||
-    !next ||
-    current.hasExtras ||
-    next.hasExtras ||
     current.priceId !== input.practicePriceId ||
-    next.priceId !== input.essentialPriceId ||
-    current.quantity !== 1 ||
-    next.quantity !== 1 ||
-    current.prorationBehavior !== PLAN_DOWNGRADE_PRORATION_BEHAVIOR ||
-    next.prorationBehavior !== PLAN_DOWNGRADE_PRORATION_BEHAVIOR ||
-    current.endDate !== input.periodEnd ||
-    next.startDate !== current.endDate ||
-    next.billingCycleAnchor !== PLAN_DOWNGRADE_BILLING_CYCLE_ANCHOR
+    next.priceId !== input.essentialPriceId
   ) {
+    return { ok: false, reason: "schedule_price" };
+  }
+  if (current.quantity !== 1 || next.quantity !== 1) {
+    return { ok: false, reason: "schedule_quantity" };
+  }
+  if (
+    current.prorationBehavior !== PLAN_DOWNGRADE_PRORATION_BEHAVIOR ||
+    next.prorationBehavior !== PLAN_DOWNGRADE_PRORATION_BEHAVIOR
+  ) {
+    return { ok: false, reason: "schedule_proration" };
+  }
+  if (
+    current.endDate !== input.periodEnd ||
+    next.startDate !== current.endDate
+  ) {
+    return { ok: false, reason: "schedule_period_end" };
+  }
+  if (next.billingCycleAnchor !== PLAN_DOWNGRADE_BILLING_CYCLE_ANCHOR) {
     return { ok: false, reason: "schedule_phases" };
   }
   if (input.subscription.status !== "active") {
@@ -579,6 +610,64 @@ export function verifyLiveDowngradeSchedule(input: {
 }
 
 /**
+ * `from_subscription` copies the current subscription into one phase.
+ * That phase keeps Stripe's default `create_prorations` and has no River
+ * metadata until the update. `none` and a missing value are also the
+ * untouched copy. Any other proration is not this intermediate state.
+ */
+function copiedPhaseProrationAllowed(value: string | null): boolean {
+  return (
+    value === null ||
+    value === PLAN_DOWNGRADE_PRORATION_BEHAVIOR ||
+    value === "create_prorations"
+  );
+}
+
+function intermediateScheduleMismatch(input: {
+  schedule: DowngradeScheduleSnapshot;
+  subscription: DowngradeSubscriptionSnapshot;
+  attemptId: string;
+  practicePriceId: string;
+  periodEnd: number;
+}): DowngradeVerificationReason | null {
+  if (input.schedule.endBehavior !== PLAN_DOWNGRADE_END_BEHAVIOR) {
+    return "schedule_end_behavior";
+  }
+  if (input.schedule.subscriptionId !== input.subscription.id) {
+    return "schedule_subscription";
+  }
+  if (input.schedule.phases.length !== 1) {
+    return "schedule_phase_count";
+  }
+  const phase = input.schedule.phases[0];
+  if (!phase) {
+    return "schedule_phase_count";
+  }
+  if (phase.hasExtras) {
+    return "schedule_extras";
+  }
+  if (phase.priceId !== input.practicePriceId) {
+    return "schedule_price";
+  }
+  if (phase.quantity !== 1) {
+    return "schedule_quantity";
+  }
+  if (phase.endDate !== input.periodEnd) {
+    return "schedule_period_end";
+  }
+  if (!copiedPhaseProrationAllowed(phase.prorationBehavior)) {
+    return "schedule_proration";
+  }
+  if (
+    input.schedule.metadataAttemptId &&
+    input.schedule.metadataAttemptId !== input.attemptId
+  ) {
+    return "schedule_attempt";
+  }
+  return null;
+}
+
+/**
  * Classifies a schedule that is currently attached to the subscription.
  * `from_subscription` cannot set metadata, so the single copied Practice
  * phase has no attempt id until the update. A different attempt id, another
@@ -592,29 +681,40 @@ export function classifyAttachedDowngradeSchedule(input: {
   practicePriceId: string;
   essentialPriceId: string;
   periodEnd: number;
-}): AttachedScheduleKind {
+}): AttachedScheduleClassification {
   if (
     input.schedule.status === "released" ||
     input.schedule.status === "completed" ||
     input.schedule.status === "canceled"
   ) {
-    return "ended";
+    return { kind: "ended", reason: "schedule_status" };
+  }
+  if (input.schedule.status !== "active") {
+    return { kind: "unknown", reason: "schedule_status" };
   }
   if (
     input.schedule.metadataAttemptId &&
     input.schedule.metadataAttemptId !== input.attemptId
   ) {
-    return "other_attempt";
+    return { kind: "other_attempt", reason: "schedule_attempt" };
   }
   if (
-    (input.schedule.metadataClinicId &&
-      input.schedule.metadataClinicId !== input.clinicId) ||
-    (input.schedule.metadataPurpose &&
-      input.schedule.metadataPurpose !== RIVER_DOWNGRADE_SCHEDULE_PURPOSE) ||
-    (input.schedule.subscriptionId &&
-      input.schedule.subscriptionId !== input.subscription.id)
+    input.schedule.metadataClinicId &&
+    input.schedule.metadataClinicId !== input.clinicId
   ) {
-    return "unknown";
+    return { kind: "unknown", reason: "schedule_metadata" };
+  }
+  if (
+    input.schedule.metadataPurpose &&
+    input.schedule.metadataPurpose !== RIVER_DOWNGRADE_SCHEDULE_PURPOSE
+  ) {
+    return { kind: "unknown", reason: "schedule_metadata" };
+  }
+  if (
+    input.schedule.subscriptionId &&
+    input.schedule.subscriptionId !== input.subscription.id
+  ) {
+    return { kind: "unknown", reason: "schedule_subscription" };
   }
   const verified = verifyLiveDowngradeSchedule({
     schedule: input.schedule,
@@ -627,33 +727,26 @@ export function classifyAttachedDowngradeSchedule(input: {
     periodEnd: input.periodEnd,
   });
   if (verified.ok) {
-    return "complete";
+    return { kind: "complete" };
   }
-  const phase = input.schedule.phases[0];
-  if (
-    input.schedule.status === "active" &&
-    input.schedule.endBehavior === PLAN_DOWNGRADE_END_BEHAVIOR &&
-    input.schedule.subscriptionId === input.subscription.id &&
-    input.schedule.phases.length === 1 &&
-    phase &&
-    !phase.hasExtras &&
-    phase.priceId === input.practicePriceId &&
-    phase.quantity === 1 &&
-    phase.endDate === input.periodEnd &&
-    (phase.prorationBehavior === null ||
-      phase.prorationBehavior === PLAN_DOWNGRADE_PRORATION_BEHAVIOR) &&
-    !input.schedule.metadataAttemptId
-  ) {
-    return "intermediate";
+  const mismatch = intermediateScheduleMismatch({
+    schedule: input.schedule,
+    subscription: input.subscription,
+    attemptId: input.attemptId,
+    practicePriceId: input.practicePriceId,
+    periodEnd: input.periodEnd,
+  });
+  if (!mismatch) {
+    return { kind: "intermediate" };
   }
-  if (
+  const owned =
     input.schedule.metadataAttemptId === input.attemptId ||
     (input.schedule.metadataPurpose === RIVER_DOWNGRADE_SCHEDULE_PURPOSE &&
-      input.schedule.metadataClinicId === input.clinicId)
-  ) {
-    return "other_attempt";
+      input.schedule.metadataClinicId === input.clinicId);
+  if (owned) {
+    return { kind: "other_attempt", reason: mismatch };
   }
-  return "unknown";
+  return { kind: "unknown", reason: mismatch };
 }
 
 async function persistScheduledDowngrade(input: {
@@ -1051,7 +1144,7 @@ export async function executeOperatorPlanDowngrade(input: {
       );
       const classifyAttempt =
         attemptId ?? existing.metadataAttemptId ?? "unallocated";
-      const kind = classifyAttachedDowngradeSchedule({
+      const classification = classifyAttachedDowngradeSchedule({
         schedule: existing,
         subscription,
         clinicId: input.state.clinicId,
@@ -1060,17 +1153,17 @@ export async function executeOperatorPlanDowngrade(input: {
         essentialPriceId,
         periodEnd,
       });
-      if (kind === "complete" && existing.metadataAttemptId) {
+      if (classification.kind === "complete") {
+        if (!existing.metadataAttemptId) {
+          return failure(input.state.clinicId, "unknown_schedule");
+        }
         return await persistIfVerified({
           scheduleId: existing.id,
           attemptId: existing.metadataAttemptId,
           alreadyScheduled: true,
         });
       }
-      if (kind === "unknown" || kind === "other_attempt") {
-        return failure(input.state.clinicId, "unknown_schedule");
-      }
-      if (kind === "ended") {
+      if (classification.kind !== "intermediate") {
         logVerificationFailed({
           clinicId: input.state.clinicId,
           stripeSubscriptionId: subscription.id,
@@ -1078,9 +1171,14 @@ export async function executeOperatorPlanDowngrade(input: {
           attemptId,
           scheduleStatus: existing.status,
           observedScheduleId: subscription.scheduleId,
-          reason: "schedule_status",
+          reason: classification.reason,
         });
-        return failure(input.state.clinicId, "schedule_failed");
+        return failure(
+          input.state.clinicId,
+          classification.kind === "ended"
+            ? "schedule_failed"
+            : "unknown_schedule"
+        );
       }
       const ready = requireReady();
       if (!ready.ok) {
@@ -1098,7 +1196,7 @@ export async function executeOperatorPlanDowngrade(input: {
         }
       }
       const phase = existing.phases[0];
-      if (!phase || kind !== "intermediate") {
+      if (!phase) {
         return failure(input.state.clinicId, "unknown_schedule");
       }
       return await updateThenVerify(existing.id, phase.startDate, attemptId);
@@ -1153,7 +1251,7 @@ export async function executeOperatorPlanDowngrade(input: {
     const attached = await stripe.subscriptionSchedules.retrieve(
       subscription.scheduleId
     );
-    const attachedKind = classifyAttachedDowngradeSchedule({
+    const attachedClassification = classifyAttachedDowngradeSchedule({
       schedule: attached,
       subscription,
       clinicId: input.state.clinicId,
@@ -1162,14 +1260,14 @@ export async function executeOperatorPlanDowngrade(input: {
       essentialPriceId,
       periodEnd,
     });
-    if (attachedKind === "complete") {
+    if (attachedClassification.kind === "complete") {
       return await persistIfVerified({
         scheduleId: attached.id,
         attemptId,
         alreadyScheduled: true,
       });
     }
-    if (attachedKind !== "intermediate") {
+    if (attachedClassification.kind !== "intermediate") {
       logVerificationFailed({
         clinicId: input.state.clinicId,
         stripeSubscriptionId: subscription.id,
@@ -1177,14 +1275,13 @@ export async function executeOperatorPlanDowngrade(input: {
         attemptId,
         scheduleStatus: attached.status,
         observedScheduleId: subscription.scheduleId,
-        reason:
-          attachedKind === "ended" ? "schedule_status" : "schedule_metadata",
+        reason: attachedClassification.reason,
       });
       return failure(
         input.state.clinicId,
-        attachedKind === "unknown" || attachedKind === "other_attempt"
-          ? "unknown_schedule"
-          : "schedule_failed"
+        attachedClassification.kind === "ended"
+          ? "schedule_failed"
+          : "unknown_schedule"
       );
     }
     const createdPhase = attached.phases[0];

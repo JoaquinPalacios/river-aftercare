@@ -7,6 +7,7 @@ import {
   buildCancellationSupersedeUpdate,
   buildPracticeToEssentialScheduleUpdate,
   decideSubscriptionScheduleEvent,
+  classifyAttachedDowngradeSchedule,
   executeOperatorDowngradeReversal,
   executeOperatorPlanDowngrade,
   PLAN_DOWNGRADE_BILLING_CYCLE_ANCHOR,
@@ -14,6 +15,7 @@ import {
   PLAN_DOWNGRADE_PRORATION_BEHAVIOR,
   planDowngradeIdempotencyKey,
   releaseSchedulePreservingCancellation,
+  verifyLiveDowngradeSchedule,
   shouldReleaseScheduleAfterCancellationReversed,
   type DowngradeScheduleSnapshot,
   type DowngradeSubscriptionSnapshot,
@@ -246,10 +248,14 @@ function port(options: {
           options.created ??
           schedule({
             id: options.freshIds ? `sub_sched_${createdCount}` : "sub_sched_a",
+            metadataClinicId: null,
+            metadataPurpose: null,
+            metadataAttemptId: null,
             phases: [
               phase({
                 priceId:
                   subscriptionState.priceId ?? "price_test_practice_monthly",
+                prorationBehavior: "create_prorations",
               }),
             ],
           });
@@ -1204,5 +1210,233 @@ describe("rescheduling after Keep Practice", () => {
         step: "create",
       })
     ).not.toBe(planDowngradeIdempotencyKey({ ...shared, step: "create" }));
+  });
+
+  function copiedPracticeSchedule(
+    overrides: Partial<DowngradeScheduleSnapshot> = {}
+  ): DowngradeScheduleSnapshot {
+    return schedule({
+      metadataClinicId: null,
+      metadataPurpose: null,
+      metadataAttemptId: null,
+      phases: [
+        phase({
+          priceId: "price_test_practice_monthly",
+          prorationBehavior: "create_prorations",
+        }),
+      ],
+      ...overrides,
+    });
+  }
+
+  it("classifies the raw from_subscription phase as intermediate", () => {
+    const subscriptionState = subscription({ scheduleId: "sub_sched_a" });
+    const input = {
+      subscription: subscriptionState,
+      clinicId: "clinic_a",
+      attemptId: ATTEMPT,
+      practicePriceId: "price_test_practice_monthly",
+      essentialPriceId: "price_test_essential_monthly",
+      periodEnd: PERIOD_END,
+    };
+    expect(
+      classifyAttachedDowngradeSchedule({
+        ...input,
+        schedule: copiedPracticeSchedule(),
+      })
+    ).toEqual({ kind: "intermediate" });
+    expect(
+      classifyAttachedDowngradeSchedule({
+        ...input,
+        schedule: copiedPracticeSchedule({
+          phases: [
+            phase({
+              priceId: "price_test_practice_monthly",
+              prorationBehavior: "always_invoice",
+            }),
+          ],
+        }),
+      })
+    ).toEqual({ kind: "unknown", reason: "schedule_proration" });
+  });
+
+  it("updates the raw from_subscription schedule in the same request", async () => {
+    const fake = port({});
+    const persisted: string[] = [];
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const result = await executeOperatorPlanDowngrade({
+      state: state(),
+      readiness: readiness({}),
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      persist: async (row) => {
+        persisted.push(row.scheduleId);
+      },
+      ...testAttempt(),
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      alreadyScheduled: false,
+      scheduleId: "sub_sched_a",
+    });
+    expect(fake.calls.create).toHaveLength(1);
+    expect(fake.calls.update).toHaveLength(1);
+    expect(persisted).toEqual(["sub_sched_a"]);
+    const update = fake.calls.update[0]?.params as {
+      metadata: { clinicId: string; riverDowngradeAttemptId: string };
+      phases: Array<{ proration_behavior: string }>;
+    };
+    expect(update.metadata.clinicId).toBe("clinic_a");
+    expect(update.metadata.riverDowngradeAttemptId).toBe(ATTEMPT);
+    expect(
+      update.phases.every((item) => item.proration_behavior === "none")
+    ).toBe(true);
+    expect(
+      info.mock.calls.some((call) =>
+        JSON.stringify(call).includes("plan_downgrade_scheduled")
+      )
+    ).toBe(true);
+    info.mockRestore();
+  });
+
+  it("resumes the attached raw schedule without creating another", async () => {
+    const attemptA = "c14dbe30-ecfe-4136-8899-a2de4179b408";
+    const scheduleB = "sub_sched_1UJ119GYMJ0lopfPkhOj7nLh";
+    const fake = port({
+      subscription: subscription({ scheduleId: scheduleB }),
+      existing: copiedPracticeSchedule({ id: scheduleB }),
+    });
+    const persisted: string[] = [];
+    const result = await executeOperatorPlanDowngrade({
+      state: state({ stripePlanDowngradeAttemptId: attemptA }),
+      readiness: readiness({}),
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      persist: async (row) => {
+        persisted.push(row.scheduleId);
+      },
+      ensureAttempt: async () => {
+        throw new Error("attempt must stay");
+      },
+      clearProjection: async () => {
+        throw new Error("projection must stay");
+      },
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      alreadyScheduled: false,
+      scheduleId: scheduleB,
+      stripeSubscriptionId: "sub_clinic_a",
+    });
+    expect(fake.calls.create).toHaveLength(0);
+    expect(fake.calls.update).toHaveLength(1);
+    expect(fake.calls.update[0]?.id).toBe(scheduleB);
+    expect(fake.calls.update[0]?.idempotencyKey).toBe(
+      planDowngradeIdempotencyKey({
+        clinicId: "clinic_a",
+        stripeSubscriptionId: "sub_clinic_a",
+        targetPriceId: "price_test_essential_monthly",
+        periodEnd: PERIOD_END,
+        attemptId: attemptA,
+        step: "update",
+      })
+    );
+    expect(persisted).toEqual([scheduleB]);
+  });
+
+  it("rejects a finished schedule that still prorates", () => {
+    const subscriptionState = subscription({ scheduleId: "sub_sched_a" });
+    const finished = (
+      currentProration: string,
+      nextProration: string
+    ): DowngradeScheduleSnapshot =>
+      schedule({
+        metadataAttemptId: ATTEMPT,
+        phases: [
+          phase({
+            priceId: "price_test_practice_monthly",
+            prorationBehavior: currentProration,
+          }),
+          phase({
+            priceId: "price_test_essential_monthly",
+            startDate: PERIOD_END,
+            endDate: PERIOD_END + 2_592_000,
+            prorationBehavior: nextProration,
+            billingCycleAnchor: "automatic",
+          }),
+        ],
+      });
+    const check = (currentProration: string, nextProration: string) =>
+      verifyLiveDowngradeSchedule({
+        schedule: finished(currentProration, nextProration),
+        subscription: subscriptionState,
+        expectedScheduleId: "sub_sched_a",
+        clinicId: "clinic_a",
+        attemptId: ATTEMPT,
+        practicePriceId: "price_test_practice_monthly",
+        essentialPriceId: "price_test_essential_monthly",
+        periodEnd: PERIOD_END,
+      });
+    expect(check("create_prorations", "none")).toEqual({
+      ok: false,
+      reason: "schedule_proration",
+    });
+    expect(check("none", "create_prorations")).toEqual({
+      ok: false,
+      reason: "schedule_proration",
+    });
+    expect(check("none", "none")).toMatchObject({ ok: true });
+  });
+
+  it("does not adopt an attached schedule with conflicting metadata", async () => {
+    const conflicts = [
+      {
+        metadataClinicId: "clinic_other",
+        reason: "schedule_metadata",
+      },
+      {
+        metadataPurpose: "something_else",
+        reason: "schedule_metadata",
+      },
+      {
+        metadataAttemptId: "attempt-other",
+        reason: "schedule_attempt",
+      },
+    ];
+    for (const conflict of conflicts) {
+      const { reason, ...metadata } = conflict;
+      const fake = port({
+        subscription: subscription({ scheduleId: "sub_sched_other" }),
+        existing: copiedPracticeSchedule({
+          id: "sub_sched_other",
+          ...metadata,
+        }),
+      });
+      const error = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+      const result = await executeOperatorPlanDowngrade({
+        state: state({ stripePlanDowngradeAttemptId: ATTEMPT }),
+        readiness: readiness({}),
+        env: BILLING_TEST_ENV,
+        stripe: fake.stripe,
+        persist: async () => {
+          throw new Error("must not persist");
+        },
+        ensureAttempt: async () => {
+          throw new Error("attempt must stay");
+        },
+        clearProjection: async () => {
+          throw new Error("projection must stay");
+        },
+      });
+      expect(result).toMatchObject({ ok: false, code: "unknown_schedule" });
+      expect(fake.calls.create).toHaveLength(0);
+      expect(fake.calls.update).toHaveLength(0);
+      expect(
+        error.mock.calls.some((call) => JSON.stringify(call).includes(reason))
+      ).toBe(true);
+      error.mockRestore();
+    }
   });
 });

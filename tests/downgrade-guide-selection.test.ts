@@ -1155,7 +1155,7 @@ describe("downgrade guide selection persistence", () => {
                     quantity: 1,
                     startDate: 1_761_169_194,
                     endDate: 1_792_647_594,
-                    prorationBehavior: "none",
+                    prorationBehavior: "create_prorations",
                     billingCycleAnchor: null,
                     hasExtras: false,
                   },
