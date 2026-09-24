@@ -25,6 +25,7 @@
   --staff-nav-row-h: 2.75rem;
   --staff-nav-group-gap: 0.75rem;
   --staff-nav-row-gap: 0.125rem;
+  --staff-sticky-inset: 0.75rem;
   --staff-status-success-surface: #eef6f0;
   --staff-status-success-text: #0c3220;
   --staff-status-success-line: #c5ddd0;
@@ -1777,12 +1778,31 @@ a.staffOverflowItem {
 }
 
 .staffEditorToolbar {
+  position: sticky;
+  /* Safe area only. The 0.75rem breathing room is padding, taken from the
+     resting margin, so the unscrolled header stays put and scrolling
+     content cannot show through the inset. */
+  top: env(safe-area-inset-top, 0px);
+  z-index: 28;
   display: flex;
   min-width: 0;
   flex-direction: column;
   align-items: stretch;
   gap: 0.65rem;
-  margin-top: 0.85rem;
+  margin-top: calc(0.85rem - var(--staff-sticky-inset));
+  padding-top: var(--staff-sticky-inset);
+  background: var(--staff-canvas);
+}
+
+.staffEditorToolbar::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--staff-canvas);
+  pointer-events: none;
 }
 
 .staffEditorToolbarStart {
@@ -1900,15 +1920,13 @@ a.staffOverflowItem {
 
 @media (min-width: 1024px) {
   .staffEditorToolbar {
-    position: sticky;
-    top: 0;
-    z-index: 28;
     flex-direction: row;
     align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem 1.25rem;
-    margin-top: 0.35rem;
-    padding: 0.45rem 0 0.7rem;
+    /* 0.35rem margin + 0.45rem padding was the resting offset. */
+    margin-top: calc(0.8rem - var(--staff-sticky-inset));
+    padding: var(--staff-sticky-inset) 0 0.7rem;
     border-bottom: 1px solid var(--staff-line);
     background: var(--staff-canvas);
   }
