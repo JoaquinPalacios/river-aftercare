@@ -50,8 +50,7 @@ describe("PendingSubmitButton", () => {
   });
 
   function activeLabel() {
-    const button = container.querySelector("button");
-    return button?.querySelector("[data-active='true']")?.textContent;
+    return container.querySelector("button")?.textContent;
   }
 
   it("renders the idle label without an animated spinner", async () => {
@@ -62,7 +61,8 @@ describe("PendingSubmitButton", () => {
     expect(activeLabel()).toBe("Review downgrade");
     expect(button?.disabled).toBe(false);
     expect(container.querySelector(".staffBtnSpinner")).toBeNull();
-    expect(container.querySelector(".staffBtnSpinnerSlot")).not.toBeNull();
+    expect(container.querySelector(".staffBtnSpinnerSlot")).toBeNull();
+    expect(button?.querySelector("span")).toBeNull();
   });
 
   it("renders the spinner and pending label only while the action is running", async () => {
@@ -84,6 +84,9 @@ describe("PendingSubmitButton", () => {
     expect(activeLabel()).toBe("Preparing…");
     expect(button?.disabled).toBe(true);
     expect(button?.querySelector(".staffBtnSpinner")).not.toBeNull();
+    expect(
+      button?.querySelector(".staffBtnSpinner")?.getAttribute("aria-hidden")
+    ).toBe("true");
     expect(container.querySelector(".staffBtnSpinnerSlot")).toBeNull();
     expect(form.getAttribute("aria-busy")).toBe("true");
 
@@ -93,5 +96,6 @@ describe("PendingSubmitButton", () => {
     expect(activeLabel()).toBe("Review downgrade");
     expect(container.querySelector("button")?.disabled).toBe(false);
     expect(container.querySelector(".staffBtnSpinner")).toBeNull();
+    expect(container.querySelector(".staffBtnSpinnerSlot")).toBeNull();
   });
 });

@@ -391,30 +391,14 @@ html[data-theme-mode="dark"] .staffNavRowMuted {
   white-space: nowrap;
 }
 
-.staffBtnSpinner,
-.staffBtnSpinnerSlot {
+.staffBtnSpinner {
   width: 0.9rem;
   height: 0.9rem;
   flex: 0 0 auto;
-}
-
-.staffBtnSpinner {
   border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
   border-top-color: currentColor;
   border-radius: 50%;
   animation: staffLoginSpin 0.65s linear infinite;
-}
-
-.staffPendingLabels {
-  display: grid;
-}
-
-.staffPendingLabels > span {
-  grid-area: 1 / 1;
-}
-
-.staffPendingLabels > span[data-active="false"] {
-  visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
