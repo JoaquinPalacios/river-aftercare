@@ -27,6 +27,7 @@ import { savePracticeGuideDraft } from "@/lib/clinic-portal/save-practice-guide-
 import {
   actorMayConfirmDowngradeSelection,
   assessGuideRestore,
+  guideRestoreMessage,
   assessOperatorExtraChangeForDowngrade,
   beginClinicPlanDowngrade,
   confirmClinicDowngradeSelection,
@@ -418,6 +419,15 @@ describe("retained guide restore rules", () => {
         retentionOpen: true,
       })
     ).toMatchObject({ ok: false, code: "custom_limit" });
+    expect(guideRestoreMessage("custom_limit")).toBe(
+      "You've reached your current custom guide limit. Free a custom guide place or increase the clinic's allowance before restoring this guide."
+    );
+    expect(guideRestoreMessage("adapted_limit")).toBe(
+      "You've reached your current editable River template limit. Free an editable template place or increase the clinic's allowance before restoring this guide."
+    );
+    expect(guideRestoreMessage("combined_limit")).toBe(
+      "You've reached your current clinic-owned guide limit. Free a clinic-owned guide place or increase the clinic's allowance before restoring this guide."
+    );
   });
 
   it("consumes edited-template capacity for an adapted guide", () => {

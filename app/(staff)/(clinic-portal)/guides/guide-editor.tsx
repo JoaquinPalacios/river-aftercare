@@ -33,9 +33,9 @@ import { guideQrDownloadPath } from "@/lib/clinic-portal/guide-qr";
 import { formSaveStatus } from "@/lib/clinic-portal/form-save-status";
 import { formatPortalDateTime } from "@/lib/clinic-portal/format-portal-date";
 import {
-  clinicGuideCanUnpublish,
   clinicGuideDestructiveAction,
   clinicGuideStatusPills,
+  guideEditorPublicationMode,
 } from "@/lib/clinic-portal/guide-status";
 import type { PracticeGuideEditorRecord } from "@/lib/clinic-portal/load-practice-guide-editor";
 import { PRACTICE_REVIEW_ATTESTATION_LABEL } from "@/lib/clinic-portal/practice-review-attestation";
@@ -257,6 +257,10 @@ export function GuideEditor({
   const showPublicLink =
     guide.isPublished && guide.isEnabled && Boolean(publicUrl);
 
+  const publication = guideEditorPublicationMode({
+    lifecycle: guide.lifecycle,
+    dirty,
+  });
   const actions = (
     <div className="staffEditorActions">
       <button
@@ -276,25 +280,29 @@ export function GuideEditor({
           >
             {saving ? "Saving…" : "Save draft"}
           </button>
-          <button
-            type="button"
-            disabled={publishing || dirty}
-            title={
-              dirty ? "Save the current draft before publishing." : undefined
-            }
-            className="staffBtn staffBtnPrimary"
-            onClick={() => {
-              setReviewAttested(false);
-              setPublishOpen(true);
-            }}
-          >
-            {publishing ? "Publishing…" : "Publish guide"}
-          </button>
+          {publication.publish ? (
+            <button
+              type="button"
+              disabled={publishing || dirty}
+              title={
+                dirty ? "Save the current draft before publishing." : undefined
+              }
+              className="staffBtn staffBtnPrimary"
+              onClick={() => {
+                setReviewAttested(false);
+                setPublishOpen(true);
+              }}
+            >
+              {publishing ? "Publishing…" : "Publish guide"}
+            </button>
+          ) : null}
           <GuideLifecycleActions
             guideId={guide.id}
             lifecycle={guide.lifecycle}
             destructiveAction={clinicGuideDestructiveAction(guide.lifecycle)}
-            canUnpublish={clinicGuideCanUnpublish(guide.lifecycle)}
+            canUnpublish={publication.unpublish}
+            unpublishPlacement="toolbar"
+            unpublishDisabled={publishing}
             onDiscarded={(restored) => {
               const restoredSections = toEditorSections(restored.sections);
               setTitle(restored.title);

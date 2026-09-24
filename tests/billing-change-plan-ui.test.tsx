@@ -23,6 +23,7 @@ vi.mock("@/app/(staff)/account/billing/actions", () => ({
     keepMock(previous, formData),
   cancelClinicPlanChangeAction: (previous: unknown, formData: FormData) =>
     cancelMock(previous, formData),
+  confirmDowngradeGuideSelectionAction: async () => ({ accepted: true }),
 }));
 
 import {
@@ -31,6 +32,8 @@ import {
   KEEP_PRACTICE_NOTICE,
   scheduledDowngradeNotice,
 } from "@/app/(staff)/account/billing/change-plan-panel";
+import { DowngradeGuideSelectionForm } from "@/app/(staff)/account/billing/downgrade-guide-selection-form";
+import type { ClinicGuideSelectionPanel } from "@/lib/entitlements/downgrade-selection";
 
 const readyProps = {
   canAct: true,
@@ -119,13 +122,13 @@ describe("self-service change plan panel", () => {
     });
   }
 
-  it("offers Review downgrade for a Practice clinic with no preparation", async () => {
+  it("offers Change plan for a Practice clinic with no preparation", async () => {
     await render({ phase: "entry" });
     expect(container.textContent).toContain("Current: Practice");
     expect(container.textContent).toContain(
       "Essential · A$79 / month · Monthly"
     );
-    expect(button("Review downgrade")).toBeTruthy();
+    expect(button("Change plan")).toBeTruthy();
     expect(container.querySelector(".staffBtnSpinner")).toBeNull();
     expect(container.textContent).not.toContain("Schedule downgrade");
     expect(container.querySelector('input[name="clinicId"]')).toBeNull();
@@ -286,7 +289,7 @@ describe("self-service change plan panel", () => {
       pending.resolve({ notice: "cancelled" });
     });
     expect(container.textContent).toContain(CANCEL_PLAN_CHANGE_NOTICE);
-    expect(button("Review downgrade")?.disabled).toBe(false);
+    expect(button("Change plan")?.disabled).toBe(false);
     expect(button("Schedule downgrade")).toBeUndefined();
     expect(container.textContent).toContain("Current: Practice");
   });
@@ -317,11 +320,11 @@ describe("self-service change plan panel", () => {
     expect(container.textContent).toContain("Essential scheduled");
   });
 
-  it("shows Preparing while Review downgrade is submitted", async () => {
+  it("shows Preparing while Change plan is submitted", async () => {
     const pending = deferred<Record<string, never>>();
     beginMock.mockReturnValue(pending.promise);
     await render({ phase: "entry" });
-    const form = button("Review downgrade")?.closest("form") as HTMLFormElement;
+    const form = button("Change plan")?.closest("form") as HTMLFormElement;
     await act(async () => {
       form.requestSubmit();
     });
@@ -329,12 +332,12 @@ describe("self-service change plan panel", () => {
     expect(
       button("Preparing…")?.querySelector(".staffBtnSpinner")
     ).not.toBeNull();
-    expect(button("Review downgrade")).toBeUndefined();
+    expect(button("Change plan")).toBeUndefined();
     expect(beginMock).toHaveBeenCalledTimes(1);
     await act(async () => {
       pending.resolve({});
     });
-    expect(button("Review downgrade")?.disabled).toBe(false);
+    expect(button("Change plan")?.disabled).toBe(false);
   });
 
   it("keeps Cancel plan change available when scheduling is not ready", async () => {
@@ -361,7 +364,7 @@ describe("self-service change plan panel", () => {
     });
     expect(button("Schedule downgrade")).toBeUndefined();
     expect(button("Cancel plan change")).toBeUndefined();
-    expect(button("Review downgrade")).toBeUndefined();
+    expect(button("Change plan")).toBeUndefined();
     expect(button("Keep Practice")).toBeUndefined();
     expect(container.textContent).toContain(
       "Choose which guides will stay active on Essential."
@@ -433,10 +436,8 @@ describe("self-service change plan panel", () => {
     await submit("Cancel plan change");
     expect(container.textContent).toContain(CANCEL_PLAN_CHANGE_NOTICE);
     expect(container.textContent).toContain("Current: Practice");
-    expect(button("Review downgrade")).toBeTruthy();
-    expect(
-      button("Review downgrade")?.querySelector(".staffBtnSpinner")
-    ).toBeNull();
+    expect(button("Change plan")).toBeTruthy();
+    expect(button("Change plan")?.querySelector(".staffBtnSpinner")).toBeNull();
     expect(button("Schedule downgrade")).toBeUndefined();
     expect(button("Cancel plan change")).toBeUndefined();
     expect(container.textContent).not.toContain("Practice → Essential");
@@ -448,32 +449,62 @@ describe("self-service change plan panel", () => {
     expect(container.textContent).not.toContain("sub_");
   });
 
-  it("shows Cancel plan change at the top of an active review and again in the final row", async () => {
+  it("keeps the next action and cancel together while a guide selection is open", async () => {
+    const selection: ClinicGuideSelectionPanel = {
+      status: "awaiting",
+      limits: { custom: 2, adapted: 2, combined: 4 },
+      selectedIds: [],
+      guides: [
+        {
+          id: "c1",
+          title: "Custom one",
+          kind: "custom",
+          kindLabel: "Custom guide",
+          publicationLabel: "Published",
+          updatedLabel: "1 October 2026",
+        },
+      ],
+    };
     await render({
       phase: "review",
       canCancelPreparation: true,
       guidesFit: false,
       preparationStatus: "awaiting",
-      guideEditor: <p>Choose Custom one</p>,
+      scheduleReady: false,
+      guideEditor: (
+        <DowngradeGuideSelectionForm
+          panel={selection}
+          canConfirm
+          placement="review"
+        />
+      ),
     });
-    const panel = container.querySelector("[data-phase='review']");
-    const markup = panel?.innerHTML ?? "";
-    const topAt = markup.indexOf('data-cancel-plan-change="top"');
-    const introAt = markup.indexOf("Practice → Essential");
-    const finalAt = markup.indexOf('data-cancel-plan-change="final"');
-    expect(topAt).toBeGreaterThan(-1);
-    expect(introAt).toBeGreaterThan(topAt);
-    expect(finalAt).toBeGreaterThan(introAt);
-    expect(container.textContent).toContain("Choose Custom one");
-    const cancels = container.querySelectorAll(
-      'input[name="intent"][value="cancel"]'
+    const region = container.querySelector("[data-plan-change-actions]");
+    const row = container.querySelector("[data-action-row='downgrade']");
+    expect(region?.textContent).toContain("Next: confirm guide selection");
+    expect(region?.textContent).toContain("You are preparing a plan change");
+    expect(region?.textContent).toContain(
+      "Nothing is scheduled or billed until you choose Schedule downgrade."
     );
-    expect(cancels).toHaveLength(2);
-    expect(button("Cancel plan change")?.className).toContain("h-11");
+    expect(button("Confirm guide selection", region ?? container)).toBeTruthy();
+    expect(button("Cancel plan change", region ?? container)).toBeTruthy();
+    expect(button("Schedule downgrade")).toBeUndefined();
+    expect(
+      button("Confirm guide selection")?.closest(
+        "[data-action-row='downgrade']"
+      )
+    ).toBe(row);
+    expect(
+      button("Cancel plan change")?.closest("[data-action-row='downgrade']")
+    ).toBe(row);
+    expect(
+      container.querySelectorAll('input[name="intent"][value="cancel"]')
+    ).toHaveLength(1);
+    expect(container.textContent).toContain("Custom one");
     expect(container.querySelector(".staffBtnSpinner")).toBeNull();
   });
 
-  it("uses one cancellation and locks Schedule while either Cancel control is pending", async () => {
+  it("uses one cancellation and locks Schedule while that control is pending", async () => {
     const pending = deferred<{ error: string }>();
     cancelMock.mockReturnValue(pending.promise);
     await render({
@@ -489,7 +520,7 @@ describe("self-service change plan panel", () => {
     const forms = [
       ...container.querySelectorAll("[data-cancel-plan-change] form"),
     ] as HTMLFormElement[];
-    expect(forms).toHaveLength(2);
+    expect(forms).toHaveLength(1);
     await act(async () => {
       forms[0]?.requestSubmit();
     });
@@ -502,7 +533,7 @@ describe("self-service change plan panel", () => {
     expect(container.textContent).toContain("Custom one stays selected");
     expect(container.textContent).toContain("Guide selection confirmed");
     await act(async () => {
-      forms[1]?.requestSubmit();
+      forms[0]?.requestSubmit();
     });
     expect(cancelMock).toHaveBeenCalledTimes(1);
     expect(scheduleMock).not.toHaveBeenCalled();
@@ -520,7 +551,7 @@ describe("self-service change plan panel", () => {
     expect(container.textContent).toContain("Custom one stays selected");
     expect(container.textContent).toContain("Guide selection confirmed");
     expect(button("Schedule downgrade")?.disabled).toBe(false);
-    expect(buttons("Cancel plan change")).toHaveLength(2);
+    expect(buttons("Cancel plan change")).toHaveLength(1);
     expect(
       buttons("Cancel plan change").every((control) => !control.disabled)
     ).toBe(true);
@@ -531,7 +562,7 @@ describe("self-service change plan panel", () => {
   it("shows the cancelled arrival on the Practice review entry", async () => {
     await render({ phase: "entry", arrivalNotice: "cancelled" });
     expect(container.textContent).toContain(CANCEL_PLAN_CHANGE_NOTICE);
-    expect(button("Review downgrade")).toBeTruthy();
+    expect(button("Change plan")).toBeTruthy();
     expect(button("Schedule downgrade")).toBeUndefined();
     expect(container.querySelector(".staffBtnSpinner")).toBeNull();
   });

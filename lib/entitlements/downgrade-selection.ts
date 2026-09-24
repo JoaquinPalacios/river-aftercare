@@ -647,11 +647,11 @@ export function guideRestoreMessage(code: GuideRestoreCode): string {
     case "not_clinic_owned":
       return "This guide cannot be restored.";
     case "custom_limit":
-      return "There is no free custom-guide place for this guide on the current plan.";
+      return "You've reached your current custom guide limit. Free a custom guide place or increase the clinic's allowance before restoring this guide.";
     case "adapted_limit":
-      return "There is no free edited-template place for this guide on the current plan.";
+      return "You've reached your current editable River template limit. Free an editable template place or increase the clinic's allowance before restoring this guide.";
     case "combined_limit":
-      return "There is no free clinic-owned guide place for this guide on the current plan.";
+      return "You've reached your current clinic-owned guide limit. Free a clinic-owned guide place or increase the clinic's allowance before restoring this guide.";
   }
 }
 

@@ -457,17 +457,20 @@ describe("downgrade guide selection form", () => {
       "review"
     );
     expect(container.textContent).toContain("Edit guide selection");
+    const edit = [...container.querySelectorAll("button")].find(
+      (control) => control.textContent === "Edit guide selection"
+    );
+    expect(edit?.className).toContain("staffBtnSecondary");
+    expect(edit?.className).toContain("self-start");
+    expect(edit?.className.split(/\s+/)).not.toContain("w-full");
     expect(container.textContent).not.toContain(
       "Will stay active on Essential"
     );
     expect(container.textContent).not.toContain("Custom one");
     expect(container.querySelector('input[type="checkbox"]')).toBeNull();
 
-    const edit = [...container.querySelectorAll("button")].find(
-      (control) => control.textContent === "Edit guide selection"
-    ) as HTMLButtonElement;
     await act(async () => {
-      edit.click();
+      (edit as HTMLButtonElement).click();
     });
     expect(box("c1").checked).toBe(true);
     expect(container.textContent).toContain("Custom one");

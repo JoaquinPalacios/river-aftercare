@@ -12,17 +12,21 @@ export function PendingSubmitButton({
   pendingLabel,
   className,
   disabled = false,
+  form,
 }: {
   label: string;
   pendingLabel: string;
   className?: string;
   disabled?: boolean;
+  /** Associates the control with a form when it is rendered outside that form. */
+  form?: string;
 }) {
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
+      form={form}
       className={["staffPendingSubmit", className].filter(Boolean).join(" ")}
       disabled={disabled || pending}
       aria-busy={pending || undefined}

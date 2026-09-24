@@ -14,9 +14,9 @@ export const PRICING_CURRENCY = "AUD";
 
 /**
  * Canonical advertised Australian dollar amounts. Do not copy these literals
- * elsewhere. These amounts are not a GST-inclusive claim: GST registration is
- * pending accountant confirmation, and public copy must not say prices include
- * GST.
+ * elsewhere. River Aftercare is not registering for GST. These amounts are
+ * the public prices. Do not label them as including GST or excluding GST.
+ * `InclGst` in the field names is a historical identifier for those amounts.
  */
 export const PLAN_PRICES = {
   essential: {

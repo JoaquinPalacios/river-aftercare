@@ -8,7 +8,13 @@ export type ClinicGuideLifecycleStatus =
   | "unpublished";
 
 export type GuideStatusPillTone =
-  "draft" | "published" | "changes" | "disabled" | "unpublished";
+  | "draft"
+  | "published"
+  | "changes"
+  | "disabled"
+  | "unpublished"
+  | "warning"
+  | "inactive";
 
 export interface GuideStatusPill {
   label: string;
@@ -101,4 +107,22 @@ export function clinicGuideCanUnpublish(
     status === "published_draft_changes" ||
     status === "published_disabled"
   );
+}
+
+/**
+ * Editor publication controls.
+ * A clean published guide offers Unpublish. Publish stays available when the
+ * guide is not public yet, or when a published guide has edits to release.
+ */
+export function guideEditorPublicationMode(input: {
+  lifecycle: ClinicGuideLifecycleStatus;
+  dirty: boolean;
+}): { publish: boolean; unpublish: boolean } {
+  if (input.lifecycle === "draft" || input.lifecycle === "unpublished") {
+    return { publish: true, unpublish: false };
+  }
+  if (input.lifecycle === "published" && !input.dirty) {
+    return { publish: false, unpublish: true };
+  }
+  return { publish: true, unpublish: true };
 }

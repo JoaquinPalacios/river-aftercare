@@ -15,11 +15,11 @@ export function RetainedGuideRestoreForm({ guideId }: { guideId: string }) {
     initial
   );
   return (
-    <form action={action} className="mt-3">
+    <form action={action} className="flex flex-col items-start gap-2">
       <input type="hidden" name="guideId" value={guideId} />
       <button
         type="submit"
-        className="staffBtn staffBtnSecondary h-11"
+        className="staffBtn staffBtnSecondary h-11 max-w-full self-start"
         disabled={pending}
       >
         {pending ? "Restoring…" : "Restore guide"}

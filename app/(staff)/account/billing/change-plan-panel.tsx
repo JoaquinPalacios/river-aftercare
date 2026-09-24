@@ -1,9 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
+
+import { PlanChangeSelectionContext } from "@/app/(staff)/account/billing/plan-change-selection-context";
 
 import {
   beginClinicPlanDowngradeAction,
@@ -118,6 +127,51 @@ export function ChangePlanPanel({
   const router = useRouter();
   const cancelled = feedback.notice === "cancelled";
   const view = cancelled ? "entry" : phase;
+  const [primarySlot, setPrimarySlot] = useState<HTMLDivElement | null>(null);
+  const [secondarySlot, setSecondarySlot] = useState<HTMLDivElement | null>(
+    null
+  );
+  const [guideSelectionEditing, setGuideSelectionEditing] = useState(
+    Boolean(guideEditor) && !guidesFit && preparationStatus !== "confirmed"
+  );
+  const reportEditing = useCallback((editing: boolean) => {
+    setGuideSelectionEditing((current) =>
+      current === editing ? current : editing
+    );
+  }, []);
+  const selectionContextValue = useMemo(
+    () => ({
+      reportEditing,
+      primarySlot,
+      secondarySlot,
+    }),
+    [reportEditing, primarySlot, secondarySlot]
+  );
+  const reviewAction = !canAct
+    ? {
+        title: "Preparing a plan change",
+        detail:
+          "A clinic administrator confirms any guide selection and schedules the downgrade. Nothing is billed until then.",
+      }
+    : guideSelectionEditing
+      ? {
+          title: "Next: confirm guide selection",
+          detail:
+            "Choose the guides below, then confirm. You are preparing a plan change. Nothing is scheduled or billed until you choose Schedule downgrade.",
+        }
+      : scheduleReady
+        ? {
+            title: "Next: schedule the downgrade",
+            detail: dateLabel
+              ? `Essential begins on ${dateLabel}. Practice stays active until then. There is no immediate charge.`
+              : "Essential begins at the next renewal. Practice stays active until then. There is no immediate charge.",
+          }
+        : {
+            title: "Scheduling is not available yet",
+            detail:
+              blockedMessage ??
+              "Resolve the items in this review before scheduling the downgrade.",
+          };
 
   useEffect(() => {
     if (!cancelled) {
@@ -172,16 +226,9 @@ export function ChangePlanPanel({
 
   return (
     <div className="mt-5 border-t border-staff-line pt-5" data-phase={view}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="text-sm font-semibold">
-          {view === "scheduled" ? "Essential scheduled" : "Change plan"}
-        </h3>
-        {view === "review" && canAct && canCancelPreparation ? (
-          <div data-cancel-plan-change="top" aria-busy={pending || undefined}>
-            {cancelPlanChangeForm()}
-          </div>
-        ) : null}
-      </div>
+      <h3 className="text-sm font-semibold">
+        {view === "scheduled" ? "Essential scheduled" : "Change plan"}
+      </h3>
       {view === "entry" ? (
         <div className="mt-3 max-w-xl text-sm leading-6">
           <p>Current: Practice</p>
@@ -197,7 +244,7 @@ export function ChangePlanPanel({
             >
               <input type="hidden" name="intent" value="begin" />
               <PendingSubmitButton
-                label="Review downgrade"
+                label="Change plan"
                 pendingLabel="Preparing…"
                 className="staffBtn staffBtnPrimary h-11 w-full sm:w-auto"
                 disabled={pending}
@@ -246,155 +293,173 @@ export function ChangePlanPanel({
         </div>
       ) : null}
       {view === "review" ? (
-        <div className="mt-3 max-w-xl text-sm leading-6">
-          <p className="font-medium text-staff-ink">Practice → Essential</p>
-          {dateLabel ? (
-            <>
-              <p>Essential will begin on {dateLabel}.</p>
-              <p>Your Practice plan remains active until then.</p>
-            </>
-          ) : (
-            <p>Essential will begin at the end of the current paid period.</p>
-          )}
-          <p>There is no immediate refund or billing change.</p>
-          <ol className="mt-4 grid gap-4">
-            <li>
-              <p className="font-medium text-staff-ink">Team</p>
-              {teamBlocked ? (
-                <>
-                  <p>Team changes required</p>
-                  <p>
-                    Essential includes {teamLimit} team places. Your clinic
-                    currently uses {teamCurrent}.
-                  </p>
-                  <p>
-                    Deactivate team members or cancel pending invitations before
-                    scheduling the downgrade.
-                  </p>
-                  <Link
-                    href="/practice"
-                    className="staffBtn staffBtnSecondary mt-2 inline-flex h-11 items-center"
-                  >
-                    Manage team
-                  </Link>
-                </>
-              ) : (
-                <p>
-                  {teamCurrent} of {teamLimit} places
-                </p>
-              )}
-            </li>
-            <li>
-              <p className="font-medium text-staff-ink">Guides</p>
-              {guidesFit ? (
-                <>
-                  <p>Guides ready</p>
-                  <p>All current clinic-owned guides fit within Essential.</p>
-                </>
-              ) : selectionConfirmed ? (
-                <>
-                  <p>Guide selection confirmed</p>
-                  <p>
-                    {selectedCombined} of {combinedLimit} clinic-owned guides
-                    will stay active
-                  </p>
-                  <p>{retainedCombined} will be retained for 60 days</p>
-                </>
-              ) : (
-                <p>Choose which guides will stay active on Essential.</p>
-              )}
-              {guideEditor}
-            </li>
-            <li>
-              <p className="font-medium text-staff-ink">Review</p>
-              <p>
-                {dateLabel
-                  ? `Essential begins ${dateLabel}`
-                  : "Essential begins at the next renewal"}
-              </p>
-              <p>No immediate billing change</p>
-            </li>
-          </ol>
-          <dl className="mt-4 grid gap-3">
-            <div>
-              <dt className="text-staff-muted">Current plan</dt>
-              <dd className="font-medium">Practice</dd>
-            </div>
-            <div>
-              <dt className="text-staff-muted">New plan</dt>
-              <dd className="font-medium">Essential</dd>
-            </div>
-            <div>
-              <dt className="text-staff-muted">Billing</dt>
-              <dd className="font-medium">{intervalLabel}</dd>
-            </div>
-            <div>
-              <dt className="text-staff-muted">Effective</dt>
-              <dd className="font-medium">{dateLabel ?? "Next renewal"}</dd>
-            </div>
-            <div>
-              <dt className="text-staff-muted">Price from next renewal</dt>
-              <dd className="font-medium">{essentialPriceLabel}</dd>
-            </div>
-            <div>
-              <dt className="text-staff-muted">Immediate charge</dt>
-              <dd className="font-medium">None</dd>
-            </div>
-            <div>
-              <dt className="text-staff-muted">Immediate refund</dt>
-              <dd className="font-medium">None</dd>
-            </div>
-            <div>
-              <dt className="text-staff-muted">
-                Current Practice features remain until
-              </dt>
-              <dd className="font-medium">
-                {dateLabel ?? "the effective date"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-staff-muted">Guide outcome</dt>
-              <dd className="font-medium">
-                {guidesFit
-                  ? `${combinedCurrent} clinic-owned guides stay active. None are retained.`
-                  : activeCombined == null
-                    ? "Choose the guides that stay active. The others are retained for 60 days once Essential begins."
-                    : `${activeCombined} clinic-owned guides stay active. ${retainedCombined} will be retained for 60 days once Essential begins.`}
-              </dd>
-            </div>
-          </dl>
-          {blockedMessage ? (
-            <p className="mt-4" role="status">
-              {blockedMessage}
-            </p>
-          ) : null}
-          {canAct ? (
-            <div
-              className="mt-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
-              data-action-row="downgrade"
-              aria-busy={pending || undefined}
+        <PlanChangeSelectionContext.Provider value={selectionContextValue}>
+          <div className="mt-3 max-w-xl text-sm leading-6">
+            <p className="font-medium text-staff-ink">Practice → Essential</p>
+            {dateLabel ? (
+              <>
+                <p>Essential will begin on {dateLabel}.</p>
+                <p>Your Practice plan remains active until then.</p>
+              </>
+            ) : (
+              <p>Essential will begin at the end of the current paid period.</p>
+            )}
+            <p>There is no immediate refund or billing change.</p>
+            <section
+              className="staffPlanChangeActions"
+              aria-label="Plan change actions"
+              data-plan-change-actions
             >
-              <form
-                action={action}
-                className="min-w-0 w-full sm:w-auto"
-                onSubmit={keepSingleSubmission}
-              >
-                <input type="hidden" name="intent" value="schedule" />
-                <PendingSubmitButton
-                  label="Schedule downgrade"
-                  pendingLabel="Scheduling…"
-                  className="staffBtn staffBtnPrimary h-11 w-full sm:w-auto"
-                  disabled={pending || !scheduleReady}
-                />
-              </form>
-              {canCancelPreparation ? (
-                <div data-cancel-plan-change="final">
-                  {cancelPlanChangeForm()}
+              <p className="font-medium text-staff-ink">{reviewAction.title}</p>
+              <p className="text-staff-muted">{reviewAction.detail}</p>
+              {guideSelectionEditing && blockedMessage ? (
+                <p role="status">{blockedMessage}</p>
+              ) : null}
+              {canAct ? (
+                <div
+                  className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
+                  data-action-row="downgrade"
+                  aria-busy={pending || undefined}
+                >
+                  <div
+                    ref={setPrimarySlot}
+                    className="flex w-full min-w-0 empty:hidden sm:w-auto"
+                  />
+                  {guideSelectionEditing ? null : (
+                    <form
+                      action={action}
+                      className="min-w-0 w-full sm:w-auto"
+                      onSubmit={keepSingleSubmission}
+                    >
+                      <input type="hidden" name="intent" value="schedule" />
+                      <PendingSubmitButton
+                        label="Schedule downgrade"
+                        pendingLabel="Scheduling…"
+                        className="staffBtn staffBtnPrimary h-11 w-full sm:w-auto"
+                        disabled={pending || !scheduleReady}
+                      />
+                    </form>
+                  )}
+                  <div
+                    ref={setSecondarySlot}
+                    className="flex max-w-full self-start empty:hidden"
+                  />
+                  {canCancelPreparation ? (
+                    <div data-cancel-plan-change="actions">
+                      {cancelPlanChangeForm()}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
-            </div>
-          ) : null}
-        </div>
+            </section>
+            <ol className="mt-4 grid gap-4">
+              <li>
+                <p className="font-medium text-staff-ink">Team</p>
+                {teamBlocked ? (
+                  <>
+                    <p>Team changes required</p>
+                    <p>
+                      Essential includes {teamLimit} team places. Your clinic
+                      currently uses {teamCurrent}.
+                    </p>
+                    <p>
+                      Deactivate team members or cancel pending invitations
+                      before scheduling the downgrade.
+                    </p>
+                    <Link
+                      href="/practice"
+                      className="staffBtn staffBtnSecondary mt-2 inline-flex h-11 items-center"
+                    >
+                      Manage team
+                    </Link>
+                  </>
+                ) : (
+                  <p>
+                    {teamCurrent} of {teamLimit} places
+                  </p>
+                )}
+              </li>
+              <li>
+                <p className="font-medium text-staff-ink">Guides</p>
+                {guidesFit ? (
+                  <>
+                    <p>Guides ready</p>
+                    <p>All current clinic-owned guides fit within Essential.</p>
+                  </>
+                ) : selectionConfirmed ? (
+                  <>
+                    <p>Guide selection confirmed</p>
+                    <p>
+                      {selectedCombined} of {combinedLimit} clinic-owned guides
+                      will stay active
+                    </p>
+                    <p>{retainedCombined} will be retained for 60 days</p>
+                  </>
+                ) : (
+                  <p>Choose which guides will stay active on Essential.</p>
+                )}
+                {guideEditor}
+              </li>
+              <li>
+                <p className="font-medium text-staff-ink">Review</p>
+                <p>
+                  {dateLabel
+                    ? `Essential begins ${dateLabel}`
+                    : "Essential begins at the next renewal"}
+                </p>
+                <p>No immediate billing change</p>
+              </li>
+            </ol>
+            <dl className="mt-4 grid gap-3">
+              <div>
+                <dt className="text-staff-muted">Current plan</dt>
+                <dd className="font-medium">Practice</dd>
+              </div>
+              <div>
+                <dt className="text-staff-muted">New plan</dt>
+                <dd className="font-medium">Essential</dd>
+              </div>
+              <div>
+                <dt className="text-staff-muted">Billing</dt>
+                <dd className="font-medium">{intervalLabel}</dd>
+              </div>
+              <div>
+                <dt className="text-staff-muted">Effective</dt>
+                <dd className="font-medium">{dateLabel ?? "Next renewal"}</dd>
+              </div>
+              <div>
+                <dt className="text-staff-muted">Price from next renewal</dt>
+                <dd className="font-medium">{essentialPriceLabel}</dd>
+              </div>
+              <div>
+                <dt className="text-staff-muted">Immediate charge</dt>
+                <dd className="font-medium">None</dd>
+              </div>
+              <div>
+                <dt className="text-staff-muted">Immediate refund</dt>
+                <dd className="font-medium">None</dd>
+              </div>
+              <div>
+                <dt className="text-staff-muted">
+                  Current Practice features remain until
+                </dt>
+                <dd className="font-medium">
+                  {dateLabel ?? "the effective date"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-staff-muted">Guide outcome</dt>
+                <dd className="font-medium">
+                  {guidesFit
+                    ? `${combinedCurrent} clinic-owned guides stay active. None are retained.`
+                    : activeCombined == null
+                      ? "Choose the guides that stay active. The others are retained for 60 days once Essential begins."
+                      : `${activeCombined} clinic-owned guides stay active. ${retainedCombined} will be retained for 60 days once Essential begins.`}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </PlanChangeSelectionContext.Provider>
       ) : null}
       {notice ? (
         <TransientNotice

@@ -8,6 +8,7 @@ import {
   clinicGuideLifecycleStatus,
   clinicGuideStatusLabel,
   clinicGuideStatusPills,
+  guideEditorPublicationMode,
 } from "@/lib/clinic-portal/guide-status";
 
 describe("guide status pills", () => {
@@ -38,6 +39,33 @@ describe("guide status pills", () => {
     );
     expect(clinicGuideDestructiveAction("published")).toBeNull();
     expect(clinicGuideDestructiveAction("published_disabled")).toBeNull();
+  });
+
+  it("shows Publish for drafts and Unpublish for a clean published guide", () => {
+    expect(
+      guideEditorPublicationMode({ lifecycle: "draft", dirty: false })
+    ).toEqual({ publish: true, unpublish: false });
+    expect(
+      guideEditorPublicationMode({ lifecycle: "unpublished", dirty: false })
+    ).toEqual({ publish: true, unpublish: false });
+    expect(
+      guideEditorPublicationMode({ lifecycle: "published", dirty: false })
+    ).toEqual({ publish: false, unpublish: true });
+    expect(
+      guideEditorPublicationMode({ lifecycle: "published", dirty: true })
+    ).toEqual({ publish: true, unpublish: true });
+    expect(
+      guideEditorPublicationMode({
+        lifecycle: "published_draft_changes",
+        dirty: false,
+      })
+    ).toEqual({ publish: true, unpublish: true });
+    expect(
+      guideEditorPublicationMode({
+        lifecycle: "published_disabled",
+        dirty: false,
+      })
+    ).toEqual({ publish: true, unpublish: true });
   });
 
   it("offers unpublish for currently public pins only", () => {

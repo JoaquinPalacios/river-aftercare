@@ -2516,6 +2516,26 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   }
 }
 
+.staffPlanChangeActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-top: 1px solid var(--staff-line);
+  border-bottom: 1px solid var(--staff-line);
+  background: var(--staff-panel);
+}
+
+@media (min-width: 640px) {
+  .staffPlanChangeActions {
+    position: sticky;
+    top: 0;
+    z-index: 15;
+  }
+}
+
 .staffSectionNavRow {
   color: var(--staff-muted);
 }
