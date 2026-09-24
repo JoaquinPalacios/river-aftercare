@@ -16,7 +16,7 @@ Production target is Neon PostgreSQL 18 in AWS Asia Pacific 2 (Sydney). Do not c
 
 Authoritative product requirements: `docs/product/PRD.md` (v1.0 — Aftercare SaaS).
 
-Care Guide’s **product direction** is branded aftercare SaaS for healthcare practices. The commercial/product name is **River Aftercare**. The **current codebase** is staff auth, Phase 1A–1C aftercare, clinic portal / operator foundation through Phase 2A.5, and **Phase 2B SEO & Discovery**. Chairside / live-session functionality was removed as legacy. Dormant `ProcedureSession` models may remain in Prisma; aftercare must not depend on them. Do not claim later-phase MVP features (QR, analytics, Privacy/Terms, production infra) are implemented until they exist.
+Care Guide’s **product direction** is branded aftercare SaaS for healthcare practices. The commercial/product name is **River Aftercare**. The **current codebase** is staff auth, Phase 1A–1C aftercare, clinic portal / operator foundation through Phase 2A.5, and **Phase 2B SEO & Discovery**. Chairside / live-session functionality was removed as legacy in PR #96, and the legacy chairside Prisma schema was subsequently removed. Aftercare must not depend on `ProcedureSession`. Historical ADRs remain historical records. Do not claim later-phase MVP features (QR, analytics, Privacy/Terms, production infra) are implemented until they exist.
 
 # Dependency and runtime baseline
 

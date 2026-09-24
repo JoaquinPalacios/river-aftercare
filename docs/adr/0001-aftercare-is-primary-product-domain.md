@@ -19,7 +19,7 @@ The chairside session system **must not define aftercare architecture**. It was 
 ## Consequences
 
 - New implementation work is evaluated against aftercare value, not against live session completeness.
-- Chairside application code was later removed (see [ADR 0009](0009-existing-chairside-product-is-parked.md)). Dormant Prisma models may remain. They stay out of the aftercare domain.
+- Chairside application code was later removed in PR #96 (see [ADR 0009](0009-existing-chairside-product-is-parked.md)). The legacy chairside Prisma schema was subsequently removed. Those names stay out of the aftercare domain.
 - README and product docs must distinguish product direction from current implementation.
 
 ## Notes for later implementation
