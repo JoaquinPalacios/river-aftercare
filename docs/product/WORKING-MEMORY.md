@@ -5,13 +5,13 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-24 (legacy chairside / live-session application removed; GST not in scope)
+Last updated: 2026-09-24 (legacy chairside schema removed after PR #96; GST not in scope)
 
 ## Durable legacy chairside removal
 
-Chairside / live-session functionality was **removed as legacy** on 2026-09-24. It is not parked. Do not restore `/sessions/new`, `/session/[id]/control`, `/display/[token]`, `/dashboard/procedures`, `lib/sessions`, `lib/procedures`, `lib/realtime`, or `@supabase/supabase-js`.
+Chairside / live-session application code was **removed as legacy** on 2026-09-24 in PR #96. It is not parked. Do not restore `/sessions/new`, `/session/[id]/control`, `/display/[token]`, `/dashboard/procedures`, `lib/sessions`, `lib/procedures`, `lib/realtime`, or `@supabase/supabase-js`.
 
-Dormant Prisma models (`ProcedureSession`, `ProcedureTemplate`, `Room`, `Doctor`, and related enums) remain so this change does not drop production tables. Do not use them for aftercare. Do not add a destructive drop migration unless a later task explicitly asks for it.
+The legacy chairside database schema was subsequently removed. Dropped models: `ProcedureTemplate`, `ProcedureStageTemplate`, `ProcedureTemplateSelectedAreaOption`, `Room`, `Doctor`, `ProcedureSession`, `SessionStageState`, `PatientDisplayPreferences`, `ProcedureSessionStageOverride`, and `ProcedureSessionStageTransition`. Dropped enums: `ProcedureSessionStatus`, `PatientDisplayMode`, and `ProcedureSessionStageTransitionDirection`. Do not reintroduce them for aftercare. Historical ADRs stay historical records. Auth.js `Session` is unrelated and was not part of that drop.
 
 Retired URL prefixes stay in `STAFF_PATH_PREFIXES`, `ROBOTS_DISALLOW_INTERNAL`, and reserved tenant slugs so marketing and tenant hosts 404 them instead of rewriting them as marketing or patient pages.
 
@@ -820,7 +820,7 @@ Archive of **published** guides (delete after history exists), QR, clinic-admin 
 - Remaining Phase 2 operator library/QR, analytics, SMS/email, billing, custom domains, extra specialties, clinical CMS, rich-text editor, patient-specific guides
 - Enable `cacheComponents: true`
 - Restore removed chairside routes, realtime, or Supabase
-- Depend aftercare on dormant `ProcedureSession` models
+- Depend aftercare on the removed `ProcedureSession` schema
 - Reuse `ProcedureTemplate` as the aftercare Guide Template
 - Use real Pacific Dental brand assets
 - Author scraped/clinically authoritative copy from random websites
@@ -846,19 +846,19 @@ Archive of **published** guides (delete after history exists), QR, clinic-admin 
 
 ---
 
-## Removed chairside (dormant schema only)
+## Removed chairside
 
-The live-session application was removed. Do not extend these models for aftercare.
+The live-session application was removed in PR #96. The legacy database schema was removed afterwards. Do not reintroduce these models for aftercare.
 
-| Area            | What remains                                                                                                                                                      |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Schema          | Dormant `prisma/schema.prisma` models: `ProcedureTemplate`, stages, rooms, doctors, `ProcedureSession`, display prefs, overrides, transitions. No drop migration. |
-| Seed            | `prisma/seed.mjs` no longer creates rooms, doctors, or chairside templates. `demodental` aftercare demo is unchanged.                                             |
-| Routes          | `/sessions/new`, `/session/[id]/control`, `/display/[token]`, `/dashboard/procedures` are gone and 404 via the staff catch-all or the host proxy.                 |
-| Realtime        | `lib/realtime/*` and `@supabase/supabase-js` removed. Supabase env vars removed from `.env.example`.                                                              |
-| Staff dashboard | `/dashboard` is the River Aftercare clinic portal.                                                                                                                |
+| Area            | Current state                                                                                                                                                    |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Schema          | Removed from `prisma/schema.prisma` by `remove_legacy_chairside_schema`: templates, stages, rooms, doctors, sessions, display prefs, overrides, and transitions. |
+| Seed            | `prisma/seed.mjs` no longer creates rooms, doctors, or chairside templates. `demodental` aftercare demo is unchanged.                                            |
+| Routes          | `/sessions/new`, `/session/[id]/control`, `/display/[token]`, `/dashboard/procedures` are gone and 404 via the staff catch-all or the host proxy.                |
+| Realtime        | `lib/realtime/*` and `@supabase/supabase-js` removed. Supabase env vars removed from `.env.example`.                                                             |
+| Staff dashboard | `/dashboard` is the River Aftercare clinic portal.                                                                                                               |
 
-`ProcedureTemplate.aftercareUrl` is not the aftercare product.
+The removed `ProcedureTemplate.aftercareUrl` field is not the aftercare product.
 
 ---
 
