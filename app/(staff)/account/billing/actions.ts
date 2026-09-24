@@ -310,5 +310,5 @@ export async function cancelClinicPlanChangeAction(
   if (!result.ok) {
     return { error: customerCancelPlanChangeMessage(result.code) };
   }
-  return { notice: "cancelled" };
+  redirect("/account/billing?plan-change=cancelled");
 }

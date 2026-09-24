@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 export default async function BillingStatusPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ "change-plan"?: string }>;
+  searchParams?: Promise<{ "change-plan"?: string; "plan-change"?: string }>;
 } = {}) {
   const context = await loadBillingPageContext();
   const params = searchParams ? await searchParams : {};
@@ -180,6 +180,9 @@ export default async function BillingStatusPage({
               scheduleReady={downgrade.scheduleReady}
               blockedMessage={downgrade.blockedMessage}
               canCancelPreparation={downgrade.canCancelPreparation}
+              arrivalNotice={
+                params["plan-change"] === "cancelled" ? "cancelled" : null
+              }
             />
           ) : null}
           {showReview && downgrade ? (

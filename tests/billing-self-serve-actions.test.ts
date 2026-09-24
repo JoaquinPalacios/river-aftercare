@@ -136,8 +136,12 @@ describe("self-service plan change authorization", () => {
       actorUserId: "user_admin",
     });
 
-    const cancelled = await cancelClinicPlanChangeAction({}, new FormData());
-    expect(cancelled).toEqual({ notice: "cancelled" });
+    await expect(
+      cancelClinicPlanChangeAction({}, new FormData())
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirectMock).toHaveBeenCalledWith(
+      "/account/billing?plan-change=cancelled"
+    );
     expect(cancelMock).toHaveBeenCalledWith({
       clinicId: "clinic_a",
       actorUserId: "user_admin",

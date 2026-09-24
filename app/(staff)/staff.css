@@ -391,19 +391,18 @@ html[data-theme-mode="dark"] .staffNavRowMuted {
   white-space: nowrap;
 }
 
-.staffBtnSpinner {
+.staffBtnSpinner,
+.staffBtnSpinnerSlot {
   width: 0.9rem;
   height: 0.9rem;
   flex: 0 0 auto;
+}
+
+.staffBtnSpinner {
   border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
   border-top-color: currentColor;
   border-radius: 50%;
   animation: staffLoginSpin 0.65s linear infinite;
-  visibility: hidden;
-}
-
-.staffBtnSpinner[data-visible="true"] {
-  visibility: visible;
 }
 
 .staffPendingLabels {
@@ -423,10 +422,6 @@ html[data-theme-mode="dark"] .staffNavRowMuted {
     animation: none;
     border-color: transparent;
     background: currentColor;
-  }
-
-  .staffBtnSpinner[data-visible="false"] {
-    background: transparent;
   }
 }
 

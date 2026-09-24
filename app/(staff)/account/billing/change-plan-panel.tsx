@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useActionState } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   beginClinicPlanDowngradeAction,
@@ -69,6 +70,7 @@ export function ChangePlanPanel({
   canCancelPreparation,
   scheduledEffectiveLabel,
   guideEditor,
+  arrivalNotice,
 }: {
   phase: ChangePlanPhase;
   canAct: boolean;
@@ -87,13 +89,21 @@ export function ChangePlanPanel({
   canCancelPreparation: boolean;
   scheduledEffectiveLabel?: string | null;
   guideEditor?: ReactNode;
+  arrivalNotice?: "cancelled" | null;
 }) {
   const [feedback, action, pending] = useActionState(
     planChangeFeedbackAction,
     initialFeedback
   );
   const [dismissed, setDismissed] = useState(0);
-  const notice = feedback.generation > dismissed ? noticeCopy(feedback) : null;
+  const [arrivalDismissed, setArrivalDismissed] = useState(false);
+  const actionNotice =
+    feedback.generation > dismissed ? noticeCopy(feedback) : null;
+  const notice =
+    actionNotice ??
+    (arrivalNotice === "cancelled" && !arrivalDismissed
+      ? CANCEL_PLAN_CHANGE_NOTICE
+      : null);
   const teamBlocked = teamCurrent > teamLimit;
   const selectionConfirmed = preparationStatus === "confirmed";
   const retainedCombined = selectionConfirmed
@@ -105,13 +115,74 @@ export function ChangePlanPanel({
       ? selectedCombined
       : null;
   const dateLabel = scheduledEffectiveLabel ?? effectiveLabel;
+  const router = useRouter();
+  const cancelled = feedback.notice === "cancelled";
+  const view = cancelled ? "entry" : phase;
+
+  useEffect(() => {
+    if (!cancelled) {
+      return;
+    }
+    router.replace("/account/billing?plan-change=cancelled");
+  }, [cancelled, router]);
+
+  useEffect(() => {
+    if (arrivalNotice !== "cancelled") {
+      return;
+    }
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("plan-change") !== "cancelled") {
+      return;
+    }
+    url.searchParams.delete("plan-change");
+    const search = url.searchParams.toString();
+    window.history.replaceState(
+      null,
+      "",
+      search ? `${url.pathname}?${search}` : url.pathname
+    );
+  }, [arrivalNotice]);
+
+  function keepSingleSubmission(event: FormEvent<HTMLFormElement>) {
+    if (pending) {
+      event.preventDefault();
+    }
+  }
+
+  function cancelPlanChangeForm() {
+    if (!canAct) {
+      return null;
+    }
+    return (
+      <form
+        action={action}
+        className="min-w-0 w-full sm:w-auto"
+        onSubmit={keepSingleSubmission}
+      >
+        <input type="hidden" name="intent" value="cancel" />
+        <PendingSubmitButton
+          label="Cancel plan change"
+          pendingLabel="Cancelling…"
+          className="staffBtn staffBtnSecondary h-11 w-full sm:w-auto"
+          disabled={pending}
+        />
+      </form>
+    );
+  }
 
   return (
-    <div className="mt-5 border-t border-staff-line pt-5" data-phase={phase}>
-      <h3 className="text-sm font-semibold">
-        {phase === "scheduled" ? "Essential scheduled" : "Change plan"}
-      </h3>
-      {phase === "entry" ? (
+    <div className="mt-5 border-t border-staff-line pt-5" data-phase={view}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-sm font-semibold">
+          {view === "scheduled" ? "Essential scheduled" : "Change plan"}
+        </h3>
+        {view === "review" && canAct && canCancelPreparation ? (
+          <div data-cancel-plan-change="top" aria-busy={pending || undefined}>
+            {cancelPlanChangeForm()}
+          </div>
+        ) : null}
+      </div>
+      {view === "entry" ? (
         <div className="mt-3 max-w-xl text-sm leading-6">
           <p>Current: Practice</p>
           <p>
@@ -122,6 +193,7 @@ export function ChangePlanPanel({
               action={action}
               className="mt-4"
               aria-busy={pending || undefined}
+              onSubmit={keepSingleSubmission}
             >
               <input type="hidden" name="intent" value="begin" />
               <PendingSubmitButton
@@ -134,7 +206,7 @@ export function ChangePlanPanel({
           ) : null}
         </div>
       ) : null}
-      {phase === "scheduled" ? (
+      {view === "scheduled" ? (
         <div className="mt-3 max-w-xl text-sm leading-6" role="status">
           <p>
             Your Practice plan remains active until{" "}
@@ -160,6 +232,7 @@ export function ChangePlanPanel({
               action={action}
               className="mt-4"
               aria-busy={pending || undefined}
+              onSubmit={keepSingleSubmission}
             >
               <input type="hidden" name="intent" value="keep" />
               <PendingSubmitButton
@@ -172,7 +245,7 @@ export function ChangePlanPanel({
           ) : null}
         </div>
       ) : null}
-      {phase === "review" ? (
+      {view === "review" ? (
         <div className="mt-3 max-w-xl text-sm leading-6">
           <p className="font-medium text-staff-ink">Practice → Essential</p>
           {dateLabel ? (
@@ -301,7 +374,11 @@ export function ChangePlanPanel({
               data-action-row="downgrade"
               aria-busy={pending || undefined}
             >
-              <form action={action} className="min-w-0 w-full sm:w-auto">
+              <form
+                action={action}
+                className="min-w-0 w-full sm:w-auto"
+                onSubmit={keepSingleSubmission}
+              >
                 <input type="hidden" name="intent" value="schedule" />
                 <PendingSubmitButton
                   label="Schedule downgrade"
@@ -311,15 +388,9 @@ export function ChangePlanPanel({
                 />
               </form>
               {canCancelPreparation ? (
-                <form action={action} className="min-w-0 w-full sm:w-auto">
-                  <input type="hidden" name="intent" value="cancel" />
-                  <PendingSubmitButton
-                    label="Cancel plan change"
-                    pendingLabel="Cancelling…"
-                    className="staffBtn staffBtnSecondary h-11 w-full sm:w-auto"
-                    disabled={pending}
-                  />
-                </form>
+                <div data-cancel-plan-change="final">
+                  {cancelPlanChangeForm()}
+                </div>
               ) : null}
             </div>
           ) : null}
@@ -327,9 +398,19 @@ export function ChangePlanPanel({
       ) : null}
       {notice ? (
         <TransientNotice
-          variant={feedback.error ? "error" : "success"}
-          noticeKey={`plan-change-${feedback.generation}`}
-          onDismiss={() => setDismissed(feedback.generation)}
+          variant={actionNotice && feedback.error ? "error" : "success"}
+          noticeKey={
+            actionNotice
+              ? `plan-change-${feedback.generation}`
+              : "plan-change-cancelled"
+          }
+          onDismiss={() => {
+            if (actionNotice) {
+              setDismissed(feedback.generation);
+              return;
+            }
+            setArrivalDismissed(true);
+          }}
         >
           {notice}
         </TransientNotice>
