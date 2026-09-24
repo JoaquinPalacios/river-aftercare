@@ -152,7 +152,7 @@ export function ChangePlanPanel({
     : guideSelectionEditing
       ? "Next: confirm guide selection"
       : scheduleReady
-        ? "Next: schedule the downgrade"
+        ? "Next: confirm the downgrade"
         : "Scheduling is not available yet";
 
   useEffect(() => {
@@ -336,8 +336,8 @@ export function ChangePlanPanel({
                     >
                       <input type="hidden" name="intent" value="schedule" />
                       <PendingSubmitButton
-                        label="Schedule downgrade"
-                        pendingLabel="Scheduling…"
+                        label="Confirm downgrade"
+                        pendingLabel="Confirming…"
                         className="staffBtn staffBtnPrimary h-11 w-full sm:w-auto"
                         disabled={pending || !scheduleReady}
                       />
