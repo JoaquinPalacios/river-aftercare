@@ -3,6 +3,7 @@ import "server-only";
 import {
   AccountTokenError,
   createEmailChangeToken,
+  emailChangeTargetIsTaken,
   normalizeAccountTokenEmail,
   revokeAccountToken,
 } from "@/lib/auth/account-token-service";
@@ -55,6 +56,19 @@ export async function requestEmailChange(input: {
       };
     }
     throw error;
+  }
+
+  if (
+    await emailChangeTargetIsTaken({
+      userId: input.userId,
+      email,
+    })
+  ) {
+    return {
+      ok: false,
+      code: "email_taken",
+      error: PROFILE_EMAIL_TAKEN_MESSAGE,
+    };
   }
 
   const config = getAuthEmailDeliveryConfig();

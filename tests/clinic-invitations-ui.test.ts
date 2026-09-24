@@ -173,8 +173,17 @@ describe("clinic invitation UI contracts", () => {
     expect(inviteForm).toContain("staffLoginSpinner");
     expect(inviteForm).toContain("Sending…");
     expect(inviteForm).toContain("aria-busy={pending || undefined}");
-    expect(inviteForm).toContain("disabled={pending}");
     expect(inviteForm).toContain("Sending invitation. Please wait.");
+    expect(inviteForm.match(/disabled=\{[^}]+\}/g)).toEqual([
+      "disabled={pending || atLimit}",
+      "disabled={pending || atLimit}",
+      "disabled={pending || atLimit}",
+      "disabled={pending || atLimit}",
+    ]);
+    const spinnerAt = inviteForm.indexOf("staffLoginSpinner");
+    const sendingAt = inviteForm.indexOf("Sending…");
+    expect(spinnerAt).toBeGreaterThan(-1);
+    expect(sendingAt).toBeGreaterThan(spinnerAt);
     expect(inviteForm).not.toContain("position: absolute");
     expect(css).toContain(".staffLoginSubmit");
     expect(css).toContain("gap: 0.5rem");

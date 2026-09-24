@@ -1,5 +1,7 @@
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { describe, expect, it, vi } from "vitest";
@@ -23,11 +25,21 @@ import {
 const SCRIPT = "scripts/observability-test-error.mjs";
 const FAKE_DSN = "https://examplePublicKey@o0.ingest.example.test/0";
 const SECRET_DSN = "https://supersecretpublickey@o0.ingest.example.test/99";
+const EMPTY_DOTENV = join(
+  mkdtempSync(join(tmpdir(), "observability-dsn-")),
+  "empty.env"
+);
+writeFileSync(EMPTY_DOTENV, "");
 
 function spawnScript(envOverrides: Record<string, string | undefined>) {
   const env: NodeJS.ProcessEnv = { ...process.env };
   delete env.VITEST;
   delete env.CI;
+  delete env.SENTRY_DSN;
+  delete env.NEXT_PUBLIC_SENTRY_DSN;
+  delete env.DOTENV_KEY;
+  delete env.DOTENV_CONFIG_OVERRIDE;
+  env.DOTENV_CONFIG_PATH = EMPTY_DOTENV;
   for (const [key, value] of Object.entries(envOverrides)) {
     if (value === undefined) {
       delete env[key];
@@ -72,12 +84,51 @@ describe("observability:test-error script", () => {
     expect(source).not.toMatch(/VERCEL_ENV\s*=\s*["']production["']/);
     expect(source).toContain("dotenv/config");
 
-    const missing = spawnScript({ SENTRY_DSN: "" });
+    const leakedDsn = "https://parentpublickey@o0.ingest.example.test/7";
+    const previousPublic = process.env.NEXT_PUBLIC_SENTRY_DSN;
+    const previousSentry = process.env.SENTRY_DSN;
+    const previousDotenvPath = process.env.DOTENV_CONFIG_PATH;
+    const leakFile = join(
+      tmpdir(),
+      `observability-dsn-leak-${process.pid}.env`
+    );
+    writeFileSync(
+      leakFile,
+      `SENTRY_DSN=${leakedDsn}\nNEXT_PUBLIC_SENTRY_DSN=${leakedDsn}\n`
+    );
+    process.env.SENTRY_DSN = leakedDsn;
+    process.env.NEXT_PUBLIC_SENTRY_DSN = leakedDsn;
+    process.env.DOTENV_CONFIG_PATH = leakFile;
+    let missing: ReturnType<typeof spawnScript>;
+    try {
+      missing = spawnScript({
+        SENTRY_DSN: "",
+        NEXT_PUBLIC_SENTRY_DSN: "",
+      });
+    } finally {
+      if (previousSentry === undefined) {
+        delete process.env.SENTRY_DSN;
+      } else {
+        process.env.SENTRY_DSN = previousSentry;
+      }
+      if (previousPublic === undefined) {
+        delete process.env.NEXT_PUBLIC_SENTRY_DSN;
+      } else {
+        process.env.NEXT_PUBLIC_SENTRY_DSN = previousPublic;
+      }
+      if (previousDotenvPath === undefined) {
+        delete process.env.DOTENV_CONFIG_PATH;
+      } else {
+        process.env.DOTENV_CONFIG_PATH = previousDotenvPath;
+      }
+    }
     expect(missing.status).not.toBe(0);
     expect(combinedOutput(missing)).toMatch(
       /SENTRY_DSN or NEXT_PUBLIC_SENTRY_DSN is required/
     );
     expect(combinedOutput(missing)).not.toContain(FAKE_DSN);
+    expect(combinedOutput(missing)).not.toContain(leakedDsn);
+    expect(combinedOutput(missing)).not.toContain("parentpublickey");
 
     const ci = spawnScript({
       CI: "true",

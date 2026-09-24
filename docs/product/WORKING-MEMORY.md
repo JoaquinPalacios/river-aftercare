@@ -2056,6 +2056,17 @@ Vitest file parallelism stays on. DB-backed unit/integration tests share local P
 | Demo bootstrap             | `bootstrapDemoExtractionTemplate` writes only `GuideTemplate` slug `extraction` (+ 1 revision + 8 sections). It does not create Clinic/User/PracticeGuide. Prove “exactly one extraction template” and “demodental clinic count unchanged”, not “the whole database has one clinic”. |
 | Why isolated reruns passed | A single file sees only seed’s Rivers Care Demo Clinic (`clinic_demo_rivers` / `demodental`). A parallel worker’s legitimate clinic made global `clinic.count()` 2.                                                                                                                  |
 
+## Test reliability conventions (2026-09-24)
+
+These are test-isolation rules. They do not change billing, entitlements, guide retention, or mail delivery.
+
+| Area                        | Rule                                                                                                                                                                                                                                                                                                                       |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Email change                | A duplicate address is refused before mail delivery (`emailChangeTargetIsTaken`, then `getAuthEmailDeliveryConfig`). Taken stays “That email is already in use.” A unique address with no mail transport stays a delivery failure and does not create a token. Duplicate-email tests must not depend on `AUTH_EMAIL_FROM`. |
+| Canonical slug defaults     | Assert the default `publicSlug` on a test-owned template slug. Do not create or require `publicSlug = "extraction"` on the shared `demodental` clinic; another guide may already occupy that slug (`extraction-2`). Still assert a non-demo clinic cannot enable the canonical sample.                                     |
+| Sentry verifier subprocess  | “Missing DSN” means both `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` are blank in the child, and `DOTENV_CONFIG_PATH` points at an empty file so `.env` / parent shell / `DOTENV_CONFIG_OVERRIDE` cannot supply one. CLI refusal, CI refusal, and malformed-DSN checks stay.                                                 |
+| Practice settings isolation | `savePracticeSettingsAction` still calls `enforcePrePaymentActivationGate`. The gate reads entitlements through an optional `ClinicBillingAccessDb`; omitted callers use `getPrisma()`. The isolation test injects a reader so it does not need `DATABASE_URL` or a live row. A non-function reader is ignored.            |
+
 ---
 
 ## `/clinics` copy + SEO hub refinement (2026-09-21)

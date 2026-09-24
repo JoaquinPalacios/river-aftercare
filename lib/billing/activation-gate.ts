@@ -6,6 +6,37 @@ import { redirect } from "next/navigation";
 import type { ClinicMembershipContext } from "@/lib/auth/session";
 import { getPrisma } from "@/lib/prisma";
 
+/**
+ * Narrow entitlement lookup. Production callers omit it and the helpers
+ * use getPrisma(). In-process tests may pass a reader so the activation
+ * gate still runs without a live database. A value whose findUnique is
+ * not a function is ignored, so a serialized server-action argument
+ * cannot replace the database.
+ */
+export type ClinicBillingAccessDb = {
+  clinicEntitlement: {
+    findUnique: (args: {
+      where: { clinicId: string };
+      select?: {
+        entitlementStatus?: boolean;
+        billingStatus?: boolean;
+      };
+    }) => Promise<{
+      entitlementStatus: EntitlementStatus;
+      billingStatus?: BillingStatus | null;
+    } | null>;
+  };
+};
+
+function billingAccessDb(db?: ClinicBillingAccessDb): ClinicBillingAccessDb {
+  if (typeof db?.clinicEntitlement?.findUnique === "function") {
+    return db;
+  }
+  // Prisma's findUnique overloads are not structurally identical to this
+  // narrow reader. Production still executes the real delegate.
+  return getPrisma() as unknown as ClinicBillingAccessDb;
+}
+
 export const BILLING_SETUP_PATH = "/account/billing/setup";
 export const BILLING_COMPLETE_PATH = "/account/billing/complete";
 export const BILLING_STATUS_PATH = "/account/billing";
@@ -78,9 +109,10 @@ function billingRecoveryPath(
 }
 
 export async function clinicEntitlementIsActive(
-  clinicId: string
+  clinicId: string,
+  db?: ClinicBillingAccessDb
 ): Promise<boolean> {
-  const row = await getPrisma().clinicEntitlement.findUnique({
+  const row = await billingAccessDb(db).clinicEntitlement.findUnique({
     where: { clinicId },
     select: { entitlementStatus: true },
   });
@@ -88,7 +120,8 @@ export async function clinicEntitlementIsActive(
 }
 
 export async function readClinicBillingAccess(
-  membership: Pick<ClinicMembershipContext, "clinic" | "source">
+  membership: Pick<ClinicMembershipContext, "clinic" | "source">,
+  db?: ClinicBillingAccessDb
 ): Promise<ClinicProductAccessDecision & { billingHref: string | null }> {
   if (membership.source === "operator_support") {
     return {
@@ -101,7 +134,7 @@ export async function readClinicBillingAccess(
     };
   }
 
-  const row = await getPrisma().clinicEntitlement.findUnique({
+  const row = await billingAccessDb(db).clinicEntitlement.findUnique({
     where: { clinicId: membership.clinic.id },
     select: { entitlementStatus: true, billingStatus: true },
   });
@@ -119,9 +152,10 @@ export async function readClinicBillingAccess(
 }
 
 export async function enforcePrePaymentActivationGate(
-  membership: Pick<ClinicMembershipContext, "clinic" | "source">
+  membership: Pick<ClinicMembershipContext, "clinic" | "source">,
+  db?: ClinicBillingAccessDb
 ): Promise<Awaited<ReturnType<typeof readClinicBillingAccess>>> {
-  const access = await readClinicBillingAccess(membership);
+  const access = await readClinicBillingAccess(membership, db);
   if (access.kind === "billing_required") {
     redirect(access.href);
   }
@@ -129,8 +163,9 @@ export async function enforcePrePaymentActivationGate(
 }
 
 export async function clinicProductApiBlocked(
-  membership: Pick<ClinicMembershipContext, "clinic" | "source">
+  membership: Pick<ClinicMembershipContext, "clinic" | "source">,
+  db?: ClinicBillingAccessDb
 ): Promise<boolean> {
-  const access = await readClinicBillingAccess(membership);
+  const access = await readClinicBillingAccess(membership, db);
   return access.kind === "billing_required";
 }
