@@ -247,6 +247,9 @@ describe("self-service change plan panel", () => {
     expect(cancel?.className.split(/\s+/)).toContain("staffBtnSecondary");
     expect(cancel?.className.split(/\s+/)).toContain("w-full");
     expect(cancel?.className.split(/\s+/)).toContain("sm:w-auto");
+    expect(
+      cancel.closest("[data-cancel-plan-change]")?.className.split(/\s+/)
+    ).toEqual(expect.arrayContaining(["w-full", "sm:w-auto"]));
   });
 
   it("shows Scheduling and locks Cancel until the action finishes", async () => {

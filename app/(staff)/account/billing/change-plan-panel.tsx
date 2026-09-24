@@ -347,7 +347,10 @@ export function ChangePlanPanel({
                     ref={setSecondarySlot}
                     className="flex max-w-full self-start empty:hidden"
                   />
-                  <div data-cancel-plan-change="actions">
+                  <div
+                    className="w-full sm:w-auto"
+                    data-cancel-plan-change="actions"
+                  >
                     {cancelPlanChangeControl()}
                   </div>
                 </div>

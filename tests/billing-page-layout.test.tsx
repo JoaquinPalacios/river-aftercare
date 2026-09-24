@@ -91,12 +91,18 @@ describe("billing page width", () => {
     expect(selection).toBeGreaterThan(reading);
 
     const footer = html.indexOf(
-      "mt-5 flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center"
+      "mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center"
     );
     const contact = html.indexOf("Contact River Aftercare");
     const continueLink = html.indexOf(">Continue<");
     expect(footer).toBeGreaterThan(-1);
     expect(contact).toBeGreaterThan(footer);
     expect(continueLink).toBeGreaterThan(contact);
+    expect(html).toContain(
+      'class="staffBtn staffBtnSecondary inline-flex h-11 w-full items-center sm:w-auto"'
+    );
+    expect(html).toContain(
+      'class="staffBtn staffBtnPrimary inline-flex h-11 w-full items-center sm:w-auto"'
+    );
   });
 });
