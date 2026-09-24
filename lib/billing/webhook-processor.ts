@@ -197,6 +197,7 @@ async function applyProjection(options: {
   scheduledCommercialPlan: LocalEntitlementSnapshot["commercialPlan"];
   scheduledPlanEffectiveAt: Date | null;
   clearScheduleId: boolean;
+  retireDowngradeAttempt: boolean;
 }): Promise<void> {
   const { db, clinicId, snapshot, entitlement, stripeEventId } = options;
   const now = new Date();
@@ -217,6 +218,9 @@ async function applyProjection(options: {
         : {}),
       ...(options.clearScheduleId
         ? { stripeSubscriptionScheduleId: null }
+        : {}),
+      ...(options.retireDowngradeAttempt
+        ? { stripePlanDowngradeAttemptId: null }
         : {}),
     },
   });
@@ -483,6 +487,7 @@ export async function processVerifiedStripeEvent(
         select: {
           stripeSubscriptionId: true,
           stripeSubscriptionScheduleId: true,
+          stripePlanDowngradeAttemptId: true,
         },
       })
     : null;
@@ -540,6 +545,11 @@ export async function processVerifiedStripeEvent(
     projectedPlan: projection.entitlement.commercialPlan,
     cancellationSuperseded,
   });
+  const retireDowngradeAttempt =
+    clearScheduleId ||
+    cancellationSuperseded ||
+    (projection.entitlement.commercialPlan === "ESSENTIAL" &&
+      previousRow?.commercialPlan === "PRACTICE");
 
   try {
     await db.$transaction(async (tx) => {
@@ -552,6 +562,7 @@ export async function processVerifiedStripeEvent(
         scheduledCommercialPlan: scheduledFields.scheduledCommercialPlan,
         scheduledPlanEffectiveAt: scheduledFields.scheduledPlanEffectiveAt,
         clearScheduleId,
+        retireDowngradeAttempt,
       });
       await applyDowngradeGuideTransition({
         db: tx,
@@ -663,6 +674,7 @@ async function applySubscriptionScheduleEvent(input: {
       clinicId: true,
       stripeSubscriptionId: true,
       stripeSubscriptionScheduleId: true,
+      stripePlanDowngradeAttemptId: true,
     },
   });
 
@@ -682,6 +694,7 @@ async function applySubscriptionScheduleEvent(input: {
           clinicId: true,
           stripeSubscriptionId: true,
           stripeSubscriptionScheduleId: true,
+          stripePlanDowngradeAttemptId: true,
         },
       });
       const sameSubscription =
@@ -791,13 +804,43 @@ async function applySubscriptionScheduleEvent(input: {
   const markCancel = decision.action === "cancellation_supersedes";
   const dropScheduled =
     clearSchedule || markCancel || decision.action === "mark_cancel";
+  const attemptMismatch = Boolean(
+    profile.stripePlanDowngradeAttemptId &&
+    notice.metadataAttemptId &&
+    profile.stripePlanDowngradeAttemptId !== notice.metadataAttemptId
+  );
+  const scheduleMismatch = Boolean(
+    profile.stripeSubscriptionScheduleId &&
+    profile.stripeSubscriptionScheduleId !== notice.scheduleId
+  );
+  if (attemptMismatch || scheduleMismatch) {
+    await input.mark(
+      StripeEventProcessingStatus.IGNORED,
+      null,
+      profile.clinicId
+    );
+    logStripeBilling({
+      event: "stripe_webhook_ignored",
+      stripeEventId,
+      eventType,
+    });
+    return {
+      outcome: "ignored",
+      clinicId: profile.clinicId,
+      stripeEventId,
+      eventType,
+    };
+  }
 
   await input.db.$transaction(async (tx) => {
     const transaction = tx as unknown as BillingDb;
-    if (clearSchedule) {
+    if (clearSchedule || dropScheduled) {
       await transaction.clinicBillingProfile.update({
         where: { clinicId: profile.clinicId },
-        data: { stripeSubscriptionScheduleId: null },
+        data: {
+          ...(clearSchedule ? { stripeSubscriptionScheduleId: null } : {}),
+          ...(dropScheduled ? { stripePlanDowngradeAttemptId: null } : {}),
+        },
       });
     }
     if (entitlement && dropScheduled) {

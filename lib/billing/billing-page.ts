@@ -93,6 +93,7 @@ export async function loadOperatorBillingPanel(
       stripeCustomerId: true,
       stripeSubscriptionId: true,
       stripeSubscriptionScheduleId: true,
+      stripePlanDowngradeAttemptId: true,
       stripeCheckoutSessionId: true,
     },
   });
@@ -139,6 +140,7 @@ export async function loadOperatorBillingPanel(
     cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
     stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
     stripeSubscriptionScheduleId: profile?.stripeSubscriptionScheduleId ?? null,
+    stripePlanDowngradeAttemptId: profile?.stripePlanDowngradeAttemptId ?? null,
     stripeCheckoutSessionId: profile?.stripeCheckoutSessionId ?? null,
     scheduledCommercialPlan: entitlement?.scheduledCommercialPlan ?? null,
     scheduledPlanEffectiveAt: entitlement?.scheduledPlanEffectiveAt ?? null,

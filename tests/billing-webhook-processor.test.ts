@@ -29,6 +29,7 @@ function createDb() {
       stripeCustomerId: string | null;
       stripeSubscriptionId: string | null;
       stripeSubscriptionScheduleId: string | null;
+      stripePlanDowngradeAttemptId: string | null;
     }
   >();
   const entitlements = new Map<string, Record<string, unknown>>();
@@ -109,6 +110,7 @@ function createDb() {
           stripeCustomerId?: string;
           stripeSubscriptionId?: string;
           stripeSubscriptionScheduleId?: string | null;
+          stripePlanDowngradeAttemptId?: string | null;
         };
       }) => {
         const existing = profiles.get(where.clinicId);
@@ -123,9 +125,14 @@ function createDb() {
                 "stripeSubscriptionScheduleId" in update
                   ? (update.stripeSubscriptionScheduleId ?? null)
                   : existing.stripeSubscriptionScheduleId,
+              stripePlanDowngradeAttemptId:
+                "stripePlanDowngradeAttemptId" in update
+                  ? (update.stripePlanDowngradeAttemptId ?? null)
+                  : existing.stripePlanDowngradeAttemptId,
             }
           : {
               stripeSubscriptionScheduleId: null,
+              stripePlanDowngradeAttemptId: null,
               ...create,
             };
         for (const row of profiles.values()) {
@@ -401,6 +408,7 @@ function seedPracticeDowngrade(
     stripeCustomerId: "cus_1",
     stripeSubscriptionId: "sub_1",
     stripeSubscriptionScheduleId: "sub_sched_1",
+    stripePlanDowngradeAttemptId: "attempt-1",
   });
   db.entitlements.set("clinic_1", {
     commercialPlan: "PRACTICE",
@@ -809,6 +817,7 @@ describe("processVerifiedStripeEvent", () => {
       expect(invoiceFirst.profiles.get("clinic_1")).toMatchObject({
         stripeSubscriptionId: "sub_1",
         stripeSubscriptionScheduleId: "sub_sched_1",
+        stripePlanDowngradeAttemptId: null,
       });
 
       const subscriptionFirst = createDb();
@@ -924,6 +933,7 @@ describe("processVerifiedStripeEvent", () => {
           releasedSubscriptionId: null,
           metadataClinicId: "clinic_1",
           metadataPurpose: "practice_to_essential",
+          metadataAttemptId: "attempt-1",
           phases: [],
         }),
         update: async (_id: string, params: unknown) => {
@@ -936,6 +946,7 @@ describe("processVerifiedStripeEvent", () => {
             releasedSubscriptionId: null,
             metadataClinicId: "clinic_1",
             metadataPurpose: "practice_to_essential",
+            metadataAttemptId: "attempt-1",
             phases: [],
           };
         },
@@ -952,6 +963,7 @@ describe("processVerifiedStripeEvent", () => {
             releasedSubscriptionId: "sub_1",
             metadataClinicId: "clinic_1",
             metadataPurpose: "practice_to_essential",
+            metadataAttemptId: "attempt-1",
             phases: [],
           };
         },
@@ -1043,6 +1055,7 @@ describe("processVerifiedStripeEvent", () => {
             releasedSubscriptionId: null,
             metadataClinicId: "clinic_1",
             metadataPurpose: "practice_to_essential",
+            metadataAttemptId: "attempt-1",
             phases: [],
           };
         },
@@ -1120,6 +1133,7 @@ describe("processVerifiedStripeEvent", () => {
               releasedSubscriptionId: null,
               metadataClinicId: "clinic_1",
               metadataPurpose: "practice_to_essential",
+              metadataAttemptId: "attempt-1",
               phases: [],
             }),
             release: async (
@@ -1135,6 +1149,7 @@ describe("processVerifiedStripeEvent", () => {
                 releasedSubscriptionId: "sub_1",
                 metadataClinicId: "clinic_1",
                 metadataPurpose: "practice_to_essential",
+                metadataAttemptId: "attempt-1",
                 phases: [],
               };
             },

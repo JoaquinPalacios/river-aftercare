@@ -1,5 +1,5 @@
 import { BillingStatus, EntitlementStatus } from "@prisma/client";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   assessOperatorDowngradeReversal,
@@ -59,10 +59,20 @@ function state(
     cancelAtPeriodEnd: false,
     stripeSubscriptionId: "sub_clinic_a",
     stripeSubscriptionScheduleId: null,
+    stripePlanDowngradeAttemptId: null,
     stripeCheckoutSessionId: null,
     scheduledCommercialPlan: null,
     scheduledPlanEffectiveAt: null,
     ...overrides,
+  };
+}
+
+const ATTEMPT = "attempt-test";
+
+function testAttempt(attemptId = ATTEMPT) {
+  return {
+    ensureAttempt: async () => ({ attemptId, created: false }),
+    clearProjection: async () => undefined,
   };
 }
 
@@ -71,6 +81,7 @@ function subscription(
 ): DowngradeSubscriptionSnapshot {
   return {
     id: "sub_clinic_a",
+    status: "active",
     scheduleId: null,
     cancelAtPeriodEnd: false,
     itemCount: 1,
@@ -90,6 +101,7 @@ function phase(input: {
   startDate?: number;
   endDate?: number;
   prorationBehavior?: string | null;
+  billingCycleAnchor?: string | null;
   hasExtras?: boolean;
 }) {
   return {
@@ -98,6 +110,7 @@ function phase(input: {
     startDate: input.startDate ?? PHASE_START,
     endDate: input.endDate ?? PERIOD_END,
     prorationBehavior: input.prorationBehavior ?? "none",
+    billingCycleAnchor: input.billingCycleAnchor ?? null,
     hasExtras: input.hasExtras ?? false,
   };
 }
@@ -113,9 +126,62 @@ function schedule(
     releasedSubscriptionId: null,
     metadataClinicId: "clinic_a",
     metadataPurpose: "practice_to_essential",
+    metadataAttemptId: null,
     phases: [phase({ priceId: "price_test_practice_monthly" })],
     ...overrides,
   };
+}
+
+function verifiedSchedule(
+  id: string,
+  params: {
+    metadata: {
+      clinicId: string;
+      riverSchedulePurpose: string;
+      riverDowngradeAttemptId: string;
+    };
+    end_behavior: string;
+    phases: [
+      {
+        items: Array<{ price: string }>;
+        start_date: number;
+        end_date: number;
+        proration_behavior: string;
+      },
+      {
+        items: Array<{ price: string }>;
+        proration_behavior: string;
+        billing_cycle_anchor: string;
+      },
+    ];
+  }
+): DowngradeScheduleSnapshot {
+  const current = params.phases[0];
+  const next = params.phases[1];
+  return schedule({
+    id,
+    status: "active",
+    endBehavior: params.end_behavior,
+    subscriptionId: "sub_clinic_a",
+    metadataClinicId: params.metadata.clinicId,
+    metadataPurpose: params.metadata.riverSchedulePurpose,
+    metadataAttemptId: params.metadata.riverDowngradeAttemptId,
+    phases: [
+      phase({
+        priceId: current.items[0]?.price ?? "",
+        startDate: current.start_date,
+        endDate: current.end_date,
+        prorationBehavior: current.proration_behavior,
+      }),
+      phase({
+        priceId: next.items[0]?.price ?? "",
+        startDate: current.end_date,
+        endDate: current.end_date + 1,
+        prorationBehavior: next.proration_behavior,
+        billingCycleAnchor: next.billing_cycle_anchor,
+      }),
+    ],
+  });
 }
 
 function port(options: {
@@ -124,6 +190,9 @@ function port(options: {
   existing?: DowngradeScheduleSnapshot;
   updated?: DowngradeScheduleSnapshot;
   released?: DowngradeScheduleSnapshot;
+  freezeLive?: boolean;
+  updateThrows?: Error;
+  freshIds?: boolean;
 }) {
   const calls = {
     retrieveSubscription: 0,
@@ -144,11 +213,15 @@ function port(options: {
     invoice: 0,
     refund: 0,
   };
+  let subscriptionState = options.subscription ?? subscription();
+  let scheduleState = options.existing ?? null;
+  let updateFailures = options.updateThrows ? 1 : 0;
+  let createdCount = 0;
   const stripe = {
     subscriptions: {
       async retrieve() {
         calls.retrieveSubscription += 1;
-        return options.subscription ?? subscription();
+        return subscriptionState;
       },
       async create() {
         calls.subscriptionCreate += 1;
@@ -168,15 +241,34 @@ function port(options: {
           ...params,
           idempotencyKey: request?.idempotencyKey,
         });
-        return (
+        createdCount += 1;
+        const created =
           options.created ??
           schedule({
-            phases: [phase({ priceId: "price_test_practice_monthly" })],
-          })
-        );
+            id: options.freshIds ? `sub_sched_${createdCount}` : "sub_sched_a",
+            phases: [
+              phase({
+                priceId:
+                  subscriptionState.priceId ?? "price_test_practice_monthly",
+              }),
+            ],
+          });
+        if (!options.freezeLive) {
+          subscriptionState = { ...subscriptionState, scheduleId: created.id };
+          scheduleState = {
+            ...created,
+            status: "active",
+            subscriptionId: subscriptionState.id,
+            releasedSubscriptionId: null,
+          };
+        }
+        return created;
       },
-      async retrieve() {
-        return options.existing ?? schedule();
+      async retrieve(id: string) {
+        if (scheduleState?.id === id) {
+          return scheduleState;
+        }
+        return options.existing ?? schedule({ id });
       },
       async update(
         id: string,
@@ -188,7 +280,21 @@ function port(options: {
           params,
           idempotencyKey: request?.idempotencyKey,
         });
-        return options.updated ?? schedule({ id });
+        if (updateFailures > 0) {
+          updateFailures -= 1;
+          throw options.updateThrows ?? new Error("update failed");
+        }
+        const updated =
+          options.updated ??
+          verifiedSchedule(
+            id,
+            params as Parameters<typeof verifiedSchedule>[1]
+          );
+        if (!options.freezeLive) {
+          scheduleState = updated;
+          subscriptionState = { ...subscriptionState, scheduleId: id };
+        }
+        return updated;
       },
       async release(
         id: string,
@@ -200,15 +306,20 @@ function port(options: {
           params,
           idempotencyKey: request?.idempotencyKey,
         });
-        return (
+        const released =
           options.released ??
           schedule({
             id,
             status: "released",
             subscriptionId: null,
-            releasedSubscriptionId: "sub_clinic_a",
-          })
-        );
+            releasedSubscriptionId: subscriptionState.id,
+            metadataAttemptId: scheduleState?.metadataAttemptId ?? null,
+          });
+        if (!options.freezeLive) {
+          scheduleState = released;
+          subscriptionState = { ...subscriptionState, scheduleId: null };
+        }
+        return released;
       },
     },
     checkout: {
@@ -239,6 +350,8 @@ describe("Practice to Essential downgrade readiness", () => {
       env: BILLING_TEST_ENV,
       stripe: fake.stripe,
       persist: async () => undefined,
+
+      ...testAttempt(),
     });
     expect(result.ok).toBe(true);
     expect(fake.calls.create).toHaveLength(1);
@@ -261,6 +374,8 @@ describe("Practice to Essential downgrade readiness", () => {
         env: BILLING_TEST_ENV,
         stripe: fake.stripe,
         persist: async () => undefined,
+
+        ...testAttempt(),
       });
       expect(result).toMatchObject({ ok: false, code });
       expect(fake.calls.retrieveSubscription).toBe(0);
@@ -285,6 +400,8 @@ describe("Practice to Essential downgrade readiness", () => {
       env: BILLING_TEST_ENV,
       stripe: fake.stripe,
       persist: async () => undefined,
+
+      ...testAttempt(),
     });
     expect(result.ok).toBe(true);
     expect(fake.calls.create).toHaveLength(1);
@@ -305,6 +422,8 @@ describe("Practice to Essential downgrade readiness", () => {
       env: BILLING_TEST_ENV,
       stripe: fake.stripe,
       persist: async () => undefined,
+
+      ...testAttempt(),
     });
     expect(result).toMatchObject({ ok: false, code: "not_ready" });
     expect(fake.calls.create).toHaveLength(0);
@@ -328,6 +447,8 @@ describe("Practice to Essential downgrade readiness", () => {
       env: BILLING_TEST_ENV,
       stripe: fake.stripe,
       persist: async () => undefined,
+
+      ...testAttempt(),
     });
     expect(result.ok).toBe(true);
   });
@@ -345,6 +466,8 @@ describe("Practice to Essential schedule request", () => {
       persist: async (row) => {
         persisted.push(row);
       },
+
+      ...testAttempt(),
     });
     expect(result).toMatchObject({
       ok: true,
@@ -364,12 +487,14 @@ describe("Practice to Essential schedule request", () => {
         stripeSubscriptionId: "sub_clinic_a",
         targetPriceId: "price_test_essential_monthly",
         periodEnd: PERIOD_END,
+        attemptId: ATTEMPT,
         step: "create",
       }),
     });
     expect(fake.calls.update[0]?.params).toEqual(
       buildPracticeToEssentialScheduleUpdate({
         clinicId: "clinic_a",
+        attemptId: ATTEMPT,
         currentPriceId: "price_test_practice_monthly",
         essentialPriceId: "price_test_essential_monthly",
         quantity: 1,
@@ -418,6 +543,8 @@ describe("Practice to Essential schedule request", () => {
       env: BILLING_TEST_ENV,
       stripe: fake.stripe,
       persist: async () => undefined,
+
+      ...testAttempt(),
     });
     expect(result).toMatchObject({
       ok: true,
@@ -454,6 +581,8 @@ describe("Practice to Essential schedule request", () => {
       env: BILLING_TEST_ENV,
       stripe: unknown.stripe,
       persist: async () => undefined,
+
+      ...testAttempt(),
     });
     expect(unknownResult).toMatchObject({ ok: false, code: "price_mismatch" });
     expect(unknown.calls.create).toHaveLength(0);
@@ -467,6 +596,8 @@ describe("Practice to Essential schedule request", () => {
       env: BILLING_TEST_ENV,
       stripe: yearlyOnMonthly.stripe,
       persist: async () => undefined,
+
+      ...testAttempt(),
     });
     expect(mismatch).toMatchObject({ ok: false, code: "price_mismatch" });
     expect(yearlyOnMonthly.calls.create).toHaveLength(0);
@@ -474,12 +605,27 @@ describe("Practice to Essential schedule request", () => {
 });
 
 describe("scheduled downgrade state", () => {
-  it("is idempotent when River already stored the same downgrade", async () => {
-    const fake = port({});
+  it("is idempotent when Stripe still has the same downgrade", async () => {
+    const fake = port({
+      subscription: subscription({ scheduleId: "sub_sched_a" }),
+      existing: schedule({
+        metadataAttemptId: ATTEMPT,
+        phases: [
+          phase({ priceId: "price_test_practice_monthly" }),
+          phase({
+            priceId: "price_test_essential_monthly",
+            startDate: PERIOD_END,
+            endDate: PERIOD_END + 2_592_000,
+            billingCycleAnchor: "automatic",
+          }),
+        ],
+      }),
+    });
     const effectiveAt = new Date(PERIOD_END * 1000);
     const result = await executeOperatorPlanDowngrade({
       state: state({
         stripeSubscriptionScheduleId: "sub_sched_a",
+        stripePlanDowngradeAttemptId: ATTEMPT,
         scheduledCommercialPlan: "ESSENTIAL",
         scheduledPlanEffectiveAt: effectiveAt,
       }),
@@ -487,6 +633,8 @@ describe("scheduled downgrade state", () => {
       env: BILLING_TEST_ENV,
       stripe: fake.stripe,
       persist: async () => undefined,
+
+      ...testAttempt(),
     });
     expect(result).toEqual({
       ok: true,
@@ -495,7 +643,7 @@ describe("scheduled downgrade state", () => {
       effectiveAt,
       stripeSubscriptionId: "sub_clinic_a",
     });
-    expect(fake.calls.retrieveSubscription).toBe(0);
+    expect(fake.calls.retrieveSubscription).toBeGreaterThan(0);
     expect(fake.calls.create).toHaveLength(0);
   });
 
@@ -504,12 +652,14 @@ describe("scheduled downgrade state", () => {
     const fake = port({
       subscription: subscription({ scheduleId: "sub_sched_a" }),
       existing: schedule({
+        metadataAttemptId: ATTEMPT,
         phases: [
           phase({ priceId: "price_test_practice_monthly" }),
           phase({
             priceId: "price_test_essential_monthly",
             startDate: PERIOD_END,
             endDate: PERIOD_END + 2_592_000,
+            billingCycleAnchor: "automatic",
           }),
         ],
       }),
@@ -522,6 +672,8 @@ describe("scheduled downgrade state", () => {
       persist: async (row) => {
         persisted.push(row.scheduleId);
       },
+
+      ...testAttempt(),
     });
     expect(result).toMatchObject({
       ok: true,
@@ -551,6 +703,8 @@ describe("scheduled downgrade state", () => {
       persist: async () => {
         throw new Error("must not persist");
       },
+
+      ...testAttempt(),
     });
     expect(result).toMatchObject({ ok: false, code: "unknown_schedule" });
     expect(fake.calls.create).toHaveLength(0);
@@ -615,6 +769,8 @@ describe("scheduled downgrade state", () => {
         env: BILLING_TEST_ENV,
         stripe: fake.stripe,
         persist: async () => undefined,
+
+        ...testAttempt(),
       });
       expect(result).toMatchObject({ ok: false, code });
       expect(fake.calls.retrieveSubscription).toBe(0);
@@ -631,6 +787,7 @@ describe("Keep Practice reversal", () => {
     const result = await executeOperatorDowngradeReversal({
       state: state({
         stripeSubscriptionScheduleId: "sub_sched_a",
+        stripePlanDowngradeAttemptId: ATTEMPT,
         scheduledCommercialPlan: "ESSENTIAL",
         scheduledPlanEffectiveAt: new Date(PERIOD_END * 1000),
       }),
@@ -730,6 +887,7 @@ describe("cancellation and a scheduled downgrade", () => {
         releasedSubscriptionId: null,
         metadataClinicId: "clinic_a",
         metadataPurpose: "practice_to_essential",
+        metadataAttemptId: ATTEMPT,
         currentPriceId: "price_test_practice_monthly",
         currentQuantity: 1,
         currentStart: PHASE_START,
@@ -792,5 +950,259 @@ describe("cancellation and a scheduled downgrade", () => {
       cancelAtPeriodEnd: false,
     });
     expect(hidden).toBeNull();
+  });
+});
+
+describe("rescheduling after Keep Practice", () => {
+  function store() {
+    let id: string | null = null;
+    let generation = 0;
+    const cleared: string[] = [];
+    return {
+      cleared,
+      current: () => id,
+      ensureAttempt: async () => {
+        if (id) {
+          return { attemptId: id, created: false };
+        }
+        generation += 1;
+        id = `attempt-${generation}`;
+        return { attemptId: id, created: true };
+      },
+      clearProjection: async (row: { retireAttempt: boolean }) => {
+        cleared.push(row.retireAttempt ? "retire" : "keep-attempt");
+        if (row.retireAttempt) {
+          id = null;
+        }
+      },
+      clear: async () => {
+        cleared.push("intent");
+        id = null;
+      },
+    };
+  }
+
+  it("uses a new attempt and a new schedule after Keep Practice", async () => {
+    const attempts = store();
+    const fake = port({ freshIds: true });
+    const persisted: string[] = [];
+    const first = await executeOperatorPlanDowngrade({
+      state: state(),
+      readiness: readiness({}),
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      persist: async (row) => {
+        persisted.push(row.scheduleId);
+      },
+      ensureAttempt: attempts.ensureAttempt,
+      clearProjection: attempts.clearProjection,
+    });
+    expect(first).toMatchObject({
+      ok: true,
+      alreadyScheduled: false,
+      scheduleId: "sub_sched_1",
+    });
+    const createA = fake.calls.create[0]?.idempotencyKey;
+    const updateA = fake.calls.update[0]?.idempotencyKey;
+    expect(createA).toContain("attempt-1");
+    expect(updateA).toContain("attempt-1");
+
+    const reversed = await executeOperatorDowngradeReversal({
+      state: state({
+        stripeSubscriptionScheduleId: "sub_sched_1",
+        stripePlanDowngradeAttemptId: "attempt-1",
+        scheduledCommercialPlan: "ESSENTIAL",
+        scheduledPlanEffectiveAt: new Date(PERIOD_END * 1000),
+      }),
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      clear: attempts.clear,
+      clearProjection: attempts.clearProjection,
+    });
+    expect(reversed).toMatchObject({ ok: true, alreadyReversed: false });
+    expect(fake.calls.release[0]?.idempotencyKey).toBe(
+      planDowngradeIdempotencyKey({
+        clinicId: "clinic_a",
+        stripeSubscriptionId: "sub_clinic_a",
+        attemptId: "attempt-1",
+        step: "release",
+      })
+    );
+    expect(attempts.cleared).toContain("intent");
+    expect(attempts.current()).toBeNull();
+
+    const second = await executeOperatorPlanDowngrade({
+      state: state(),
+      readiness: readiness({}),
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      persist: async (row) => {
+        persisted.push(row.scheduleId);
+      },
+      ensureAttempt: attempts.ensureAttempt,
+      clearProjection: attempts.clearProjection,
+    });
+    expect(second).toMatchObject({
+      ok: true,
+      scheduleId: "sub_sched_2",
+      stripeSubscriptionId: "sub_clinic_a",
+    });
+    expect(fake.calls.create[1]?.idempotencyKey).toContain("attempt-2");
+    expect(fake.calls.create[1]?.idempotencyKey).not.toBe(createA);
+    expect(fake.calls.update[1]?.idempotencyKey).not.toBe(updateA);
+    expect(persisted).toEqual(["sub_sched_1", "sub_sched_2"]);
+    expect(fake.calls.subscriptionCreate).toBe(0);
+    expect(fake.calls.invoice).toBe(0);
+  });
+
+  it("rejects a replayed schedule body when the live subscription has no schedule", async () => {
+    const persisted: string[] = [];
+    const retired: boolean[] = [];
+    const fake = port({
+      freezeLive: true,
+      created: schedule({
+        id: "sub_sched_old",
+        status: "active",
+        subscriptionId: "sub_clinic_a",
+      }),
+    });
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const error = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const result = await executeOperatorPlanDowngrade({
+      state: state({ stripePlanDowngradeAttemptId: "attempt-stale" }),
+      readiness: readiness({}),
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      persist: async (row) => {
+        persisted.push(row.scheduleId);
+      },
+      ensureAttempt: async () => {
+        throw new Error("attempt must stay");
+      },
+      clearProjection: async () => {
+        retired.push(true);
+      },
+    });
+    expect(result).toMatchObject({ ok: false, code: "schedule_failed" });
+    expect(persisted).toEqual([]);
+    expect(fake.calls.update).toHaveLength(0);
+    expect(retired).toEqual([true]);
+    expect(
+      info.mock.calls.some((call) =>
+        JSON.stringify(call).includes("plan_downgrade_scheduled")
+      )
+    ).toBe(false);
+    expect(
+      error.mock.calls.some((call) =>
+        JSON.stringify(call).includes("plan_downgrade_verification_failed")
+      )
+    ).toBe(true);
+    info.mockRestore();
+    error.mockRestore();
+  });
+
+  it("reuses one attempt when the phase update fails and then finishes it", async () => {
+    const attempts = store();
+    const fake = port({
+      updateThrows: new Error("transient update"),
+    });
+    const first = await executeOperatorPlanDowngrade({
+      state: state(),
+      readiness: readiness({}),
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      persist: async () => {
+        throw new Error("must not persist");
+      },
+      ensureAttempt: attempts.ensureAttempt,
+      clearProjection: attempts.clearProjection,
+    });
+    expect(first).toMatchObject({ ok: false, code: "schedule_failed" });
+    expect(attempts.current()).toBe("attempt-1");
+    expect(fake.calls.create).toHaveLength(1);
+
+    const second = await executeOperatorPlanDowngrade({
+      state: state({ stripePlanDowngradeAttemptId: "attempt-1" }),
+      readiness: readiness({}),
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      persist: async () => undefined,
+      ensureAttempt: attempts.ensureAttempt,
+      clearProjection: attempts.clearProjection,
+    });
+    expect(second).toMatchObject({
+      ok: true,
+      alreadyScheduled: false,
+      scheduleId: "sub_sched_a",
+    });
+    expect(fake.calls.create).toHaveLength(1);
+    expect(fake.calls.update).toHaveLength(2);
+    expect(fake.calls.update[0]?.idempotencyKey).toBe(
+      fake.calls.update[1]?.idempotencyKey
+    );
+    expect(attempts.current()).toBe("attempt-1");
+  });
+
+  it("does not treat a stale local schedule as already scheduled", async () => {
+    let id: string | null = "attempt-old";
+    const projection: string[] = [];
+    const fake = port({ freshIds: true });
+    const result = await executeOperatorPlanDowngrade({
+      state: state({
+        stripeSubscriptionScheduleId: "sub_sched_old",
+        stripePlanDowngradeAttemptId: "attempt-old",
+        scheduledCommercialPlan: "ESSENTIAL",
+        scheduledPlanEffectiveAt: new Date(PERIOD_END * 1000),
+      }),
+      readiness: readiness({}),
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      persist: async (row) => {
+        expect(row.scheduleId).not.toBe("sub_sched_old");
+      },
+      ensureAttempt: async () => {
+        if (id) {
+          return { attemptId: id, created: false };
+        }
+        id = "attempt-new";
+        return { attemptId: id, created: true };
+      },
+      clearProjection: async () => {
+        projection.push("projection");
+        id = null;
+      },
+    });
+    expect(result).toMatchObject({ ok: true, alreadyScheduled: false });
+    expect(projection).toEqual(["projection"]);
+    expect(fake.calls.create[0]?.idempotencyKey).toContain("attempt-new");
+    expect(fake.calls.create[0]?.idempotencyKey).not.toContain("attempt-old");
+  });
+
+  it("keeps idempotency keys inside Stripe's limit", () => {
+    const clinicId = `clinic_${"c".repeat(24)}`;
+    const stripeSubscriptionId = `sub_${"s".repeat(24)}`;
+    const targetPriceId = `price_${"p".repeat(30)}`;
+    const attemptId = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+    const shared = {
+      clinicId,
+      stripeSubscriptionId,
+      targetPriceId,
+      periodEnd: PERIOD_END,
+      attemptId,
+    };
+    for (const step of ["create", "update", "release"] as const) {
+      const key = planDowngradeIdempotencyKey({ ...shared, step });
+      expect(key.length).toBeLessThanOrEqual(255);
+      expect(key).toBe(planDowngradeIdempotencyKey({ ...shared, step }));
+    }
+    expect(
+      planDowngradeIdempotencyKey({
+        ...shared,
+        attemptId: "bbbbbbbb-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+        step: "create",
+      })
+    ).not.toBe(planDowngradeIdempotencyKey({ ...shared, step: "create" }));
   });
 });

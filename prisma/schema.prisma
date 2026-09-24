@@ -790,6 +790,11 @@ model ClinicBillingProfile {
   /// at the next renewal. Opaque Stripe id. Not a second subscription.
   /// Null when no downgrade is scheduled. Multiple nulls are allowed.
   stripeSubscriptionScheduleId String? @unique
+  /// One Practice → Essential scheduling lifecycle. Stable across retries of
+  /// that attempt, including a create that succeeded before the update was
+  /// confirmed. Cleared when that lifecycle ends. Not a Stripe id and not
+  /// shown to customers. Multiple nulls are allowed.
+  stripePlanDowngradeAttemptId String? @unique
   /// Latest hosted Checkout Session, so a repeated click can reuse it.
   /// Cleared when the operator changes the offer. Not a payment credential.
   stripeCheckoutSessionId String?  @unique

@@ -124,7 +124,9 @@ Accountant approval to register for GST has been received. Do not configure Stri
 
 ## Phase 5 Sandbox acceptance — do not use live mode
 
-Use Stripe **test mode** and a non-production database. Apply `prisma/migrations/20260923200000_add_scheduled_plan_downgrade` and `prisma/migrations/20260923220000_add_downgrade_guide_selection` only on that database. Do not change the live Portal configuration, live Prices, or production data.
+Use Stripe **test mode** and a non-production database. Apply `prisma/migrations/20260923200000_add_scheduled_plan_downgrade`, `prisma/migrations/20260923220000_add_downgrade_guide_selection`, and `prisma/migrations/20260924010000_add_plan_downgrade_attempt` only on that database. Do not change the live Portal configuration, live Prices, or production data.
+
+Scheduling again after Keep Practice allocates a new attempt id and checks the live Stripe schedule before River shows a scheduled downgrade. A failed schedule attempt keeps the confirmed guide selection. If a disposable local clinic was left on “Waiting for clinic administrator to choose guides” with an empty keep-set, confirm the test selection again. Do not backfill that row.
 
 Guide selection on a disposable local Practice clinic, before any further Stripe action:
 

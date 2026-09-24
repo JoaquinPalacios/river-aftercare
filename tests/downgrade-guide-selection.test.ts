@@ -13,7 +13,10 @@ import {
 } from "@prisma/client";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { executeOperatorDowngradeReversal } from "@/lib/billing/plan-downgrade";
+import {
+  executeOperatorDowngradeReversal,
+  executeOperatorPlanDowngrade,
+} from "@/lib/billing/plan-downgrade";
 import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practice-guide";
 import { listPublishedPracticeGuides } from "@/lib/aftercare/list-published-practice-guides";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
@@ -26,6 +29,7 @@ import {
   prepareClinicDowngrade,
   validateKeepSelection,
 } from "@/lib/entitlements/downgrade-selection";
+import { assessEssentialDowngradeReadiness } from "@/lib/entitlements/downgrade-readiness";
 import {
   DOWNGRADE_GUIDE_RETENTION_DAYS,
   applyDowngradeGuideTransition,
@@ -944,6 +948,250 @@ describe("downgrade guide selection persistence", () => {
     expect(expired).toMatchObject({ ok: false, code: "expired" });
   });
 
+  it("keeps a confirmed keep-set when scheduling fails", async () => {
+    await seedPractice();
+    await prisma.clinicBillingProfile.update({
+      where: { clinicId: CLINIC_ID },
+      data: {
+        stripeSubscriptionScheduleId: null,
+        stripePlanDowngradeAttemptId: null,
+      },
+    });
+    await createOwnedGuide({
+      id: `${PREFIX}keepfail`,
+      title: "Keep",
+      slug: "keep-fail",
+      kind: "custom",
+    });
+    const confirmedAt = new Date("2026-10-01T00:00:00.000Z");
+    await prisma.clinicDowngradePreparation.create({
+      data: {
+        clinicId: CLINIC_ID,
+        targetPlan: "ESSENTIAL",
+        status: DowngradePreparationStatus.SELECTION_CONFIRMED,
+        confirmedAt,
+        confirmedByUserId: ADMIN_ID,
+        selections: { create: [{ practiceGuideId: `${PREFIX}keepfail` }] },
+      },
+    });
+    const readiness = assessEssentialDowngradeReadiness({
+      occupiedTeamPlaces: 1,
+      customGuideCount: 4,
+      adaptedTemplateCount: 1,
+      extras: { teamMembers: 0, customGuides: 0, templateAdaptations: 0 },
+    });
+    const downgradeState = {
+      clinicId: CLINIC_ID,
+      commercialPlan: "PRACTICE" as const,
+      billingInterval: "MONTHLY" as const,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.ACTIVE,
+      cancelAtPeriodEnd: false,
+      stripeSubscriptionId: `${PREFIX}sub`,
+      stripeSubscriptionScheduleId: null,
+      stripePlanDowngradeAttemptId: `${PREFIX}attempt`,
+      stripeCheckoutSessionId: null,
+      scheduledCommercialPlan: null,
+      scheduledPlanEffectiveAt: null,
+    };
+    const guideSelection = {
+      confirmed: true as const,
+      customCount: 1,
+      adaptedCount: 0,
+      combinedCount: 1,
+    };
+    const subscription = {
+      id: `${PREFIX}sub`,
+      status: "active",
+      scheduleId: null as string | null,
+      cancelAtPeriodEnd: false,
+      itemCount: 1,
+      itemId: "si",
+      priceId: "price_test_practice_monthly",
+      quantity: 1,
+      periodEnd: 1_792_647_594,
+      discountsPresent: false,
+      trialPresent: false,
+      taxRatesPresent: false,
+    };
+    const failures = [
+      {
+        create: async () => {
+          throw new Error("create failed");
+        },
+        update: async () => {
+          throw new Error("not reached");
+        },
+      },
+      {
+        create: async () => {
+          subscription.scheduleId = `${PREFIX}sched`;
+          return {
+            id: `${PREFIX}sched`,
+            status: "active",
+            endBehavior: "release",
+            subscriptionId: `${PREFIX}sub`,
+            releasedSubscriptionId: null,
+            metadataClinicId: null,
+            metadataPurpose: null,
+            metadataAttemptId: null,
+            phases: [
+              {
+                priceId: "price_test_practice_monthly",
+                quantity: 1,
+                startDate: 1_761_169_194,
+                endDate: 1_792_647_594,
+                prorationBehavior: "none",
+                billingCycleAnchor: null,
+                hasExtras: false,
+              },
+            ],
+          };
+        },
+        update: async () => {
+          throw new Error("update failed");
+        },
+      },
+      {
+        create: async () => ({
+          id: "sub_sched_replayed",
+          status: "active",
+          endBehavior: "release",
+          subscriptionId: `${PREFIX}sub`,
+          releasedSubscriptionId: null,
+          metadataClinicId: CLINIC_ID,
+          metadataPurpose: "practice_to_essential",
+          metadataAttemptId: `${PREFIX}attempt`,
+          phases: [
+            {
+              priceId: "price_test_practice_monthly",
+              quantity: 1,
+              startDate: 1_761_169_194,
+              endDate: 1_792_647_594,
+              prorationBehavior: "none",
+              billingCycleAnchor: null,
+              hasExtras: false,
+            },
+          ],
+        }),
+        update: async () => {
+          throw new Error("must not update a schedule that is not attached");
+        },
+      },
+      {
+        create: async () => {
+          subscription.scheduleId = `${PREFIX}sched-invalid`;
+          return {
+            id: `${PREFIX}sched-invalid`,
+            status: "active",
+            endBehavior: "release",
+            subscriptionId: `${PREFIX}sub`,
+            releasedSubscriptionId: null,
+            metadataClinicId: null,
+            metadataPurpose: null,
+            metadataAttemptId: null,
+            phases: [
+              {
+                priceId: "price_test_practice_monthly",
+                quantity: 1,
+                startDate: 1_761_169_194,
+                endDate: 1_792_647_594,
+                prorationBehavior: "none",
+                billingCycleAnchor: null,
+                hasExtras: false,
+              },
+            ],
+          };
+        },
+        update: async () => ({
+          id: `${PREFIX}sched-invalid`,
+          status: "active",
+          endBehavior: "release",
+          subscriptionId: `${PREFIX}sub`,
+          releasedSubscriptionId: null,
+          metadataClinicId: CLINIC_ID,
+          metadataPurpose: "practice_to_essential",
+          metadataAttemptId: `${PREFIX}attempt`,
+          phases: [],
+        }),
+      },
+    ];
+    for (const failure of failures) {
+      subscription.scheduleId = null;
+      const result = await executeOperatorPlanDowngrade({
+        state: downgradeState,
+        readiness,
+        guideSelection,
+        env: BILLING_TEST_ENV,
+        ensureAttempt: async () => ({
+          attemptId: `${PREFIX}attempt`,
+          created: false,
+        }),
+        clearProjection: async () => undefined,
+        persist: async () => {
+          throw new Error("must not persist");
+        },
+        stripe: {
+          subscriptions: {
+            async retrieve() {
+              return subscription;
+            },
+          },
+          subscriptionSchedules: {
+            create: failure.create,
+            async retrieve() {
+              return {
+                id: subscription.scheduleId ?? "missing",
+                status: "active",
+                endBehavior: "release",
+                subscriptionId: `${PREFIX}sub`,
+                releasedSubscriptionId: null,
+                metadataClinicId: null,
+                metadataPurpose: null,
+                metadataAttemptId: null,
+                phases: [
+                  {
+                    priceId: "price_test_practice_monthly",
+                    quantity: 1,
+                    startDate: 1_761_169_194,
+                    endDate: 1_792_647_594,
+                    prorationBehavior: "none",
+                    billingCycleAnchor: null,
+                    hasExtras: false,
+                  },
+                ],
+              };
+            },
+            update: failure.update,
+            async release() {
+              throw new Error("must not release");
+            },
+          },
+        },
+      });
+      expect(result).toMatchObject({ ok: false, code: "schedule_failed" });
+      const preparation = await prisma.clinicDowngradePreparation.findUnique({
+        where: { clinicId: CLINIC_ID },
+        include: { selections: true },
+      });
+      expect(preparation?.status).toBe(
+        DowngradePreparationStatus.SELECTION_CONFIRMED
+      );
+      expect(preparation?.confirmedAt).toEqual(confirmedAt);
+      expect(preparation?.confirmedByUserId).toBe(ADMIN_ID);
+      expect(preparation?.selections).toHaveLength(1);
+      const entitlement = await prisma.clinicEntitlement.findUniqueOrThrow({
+        where: { clinicId: CLINIC_ID },
+      });
+      expect(entitlement.commercialPlan).toBe("PRACTICE");
+      expect(entitlement.scheduledCommercialPlan).toBeNull();
+      const guide = await prisma.practiceGuide.findUniqueOrThrow({
+        where: { id: `${PREFIX}keepfail` },
+      });
+      expect(guide.downgradeRetainedAt).toBeNull();
+    }
+  });
+
   it("clears preparation on Keep Practice and does not retain guides", async () => {
     await seedPractice();
     await createOwnedGuide({
@@ -979,62 +1227,63 @@ describe("downgrade guide selection persistence", () => {
         cancelAtPeriodEnd: false,
         stripeSubscriptionId: `${PREFIX}sub`,
         stripeSubscriptionScheduleId: `${PREFIX}sched`,
+        stripePlanDowngradeAttemptId: `${PREFIX}attempt`,
         stripeCheckoutSessionId: null,
         scheduledCommercialPlan: "ESSENTIAL",
         scheduledPlanEffectiveAt: new Date("2026-10-22T00:00:00.000Z"),
       },
       env: BILLING_TEST_ENV,
-      stripe: {
-        subscriptions: {
-          async retrieve() {
-            return {
-              id: `${PREFIX}sub`,
-              scheduleId: `${PREFIX}sched`,
-              cancelAtPeriodEnd: false,
-              itemCount: 1,
-              itemId: "si",
-              priceId: "price_test_practice_monthly",
-              quantity: 1,
-              periodEnd: 1_792_647_594,
-              discountsPresent: false,
-              trialPresent: false,
-              taxRatesPresent: false,
-            };
+      stripe: (() => {
+        let scheduleId: string | null = `${PREFIX}sched`;
+        let released = false;
+        const schedule = () => ({
+          id: `${PREFIX}sched`,
+          status: released ? "released" : "active",
+          endBehavior: "release",
+          subscriptionId: released ? null : `${PREFIX}sub`,
+          releasedSubscriptionId: released ? `${PREFIX}sub` : null,
+          metadataClinicId: CLINIC_ID,
+          metadataPurpose: "practice_to_essential",
+          metadataAttemptId: `${PREFIX}attempt`,
+          phases: [],
+        });
+        return {
+          subscriptions: {
+            async retrieve() {
+              return {
+                id: `${PREFIX}sub`,
+                status: "active",
+                scheduleId,
+                cancelAtPeriodEnd: false,
+                itemCount: 1,
+                itemId: "si",
+                priceId: "price_test_practice_monthly",
+                quantity: 1,
+                periodEnd: 1_792_647_594,
+                discountsPresent: false,
+                trialPresent: false,
+                taxRatesPresent: false,
+              };
+            },
           },
-        },
-        subscriptionSchedules: {
-          async create() {
-            throw new Error("not used");
+          subscriptionSchedules: {
+            async create() {
+              throw new Error("not used");
+            },
+            async retrieve() {
+              return schedule();
+            },
+            async update() {
+              throw new Error("not used");
+            },
+            async release() {
+              released = true;
+              scheduleId = null;
+              return schedule();
+            },
           },
-          async retrieve() {
-            return {
-              id: `${PREFIX}sched`,
-              status: "active",
-              endBehavior: "release",
-              subscriptionId: `${PREFIX}sub`,
-              releasedSubscriptionId: null,
-              metadataClinicId: CLINIC_ID,
-              metadataPurpose: "practice_to_essential",
-              phases: [],
-            };
-          },
-          async update() {
-            throw new Error("not used");
-          },
-          async release() {
-            return {
-              id: `${PREFIX}sched`,
-              status: "released",
-              endBehavior: "release",
-              subscriptionId: null,
-              releasedSubscriptionId: `${PREFIX}sub`,
-              metadataClinicId: CLINIC_ID,
-              metadataPurpose: "practice_to_essential",
-              phases: [],
-            };
-          },
-        },
-      },
+        };
+      })(),
     });
     expect(result.ok).toBe(true);
     expect(

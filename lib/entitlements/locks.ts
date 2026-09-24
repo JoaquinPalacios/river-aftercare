@@ -19,3 +19,14 @@ export async function lockClinicGuideCapacity(
 ): Promise<void> {
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`clinic-guide-capacity:${clinicId}`}))`;
 }
+
+/**
+ * One clinic-scoped lock for allocating a Practice → Essential schedule
+ * attempt id. Concurrent schedule requests share that id.
+ */
+export async function lockClinicPlanDowngrade(
+  tx: Prisma.TransactionClient,
+  clinicId: string
+): Promise<void> {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`clinic-plan-downgrade:${clinicId}`}))`;
+}

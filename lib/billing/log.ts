@@ -108,9 +108,30 @@ export type StripeBillingLogEvent =
       clinicId: string;
     }
   | {
+      event: "plan_downgrade_attempt_started";
+      clinicId: string;
+      attemptId: string;
+    }
+  | {
       event: "plan_downgrade_scheduled";
       clinicId: string;
       billingInterval: string;
+    }
+  | {
+      event: "plan_downgrade_verification_failed";
+      clinicId: string;
+      stripeSubscriptionId: string;
+      scheduleId: string | null;
+      attemptId: string | null;
+      scheduleStatus: string | null;
+      observedScheduleId: string | null;
+      reason: string;
+    }
+  | {
+      event: "plan_downgrade_stale_projection_reconciled";
+      clinicId: string;
+      scheduleId: string | null;
+      attemptId: string | null;
     }
   | {
       event: "plan_downgrade_already_scheduled";
@@ -143,7 +164,8 @@ export function logStripeBilling(entry: StripeBillingLogEvent): void {
     entry.event === "checkout_session_failed" ||
     entry.event === "customer_portal_session_failed" ||
     entry.event === "plan_upgrade_failed" ||
-    entry.event === "plan_downgrade_failed"
+    entry.event === "plan_downgrade_failed" ||
+    entry.event === "plan_downgrade_verification_failed"
   ) {
     console.error(entry);
     return;

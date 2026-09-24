@@ -1,5 +1,7 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
+
 import {
   BillingStatus,
   EntitlementStatus,
@@ -31,6 +33,7 @@ import {
   loadConfirmedDowngradeSelection,
   type ConfirmedGuideKeep,
 } from "@/lib/entitlements/downgrade-selection";
+import { lockClinicPlanDowngrade } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 
 /**
@@ -41,7 +44,9 @@ import { getPrisma } from "@/lib/prisma";
  *
  * Confirmed on the installed types:
  * - `subscriptionSchedules.create({ from_subscription })` migrates the
- *   current subscription. Other parameters cannot be combined with it.
+ *   current subscription. Other parameters, including metadata, cannot be
+ *   combined with it. The attempt id is written on the following update.
+ *   Live retrieval after that update is the source of truth.
  * - Phases use `duration` (`interval` + `interval_count`) or `end_date`.
  *   `iterations` is not in this SDK.
  * - `end_behavior`: `release` keeps the underlying subscription when the
@@ -55,6 +60,8 @@ import { getPrisma } from "@/lib/prisma";
  *   flow does not call it.
  */
 export const RIVER_DOWNGRADE_SCHEDULE_PURPOSE = "practice_to_essential";
+export const RIVER_DOWNGRADE_ATTEMPT_METADATA_KEY = "riverDowngradeAttemptId";
+export const STRIPE_IDEMPOTENCY_KEY_MAX_LENGTH = 255;
 
 export const PLAN_DOWNGRADE_PRORATION_BEHAVIOR = "none" as const;
 export const PLAN_DOWNGRADE_END_BEHAVIOR = "release" as const;
@@ -88,6 +95,7 @@ export type PlanDowngradeState = {
   cancelAtPeriodEnd: boolean;
   stripeSubscriptionId: string | null;
   stripeSubscriptionScheduleId: string | null;
+  stripePlanDowngradeAttemptId: string | null;
   stripeCheckoutSessionId: string | null;
   scheduledCommercialPlan: CommercialPlan | null;
   scheduledPlanEffectiveAt: Date | null;
@@ -99,6 +107,7 @@ export type DowngradeSchedulePhase = {
   startDate: number;
   endDate: number;
   prorationBehavior: string | null;
+  billingCycleAnchor: string | null;
   hasExtras: boolean;
 };
 
@@ -110,11 +119,13 @@ export type DowngradeScheduleSnapshot = {
   releasedSubscriptionId: string | null;
   metadataClinicId: string | null;
   metadataPurpose: string | null;
+  metadataAttemptId: string | null;
   phases: DowngradeSchedulePhase[];
 };
 
 export type DowngradeSubscriptionSnapshot = {
   id: string;
+  status: string;
   scheduleId: string | null;
   cancelAtPeriodEnd: boolean;
   itemCount: number;
@@ -133,6 +144,7 @@ export type PlanDowngradeScheduleUpdate = {
   metadata: {
     clinicId: string;
     riverSchedulePurpose: typeof RIVER_DOWNGRADE_SCHEDULE_PURPOSE;
+    riverDowngradeAttemptId: string;
   };
   phases: [
     {
@@ -336,11 +348,19 @@ export function assessOperatorDowngradeReversal(
 export function planDowngradeIdempotencyKey(input: {
   clinicId: string;
   stripeSubscriptionId: string;
-  targetPriceId: string;
-  periodEnd: number;
+  targetPriceId?: string;
+  periodEnd?: number;
+  attemptId: string;
   step: "create" | "update" | "release";
 }): string {
-  return `river-plan-downgrade-${input.step}-${input.clinicId}-${input.stripeSubscriptionId}-${input.targetPriceId}-${input.periodEnd}`;
+  const key =
+    input.step === "release"
+      ? `river-plan-downgrade-release-${input.clinicId}-${input.stripeSubscriptionId}-${input.attemptId}`
+      : `river-plan-downgrade-${input.step}-${input.clinicId}-${input.stripeSubscriptionId}-${input.targetPriceId}-${input.periodEnd}-${input.attemptId}`;
+  if (key.length > STRIPE_IDEMPOTENCY_KEY_MAX_LENGTH) {
+    throw new Error("Downgrade idempotency key exceeds Stripe's limit.");
+  }
+  return key;
 }
 
 export function downgradeDurationInterval(
@@ -351,6 +371,7 @@ export function downgradeDurationInterval(
 
 export function buildPracticeToEssentialScheduleUpdate(input: {
   clinicId: string;
+  attemptId: string;
   currentPriceId: string;
   essentialPriceId: string;
   quantity: number;
@@ -364,6 +385,7 @@ export function buildPracticeToEssentialScheduleUpdate(input: {
     metadata: {
       clinicId: input.clinicId,
       riverSchedulePurpose: RIVER_DOWNGRADE_SCHEDULE_PURPOSE,
+      riverDowngradeAttemptId: input.attemptId,
     },
     phases: [
       {
@@ -466,6 +488,174 @@ function failure(
   return { ok: false, code };
 }
 
+export type DowngradeVerificationReason =
+  | "schedule_status"
+  | "schedule_subscription"
+  | "schedule_metadata"
+  | "schedule_end_behavior"
+  | "schedule_phases"
+  | "subscription_attachment"
+  | "subscription_price"
+  | "subscription_period"
+  | "subscription_status";
+
+export type AttachedScheduleKind =
+  "complete" | "intermediate" | "other_attempt" | "unknown" | "ended";
+
+export type DowngradeAttemptAllocation = {
+  attemptId: string;
+  created: boolean;
+};
+
+/**
+ * Fresh schedule and subscription must both describe the same active
+ * Practice → Essential downgrade. Create and update response bodies are not
+ * this check.
+ */
+export function verifyLiveDowngradeSchedule(input: {
+  schedule: DowngradeScheduleSnapshot;
+  subscription: DowngradeSubscriptionSnapshot;
+  expectedScheduleId: string;
+  clinicId: string;
+  attemptId: string;
+  practicePriceId: string;
+  essentialPriceId: string;
+  periodEnd: number;
+}):
+  | { ok: true; effectiveAt: number }
+  | { ok: false; reason: DowngradeVerificationReason } {
+  if (input.schedule.id !== input.expectedScheduleId) {
+    return { ok: false, reason: "schedule_subscription" };
+  }
+  if (input.schedule.status !== "active") {
+    return { ok: false, reason: "schedule_status" };
+  }
+  if (input.schedule.subscriptionId !== input.subscription.id) {
+    return { ok: false, reason: "schedule_subscription" };
+  }
+  if (
+    input.schedule.metadataClinicId !== input.clinicId ||
+    input.schedule.metadataPurpose !== RIVER_DOWNGRADE_SCHEDULE_PURPOSE ||
+    input.schedule.metadataAttemptId !== input.attemptId
+  ) {
+    return { ok: false, reason: "schedule_metadata" };
+  }
+  if (input.schedule.endBehavior !== PLAN_DOWNGRADE_END_BEHAVIOR) {
+    return { ok: false, reason: "schedule_end_behavior" };
+  }
+  const current = input.schedule.phases[0];
+  const next = input.schedule.phases[1];
+  if (
+    input.schedule.phases.length !== 2 ||
+    !current ||
+    !next ||
+    current.hasExtras ||
+    next.hasExtras ||
+    current.priceId !== input.practicePriceId ||
+    next.priceId !== input.essentialPriceId ||
+    current.quantity !== 1 ||
+    next.quantity !== 1 ||
+    current.prorationBehavior !== PLAN_DOWNGRADE_PRORATION_BEHAVIOR ||
+    next.prorationBehavior !== PLAN_DOWNGRADE_PRORATION_BEHAVIOR ||
+    current.endDate !== input.periodEnd ||
+    next.startDate !== current.endDate ||
+    next.billingCycleAnchor !== PLAN_DOWNGRADE_BILLING_CYCLE_ANCHOR
+  ) {
+    return { ok: false, reason: "schedule_phases" };
+  }
+  if (input.subscription.status !== "active") {
+    return { ok: false, reason: "subscription_status" };
+  }
+  if (input.subscription.priceId !== input.practicePriceId) {
+    return { ok: false, reason: "subscription_price" };
+  }
+  if (input.subscription.periodEnd !== input.periodEnd) {
+    return { ok: false, reason: "subscription_period" };
+  }
+  if (input.subscription.scheduleId !== input.schedule.id) {
+    return { ok: false, reason: "subscription_attachment" };
+  }
+  return { ok: true, effectiveAt: current.endDate };
+}
+
+/**
+ * Classifies a schedule that is currently attached to the subscription.
+ * `from_subscription` cannot set metadata, so the single copied Practice
+ * phase has no attempt id until the update. A different attempt id, another
+ * clinic, or another purpose is not adopted.
+ */
+export function classifyAttachedDowngradeSchedule(input: {
+  schedule: DowngradeScheduleSnapshot;
+  subscription: DowngradeSubscriptionSnapshot;
+  clinicId: string;
+  attemptId: string;
+  practicePriceId: string;
+  essentialPriceId: string;
+  periodEnd: number;
+}): AttachedScheduleKind {
+  if (
+    input.schedule.status === "released" ||
+    input.schedule.status === "completed" ||
+    input.schedule.status === "canceled"
+  ) {
+    return "ended";
+  }
+  if (
+    input.schedule.metadataAttemptId &&
+    input.schedule.metadataAttemptId !== input.attemptId
+  ) {
+    return "other_attempt";
+  }
+  if (
+    (input.schedule.metadataClinicId &&
+      input.schedule.metadataClinicId !== input.clinicId) ||
+    (input.schedule.metadataPurpose &&
+      input.schedule.metadataPurpose !== RIVER_DOWNGRADE_SCHEDULE_PURPOSE) ||
+    (input.schedule.subscriptionId &&
+      input.schedule.subscriptionId !== input.subscription.id)
+  ) {
+    return "unknown";
+  }
+  const verified = verifyLiveDowngradeSchedule({
+    schedule: input.schedule,
+    subscription: input.subscription,
+    expectedScheduleId: input.schedule.id,
+    clinicId: input.clinicId,
+    attemptId: input.attemptId,
+    practicePriceId: input.practicePriceId,
+    essentialPriceId: input.essentialPriceId,
+    periodEnd: input.periodEnd,
+  });
+  if (verified.ok) {
+    return "complete";
+  }
+  const phase = input.schedule.phases[0];
+  if (
+    input.schedule.status === "active" &&
+    input.schedule.endBehavior === PLAN_DOWNGRADE_END_BEHAVIOR &&
+    input.schedule.subscriptionId === input.subscription.id &&
+    input.schedule.phases.length === 1 &&
+    phase &&
+    !phase.hasExtras &&
+    phase.priceId === input.practicePriceId &&
+    phase.quantity === 1 &&
+    phase.endDate === input.periodEnd &&
+    (phase.prorationBehavior === null ||
+      phase.prorationBehavior === PLAN_DOWNGRADE_PRORATION_BEHAVIOR) &&
+    !input.schedule.metadataAttemptId
+  ) {
+    return "intermediate";
+  }
+  if (
+    input.schedule.metadataAttemptId === input.attemptId ||
+    (input.schedule.metadataPurpose === RIVER_DOWNGRADE_SCHEDULE_PURPOSE &&
+      input.schedule.metadataClinicId === input.clinicId)
+  ) {
+    return "other_attempt";
+  }
+  return "unknown";
+}
+
 async function persistScheduledDowngrade(input: {
   clinicId: string;
   scheduleId: string;
@@ -487,20 +677,78 @@ async function persistScheduledDowngrade(input: {
   ]);
 }
 
-async function clearScheduledDowngrade(input: {
+export async function ensureDowngradeAttemptId(
+  clinicId: string
+): Promise<DowngradeAttemptAllocation> {
+  const prisma = getPrisma();
+  return prisma.$transaction(async (tx) => {
+    await lockClinicPlanDowngrade(tx, clinicId);
+    const profile = await tx.clinicBillingProfile.findUnique({
+      where: { clinicId },
+      select: { stripePlanDowngradeAttemptId: true },
+    });
+    if (!profile) {
+      throw new Error("Clinic billing profile is missing.");
+    }
+    if (profile.stripePlanDowngradeAttemptId) {
+      return {
+        attemptId: profile.stripePlanDowngradeAttemptId,
+        created: false,
+      };
+    }
+    const attemptId = randomUUID();
+    await tx.clinicBillingProfile.update({
+      where: { clinicId },
+      data: { stripePlanDowngradeAttemptId: attemptId },
+    });
+    return { attemptId, created: true };
+  });
+}
+
+/**
+ * Clears the local schedule projection when Stripe no longer has this
+ * downgrade. The confirmed guide keep-set stays.
+ */
+export async function clearScheduledDowngradeProjection(input: {
   clinicId: string;
-  clearScheduleId: boolean;
+  retireAttempt: boolean;
 }): Promise<void> {
   const prisma = getPrisma();
   await prisma.$transaction([
-    ...(input.clearScheduleId
-      ? [
-          prisma.clinicBillingProfile.update({
-            where: { clinicId: input.clinicId },
-            data: { stripeSubscriptionScheduleId: null },
-          }),
-        ]
-      : []),
+    prisma.clinicBillingProfile.update({
+      where: { clinicId: input.clinicId },
+      data: {
+        stripeSubscriptionScheduleId: null,
+        ...(input.retireAttempt ? { stripePlanDowngradeAttemptId: null } : {}),
+      },
+    }),
+    prisma.clinicEntitlement.update({
+      where: { clinicId: input.clinicId },
+      data: {
+        scheduledCommercialPlan: null,
+        scheduledPlanEffectiveAt: null,
+      },
+    }),
+  ]);
+}
+
+/**
+ * Keep Practice, or a cancellation that supersedes a validated downgrade.
+ * This is the intentional end of the customer choice, so the keep-set goes
+ * with the schedule projection.
+ */
+async function clearScheduledDowngrade(input: {
+  clinicId: string;
+}): Promise<void> {
+  const prisma = getPrisma();
+  await prisma.$transaction([
+    prisma.clinicBillingProfile.update({
+      where: { clinicId: input.clinicId },
+      data: {
+        stripeSubscriptionScheduleId: null,
+        stripePlanDowngradeAttemptId: null,
+      },
+    }),
     prisma.clinicEntitlement.update({
       where: { clinicId: input.clinicId },
       data: {
@@ -514,27 +762,31 @@ async function clearScheduledDowngrade(input: {
   ]);
 }
 
-function locallyScheduled(state: PlanDowngradeState): {
-  scheduleId: string;
-  effectiveAt: Date;
+function claimsScheduledProjection(state: PlanDowngradeState): boolean {
+  return Boolean(
+    state.stripeSubscriptionScheduleId || state.scheduledCommercialPlan
+  );
+}
+
+function logVerificationFailed(input: {
+  clinicId: string;
   stripeSubscriptionId: string;
-} | null {
-  if (
-    state.commercialPlan !== "PRACTICE" ||
-    state.scheduledCommercialPlan !== "ESSENTIAL" ||
-    !state.stripeSubscriptionScheduleId ||
-    !state.scheduledPlanEffectiveAt ||
-    !state.stripeSubscriptionId ||
-    state.cancelAtPeriodEnd ||
-    state.billingStatus === BillingStatus.CANCEL_AT_PERIOD_END
-  ) {
-    return null;
-  }
-  return {
-    scheduleId: state.stripeSubscriptionScheduleId,
-    effectiveAt: state.scheduledPlanEffectiveAt,
-    stripeSubscriptionId: state.stripeSubscriptionId,
-  };
+  scheduleId: string | null;
+  attemptId: string | null;
+  scheduleStatus: string | null;
+  observedScheduleId: string | null;
+  reason: DowngradeVerificationReason | "missing_attempt";
+}): void {
+  logStripeBilling({
+    event: "plan_downgrade_verification_failed",
+    clinicId: input.clinicId,
+    stripeSubscriptionId: input.stripeSubscriptionId,
+    scheduleId: input.scheduleId,
+    attemptId: input.attemptId,
+    scheduleStatus: input.scheduleStatus,
+    observedScheduleId: input.observedScheduleId,
+    reason: input.reason,
+  });
 }
 
 function subscriptionShapeBlocked(
@@ -568,6 +820,8 @@ export async function executeOperatorPlanDowngrade(input: {
   env?: Env;
   stripe?: PlanDowngradeStripePort;
   persist?: typeof persistScheduledDowngrade;
+  ensureAttempt?: (clinicId: string) => Promise<DowngradeAttemptAllocation>;
+  clearProjection?: typeof clearScheduledDowngradeProjection;
 }): Promise<
   | {
       ok: true;
@@ -578,43 +832,35 @@ export async function executeOperatorPlanDowngrade(input: {
     }
   | { ok: false; code: PlanDowngradeCode }
 > {
-  const assessed = assessOperatorPlanDowngrade({
-    state: input.state,
-    readiness: input.readiness,
-    guideSelection: input.guideSelection,
-  });
   const persist = input.persist ?? persistScheduledDowngrade;
-  const existingLocal = locallyScheduled(input.state);
-  if (existingLocal) {
-    logStripeBilling({
-      event: "plan_downgrade_already_scheduled",
-      clinicId: input.state.clinicId,
-    });
-    return {
-      ok: true,
-      alreadyScheduled: true,
-      scheduleId: existingLocal.scheduleId,
-      effectiveAt: existingLocal.effectiveAt,
-      stripeSubscriptionId: existingLocal.stripeSubscriptionId,
-    };
-  }
-  if (!assessed.ok) {
+  const ensureAttempt = input.ensureAttempt ?? ensureDowngradeAttemptId;
+  const clearProjection =
+    input.clearProjection ?? clearScheduledDowngradeProjection;
+  const claims = claimsScheduledProjection(input.state);
+  let assessed = claims
+    ? null
+    : assessOperatorPlanDowngrade({
+        state: input.state,
+        readiness: input.readiness,
+        guideSelection: input.guideSelection,
+      });
+  if (assessed && !assessed.ok) {
     return failure(input.state.clinicId, assessed.code);
   }
+  if (!input.state.stripeSubscriptionId) {
+    return failure(input.state.clinicId, "no_subscription");
+  }
+  if (!input.state.billingInterval) {
+    return failure(input.state.clinicId, "unsupported");
+  }
+  const interval = input.state.billingInterval;
+  const subscriptionId = input.state.stripeSubscriptionId;
 
   let practicePriceId: string;
   let essentialPriceId: string;
   try {
-    practicePriceId = stripePriceIdForPlan(
-      "PRACTICE",
-      assessed.interval,
-      input.env
-    );
-    essentialPriceId = stripePriceIdForPlan(
-      "ESSENTIAL",
-      assessed.interval,
-      input.env
-    );
+    practicePriceId = stripePriceIdForPlan("PRACTICE", interval, input.env);
+    essentialPriceId = stripePriceIdForPlan("ESSENTIAL", interval, input.env);
   } catch (error) {
     if (error instanceof StripePriceMappingError) {
       return failure(input.state.clinicId, "price_not_configured");
@@ -629,15 +875,28 @@ export async function executeOperatorPlanDowngrade(input: {
     return failure(input.state.clinicId, "schedule_failed");
   }
 
+  const requireReady = () => {
+    assessed =
+      assessed ??
+      assessOperatorPlanDowngrade({
+        state: input.state,
+        readiness: input.readiness,
+        guideSelection: input.guideSelection,
+      });
+    return assessed;
+  };
+
   try {
-    const subscription = await stripe.subscriptions.retrieve(
-      assessed.stripeSubscriptionId
-    );
-    if (subscription.id !== assessed.stripeSubscriptionId) {
+    let attemptId = input.state.stripePlanDowngradeAttemptId;
+    let subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    if (subscription.id !== subscriptionId) {
       return failure(input.state.clinicId, "subscription_shape");
     }
     if (subscription.cancelAtPeriodEnd) {
       return failure(input.state.clinicId, "cancel_scheduled");
+    }
+    if (subscription.status !== "active") {
+      return failure(input.state.clinicId, "not_active");
     }
     if (subscriptionShapeBlocked(subscription)) {
       return failure(input.state.clinicId, "subscription_shape");
@@ -652,188 +911,291 @@ export async function executeOperatorPlanDowngrade(input: {
       }
       return failure(input.state.clinicId, "price_mismatch");
     }
+    if (mapped.plan === "ESSENTIAL") {
+      return failure(input.state.clinicId, "already_transitioned");
+    }
     if (
       mapped.plan !== "PRACTICE" ||
-      mapped.interval !== input.state.billingInterval ||
+      mapped.interval !== interval ||
       subscription.priceId !== practicePriceId
     ) {
       return failure(input.state.clinicId, "price_mismatch");
     }
-
     const periodEnd = subscription.periodEnd;
     if (!periodEnd) {
       return failure(input.state.clinicId, "subscription_shape");
     }
 
-    const existingScheduleId = subscription.scheduleId;
-    if (existingScheduleId) {
-      const existing =
-        await stripe.subscriptionSchedules.retrieve(existingScheduleId);
-      const owned = isRiverDowngradeSchedule({
-        scheduleId: existing.id,
-        metadataClinicId: existing.metadataClinicId,
-        metadataPurpose: existing.metadataPurpose,
-        localScheduleId: input.state.stripeSubscriptionScheduleId,
+    const persistIfVerified = async (live: {
+      scheduleId: string;
+      attemptId: string;
+      alreadyScheduled: boolean;
+    }) => {
+      const freshSchedule = await stripe.subscriptionSchedules.retrieve(
+        live.scheduleId
+      );
+      const freshSubscription =
+        await stripe.subscriptions.retrieve(subscriptionId);
+      const verified = verifyLiveDowngradeSchedule({
+        schedule: freshSchedule,
+        subscription: freshSubscription,
+        expectedScheduleId: live.scheduleId,
         clinicId: input.state.clinicId,
-      });
-      if (!owned) {
-        return failure(input.state.clinicId, "unknown_schedule");
-      }
-      if (
-        existing.releasedSubscriptionId &&
-        existing.releasedSubscriptionId !== subscription.id
-      ) {
-        return failure(input.state.clinicId, "subscription_shape");
-      }
-      const described = scheduleDescribesDowngrade({
-        schedule: existing,
+        attemptId: live.attemptId,
         practicePriceId,
         essentialPriceId,
+        periodEnd,
       });
-      if (described.matches && described.effectiveAt) {
-        const effectiveAt = unixToDate(described.effectiveAt);
-        await persist({
+      if (!verified.ok) {
+        logVerificationFailed({
           clinicId: input.state.clinicId,
-          scheduleId: existing.id,
-          effectiveAt,
+          stripeSubscriptionId: freshSubscription.id,
+          scheduleId: live.scheduleId,
+          attemptId: live.attemptId,
+          scheduleStatus: freshSchedule.status,
+          observedScheduleId: freshSubscription.scheduleId,
+          reason: verified.reason,
         });
+        if (
+          !freshSubscription.scheduleId ||
+          freshSchedule.status === "released" ||
+          freshSchedule.status === "completed" ||
+          freshSchedule.status === "canceled"
+        ) {
+          await clearProjection({
+            clinicId: input.state.clinicId,
+            retireAttempt: true,
+          });
+        }
+        return failure(input.state.clinicId, "schedule_failed");
+      }
+      const effectiveAt = unixToDate(verified.effectiveAt);
+      await persist({
+        clinicId: input.state.clinicId,
+        scheduleId: freshSchedule.id,
+        effectiveAt,
+      });
+      if (live.alreadyScheduled) {
         logStripeBilling({
           event: "plan_downgrade_already_scheduled",
           clinicId: input.state.clinicId,
         });
-        return {
-          ok: true,
-          alreadyScheduled: true,
-          scheduleId: existing.id,
-          effectiveAt,
-          stripeSubscriptionId: subscription.id,
-        };
+      } else {
+        logStripeBilling({
+          event: "plan_downgrade_scheduled",
+          clinicId: input.state.clinicId,
+          billingInterval: interval,
+        });
       }
-      const currentPhase =
-        existing.phases.find((phase) => phase.priceId === practicePriceId) ??
-        existing.phases[0];
-      if (
-        !currentPhase ||
-        currentPhase.hasExtras ||
-        currentPhase.priceId !== practicePriceId ||
-        existing.phases.length > 1
-      ) {
-        return failure(input.state.clinicId, "unknown_schedule");
-      }
-      const updated = await stripe.subscriptionSchedules.update(
-        existing.id,
+      return {
+        ok: true as const,
+        alreadyScheduled: live.alreadyScheduled,
+        scheduleId: freshSchedule.id,
+        effectiveAt,
+        stripeSubscriptionId: freshSubscription.id,
+      };
+    };
+
+    const updateThenVerify = async (
+      scheduleId: string,
+      phaseStart: number,
+      currentAttemptId: string
+    ) => {
+      await stripe.subscriptionSchedules.update(
+        scheduleId,
         buildPracticeToEssentialScheduleUpdate({
           clinicId: input.state.clinicId,
+          attemptId: currentAttemptId,
           currentPriceId: practicePriceId,
           essentialPriceId,
           quantity: 1,
-          phaseStart: currentPhase.startDate,
-          periodEnd: currentPhase.endDate,
-          interval: assessed.interval,
+          phaseStart,
+          periodEnd,
+          interval,
         }),
         {
           idempotencyKey: planDowngradeIdempotencyKey({
             clinicId: input.state.clinicId,
-            stripeSubscriptionId: subscription.id,
+            stripeSubscriptionId: subscriptionId,
             targetPriceId: essentialPriceId,
-            periodEnd: currentPhase.endDate,
+            periodEnd,
+            attemptId: currentAttemptId,
             step: "update",
           }),
         }
       );
-      if (
-        updated.subscriptionId &&
-        updated.subscriptionId !== subscription.id
-      ) {
-        return failure(input.state.clinicId, "subscription_shape");
-      }
-      const effectiveAt = unixToDate(currentPhase.endDate);
-      await persist({
-        clinicId: input.state.clinicId,
-        scheduleId: updated.id,
-        effectiveAt,
-      });
-      logStripeBilling({
-        event: "plan_downgrade_scheduled",
-        clinicId: input.state.clinicId,
-        billingInterval: assessed.interval,
-      });
-      return {
-        ok: true,
+      return await persistIfVerified({
+        scheduleId,
+        attemptId: currentAttemptId,
         alreadyScheduled: false,
-        scheduleId: updated.id,
-        effectiveAt,
-        stripeSubscriptionId: subscription.id,
-      };
+      });
+    };
+
+    if (claims && !subscription.scheduleId) {
+      logStripeBilling({
+        event: "plan_downgrade_stale_projection_reconciled",
+        clinicId: input.state.clinicId,
+        scheduleId: input.state.stripeSubscriptionScheduleId,
+        attemptId,
+      });
+      await clearProjection({
+        clinicId: input.state.clinicId,
+        retireAttempt: true,
+      });
+      attemptId = null;
     }
 
-    const created = await stripe.subscriptionSchedules.create(
-      { from_subscription: subscription.id },
+    if (subscription.scheduleId) {
+      const existing = await stripe.subscriptionSchedules.retrieve(
+        subscription.scheduleId
+      );
+      const classifyAttempt =
+        attemptId ?? existing.metadataAttemptId ?? "unallocated";
+      const kind = classifyAttachedDowngradeSchedule({
+        schedule: existing,
+        subscription,
+        clinicId: input.state.clinicId,
+        attemptId: classifyAttempt,
+        practicePriceId,
+        essentialPriceId,
+        periodEnd,
+      });
+      if (kind === "complete" && existing.metadataAttemptId) {
+        return await persistIfVerified({
+          scheduleId: existing.id,
+          attemptId: existing.metadataAttemptId,
+          alreadyScheduled: true,
+        });
+      }
+      if (kind === "unknown" || kind === "other_attempt") {
+        return failure(input.state.clinicId, "unknown_schedule");
+      }
+      if (kind === "ended") {
+        logVerificationFailed({
+          clinicId: input.state.clinicId,
+          stripeSubscriptionId: subscription.id,
+          scheduleId: existing.id,
+          attemptId,
+          scheduleStatus: existing.status,
+          observedScheduleId: subscription.scheduleId,
+          reason: "schedule_status",
+        });
+        return failure(input.state.clinicId, "schedule_failed");
+      }
+      const ready = requireReady();
+      if (!ready.ok) {
+        return failure(input.state.clinicId, ready.code);
+      }
+      if (!attemptId) {
+        const allocation = await ensureAttempt(input.state.clinicId);
+        attemptId = allocation.attemptId;
+        if (allocation.created) {
+          logStripeBilling({
+            event: "plan_downgrade_attempt_started",
+            clinicId: input.state.clinicId,
+            attemptId,
+          });
+        }
+      }
+      const phase = existing.phases[0];
+      if (!phase || kind !== "intermediate") {
+        return failure(input.state.clinicId, "unknown_schedule");
+      }
+      return await updateThenVerify(existing.id, phase.startDate, attemptId);
+    }
+
+    const ready = requireReady();
+    if (!ready.ok) {
+      return failure(input.state.clinicId, ready.code);
+    }
+    if (!attemptId) {
+      const allocation = await ensureAttempt(input.state.clinicId);
+      attemptId = allocation.attemptId;
+      if (allocation.created) {
+        logStripeBilling({
+          event: "plan_downgrade_attempt_started",
+          clinicId: input.state.clinicId,
+          attemptId,
+        });
+      }
+    }
+
+    await stripe.subscriptionSchedules.create(
+      { from_subscription: subscriptionId },
       {
         idempotencyKey: planDowngradeIdempotencyKey({
           clinicId: input.state.clinicId,
-          stripeSubscriptionId: subscription.id,
+          stripeSubscriptionId: subscriptionId,
           targetPriceId: essentialPriceId,
           periodEnd,
+          attemptId,
           step: "create",
         }),
       }
     );
-    if (created.subscriptionId && created.subscriptionId !== subscription.id) {
-      return failure(input.state.clinicId, "subscription_shape");
-    }
-    const createdPhase = created.phases[0];
-    if (
-      !createdPhase ||
-      createdPhase.hasExtras ||
-      createdPhase.priceId !== practicePriceId ||
-      created.phases.length !== 1
-    ) {
-      return failure(input.state.clinicId, "subscription_shape");
-    }
-    if (createdPhase.endDate !== periodEnd) {
-      return failure(input.state.clinicId, "subscription_shape");
-    }
-
-    const updated = await stripe.subscriptionSchedules.update(
-      created.id,
-      buildPracticeToEssentialScheduleUpdate({
+    subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    if (!subscription.scheduleId) {
+      logVerificationFailed({
         clinicId: input.state.clinicId,
-        currentPriceId: practicePriceId,
-        essentialPriceId,
-        quantity: 1,
-        phaseStart: createdPhase.startDate,
-        periodEnd: createdPhase.endDate,
-        interval: assessed.interval,
-      }),
-      {
-        idempotencyKey: planDowngradeIdempotencyKey({
-          clinicId: input.state.clinicId,
-          stripeSubscriptionId: subscription.id,
-          targetPriceId: essentialPriceId,
-          periodEnd: createdPhase.endDate,
-          step: "update",
-        }),
-      }
+        stripeSubscriptionId: subscription.id,
+        scheduleId: null,
+        attemptId,
+        scheduleStatus: null,
+        observedScheduleId: null,
+        reason: "subscription_attachment",
+      });
+      await clearProjection({
+        clinicId: input.state.clinicId,
+        retireAttempt: true,
+      });
+      return failure(input.state.clinicId, "schedule_failed");
+    }
+    const attached = await stripe.subscriptionSchedules.retrieve(
+      subscription.scheduleId
     );
-    const effectiveAt = unixToDate(createdPhase.endDate);
-    await persist({
+    const attachedKind = classifyAttachedDowngradeSchedule({
+      schedule: attached,
+      subscription,
       clinicId: input.state.clinicId,
-      scheduleId: updated.id,
-      effectiveAt,
+      attemptId,
+      practicePriceId,
+      essentialPriceId,
+      periodEnd,
     });
-    logStripeBilling({
-      event: "plan_downgrade_scheduled",
-      clinicId: input.state.clinicId,
-      billingInterval: assessed.interval,
-    });
-    return {
-      ok: true,
-      alreadyScheduled: false,
-      scheduleId: updated.id,
-      effectiveAt,
-      stripeSubscriptionId: subscription.id,
-    };
+    if (attachedKind === "complete") {
+      return await persistIfVerified({
+        scheduleId: attached.id,
+        attemptId,
+        alreadyScheduled: true,
+      });
+    }
+    if (attachedKind !== "intermediate") {
+      logVerificationFailed({
+        clinicId: input.state.clinicId,
+        stripeSubscriptionId: subscription.id,
+        scheduleId: attached.id,
+        attemptId,
+        scheduleStatus: attached.status,
+        observedScheduleId: subscription.scheduleId,
+        reason:
+          attachedKind === "ended" ? "schedule_status" : "schedule_metadata",
+      });
+      return failure(
+        input.state.clinicId,
+        attachedKind === "unknown" || attachedKind === "other_attempt"
+          ? "unknown_schedule"
+          : "schedule_failed"
+      );
+    }
+    const createdPhase = attached.phases[0];
+    if (!createdPhase) {
+      return failure(input.state.clinicId, "subscription_shape");
+    }
+    return await updateThenVerify(
+      attached.id,
+      createdPhase.startDate,
+      attemptId
+    );
   } catch {
     return failure(input.state.clinicId, "schedule_failed");
   }
@@ -843,12 +1205,16 @@ export async function executeOperatorDowngradeReversal(input: {
   state: PlanDowngradeState;
   env?: Env;
   stripe: PlanDowngradeStripePort;
-  clear?: typeof clearScheduledDowngrade;
+  clear?: (row: { clinicId: string }) => Promise<void>;
+  clearProjection?: typeof clearScheduledDowngradeProjection;
 }): Promise<
   | { ok: true; alreadyReversed: boolean; stripeSubscriptionId: string }
   | { ok: false; code: PlanDowngradeCode }
 > {
   const clear = input.clear ?? clearScheduledDowngrade;
+  const clearProjection =
+    input.clearProjection ??
+    (input.clear ? async () => undefined : clearScheduledDowngradeProjection);
   if (
     !input.state.scheduledCommercialPlan &&
     !input.state.stripeSubscriptionScheduleId
@@ -896,7 +1262,10 @@ export async function executeOperatorDowngradeReversal(input: {
     const scheduleId =
       subscription.scheduleId ?? input.state.stripeSubscriptionScheduleId;
     if (!scheduleId) {
-      await clear({ clinicId: input.state.clinicId, clearScheduleId: true });
+      await clearProjection({
+        clinicId: input.state.clinicId,
+        retireAttempt: true,
+      });
       return {
         ok: true,
         alreadyReversed: true,
@@ -916,17 +1285,41 @@ export async function executeOperatorDowngradeReversal(input: {
     ) {
       return failure(input.state.clinicId, "unknown_schedule");
     }
-    if (
+    const releasedSubscription =
+      schedule.releasedSubscriptionId ?? schedule.subscriptionId;
+    const ended =
       schedule.status === "released" ||
       schedule.status === "completed" ||
-      schedule.status === "canceled"
-    ) {
-      const releasedId =
-        schedule.releasedSubscriptionId ?? schedule.subscriptionId;
-      if (releasedId && releasedId !== subscription.id) {
+      schedule.status === "canceled";
+    if (ended) {
+      if (releasedSubscription && releasedSubscription !== subscription.id) {
         return failure(input.state.clinicId, "subscription_shape");
       }
-      await clear({ clinicId: input.state.clinicId, clearScheduleId: true });
+      if (subscription.scheduleId) {
+        logVerificationFailed({
+          clinicId: input.state.clinicId,
+          stripeSubscriptionId: subscription.id,
+          scheduleId: schedule.id,
+          attemptId: input.state.stripePlanDowngradeAttemptId,
+          scheduleStatus: schedule.status,
+          observedScheduleId: subscription.scheduleId,
+          reason: "subscription_attachment",
+        });
+        return failure(input.state.clinicId, "schedule_failed");
+      }
+      const validatedLifecycle =
+        input.state.scheduledCommercialPlan === "ESSENTIAL" &&
+        input.state.stripeSubscriptionScheduleId === schedule.id &&
+        input.state.stripePlanDowngradeAttemptId != null &&
+        schedule.metadataAttemptId === input.state.stripePlanDowngradeAttemptId;
+      if (validatedLifecycle) {
+        await clear({ clinicId: input.state.clinicId });
+      } else {
+        await clearProjection({
+          clinicId: input.state.clinicId,
+          retireAttempt: true,
+        });
+      }
       return {
         ok: true,
         alreadyReversed: true,
@@ -934,24 +1327,59 @@ export async function executeOperatorDowngradeReversal(input: {
       };
     }
 
-    const released = await input.stripe.subscriptionSchedules.release(
+    if (!input.state.stripePlanDowngradeAttemptId) {
+      logVerificationFailed({
+        clinicId: input.state.clinicId,
+        stripeSubscriptionId: subscription.id,
+        scheduleId: schedule.id,
+        attemptId: null,
+        scheduleStatus: schedule.status,
+        observedScheduleId: subscription.scheduleId,
+        reason: "missing_attempt",
+      });
+      return failure(input.state.clinicId, "schedule_failed");
+    }
+    const attemptId = input.state.stripePlanDowngradeAttemptId;
+    await input.stripe.subscriptionSchedules.release(
       schedule.id,
       { preserve_cancel_date: false },
       {
         idempotencyKey: planDowngradeIdempotencyKey({
           clinicId: input.state.clinicId,
           stripeSubscriptionId: subscription.id,
-          targetPriceId: practicePriceId,
-          periodEnd: subscription.periodEnd ?? 0,
+          attemptId,
           step: "release",
         }),
       }
     );
-    const keptId = released.releasedSubscriptionId ?? released.subscriptionId;
-    if (keptId && keptId !== subscription.id) {
-      return failure(input.state.clinicId, "subscription_shape");
+    const freshSchedule = await input.stripe.subscriptionSchedules.retrieve(
+      schedule.id
+    );
+    const freshSubscription = await input.stripe.subscriptions.retrieve(
+      subscription.id
+    );
+    const releasedId =
+      freshSchedule.releasedSubscriptionId ?? freshSchedule.subscriptionId;
+    if (
+      freshSchedule.status !== "released" ||
+      freshSubscription.scheduleId ||
+      releasedId !== subscription.id
+    ) {
+      logVerificationFailed({
+        clinicId: input.state.clinicId,
+        stripeSubscriptionId: freshSubscription.id,
+        scheduleId: freshSchedule.id,
+        attemptId,
+        scheduleStatus: freshSchedule.status,
+        observedScheduleId: freshSubscription.scheduleId,
+        reason:
+          freshSchedule.status !== "released"
+            ? "schedule_status"
+            : "subscription_attachment",
+      });
+      return failure(input.state.clinicId, "schedule_failed");
     }
-    await clear({ clinicId: input.state.clinicId, clearScheduleId: true });
+    await clear({ clinicId: input.state.clinicId });
     logStripeBilling({
       event: "plan_downgrade_reversed",
       clinicId: input.state.clinicId,
@@ -1019,6 +1447,7 @@ export type ScheduleEventNotice = {
   releasedSubscriptionId: string | null;
   metadataClinicId: string | null;
   metadataPurpose: string | null;
+  metadataAttemptId: string | null;
   currentPriceId: string | null;
   currentQuantity: number | null;
   currentStart: number | null;
@@ -1120,6 +1549,8 @@ export function noticeFromSubscriptionSchedule(
     releasedSubscriptionId: schedule.released_subscription,
     metadataClinicId: schedule.metadata?.[RIVER_CLINIC_ID_METADATA_KEY] ?? null,
     metadataPurpose: schedule.metadata?.riverSchedulePurpose ?? null,
+    metadataAttemptId:
+      schedule.metadata?.[RIVER_DOWNGRADE_ATTEMPT_METADATA_KEY] ?? null,
     currentPriceId: priceIdFromUnknown(current?.items?.[0]?.price),
     currentQuantity: current?.items?.[0]?.quantity ?? null,
     currentStart: current?.start_date ?? null,
@@ -1175,6 +1606,7 @@ export function subscriptionSnapshotFromStripe(
   const discounts = subscription.discounts;
   return {
     id: subscription.id,
+    status: subscription.status,
     scheduleId: stripeObjectId(subscription.schedule),
     cancelAtPeriodEnd: subscriptionCancellationScheduled(subscription),
     itemId: item?.id ?? null,
@@ -1203,12 +1635,15 @@ export function scheduleSnapshotFromStripe(
     releasedSubscriptionId: schedule.released_subscription,
     metadataClinicId: schedule.metadata?.[RIVER_CLINIC_ID_METADATA_KEY] ?? null,
     metadataPurpose: schedule.metadata?.riverSchedulePurpose ?? null,
+    metadataAttemptId:
+      schedule.metadata?.[RIVER_DOWNGRADE_ATTEMPT_METADATA_KEY] ?? null,
     phases: (schedule.phases ?? []).map((phase) => ({
       priceId: stripeObjectId(phase.items?.[0]?.price) ?? "",
       quantity: phase.items?.[0]?.quantity ?? 0,
       startDate: phase.start_date,
       endDate: phase.end_date,
       prorationBehavior: phase.proration_behavior ?? null,
+      billingCycleAnchor: phase.billing_cycle_anchor ?? null,
       hasExtras: Boolean(
         phase.add_invoice_items?.length ||
         phase.discounts?.length ||
@@ -1230,6 +1665,7 @@ async function loadDowngradeState(
         select: {
           stripeSubscriptionId: true,
           stripeSubscriptionScheduleId: true,
+          stripePlanDowngradeAttemptId: true,
           stripeCheckoutSessionId: true,
         },
       },
@@ -1248,6 +1684,8 @@ async function loadDowngradeState(
     stripeSubscriptionId: clinic.billingProfile?.stripeSubscriptionId ?? null,
     stripeSubscriptionScheduleId:
       clinic.billingProfile?.stripeSubscriptionScheduleId ?? null,
+    stripePlanDowngradeAttemptId:
+      clinic.billingProfile?.stripePlanDowngradeAttemptId ?? null,
     stripeCheckoutSessionId:
       clinic.billingProfile?.stripeCheckoutSessionId ?? null,
     scheduledCommercialPlan:
