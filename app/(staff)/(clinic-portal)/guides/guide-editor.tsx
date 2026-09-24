@@ -389,22 +389,25 @@ export function GuideEditor({
 
       <div className="staffEditorToolbar">
         <div className="staffEditorToolbarStart">
-          <h1 className="staffEditorToolbarTitle">
-            {title || guide.title || "Edit guide"}
-          </h1>
-          <div className="staffEditorToolbarMeta">
+          <div className="staffEditorIdentity">
+            <h1 className="staffEditorToolbarTitle">
+              {title || guide.title || "Edit guide"}
+            </h1>
             <GuideStatusPills pills={statusPills} />
-            <p className="staffEditorToolbarContext">{sourceLabel}</p>
+          </div>
+          <p className="staffEditorToolbarContext">
+            {sourceLabel}
             {guide.reviewAttestation ? (
-              <p className="staffEditorToolbarContext">
+              <>
+                {" · "}
                 Clinical review confirmed by{" "}
                 {guide.reviewAttestation.confirmedByLabel}
                 {" · "}
                 {formatPortalDateTime(guide.reviewAttestation.confirmedAt)}
-              </p>
+              </>
             ) : null}
-            {saveFeedback}
-          </div>
+          </p>
+          <div className="staffEditorSaveStatus">{saveFeedback}</div>
         </div>
         <div className="staffEditorToolbarActions">{actions}</div>
       </div>

@@ -1773,12 +1773,23 @@ a.staffOverflowItem {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 0.45rem;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+
+.staffEditorIdentity {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.65rem;
 }
 
 .staffEditorToolbarTitle {
   margin: 0;
   min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
   font-size: 1.5rem;
   font-weight: 600;
@@ -1786,17 +1797,29 @@ a.staffOverflowItem {
   line-height: 1.2;
 }
 
-.staffEditorToolbarMeta {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem 0.85rem;
-}
-
 .staffEditorToolbarContext {
   margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--staff-muted);
+}
+
+.staffEditorSaveStatus {
+  margin-top: 0.2rem;
+  max-width: 100%;
+}
+
+.staffEditorSaveStatus p {
+  margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.staffEditorSaveStatus p:not([role="alert"]) {
   color: var(--staff-muted);
 }
 
@@ -1864,34 +1887,28 @@ a.staffOverflowItem {
     top: 0;
     z-index: 28;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem 1.25rem;
-    min-height: 3.5rem;
     margin-top: 0.35rem;
-    padding: 0.35rem 0;
+    padding: 0.45rem 0 0.7rem;
     border-bottom: 1px solid var(--staff-line);
     background: var(--staff-canvas);
   }
 
   .staffEditorToolbarStart {
-    flex: 1;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem 0.9rem;
+    flex: 1 1 auto;
+    align-items: flex-start;
+    gap: 0.25rem;
   }
 
   .staffEditorToolbarTitle {
-    max-width: 22rem;
-    overflow: hidden;
-    font-size: 1rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 1.25rem;
   }
 
   .staffEditorToolbarActions {
     display: flex;
+    padding-top: 0.15rem;
   }
 }
 

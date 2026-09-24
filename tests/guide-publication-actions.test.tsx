@@ -208,6 +208,23 @@ describe("guide editor publication labels", () => {
     });
   }
 
+  it("groups the title with its lifecycle pill and keeps metadata quieter", async () => {
+    await renderEditor("published");
+    const identity = container.querySelector(".staffEditorIdentity");
+    const title = identity?.querySelector("h1");
+    const pill = identity?.querySelector(".staffStatusPill");
+    const meta = container.querySelector(".staffEditorToolbarContext");
+    const save = container.querySelector(".staffEditorSaveStatus");
+
+    expect(title?.textContent).toBe("Socket care");
+    expect(pill?.textContent).toBe("Published");
+    expect(identity?.contains(meta ?? null)).toBe(false);
+    expect(meta?.textContent).toBe("Custom guide");
+    expect(save?.textContent).toContain("Saved");
+    expect(meta?.contains(save ?? null)).toBe(false);
+    expect(save?.querySelector("[data-save-state='saved']")).toBeTruthy();
+  });
+
   it("offers Publish guide for an unpublished draft", async () => {
     await renderEditor("draft");
     expect(button("Publish guide")).toBeTruthy();
