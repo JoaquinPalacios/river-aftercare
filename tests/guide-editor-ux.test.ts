@@ -23,6 +23,7 @@ describe("guide editor UX", () => {
     expect(editor).not.toContain("clinically approved");
     expect(editor).not.toContain("I am a clinician");
     expect(editor).toContain("staffEditorToolbar");
+    expect(editor).toContain("staffEditorActionsMobile");
     expect(editor).toContain("staffEditorRail");
     expect(editor).toContain("staffGuideEditor");
     expect(editor).toContain("staffEditorRailDesktop");
@@ -64,5 +65,19 @@ describe("guide editor UX", () => {
     expect(staffCss).toContain("textarea.staffField");
     expect(staffCss).toContain("min-height: calc(1.5em * 4 + 1rem)");
     expect(staffCss).toContain("resize: vertical");
+  });
+
+  it("shares the mobile editor footer across its page actions", () => {
+    const staffCss = readFileSync("app/(staff)/staff.css", "utf8");
+    const start = staffCss.indexOf(
+      ".staffEditorActionsMobile .staffEditorActions {"
+    );
+    const block = staffCss.slice(start, staffCss.indexOf(".staffEditorPage {"));
+
+    expect(start).toBeGreaterThan(-1);
+    expect(block).toContain("flex-wrap: nowrap");
+    expect(block).toContain("width: 100%");
+    expect(block).toContain("flex: 1 1 0");
+    expect(block).not.toContain("flex-direction: column");
   });
 });

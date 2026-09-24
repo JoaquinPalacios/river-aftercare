@@ -665,6 +665,22 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
   backdrop-filter: blur(10px);
 }
 
+.staffEditorActionsMobile .staffEditorActions {
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.staffEditorActionsMobile .staffEditorActions > .staffBtn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: 0.45rem;
+  white-space: normal;
+  text-align: center;
+}
+
 .staffEditorPage {
   container: staff-editor / inline-size;
   box-sizing: border-box;
