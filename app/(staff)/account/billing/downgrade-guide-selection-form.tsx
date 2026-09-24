@@ -7,6 +7,7 @@ import {
   confirmDowngradeGuideSelectionAction,
   type GuideSelectionActionState,
 } from "@/app/(staff)/account/billing/actions";
+import { PendingSubmitButton } from "@/app/(staff)/components/pending-submit-button";
 import { TransientNotice } from "@/app/(staff)/components/transient-notice";
 import type {
   ClinicGuideSelectionGuide,
@@ -134,7 +135,11 @@ function SelectionCounts({
         Total clinic-owned guides {combinedSelected} of {limits.combined}{" "}
         selected
       </p>
-      {limitNote ? <p id={LIMIT_NOTE_ID}>{limitNote}</p> : null}
+      {limitNote ? (
+        <p id={LIMIT_NOTE_ID} className="staffConstraintNote">
+          {limitNote}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -142,9 +147,11 @@ function SelectionCounts({
 export function DowngradeGuideSelectionForm({
   panel,
   canConfirm,
+  placement = "standalone",
 }: {
   panel: ClinicGuideSelectionPanel;
   canConfirm: boolean;
+  placement?: "standalone" | "review";
 }) {
   const [state, action, pending] = useActionState(
     selectionFeedbackAction,
@@ -234,6 +241,20 @@ export function DowngradeGuideSelectionForm({
     ) : null;
 
   if (showSummary) {
+    if (placement === "review" && canConfirm) {
+      return (
+        <div className="mt-3 flex flex-col gap-3">
+          {notice}
+          <button
+            type="button"
+            className="staffBtn staffBtnSecondary h-11 w-full sm:w-auto"
+            onClick={beginEdit}
+          >
+            Edit guide selection
+          </button>
+        </div>
+      );
+    }
     const summarySet = new Set(summaryIds);
     const kept = panel.guides.filter((guide) => summarySet.has(guide.id));
     const futureRetained = panel.guides.filter(
@@ -246,18 +267,28 @@ export function DowngradeGuideSelectionForm({
       (guide) => guide.kind === "adapted"
     ).length;
     return (
-      <div className="mt-4 flex flex-col gap-4">
+      <div
+        className={
+          placement === "review"
+            ? "mt-3 flex flex-col gap-4"
+            : "mt-4 flex flex-col gap-4"
+        }
+      >
         {notice}
-        <p className="text-sm font-medium" role="status">
-          Guide selection confirmed
-        </p>
-        <SelectionCounts
-          customSelected={summaryCustom}
-          adaptedSelected={summaryAdapted}
-          combinedSelected={summaryCustom + summaryAdapted}
-          limits={panel.limits}
-          limitNote={null}
-        />
+        {placement === "review" ? null : (
+          <>
+            <p className="text-sm font-medium" role="status">
+              Guide selection confirmed
+            </p>
+            <SelectionCounts
+              customSelected={summaryCustom}
+              adaptedSelected={summaryAdapted}
+              combinedSelected={summaryCustom + summaryAdapted}
+              limits={panel.limits}
+              limitNote={null}
+            />
+          </>
+        )}
         <section className="flex flex-col gap-2">
           <h4 className="text-sm font-medium">Will stay active on Essential</h4>
           {kept.length === 0 ? (
@@ -315,7 +346,12 @@ export function DowngradeGuideSelectionForm({
   return (
     <form
       action={action}
-      className="mt-4 flex flex-col gap-4"
+      className={
+        placement === "review"
+          ? "mt-3 flex flex-col gap-4"
+          : "mt-4 flex flex-col gap-4"
+      }
+      aria-busy={pending || undefined}
       onReset={(event) => event.preventDefault()}
     >
       {notice}
@@ -355,7 +391,7 @@ export function DowngradeGuideSelectionForm({
                       value={guide.id}
                       className="mt-1"
                       checked={checked}
-                      disabled={blocked}
+                      disabled={blocked || pending}
                       aria-describedby={blocked ? LIMIT_NOTE_ID : undefined}
                       onChange={(event) =>
                         toggle(guide.id, event.target.checked)
@@ -380,17 +416,18 @@ export function DowngradeGuideSelectionForm({
         </p>
       ) : null}
       {canConfirm ? (
-        <button
-          type="submit"
-          className="staffBtn staffBtnPrimary h-11"
-          disabled={pending || !withinLimits}
-        >
-          {pending
-            ? "Saving…"
-            : previouslyConfirmed
+        <PendingSubmitButton
+          label={
+            previouslyConfirmed
               ? "Update guide selection"
-              : "Confirm guide selection"}
-        </button>
+              : "Confirm guide selection"
+          }
+          pendingLabel={
+            previouslyConfirmed ? "Updating selection…" : "Saving selection…"
+          }
+          className="staffBtn staffBtnPrimary h-11 w-full sm:w-auto"
+          disabled={pending || !withinLimits}
+        />
       ) : (
         <p className="text-sm text-staff-muted">
           A clinic administrator needs to choose which guides to keep.

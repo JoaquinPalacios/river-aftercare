@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useActionState } from "react";
 
 import {
@@ -11,6 +11,7 @@ import {
   scheduleClinicPlanDowngradeAction,
   type PlanChangeActionState,
 } from "@/app/(staff)/account/billing/actions";
+import { PendingSubmitButton } from "@/app/(staff)/components/pending-submit-button";
 import { TransientNotice } from "@/app/(staff)/components/transient-notice";
 
 export const KEEP_PRACTICE_NOTICE =
@@ -67,6 +68,7 @@ export function ChangePlanPanel({
   blockedMessage,
   canCancelPreparation,
   scheduledEffectiveLabel,
+  guideEditor,
 }: {
   phase: ChangePlanPhase;
   canAct: boolean;
@@ -84,6 +86,7 @@ export function ChangePlanPanel({
   blockedMessage: string | null;
   canCancelPreparation: boolean;
   scheduledEffectiveLabel?: string | null;
+  guideEditor?: ReactNode;
 }) {
   const [feedback, action, pending] = useActionState(
     planChangeFeedbackAction,
@@ -115,15 +118,18 @@ export function ChangePlanPanel({
             Essential · {essentialPriceLabel} · {intervalLabel}
           </p>
           {canAct ? (
-            <form action={action} className="mt-4">
+            <form
+              action={action}
+              className="mt-4"
+              aria-busy={pending || undefined}
+            >
               <input type="hidden" name="intent" value="begin" />
-              <button
-                type="submit"
-                className="staffBtn staffBtnPrimary h-11"
+              <PendingSubmitButton
+                label="Review downgrade"
+                pendingLabel="Preparing…"
+                className="staffBtn staffBtnPrimary h-11 w-full sm:w-auto"
                 disabled={pending}
-              >
-                {pending ? "Reviewing…" : "Review downgrade"}
-              </button>
+              />
             </form>
           ) : null}
         </div>
@@ -150,15 +156,18 @@ export function ChangePlanPanel({
             </div>
           </dl>
           {canAct ? (
-            <form action={action} className="mt-4">
+            <form
+              action={action}
+              className="mt-4"
+              aria-busy={pending || undefined}
+            >
               <input type="hidden" name="intent" value="keep" />
-              <button
-                type="submit"
-                className="staffBtn staffBtnSecondary h-11"
+              <PendingSubmitButton
+                label="Keep Practice"
+                pendingLabel="Keeping Practice…"
+                className="staffBtn staffBtnSecondary h-11 w-full sm:w-auto"
                 disabled={pending}
-              >
-                {pending ? "Updating…" : "Keep Practice"}
-              </button>
+              />
             </form>
           ) : null}
         </div>
@@ -221,6 +230,7 @@ export function ChangePlanPanel({
               ) : (
                 <p>Choose which guides will stay active on Essential.</p>
               )}
+              {guideEditor}
             </li>
             <li>
               <p className="font-medium text-staff-ink">Review</p>
@@ -286,28 +296,32 @@ export function ChangePlanPanel({
             </p>
           ) : null}
           {canAct ? (
-            <form action={action} className="mt-4 flex flex-wrap gap-3">
-              <input type="hidden" name="intent" value="schedule" />
-              <button
-                type="submit"
-                className="staffBtn staffBtnPrimary h-11"
-                disabled={pending || !scheduleReady}
-              >
-                {pending ? "Scheduling…" : "Schedule downgrade"}
-              </button>
-            </form>
-          ) : null}
-          {canAct && canCancelPreparation ? (
-            <form action={action} className="mt-3">
-              <input type="hidden" name="intent" value="cancel" />
-              <button
-                type="submit"
-                className="staffBtn staffBtnSecondary h-11"
-                disabled={pending}
-              >
-                Cancel plan change
-              </button>
-            </form>
+            <div
+              className="mt-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
+              data-action-row="downgrade"
+              aria-busy={pending || undefined}
+            >
+              <form action={action} className="min-w-0 w-full sm:w-auto">
+                <input type="hidden" name="intent" value="schedule" />
+                <PendingSubmitButton
+                  label="Schedule downgrade"
+                  pendingLabel="Scheduling…"
+                  className="staffBtn staffBtnPrimary h-11 w-full sm:w-auto"
+                  disabled={pending || !scheduleReady}
+                />
+              </form>
+              {canCancelPreparation ? (
+                <form action={action} className="min-w-0 w-full sm:w-auto">
+                  <input type="hidden" name="intent" value="cancel" />
+                  <PendingSubmitButton
+                    label="Cancel plan change"
+                    pendingLabel="Cancelling…"
+                    className="staffBtn staffBtnSecondary h-11 w-full sm:w-auto"
+                    disabled={pending}
+                  />
+                </form>
+              ) : null}
+            </div>
           ) : null}
         </div>
       ) : null}

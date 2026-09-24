@@ -245,6 +245,25 @@ Public published prices (AUD): Essential A$79/month or A$790/year, Practice A$14
 
 ---
 
+## Pending action states on remaining forms
+
+Billing’s Practice → Essential actions use `PendingSubmitButton`: the current page stays visible, the clicked control shows an inline spinner and an action-specific label, and a conflicting sibling action is disabled until the server action returns.
+
+Adopt that same pending-action treatment across the remaining River mutation forms. Do not fold that sweep into the Phase 5 billing PR.
+
+Likely audit targets:
+
+- Guide save, publish, unpublish, delete, and discard
+- Practice settings
+- Branding
+- Team invitations and member actions
+- Operator allowance changes
+- Billing setup
+- Password and profile forms
+- SEO and admin forms
+- Authentication recovery flows
+- Contact forms
+
 ## Explicitly not this document
 
 - Phase 2 clinic / operator admin

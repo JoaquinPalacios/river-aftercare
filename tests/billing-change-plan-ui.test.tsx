@@ -84,9 +84,18 @@ describe("self-service change plan panel", () => {
   }
 
   function button(label: string) {
-    return [...container.querySelectorAll("button")].find(
-      (candidate) => candidate.textContent === label
-    ) as HTMLButtonElement | undefined;
+    return [...container.querySelectorAll("button")].find((candidate) => {
+      const active = candidate.querySelector("[data-active='true']");
+      return (active?.textContent ?? candidate.textContent) === label;
+    }) as HTMLButtonElement | undefined;
+  }
+
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((res) => {
+      resolve = res;
+    });
+    return { promise, resolve };
   }
 
   async function submit(label: string) {
@@ -172,6 +181,142 @@ describe("self-service change plan panel", () => {
     expect(container.textContent).toContain("2 will be retained for 60 days");
     expect(button("Schedule downgrade")?.disabled).toBe(false);
     expect(button("Cancel plan change")).toBeTruthy();
+  });
+
+  it("places Schedule and Cancel in one responsive row", async () => {
+    await render({
+      phase: "review",
+      canCancelPreparation: true,
+    });
+    const row = container.querySelector("[data-action-row='downgrade']");
+    expect(row?.className).toContain("flex-col");
+    expect(row?.className).toContain("sm:flex-row");
+    expect(row?.className).not.toContain("overflow-x");
+    const schedule = button("Schedule downgrade");
+    const cancel = button("Cancel plan change");
+    expect(schedule?.className).toContain("staffBtnPrimary");
+    expect(schedule?.className).toContain("w-full");
+    expect(schedule?.className).toContain("sm:w-auto");
+    expect(cancel?.className).toContain("staffBtnSecondary");
+    expect(cancel?.className).toContain("w-full");
+    expect(cancel?.className).toContain("sm:w-auto");
+    expect(schedule?.className).not.toContain("w-full sm:w-full");
+  });
+
+  it("shows Scheduling and locks Cancel until the action finishes", async () => {
+    const pending = deferred<{ error: string }>();
+    scheduleMock.mockReturnValue(pending.promise);
+    await render({
+      phase: "review",
+      canCancelPreparation: true,
+      scheduleReady: true,
+    });
+    const form = button("Schedule downgrade")?.closest(
+      "form"
+    ) as HTMLFormElement;
+    await act(async () => {
+      form.requestSubmit();
+    });
+    expect(button("Scheduling…")?.disabled).toBe(true);
+    expect(button("Cancel plan change")?.disabled).toBe(true);
+    expect(button("Schedule downgrade")).toBeUndefined();
+    expect(
+      container
+        .querySelector("[data-action-row='downgrade']")
+        ?.getAttribute("aria-busy")
+    ).toBe("true");
+    expect(
+      container.querySelector(".staffBtnSpinner[data-visible='true']")
+    ).not.toBeNull();
+    expect(scheduleMock).toHaveBeenCalledTimes(1);
+
+    button("Cancel plan change")?.click();
+    expect(cancelMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      pending.resolve({
+        error:
+          "We couldn’t schedule the plan change. Your Practice plan is unchanged. Please try again.",
+      });
+    });
+    expect(button("Schedule downgrade")?.disabled).toBe(false);
+    expect(button("Cancel plan change")?.disabled).toBe(false);
+    expect(button("Scheduling…")).toBeUndefined();
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(container.textContent).toContain("Practice → Essential");
+  });
+
+  it("shows Cancelling and locks Schedule until the action finishes", async () => {
+    const pending = deferred<{ notice: "cancelled" }>();
+    cancelMock.mockReturnValue(pending.promise);
+    await render({
+      phase: "review",
+      canCancelPreparation: true,
+      scheduleReady: true,
+    });
+    const form = button("Cancel plan change")?.closest(
+      "form"
+    ) as HTMLFormElement;
+    await act(async () => {
+      form.requestSubmit();
+    });
+    expect(button("Cancelling…")?.disabled).toBe(true);
+    expect(button("Schedule downgrade")?.disabled).toBe(true);
+    expect(button("Scheduling…")).toBeUndefined();
+    expect(cancelMock).toHaveBeenCalledTimes(1);
+    button("Schedule downgrade")?.click();
+    expect(scheduleMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      pending.resolve({ notice: "cancelled" });
+    });
+    expect(container.textContent).toContain(CANCEL_PLAN_CHANGE_NOTICE);
+    expect(button("Cancel plan change")?.disabled).toBe(false);
+    expect(button("Schedule downgrade")?.disabled).toBe(false);
+    expect(container.textContent).toContain("Practice → Essential");
+  });
+
+  it("shows Keeping Practice and disables the control while that action runs", async () => {
+    const pending = deferred<{ notice: "kept" }>();
+    keepMock.mockReturnValue(pending.promise);
+    await render({
+      phase: "scheduled",
+      scheduledEffectiveLabel: "22 October 2026",
+    });
+    const form = button("Keep Practice")?.closest("form") as HTMLFormElement;
+    await act(async () => {
+      form.requestSubmit();
+    });
+    expect(button("Keeping Practice…")?.disabled).toBe(true);
+    expect(container.textContent).toContain("Essential scheduled");
+    expect(container.textContent).toContain(
+      "Your Practice plan remains active until 22 October 2026."
+    );
+    expect(keepMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      pending.resolve({ notice: "kept" });
+    });
+    expect(container.textContent).toContain(KEEP_PRACTICE_NOTICE);
+    expect(button("Keep Practice")?.disabled).toBe(false);
+    expect(container.textContent).toContain("Essential scheduled");
+  });
+
+  it("shows Preparing while Review downgrade is submitted", async () => {
+    const pending = deferred<Record<string, never>>();
+    beginMock.mockReturnValue(pending.promise);
+    await render({ phase: "entry" });
+    const form = button("Review downgrade")?.closest("form") as HTMLFormElement;
+    await act(async () => {
+      form.requestSubmit();
+    });
+    expect(button("Preparing…")?.disabled).toBe(true);
+    expect(button("Review downgrade")).toBeUndefined();
+    expect(beginMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      pending.resolve({});
+    });
+    expect(button("Review downgrade")?.disabled).toBe(false);
   });
 
   it("keeps Cancel plan change available when scheduling is not ready", async () => {

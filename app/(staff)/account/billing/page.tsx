@@ -199,9 +199,18 @@ export default async function BillingStatusPage({
               scheduleReady={downgrade.scheduleReady}
               blockedMessage={downgrade.blockedMessage}
               canCancelPreparation={downgrade.canCancelPreparation}
+              guideEditor={
+                view.guideSelection ? (
+                  <DowngradeGuideSelectionForm
+                    panel={view.guideSelection}
+                    canConfirm={canChangePlan}
+                    placement="review"
+                  />
+                ) : null
+              }
             />
           ) : null}
-          {view.guideSelection ? (
+          {view.guideSelection && !showReview ? (
             <div className="mt-5 border-t border-staff-line pt-5">
               <h3 className="text-sm font-semibold">Practice → Essential</h3>
               <DowngradeGuideSelectionForm

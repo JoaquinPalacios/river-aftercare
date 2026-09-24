@@ -73,9 +73,18 @@ describe("downgrade guide selection form", () => {
     container.remove();
   });
 
-  async function renderForm(value: ClinicGuideSelectionPanel = panel()) {
+  async function renderForm(
+    value: ClinicGuideSelectionPanel = panel(),
+    placement?: "standalone" | "review"
+  ) {
     await act(async () => {
-      root.render(<DowngradeGuideSelectionForm panel={value} canConfirm />);
+      root.render(
+        <DowngradeGuideSelectionForm
+          panel={value}
+          canConfirm
+          placement={placement}
+        />
+      );
     });
   }
 
@@ -96,6 +105,21 @@ describe("downgrade guide selection form", () => {
     ) as HTMLButtonElement;
   }
 
+  function activeLabel(control: HTMLButtonElement) {
+    return (
+      control.querySelector("[data-active='true']")?.textContent ??
+      control.textContent
+    );
+  }
+
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((res) => {
+      resolve = res;
+    });
+    return { promise, resolve };
+  }
+
   it("disables further custom guides at the custom limit and leaves edited templates available", async () => {
     await renderForm();
     await toggle("c1");
@@ -108,6 +132,9 @@ describe("downgrade guide selection form", () => {
     expect(box("c3").checked).toBe(false);
     expect(box("e1").disabled).toBe(false);
     expect(container.textContent).toContain("Custom guide limit reached");
+    expect(container.querySelector(".staffConstraintNote")?.textContent).toBe(
+      "Custom guide limit reached"
+    );
     expect(container.textContent).toContain("Custom guides 2 of 2 selected");
     expect(confirmButton().disabled).toBe(false);
   });
@@ -197,7 +224,7 @@ describe("downgrade guide selection form", () => {
   it("allows confirm for a valid partial selection and for none", async () => {
     await renderForm();
     expect(confirmButton().disabled).toBe(false);
-    expect(confirmButton().textContent).toBe("Confirm guide selection");
+    expect(activeLabel(confirmButton())).toBe("Confirm guide selection");
     expect(container.querySelector('input[type="checkbox"]')).not.toBeNull();
     expect(container.textContent).not.toContain(
       "Will stay active on Essential"
@@ -290,7 +317,7 @@ describe("downgrade guide selection form", () => {
     expect(container.textContent).toContain(
       "Editable River templates 1 of 2 selected"
     );
-    expect(confirmButton().textContent).toBe("Update guide selection");
+    expect(activeLabel(confirmButton())).toBe("Update guide selection");
   });
 
   it("returns to the confirmed summary after a successful update", async () => {
@@ -348,7 +375,7 @@ describe("downgrade guide selection form", () => {
     expect(box("c1").checked).toBe(true);
     expect(box("c2").checked).toBe(true);
     expect(box("e1").checked).toBe(true);
-    expect(confirmButton().textContent).toBe("Update guide selection");
+    expect(activeLabel(confirmButton())).toBe("Update guide selection");
     expect(container.textContent).toContain(
       "That selection is above the Essential guide allowance."
     );
@@ -356,5 +383,93 @@ describe("downgrade guide selection form", () => {
     expect(container.textContent).not.toContain(
       "Will stay active on Essential"
     );
+    expect(confirmButton().disabled).toBe(false);
+    expect(box("c1").disabled).toBe(false);
+  });
+
+  it("shows Saving selection and disables the choices while confirm is pending", async () => {
+    const pending = deferred<{ error: string }>();
+    confirmMock.mockReturnValue(pending.promise);
+    await renderForm();
+    await toggle("c1");
+    const form = container.querySelector("form") as HTMLFormElement;
+    await act(async () => {
+      form.requestSubmit();
+    });
+    expect(activeLabel(confirmButton())).toBe("Saving selection…");
+    expect(confirmButton().disabled).toBe(true);
+    expect(box("c1").disabled).toBe(true);
+    expect(box("c1").checked).toBe(true);
+    expect(form.getAttribute("aria-busy")).toBe("true");
+    expect(confirmMock).toHaveBeenCalledTimes(1);
+    confirmButton().click();
+    expect(confirmMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      pending.resolve({
+        error: "That selection is above the Essential guide allowance.",
+      });
+    });
+    expect(activeLabel(confirmButton())).toBe("Confirm guide selection");
+    expect(confirmButton().disabled).toBe(false);
+    expect(box("c1").disabled).toBe(false);
+    expect(box("c1").checked).toBe(true);
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+  });
+
+  it("shows Updating selection while a saved keep-set is submitted again", async () => {
+    const pending = deferred<{ accepted: true }>();
+    confirmMock.mockReturnValue(pending.promise);
+    await renderForm({
+      ...panel(["c1", "c2"]),
+      status: "confirmed",
+    });
+    const edit = [...container.querySelectorAll("button")].find(
+      (control) => control.textContent === "Edit guide selection"
+    ) as HTMLButtonElement;
+    await act(async () => {
+      edit.click();
+    });
+    const form = container.querySelector("form") as HTMLFormElement;
+    await act(async () => {
+      form.requestSubmit();
+    });
+    expect(activeLabel(confirmButton())).toBe("Updating selection…");
+    expect(confirmButton().disabled).toBe(true);
+    expect(box("c1").disabled).toBe(true);
+    expect(box("c1").checked).toBe(true);
+    expect(confirmMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      pending.resolve({ accepted: true });
+    });
+    expect(container.textContent).toContain("Guide selection confirmed");
+    expect(container.textContent).toContain(GUIDE_SELECTION_SAVED_MESSAGE);
+    expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+  });
+
+  it("keeps the review summary to an edit control until the administrator reopens it", async () => {
+    await renderForm(
+      {
+        ...panel(["c1", "c2", "e1"]),
+        status: "confirmed",
+      },
+      "review"
+    );
+    expect(container.textContent).toContain("Edit guide selection");
+    expect(container.textContent).not.toContain(
+      "Will stay active on Essential"
+    );
+    expect(container.textContent).not.toContain("Custom one");
+    expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+
+    const edit = [...container.querySelectorAll("button")].find(
+      (control) => control.textContent === "Edit guide selection"
+    ) as HTMLButtonElement;
+    await act(async () => {
+      edit.click();
+    });
+    expect(box("c1").checked).toBe(true);
+    expect(container.textContent).toContain("Custom one");
   });
 });
