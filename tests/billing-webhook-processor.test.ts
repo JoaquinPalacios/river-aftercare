@@ -6,7 +6,11 @@ import {
 import { describe, expect, it } from "vitest";
 import type Stripe from "stripe";
 
-import { processVerifiedStripeEvent } from "@/lib/billing/webhook-processor";
+import {
+  downgradeTransitionAt,
+  processVerifiedStripeEvent,
+} from "@/lib/billing/webhook-processor";
+import { downgradeRetentionUntilFrom } from "@/lib/entitlements/downgrade-retention";
 import { BILLING_TEST_ENV, uniqueP2002 } from "./helpers/billing";
 
 type Receipt = {
@@ -34,6 +38,8 @@ function createDb() {
   >();
   const entitlements = new Map<string, Record<string, unknown>>();
   const receipts = new Map<string, Receipt>();
+  const guides = new Map<string, Record<string, unknown>>();
+  const preparations = new Map<string, Record<string, unknown>>();
   let receiptSeq = 0;
 
   const db: any = {
@@ -230,12 +236,61 @@ function createDb() {
         return current;
       },
     },
+    practiceGuide: {
+      findMany: async ({ where }: { where: { clinicId: string } }) =>
+        [...guides.values()].filter(
+          (guide) => guide.clinicId === where.clinicId
+        ),
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: {
+          clinicId: string;
+          id: { in: string[] };
+          downgradeRetainedAt: null;
+        };
+        data: Record<string, unknown>;
+      }) => {
+        let count = 0;
+        for (const guide of guides.values()) {
+          if (guide.clinicId !== where.clinicId) {
+            continue;
+          }
+          if (!where.id.in.includes(String(guide.id))) {
+            continue;
+          }
+          if (
+            where.downgradeRetainedAt === null &&
+            guide.downgradeRetainedAt != null
+          ) {
+            continue;
+          }
+          Object.assign(guide, data);
+          count += 1;
+        }
+        return { count };
+      },
+    },
+    clinicDowngradePreparation: {
+      findUnique: async ({ where }: { where: { clinicId: string } }) =>
+        preparations.get(where.clinicId) ?? null,
+      deleteMany: async ({ where }: { where: { clinicId: string } }) => {
+        const existed = preparations.delete(where.clinicId);
+        return { count: existed ? 1 : 0 };
+      },
+    },
+    async $executeRaw() {
+      return 0;
+    },
     async $transaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T> {
       return fn(db);
     },
     profiles,
     entitlements,
     receipts,
+    guides,
+    preparations,
   };
 
   return db;
@@ -1217,5 +1272,326 @@ describe("processVerifiedStripeEvent", () => {
       entitlementStatus: EntitlementStatus.ACTIVE,
       scheduledCommercialPlan: null,
     });
+  });
+
+  const transitionAt = new Date("2026-10-24T04:02:41.000Z");
+  const eventCreatedAt = new Date("2026-09-24T05:32:25.000Z");
+  const transitionUnix = Math.floor(transitionAt.getTime() / 1000);
+  const eventCreatedUnix = Math.floor(eventCreatedAt.getTime() / 1000);
+
+  function essentialRenewal(input: {
+    id: string;
+    created: number;
+    periodStart: number | null;
+  }): Stripe.Event {
+    const event = invoicePaidEvent();
+    const invoice = event.data.object as { period_start: number | null };
+    invoice.period_start = input.periodStart;
+    return { ...event, id: input.id, created: input.created };
+  }
+
+  function essentialAt(periodStart: number | null): Stripe.Subscription {
+    const item = activeSubscription.items.data[0];
+    return {
+      ...activeSubscription,
+      items: {
+        ...activeSubscription.items,
+        data: [
+          {
+            ...item,
+            current_period_start: periodStart,
+          },
+        ],
+      },
+    } as Stripe.Subscription;
+  }
+
+  function seedKeepSet(
+    db: ReturnType<typeof createDb>,
+    schedule: { plan: "ESSENTIAL" | null; at: Date | null }
+  ) {
+    db.profiles.set("clinic_1", {
+      clinicId: "clinic_1",
+      stripeCustomerId: "cus_1",
+      stripeSubscriptionId: "sub_1",
+      stripeSubscriptionScheduleId: "sub_sched_1",
+      stripePlanDowngradeAttemptId: "attempt-1",
+    });
+    db.entitlements.set("clinic_1", {
+      commercialPlan: "PRACTICE",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: "price_test_practice_monthly",
+      cancelAtPeriodEnd: false,
+      scheduledCommercialPlan: schedule.plan,
+      scheduledPlanEffectiveAt: schedule.at,
+      currentPeriodStart: new Date("2026-09-24T04:02:41.000Z"),
+      extraTeamMemberAllowance: 0,
+      extraCustomGuideAllowance: 0,
+      extraTemplateAdaptationAllowance: 0,
+    });
+    for (const id of ["guide_keep_1", "guide_keep_2", "guide_excess"]) {
+      db.guides.set(id, {
+        id,
+        clinicId: "clinic_1",
+        guideTemplateId: null,
+        sourceGuideTemplateId: null,
+        adaptedAt: null,
+        downgradeRetainedAt: null,
+        downgradeRetentionUntil: null,
+      });
+    }
+    db.preparations.set("clinic_1", {
+      status: "SELECTION_CONFIRMED",
+      selections: [
+        { practiceGuideId: "guide_keep_1" },
+        { practiceGuideId: "guide_keep_2" },
+      ],
+    });
+  }
+
+  it("anchors retention to the scheduled Practice to Essential boundary, not event.created", () => {
+    expect(eventCreatedAt.toISOString()).toBe("2026-09-24T05:32:25.000Z");
+    expect(transitionUnix).toBe(1_792_814_561);
+    expect(eventCreatedUnix).toBe(1_790_227_945);
+    expect(
+      downgradeTransitionAt({
+        previousPlan: "PRACTICE",
+        scheduledPlan: "ESSENTIAL",
+        scheduledPlanEffectiveAt: transitionAt,
+        projectedPlan: "ESSENTIAL",
+        projectedPeriodStart: transitionAt,
+        eventCreatedAt,
+      })
+    ).toEqual(transitionAt);
+    expect(
+      downgradeTransitionAt({
+        previousPlan: "PRACTICE",
+        scheduledPlan: "ESSENTIAL",
+        scheduledPlanEffectiveAt: transitionAt,
+        projectedPlan: "ESSENTIAL",
+        projectedPeriodStart: new Date("2026-10-24T05:02:41.000Z"),
+        eventCreatedAt,
+      })
+    ).toEqual(transitionAt);
+  });
+
+  it("uses the incoming Essential period when no scheduled boundary was stored", () => {
+    const periodStart = transitionAt;
+    expect(
+      downgradeTransitionAt({
+        previousPlan: "PRACTICE",
+        scheduledPlan: null,
+        scheduledPlanEffectiveAt: null,
+        projectedPlan: "ESSENTIAL",
+        projectedPeriodStart: periodStart,
+        eventCreatedAt,
+      })
+    ).toEqual(periodStart);
+  });
+
+  it("uses event creation only when no effective transition time exists", () => {
+    expect(
+      downgradeTransitionAt({
+        previousPlan: "PRACTICE",
+        scheduledPlan: null,
+        scheduledPlanEffectiveAt: null,
+        projectedPlan: "ESSENTIAL",
+        projectedPeriodStart: null,
+        eventCreatedAt,
+      })
+    ).toEqual(eventCreatedAt);
+    expect(
+      downgradeTransitionAt({
+        previousPlan: "PRACTICE",
+        scheduledPlan: "ESSENTIAL",
+        scheduledPlanEffectiveAt: transitionAt,
+        projectedPlan: "PRACTICE",
+        projectedPeriodStart: transitionAt,
+        eventCreatedAt,
+      })
+    ).toEqual(eventCreatedAt);
+  });
+
+  it("retains the excess guide from the scheduled boundary when invoice.paid arrives early", async () => {
+    const db = createDb();
+    seedKeepSet(db, { plan: "ESSENTIAL", at: transitionAt });
+    const subscription = essentialAt(transitionUnix);
+    const result = await processVerifiedStripeEvent(
+      essentialRenewal({
+        id: "evt_downgrade_boundary",
+        created: eventCreatedUnix,
+        periodStart: transitionUnix,
+      }),
+      {
+        prisma: db,
+        reader: { retrieveSubscription: async () => subscription },
+        env: BILLING_TEST_ENV,
+      }
+    );
+    expect(result.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "ESSENTIAL",
+    });
+    expect(db.guides.get("guide_excess")).toMatchObject({
+      downgradeRetainedAt: transitionAt,
+      downgradeRetentionUntil: downgradeRetentionUntilFrom(transitionAt),
+    });
+    expect(
+      (db.guides.get("guide_excess")?.downgradeRetainedAt as Date).toISOString()
+    ).toBe("2026-10-24T04:02:41.000Z");
+    expect(
+      (
+        db.guides.get("guide_excess")?.downgradeRetentionUntil as Date
+      ).toISOString()
+    ).toBe("2026-12-23T04:02:41.000Z");
+    expect(db.guides.get("guide_excess")?.downgradeRetainedAt).not.toEqual(
+      eventCreatedAt
+    );
+    expect(db.guides.get("guide_keep_1")?.downgradeRetainedAt).toBeNull();
+    expect(db.guides.get("guide_keep_2")?.downgradeRetainedAt).toBeNull();
+
+    const later = subscriptionEvent({
+      id: "evt_downgrade_replay",
+      subscription,
+    });
+    later.created = eventCreatedUnix + 86_400;
+    await processVerifiedStripeEvent(later, {
+      prisma: db,
+      reader: { retrieveSubscription: async () => subscription },
+      env: BILLING_TEST_ENV,
+    });
+    expect(db.guides.get("guide_excess")).toMatchObject({
+      downgradeRetainedAt: transitionAt,
+      downgradeRetentionUntil: new Date("2026-12-23T04:02:41.000Z"),
+    });
+  });
+
+  it("retains from the Essential period start when the scheduled boundary is missing", async () => {
+    const db = createDb();
+    seedKeepSet(db, { plan: null, at: null });
+    const result = await processVerifiedStripeEvent(
+      essentialRenewal({
+        id: "evt_period_anchor",
+        created: eventCreatedUnix,
+        periodStart: transitionUnix,
+      }),
+      {
+        prisma: db,
+        reader: {
+          retrieveSubscription: async () => essentialAt(transitionUnix),
+        },
+        env: BILLING_TEST_ENV,
+      }
+    );
+    expect(result.outcome).toBe("processed");
+    expect(db.guides.get("guide_excess")).toMatchObject({
+      downgradeRetainedAt: transitionAt,
+      downgradeRetentionUntil: new Date("2026-12-23T04:02:41.000Z"),
+    });
+  });
+
+  it("retains from event creation only when no transition boundary is known", async () => {
+    const db = createDb();
+    seedKeepSet(db, { plan: null, at: null });
+    const result = await processVerifiedStripeEvent(
+      essentialRenewal({
+        id: "evt_created_anchor",
+        created: eventCreatedUnix,
+        periodStart: null,
+      }),
+      {
+        prisma: db,
+        reader: { retrieveSubscription: async () => essentialAt(null) },
+        env: BILLING_TEST_ENV,
+      }
+    );
+    expect(result.outcome).toBe("processed");
+    expect(db.guides.get("guide_excess")).toMatchObject({
+      downgradeRetainedAt: eventCreatedAt,
+      downgradeRetentionUntil: downgradeRetentionUntilFrom(eventCreatedAt),
+    });
+  });
+
+  it("keeps the October Test Clock boundary when the webhook was created in September", async () => {
+    const boundary = new Date("2026-10-24T09:52:10.000Z");
+    const created = new Date("2026-09-24T10:04:54.000Z");
+    const boundaryUnix = Math.floor(boundary.getTime() / 1000);
+    const createdUnix = Math.floor(created.getTime() / 1000);
+    const db = createDb();
+    seedKeepSet(db, { plan: "ESSENTIAL", at: boundary });
+    const subscription = essentialAt(boundaryUnix);
+    const result = await processVerifiedStripeEvent(
+      essentialRenewal({
+        id: "evt_test_clock_oct_boundary",
+        created: createdUnix,
+        periodStart: boundaryUnix,
+      }),
+      {
+        prisma: db,
+        reader: { retrieveSubscription: async () => subscription },
+        env: BILLING_TEST_ENV,
+      }
+    );
+    expect(result.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "ESSENTIAL",
+      currentPeriodStart: boundary,
+    });
+    expect(
+      (db.guides.get("guide_excess")?.downgradeRetainedAt as Date).toISOString()
+    ).toBe("2026-10-24T09:52:10.000Z");
+    expect(
+      (
+        db.guides.get("guide_excess")?.downgradeRetentionUntil as Date
+      ).toISOString()
+    ).toBe("2026-12-23T09:52:10.000Z");
+    expect(db.guides.get("guide_excess")?.downgradeRetainedAt).not.toEqual(
+      created
+    );
+
+    const laterInvoice = essentialRenewal({
+      id: "evt_test_clock_later_invoice",
+      created: createdUnix + 86_400,
+      periodStart: boundaryUnix + 86_400,
+    });
+    await processVerifiedStripeEvent(laterInvoice, {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () => essentialAt(boundaryUnix + 86_400),
+      },
+      env: BILLING_TEST_ENV,
+    });
+    expect(db.guides.get("guide_excess")).toMatchObject({
+      downgradeRetainedAt: boundary,
+      downgradeRetentionUntil: new Date("2026-12-23T09:52:10.000Z"),
+    });
+  });
+
+  it("does not retain guides from the scheduled Essential date while the plan is still Practice", async () => {
+    const db = createDb();
+    seedKeepSet(db, { plan: "ESSENTIAL", at: transitionAt });
+    const practice = subscriptionWith({
+      priceId: "price_test_practice_monthly",
+    });
+    const event = subscriptionEvent({
+      id: "evt_still_practice",
+      subscription: practice,
+    });
+    event.created = eventCreatedUnix;
+    const result = await processVerifiedStripeEvent(event, {
+      prisma: db,
+      reader: { retrieveSubscription: async () => practice },
+      env: BILLING_TEST_ENV,
+    });
+    expect(result.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "PRACTICE",
+      scheduledCommercialPlan: "ESSENTIAL",
+      scheduledPlanEffectiveAt: transitionAt,
+    });
+    expect(db.guides.get("guide_excess")?.downgradeRetainedAt).toBeNull();
+    expect(db.guides.get("guide_keep_1")?.downgradeRetainedAt).toBeNull();
   });
 });

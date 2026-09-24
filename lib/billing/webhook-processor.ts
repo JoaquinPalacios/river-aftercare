@@ -5,6 +5,7 @@ import {
   EntitlementStatus,
   Prisma,
   StripeEventProcessingStatus,
+  type CommercialPlan,
   type PrismaClient,
 } from "@prisma/client";
 import type Stripe from "stripe";
@@ -71,6 +72,41 @@ type StripeEventOptions = {
   env?: Record<string, string | undefined>;
   downgradeStripe?: PlanDowngradeStripePort | null;
 };
+
+/**
+ * When Essential begins, guide retention is anchored to that effective time.
+ * A scheduled Practice → Essential boundary wins. The incoming Essential
+ * period start is next, and only when this event supplies one. A period
+ * copied forward from the previous Practice row is not that start. Stripe
+ * event creation time is only a last resort:
+ * Test Clock events are created on the real timeline, before the simulated
+ * boundary.
+ */
+export function downgradeTransitionAt(input: {
+  previousPlan: CommercialPlan | null;
+  scheduledPlan: CommercialPlan | null;
+  scheduledPlanEffectiveAt: Date | null;
+  projectedPlan: CommercialPlan | null;
+  projectedPeriodStart: Date | null;
+  eventCreatedAt: Date;
+}): Date {
+  const scheduledPracticeToEssential =
+    input.previousPlan === "PRACTICE" &&
+    input.projectedPlan === "ESSENTIAL" &&
+    input.scheduledPlan === "ESSENTIAL" &&
+    input.scheduledPlanEffectiveAt !== null;
+  if (scheduledPracticeToEssential && input.scheduledPlanEffectiveAt) {
+    return input.scheduledPlanEffectiveAt;
+  }
+  if (
+    input.previousPlan === "PRACTICE" &&
+    input.projectedPlan === "ESSENTIAL" &&
+    input.projectedPeriodStart
+  ) {
+    return input.projectedPeriodStart;
+  }
+  return input.eventCreatedAt;
+}
 
 function isUniqueViolation(error: unknown): boolean {
   if (
@@ -569,7 +605,15 @@ export async function processVerifiedStripeEvent(
         clinicId: identity.clinicId!,
         previousPlan: previousRow?.commercialPlan ?? null,
         projectedPlan: projection.entitlement.commercialPlan,
-        transitionAt: snapshot.stripeCreatedAt,
+        transitionAt: downgradeTransitionAt({
+          previousPlan: previousRow?.commercialPlan ?? null,
+          scheduledPlan: previousRow?.scheduledCommercialPlan ?? null,
+          scheduledPlanEffectiveAt:
+            previousRow?.scheduledPlanEffectiveAt ?? null,
+          projectedPlan: projection.entitlement.commercialPlan,
+          projectedPeriodStart: snapshot.currentPeriodStart,
+          eventCreatedAt: snapshot.stripeCreatedAt,
+        }),
         cancellationSuperseded,
       });
       await tx.stripeEventReceipt.update({
