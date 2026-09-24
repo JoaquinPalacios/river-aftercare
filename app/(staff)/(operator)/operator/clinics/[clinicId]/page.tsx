@@ -195,13 +195,11 @@ export default async function OperatorClinicDetailPage({
         clinicId={clinic.id}
         canUpgradeToPractice={billing.canUpgradeToPractice}
         showDowngrade={billing.showDowngrade}
-        canScheduleDowngrade={billing.canScheduleDowngrade}
-        canKeepPractice={billing.canKeepPractice}
         downgradeEffectiveLabel={billing.downgradeEffectiveLabel}
         downgradeBlockedReason={billing.downgradeBlockedReason}
+        openDowngradeAttemptId={billing.openDowngradeAttemptId}
         scheduledPlanChange={billing.scheduledPlanChange}
         downgradeReadiness={billing.downgradeReadiness}
-        canPrepareDowngrade={billing.canPrepareDowngrade}
         guidePreparation={billing.guidePreparation}
       />
 

@@ -113,9 +113,20 @@ export type StripeBillingLogEvent =
       attemptId: string;
     }
   | {
+      event: "plan_downgrade_requested";
+      clinicId: string;
+      actorUserId: string;
+      fromPlan: "PRACTICE";
+      targetPlan: "ESSENTIAL";
+      billingInterval: string;
+    }
+  | {
       event: "plan_downgrade_scheduled";
       clinicId: string;
       billingInterval: string;
+      actorUserId: string | null;
+      fromPlan: "PRACTICE";
+      targetPlan: "ESSENTIAL";
     }
   | {
       event: "plan_downgrade_verification_failed";
@@ -140,6 +151,9 @@ export type StripeBillingLogEvent =
   | {
       event: "plan_downgrade_reversed";
       clinicId: string;
+      actorUserId: string | null;
+      fromPlan: "PRACTICE";
+      targetPlan: "ESSENTIAL";
     }
   | {
       event: "plan_downgrade_failed";

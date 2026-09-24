@@ -5,7 +5,16 @@ import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
+import { formatBillingDate } from "@/lib/billing/billing-presentation";
 import {
+  customerKeepPracticeMessage,
+  customerPlanDowngradeMessage,
+  submitClinicDowngradeReversal,
+  submitClinicPlanDowngrade,
+} from "@/lib/billing/plan-downgrade";
+import {
+  beginClinicPlanDowngrade,
+  cancelClinicDowngradePreparation,
   confirmClinicDowngradeSelection,
   keepSelectionMessage,
 } from "@/lib/entitlements/downgrade-selection";
@@ -190,4 +199,114 @@ export async function confirmDowngradeGuideSelectionAction(
     return { error: keepSelectionMessage(result.code) };
   }
   return { accepted: true };
+}
+
+export interface PlanChangeActionState {
+  error?: string;
+  notice?: "scheduled" | "kept" | "cancelled";
+  effectiveLabel?: string;
+}
+
+async function customerPlanActor(): Promise<
+  { ok: true; clinicId: string; userId: string } | { ok: false; error: string }
+> {
+  const host = (await headers()).get("host");
+  if (!isStaffAppHost(host)) {
+    notFound();
+  }
+  const session = await requireClinicAdmin();
+  if (
+    session.clinicMembership.source === "operator_support" ||
+    session.clinicMembership.role !== "ADMIN"
+  ) {
+    return {
+      ok: false,
+      error: "A clinic administrator has to make this plan change.",
+    };
+  }
+  return {
+    ok: true,
+    clinicId: session.clinicMembership.clinic.id,
+    userId: session.user.id,
+  };
+}
+
+function revalidatePlanChange(clinicId: string) {
+  revalidatePath("/account/billing");
+  revalidatePath(`/operator/clinics/${clinicId}`);
+}
+
+export async function beginClinicPlanDowngradeAction(
+  _previous: PlanChangeActionState,
+  _formData: FormData
+): Promise<PlanChangeActionState> {
+  const actor = await customerPlanActor();
+  if (!actor.ok) {
+    return { error: actor.error };
+  }
+  const result = await beginClinicPlanDowngrade({ clinicId: actor.clinicId });
+  revalidatePlanChange(actor.clinicId);
+  if (!result.ok) {
+    return { error: result.error };
+  }
+  redirect("/account/billing?change-plan=essential");
+}
+
+export async function scheduleClinicPlanDowngradeAction(
+  _previous: PlanChangeActionState,
+  _formData: FormData
+): Promise<PlanChangeActionState> {
+  const actor = await customerPlanActor();
+  if (!actor.ok) {
+    return { error: actor.error };
+  }
+  const result = await submitClinicPlanDowngrade({
+    clinicId: actor.clinicId,
+    actorUserId: actor.userId,
+  });
+  revalidatePlanChange(actor.clinicId);
+  if (!result.ok) {
+    return { error: customerPlanDowngradeMessage(result.code) };
+  }
+  return {
+    notice: "scheduled",
+    effectiveLabel: formatBillingDate(result.effectiveAt),
+  };
+}
+
+export async function keepPracticeAction(
+  _previous: PlanChangeActionState,
+  _formData: FormData
+): Promise<PlanChangeActionState> {
+  const actor = await customerPlanActor();
+  if (!actor.ok) {
+    return { error: actor.error };
+  }
+  const result = await submitClinicDowngradeReversal({
+    clinicId: actor.clinicId,
+    actorUserId: actor.userId,
+  });
+  revalidatePlanChange(actor.clinicId);
+  if (!result.ok) {
+    return { error: customerKeepPracticeMessage(result.code) };
+  }
+  return { notice: "kept" };
+}
+
+export async function cancelClinicPlanChangeAction(
+  _previous: PlanChangeActionState,
+  _formData: FormData
+): Promise<PlanChangeActionState> {
+  const actor = await customerPlanActor();
+  if (!actor.ok) {
+    return { error: actor.error };
+  }
+  const result = await cancelClinicDowngradePreparation({
+    clinicId: actor.clinicId,
+  });
+  revalidatePlanChange(actor.clinicId);
+  if (!result.ok) {
+    return { error: result.error };
+  }
+  return { notice: "cancelled" };
 }

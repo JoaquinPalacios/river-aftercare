@@ -114,9 +114,9 @@ In Stripe Dashboard → Settings → Billing → Customer portal, create a confi
 
 Copy the configuration id into server-only `STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID`. Never prefix it with `NEXT_PUBLIC_`. Do not create this configuration in live mode as part of Phase 3.
 
-Essential → Practice is an operator action in River, not a Portal plan switch. It updates the existing subscription item to the Practice price for the current interval, with `proration_behavior=always_invoice`, `payment_behavior=pending_if_incomplete`, and `billing_cycle_anchor=unchanged`. Monthly ↔ annual is not a Portal or operator action.
+Essential → Practice is an operator action in River, not a Portal plan switch. It updates the existing subscription item to the Practice price for the current interval, with `proration_behavior=always_invoice`, `payment_behavior=pending_if_incomplete`, and `billing_cycle_anchor=unchanged`. Monthly ↔ annual is not a Portal or operator action. A later self-service Essential → Practice upgrade should reuse that engine.
 
-Practice → Essential is also operator-only, and it is scheduled for the next renewal of the same interval. Do not enable Portal subscription updates to do it. The schedule events above let River reconcile cancellation against that schedule. The actual plan change is still projected from `customer.subscription.updated`, `invoice.paid`, and `invoice.payment_failed` when the Essential Price appears. Returning from the portal does not change River entitlement; the webhook does.
+Practice → Essential is self-service for a clinic ADMIN on `/account/billing`, scheduled for the next renewal of the same interval. Do not enable Portal subscription updates to do it. The operator clinic page shows the preparation, selection, and scheduled date, and does not approve the change. The schedule events above let River reconcile cancellation against that schedule. The actual plan change is still projected from `customer.subscription.updated`, `invoice.paid`, and `invoice.payment_failed` when the Essential Price appears. Returning from the portal does not change River entitlement; the webhook does.
 
 ## GST / tax
 
@@ -131,11 +131,13 @@ Scheduling again after Keep Practice allocates a new attempt id and checks the l
 Guide selection on a disposable local Practice clinic, before any further Stripe action:
 
 1. Create 5 original custom guides and 4 edited River-template copies. Essential base is 2, 2, and 4 combined.
-2. As OPERATOR, open the clinic. The panel should say guide selection is required. Choose **Prepare downgrade**. River must not call Stripe, and `commercialPlan` stays Practice.
-3. As clinic ADMIN, open `/account/billing`. Choose 3 custom guides and confirm. River rejects it.
-4. Choose 2 custom guides and 2 edited templates and confirm. The operator panel should say guide selection is complete.
-5. Choose **Schedule downgrade**. River stays Practice. The Stripe schedule shape is the one already accepted in Sandbox.
-6. Choose **Keep Practice**. Preparation and the keep-set are cleared. No guide is retained or deleted.
+2. As clinic ADMIN, open `/account/billing` and choose **Review downgrade**. River must not call Stripe, and `commercialPlan` stays Practice. The operator clinic page should say the customer is preparing the move, with no Prepare, Schedule, or Keep Practice button.
+3. Choose 3 custom guides and confirm. River rejects it.
+4. Choose 2 custom guides and 2 edited templates and confirm. Billing should say guide selection is confirmed. The operator panel should say guide selection is complete.
+5. Choose **Schedule downgrade** on Billing. River stays Practice. The Stripe schedule shape is the one already accepted in Sandbox. No operator action is required.
+6. Choose **Keep Practice** on Billing. Preparation and the keep-set are cleared. No guide is retained or deleted.
+
+The current Sandbox subscription already has an attached intermediate schedule from a failed update (`sub_sched_1UJ119GYMJ0lopfPkhOj7nLh`, attempt `c14dbe30-ecfe-4136-8899-a2de4179b408`). Do not release it first. As clinic ADMIN, open Billing, confirm the saved guide selection is still there, and choose **Schedule downgrade**. River should update that same schedule: metadata filled in, Practice then Essential, both phases `proration_behavior: none`, still active and attached. Then test **Keep Practice**. Do not use **Cancel plan change** on that clinic before scheduling: the local schedule id was never stored, so cancel would delete the keep-set without touching Stripe.
 
 Renewal retention uses a **Test Clock** and a disposable clinic, not the already-accepted Sandbox subscription. The Subscription Schedule request itself was already proven and must not be redesigned.
 
@@ -145,7 +147,7 @@ Renewal without waiting for the real period end uses a **Test Clock**. An existi
 2. Create a new Customer with that clock. Do not reuse the existing Sandbox customer.
 3. Create a subscription on that customer with the Practice Price for the interval under test, quantity 1.
 4. On a disposable local clinic only, store that test customer id and subscription id. Do not point this at production.
-5. Schedule the downgrade from the operator panel.
+5. Schedule the downgrade from Billing as the clinic ADMIN.
 6. Advance the clock to just after `current_period_end` and forward the resulting webhooks (`invoice.paid` or `invoice.payment_failed`, `customer.subscription.updated`, and the schedule events).
 7. Expect the same subscription id, the Essential Price, local `commercialPlan` Essential, and the scheduled-change message gone. Guides in the keep-set stay active. Other clinic-owned guides show under Retained guides, are read-only, and a previously published one still opens at its existing URL. Extras are unchanged. A failed renewal payment should show Essential with the existing past-due retry message, with the same retention outcome, not a deleted clinic.
 

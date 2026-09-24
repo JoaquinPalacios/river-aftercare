@@ -5,24 +5,14 @@ import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 
 import {
-  keepPracticePlanAction,
-  prepareClinicDowngradeAction,
-  scheduleClinicPlanDowngradeAction,
   upgradeClinicPlanAction,
-  type PlanDowngradeActionState,
   type PlanUpgradeActionState,
 } from "@/app/(staff)/(operator)/operator/billing-actions";
 import { TransientNotice } from "@/app/(staff)/components/transient-notice";
 
 type UpgradeFeedback = PlanUpgradeActionState & { generation: number };
-type DowngradeFeedback = {
-  error?: string;
-  notice?: "scheduled" | "kept";
-  generation: number;
-};
 
 const upgradeInitial: UpgradeFeedback = { generation: 0 };
-const downgradeInitial: DowngradeFeedback = { generation: 0 };
 
 async function upgradeFeedbackAction(
   previous: UpgradeFeedback,
@@ -35,32 +25,6 @@ async function upgradeFeedbackAction(
   };
 }
 
-async function planChangeFeedbackAction(
-  previous: DowngradeFeedback,
-  formData: FormData
-): Promise<DowngradeFeedback> {
-  const intent = String(formData.get("intent") ?? "");
-  const result: PlanDowngradeActionState =
-    intent === "keep"
-      ? await keepPracticePlanAction(previous, formData)
-      : await scheduleClinicPlanDowngradeAction(previous, formData);
-  return {
-    error: result.error,
-    notice: result.accepted
-      ? intent === "keep"
-        ? "kept"
-        : "scheduled"
-      : undefined,
-    generation: previous.generation + 1,
-  };
-}
-
-export const DOWNGRADE_SCHEDULED_MESSAGE =
-  "Downgrade scheduled. Practice stays active until the date below.";
-
-export const DOWNGRADE_KEPT_MESSAGE =
-  "Scheduled downgrade removed. This clinic stays on Practice.";
-
 export const UPGRADE_POLL_INTERVAL_MS = 2_000;
 export const UPGRADE_POLL_ATTEMPTS = 15;
 
@@ -70,41 +34,38 @@ export const UPGRADE_PROCESSING_MESSAGE =
 export const UPGRADE_STILL_PROCESSING_MESSAGE =
   "Stripe is still processing the upgrade. Refresh to check again.";
 
-export const DOWNGRADE_PREPARED_MESSAGE =
-  "Downgrade preparation started. The clinic administrator can choose guides.";
-
 export const TEAM_DOWNGRADE_BLOCK_MESSAGE =
-  "Team usage must be resolved before downgrade.";
-
-export const GUIDE_SELECTION_REQUIRED_MESSAGE =
-  "Clinic guide selection required.";
+  "Team usage must be resolved by the clinic before the downgrade can be scheduled.";
 
 export const GUIDE_SELECTION_WAITING_MESSAGE =
-  "Waiting for clinic administrator to choose guides.";
+  "Waiting for clinic administrator to complete guide selection.";
 
 export const GUIDE_SELECTION_COMPLETE_MESSAGE = "Guide selection complete.";
+
+export const NO_DOWNGRADE_IN_PROGRESS_MESSAGE = "No downgrade in progress.";
+
+export const CUSTOMER_PREPARING_DOWNGRADE_MESSAGE =
+  "Customer is preparing a move to Essential.";
 
 export function UpgradePlanForm({
   clinicId,
   canUpgradeToPractice,
   showDowngrade = false,
-  canScheduleDowngrade = false,
-  canKeepPractice = false,
   downgradeEffectiveLabel = null,
   downgradeBlockedReason = null,
+  openDowngradeAttemptId = null,
   scheduledPlanChange = null,
   downgradeReadiness = null,
-  canPrepareDowngrade = false,
   guidePreparation = null,
 }: {
   clinicId: string;
   canUpgradeToPractice: boolean;
   showDowngrade?: boolean;
-  canScheduleDowngrade?: boolean;
-  canKeepPractice?: boolean;
   downgradeEffectiveLabel?: string | null;
   downgradeBlockedReason?: string | null;
+  openDowngradeAttemptId?: string | null;
   scheduledPlanChange?: {
+    effectiveLabel: string;
     operatorLines: {
       plan: string;
       scheduledChange: string;
@@ -122,7 +83,6 @@ export function UpgradePlanForm({
     combinedCurrent: number;
     combinedLimit: number;
   } | null;
-  canPrepareDowngrade?: boolean;
   guidePreparation?: {
     status: "none" | "awaiting" | "confirmed";
     selectedCustom: number;
@@ -136,15 +96,6 @@ export function UpgradePlanForm({
     upgradeFeedbackAction,
     upgradeInitial
   );
-  const [planChange, planChangeAction, planChangePending] = useActionState(
-    planChangeFeedbackAction,
-    downgradeInitial
-  );
-  const [prepareState, prepareAction, preparePending] = useActionState(
-    prepareClinicDowngradeAction,
-    downgradeInitial
-  );
-  const [dismissedPlanChange, setDismissedPlanChange] = useState(0);
   const [dismissedUpgrade, setDismissedUpgrade] = useState(0);
   const [timeoutFor, setTimeoutFor] = useState<number | null>(null);
   const timedOut = state.startedAt != null && timeoutFor === state.startedAt;
@@ -215,6 +166,9 @@ export function UpgradePlanForm({
           <p className="font-medium text-staff-ink">Practice → Essential</p>
           {scheduledPlanChange ? (
             <div role="status">
+              <p>
+                Essential scheduled for {scheduledPlanChange.effectiveLabel}.
+              </p>
               <p>Plan: {scheduledPlanChange.operatorLines.plan}</p>
               <p>
                 Scheduled change:{" "}
@@ -231,7 +185,7 @@ export function UpgradePlanForm({
             </div>
           ) : downgradeReadiness ? (
             <div role="status">
-              <DowngradeReadinessCopy
+              <DowngradeStatusCopy
                 readiness={downgradeReadiness}
                 preparation={guidePreparation}
                 effectiveLabel={downgradeEffectiveLabel}
@@ -248,79 +202,11 @@ export function UpgradePlanForm({
               {downgradeBlockedReason}
             </p>
           ) : null}
-          {canPrepareDowngrade ? (
-            <form action={prepareAction} className="mt-4">
-              <input type="hidden" name="clinicId" value={clinicId} />
-              <button
-                type="submit"
-                className="staffBtn staffBtnSecondary h-11"
-                disabled={preparePending}
-              >
-                {preparePending ? "Preparing…" : "Prepare downgrade"}
-              </button>
-            </form>
-          ) : null}
-          {prepareState.error ? (
-            <TransientNotice variant="error" noticeKey={prepareState.error}>
-              {prepareState.error}
-            </TransientNotice>
-          ) : null}
-          {canScheduleDowngrade ? (
-            <form action={planChangeAction} className="mt-4">
-              <input type="hidden" name="clinicId" value={clinicId} />
-              <input type="hidden" name="intent" value="schedule" />
-              <button
-                type="submit"
-                className="staffBtn staffBtnPrimary h-11"
-                disabled={planChangePending}
-              >
-                {planChangePending ? "Scheduling…" : "Schedule downgrade"}
-              </button>
-            </form>
-          ) : null}
-          {canKeepPractice ? (
-            <form action={planChangeAction} className="mt-4">
-              <input type="hidden" name="clinicId" value={clinicId} />
-              <input type="hidden" name="intent" value="keep" />
-              <button
-                type="submit"
-                className="staffBtn staffBtnSecondary h-11"
-                disabled={planChangePending}
-              >
-                {planChangePending ? "Updating…" : "Keep Practice"}
-              </button>
-            </form>
-          ) : null}
-          {planChange.generation > dismissedPlanChange && planChange.error ? (
-            <TransientNotice
-              variant="error"
-              noticeKey={`plan-change-${planChange.generation}`}
-              onDismiss={() => setDismissedPlanChange(planChange.generation)}
-            >
-              {planChange.error}
-            </TransientNotice>
-          ) : null}
-          {planChange.generation > dismissedPlanChange &&
-          !planChange.error &&
-          planChange.notice === "scheduled" ? (
-            <TransientNotice
-              variant="success"
-              noticeKey={`plan-change-${planChange.generation}`}
-              onDismiss={() => setDismissedPlanChange(planChange.generation)}
-            >
-              {DOWNGRADE_SCHEDULED_MESSAGE}
-            </TransientNotice>
-          ) : null}
-          {planChange.generation > dismissedPlanChange &&
-          !planChange.error &&
-          planChange.notice === "kept" ? (
-            <TransientNotice
-              variant="success"
-              noticeKey={`plan-change-${planChange.generation}`}
-              onDismiss={() => setDismissedPlanChange(planChange.generation)}
-            >
-              {DOWNGRADE_KEPT_MESSAGE}
-            </TransientNotice>
+          {openDowngradeAttemptId ? (
+            <p className="mt-2" role="status">
+              A scheduling attempt is still open ({openDowngradeAttemptId}). The
+              clinic administrator can retry from Billing.
+            </p>
           ) : null}
         </div>
       ) : null}
@@ -358,7 +244,7 @@ export function UpgradePlanForm({
   );
 }
 
-function DowngradeReadinessCopy({
+function DowngradeStatusCopy({
   readiness,
   preparation,
   effectiveLabel,
@@ -383,22 +269,17 @@ function DowngradeReadinessCopy({
   effectiveLabel: string | null;
 }) {
   const teamBlocked = readiness.teamCurrent > readiness.teamLimit;
-  const guidesOver =
-    readiness.guideCurrent > readiness.guideLimit ||
-    readiness.adaptedCurrent > readiness.adaptedLimit ||
-    readiness.combinedCurrent > readiness.combinedLimit;
   const status = preparation?.status ?? "none";
   return (
     <>
-      {readiness.ready ? <p>Usage is within Essential limits.</p> : null}
-      {teamBlocked ? <p>{TEAM_DOWNGRADE_BLOCK_MESSAGE}</p> : null}
-      {guidesOver && status === "none" ? (
-        <p>{GUIDE_SELECTION_REQUIRED_MESSAGE}</p>
+      {status === "none" ? <p>{NO_DOWNGRADE_IN_PROGRESS_MESSAGE}</p> : null}
+      {status === "awaiting" ? (
+        <>
+          <p>{CUSTOMER_PREPARING_DOWNGRADE_MESSAGE}</p>
+          <p>{GUIDE_SELECTION_WAITING_MESSAGE}</p>
+        </>
       ) : null}
-      {guidesOver && status === "awaiting" ? (
-        <p>{GUIDE_SELECTION_WAITING_MESSAGE}</p>
-      ) : null}
-      {guidesOver && status === "confirmed" ? (
+      {status === "confirmed" ? (
         <>
           <p>{GUIDE_SELECTION_COMPLETE_MESSAGE}</p>
           <p>Selected custom guides: {preparation?.selectedCustom ?? 0}</p>
@@ -411,6 +292,7 @@ function DowngradeReadinessCopy({
           </p>
         </>
       ) : null}
+      {teamBlocked ? <p>{TEAM_DOWNGRADE_BLOCK_MESSAGE}</p> : null}
       <p>
         Team members: {readiness.teamCurrent} used / {readiness.teamLimit}{" "}
         allowed
@@ -427,18 +309,7 @@ function DowngradeReadinessCopy({
         Total clinic-owned guides: {readiness.combinedCurrent} used /{" "}
         {readiness.combinedLimit} allowed
       </p>
-      {!teamBlocked && !guidesOver && effectiveLabel ? (
-        <>
-          <p>
-            Downgrade will take effect at the end of the current paid period:{" "}
-            {effectiveLabel}
-          </p>
-          <p>
-            Practice remains active until that date. There is no refund and no
-            immediate billing change. Essential begins at the next renewal.
-          </p>
-        </>
-      ) : null}
+      {effectiveLabel ? <p>Paid period ends {effectiveLabel}.</p> : null}
     </>
   );
 }

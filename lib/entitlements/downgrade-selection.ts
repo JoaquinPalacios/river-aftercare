@@ -3,7 +3,6 @@ import "server-only";
 import {
   ClinicMembershipRole,
   DowngradePreparationStatus,
-  PlatformRole,
   PracticeGuideStatus,
   type Prisma,
 } from "@prisma/client";
@@ -297,34 +296,56 @@ export async function loadDowngradePreparationSnapshot(
   };
 }
 
-export async function prepareClinicDowngrade(input: {
-  actorPlatformRole: PlatformRole;
+export async function beginClinicPlanDowngrade(input: {
   clinicId: string;
 }): Promise<
-  { ok: true; status: "awaiting" | "confirmed" } | { ok: false; error: string }
+  | {
+      ok: true;
+      guideSelectionRequired: boolean;
+      status: "none" | "awaiting" | "confirmed";
+    }
+  | { ok: false; error: string }
 > {
-  if (input.actorPlatformRole !== PlatformRole.OPERATOR) {
-    return {
-      ok: false,
-      error: "Only a platform operator can prepare a downgrade.",
-    };
-  }
   const prisma = getPrisma();
   const entitlement = await prisma.clinicEntitlement.findUnique({
     where: { clinicId: input.clinicId },
     select: {
       commercialPlan: true,
+      billingInterval: true,
+      entitlementStatus: true,
+      billingStatus: true,
+      cancelAtPeriodEnd: true,
+      scheduledCommercialPlan: true,
       extraCustomGuideAllowance: true,
       extraTemplateAdaptationAllowance: true,
     },
   });
-  if (entitlement?.commercialPlan !== "PRACTICE") {
-    return { ok: false, error: keepSelectionMessage("not_practice") };
+  const profile = await prisma.clinicBillingProfile.findUnique({
+    where: { clinicId: input.clinicId },
+    select: { stripeSubscriptionId: true, stripeCheckoutSessionId: true },
+  });
+  if (entitlement?.commercialPlan === "GROUP") {
+    return { ok: false, error: "That plan change is not available." };
+  }
+  if (entitlement?.commercialPlan === "ESSENTIAL") {
+    return { ok: false, error: "This clinic is already on Essential." };
+  }
+  if (
+    entitlement?.commercialPlan !== "PRACTICE" ||
+    !entitlement.billingInterval ||
+    !profile?.stripeSubscriptionId ||
+    entitlement.entitlementStatus !== "ACTIVE" ||
+    entitlement.billingStatus !== "ACTIVE" ||
+    entitlement.cancelAtPeriodEnd ||
+    entitlement.scheduledCommercialPlan
+  ) {
+    return {
+      ok: false,
+      error:
+        "This plan change is available once the Practice subscription is active.",
+    };
   }
   const existing = await loadDowngradePreparationSnapshot(input.clinicId);
-  if (existing) {
-    return { ok: true, status: existing.status };
-  }
   const guides = await prisma.practiceGuide.findMany({
     where: { clinicId: input.clinicId, downgradeRetainedAt: null },
     select: guideSelect,
@@ -343,9 +364,16 @@ export async function prepareClinicDowngrade(input: {
   });
   if (selectionFitsLimits(counts, limits)) {
     return {
-      ok: false,
-      error:
-        "Current clinic-owned guides already fit Essential. No guide selection is required.",
+      ok: true,
+      guideSelectionRequired: false,
+      status: existing?.status ?? "none",
+    };
+  }
+  if (existing) {
+    return {
+      ok: true,
+      guideSelectionRequired: true,
+      status: existing.status,
     };
   }
   await prisma.clinicDowngradePreparation.create({
@@ -355,7 +383,38 @@ export async function prepareClinicDowngrade(input: {
       status: DowngradePreparationStatus.AWAITING_SELECTION,
     },
   });
-  return { ok: true, status: "awaiting" };
+  return { ok: true, guideSelectionRequired: true, status: "awaiting" };
+}
+
+export async function cancelClinicDowngradePreparation(input: {
+  clinicId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const prisma = getPrisma();
+  const entitlement = await prisma.clinicEntitlement.findUnique({
+    where: { clinicId: input.clinicId },
+    select: { scheduledCommercialPlan: true, commercialPlan: true },
+  });
+  const profile = await prisma.clinicBillingProfile.findUnique({
+    where: { clinicId: input.clinicId },
+    select: { stripeSubscriptionScheduleId: true },
+  });
+  if (entitlement?.commercialPlan !== "PRACTICE") {
+    return { ok: false, error: "This clinic is not preparing a plan change." };
+  }
+  if (
+    entitlement.scheduledCommercialPlan ||
+    profile?.stripeSubscriptionScheduleId
+  ) {
+    return {
+      ok: false,
+      error:
+        "A scheduled plan change is already in place. Choose Keep Practice instead.",
+    };
+  }
+  await prisma.clinicDowngradePreparation.deleteMany({
+    where: { clinicId: input.clinicId },
+  });
+  return { ok: true };
 }
 
 async function clinicAdminMayConfirm(

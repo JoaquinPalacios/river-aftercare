@@ -14,8 +14,8 @@ import {
 import { afterAll, describe, expect, it } from "vitest";
 
 import {
-  executeOperatorDowngradeReversal,
-  executeOperatorPlanDowngrade,
+  executeClinicDowngradeReversal,
+  executeClinicPlanDowngrade,
 } from "@/lib/billing/plan-downgrade";
 import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practice-guide";
 import { listPublishedPracticeGuides } from "@/lib/aftercare/list-published-practice-guides";
@@ -25,8 +25,9 @@ import {
   actorMayConfirmDowngradeSelection,
   assessGuideRestore,
   assessOperatorExtraChangeForDowngrade,
+  beginClinicPlanDowngrade,
+  cancelClinicDowngradePreparation,
   confirmClinicDowngradeSelection,
-  prepareClinicDowngrade,
   validateKeepSelection,
 } from "@/lib/entitlements/downgrade-selection";
 import { assessEssentialDowngradeReadiness } from "@/lib/entitlements/downgrade-readiness";
@@ -656,8 +657,7 @@ describe("downgrade guide selection persistence", () => {
       slug: "edited-two",
       kind: "adapted",
     });
-    const prepared = await prepareClinicDowngrade({
-      actorPlatformRole: PlatformRole.OPERATOR,
+    const prepared = await beginClinicPlanDowngrade({
       clinicId: CLINIC_ID,
     });
     expect(prepared).toMatchObject({ ok: true, status: "awaiting" });
@@ -1118,7 +1118,7 @@ describe("downgrade guide selection persistence", () => {
     ];
     for (const failure of failures) {
       subscription.scheduleId = null;
-      const result = await executeOperatorPlanDowngrade({
+      const result = await executeClinicPlanDowngrade({
         state: downgradeState,
         readiness,
         guideSelection,
@@ -1217,7 +1217,7 @@ describe("downgrade guide selection persistence", () => {
         selections: { create: [{ practiceGuideId: `${PREFIX}stay` }] },
       },
     });
-    const result = await executeOperatorDowngradeReversal({
+    const result = await executeClinicDowngradeReversal({
       state: {
         clinicId: CLINIC_ID,
         commercialPlan: "PRACTICE",
@@ -1377,5 +1377,150 @@ describe("downgrade guide selection persistence", () => {
     expect(preparation.status).toBe(
       DowngradePreparationStatus.SELECTION_CONFIRMED
     );
+  });
+
+  it("does not create a preparation when clinic-owned guides already fit Essential", async () => {
+    await seedPractice();
+    await createOwnedGuide({
+      id: `${PREFIX}fit`,
+      title: "Fits",
+      slug: "fits",
+      kind: "custom",
+    });
+    const started = await beginClinicPlanDowngrade({ clinicId: CLINIC_ID });
+    expect(started).toEqual({
+      ok: true,
+      guideSelectionRequired: false,
+      status: "none",
+    });
+    const preparation = await prisma.clinicDowngradePreparation.findUnique({
+      where: { clinicId: CLINIC_ID },
+    });
+    expect(preparation).toBeNull();
+    const entitlement = await prisma.clinicEntitlement.findUniqueOrThrow({
+      where: { clinicId: CLINIC_ID },
+    });
+    expect(entitlement.commercialPlan).toBe("PRACTICE");
+    expect(entitlement.scheduledCommercialPlan).toBeNull();
+  });
+
+  it("opens guide selection for an over-limit clinic even when the team is over Essential", async () => {
+    await seedPractice();
+    const extraUserId = `${PREFIX}extra-member`;
+    await prisma.user.create({
+      data: {
+        id: extraUserId,
+        email: `${PREFIX}extra@example.test`,
+        name: "Extra",
+      },
+    });
+    await prisma.clinicMembership.create({
+      data: {
+        clinicId: CLINIC_ID,
+        userId: extraUserId,
+        role: ClinicMembershipRole.STAFF,
+        active: true,
+      },
+    });
+    for (const [id, title, slug] of [
+      [`${PREFIX}oc1`, "One", "one"],
+      [`${PREFIX}oc2`, "Two", "two"],
+      [`${PREFIX}oc3`, "Three", "three"],
+      [`${PREFIX}oc4`, "Four", "four"],
+    ] as const) {
+      await createOwnedGuide({ id, title, slug, kind: "custom" });
+    }
+    await createOwnedGuide({
+      id: `${PREFIX}oa1`,
+      title: "Edited",
+      slug: "edited-over",
+      kind: "adapted",
+    });
+    const started = await beginClinicPlanDowngrade({ clinicId: CLINIC_ID });
+    expect(started).toMatchObject({
+      ok: true,
+      guideSelectionRequired: true,
+      status: "awaiting",
+    });
+    const confirmed = await confirmClinicDowngradeSelection({
+      actorUserId: ADMIN_ID,
+      clinicId: CLINIC_ID,
+      selectedIds: [`${PREFIX}oc1`, `${PREFIX}oc2`, `${PREFIX}oa1`],
+    });
+    expect(confirmed).toMatchObject({
+      ok: true,
+      custom: 2,
+      adapted: 1,
+      combined: 3,
+    });
+    await prisma.clinicMembership.deleteMany({
+      where: { userId: extraUserId },
+    });
+    await prisma.user.delete({ where: { id: extraUserId } });
+  });
+
+  it("cancels a local preparation without changing Practice or the guides", async () => {
+    await seedPractice();
+    await prisma.clinicBillingProfile.update({
+      where: { clinicId: CLINIC_ID },
+      data: { stripeSubscriptionScheduleId: null },
+    });
+    for (const [id, title, slug] of [
+      [`${PREFIX}cc1`, "C1", "cc1"],
+      [`${PREFIX}cc2`, "C2", "cc2"],
+      [`${PREFIX}cc3`, "C3", "cc3"],
+    ] as const) {
+      await createOwnedGuide({ id, title, slug, kind: "custom" });
+    }
+    const started = await beginClinicPlanDowngrade({ clinicId: CLINIC_ID });
+    expect(started).toMatchObject({ ok: true, status: "awaiting" });
+    const confirmed = await confirmClinicDowngradeSelection({
+      actorUserId: ADMIN_ID,
+      clinicId: CLINIC_ID,
+      selectedIds: [`${PREFIX}cc1`, `${PREFIX}cc2`],
+    });
+    expect(confirmed.ok).toBe(true);
+    const cancelled = await cancelClinicDowngradePreparation({
+      clinicId: CLINIC_ID,
+    });
+    expect(cancelled).toEqual({ ok: true });
+    expect(
+      await prisma.clinicDowngradePreparation.findUnique({
+        where: { clinicId: CLINIC_ID },
+      })
+    ).toBeNull();
+    expect(
+      await prisma.downgradeGuideSelection.count({
+        where: { practiceGuide: { clinicId: CLINIC_ID } },
+      })
+    ).toBe(0);
+    const entitlement = await prisma.clinicEntitlement.findUniqueOrThrow({
+      where: { clinicId: CLINIC_ID },
+    });
+    expect(entitlement.commercialPlan).toBe("PRACTICE");
+    expect(entitlement.scheduledCommercialPlan).toBeNull();
+    expect(
+      await prisma.practiceGuide.count({ where: { clinicId: CLINIC_ID } })
+    ).toBe(3);
+  });
+
+  it("refuses to cancel preparation after a downgrade is already scheduled", async () => {
+    await seedPractice();
+    await prisma.clinicDowngradePreparation.create({
+      data: {
+        clinicId: CLINIC_ID,
+        targetPlan: "ESSENTIAL",
+        status: DowngradePreparationStatus.SELECTION_CONFIRMED,
+      },
+    });
+    const refused = await cancelClinicDowngradePreparation({
+      clinicId: CLINIC_ID,
+    });
+    expect(refused.ok).toBe(false);
+    expect(
+      await prisma.clinicDowngradePreparation.findUnique({
+        where: { clinicId: CLINIC_ID },
+      })
+    ).not.toBeNull();
   });
 });

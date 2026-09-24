@@ -2,14 +2,14 @@ import { BillingStatus, EntitlementStatus } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  assessOperatorDowngradeReversal,
-  assessOperatorPlanDowngrade,
+  assessClinicDowngradeReversal,
+  assessClinicPlanDowngrade,
   buildCancellationSupersedeUpdate,
   buildPracticeToEssentialScheduleUpdate,
   decideSubscriptionScheduleEvent,
   classifyAttachedDowngradeSchedule,
-  executeOperatorDowngradeReversal,
-  executeOperatorPlanDowngrade,
+  executeClinicDowngradeReversal,
+  executeClinicPlanDowngrade,
   PLAN_DOWNGRADE_BILLING_CYCLE_ANCHOR,
   PLAN_DOWNGRADE_END_BEHAVIOR,
   PLAN_DOWNGRADE_PRORATION_BEHAVIOR,
@@ -350,7 +350,7 @@ function port(options: {
 describe("Practice to Essential downgrade readiness", () => {
   it("allows scheduling when usage fits Essential", async () => {
     const fake = port({});
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state(),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -374,7 +374,7 @@ describe("Practice to Essential downgrade readiness", () => {
       const assessed = readiness(usage);
       expect(assessed.conflicts).toContain(_conflict);
       const fake = port({});
-      const result = await executeOperatorPlanDowngrade({
+      const result = await executeClinicPlanDowngrade({
         state: state(),
         readiness: assessed,
         env: BILLING_TEST_ENV,
@@ -394,7 +394,7 @@ describe("Practice to Essential downgrade readiness", () => {
     const assessed = readiness({ custom: 30, adapted: 10 });
     expect(assessed.ready).toBe(false);
     const fake = port({});
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state(),
       readiness: assessed,
       guideSelection: {
@@ -416,7 +416,7 @@ describe("Practice to Essential downgrade readiness", () => {
   it("still blocks scheduling when team usage is over even with a valid guide selection", async () => {
     const assessed = readiness({ team: 3, custom: 30, adapted: 10 });
     const fake = port({});
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state(),
       readiness: assessed,
       guideSelection: {
@@ -447,7 +447,7 @@ describe("Practice to Essential downgrade readiness", () => {
     expect(withinExtras.team).toEqual({ current: 3, limit: 3 });
     expect(withinExtras.combinedGuides).toEqual({ current: 5, limit: 5 });
     const fake = port({});
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state(),
       readiness: withinExtras,
       env: BILLING_TEST_ENV,
@@ -464,7 +464,7 @@ describe("Practice to Essential schedule request", () => {
   it("keeps Practice through the paid period and switches to Essential monthly", async () => {
     const persisted: Array<{ scheduleId: string; effectiveAt: Date }> = [];
     const fake = port({});
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state(),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -543,7 +543,7 @@ describe("Practice to Essential schedule request", () => {
         phases: [phase({ priceId: "price_test_practice_yearly" })],
       }),
     });
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state({ billingInterval: "YEARLY" }),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -581,7 +581,7 @@ describe("Practice to Essential schedule request", () => {
     const unknown = port({
       subscription: subscription({ priceId: "price_unknown" }),
     });
-    const unknownResult = await executeOperatorPlanDowngrade({
+    const unknownResult = await executeClinicPlanDowngrade({
       state: state(),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -596,7 +596,7 @@ describe("Practice to Essential schedule request", () => {
     const yearlyOnMonthly = port({
       subscription: subscription({ priceId: "price_test_practice_yearly" }),
     });
-    const mismatch = await executeOperatorPlanDowngrade({
+    const mismatch = await executeClinicPlanDowngrade({
       state: state({ billingInterval: "MONTHLY" }),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -628,7 +628,7 @@ describe("scheduled downgrade state", () => {
       }),
     });
     const effectiveAt = new Date(PERIOD_END * 1000);
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state({
         stripeSubscriptionScheduleId: "sub_sched_a",
         stripePlanDowngradeAttemptId: ATTEMPT,
@@ -670,7 +670,7 @@ describe("scheduled downgrade state", () => {
         ],
       }),
     });
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state(),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -701,7 +701,7 @@ describe("scheduled downgrade state", () => {
         metadataPurpose: "something_else",
       }),
     });
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state(),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -719,7 +719,7 @@ describe("scheduled downgrade state", () => {
   });
 
   it("keeps the local plan on Practice until Stripe changes the price", () => {
-    const assessed = assessOperatorPlanDowngrade({
+    const assessed = assessClinicPlanDowngrade({
       state: state(),
       readiness: readiness({}),
     });
@@ -769,7 +769,7 @@ describe("scheduled downgrade state", () => {
     ];
     for (const [overrides, code] of cases) {
       const fake = port({});
-      const result = await executeOperatorPlanDowngrade({
+      const result = await executeClinicPlanDowngrade({
         state: state(overrides),
         readiness: readiness({}),
         env: BILLING_TEST_ENV,
@@ -790,7 +790,7 @@ describe("Keep Practice reversal", () => {
     const fake = port({
       subscription: subscription({ scheduleId: "sub_sched_a" }),
     });
-    const result = await executeOperatorDowngradeReversal({
+    const result = await executeClinicDowngradeReversal({
       state: state({
         stripeSubscriptionScheduleId: "sub_sched_a",
         stripePlanDowngradeAttemptId: ATTEMPT,
@@ -821,7 +821,7 @@ describe("Keep Practice reversal", () => {
 
   it("is idempotent when the downgrade is already gone", async () => {
     const fake = port({});
-    const result = await executeOperatorDowngradeReversal({
+    const result = await executeClinicDowngradeReversal({
       state: state(),
       env: BILLING_TEST_ENV,
       stripe: fake.stripe,
@@ -846,7 +846,7 @@ describe("Keep Practice reversal", () => {
         metadataPurpose: null,
       }),
     });
-    const result = await executeOperatorDowngradeReversal({
+    const result = await executeClinicDowngradeReversal({
       state: state({
         stripeSubscriptionScheduleId: "sub_sched_a",
         scheduledCommercialPlan: "ESSENTIAL",
@@ -866,13 +866,13 @@ describe("Keep Practice reversal", () => {
 describe("cancellation and a scheduled downgrade", () => {
   it("blocks scheduling when cancellation is already set", () => {
     expect(
-      assessOperatorPlanDowngrade({
+      assessClinicPlanDowngrade({
         state: state({ cancelAtPeriodEnd: true }),
         readiness: readiness({}),
       })
     ).toMatchObject({ ok: false, code: "cancel_scheduled" });
     expect(
-      assessOperatorDowngradeReversal(
+      assessClinicDowngradeReversal(
         state({
           cancelAtPeriodEnd: true,
           stripeSubscriptionScheduleId: "sub_sched_a",
@@ -992,7 +992,7 @@ describe("rescheduling after Keep Practice", () => {
     const attempts = store();
     const fake = port({ freshIds: true });
     const persisted: string[] = [];
-    const first = await executeOperatorPlanDowngrade({
+    const first = await executeClinicPlanDowngrade({
       state: state(),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -1013,7 +1013,7 @@ describe("rescheduling after Keep Practice", () => {
     expect(createA).toContain("attempt-1");
     expect(updateA).toContain("attempt-1");
 
-    const reversed = await executeOperatorDowngradeReversal({
+    const reversed = await executeClinicDowngradeReversal({
       state: state({
         stripeSubscriptionScheduleId: "sub_sched_1",
         stripePlanDowngradeAttemptId: "attempt-1",
@@ -1037,7 +1037,7 @@ describe("rescheduling after Keep Practice", () => {
     expect(attempts.cleared).toContain("intent");
     expect(attempts.current()).toBeNull();
 
-    const second = await executeOperatorPlanDowngrade({
+    const second = await executeClinicPlanDowngrade({
       state: state(),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -1076,7 +1076,7 @@ describe("rescheduling after Keep Practice", () => {
     const error = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state({ stripePlanDowngradeAttemptId: "attempt-stale" }),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -1114,7 +1114,7 @@ describe("rescheduling after Keep Practice", () => {
     const fake = port({
       updateThrows: new Error("transient update"),
     });
-    const first = await executeOperatorPlanDowngrade({
+    const first = await executeClinicPlanDowngrade({
       state: state(),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -1129,7 +1129,7 @@ describe("rescheduling after Keep Practice", () => {
     expect(attempts.current()).toBe("attempt-1");
     expect(fake.calls.create).toHaveLength(1);
 
-    const second = await executeOperatorPlanDowngrade({
+    const second = await executeClinicPlanDowngrade({
       state: state({ stripePlanDowngradeAttemptId: "attempt-1" }),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -1155,7 +1155,7 @@ describe("rescheduling after Keep Practice", () => {
     let id: string | null = "attempt-old";
     const projection: string[] = [];
     const fake = port({ freshIds: true });
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state({
         stripeSubscriptionScheduleId: "sub_sched_old",
         stripePlanDowngradeAttemptId: "attempt-old",
@@ -1264,7 +1264,7 @@ describe("rescheduling after Keep Practice", () => {
     const fake = port({});
     const persisted: string[] = [];
     const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state(),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -1307,7 +1307,7 @@ describe("rescheduling after Keep Practice", () => {
       existing: copiedPracticeSchedule({ id: scheduleB }),
     });
     const persisted: string[] = [];
-    const result = await executeOperatorPlanDowngrade({
+    const result = await executeClinicPlanDowngrade({
       state: state({ stripePlanDowngradeAttemptId: attemptA }),
       readiness: readiness({}),
       env: BILLING_TEST_ENV,
@@ -1415,7 +1415,7 @@ describe("rescheduling after Keep Practice", () => {
       const error = vi
         .spyOn(console, "error")
         .mockImplementation(() => undefined);
-      const result = await executeOperatorPlanDowngrade({
+      const result = await executeClinicPlanDowngrade({
         state: state({ stripePlanDowngradeAttemptId: ATTEMPT }),
         readiness: readiness({}),
         env: BILLING_TEST_ENV,

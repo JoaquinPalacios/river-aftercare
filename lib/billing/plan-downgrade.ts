@@ -244,6 +244,50 @@ export function planDowngradeMessage(
   }
 }
 
+export function customerPlanDowngradeMessage(code: PlanDowngradeCode): string {
+  switch (code) {
+    case "unknown_schedule":
+    case "subscription_shape":
+    case "unsupported":
+      return "This plan change needs help from River Aftercare. Your Practice plan is unchanged.";
+    case "past_due":
+      return "A plan change cannot be scheduled while a payment retry is still open.";
+    case "cancel_scheduled":
+      return "Remove the scheduled cancellation before changing plan.";
+    case "not_active":
+    case "pending_checkout":
+    case "ended":
+    case "no_subscription":
+      return "This plan change is available once the Practice subscription is active.";
+    case "already_essential":
+      return "This clinic is already on Essential.";
+    case "already_transitioned":
+      return "Essential is already the current plan. Keeping Practice is no longer available.";
+    case "not_scheduled":
+      return "There is no scheduled plan change to cancel.";
+    case "not_ready":
+      return "Resolve the team changes shown below before scheduling the plan change.";
+    case "selection_required":
+      return "Choose which guides will stay active before scheduling the plan change.";
+    default:
+      return "We couldn’t schedule the plan change. Your Practice plan is unchanged. Please try again.";
+  }
+}
+
+export function customerKeepPracticeMessage(code: PlanDowngradeCode): string {
+  if (
+    code === "unknown_schedule" ||
+    code === "subscription_shape" ||
+    code === "unsupported"
+  ) {
+    return "Keeping Practice needs help from River Aftercare. Nothing else was changed.";
+  }
+  if (code === "already_transitioned") {
+    return "Essential is already the current plan. Keeping Practice is no longer available.";
+  }
+  return "We couldn’t cancel the scheduled plan change. Please try again.";
+}
+
 export function planDowngradeConflictMessage(
   readiness?: EssentialDowngradeReadiness
 ): string {
@@ -266,7 +310,7 @@ function checkoutPending(state: PlanDowngradeState): boolean {
   return Boolean(state.stripeCheckoutSessionId) && !state.stripeSubscriptionId;
 }
 
-export function assessOperatorPlanDowngrade(input: {
+export function assessClinicPlanDowngrade(input: {
   state: PlanDowngradeState;
   readiness: EssentialDowngradeReadiness;
   guideSelection?: ConfirmedGuideKeep | null;
@@ -326,7 +370,7 @@ export function assessOperatorPlanDowngrade(input: {
   };
 }
 
-export function assessOperatorDowngradeReversal(
+export function assessClinicDowngradeReversal(
   state: PlanDowngradeState
 ): { ok: true } | { ok: false; code: PlanDowngradeCode } {
   if (state.commercialPlan === "ESSENTIAL") {
@@ -906,10 +950,11 @@ function subscriptionShapeBlocked(
   return false;
 }
 
-export async function executeOperatorPlanDowngrade(input: {
+export async function executeClinicPlanDowngrade(input: {
   state: PlanDowngradeState;
   readiness: EssentialDowngradeReadiness;
   guideSelection?: ConfirmedGuideKeep | null;
+  actorUserId?: string | null;
   env?: Env;
   stripe?: PlanDowngradeStripePort;
   persist?: typeof persistScheduledDowngrade;
@@ -932,7 +977,7 @@ export async function executeOperatorPlanDowngrade(input: {
   const claims = claimsScheduledProjection(input.state);
   let assessed = claims
     ? null
-    : assessOperatorPlanDowngrade({
+    : assessClinicPlanDowngrade({
         state: input.state,
         readiness: input.readiness,
         guideSelection: input.guideSelection,
@@ -971,7 +1016,7 @@ export async function executeOperatorPlanDowngrade(input: {
   const requireReady = () => {
     assessed =
       assessed ??
-      assessOperatorPlanDowngrade({
+      assessClinicPlanDowngrade({
         state: input.state,
         readiness: input.readiness,
         guideSelection: input.guideSelection,
@@ -1078,6 +1123,9 @@ export async function executeOperatorPlanDowngrade(input: {
           event: "plan_downgrade_scheduled",
           clinicId: input.state.clinicId,
           billingInterval: interval,
+          actorUserId: input.actorUserId ?? null,
+          fromPlan: "PRACTICE",
+          targetPlan: "ESSENTIAL",
         });
       }
       return {
@@ -1298,8 +1346,9 @@ export async function executeOperatorPlanDowngrade(input: {
   }
 }
 
-export async function executeOperatorDowngradeReversal(input: {
+export async function executeClinicDowngradeReversal(input: {
   state: PlanDowngradeState;
+  actorUserId?: string | null;
   env?: Env;
   stripe: PlanDowngradeStripePort;
   clear?: (row: { clinicId: string }) => Promise<void>;
@@ -1326,7 +1375,7 @@ export async function executeOperatorDowngradeReversal(input: {
     };
   }
 
-  const assessed = assessOperatorDowngradeReversal(input.state);
+  const assessed = assessClinicDowngradeReversal(input.state);
   if (!assessed.ok && assessed.code !== "not_scheduled") {
     return failure(input.state.clinicId, assessed.code);
   }
@@ -1480,6 +1529,9 @@ export async function executeOperatorDowngradeReversal(input: {
     logStripeBilling({
       event: "plan_downgrade_reversed",
       clinicId: input.state.clinicId,
+      actorUserId: input.actorUserId ?? null,
+      fromPlan: "PRACTICE",
+      targetPlan: "ESSENTIAL",
     });
     return {
       ok: true,
@@ -1792,8 +1844,9 @@ async function loadDowngradeState(
   };
 }
 
-export async function submitOperatorPlanDowngrade(input: {
+export async function submitClinicPlanDowngrade(input: {
   clinicId: string;
+  actorUserId?: string | null;
   env?: Env;
   stripe?: PlanDowngradeStripePort;
 }): Promise<
@@ -1810,10 +1863,21 @@ export async function submitOperatorPlanDowngrade(input: {
   }
   const readiness = await loadEssentialDowngradeReadiness(input.clinicId);
   const guideSelection = await loadConfirmedDowngradeSelection(input.clinicId);
-  const result = await executeOperatorPlanDowngrade({
+  if (input.actorUserId && state.billingInterval) {
+    logStripeBilling({
+      event: "plan_downgrade_requested",
+      clinicId: input.clinicId,
+      actorUserId: input.actorUserId,
+      fromPlan: "PRACTICE",
+      targetPlan: "ESSENTIAL",
+      billingInterval: state.billingInterval,
+    });
+  }
+  const result = await executeClinicPlanDowngrade({
     state,
     readiness,
     guideSelection,
+    actorUserId: input.actorUserId,
     env: input.env,
     stripe: input.stripe,
   });
@@ -1827,8 +1891,9 @@ export async function submitOperatorPlanDowngrade(input: {
   };
 }
 
-export async function submitOperatorDowngradeReversal(input: {
+export async function submitClinicDowngradeReversal(input: {
   clinicId: string;
+  actorUserId?: string | null;
   env?: Env;
   stripe?: PlanDowngradeStripePort;
 }): Promise<
@@ -1847,8 +1912,9 @@ export async function submitOperatorDowngradeReversal(input: {
       return failure(input.clinicId, "schedule_failed");
     }
   }
-  const result = await executeOperatorDowngradeReversal({
+  const result = await executeClinicDowngradeReversal({
     state,
+    actorUserId: input.actorUserId,
     env: input.env,
     stripe,
   });

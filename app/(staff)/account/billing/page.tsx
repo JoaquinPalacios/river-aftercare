@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { loadBillingPageContext } from "@/app/(staff)/account/billing/billing-context";
+import { ChangePlanPanel } from "@/app/(staff)/account/billing/change-plan-panel";
 import { ManageBillingForm } from "@/app/(staff)/account/billing/manage-billing-form";
 import { DowngradeGuideSelectionForm } from "@/app/(staff)/account/billing/downgrade-guide-selection-form";
 import {
@@ -18,14 +19,36 @@ export const metadata: Metadata = {
   title: `Billing · ${PRODUCT_NAME}`,
 };
 
-export default async function BillingStatusPage() {
+export default async function BillingStatusPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ "change-plan"?: string }>;
+} = {}) {
   const context = await loadBillingPageContext();
+  const params = searchParams ? await searchParams : {};
   const view = context.view;
   const presentation = view?.presentation;
   const canManageBilling =
     view?.portalEligible === true &&
     context.membership?.role === "ADMIN" &&
     context.membership.source !== "operator_support";
+  const canChangePlan =
+    context.membership?.role === "ADMIN" &&
+    context.membership.source !== "operator_support";
+  const downgrade = view?.selfServeDowngrade ?? null;
+  const showReview = Boolean(
+    downgrade &&
+    !view?.scheduledPlanChange &&
+    (downgrade.preparationStatus !== "none" ||
+      params["change-plan"] === "essential")
+  );
+  const showEntry = Boolean(
+    downgrade?.entryAvailable &&
+    !view?.scheduledPlanChange &&
+    !showReview &&
+    canChangePlan
+  );
+  const showScheduled = Boolean(view?.scheduledPlanChange);
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
@@ -104,7 +127,7 @@ export default async function BillingStatusPage() {
                 {presentation.attentionMessage}
               </p>
             ) : null}
-            {view.scheduledPlanChange ? (
+            {view.scheduledPlanChange && !showScheduled ? (
               <p className="mt-4 text-sm" role="status">
                 Scheduled change:{" "}
                 {view.scheduledPlanChange.operatorLines.scheduledChange}.{" "}
@@ -112,15 +135,77 @@ export default async function BillingStatusPage() {
               </p>
             ) : null}
           </div>
+          {showScheduled && view.scheduledPlanChange && downgrade ? (
+            <ChangePlanPanel
+              phase="scheduled"
+              canAct={canChangePlan}
+              intervalLabel={downgrade.intervalLabel}
+              essentialPriceLabel={downgrade.essentialPriceLabel}
+              effectiveLabel={downgrade.effectiveLabel}
+              teamCurrent={downgrade.teamCurrent}
+              teamLimit={downgrade.teamLimit}
+              guidesFit={downgrade.guidesFit}
+              combinedCurrent={downgrade.combinedCurrent}
+              combinedLimit={downgrade.combinedLimit}
+              preparationStatus={downgrade.preparationStatus}
+              selectedCombined={downgrade.selectedCombined}
+              scheduleReady={false}
+              blockedMessage={null}
+              canCancelPreparation={false}
+              scheduledEffectiveLabel={view.scheduledPlanChange.effectiveLabel}
+            />
+          ) : null}
+          {showScheduled && view.scheduledPlanChange && !downgrade ? (
+            <p className="mt-4 text-sm" role="status">
+              Scheduled change:{" "}
+              {view.scheduledPlanChange.operatorLines.scheduledChange}.{" "}
+              {view.scheduledPlanChange.customerMessage}
+            </p>
+          ) : null}
+          {showEntry && downgrade ? (
+            <ChangePlanPanel
+              phase="entry"
+              canAct={canChangePlan}
+              intervalLabel={downgrade.intervalLabel}
+              essentialPriceLabel={downgrade.essentialPriceLabel}
+              effectiveLabel={downgrade.effectiveLabel}
+              teamCurrent={downgrade.teamCurrent}
+              teamLimit={downgrade.teamLimit}
+              guidesFit={downgrade.guidesFit}
+              combinedCurrent={downgrade.combinedCurrent}
+              combinedLimit={downgrade.combinedLimit}
+              preparationStatus={downgrade.preparationStatus}
+              selectedCombined={downgrade.selectedCombined}
+              scheduleReady={downgrade.scheduleReady}
+              blockedMessage={downgrade.blockedMessage}
+              canCancelPreparation={downgrade.canCancelPreparation}
+            />
+          ) : null}
+          {showReview && downgrade ? (
+            <ChangePlanPanel
+              phase="review"
+              canAct={canChangePlan}
+              intervalLabel={downgrade.intervalLabel}
+              essentialPriceLabel={downgrade.essentialPriceLabel}
+              effectiveLabel={downgrade.effectiveLabel}
+              teamCurrent={downgrade.teamCurrent}
+              teamLimit={downgrade.teamLimit}
+              guidesFit={downgrade.guidesFit}
+              combinedCurrent={downgrade.combinedCurrent}
+              combinedLimit={downgrade.combinedLimit}
+              preparationStatus={downgrade.preparationStatus}
+              selectedCombined={downgrade.selectedCombined}
+              scheduleReady={downgrade.scheduleReady}
+              blockedMessage={downgrade.blockedMessage}
+              canCancelPreparation={downgrade.canCancelPreparation}
+            />
+          ) : null}
           {view.guideSelection ? (
             <div className="mt-5 border-t border-staff-line pt-5">
               <h3 className="text-sm font-semibold">Practice → Essential</h3>
               <DowngradeGuideSelectionForm
                 panel={view.guideSelection}
-                canConfirm={
-                  context.membership?.role === "ADMIN" &&
-                  context.membership.source !== "operator_support"
-                }
+                canConfirm={canChangePlan}
               />
             </div>
           ) : null}
