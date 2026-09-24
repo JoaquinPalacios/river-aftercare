@@ -1,8 +1,22 @@
-import { ClinicMembershipRole } from "@prisma/client";
+import {
+  BillingStatus,
+  ClinicMembershipRole,
+  EntitlementStatus,
+} from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import {
+  BILLING_SETUP_PATH,
+  type ClinicBillingAccessDb,
+} from "@/lib/billing/activation-gate";
 
 const requireClinicAdminMock = vi.hoisted(() => vi.fn());
 const updatePracticeSettingsMock = vi.hoisted(() => vi.fn());
+const redirectMock = vi.hoisted(() =>
+  vi.fn((href: string) => {
+    throw new Error(`NEXT_REDIRECT:${href}`);
+  })
+);
 const loaded = vi.hoisted(() => ({
   jsdom: false,
   sanitizer: false,
@@ -12,6 +26,10 @@ const loadedAtImport = vi.hoisted(() => ({
   jsdom: false,
   sanitizer: false,
   storage: false,
+}));
+
+vi.mock("next/navigation", () => ({
+  redirect: (href: string) => redirectMock(href),
 }));
 
 vi.mock("jsdom", () => {
@@ -72,6 +90,14 @@ const session = {
   },
 };
 
+function legacyBillingDb(): ClinicBillingAccessDb {
+  return {
+    clinicEntitlement: {
+      findUnique: vi.fn(async () => null),
+    },
+  };
+}
+
 function settingsData(
   overrides: Record<string, string> = {},
   options: { themeToggle?: boolean } = {}
@@ -114,13 +140,19 @@ describe("savePracticeSettingsAction", () => {
     loaded.jsdom = false;
     loaded.sanitizer = false;
     loaded.storage = false;
+    redirectMock.mockClear();
   });
 
   it("imports and saves without loading jsdom, the SVG sanitizer, or clinic object storage", async () => {
     expect(loadedAtImport.jsdom).toBe(false);
     expect(loadedAtImport.sanitizer).toBe(false);
     expect(loadedAtImport.storage).toBe(false);
-    const result = await savePracticeSettingsAction({}, settingsData());
+    const billingDb = legacyBillingDb();
+    const result = await savePracticeSettingsAction(
+      {},
+      settingsData(),
+      billingDb
+    );
     expect(result).toEqual({ saved: true });
     expect(loaded.jsdom).toBe(false);
     expect(loaded.sanitizer).toBe(false);
@@ -131,6 +163,11 @@ describe("savePracticeSettingsAction", () => {
         displayName: "Harbor Family Dental",
       }),
     });
+    expect(billingDb.clinicEntitlement.findUnique).toHaveBeenCalledWith({
+      where: { clinicId: "clinic_1" },
+      select: { entitlementStatus: true, billingStatus: true },
+    });
+    expect(redirectMock).not.toHaveBeenCalled();
   });
 
   it("saves brand colours without loading jsdom", async () => {
@@ -141,7 +178,8 @@ describe("savePracticeSettingsAction", () => {
         accentColor: "#c2410c",
         neutralColor: "#fafaf9",
         radiusPreset: "SOFT",
-      })
+      }),
+      legacyBillingDb()
     );
     expect(result).toEqual({ saved: true });
     expect(loaded.jsdom).toBe(false);
@@ -168,7 +206,8 @@ describe("savePracticeSettingsAction", () => {
         city: "Newcastle",
         region: "NSW",
         postalCode: "2300",
-      })
+      }),
+      legacyBillingDb()
     );
     expect(result).toEqual({ saved: true });
     expect(loaded.jsdom).toBe(false);
@@ -193,7 +232,8 @@ describe("savePracticeSettingsAction", () => {
           themeMode: "DARK",
         },
         { themeToggle: true }
-      )
+      ),
+      legacyBillingDb()
     );
     expect(result).toEqual({ saved: true });
     expect(loaded.jsdom).toBe(false);
@@ -215,7 +255,8 @@ describe("savePracticeSettingsAction", () => {
         useCustomDarkBranding: "on",
         darkPrimaryColor: "#0f172a",
         darkAccentColor: "#fbbf24",
-      })
+      }),
+      legacyBillingDb()
     );
     expect(result).toEqual({ saved: true });
     expect(updatePracticeSettingsMock).toHaveBeenCalledWith({
@@ -233,9 +274,29 @@ describe("savePracticeSettingsAction", () => {
       darkPrimaryColor: "#0f172a",
     });
     data.set("useCustomDarkBranding", "on");
-    const result = await savePracticeSettingsAction({}, data);
+    const result = await savePracticeSettingsAction(
+      {},
+      data,
+      legacyBillingDb()
+    );
     expect(result.saved).toBeUndefined();
     expect(result.fieldErrors?.darkAccentColor).toMatch(/Dark accent/i);
     expect(updatePracticeSettingsMock).not.toHaveBeenCalled();
+  });
+
+  it("still applies the activation gate before saving", async () => {
+    const billingDb: ClinicBillingAccessDb = {
+      clinicEntitlement: {
+        findUnique: vi.fn(async () => ({
+          entitlementStatus: EntitlementStatus.PENDING,
+          billingStatus: BillingStatus.OFFER_PREPARED,
+        })),
+      },
+    };
+    await expect(
+      savePracticeSettingsAction({}, settingsData(), billingDb)
+    ).rejects.toThrow(`NEXT_REDIRECT:${BILLING_SETUP_PATH}`);
+    expect(updatePracticeSettingsMock).not.toHaveBeenCalled();
+    expect(loaded.jsdom).toBe(false);
   });
 });

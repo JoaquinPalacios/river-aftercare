@@ -811,6 +811,40 @@ export async function findOutstandingEmailChange(input: {
   return row ? toRecord(row) : null;
 }
 
+/**
+ * Another account already owns this address, or has an outstanding
+ * email-change token for it. Matches the uniqueness check inside
+ * createEmailChangeToken so a taken address can be refused before mail
+ * delivery is attempted.
+ */
+export async function emailChangeTargetIsTaken(input: {
+  userId: string;
+  email: string;
+  prisma?: PrismaClient;
+}): Promise<boolean> {
+  const email = normalizeAccountTokenEmail(input.email);
+  const prisma = input.prisma ?? getPrisma();
+  const takenUser = await prisma.user.findFirst({
+    where: { email, NOT: { id: input.userId } },
+    select: { id: true },
+  });
+  if (takenUser) {
+    return true;
+  }
+
+  const takenPending = await prisma.accountToken.findFirst({
+    where: {
+      email,
+      type: AccountTokenType.EMAIL_CHANGE,
+      consumedAt: null,
+      revokedAt: null,
+      NOT: { userId: input.userId },
+    },
+    select: { id: true },
+  });
+  return takenPending !== null;
+}
+
 export async function createEmailChangeToken(input: {
   userId: string;
   email: string;

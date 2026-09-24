@@ -13,6 +13,9 @@ vi.mock("@/auth", () => ({
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { updateOwnProfile } from "@/lib/auth/update-own-profile";
 import { changeAuthenticatedUserPassword } from "@/lib/auth/change-password";
+import { findOutstandingEmailChange } from "@/lib/auth/account-token-service";
+import { EMAIL_CHANGE_DELIVERY_FAILED_MESSAGE } from "@/lib/auth/request-email-change";
+import { clearTransactionalEmailMemoryInbox } from "@/lib/email/transactional-mailer";
 import { getPrisma } from "@/lib/prisma";
 import {
   CANNOT_CHANGE_OPERATOR_MEMBERSHIP_MESSAGE,
@@ -150,52 +153,128 @@ async function seed() {
   });
 }
 
+function restoreEnv(name: string, value: string | undefined) {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}
+
 describe("account and clinic membership RBAC", () => {
   afterAll(async () => {
     await cleanup();
     await prisma.$disconnect();
   });
 
-  it("lets a user change their own name and email, and rejects another user's email", async () => {
+  it("lets a user change their own name and rejects another user's email before mail delivery", async () => {
     await cleanup();
     await seed();
+    const previousFrom = process.env.AUTH_EMAIL_FROM;
+    const previousReply = process.env.AUTH_EMAIL_REPLY_TO;
+    delete process.env.AUTH_EMAIL_FROM;
+    delete process.env.AUTH_EMAIL_REPLY_TO;
 
-    const nameResult = await updateOwnProfile({
-      userId: STAFF_A,
-      name: "Staff A Updated",
-      email: `${PREFIX}staff-a@example.test`,
-      currentPassword: "",
-    });
-    expect(nameResult.ok).toBe(true);
+    try {
+      const nameResult = await updateOwnProfile({
+        userId: STAFF_A,
+        name: "Staff A Updated",
+        email: `${PREFIX}staff-a@example.test`,
+        currentPassword: "",
+      });
+      expect(nameResult.ok).toBe(true);
 
-    const duplicate = await updateOwnProfile({
-      userId: STAFF_A,
-      name: "Staff A Updated",
-      email: `${PREFIX}admin-a@example.test`,
-      currentPassword: "staff-a-password",
-    });
-    expect(duplicate).toMatchObject({
-      ok: false,
-      error: PROFILE_EMAIL_TAKEN_MESSAGE,
-    });
+      const duplicate = await updateOwnProfile({
+        userId: STAFF_A,
+        name: "Staff A Updated",
+        email: `${PREFIX}admin-a@example.test`,
+        currentPassword: "staff-a-password",
+      });
+      expect(duplicate).toMatchObject({
+        ok: false,
+        code: "email_taken",
+        error: PROFILE_EMAIL_TAKEN_MESSAGE,
+      });
+      expect(await findOutstandingEmailChange({ userId: STAFF_A })).toBeNull();
 
-    const emailResult = await updateOwnProfile({
-      userId: STAFF_A,
-      name: "Staff A Updated",
-      email: `${PREFIX}staff-a-next@example.test`,
-      currentPassword: "staff-a-password",
-    });
-    expect(emailResult.ok).toBe(true);
-    if (emailResult.ok) {
-      expect(emailResult.pendingEmail).toBe(
-        `${PREFIX}staff-a-next@example.test`
-      );
+      const user = await prisma.user.findUnique({ where: { id: STAFF_A } });
+      expect(user?.name).toBe("Staff A Updated");
+      expect(user?.email).toBe(`${PREFIX}staff-a@example.test`);
+    } finally {
+      restoreEnv("AUTH_EMAIL_FROM", previousFrom);
+      restoreEnv("AUTH_EMAIL_REPLY_TO", previousReply);
     }
+  });
 
-    const user = await prisma.user.findUnique({ where: { id: STAFF_A } });
-    expect(user?.name).toBe("Staff A Updated");
-    expect(user?.email).toBe(`${PREFIX}staff-a@example.test`);
-    expect(user?.emailVerified).toBeNull();
+  it("reports delivery failure for a unique email when mail transport is unavailable", async () => {
+    await cleanup();
+    await seed();
+    const previousFrom = process.env.AUTH_EMAIL_FROM;
+    const previousReply = process.env.AUTH_EMAIL_REPLY_TO;
+    delete process.env.AUTH_EMAIL_FROM;
+    delete process.env.AUTH_EMAIL_REPLY_TO;
+
+    try {
+      const emailResult = await updateOwnProfile({
+        userId: STAFF_A,
+        name: "Staff A",
+        email: `${PREFIX}staff-a-next@example.test`,
+        currentPassword: "staff-a-password",
+      });
+      expect(emailResult).toMatchObject({
+        ok: false,
+        code: "delivery_failed",
+        error: EMAIL_CHANGE_DELIVERY_FAILED_MESSAGE,
+      });
+      expect(await findOutstandingEmailChange({ userId: STAFF_A })).toBeNull();
+      const user = await prisma.user.findUnique({ where: { id: STAFF_A } });
+      expect(user?.email).toBe(`${PREFIX}staff-a@example.test`);
+    } finally {
+      restoreEnv("AUTH_EMAIL_FROM", previousFrom);
+      restoreEnv("AUTH_EMAIL_REPLY_TO", previousReply);
+    }
+  });
+
+  it("keeps the current email and records a pending address when mail can be sent", async () => {
+    await cleanup();
+    await seed();
+    const previousFrom = process.env.AUTH_EMAIL_FROM;
+    const previousReply = process.env.AUTH_EMAIL_REPLY_TO;
+    const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
+    const previousVercel = process.env.VERCEL_ENV;
+    process.env.AUTH_EMAIL_FROM = "River Aftercare <accounts@example.test>";
+    delete process.env.AUTH_EMAIL_REPLY_TO;
+    process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
+    delete process.env.VERCEL_ENV;
+    clearTransactionalEmailMemoryInbox();
+
+    try {
+      const emailResult = await updateOwnProfile({
+        userId: STAFF_A,
+        name: "Staff A Updated",
+        email: `${PREFIX}staff-a-next@example.test`,
+        currentPassword: "staff-a-password",
+      });
+      expect(emailResult).toMatchObject({
+        ok: true,
+        email: `${PREFIX}staff-a@example.test`,
+        pendingEmail: `${PREFIX}staff-a-next@example.test`,
+      });
+
+      const user = await prisma.user.findUnique({ where: { id: STAFF_A } });
+      expect(user?.name).toBe("Staff A Updated");
+      expect(user?.email).toBe(`${PREFIX}staff-a@example.test`);
+      expect(user?.emailVerified).toBeNull();
+      expect(
+        (await findOutstandingEmailChange({ userId: STAFF_A }))?.email
+      ).toBe(`${PREFIX}staff-a-next@example.test`);
+    } finally {
+      clearTransactionalEmailMemoryInbox();
+      restoreEnv("AUTH_EMAIL_FROM", previousFrom);
+      restoreEnv("AUTH_EMAIL_REPLY_TO", previousReply);
+      restoreEnv("CARE_GUIDE_ROOT_DOMAIN", previousRoot);
+      restoreEnv("VERCEL_ENV", previousVercel);
+    }
   });
 
   it("changes the login credential and does not return the hash", async () => {

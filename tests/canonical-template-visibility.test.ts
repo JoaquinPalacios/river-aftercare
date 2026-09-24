@@ -381,33 +381,14 @@ describe("canonical template visibility and enablement", () => {
 
     expect(DEMO_EXTRACTION_TEMPLATE_SLUG).toBe("extraction");
 
+    // The shared demodental clinic may already occupy publicSlug "extraction".
+    // Defaulting is proved above on this test's own template slug. Here, only
+    // assert that a non-demo clinic still cannot enable the canonical sample.
     const extraction = await db().guideTemplate.findUnique({
       where: { slug: DEMO_EXTRACTION_TEMPLATE_SLUG },
       select: { id: true },
     });
     if (extraction) {
-      const already = await db().practiceGuide.findFirst({
-        where: {
-          clinicId: demoClinicId,
-          guideTemplateId: extraction.id,
-        },
-        select: { publicSlug: true },
-      });
-      if (already) {
-        expect(already.publicSlug).toBe("extraction");
-      } else {
-        const fromExtraction = await createPracticeGuideFromTemplate({
-          clinicId: demoClinicId,
-          actorUserId: USER_ID,
-          values: { templateId: extraction.id },
-        });
-        const extractionGuide = await db().practiceGuide.findUniqueOrThrow({
-          where: { id: fromExtraction.id },
-          select: { publicSlug: true },
-        });
-        expect(extractionGuide.publicSlug).toBe("extraction");
-      }
-
       await expect(
         createPracticeGuideFromTemplate({
           clinicId: NORMAL_CLINIC_ID,
@@ -418,6 +399,14 @@ describe("canonical template visibility and enablement", () => {
         (error: unknown) =>
           error instanceof ClinicPortalError && error.code === "not_found"
       );
+      expect(
+        await db().practiceGuide.count({
+          where: {
+            clinicId: NORMAL_CLINIC_ID,
+            guideTemplateId: extraction.id,
+          },
+        })
+      ).toBe(0);
     }
   });
 });
