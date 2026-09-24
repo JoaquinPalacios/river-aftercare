@@ -1824,6 +1824,7 @@ a.staffOverflowItem {
 
 .staffEditorSaveStatus {
   margin-top: 0.2rem;
+  min-height: 1.05rem;
   max-width: 100%;
 }
 

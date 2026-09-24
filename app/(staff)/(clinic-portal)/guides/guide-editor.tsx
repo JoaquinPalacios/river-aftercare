@@ -337,6 +337,7 @@ export function GuideEditor({
   const saveFeedback = (
     <SaveStatus
       status={saveStatus}
+      confirmSaved
       error={saveState.error ?? publishState.error}
       success={
         publishState.ok

@@ -317,7 +317,7 @@ test.describe("clinic portal", () => {
     await expect(
       page.getByRole("button", { name: "Cancel" }).filter({ visible: true })
     ).toBeVisible();
-    await expect(page.locator("[data-save-state=saved]")).toBeVisible();
+    await expect(page.locator("[data-save-state=saved]")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Add stage" })).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Tooth Extraction" }).first()
@@ -552,7 +552,7 @@ test.describe("clinic portal UX polish", () => {
     await expect(
       page.getByRole("heading", { name: "Tooth Extraction" }).first()
     ).toBeVisible();
-    await expect(page.locator("[data-save-state=saved]")).toBeVisible();
+    await expect(page.locator("[data-save-state=saved]")).toHaveCount(0);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.screenshot({
       path: "test-results/artifacts/staff-guide-editor-clean-1440.png",
@@ -607,7 +607,7 @@ test.describe("clinic portal UX polish", () => {
     await expect(page).toHaveURL(staffUrl("/guides"));
 
     await page.getByRole("link", { name: "Edit" }).first().click();
-    await expect(page.locator("[data-save-state=saved]")).toBeVisible();
+    await expect(page.locator("[data-save-state=saved]")).toHaveCount(0);
     await page
       .getByRole("button", { name: "Publish guide" })
       .filter({ visible: true })
@@ -639,7 +639,7 @@ test.describe("clinic portal UX polish", () => {
     await page.getByLabel("Public slug").fill(slug);
     await page.getByRole("button", { name: "Create custom guide" }).click();
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
-    await expect(page.locator("[data-save-state=saved]")).toBeVisible();
+    await expect(page.locator("[data-save-state=saved]")).toHaveCount(0);
     await page.getByLabel("Short introduction").fill("Draft only copy.");
     await expect(page.locator("[data-save-state=unsaved]")).toBeVisible();
     await page

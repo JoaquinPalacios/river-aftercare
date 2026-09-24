@@ -220,9 +220,9 @@ describe("guide editor publication labels", () => {
     expect(pill?.textContent).toBe("Published");
     expect(identity?.contains(meta ?? null)).toBe(false);
     expect(meta?.textContent).toBe("Custom guide");
-    expect(save?.textContent).toContain("Saved");
+    expect(save?.textContent).not.toContain("Saved");
     expect(meta?.contains(save ?? null)).toBe(false);
-    expect(save?.querySelector("[data-save-state='saved']")).toBeTruthy();
+    expect(save?.querySelector("[data-save-state='saved']")).toBeNull();
   });
 
   it("offers Publish guide for an unpublished draft", async () => {
