@@ -106,6 +106,85 @@ export type StripeBillingLogEvent =
   | {
       event: "plan_downgrade_deferred";
       clinicId: string;
+    }
+  | {
+      event: "plan_downgrade_attempt_started";
+      clinicId: string;
+      attemptId: string;
+    }
+  | {
+      event: "plan_downgrade_requested";
+      clinicId: string;
+      actorUserId: string;
+      fromPlan: "PRACTICE";
+      targetPlan: "ESSENTIAL";
+      billingInterval: string;
+    }
+  | {
+      event: "plan_downgrade_scheduled";
+      clinicId: string;
+      billingInterval: string;
+      actorUserId: string | null;
+      fromPlan: "PRACTICE";
+      targetPlan: "ESSENTIAL";
+    }
+  | {
+      event: "plan_downgrade_verification_failed";
+      clinicId: string;
+      stripeSubscriptionId: string;
+      scheduleId: string | null;
+      attemptId: string | null;
+      scheduleStatus: string | null;
+      observedScheduleId: string | null;
+      reason: string;
+    }
+  | {
+      event: "plan_downgrade_stale_projection_reconciled";
+      clinicId: string;
+      scheduleId: string | null;
+      attemptId: string | null;
+    }
+  | {
+      event: "plan_downgrade_already_scheduled";
+      clinicId: string;
+    }
+  | {
+      event: "plan_downgrade_reversed";
+      clinicId: string;
+      actorUserId: string | null;
+      fromPlan: "PRACTICE";
+      targetPlan: "ESSENTIAL";
+    }
+  | {
+      event: "plan_downgrade_preparation_cancelled";
+      clinicId: string;
+      actorUserId: string | null;
+      attemptId: string | null;
+    }
+  | {
+      event: "plan_downgrade_partial_schedule_released";
+      clinicId: string;
+      actorUserId: string | null;
+      attemptId: string;
+    }
+  | {
+      event: "plan_downgrade_cancel_failed";
+      clinicId: string;
+      attemptId: string | null;
+      reason: string;
+    }
+  | {
+      event: "plan_downgrade_failed";
+      clinicId: string;
+      reason: string;
+    }
+  | {
+      event: "plan_downgrade_superseded_by_cancellation";
+      clinicId: string;
+    }
+  | {
+      event: "plan_downgrade_released_after_cancel_reversal";
+      clinicId: string;
     };
 
 export function logStripeBilling(entry: StripeBillingLogEvent): void {
@@ -116,7 +195,10 @@ export function logStripeBilling(entry: StripeBillingLogEvent): void {
     entry.event === "stripe_webhook_not_configured" ||
     entry.event === "checkout_session_failed" ||
     entry.event === "customer_portal_session_failed" ||
-    entry.event === "plan_upgrade_failed"
+    entry.event === "plan_upgrade_failed" ||
+    entry.event === "plan_downgrade_failed" ||
+    entry.event === "plan_downgrade_cancel_failed" ||
+    entry.event === "plan_downgrade_verification_failed"
   ) {
     console.error(entry);
     return;

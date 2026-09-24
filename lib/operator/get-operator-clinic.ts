@@ -40,6 +40,8 @@ export interface OperatorClinicDetail {
     publicSlug: string;
     status: PracticeGuideStatus;
     isEnabled: boolean;
+    downgradeRetainedAt: Date | null;
+    downgradeRetentionUntil: Date | null;
   }>;
   members: Array<{
     id: string;
@@ -70,6 +72,8 @@ export async function getOperatorClinic(
           publicSlug: true,
           status: true,
           isEnabled: true,
+          downgradeRetainedAt: true,
+          downgradeRetentionUntil: true,
         },
       },
       memberships: {
@@ -94,7 +98,10 @@ export async function getOperatorClinic(
   }
 
   const publishedGuideCount = clinic.practiceGuides.filter(
-    (guide) => guide.status === PracticeGuideStatus.PUBLISHED && guide.isEnabled
+    (guide) =>
+      guide.status === PracticeGuideStatus.PUBLISHED &&
+      guide.isEnabled &&
+      guide.downgradeRetainedAt === null
   ).length;
 
   return {

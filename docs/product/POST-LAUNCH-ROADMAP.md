@@ -39,6 +39,12 @@ Contact already keeps the baseline: server Zod validation, honeypot (`website`),
 
 Phase 4 enforces team, custom-guide, and editable-template allowances, plus a combined clinic-owned guide ceiling. Essential base is 2 team members, 2 original custom guides, 2 editable River templates, and 4 clinic-owned guides in total. Practice base is 5, 30, 30, and 40. Practice may mix the two guide categories inside that ceiling. Operator-granted extras add to the matching category, and each guide extra also adds one combined place. They do not change Stripe. Group has no fixed cap. There is no per-seat billing and no per-invitation override. See [BILLING.md](../architecture/BILLING.md).
 
+Phase 5 schedules Practice → Essential at the next renewal on the same subscription. A clinic ADMIN does this from Billing. It is same interval only, with no proration or refund. Essential starts when Stripe applies that Price. The clinic administrator chooses which clinic-owned guides stay active when current usage is above Essential, and resolves team overage from Practice → Members. Other clinic-owned guides are retained for 60 days from that price change, stay read-only, and keep an existing published patient URL until then. The operator page observes the downgrade and does not approve it. Extras stay. Cancellation takes precedence over a scheduled downgrade and does not start guide retention. Monthly ↔ annual is still later work. Physical purge of expired retained guides is later work; this phase enforces expiry on read. GST registration has accountant approval and stays a separate task: do not add Stripe Tax or public GST wording from the downgrade.
+
+### Self-service Essential → Practice upgrade
+
+Practice → Essential is self-service for a clinic ADMIN. Essential → Practice remains operator-assisted. A later customer upgrade should call the existing subscription-update engine. Do not add a second Stripe implementation for that path.
+
 Later portal capability:
 
 - clinic STAFF must not invite
@@ -238,6 +244,25 @@ Platform Contact / Pricing live only on the **root marketing domain** (`/pricing
 Public published prices (AUD): Essential A$79/month or A$790/year, Practice A$149/month or A$1,490/year, Group custom pricing. Do not claim GST is included while registration is pending accountant confirmation. Do not publish additional-location dollar rates until a Location model exists; public copy directs multi-location practices to talk to us. Check-ins remain unpriced post-launch work and are not advertised on the public pricing page. Contact delivery is a server-side clinic enquiry form (`CONTACT_EMAIL_TO` / Resend / Turnstile). See [MARKETING-CONTACT.md](../architecture/MARKETING-CONTACT.md).
 
 ---
+
+## Pending action states on remaining forms
+
+Billing’s Practice → Essential actions use `PendingSubmitButton`: the current page stays visible, the clicked control shows an inline spinner and an action-specific label, and a conflicting sibling action is disabled until the server action returns.
+
+Adopt that same pending-action treatment across the remaining River mutation forms. Do not fold that sweep into the Phase 5 billing PR.
+
+Likely audit targets:
+
+- Guide save, publish, unpublish, delete, and discard
+- Practice settings
+- Branding
+- Team invitations and member actions
+- Operator allowance changes
+- Billing setup
+- Password and profile forms
+- SEO and admin forms
+- Authentication recovery flows
+- Contact forms
 
 ## Explicitly not this document
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { StaffAuthShell } from "@/app/(staff)/components/staff-auth-shell";
+import { TransientNotice } from "@/app/(staff)/components/transient-notice";
 import { LoginForm } from "@/app/(staff)/login/login-form";
 import {
   INVITATION_READY_MESSAGE,
@@ -63,19 +64,19 @@ export default async function LoginPage({
       description={`Use your email and password to continue to ${PRODUCT_NAME}.`}
     >
       {resetSuccess ? (
-        <div className="staffFormStatus" role="status">
+        <TransientNotice variant="success">
           {PASSWORD_RESET_SUCCESS_MESSAGE}
-        </div>
+        </TransientNotice>
       ) : null}
       {inviteSuccess ? (
-        <div className="staffFormStatus" role="status">
+        <TransientNotice variant="success">
           {INVITATION_READY_MESSAGE}
-        </div>
+        </TransientNotice>
       ) : null}
       {emailSuccess ? (
-        <div className="staffFormStatus" role="status">
+        <TransientNotice variant="success">
           {EMAIL_CHANGE_CONFIRMED_MESSAGE}
-        </div>
+        </TransientNotice>
       ) : null}
       <LoginForm />
       {localLogin?.status === "seed" ? (

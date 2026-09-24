@@ -6,6 +6,7 @@ import {
   openCustomerPortalAction,
   type CustomerPortalActionState,
 } from "@/app/(staff)/account/billing/actions";
+import { PendingSubmitButton } from "@/app/(staff)/components/pending-submit-button";
 
 const initial: CustomerPortalActionState = {};
 
@@ -16,14 +17,13 @@ export function ManageBillingForm() {
   );
 
   return (
-    <form action={action} className="mt-5">
-      <button
-        type="submit"
-        className="staffBtn staffBtnPrimary inline-flex h-11 items-center"
+    <form action={action} className="mt-5" aria-busy={pending || undefined}>
+      <PendingSubmitButton
+        label="Manage billing"
+        pendingLabel="Opening billing…"
+        className="staffBtn staffBtnPrimary inline-flex h-11 w-full items-center sm:w-auto"
         disabled={pending}
-      >
-        {pending ? "Opening billing…" : "Manage billing"}
-      </button>
+      />
       {state.error ? (
         <p className="mt-3 text-sm text-red-600" role="alert">
           {state.error}

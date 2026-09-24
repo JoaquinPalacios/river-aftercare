@@ -444,6 +444,52 @@ describe("entitlement projection", () => {
     expect(result.entitlement.entitlementStatus).toBe(EntitlementStatus.ACTIVE);
   });
 
+  it("keeps retry access on Essential after a downgrade renewal payment fails", () => {
+    const previous = emptyEntitlement({
+      commercialPlan: "PRACTICE",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: "price_test_practice_monthly",
+      paidThrough: PERIOD_END,
+    });
+    const failed = project({
+      eventType: "invoice.payment_failed",
+      subscriptionStatus: "past_due",
+      stripePriceId: "price_test_essential_monthly",
+      mappedPrice: mappedEssential,
+      previous,
+    });
+    expect(failed.kind).toBe("apply");
+    if (failed.kind !== "apply") {
+      return;
+    }
+    expect(failed.entitlement).toMatchObject({
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.PAST_DUE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+    });
+
+    const unpaid = project({
+      eventType: "invoice.payment_failed",
+      subscriptionStatus: "unpaid",
+      stripePriceId: "price_test_essential_monthly",
+      mappedPrice: mappedEssential,
+      previous: failed.entitlement,
+    });
+    expect(unpaid.kind).toBe("apply");
+    if (unpaid.kind !== "apply") {
+      return;
+    }
+    expect(unpaid.entitlement).toMatchObject({
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.UNPAID,
+      entitlementStatus: EntitlementStatus.RESTRICTED,
+    });
+  });
+
   it("fails closed for an unknown clinic or unknown Price ID", () => {
     expect(project({ clinicId: null }).kind).toBe("unmapped_clinic");
     expect(

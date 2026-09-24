@@ -14,6 +14,7 @@ import {
   type GuideDestructiveAction,
 } from "@/lib/clinic-portal/guide-status";
 import { getPrisma } from "@/lib/prisma";
+import { downgradeRetentionIsOpen } from "@/lib/entitlements/downgrade-retention";
 
 export interface ClinicPortalGuide {
   id: string;
@@ -30,10 +31,17 @@ export interface ClinicPortalGuide {
   previewHref: string | null;
   destructiveAction: GuideDestructiveAction | null;
   canUnpublish: boolean;
+  sourceKind: "template" | "custom" | "adapted";
+  downgradeRetention: {
+    retainedAt: Date;
+    retentionUntil: Date;
+    open: boolean;
+  } | null;
 }
 
 export async function listClinicPortalGuides(
-  clinicId: string
+  clinicId: string,
+  now: Date = new Date()
 ): Promise<ClinicPortalGuide[]> {
   const clinic = await getPrisma().clinic.findUnique({
     where: { id: clinicId },
@@ -56,6 +64,8 @@ export async function listClinicPortalGuides(
       publishedAt: true,
       updatedAt: true,
       sourceGuideTemplateId: true,
+      downgradeRetainedAt: true,
+      downgradeRetentionUntil: true,
       guideTemplate: {
         select: {
           title: true,
@@ -127,6 +137,16 @@ export async function listClinicPortalGuides(
           })
         : null;
 
+    const retentionOpen = downgradeRetentionIsOpen(guide, now);
+    const downgradeRetention =
+      guide.downgradeRetainedAt && guide.downgradeRetentionUntil
+        ? {
+            retainedAt: guide.downgradeRetainedAt,
+            retentionUntil: guide.downgradeRetentionUntil,
+            open: retentionOpen,
+          }
+        : null;
+
     return {
       id: guide.id,
       title:
@@ -148,8 +168,18 @@ export async function listClinicPortalGuides(
       specialty: guide.guideTemplate?.specialty ?? null,
       updatedAt: draft?.updatedAt ?? guide.updatedAt,
       previewHref,
-      destructiveAction: clinicGuideDestructiveAction(lifecycle),
-      canUnpublish: clinicGuideCanUnpublish(lifecycle),
+      destructiveAction: downgradeRetention
+        ? null
+        : clinicGuideDestructiveAction(lifecycle),
+      canUnpublish: downgradeRetention
+        ? false
+        : clinicGuideCanUnpublish(lifecycle),
+      sourceKind: guide.guideTemplate
+        ? "template"
+        : guide.sourceGuideTemplateId
+          ? "adapted"
+          : "custom",
+      downgradeRetention,
     };
   });
 }

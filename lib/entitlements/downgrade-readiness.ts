@@ -37,10 +37,21 @@ export type EssentialDowngradeReadiness = {
 };
 
 /**
- * Whether current usage would fit Essential after a later plan change.
+ * Whether current active usage would fit Essential.
  * Limits are Essential base plus the clinic's current persistent extras.
- * Extras are not discarded. This does not schedule a Stripe downgrade.
+ * Downgrade-retained guides are excluded by the usage counts.
+ * Guide overage is reported here and does not by itself block scheduling
+ * once a confirmed keep-selection fits. Team overage remains a hard block.
+ * Scheduling lives in plan-downgrade.
  */
+export function readinessHasGuideOverage(
+  readiness: EssentialDowngradeReadiness
+): boolean {
+  return readiness.conflicts.some(
+    (conflict) => conflict !== DOWNGRADE_CONFLICTS.TEAM_MEMBERS
+  );
+}
+
 export function assessEssentialDowngradeReadiness(input: {
   occupiedTeamPlaces: number;
   customGuideCount: number;

@@ -2,6 +2,7 @@ import "server-only";
 
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import { PUBLIC_PRACTICE_GUIDE_WHERE } from "@/lib/aftercare/public-practice-guide-predicates";
+import { downgradeRetentionIsOpen } from "@/lib/entitlements/downgrade-retention";
 import { getPrisma } from "@/lib/prisma";
 
 export interface PublishedGuideShareTarget {
@@ -24,6 +25,8 @@ export async function loadPublishedGuideShareTarget(input: {
     },
     select: {
       publicSlug: true,
+      downgradeRetainedAt: true,
+      downgradeRetentionUntil: true,
       clinic: {
         select: {
           slug: true,
@@ -33,6 +36,13 @@ export async function loadPublishedGuideShareTarget(input: {
   });
 
   if (!guide) {
+    return null;
+  }
+
+  if (
+    guide.downgradeRetainedAt &&
+    !downgradeRetentionIsOpen(guide, new Date())
+  ) {
     return null;
   }
 

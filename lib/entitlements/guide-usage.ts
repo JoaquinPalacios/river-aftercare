@@ -15,6 +15,7 @@ import {
   templateAdaptationUnavailableMessage,
   type EntitlementCode,
 } from "@/lib/entitlements/messages";
+import { ACTIVE_PRACTICE_GUIDE_WHERE } from "@/lib/entitlements/active-guide";
 import { lockClinicGuideCapacity } from "@/lib/entitlements/locks";
 import {
   allowanceDimension,
@@ -71,6 +72,7 @@ export async function countOriginalCustomGuides(
       clinicId,
       guideTemplateId: null,
       sourceGuideTemplateId: null,
+      ...ACTIVE_PRACTICE_GUIDE_WHERE,
     },
   });
 }
@@ -84,6 +86,7 @@ export async function countAdaptedTemplateGuides(
       clinicId,
       guideTemplateId: null,
       sourceGuideTemplateId: { not: null },
+      ...ACTIVE_PRACTICE_GUIDE_WHERE,
     },
   });
 }

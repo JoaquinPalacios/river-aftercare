@@ -1,6 +1,7 @@
 import "server-only";
 
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import { decideTemplateAdaptation } from "@/lib/entitlements/guide-usage";
 import { lockClinicGuideCapacity } from "@/lib/entitlements/locks";
 import { ENTITLEMENT_CODES } from "@/lib/entitlements/messages";
@@ -30,11 +31,13 @@ export async function adaptPracticeGuideFromTemplate(input: {
       select: {
         id: true,
         guideTemplateId: true,
+        downgradeRetainedAt: true,
       },
     });
     if (!guide) {
       throw new ClinicPortalError("Guide not found.", "not_found");
     }
+    assertPracticeGuideWritable(guide);
     if (!guide.guideTemplateId) {
       return { id: guide.id };
     }

@@ -2,6 +2,7 @@ import { GuideRevisionStatus, PracticeGuideStatus } from "@prisma/client";
 
 import { WORKING_DRAFT_VERSION } from "@/lib/aftercare/practice-revision-document";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import { getPrisma } from "@/lib/prisma";
 
 export async function discardPracticeGuideDraftChanges(input: {
@@ -26,6 +27,8 @@ export async function discardPracticeGuideDraftChanges(input: {
   if (!guide) {
     throw new ClinicPortalError("Guide not found.", "not_found");
   }
+
+  assertPracticeGuideWritable(guide);
 
   if (guide.status !== PracticeGuideStatus.PUBLISHED) {
     throw new ClinicPortalError(

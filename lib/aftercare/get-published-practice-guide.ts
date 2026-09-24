@@ -9,6 +9,7 @@ import {
 } from "@/lib/aftercare/get-clinic-by-slug";
 import { composedSectionsFromPracticeRevision } from "@/lib/aftercare/practice-revision-document";
 import { PUBLIC_PRACTICE_GUIDE_WHERE } from "@/lib/aftercare/public-practice-guide-predicates";
+import { downgradeRetainedDirectUrlVisible } from "@/lib/entitlements/downgrade-retention";
 import { publishedPatientGuidesRemainPublic } from "@/lib/billing/public-guide-access";
 import { isValidCareGuideSlug } from "@/lib/aftercare/slug";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
@@ -131,6 +132,7 @@ const publishedGuideInclude = {
 export async function getPublishedPracticeGuide(input: {
   clinicSlug: string;
   publicSlug: string;
+  now?: Date;
 }): Promise<PublishedPracticeGuideDocument | null> {
   if (
     !isValidCareGuideSlug(input.clinicSlug) ||
@@ -152,10 +154,19 @@ export async function getPublishedPracticeGuide(input: {
     return null;
   }
 
+  const now = input.now ?? new Date();
   const guidesRemainPublic = await publishedPatientGuidesRemainPublic(
-    practiceGuide.clinic.id
+    practiceGuide.clinic.id,
+    now
   );
-  if (!guidesRemainPublic) {
+  if (
+    !downgradeRetainedDirectUrlVisible({
+      downgradeRetainedAt: practiceGuide.downgradeRetainedAt,
+      downgradeRetentionUntil: practiceGuide.downgradeRetentionUntil,
+      clinicGuidesRemainPublic: guidesRemainPublic,
+      now,
+    })
+  ) {
     return null;
   }
 

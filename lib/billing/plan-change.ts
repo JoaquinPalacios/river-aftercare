@@ -108,7 +108,7 @@ export function assessOperatorPlanUpgrade(
 export function planChangeMessage(code: PlanChangeCode): string {
   switch (code) {
     case "downgrade_deferred":
-      return "Practice to Essential is not available yet. Guide and team limits have to be checked before a downgrade can be scheduled.";
+      return "Practice to Essential is scheduled at the next renewal. This upgrade action does not change the subscription.";
     case "interval_unchanged":
       return "Monthly and annual billing stay as they are. Contact River Aftercare if the billing period needs to change.";
     case "not_active":
