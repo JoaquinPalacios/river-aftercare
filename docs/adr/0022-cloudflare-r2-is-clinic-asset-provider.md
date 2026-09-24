@@ -29,7 +29,7 @@ River Aftercare already listed R2 as a production-readiness gate. Logos are smal
 - Use immutable keys `clinics/<clinicId>/branding/<uuid>.<ext>`.
 - Keep the in-memory driver for Vitest. Use the local filesystem driver only for `next start` / Playwright so uploads survive the server-action vs route-handler bundle split. Do not introduce MinIO, Docker S3, or a filesystem production path.
 - Do not provision Cloudflare, DNS, or Vercel env from application PRs. Joaquín follows [../launch/R2-PROVISIONING.md](../launch/R2-PROVISIONING.md).
-- Leave parked chairside Supabase Realtime code in place.
+- Chairside Supabase Realtime was later removed with the legacy live-session feature. This ADR’s R2 decision is unchanged. See [ADR 0009](0009-existing-chairside-product-is-parked.md).
 
 Cloudflare DNS / R2 ≠ application runtime. Next.js remains on Vercel.
 

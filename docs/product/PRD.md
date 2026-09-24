@@ -46,7 +46,7 @@ Care Guide’s primary product is a **multi-tenant B2B SaaS platform** that lets
 
 This is a formal product reset.
 
-The repository currently implements a different product: clinic-staff authentication, rooms, doctors, procedure sessions, in-chair stages, a token-scoped realtime patient display at `/display/[token]`, and a completed-session link to an **external** `aftercareUrl`. That chairside workflow is **parked / future optional**. It must not be deleted in this phase, must not define aftercare architecture, and **aftercare must not depend on `ProcedureSession`**.
+The repository’s current product is River Aftercare: staff auth, clinic portal, operator tools, and branded aftercare guides. An earlier chairside workflow (rooms, doctors, live stages, `/display/[token]`, Supabase Realtime, and an external `aftercareUrl`) was **removed as legacy**. It must not define aftercare architecture. Dormant Prisma models may remain. **Aftercare must not depend on `ProcedureSession`.** Auth.js `Session` records are unrelated.
 
 The commercial artefact being sold is **branded digital aftercare infrastructure for healthcare practices**, not “a website containing medical instructions.”
 
@@ -136,7 +136,7 @@ The repository has clinic-scoped staff users (`User`, `ClinicMembership`, Auth.j
 
 Clinic `ADMIN` can manage guides and Practice settings for **their** clinic. Clinic `STAFF` can view Overview and Guides and preview, but cannot publish or change clinic configuration.
 
-Existing parked chairside routes (`/sessions/new`, `/session/[id]/control`, `/dashboard/procedures`) remain reachable by direct URL and are not the aftercare operator admin.
+Retired chairside routes (`/sessions/new`, `/session/[id]/control`, `/display/[token]`, `/dashboard/procedures`) are not application routes and return 404. They are not the aftercare operator admin.
 
 ---
 
@@ -672,7 +672,7 @@ A published aftercare guide:
 - does not use in-chair stage copy (`calmCopy` / `patientCopy` / `detailedCopy`);
 - does not treat `ProcedureTemplate.aftercareUrl` as the Care Guide aftercare product.
 
-The parked chairside `aftercareUrl` is an optional **external link** shown after a completed live session. It is not the aftercare domain described here.
+The removed chairside `aftercareUrl` was an optional **external link** shown after a completed live session. It is not the aftercare domain described here. Dormant `ProcedureTemplate.aftercareUrl` rows must not be reused as published guides.
 
 ---
 
@@ -845,7 +845,7 @@ Published guide URLs are durable commercial artefacts. They must not depend on e
 - No staff session requirement on patient hosts.
 - Cookie isolation between admin and patient hosts where practical.
 - Public pages must not leak unpublished content, other tenants’ data, or staff-only fields.
-- Existing `/display/[token]` anti-indexing posture is a parked-product concern. Aftercare launch SEO is **closed in Phase 2A.5**: tenant pages `noindex` by default; marketing indexable; staff/operator private. See [SEO.md](../architecture/SEO.md). Future per-guide opt-in remains post-launch.
+- Retired `/display/[token]`, `/sessions`, and `/session` URLs 404. Aftercare launch SEO is **closed in Phase 2A.5**: tenant pages `noindex` by default; marketing indexable; staff/operator private. See [SEO.md](../architecture/SEO.md). Future per-guide opt-in remains post-launch.
 
 ### 17.4 Accessibility
 
@@ -904,7 +904,7 @@ Do not reuse the name `ProcedureTemplate` for canonical aftercare templates.
 
 ### 18.4 Current schema facts (repository truth)
 
-As of this PRD, `Clinic` has **no** tenant slug, branding, or contact profile. `ProcedureTemplate` is **clinic-owned chairside content** with an optional external `aftercareUrl`. Those facts describe the parked product plus a reusable `Clinic` row. Aftercare implementation will need new model work in a later phase — **not in Phase 0**.
+Phase 0 recorded `Clinic` without a tenant slug, branding, or contact profile, and `ProcedureTemplate` as clinic-owned chairside content with an optional external `aftercareUrl`. Aftercare later added its own models. The chairside application was subsequently removed. Dormant `ProcedureTemplate` rows are not the Guide Template library.
 
 ### 18.5 Host architecture
 
@@ -1167,26 +1167,26 @@ Not MVP.
 
 ### 23.4 Optional chairside add-on
 
-The existing chairside workflow may eventually become an optional Care Guide product. It must not be named, positioned, or developed as part of the current aftercare MVP. See §26.
+The old chairside workflow was removed as legacy. A future chairside product would be a new decision. It must not be named, positioned, or developed as part of the current aftercare MVP, and it must not revive the removed routes by reusing dormant `ProcedureSession` tables. See §26.
 
 ---
 
 ## 24. Risks
 
-| Risk                                     | Why it matters                                                           | Mitigation in this contract                                                                                    |
-| ---------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| Chairside gravity                        | Implementers extend `ProcedureSession` / stages because that code exists | Explicit parking; aftercare must not depend on sessions; new domain model (ADR 0001, 0005, 0009)               |
-| Terminology collision                    | `ProcedureTemplate` is mistaken for Guide Template                       | Distinct glossary; ban on reusing that name for aftercare                                                      |
-| Domain / hosting lock-in                 | Premature Vercel/Cloudflare/domain choices                               | Product requirements only; `<platform-domain>` placeholder                                                     |
-| Clinical copy liability                  | Invented or scraped aftercare instructions                               | No authoritative clinical authoring in Phase 0; no copying from arbitrary websites; governance concepts in §13 |
-| Real-brand misuse                        | Using Pacific Dental assets without permission                           | Conceptual examples only; fictional demo clinic                                                                |
-| Privacy scope creep                      | “Personalised aftercare” sneaks into MVP                                 | Hard privacy boundary; no patient PII                                                                          |
-| Over-building isolation                  | RLS / complex tenancy delays slice                                       | App-level isolation acceptable for MVP                                                                         |
-| Over-building verticals                  | Several specialties at once                                              | Dental first                                                                                                   |
-| Treating Phase 1 as commercial MVP       | Shipping an incomplete operating product                                 | Phases 1–3 distinguished; ten capabilities required for MVP                                                    |
-| Disposable-content modelling             | Overwriting published clinical text                                      | Version-aware publishing direction                                                                             |
-| Patient UX copied from chairside display | Large-format session UI reused for phones                                | Separate UX requirement; mobile-first web                                                                      |
-| Analytics identifying patients           | Health-data over-collection                                              | Anonymous usage only                                                                                           |
+| Risk                                     | Why it matters                                                                     | Mitigation in this contract                                                                                    |
+| ---------------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Chairside gravity                        | Implementers reuse dormant `ProcedureSession` tables because they remain in Prisma | Application removed; aftercare must not depend on those models; new domain model (ADR 0001, 0005, 0009)        |
+| Terminology collision                    | `ProcedureTemplate` is mistaken for Guide Template                                 | Distinct glossary; ban on reusing that name for aftercare                                                      |
+| Domain / hosting lock-in                 | Premature Vercel/Cloudflare/domain choices                                         | Product requirements only; `<platform-domain>` placeholder                                                     |
+| Clinical copy liability                  | Invented or scraped aftercare instructions                                         | No authoritative clinical authoring in Phase 0; no copying from arbitrary websites; governance concepts in §13 |
+| Real-brand misuse                        | Using Pacific Dental assets without permission                                     | Conceptual examples only; fictional demo clinic                                                                |
+| Privacy scope creep                      | “Personalised aftercare” sneaks into MVP                                           | Hard privacy boundary; no patient PII                                                                          |
+| Over-building isolation                  | RLS / complex tenancy delays slice                                                 | App-level isolation acceptable for MVP                                                                         |
+| Over-building verticals                  | Several specialties at once                                                        | Dental first                                                                                                   |
+| Treating Phase 1 as commercial MVP       | Shipping an incomplete operating product                                           | Phases 1–3 distinguished; ten capabilities required for MVP                                                    |
+| Disposable-content modelling             | Overwriting published clinical text                                                | Version-aware publishing direction                                                                             |
+| Patient UX copied from chairside display | Large-format session UI reused for phones                                          | Separate UX requirement; mobile-first web                                                                      |
+| Analytics identifying patients           | Health-data over-collection                                                        | Anonymous usage only                                                                                           |
 
 ---
 
@@ -1213,21 +1213,21 @@ These are intentionally unresolved in PRD v1.0. Implementation must not pretend 
 
 ---
 
-## 26. Relationship to the parked chairside product
+## 26. Relationship to the removed chairside product
 
 ### 26.1 Classification
 
-The existing chairside workflow is:
+The chairside / live-session workflow was originally classified as a parked product capability (see [ADR 0009](../adr/0009-existing-chairside-product-is-parked.md)).
 
-**PARKED PRODUCT CAPABILITY**
+**Subsequent product state: removed as legacy.**
 
-Do **not** call it dead code. Do **not** delete it. Do **not** incorporate it into the aftercare architecture.
+Do **not** incorporate it into the aftercare architecture. Do **not** restore the routes, realtime client, or Supabase dependency as part of aftercare work.
 
-### 26.2 What exists today (repository truth)
+### 26.2 What existed (historical repository truth)
 
-Clinic staff can authenticate and operate a live procedure session:
+Before removal, clinic staff could authenticate and operate a live procedure session:
 
-- staff auth (`/login`, `/dashboard`, Auth.js, `ClinicMembership`);
+- staff auth (`/login`, `/dashboard`, Auth.js, `ClinicMembership`) — **this auth remains; it is not chairside**;
 - rooms and doctors;
 - clinic-owned `ProcedureTemplate` + linear `ProcedureStageTemplate` stages (calm / patient / detailed copy);
 - selected-area options;
@@ -1238,13 +1238,24 @@ Clinic staff can authenticate and operate a live procedure session:
 - stage transition history;
 - on completion, optional external `ProcedureTemplate.aftercareUrl` (“Open aftercare instructions”).
 
-That last point is a **link out of a completed live session**. It is not Care Guide Aftercare SaaS.
+That last point was a **link out of a completed live session**. It was not Care Guide Aftercare SaaS.
 
-### 26.3 Future positioning
+### 26.3 Current repository truth
 
-Potential future positioning could be an optional practice add-on (for example a chairside product). **Do not name or develop that product now.**
+The application no longer serves chairside screens:
 
-### 26.4 Binding architectural rule
+- `/sessions/new`, `/session/[id]/control`, `/display/[token]`, and `/dashboard/procedures` return 404;
+- `lib/sessions`, `lib/procedures`, and `lib/realtime` are gone;
+- `@supabase/supabase-js` and the Supabase env vars are gone;
+- demo seed no longer creates rooms, doctors, or chairside templates.
+
+Dormant Prisma models and their production tables remain (`ProcedureSession`, `ProcedureTemplate`, `Room`, `Doctor`, and related enums). Keeping them avoids a destructive production migration. Do not query them from aftercare. A later reviewed migration may drop them.
+
+### 26.4 Future positioning
+
+A future chairside add-on would be a new product decision. **Do not name or develop that product now.** Do not treat the dormant tables as that product.
+
+### 26.5 Binding architectural rule
 
 The aftercare domain must remain independent from the chairside session domain.
 
@@ -1254,9 +1265,9 @@ A permanent aftercare guide is not a completed session.
 
 ## Appendix A — Glossary
 
-See §12.1. Additional parked-domain terms (do not use for aftercare modelling):
+See §12.1. Additional removed-domain terms (do not use for aftercare modelling). The Prisma models may still exist as dormant tables:
 
-| Parked term              | Meaning in current code                        |
+| Dormant term             | Historical meaning                             |
 | ------------------------ | ---------------------------------------------- |
 | `ProcedureSession`       | In-chair live procedure instance               |
 | `ProcedureTemplate`      | Clinic-owned chairside walkthrough template    |

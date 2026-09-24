@@ -67,7 +67,7 @@ Rationale:
 - Private R2 bucket; no r2.dev; no R2 custom domain
 - Avoids coupling clinic logos to Vercel Blob or Supabase Storage
 
-Cloudflare DNS / R2 is **not** the application runtime. Next.js remains on Vercel. Parked chairside **Supabase Realtime** is unrelated and stays in the repo.
+Cloudflare DNS / R2 is **not** the application runtime. Next.js remains on Vercel. Chairside Supabase Realtime was removed with the legacy live-session feature. Clinic assets do not use Supabase.
 
 Do not use Vercel Blob or `public/uploads` for clinic branding. Production stays on private R2. The previous Supabase Storage clinic-asset adapter is removed.
 

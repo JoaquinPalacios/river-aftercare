@@ -198,23 +198,21 @@ test.describe("clinic portal", () => {
     await expectNoSeriousAxeViolations(page);
   });
 
-  test("parked chairside routes remain directly reachable", async ({
+  test("retired chairside routes are not application pages", async ({
     page,
   }) => {
     await signInAsLocalAdmin(page);
-    const procedures = await page.goto(staffUrl("/dashboard/procedures"), {
-      waitUntil: "load",
-    });
-    expect(procedures?.status()).toBe(200);
-    await expect(
-      page.getByRole("heading", { name: "Procedure templates" })
-    ).toBeVisible();
-
-    const newSession = await page.goto(staffUrl("/sessions/new"), {
-      waitUntil: "load",
-    });
-    expect(newSession?.status()).toBe(200);
-    await expect(page.getByText("Start a new session")).toBeVisible();
+    for (const pathname of [
+      "/dashboard/procedures",
+      "/sessions/new",
+      "/session/some-id/control",
+      "/display/some-token",
+    ] as const) {
+      const response = await page.goto(staffUrl(pathname), {
+        waitUntil: "load",
+      });
+      expect(response?.status(), pathname).toBe(404);
+    }
   });
 
   test("password visibility toggle does not submit the form", async ({

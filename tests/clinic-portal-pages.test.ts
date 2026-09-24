@@ -43,13 +43,9 @@ describe("clinic portal pages", () => {
     expect(layout).toContain("clinicMembership.clinic.id");
   });
 
-  it("keeps parked chairside procedure routes without linking them from the portal", () => {
+  it("does not link removed chairside routes from the portal", () => {
     const chrome = readFileSync(
       "app/(staff)/components/portal-chrome.tsx",
-      "utf8"
-    );
-    const procedures = readFileSync(
-      "app/(staff)/dashboard/procedures/page.tsx",
       "utf8"
     );
 
@@ -59,11 +55,11 @@ describe("clinic portal pages", () => {
     expect(chrome).toContain("View patient site");
     expect(chrome).toContain("PortalAppearanceControl");
     expect(chrome).not.toContain("/sessions");
+    expect(chrome).not.toContain("/display");
     expect(chrome).not.toContain("Analytics");
     expect(chrome).not.toContain("Check-ins");
     expect(chrome).not.toContain("/dashboard/procedures");
-    expect(procedures).toContain("requireStaffSession");
-    expect(procedures).toContain("Procedure templates");
+    expect(chrome).not.toMatch(/chairside/i);
   });
 
   it("refreshes staff login copy to River Aftercare", () => {

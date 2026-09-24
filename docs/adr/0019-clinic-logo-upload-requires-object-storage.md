@@ -11,7 +11,7 @@ Clinics should upload a logo themselves before launch. Local filesystem, databas
 
 SVG clinic marks are professionally common. A blanket “SVG not accepted” rule is too strict, but uploaded SVG markup must never be trusted or inlined.
 
-Phase 2A.4 completed the application boundary. The provisional adapter was Supabase Storage. That provider choice is replaced by [ADR 0022](0022-cloudflare-r2-is-clinic-asset-provider.md). Parked chairside **Supabase Realtime** is unrelated and remains.
+Phase 2A.4 completed the application boundary. The provisional adapter was Supabase Storage. That provider choice is replaced by [ADR 0022](0022-cloudflare-r2-is-clinic-asset-provider.md). Chairside Supabase Realtime was later removed with the legacy live-session feature and is unrelated to clinic logos.
 
 ## Decision
 

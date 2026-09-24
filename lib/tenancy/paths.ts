@@ -8,6 +8,9 @@ export const STAFF_PATH_PREFIXES = [
   "/dashboard",
   "/guides",
   "/operator",
+  // Retired chairside URLs. They are not application routes. These prefixes
+  // stay so marketing and tenant hosts return the proxy 404 instead of
+  // rewriting the old paths into marketing or patient pages.
   "/sessions",
   "/session",
   "/display",

@@ -245,18 +245,17 @@ test.describe("staff isolation", () => {
     });
     expect(guides?.url()).toContain("/login");
 
-    const newSession = await page.goto(staffUrl("/sessions/new"), {
-      waitUntil: "load",
-    });
-    expect(newSession?.url()).toContain("/login");
-
-    const display = await page.goto(staffUrl("/display/token-like-value"), {
-      waitUntil: "load",
-    });
-    expect(display?.status()).toBe(200);
-    await expect(
-      page.getByText("This display is not available right now.")
-    ).toBeVisible();
+    for (const pathname of [
+      "/sessions/new",
+      "/session/some-id/control",
+      "/display/some-token",
+      "/dashboard/procedures",
+    ] as const) {
+      const response = await page.goto(staffUrl(pathname), {
+        waitUntil: "load",
+      });
+      expect(response?.status(), pathname).toBe(404);
+    }
   });
 
   test("direct internal /_sites and /_marketing paths stay blocked", async ({

@@ -5,6 +5,7 @@ export const RESERVED_TENANT_SLUGS = [
   "api",
   "login",
   "dashboard",
+  // Retired chairside labels. Kept reserved so they cannot become tenant hosts.
   "display",
   "sessions",
   "session",
