@@ -147,31 +147,13 @@ export function ChangePlanPanel({
     }),
     [reportEditing, primarySlot, secondarySlot]
   );
-  const reviewAction = !canAct
-    ? {
-        title: "Preparing a plan change",
-        detail:
-          "A clinic administrator confirms any guide selection and schedules the downgrade. Nothing is billed until then.",
-      }
+  const reviewTitle = !canAct
+    ? "Preparing a plan change"
     : guideSelectionEditing
-      ? {
-          title: "Next: confirm guide selection",
-          detail:
-            "Choose the guides below, then confirm. You are preparing a plan change. Nothing is scheduled or billed until you choose Schedule downgrade.",
-        }
+      ? "Next: confirm guide selection"
       : scheduleReady
-        ? {
-            title: "Next: schedule the downgrade",
-            detail: dateLabel
-              ? `Essential begins on ${dateLabel}. Practice stays active until then. There is no immediate charge.`
-              : "Essential begins at the next renewal. Practice stays active until then. There is no immediate charge.",
-          }
-        : {
-            title: "Scheduling is not available yet",
-            detail:
-              blockedMessage ??
-              "Resolve the items in this review before scheduling the downgrade.",
-          };
+        ? "Next: schedule the downgrade"
+        : "Scheduling is not available yet";
 
   useEffect(() => {
     if (!cancelled) {
@@ -203,9 +185,23 @@ export function ChangePlanPanel({
     }
   }
 
-  function cancelPlanChangeForm() {
+  function cancelPlanChangeControl() {
     if (!canAct) {
       return null;
+    }
+    if (!canCancelPreparation) {
+      return (
+        <button
+          type="button"
+          className="staffBtn staffBtnSecondary h-11 w-full sm:w-auto"
+          disabled={pending}
+          onClick={() => {
+            router.replace("/account/billing");
+          }}
+        >
+          Cancel plan change
+        </button>
+      );
     }
     return (
       <form
@@ -310,14 +306,21 @@ export function ChangePlanPanel({
               aria-label="Plan change actions"
               data-plan-change-actions
             >
-              <p className="font-medium text-staff-ink">{reviewAction.title}</p>
-              <p className="text-staff-muted">{reviewAction.detail}</p>
-              {guideSelectionEditing && blockedMessage ? (
-                <p role="status">{blockedMessage}</p>
+              <p className="staffPlanChangeActionTitle">{reviewTitle}</p>
+              {!canAct ? (
+                <p className="staffPlanChangeActionNote">
+                  A clinic administrator confirms any guide selection and
+                  schedules the downgrade.
+                </p>
+              ) : null}
+              {blockedMessage ? (
+                <p className="staffPlanChangeActionNote" role="status">
+                  {blockedMessage}
+                </p>
               ) : null}
               {canAct ? (
                 <div
-                  className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
+                  className="staffPlanChangeActionButtons"
                   data-action-row="downgrade"
                   aria-busy={pending || undefined}
                 >
@@ -344,11 +347,9 @@ export function ChangePlanPanel({
                     ref={setSecondarySlot}
                     className="flex max-w-full self-start empty:hidden"
                   />
-                  {canCancelPreparation ? (
-                    <div data-cancel-plan-change="actions">
-                      {cancelPlanChangeForm()}
-                    </div>
-                  ) : null}
+                  <div data-cancel-plan-change="actions">
+                    {cancelPlanChangeControl()}
+                  </div>
                 </div>
               ) : null}
             </section>

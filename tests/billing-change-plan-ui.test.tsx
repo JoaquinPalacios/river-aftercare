@@ -156,7 +156,24 @@ describe("self-service change plan panel", () => {
     expect(container.textContent).toContain("Immediate charge");
     expect(container.textContent).toContain("None");
     expect(button("Schedule downgrade")?.disabled).toBe(false);
+    expect(button("Cancel plan change")).toBeTruthy();
+    const row = container.querySelector("[data-action-row='downgrade']");
+    expect(button("Schedule downgrade", row ?? container)).toBeTruthy();
+    expect(button("Cancel plan change", row ?? container)).toBeTruthy();
+    expect(
+      container.querySelector('input[name="intent"][value="cancel"]')
+    ).toBeNull();
     expect(container.textContent).not.toContain("Manage team");
+  });
+
+  it("leaves the all-guides-fit review without a cancellation request", async () => {
+    await render({ phase: "review" });
+    await act(async () => {
+      button("Cancel plan change")?.click();
+    });
+    expect(cancelMock).not.toHaveBeenCalled();
+    expect(scheduleMock).not.toHaveBeenCalled();
+    expect(replaceMock).toHaveBeenCalledWith("/account/billing");
   });
 
   it("blocks scheduling while team usage is over Essential and links to team management", async () => {
@@ -205,19 +222,31 @@ describe("self-service change plan panel", () => {
       phase: "review",
       canCancelPreparation: true,
     });
+    const region = container.querySelector("[data-plan-change-actions]");
     const row = container.querySelector("[data-action-row='downgrade']");
-    expect(row?.className).toContain("flex-col");
-    expect(row?.className).toContain("sm:flex-row");
-    expect(row?.className).not.toContain("overflow-x");
+    expect(row?.className).toContain("staffPlanChangeActionButtons");
+    expect(region?.textContent).toContain("Next: schedule the downgrade");
+    expect(region?.textContent).not.toContain("There is no immediate charge");
+    expect(region?.textContent).not.toContain(
+      "Practice stays active until then"
+    );
     const schedule = button("Schedule downgrade", row ?? container);
     const cancel = button("Cancel plan change", row ?? container);
-    expect(schedule?.className).toContain("staffBtnPrimary");
-    expect(schedule?.className).toContain("w-full");
-    expect(schedule?.className).toContain("sm:w-auto");
-    expect(cancel?.className).toContain("staffBtnSecondary");
-    expect(cancel?.className).toContain("w-full");
-    expect(cancel?.className).toContain("sm:w-auto");
-    expect(schedule?.className).not.toContain("w-full sm:w-full");
+    expect(schedule).toBeTruthy();
+    expect(cancel).toBeTruthy();
+    if (!schedule || !cancel) {
+      return;
+    }
+    expect(
+      schedule.compareDocumentPosition(cancel) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(schedule.className.split(/\s+/)).toContain("staffBtnPrimary");
+    expect(schedule?.className.split(/\s+/)).toContain("w-full");
+    expect(schedule?.className.split(/\s+/)).toContain("sm:w-auto");
+    expect(cancel?.className.split(/\s+/)).toContain("staffBtnSecondary");
+    expect(cancel?.className.split(/\s+/)).toContain("w-full");
+    expect(cancel?.className.split(/\s+/)).toContain("sm:w-auto");
   });
 
   it("shows Scheduling and locks Cancel until the action finishes", async () => {
@@ -482,8 +511,7 @@ describe("self-service change plan panel", () => {
     const region = container.querySelector("[data-plan-change-actions]");
     const row = container.querySelector("[data-action-row='downgrade']");
     expect(region?.textContent).toContain("Next: confirm guide selection");
-    expect(region?.textContent).toContain("You are preparing a plan change");
-    expect(region?.textContent).toContain(
+    expect(region?.textContent).not.toContain(
       "Nothing is scheduled or billed until you choose Schedule downgrade."
     );
     expect(button("Confirm guide selection", region ?? container)).toBeTruthy();
@@ -502,6 +530,35 @@ describe("self-service change plan panel", () => {
     ).toHaveLength(1);
     expect(container.textContent).toContain("Custom one");
     expect(container.querySelector(".staffBtnSpinner")).toBeNull();
+  });
+
+  it("shows Schedule downgrade and Cancel plan change after the guide selection is confirmed", async () => {
+    await render({
+      phase: "review",
+      canCancelPreparation: true,
+      guidesFit: false,
+      preparationStatus: "confirmed",
+      scheduleReady: true,
+      selectedCombined: 2,
+      combinedCurrent: 5,
+      guideEditor: <p>Custom one stays selected</p>,
+    });
+    const region = container.querySelector("[data-plan-change-actions]");
+    const row = container.querySelector("[data-action-row='downgrade']");
+    expect(region?.textContent).toContain("Next: schedule the downgrade");
+    expect(button("Schedule downgrade", row ?? container)?.disabled).toBe(
+      false
+    );
+    expect(button("Cancel plan change", row ?? container)).toBeTruthy();
+    expect(
+      button("Cancel plan change")?.className.includes("staffBtnSecondary")
+    ).toBe(true);
+    expect(
+      container.querySelectorAll('input[name="intent"][value="schedule"]')
+    ).toHaveLength(1);
+    expect(
+      container.querySelectorAll('input[name="intent"][value="cancel"]')
+    ).toHaveLength(1);
   });
 
   it("uses one cancellation and locks Schedule while that control is pending", async () => {
