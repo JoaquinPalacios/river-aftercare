@@ -3,7 +3,10 @@ import Link from "next/link";
 import { ClinicMembershipRole } from "@prisma/client";
 
 import { GuideRowActions } from "@/app/(staff)/(clinic-portal)/guides/guide-row-actions";
-import { RetainedGuideRestoreForm } from "@/app/(staff)/(clinic-portal)/guides/retained-guide-restore-form";
+import {
+  RetainedGuideCard,
+  retainedGuideIsPublic,
+} from "@/app/(staff)/(clinic-portal)/guides/retained-guide-card";
 import { GuideStatusPills } from "@/app/(staff)/components/guide-status-pills";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import { formatBillingDate } from "@/lib/billing/billing-presentation";
@@ -158,25 +161,26 @@ export default async function ClinicGuidesPage() {
             Retained guides
           </h2>
           <ul className="divide-y divide-staff-line overflow-hidden rounded-xl border border-staff-line bg-staff-panel shadow-sm">
-            {retainedGuides.map((guide) => (
-              <li key={guide.id} className="px-5 py-4">
-                <p className="font-medium text-staff-ink">{guide.title}</p>
-                <p className="mt-1 text-sm text-staff-muted">
-                  {guide.sourceLabel}
-                  <span aria-hidden="true"> · </span>
-                  {guide.statusLabel}
-                </p>
-                <p className="mt-2 text-sm leading-6">
-                  Retained after your move to Essential. Available for recovery
-                  until{" "}
-                  {formatBillingDate(guide.downgradeRetention!.retentionUntil)}.
-                  This guide is read-only.
-                </p>
-                {canRestore ? (
-                  <RetainedGuideRestoreForm guideId={guide.id} />
-                ) : null}
-              </li>
-            ))}
+            {retainedGuides.map((guide) => {
+              const retentionUntil = guide.downgradeRetention!.retentionUntil;
+              return (
+                <RetainedGuideCard
+                  key={guide.id}
+                  guideId={guide.id}
+                  title={guide.title}
+                  sourceLabel={guide.sourceLabel}
+                  lifecycle={guide.lifecycle}
+                  retentionUntilLabel={formatBillingDate(retentionUntil)}
+                  retentionUntilIso={retentionUntil.toISOString()}
+                  patientUrl={
+                    retainedGuideIsPublic(guide.lifecycle)
+                      ? guide.previewHref
+                      : null
+                  }
+                  canRestore={canRestore}
+                />
+              );
+            })}
           </ul>
         </section>
       ) : null}

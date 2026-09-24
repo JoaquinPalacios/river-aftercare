@@ -18,7 +18,7 @@ Named production providers in the public copy: Vercel, Neon (Sydney), Cloudflare
 
 Unresolved / do not over-claim:
 
-- GST registration is not in force (pending accountant confirmation); public pricing copy must not claim GST is included
+- GST registration is not in force. River Aftercare is not registering for GST at this stage. Public pricing copy must not claim GST is included or excluded
 - counsel-approved APP-entity / NDB applicability language beyond the published “where applicable law requires” wording
 - flipping `PRIVACY_PAGE_LEGALLY_APPROVED` or source `noindex` without an explicit decision
 
@@ -32,7 +32,7 @@ The published terms cover B2B Customer definition (public guide readers are not 
 
 Unresolved / do not over-claim:
 
-- GST registration status (public copy says GST will be charged where applicable)
+- GST is not being charged at this stage (public copy says GST will be charged where applicable; do not add including-GST or excluding-GST price labels)
 - flipping `TERMS_PAGE_LEGALLY_APPROVED` or source `noindex` without an explicit decision
 - treating the page as counsel-certified or as a finished substitute for Customer Commercial Terms
 
@@ -44,13 +44,13 @@ This is **not** counsel-approved legal copy. Operator legal-approval flags were 
 
 ## Launch TODO (do not fabricate)
 
-| Fact                     | Repository truth                                                                                                                                               |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Legal entity name        | **Pedro Joaquin Palacios**, sole trader trading as River Aftercare                                                                                             |
-| ABN                      | 32 671 297 130                                                                                                                                                 |
-| ACN                      | Not applicable for the seller — not currently an Australian company. Customer billing identity may use an ACN where the customer has no ABN.                   |
-| Public location          | Tweed Heads South, New South Wales, Australia (no residential street address)                                                                                  |
-| Governing law            | New South Wales, Australia (non-exclusive jurisdiction)                                                                                                        |
-| Legal / privacy email    | `admin@riveraftercare.com.au`                                                                                                                                  |
-| GST registration         | **Not registered** — pending accountant confirmation. Public pricing copy must not claim GST is included. Terms remain “GST will be charged where applicable.” |
+| Fact                     | Repository truth                                                                                                                                                                                                                                                |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Legal entity name        | **Pedro Joaquin Palacios**, sole trader trading as River Aftercare                                                                                                                                                                                              |
+| ABN                      | 32 671 297 130                                                                                                                                                                                                                                                  |
+| ACN                      | Not applicable for the seller — not currently an Australian company. Customer billing identity may use an ACN where the customer has no ABN.                                                                                                                    |
+| Public location          | Tweed Heads South, New South Wales, Australia (no residential street address)                                                                                                                                                                                   |
+| Governing law            | New South Wales, Australia (non-exclusive jurisdiction)                                                                                                                                                                                                         |
+| Legal / privacy email    | `admin@riveraftercare.com.au`                                                                                                                                                                                                                                   |
+| GST registration         | **Not registered.** Not registering for GST at this stage. Do not charge GST or plan Stripe Tax. Public pricing copy must not claim GST is included or excluded. Terms remain “GST will be charged where applicable.”                                           |
 | Production subprocessors | Named in `/privacy`: Vercel, Neon, Cloudflare, Resend, Hostinger, Google, and Stripe (payment/billing). Stripe Billing Phase 1 (test-mode webhook projection) exists in the app; Checkout, Customer Portal, live payments, and enforcement are not implemented. |

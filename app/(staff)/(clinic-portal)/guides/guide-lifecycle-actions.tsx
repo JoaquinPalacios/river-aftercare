@@ -24,12 +24,17 @@ export function GuideLifecycleActions({
   lifecycle,
   destructiveAction,
   canUnpublish = false,
+  unpublishPlacement = "menu",
+  unpublishDisabled = false,
   onDiscarded,
 }: {
   guideId: string;
   lifecycle?: ClinicGuideLifecycleStatus;
   destructiveAction: GuideDestructiveAction | null;
   canUnpublish?: boolean;
+  /** Toolbar shows Unpublish beside the other editor actions. Menu keeps it under More actions. */
+  unpublishPlacement?: "menu" | "toolbar";
+  unpublishDisabled?: boolean;
   onDiscarded?: (restored: {
     title: string;
     publicSlug: string;
@@ -87,40 +92,57 @@ export function GuideLifecycleActions({
     ) : null;
   }
 
+  const unpublishInToolbar = canUnpublish && unpublishPlacement === "toolbar";
+  const unpublishInMenu = canUnpublish && !unpublishInToolbar;
+  const showMenu = Boolean(destructiveAction) || unpublishInMenu;
+
   return (
     <>
-      <OverflowMenu label="More actions">
-        {destructiveAction === "delete_guide" ? (
-          <button
-            type="button"
-            role="menuitem"
-            className="staffOverflowItem staffOverflowItemDanger"
-            onClick={() => setDeleteOpen(true)}
-          >
-            Delete guide
-          </button>
-        ) : null}
-        {destructiveAction === "discard_draft_changes" ? (
-          <button
-            type="button"
-            role="menuitem"
-            className="staffOverflowItem staffOverflowItemDanger"
-            onClick={() => setDiscardOpen(true)}
-          >
-            Discard draft changes
-          </button>
-        ) : null}
-        {canUnpublish ? (
-          <button
-            type="button"
-            role="menuitem"
-            className="staffOverflowItem"
-            onClick={() => setUnpublishOpen(true)}
-          >
-            Unpublish guide
-          </button>
-        ) : null}
-      </OverflowMenu>
+      {unpublishInToolbar ? (
+        <button
+          type="button"
+          className="staffBtn staffBtnSecondary"
+          disabled={unpublishing || unpublishDisabled}
+          aria-busy={unpublishing || undefined}
+          onClick={() => setUnpublishOpen(true)}
+        >
+          {unpublishing ? "Unpublishing…" : "Unpublish"}
+        </button>
+      ) : null}
+      {showMenu ? (
+        <OverflowMenu label="More actions">
+          {destructiveAction === "delete_guide" ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="staffOverflowItem staffOverflowItemDanger"
+              onClick={() => setDeleteOpen(true)}
+            >
+              Delete guide
+            </button>
+          ) : null}
+          {destructiveAction === "discard_draft_changes" ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="staffOverflowItem staffOverflowItemDanger"
+              onClick={() => setDiscardOpen(true)}
+            >
+              Discard draft changes
+            </button>
+          ) : null}
+          {unpublishInMenu ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="staffOverflowItem"
+              onClick={() => setUnpublishOpen(true)}
+            >
+              Unpublish guide
+            </button>
+          ) : null}
+        </OverflowMenu>
+      ) : null}
 
       {error ? (
         <p className="text-sm text-red-600" role="alert">

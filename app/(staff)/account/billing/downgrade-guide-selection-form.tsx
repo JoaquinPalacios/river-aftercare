@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useActionState } from "react";
+import { createPortal } from "react-dom";
 
 import {
   confirmDowngradeGuideSelectionAction,
   type GuideSelectionActionState,
 } from "@/app/(staff)/account/billing/actions";
+import { usePlanChangeSelectionContext } from "@/app/(staff)/account/billing/plan-change-selection-context";
 import { PendingSubmitButton } from "@/app/(staff)/components/pending-submit-button";
 import { TransientNotice } from "@/app/(staff)/components/transient-notice";
 import type {
@@ -157,6 +159,10 @@ export function DowngradeGuideSelectionForm({
     selectionFeedbackAction,
     initialFeedback
   );
+  const formId = `downgrade-guide-selection-${useId().replace(/:/g, "")}`;
+  const selectionContext = usePlanChangeSelectionContext();
+  const reportEditingRef = useRef(selectionContext?.reportEditing);
+  reportEditingRef.current = selectionContext?.reportEditing;
   const [editing, setEditing] = useState(panel.status !== "confirmed");
   const [dismissedNotice, setDismissedNotice] = useState(0);
   const [selected, setSelected] = useState<string[]>(panel.selectedIds);
@@ -229,6 +235,23 @@ export function DowngradeGuideSelectionForm({
     !editing && (panel.status === "confirmed" || Boolean(state.accepted));
   const previouslyConfirmed =
     panel.status === "confirmed" || Boolean(state.accepted);
+  const primarySlot =
+    placement === "review" ? selectionContext?.primarySlot : null;
+  const secondarySlot =
+    placement === "review" ? selectionContext?.secondarySlot : null;
+
+  useEffect(() => {
+    if (placement !== "review") {
+      return;
+    }
+    reportEditingRef.current?.(!showSummary);
+  }, [placement, showSummary]);
+
+  useEffect(() => {
+    return () => {
+      reportEditingRef.current?.(false);
+    };
+  }, []);
   const notice =
     state.generation > dismissedNotice && state.accepted ? (
       <TransientNotice
@@ -240,18 +263,24 @@ export function DowngradeGuideSelectionForm({
       </TransientNotice>
     ) : null;
 
+  const editGuideSelection = canConfirm ? (
+    <button
+      type="button"
+      className="staffBtn staffBtnSecondary h-11 max-w-full self-start"
+      onClick={beginEdit}
+    >
+      Edit guide selection
+    </button>
+  ) : null;
+
   if (showSummary) {
     if (placement === "review" && canConfirm) {
       return (
         <div className="mt-3 flex flex-col gap-3">
           {notice}
-          <button
-            type="button"
-            className="staffBtn staffBtnSecondary h-11 w-full sm:w-auto"
-            onClick={beginEdit}
-          >
-            Edit guide selection
-          </button>
+          {secondarySlot && editGuideSelection
+            ? createPortal(editGuideSelection, secondarySlot)
+            : editGuideSelection}
         </div>
       );
     }
@@ -330,21 +359,14 @@ export function DowngradeGuideSelectionForm({
             </ul>
           )}
         </section>
-        {canConfirm ? (
-          <button
-            type="button"
-            className="staffBtn staffBtnSecondary h-11"
-            onClick={beginEdit}
-          >
-            Edit guide selection
-          </button>
-        ) : null}
+        {editGuideSelection}
       </div>
     );
   }
 
   return (
     <form
+      id={formId}
       action={action}
       className={
         placement === "review"
@@ -416,18 +438,39 @@ export function DowngradeGuideSelectionForm({
         </p>
       ) : null}
       {canConfirm ? (
-        <PendingSubmitButton
-          label={
-            previouslyConfirmed
-              ? "Update guide selection"
-              : "Confirm guide selection"
-          }
-          pendingLabel={
-            previouslyConfirmed ? "Updating selection…" : "Saving selection…"
-          }
-          className="staffBtn staffBtnPrimary h-11 w-full sm:w-auto"
-          disabled={pending || !withinLimits}
-        />
+        primarySlot ? (
+          createPortal(
+            <PendingSubmitButton
+              label={
+                previouslyConfirmed
+                  ? "Update guide selection"
+                  : "Confirm guide selection"
+              }
+              pendingLabel={
+                previouslyConfirmed
+                  ? "Updating selection…"
+                  : "Saving selection…"
+              }
+              className="staffBtn staffBtnPrimary h-11 w-full sm:w-auto"
+              disabled={pending || !withinLimits}
+              form={formId}
+            />,
+            primarySlot
+          )
+        ) : (
+          <PendingSubmitButton
+            label={
+              previouslyConfirmed
+                ? "Update guide selection"
+                : "Confirm guide selection"
+            }
+            pendingLabel={
+              previouslyConfirmed ? "Updating selection…" : "Saving selection…"
+            }
+            className="staffBtn staffBtnPrimary h-11 w-full sm:w-auto"
+            disabled={pending || !withinLimits}
+          />
+        )
       ) : (
         <p className="text-sm text-staff-muted">
           A clinic administrator needs to choose which guides to keep.

@@ -2,7 +2,7 @@
 
 **Status:** Operator documentation for manual Dashboard configuration. This repository does not create Stripe Dashboard objects, live-mode keys, or charges.
 
-Phase 1 ships the webhook endpoint and local projection. Phase 2 ships demo-approved hosted Checkout (card + AU BECS) for an operator-prepared Essential or Practice offer. Do **not** enable live mode. Do **not** configure GST, Stripe Tax, or Tax Invoice extras. Accountant approval to register has been received; GST implementation is a separate task and public prices still make no GST claim.
+Phase 1 ships the webhook endpoint and local projection. Phase 2 ships demo-approved hosted Checkout (card + AU BECS) for an operator-prepared Essential or Practice offer. Do **not** enable live mode. Do **not** configure GST, Stripe Tax, or Tax Invoice extras. River Aftercare is not registering for GST at this stage, and no Stripe Tax work is planned. Public prices make no GST claim.
 
 Safe testing uses a local or other non-production database, Stripe TEST MODE keys, and Stripe CLI webhook forwarding. Do not point test Checkout or test webhooks at production Clinic billing records. Vercel Preview should receive test keys only when that preview uses a non-production database.
 
@@ -120,7 +120,7 @@ Practice → Essential is self-service for a clinic ADMIN on `/account/billing`,
 
 ## GST / tax
 
-Accountant approval to register for GST has been received. Do not configure Stripe Tax, a 10% GST rate, or Tax Invoice wording in the downgrade work. That is a separate task after the ATO effective date is known. Public prices stay the current AUD amounts with no GST claim.
+River Aftercare is not registering for GST at this stage. Do not configure Stripe Tax, a 10% GST rate, Tax Invoice wording, or GST price labels. No Stripe Tax work is currently planned. Public prices stay Essential A$79/month or A$790/year and Practice A$149/month or A$1,490/year, with no GST claim.
 
 ## Phase 5 Sandbox acceptance — do not use live mode
 
@@ -131,7 +131,7 @@ Scheduling again after Keep Practice allocates a new attempt id and checks the l
 Guide selection on a disposable local Practice clinic, before any further Stripe action:
 
 1. Create 5 original custom guides and 4 edited River-template copies. Essential base is 2, 2, and 4 combined.
-2. As clinic ADMIN, open `/account/billing` and choose **Review downgrade**. River must not call Stripe, and `commercialPlan` stays Practice. The operator clinic page should say the customer is preparing the move, with no Prepare, Schedule, or Keep Practice button.
+2. As clinic ADMIN, open `/account/billing` and choose **Change plan**. That only opens the review. River must not call Stripe, and `commercialPlan` stays Practice. The operator clinic page should say the customer is preparing the move, with no Prepare, Schedule, or Keep Practice button.
 3. Choose 3 custom guides and confirm. River rejects it.
 4. Choose 2 custom guides and 2 edited templates and confirm. Billing should say guide selection is confirmed. The operator panel should say guide selection is complete.
 5. Choose **Schedule downgrade** on Billing. River stays Practice. The Stripe schedule shape is the one already accepted in Sandbox. No operator action is required.

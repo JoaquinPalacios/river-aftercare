@@ -294,24 +294,26 @@ export default async function BillingStatusPage({
             presentation.kind === "restricted" ||
             presentation.kind === "inactive" ||
             presentation.kind === "retry" ? (
-              <a
-                href={context.contactHref}
-                className="staffBtn staffBtnSecondary mt-5 inline-flex h-11 items-center"
-              >
-                Contact River Aftercare
-              </a>
-            ) : null}
-            {presentation.kind === "active" ? (
-              <Link
-                href="/dashboard"
-                className={
-                  canManageBilling || presentation.attention
-                    ? "staffBtn staffBtnSecondary mt-5 inline-flex h-11 items-center"
-                    : "staffBtn staffBtnPrimary mt-5 inline-flex h-11 items-center"
-                }
-              >
-                Continue
-              </Link>
+              <div className="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <a
+                  href={context.contactHref}
+                  className="staffBtn staffBtnSecondary inline-flex h-11 w-full items-center sm:w-auto"
+                >
+                  Contact River Aftercare
+                </a>
+                {presentation.kind === "active" ? (
+                  <Link
+                    href="/dashboard"
+                    className={
+                      canManageBilling || presentation.attention
+                        ? "staffBtn staffBtnSecondary inline-flex h-11 w-full items-center sm:w-auto"
+                        : "staffBtn staffBtnPrimary inline-flex h-11 w-full items-center sm:w-auto"
+                    }
+                  >
+                    Continue
+                  </Link>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </section>
