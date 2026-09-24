@@ -77,6 +77,16 @@ function billingRecoveryPath(
   return BILLING_SETUP_PATH;
 }
 
+export async function clinicEntitlementIsActive(
+  clinicId: string
+): Promise<boolean> {
+  const row = await getPrisma().clinicEntitlement.findUnique({
+    where: { clinicId },
+    select: { entitlementStatus: true },
+  });
+  return row?.entitlementStatus === EntitlementStatus.ACTIVE;
+}
+
 export async function readClinicBillingAccess(
   membership: Pick<ClinicMembershipContext, "clinic" | "source">
 ): Promise<ClinicProductAccessDecision & { billingHref: string | null }> {

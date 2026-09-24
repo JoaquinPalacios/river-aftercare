@@ -16,7 +16,8 @@ import { TransientNotice } from "@/app/(staff)/components/transient-notice";
 export const KEEP_PRACTICE_NOTICE =
   "Your downgrade was cancelled. Your clinic will stay on Practice.";
 
-export const CANCEL_PLAN_CHANGE_NOTICE = "Plan change cancelled.";
+export const CANCEL_PLAN_CHANGE_NOTICE =
+  "Plan change cancelled. Your clinic will stay on Practice.";
 
 export function scheduledDowngradeNotice(effectiveLabel: string): string {
   return `Downgrade scheduled. Practice stays active until ${effectiveLabel}.`;

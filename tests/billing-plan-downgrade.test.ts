@@ -7,7 +7,9 @@ import {
   buildCancellationSupersedeUpdate,
   buildPracticeToEssentialScheduleUpdate,
   decideSubscriptionScheduleEvent,
+  cancelClinicPlanDowngrade,
   classifyAttachedDowngradeSchedule,
+  customerCancelPlanChangeMessage,
   executeClinicDowngradeReversal,
   executeClinicPlanDowngrade,
   PLAN_DOWNGRADE_BILLING_CYCLE_ANCHOR,
@@ -194,6 +196,7 @@ function port(options: {
   released?: DowngradeScheduleSnapshot;
   freezeLive?: boolean;
   updateThrows?: Error;
+  releaseThrows?: Error;
   freshIds?: boolean;
 }) {
   const calls = {
@@ -312,6 +315,9 @@ function port(options: {
           params,
           idempotencyKey: request?.idempotencyKey,
         });
+        if (options.releaseThrows) {
+          throw options.releaseThrows;
+        }
         const released =
           options.released ??
           schedule({
@@ -1438,5 +1444,377 @@ describe("rescheduling after Keep Practice", () => {
       ).toBe(true);
       error.mockRestore();
     }
+  });
+});
+
+describe("cancel plan change", () => {
+  const SANDBOX_ATTEMPT = "c14dbe30-ecfe-4136-8899-a2de4179b408";
+  const SANDBOX_SCHEDULE = "sub_sched_1UJ119GYMJ0lopfPkhOj7nLh";
+
+  function rawCopiedSchedule(id: string): DowngradeScheduleSnapshot {
+    return schedule({
+      id,
+      metadataClinicId: null,
+      metadataPurpose: null,
+      metadataAttemptId: null,
+      phases: [
+        phase({
+          priceId: "price_test_practice_monthly",
+          prorationBehavior: "create_prorations",
+        }),
+      ],
+    });
+  }
+
+  function completeDowngradeSchedule(id: string): DowngradeScheduleSnapshot {
+    return schedule({
+      id,
+      metadataAttemptId: ATTEMPT,
+      phases: [
+        phase({
+          priceId: "price_test_practice_monthly",
+          prorationBehavior: "none",
+        }),
+        phase({
+          priceId: "price_test_essential_monthly",
+          startDate: PERIOD_END,
+          endDate: PERIOD_END + 2_592_000,
+          prorationBehavior: "none",
+          billingCycleAnchor: PLAN_DOWNGRADE_BILLING_CYCLE_ANCHOR,
+        }),
+      ],
+    });
+  }
+
+  function logged(spy: { mock: { calls: unknown[][] } }, event: string) {
+    return spy.mock.calls.some((call) =>
+      JSON.stringify(call[0]).includes(`"event":"${event}"`)
+    );
+  }
+
+  it("deletes a local preparation when Stripe has no schedule and no attempt", async () => {
+    const cleared: string[] = [];
+    const fake = port({});
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const result = await cancelClinicPlanDowngrade({
+      state: state(),
+      actorUserId: "user_admin",
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      clear: async () => {
+        cleared.push("intent");
+      },
+    });
+    expect(result).toEqual({ ok: true, releasedSchedule: false });
+    expect(fake.calls.release).toHaveLength(0);
+    expect(fake.calls.create).toHaveLength(0);
+    expect(fake.calls.update).toHaveLength(0);
+    expect(fake.calls.retrieveSubscription).toBeGreaterThan(0);
+    expect(cleared).toEqual(["intent"]);
+    expect(logged(info, "plan_downgrade_preparation_cancelled")).toBe(true);
+    info.mockRestore();
+  });
+
+  it("retires an open attempt when the fresh subscription has no schedule", async () => {
+    const cleared: string[] = [];
+    const fake = port({});
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const result = await cancelClinicPlanDowngrade({
+      state: state({ stripePlanDowngradeAttemptId: "attempt-a" }),
+      actorUserId: "user_admin",
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      clear: async () => {
+        cleared.push("intent");
+      },
+    });
+    expect(result).toEqual({ ok: true, releasedSchedule: false });
+    expect(fake.calls.release).toHaveLength(0);
+    expect(fake.calls.create).toHaveLength(0);
+    expect(fake.calls.update).toHaveLength(0);
+    expect(cleared).toEqual(["intent"]);
+    expect(
+      info.mock.calls.some((call) => {
+        const entry = call[0] as { event?: string; attemptId?: string };
+        return (
+          entry.event === "plan_downgrade_preparation_cancelled" &&
+          entry.attemptId === "attempt-a"
+        );
+      })
+    ).toBe(true);
+    info.mockRestore();
+  });
+
+  it("releases the current Sandbox intermediate schedule before clearing the keep-set", async () => {
+    const order: string[] = [];
+    const fake = port({
+      subscription: subscription({ scheduleId: SANDBOX_SCHEDULE }),
+      existing: rawCopiedSchedule(SANDBOX_SCHEDULE),
+    });
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const result = await cancelClinicPlanDowngrade({
+      state: state({ stripePlanDowngradeAttemptId: SANDBOX_ATTEMPT }),
+      actorUserId: "user_admin",
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      clear: async () => {
+        order.push(fake.calls.release.length === 1 ? "clear" : "early-clear");
+      },
+    });
+    expect(result).toEqual({ ok: true, releasedSchedule: true });
+    expect(fake.calls.create).toHaveLength(0);
+    expect(fake.calls.update).toHaveLength(0);
+    expect(fake.calls.release).toHaveLength(1);
+    expect(fake.calls.release[0]).toMatchObject({
+      id: SANDBOX_SCHEDULE,
+      params: { preserve_cancel_date: false },
+      idempotencyKey: planDowngradeIdempotencyKey({
+        clinicId: "clinic_a",
+        stripeSubscriptionId: "sub_clinic_a",
+        attemptId: SANDBOX_ATTEMPT,
+        step: "release",
+      }),
+    });
+    const freshSubscription =
+      await fake.stripe.subscriptions.retrieve("sub_clinic_a");
+    const freshSchedule =
+      await fake.stripe.subscriptionSchedules.retrieve(SANDBOX_SCHEDULE);
+    expect(freshSubscription.scheduleId).toBeNull();
+    expect(freshSchedule.status).toBe("released");
+    expect(freshSchedule.releasedSubscriptionId).toBe("sub_clinic_a");
+    expect(order).toEqual(["clear"]);
+    expect(logged(info, "plan_downgrade_partial_schedule_released")).toBe(true);
+    expect(logged(info, "plan_downgrade_scheduled")).toBe(false);
+    info.mockRestore();
+  });
+
+  it("keeps the keep-set when release throws", async () => {
+    const fake = port({
+      subscription: subscription({ scheduleId: SANDBOX_SCHEDULE }),
+      existing: rawCopiedSchedule(SANDBOX_SCHEDULE),
+      releaseThrows: new Error("stripe unavailable"),
+    });
+    const error = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const result = await cancelClinicPlanDowngrade({
+      state: state({ stripePlanDowngradeAttemptId: SANDBOX_ATTEMPT }),
+      actorUserId: "user_admin",
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      clear: async () => {
+        throw new Error("must not clear");
+      },
+    });
+    expect(result).toEqual({ ok: false, code: "schedule_failed" });
+    expect(customerCancelPlanChangeMessage("schedule_failed")).toBe(
+      "We couldn’t cancel the plan change. Your Practice plan is unchanged. Please try again."
+    );
+    expect(fake.calls.create).toHaveLength(0);
+    expect(fake.calls.update).toHaveLength(0);
+    expect(fake.calls.release).toHaveLength(1);
+    expect(logged(error, "plan_downgrade_cancel_failed")).toBe(true);
+    error.mockRestore();
+  });
+
+  it("keeps the keep-set when release verification fails", async () => {
+    const fake = port({
+      subscription: subscription({ scheduleId: SANDBOX_SCHEDULE }),
+      existing: rawCopiedSchedule(SANDBOX_SCHEDULE),
+      freezeLive: true,
+    });
+    const error = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const result = await cancelClinicPlanDowngrade({
+      state: state({ stripePlanDowngradeAttemptId: SANDBOX_ATTEMPT }),
+      actorUserId: "user_admin",
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      clear: async () => {
+        throw new Error("must not clear");
+      },
+    });
+    expect(result).toEqual({ ok: false, code: "schedule_failed" });
+    expect(fake.calls.release).toHaveLength(1);
+    expect(fake.calls.update).toHaveLength(0);
+    expect(logged(error, "plan_downgrade_verification_failed")).toBe(true);
+    expect(logged(error, "plan_downgrade_cancel_failed")).toBe(true);
+    const subscriptionState =
+      await fake.stripe.subscriptions.retrieve("sub_clinic_a");
+    expect(subscriptionState.scheduleId).toBe(SANDBOX_SCHEDULE);
+    error.mockRestore();
+  });
+
+  it("releases a fully configured downgrade with the same release check as Keep Practice", async () => {
+    const cleared: string[] = [];
+    const fake = port({
+      subscription: subscription({ scheduleId: "sub_sched_done" }),
+      existing: completeDowngradeSchedule("sub_sched_done"),
+    });
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const result = await cancelClinicPlanDowngrade({
+      state: state({
+        stripeSubscriptionScheduleId: "sub_sched_done",
+        stripePlanDowngradeAttemptId: ATTEMPT,
+        scheduledCommercialPlan: "ESSENTIAL",
+        scheduledPlanEffectiveAt: new Date(PERIOD_END * 1000),
+      }),
+      actorUserId: "user_admin",
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      clear: async () => {
+        cleared.push("intent");
+      },
+    });
+    expect(result).toEqual({ ok: true, releasedSchedule: true });
+    expect(fake.calls.update).toHaveLength(0);
+    expect(fake.calls.create).toHaveLength(0);
+    expect(fake.calls.release[0]).toMatchObject({
+      id: "sub_sched_done",
+      params: { preserve_cancel_date: false },
+      idempotencyKey: planDowngradeIdempotencyKey({
+        clinicId: "clinic_a",
+        stripeSubscriptionId: "sub_clinic_a",
+        attemptId: ATTEMPT,
+        step: "release",
+      }),
+    });
+    expect(cleared).toEqual(["intent"]);
+    expect(logged(info, "plan_downgrade_reversed")).toBe(true);
+    info.mockRestore();
+  });
+
+  it("does not release or clear an attached schedule from another attempt", async () => {
+    const fake = port({
+      subscription: subscription({ scheduleId: "sub_sched_other" }),
+      existing: schedule({
+        id: "sub_sched_other",
+        metadataAttemptId: "attempt-other",
+      }),
+    });
+    const error = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const result = await cancelClinicPlanDowngrade({
+      state: state({ stripePlanDowngradeAttemptId: ATTEMPT }),
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      clear: async () => {
+        throw new Error("must not clear");
+      },
+    });
+    expect(result).toEqual({ ok: false, code: "unknown_schedule" });
+    expect(customerCancelPlanChangeMessage("unknown_schedule")).toContain(
+      "Please contact River Aftercare."
+    );
+    expect(fake.calls.release).toHaveLength(0);
+    expect(fake.calls.update).toHaveLength(0);
+    expect(logged(error, "plan_downgrade_cancel_failed")).toBe(true);
+    expect(JSON.stringify(error.mock.calls)).toContain("schedule_attempt");
+    expect(JSON.stringify(error.mock.calls)).not.toContain("sk_");
+    error.mockRestore();
+  });
+
+  it("does not release a schedule with conflicting clinic metadata", async () => {
+    const conflicting = port({
+      subscription: subscription({ scheduleId: "sub_sched_other" }),
+      existing: schedule({
+        id: "sub_sched_other",
+        metadataClinicId: "clinic_other",
+        metadataPurpose: null,
+        metadataAttemptId: null,
+        phases: [
+          phase({
+            priceId: "price_test_practice_monthly",
+            prorationBehavior: "create_prorations",
+          }),
+        ],
+      }),
+    });
+    const result = await cancelClinicPlanDowngrade({
+      state: state({ stripePlanDowngradeAttemptId: ATTEMPT }),
+      env: BILLING_TEST_ENV,
+      stripe: conflicting.stripe,
+      clear: async () => {
+        throw new Error("must not clear");
+      },
+    });
+    expect(result).toEqual({ ok: false, code: "unknown_schedule" });
+    expect(conflicting.calls.release).toHaveLength(0);
+    expect(conflicting.calls.update).toHaveLength(0);
+  });
+
+  it("reconciles a stale local projection and then clears the preparation", async () => {
+    const cleared: string[] = [];
+    const fake = port({});
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const result = await cancelClinicPlanDowngrade({
+      state: state({
+        stripeSubscriptionScheduleId: "sub_sched_old",
+        stripePlanDowngradeAttemptId: "attempt-old",
+        scheduledCommercialPlan: "ESSENTIAL",
+        scheduledPlanEffectiveAt: new Date(PERIOD_END * 1000),
+      }),
+      actorUserId: "user_admin",
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      clear: async () => {
+        cleared.push("intent");
+      },
+    });
+    expect(result).toEqual({ ok: true, releasedSchedule: false });
+    expect(fake.calls.release).toHaveLength(0);
+    expect(cleared).toEqual(["intent"]);
+    expect(logged(info, "plan_downgrade_stale_projection_reconciled")).toBe(
+      true
+    );
+    expect(logged(info, "plan_downgrade_preparation_cancelled")).toBe(true);
+    info.mockRestore();
+  });
+
+  it("allocates a new attempt after a successful cancellation", async () => {
+    let attemptId: string | null = SANDBOX_ATTEMPT;
+    const fake = port({
+      subscription: subscription({ scheduleId: SANDBOX_SCHEDULE }),
+      existing: rawCopiedSchedule(SANDBOX_SCHEDULE),
+      freshIds: true,
+    });
+    const cancelled = await cancelClinicPlanDowngrade({
+      state: state({ stripePlanDowngradeAttemptId: SANDBOX_ATTEMPT }),
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      clear: async () => {
+        attemptId = null;
+      },
+    });
+    expect(cancelled).toEqual({ ok: true, releasedSchedule: true });
+    expect(attemptId).toBeNull();
+
+    const scheduled = await executeClinicPlanDowngrade({
+      state: state(),
+      readiness: readiness({}),
+      env: BILLING_TEST_ENV,
+      stripe: fake.stripe,
+      persist: async () => undefined,
+      ensureAttempt: async () => {
+        if (attemptId) {
+          return { attemptId, created: false };
+        }
+        attemptId = "attempt-b";
+        return { attemptId, created: true };
+      },
+      clearProjection: async () => undefined,
+    });
+    expect(scheduled).toMatchObject({ ok: true, alreadyScheduled: false });
+    expect(attemptId).toBe("attempt-b");
+    expect(fake.calls.create.at(-1)?.idempotencyKey).toContain("attempt-b");
+    expect(fake.calls.create.at(-1)?.idempotencyKey).not.toContain(
+      SANDBOX_ATTEMPT
+    );
+    expect(fake.calls.update.at(-1)?.idempotencyKey).toContain("attempt-b");
+    expect(fake.calls.update.at(-1)?.idempotencyKey).not.toContain(
+      SANDBOX_ATTEMPT
+    );
   });
 });

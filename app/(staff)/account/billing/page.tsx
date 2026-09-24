@@ -40,6 +40,7 @@ export default async function BillingStatusPage({
     downgrade &&
     !view?.scheduledPlanChange &&
     (downgrade.preparationStatus !== "none" ||
+      downgrade.attemptOpen ||
       params["change-plan"] === "essential")
   );
   const showEntry = Boolean(

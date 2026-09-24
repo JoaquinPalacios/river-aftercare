@@ -205,7 +205,8 @@ export function UpgradePlanForm({
           {openDowngradeAttemptId ? (
             <p className="mt-2" role="status">
               A scheduling attempt is still open ({openDowngradeAttemptId}). The
-              clinic administrator can retry from Billing.
+              clinic administrator can schedule or cancel the plan change from
+              Billing.
             </p>
           ) : null}
         </div>

@@ -7,6 +7,7 @@ import {
   type Prisma,
 } from "@prisma/client";
 
+import { clinicEntitlementIsActive } from "@/lib/billing/activation-gate";
 import { logDowngradeGuideSelection } from "@/lib/entitlements/downgrade-selection-log";
 import { type EssentialDowngradeReadiness } from "@/lib/entitlements/downgrade-readiness";
 import {
@@ -307,19 +308,21 @@ export async function beginClinicPlanDowngrade(input: {
   | { ok: false; error: string }
 > {
   const prisma = getPrisma();
-  const entitlement = await prisma.clinicEntitlement.findUnique({
-    where: { clinicId: input.clinicId },
-    select: {
-      commercialPlan: true,
-      billingInterval: true,
-      entitlementStatus: true,
-      billingStatus: true,
-      cancelAtPeriodEnd: true,
-      scheduledCommercialPlan: true,
-      extraCustomGuideAllowance: true,
-      extraTemplateAdaptationAllowance: true,
-    },
-  });
+  const [entitlement, entitlementActive] = await Promise.all([
+    prisma.clinicEntitlement.findUnique({
+      where: { clinicId: input.clinicId },
+      select: {
+        commercialPlan: true,
+        billingInterval: true,
+        billingStatus: true,
+        cancelAtPeriodEnd: true,
+        scheduledCommercialPlan: true,
+        extraCustomGuideAllowance: true,
+        extraTemplateAdaptationAllowance: true,
+      },
+    }),
+    clinicEntitlementIsActive(input.clinicId),
+  ]);
   const profile = await prisma.clinicBillingProfile.findUnique({
     where: { clinicId: input.clinicId },
     select: { stripeSubscriptionId: true, stripeCheckoutSessionId: true },
@@ -334,7 +337,7 @@ export async function beginClinicPlanDowngrade(input: {
     entitlement?.commercialPlan !== "PRACTICE" ||
     !entitlement.billingInterval ||
     !profile?.stripeSubscriptionId ||
-    entitlement.entitlementStatus !== "ACTIVE" ||
+    !entitlementActive ||
     entitlement.billingStatus !== "ACTIVE" ||
     entitlement.cancelAtPeriodEnd ||
     entitlement.scheduledCommercialPlan
@@ -384,37 +387,6 @@ export async function beginClinicPlanDowngrade(input: {
     },
   });
   return { ok: true, guideSelectionRequired: true, status: "awaiting" };
-}
-
-export async function cancelClinicDowngradePreparation(input: {
-  clinicId: string;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
-  const prisma = getPrisma();
-  const entitlement = await prisma.clinicEntitlement.findUnique({
-    where: { clinicId: input.clinicId },
-    select: { scheduledCommercialPlan: true, commercialPlan: true },
-  });
-  const profile = await prisma.clinicBillingProfile.findUnique({
-    where: { clinicId: input.clinicId },
-    select: { stripeSubscriptionScheduleId: true },
-  });
-  if (entitlement?.commercialPlan !== "PRACTICE") {
-    return { ok: false, error: "This clinic is not preparing a plan change." };
-  }
-  if (
-    entitlement.scheduledCommercialPlan ||
-    profile?.stripeSubscriptionScheduleId
-  ) {
-    return {
-      ok: false,
-      error:
-        "A scheduled plan change is already in place. Choose Keep Practice instead.",
-    };
-  }
-  await prisma.clinicDowngradePreparation.deleteMany({
-    where: { clinicId: input.clinicId },
-  });
-  return { ok: true };
 }
 
 async function clinicAdminMayConfirm(

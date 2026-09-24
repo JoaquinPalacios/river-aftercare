@@ -174,6 +174,19 @@ describe("self-service change plan panel", () => {
     expect(button("Cancel plan change")).toBeTruthy();
   });
 
+  it("keeps Cancel plan change available when scheduling is not ready", async () => {
+    await render({
+      phase: "review",
+      guidesFit: false,
+      preparationStatus: "confirmed",
+      scheduleReady: false,
+      canCancelPreparation: true,
+    });
+    expect(button("Cancel plan change")).toBeTruthy();
+    expect(button("Schedule downgrade")?.disabled).toBe(true);
+    expect(button("Keep Practice")).toBeUndefined();
+  });
+
   it("hides plan-changing controls from staff", async () => {
     await render({
       phase: "review",

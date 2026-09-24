@@ -14,8 +14,11 @@ import {
 import { afterAll, describe, expect, it } from "vitest";
 
 import {
+  customerCancelPlanChangeMessage,
   executeClinicDowngradeReversal,
   executeClinicPlanDowngrade,
+  submitClinicPlanDowngradeCancellation,
+  type PlanDowngradeStripePort,
 } from "@/lib/billing/plan-downgrade";
 import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practice-guide";
 import { listPublishedPracticeGuides } from "@/lib/aftercare/list-published-practice-guides";
@@ -26,7 +29,6 @@ import {
   assessGuideRestore,
   assessOperatorExtraChangeForDowngrade,
   beginClinicPlanDowngrade,
-  cancelClinicDowngradePreparation,
   confirmClinicDowngradeSelection,
   validateKeepSelection,
 } from "@/lib/entitlements/downgrade-selection";
@@ -1459,11 +1461,96 @@ describe("downgrade guide selection persistence", () => {
     await prisma.user.delete({ where: { id: extraUserId } });
   });
 
+  function cancelStripe(input: {
+    scheduleId: string | null;
+    release?: "ok" | "throw";
+    metadataClinicId?: string | null;
+  }): { stripe: PlanDowngradeStripePort; releases: string[] } {
+    const releases: string[] = [];
+    let liveScheduleId = input.scheduleId;
+    let released = false;
+    const phaseEnd = 1_792_647_594;
+    const stripe: PlanDowngradeStripePort = {
+      subscriptions: {
+        async retrieve() {
+          return {
+            id: `${PREFIX}sub`,
+            status: "active",
+            scheduleId: released ? null : liveScheduleId,
+            cancelAtPeriodEnd: false,
+            itemCount: 1,
+            itemId: "si",
+            priceId: "price_test_practice_monthly",
+            quantity: 1,
+            periodEnd: phaseEnd,
+            discountsPresent: false,
+            trialPresent: false,
+            taxRatesPresent: false,
+          };
+        },
+      },
+      subscriptionSchedules: {
+        async create() {
+          throw new Error("cancel must not create a schedule");
+        },
+        async update() {
+          throw new Error("cancel must not update a schedule");
+        },
+        async retrieve(id: string) {
+          return {
+            id,
+            status: released ? "released" : "active",
+            endBehavior: "release",
+            subscriptionId: released ? null : `${PREFIX}sub`,
+            releasedSubscriptionId: released ? `${PREFIX}sub` : null,
+            metadataClinicId: input.metadataClinicId ?? null,
+            metadataPurpose: null,
+            metadataAttemptId: null,
+            phases: [
+              {
+                priceId: "price_test_practice_monthly",
+                quantity: 1,
+                startDate: 1_761_169_194,
+                endDate: phaseEnd,
+                prorationBehavior: "create_prorations",
+                billingCycleAnchor: null,
+                hasExtras: false,
+              },
+            ],
+          };
+        },
+        async release(id: string) {
+          releases.push(id);
+          if (input.release === "throw") {
+            throw new Error("release failed");
+          }
+          released = true;
+          liveScheduleId = null;
+          return {
+            id,
+            status: "released",
+            endBehavior: "release",
+            subscriptionId: null,
+            releasedSubscriptionId: `${PREFIX}sub`,
+            metadataClinicId: input.metadataClinicId ?? null,
+            metadataPurpose: null,
+            metadataAttemptId: null,
+            phases: [],
+          };
+        },
+      },
+    };
+    return { stripe, releases };
+  }
+
   it("cancels a local preparation without changing Practice or the guides", async () => {
     await seedPractice();
     await prisma.clinicBillingProfile.update({
       where: { clinicId: CLINIC_ID },
-      data: { stripeSubscriptionScheduleId: null },
+      data: {
+        stripeSubscriptionScheduleId: null,
+        stripePlanDowngradeAttemptId: null,
+      },
     });
     for (const [id, title, slug] of [
       [`${PREFIX}cc1`, "C1", "cc1"],
@@ -1480,10 +1567,15 @@ describe("downgrade guide selection persistence", () => {
       selectedIds: [`${PREFIX}cc1`, `${PREFIX}cc2`],
     });
     expect(confirmed.ok).toBe(true);
-    const cancelled = await cancelClinicDowngradePreparation({
+    const stripe = cancelStripe({ scheduleId: null });
+    const cancelled = await submitClinicPlanDowngradeCancellation({
       clinicId: CLINIC_ID,
+      actorUserId: ADMIN_ID,
+      env: BILLING_TEST_ENV,
+      stripe: stripe.stripe,
     });
-    expect(cancelled).toEqual({ ok: true });
+    expect(cancelled).toEqual({ ok: true, releasedSchedule: false });
+    expect(stripe.releases).toEqual([]);
     expect(
       await prisma.clinicDowngradePreparation.findUnique({
         where: { clinicId: CLINIC_ID },
@@ -1499,28 +1591,197 @@ describe("downgrade guide selection persistence", () => {
     });
     expect(entitlement.commercialPlan).toBe("PRACTICE");
     expect(entitlement.scheduledCommercialPlan).toBeNull();
-    expect(
-      await prisma.practiceGuide.count({ where: { clinicId: CLINIC_ID } })
-    ).toBe(3);
+    const guides = await prisma.practiceGuide.findMany({
+      where: { clinicId: CLINIC_ID },
+    });
+    expect(guides).toHaveLength(3);
+    expect(guides.every((guide) => guide.downgradeRetainedAt == null)).toBe(
+      true
+    );
   });
 
-  it("refuses to cancel preparation after a downgrade is already scheduled", async () => {
+  it("preserves the keep-set when the attached schedule is not this attempt", async () => {
     await seedPractice();
+    const confirmedAt = new Date("2026-10-01T00:00:00.000Z");
+    await createOwnedGuide({
+      id: `${PREFIX}unknown`,
+      title: "Unknown",
+      slug: "unknown-guide",
+      kind: "custom",
+    });
+    await prisma.clinicBillingProfile.update({
+      where: { clinicId: CLINIC_ID },
+      data: { stripePlanDowngradeAttemptId: `${PREFIX}attempt` },
+    });
     await prisma.clinicDowngradePreparation.create({
       data: {
         clinicId: CLINIC_ID,
         targetPlan: "ESSENTIAL",
         status: DowngradePreparationStatus.SELECTION_CONFIRMED,
+        confirmedAt,
+        confirmedByUserId: ADMIN_ID,
+        selections: { create: [{ practiceGuideId: `${PREFIX}unknown` }] },
       },
     });
-    const refused = await cancelClinicDowngradePreparation({
-      clinicId: CLINIC_ID,
+    const stripe = cancelStripe({
+      scheduleId: `${PREFIX}sched`,
+      metadataClinicId: "clinic_other",
     });
-    expect(refused.ok).toBe(false);
+    const refused = await submitClinicPlanDowngradeCancellation({
+      clinicId: CLINIC_ID,
+      actorUserId: ADMIN_ID,
+      env: BILLING_TEST_ENV,
+      stripe: stripe.stripe,
+    });
+    expect(refused).toMatchObject({ ok: false, code: "unknown_schedule" });
+    expect(customerCancelPlanChangeMessage("unknown_schedule")).toBe(
+      "We couldn’t cancel the plan change automatically. Your Practice plan is unchanged. Please contact River Aftercare."
+    );
+    expect(stripe.releases).toEqual([]);
+    const preparation = await prisma.clinicDowngradePreparation.findUnique({
+      where: { clinicId: CLINIC_ID },
+    });
+    expect(preparation?.status).toBe(
+      DowngradePreparationStatus.SELECTION_CONFIRMED
+    );
+    expect(preparation?.confirmedAt).toEqual(confirmedAt);
+    expect(preparation?.confirmedByUserId).toBe(ADMIN_ID);
+    expect(
+      await prisma.downgradeGuideSelection.count({
+        where: { practiceGuideId: `${PREFIX}unknown` },
+      })
+    ).toBe(1);
+    const profile = await prisma.clinicBillingProfile.findUniqueOrThrow({
+      where: { clinicId: CLINIC_ID },
+    });
+    expect(profile.stripePlanDowngradeAttemptId).toBe(`${PREFIX}attempt`);
+  });
+
+  it("preserves a confirmed keep-set when releasing the intermediate schedule fails", async () => {
+    await seedPractice();
+    const confirmedAt = new Date("2026-10-02T00:00:00.000Z");
+    await createOwnedGuide({
+      id: `${PREFIX}hold`,
+      title: "Hold",
+      slug: "hold-guide",
+      kind: "custom",
+    });
+    await prisma.clinicBillingProfile.update({
+      where: { clinicId: CLINIC_ID },
+      data: {
+        stripeSubscriptionScheduleId: null,
+        stripePlanDowngradeAttemptId: `${PREFIX}attempt`,
+      },
+    });
+    await prisma.clinicDowngradePreparation.create({
+      data: {
+        clinicId: CLINIC_ID,
+        targetPlan: "ESSENTIAL",
+        status: DowngradePreparationStatus.SELECTION_CONFIRMED,
+        confirmedAt,
+        confirmedByUserId: ADMIN_ID,
+        selections: { create: [{ practiceGuideId: `${PREFIX}hold` }] },
+      },
+    });
+    const stripe = cancelStripe({
+      scheduleId: `${PREFIX}sched`,
+      release: "throw",
+    });
+    const failed = await submitClinicPlanDowngradeCancellation({
+      clinicId: CLINIC_ID,
+      actorUserId: ADMIN_ID,
+      env: BILLING_TEST_ENV,
+      stripe: stripe.stripe,
+    });
+    expect(failed).toEqual({ ok: false, code: "schedule_failed" });
+    expect(customerCancelPlanChangeMessage("schedule_failed")).toContain(
+      "Please try again."
+    );
+    expect(stripe.releases).toEqual([`${PREFIX}sched`]);
+    const preparation = await prisma.clinicDowngradePreparation.findUnique({
+      where: { clinicId: CLINIC_ID },
+    });
+    expect(preparation?.status).toBe(
+      DowngradePreparationStatus.SELECTION_CONFIRMED
+    );
+    expect(preparation?.confirmedAt).toEqual(confirmedAt);
+    expect(preparation?.confirmedByUserId).toBe(ADMIN_ID);
+    expect(
+      await prisma.downgradeGuideSelection.count({
+        where: { practiceGuideId: `${PREFIX}hold` },
+      })
+    ).toBe(1);
+    const profile = await prisma.clinicBillingProfile.findUniqueOrThrow({
+      where: { clinicId: CLINIC_ID },
+    });
+    expect(profile.stripePlanDowngradeAttemptId).toBe(`${PREFIX}attempt`);
+    const guide = await prisma.practiceGuide.findUniqueOrThrow({
+      where: { id: `${PREFIX}hold` },
+    });
+    expect(guide.downgradeRetainedAt).toBeNull();
+    const entitlement = await prisma.clinicEntitlement.findUniqueOrThrow({
+      where: { clinicId: CLINIC_ID },
+    });
+    expect(entitlement.commercialPlan).toBe("PRACTICE");
+  });
+
+  it("releases an attached intermediate schedule and then deletes the keep-set", async () => {
+    await seedPractice();
+    await createOwnedGuide({
+      id: `${PREFIX}mid`,
+      title: "Mid",
+      slug: "mid-guide",
+      kind: "custom",
+    });
+    await prisma.clinicBillingProfile.update({
+      where: { clinicId: CLINIC_ID },
+      data: {
+        stripeSubscriptionScheduleId: null,
+        stripePlanDowngradeAttemptId: `${PREFIX}attempt`,
+      },
+    });
+    await prisma.clinicDowngradePreparation.create({
+      data: {
+        clinicId: CLINIC_ID,
+        targetPlan: "ESSENTIAL",
+        status: DowngradePreparationStatus.SELECTION_CONFIRMED,
+        confirmedAt: new Date("2026-10-03T00:00:00.000Z"),
+        confirmedByUserId: ADMIN_ID,
+        selections: { create: [{ practiceGuideId: `${PREFIX}mid` }] },
+      },
+    });
+    const stripe = cancelStripe({ scheduleId: `${PREFIX}sched` });
+    const cancelled = await submitClinicPlanDowngradeCancellation({
+      clinicId: CLINIC_ID,
+      actorUserId: ADMIN_ID,
+      env: BILLING_TEST_ENV,
+      stripe: stripe.stripe,
+    });
+    expect(cancelled).toEqual({ ok: true, releasedSchedule: true });
+    expect(stripe.releases).toEqual([`${PREFIX}sched`]);
     expect(
       await prisma.clinicDowngradePreparation.findUnique({
         where: { clinicId: CLINIC_ID },
       })
-    ).not.toBeNull();
+    ).toBeNull();
+    expect(
+      await prisma.downgradeGuideSelection.count({
+        where: { practiceGuideId: `${PREFIX}mid` },
+      })
+    ).toBe(0);
+    const profile = await prisma.clinicBillingProfile.findUniqueOrThrow({
+      where: { clinicId: CLINIC_ID },
+    });
+    expect(profile.stripePlanDowngradeAttemptId).toBeNull();
+    expect(profile.stripeSubscriptionScheduleId).toBeNull();
+    const guide = await prisma.practiceGuide.findUniqueOrThrow({
+      where: { id: `${PREFIX}mid` },
+    });
+    expect(guide.downgradeRetainedAt).toBeNull();
+    const entitlement = await prisma.clinicEntitlement.findUniqueOrThrow({
+      where: { clinicId: CLINIC_ID },
+    });
+    expect(entitlement.commercialPlan).toBe("PRACTICE");
+    expect(entitlement.scheduledCommercialPlan).toBeNull();
   });
 });

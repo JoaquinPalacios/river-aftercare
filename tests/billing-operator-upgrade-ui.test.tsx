@@ -361,7 +361,7 @@ describe("operator upgrade refresh", () => {
     expect(container.textContent).toContain(GUIDE_SELECTION_COMPLETE_MESSAGE);
     expect(container.textContent).toContain("Selected clinic-owned guides: 3");
     expect(container.textContent).toContain(
-      "A scheduling attempt is still open (c14dbe30-ecfe-4136-8899-a2de4179b408)."
+      "A scheduling attempt is still open (c14dbe30-ecfe-4136-8899-a2de4179b408). The clinic administrator can schedule or cancel the plan change from Billing."
     );
     expect(container.textContent).not.toContain("Schedule downgrade");
     expect(container.textContent).not.toContain("Keep Practice");

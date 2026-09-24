@@ -400,6 +400,7 @@ export type ClinicSelfServeDowngrade = {
   scheduleReady: boolean;
   blockedMessage: string | null;
   canCancelPreparation: boolean;
+  attemptOpen: boolean;
 };
 
 async function loadSelfServeDowngrade(input: {
@@ -463,7 +464,12 @@ async function loadSelfServeDowngrade(input: {
     Boolean(input.stripeSubscriptionId) &&
     !input.cancelAtPeriodEnd &&
     !input.scheduledCommercialPlan;
-  if (!entryAvailable && !preparation && !scheduled) {
+  if (
+    !entryAvailable &&
+    !preparation &&
+    !scheduled &&
+    !input.stripePlanDowngradeAttemptId
+  ) {
     return null;
   }
   return {
@@ -486,10 +492,10 @@ async function loadSelfServeDowngrade(input: {
         ? null
         : customerPlanDowngradeMessage(assessed.code),
     canCancelPreparation: Boolean(
-      preparation &&
       !input.scheduledCommercialPlan &&
-      !input.stripeSubscriptionScheduleId
+      (preparation || input.stripePlanDowngradeAttemptId)
     ),
+    attemptOpen: Boolean(input.stripePlanDowngradeAttemptId && !scheduled),
   };
 }
 

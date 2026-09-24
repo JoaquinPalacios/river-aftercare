@@ -7,14 +7,15 @@ import { revalidatePath } from "next/cache";
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
 import { formatBillingDate } from "@/lib/billing/billing-presentation";
 import {
+  customerCancelPlanChangeMessage,
   customerKeepPracticeMessage,
   customerPlanDowngradeMessage,
   submitClinicDowngradeReversal,
   submitClinicPlanDowngrade,
+  submitClinicPlanDowngradeCancellation,
 } from "@/lib/billing/plan-downgrade";
 import {
   beginClinicPlanDowngrade,
-  cancelClinicDowngradePreparation,
   confirmClinicDowngradeSelection,
   keepSelectionMessage,
 } from "@/lib/entitlements/downgrade-selection";
@@ -301,12 +302,13 @@ export async function cancelClinicPlanChangeAction(
   if (!actor.ok) {
     return { error: actor.error };
   }
-  const result = await cancelClinicDowngradePreparation({
+  const result = await submitClinicPlanDowngradeCancellation({
     clinicId: actor.clinicId,
+    actorUserId: actor.userId,
   });
   revalidatePlanChange(actor.clinicId);
   if (!result.ok) {
-    return { error: result.error };
+    return { error: customerCancelPlanChangeMessage(result.code) };
   }
   return { notice: "cancelled" };
 }

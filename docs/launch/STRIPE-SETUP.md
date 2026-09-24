@@ -137,7 +137,12 @@ Guide selection on a disposable local Practice clinic, before any further Stripe
 5. Choose **Schedule downgrade** on Billing. River stays Practice. The Stripe schedule shape is the one already accepted in Sandbox. No operator action is required.
 6. Choose **Keep Practice** on Billing. Preparation and the keep-set are cleared. No guide is retained or deleted.
 
-The current Sandbox subscription already has an attached intermediate schedule from a failed update (`sub_sched_1UJ119GYMJ0lopfPkhOj7nLh`, attempt `c14dbe30-ecfe-4136-8899-a2de4179b408`). Do not release it first. As clinic ADMIN, open Billing, confirm the saved guide selection is still there, and choose **Schedule downgrade**. River should update that same schedule: metadata filled in, Practice then Essential, both phases `proration_behavior: none`, still active and attached. Then test **Keep Practice**. Do not use **Cancel plan change** on that clinic before scheduling: the local schedule id was never stored, so cancel would delete the keep-set without touching Stripe.
+The current Sandbox subscription already has an attached intermediate schedule from a failed update (`sub_sched_1UJ119GYMJ0lopfPkhOj7nLh`, attempt `c14dbe30-ecfe-4136-8899-a2de4179b408`). Do not release it by hand. As clinic ADMIN, open Billing and confirm the saved guide selection is still there. Two choices are valid:
+
+- **Schedule downgrade** finishes the change. River reuses that attempt, classifies the one Practice phase (`metadata {}`, `proration_behavior: create_prorations`) as the current intermediate, updates that same schedule, and persists the downgrade only after a fresh verify. Then test **Keep Practice**.
+- **Cancel plan change** abandons the change. River releases that schedule with the attempt’s release key, verifies `released`, `released_subscription`, and `subscription.schedule = null`, and only then clears the attempt, preparation, and keep-set. Practice stays Practice. Guides are not retained or deleted. If the release fails, the keep-set and the attempt stay so the action can be retried.
+
+Choose Schedule downgrade when the goal is to finish this Sandbox downgrade. Cancel plan change is safe, and it will release the attached schedule.
 
 Renewal retention uses a **Test Clock** and a disposable clinic, not the already-accepted Sandbox subscription. The Subscription Schedule request itself was already proven and must not be redesigned.
 

@@ -274,6 +274,20 @@ export function customerPlanDowngradeMessage(code: PlanDowngradeCode): string {
   }
 }
 
+export function customerCancelPlanChangeMessage(
+  code: PlanDowngradeCode
+): string {
+  if (
+    code === "unknown_schedule" ||
+    code === "subscription_shape" ||
+    code === "unsupported" ||
+    code === "already_transitioned"
+  ) {
+    return "We couldn’t cancel the plan change automatically. Your Practice plan is unchanged. Please contact River Aftercare.";
+  }
+  return "We couldn’t cancel the plan change. Your Practice plan is unchanged. Please try again.";
+}
+
 export function customerKeepPracticeMessage(code: PlanDowngradeCode): string {
   if (
     code === "unknown_schedule" ||
@@ -1346,6 +1360,302 @@ export async function executeClinicPlanDowngrade(input: {
   }
 }
 
+async function releaseVerifiedDowngradeSchedule(input: {
+  stripe: PlanDowngradeStripePort;
+  clinicId: string;
+  scheduleId: string;
+  subscriptionId: string;
+  attemptId: string;
+}): Promise<{ ok: true } | { ok: false }> {
+  await input.stripe.subscriptionSchedules.release(
+    input.scheduleId,
+    { preserve_cancel_date: false },
+    {
+      idempotencyKey: planDowngradeIdempotencyKey({
+        clinicId: input.clinicId,
+        stripeSubscriptionId: input.subscriptionId,
+        attemptId: input.attemptId,
+        step: "release",
+      }),
+    }
+  );
+  const freshSchedule = await input.stripe.subscriptionSchedules.retrieve(
+    input.scheduleId
+  );
+  const freshSubscription = await input.stripe.subscriptions.retrieve(
+    input.subscriptionId
+  );
+  const releasedId =
+    freshSchedule.releasedSubscriptionId ?? freshSchedule.subscriptionId;
+  if (
+    freshSchedule.status !== "released" ||
+    freshSubscription.scheduleId ||
+    releasedId !== input.subscriptionId
+  ) {
+    logVerificationFailed({
+      clinicId: input.clinicId,
+      stripeSubscriptionId: freshSubscription.id,
+      scheduleId: freshSchedule.id,
+      attemptId: input.attemptId,
+      scheduleStatus: freshSchedule.status,
+      observedScheduleId: freshSubscription.scheduleId,
+      reason:
+        freshSchedule.status !== "released"
+          ? "schedule_status"
+          : "subscription_attachment",
+    });
+    return { ok: false };
+  }
+  return { ok: true };
+}
+
+function cancelPlanChangeFailure(input: {
+  clinicId: string;
+  attemptId: string | null;
+  reason: string;
+  code: PlanDowngradeCode;
+}): { ok: false; code: PlanDowngradeCode } {
+  logStripeBilling({
+    event: "plan_downgrade_cancel_failed",
+    clinicId: input.clinicId,
+    attemptId: input.attemptId,
+    reason: input.reason,
+  });
+  return { ok: false, code: input.code };
+}
+
+/**
+ * Abandons an in-progress Practice → Essential change.
+ * Fresh Stripe state decides whether the cleanup is local or a release.
+ * The keep-set is deleted only after that check succeeds.
+ */
+export async function cancelClinicPlanDowngrade(input: {
+  state: PlanDowngradeState;
+  actorUserId?: string | null;
+  env?: Env;
+  stripe?: PlanDowngradeStripePort;
+  clear?: (row: { clinicId: string }) => Promise<void>;
+}): Promise<
+  | { ok: true; releasedSchedule: boolean }
+  | { ok: false; code: PlanDowngradeCode }
+> {
+  const clear = input.clear ?? clearScheduledDowngrade;
+  if (input.state.commercialPlan === "GROUP") {
+    return cancelPlanChangeFailure({
+      clinicId: input.state.clinicId,
+      attemptId: input.state.stripePlanDowngradeAttemptId,
+      reason: "unsupported",
+      code: "unsupported",
+    });
+  }
+  if (input.state.commercialPlan === "ESSENTIAL") {
+    return cancelPlanChangeFailure({
+      clinicId: input.state.clinicId,
+      attemptId: input.state.stripePlanDowngradeAttemptId,
+      reason: "already_transitioned",
+      code: "already_transitioned",
+    });
+  }
+  if (input.state.commercialPlan !== "PRACTICE") {
+    return cancelPlanChangeFailure({
+      clinicId: input.state.clinicId,
+      attemptId: input.state.stripePlanDowngradeAttemptId,
+      reason: "unsupported",
+      code: "unsupported",
+    });
+  }
+
+  const attemptId = input.state.stripePlanDowngradeAttemptId;
+  const needsStripe = Boolean(
+    input.state.stripeSubscriptionId ||
+    attemptId ||
+    claimsScheduledProjection(input.state)
+  );
+  if (!input.state.stripeSubscriptionId) {
+    if (needsStripe) {
+      return cancelPlanChangeFailure({
+        clinicId: input.state.clinicId,
+        attemptId,
+        reason: "no_subscription",
+        code: "schedule_failed",
+      });
+    }
+    await clear({ clinicId: input.state.clinicId });
+    logStripeBilling({
+      event: "plan_downgrade_preparation_cancelled",
+      clinicId: input.state.clinicId,
+      actorUserId: input.actorUserId ?? null,
+      attemptId: null,
+    });
+    return { ok: true, releasedSchedule: false };
+  }
+
+  let practicePriceId: string;
+  let essentialPriceId: string;
+  try {
+    practicePriceId = stripePriceIdForPlan(
+      "PRACTICE",
+      input.state.billingInterval ?? "MONTHLY",
+      input.env
+    );
+    essentialPriceId = stripePriceIdForPlan(
+      "ESSENTIAL",
+      input.state.billingInterval ?? "MONTHLY",
+      input.env
+    );
+  } catch (error) {
+    if (error instanceof StripePriceMappingError) {
+      return cancelPlanChangeFailure({
+        clinicId: input.state.clinicId,
+        attemptId,
+        reason: "price_not_configured",
+        code: "price_not_configured",
+      });
+    }
+    throw error;
+  }
+
+  let stripe = input.stripe;
+  if (!stripe) {
+    try {
+      stripe = downgradeStripePort(getStripeClient(input.env));
+    } catch {
+      return cancelPlanChangeFailure({
+        clinicId: input.state.clinicId,
+        attemptId,
+        reason: "schedule_failed",
+        code: "schedule_failed",
+      });
+    }
+  }
+
+  try {
+    const subscription = await stripe.subscriptions.retrieve(
+      input.state.stripeSubscriptionId
+    );
+    if (subscription.priceId !== practicePriceId) {
+      return cancelPlanChangeFailure({
+        clinicId: input.state.clinicId,
+        attemptId,
+        reason: "already_transitioned",
+        code: "already_transitioned",
+      });
+    }
+    if (!subscription.scheduleId) {
+      if (claimsScheduledProjection(input.state)) {
+        logStripeBilling({
+          event: "plan_downgrade_stale_projection_reconciled",
+          clinicId: input.state.clinicId,
+          scheduleId: input.state.stripeSubscriptionScheduleId,
+          attemptId,
+        });
+      }
+      await clear({ clinicId: input.state.clinicId });
+      logStripeBilling({
+        event: "plan_downgrade_preparation_cancelled",
+        clinicId: input.state.clinicId,
+        actorUserId: input.actorUserId ?? null,
+        attemptId,
+      });
+      return { ok: true, releasedSchedule: false };
+    }
+    if (!attemptId || subscription.periodEnd == null) {
+      return cancelPlanChangeFailure({
+        clinicId: input.state.clinicId,
+        attemptId,
+        reason: attemptId ? "subscription_period" : "missing_attempt",
+        code: "unknown_schedule",
+      });
+    }
+    const schedule = await stripe.subscriptionSchedules.retrieve(
+      subscription.scheduleId
+    );
+    const classified = classifyAttachedDowngradeSchedule({
+      schedule,
+      subscription,
+      clinicId: input.state.clinicId,
+      attemptId,
+      practicePriceId,
+      essentialPriceId,
+      periodEnd: subscription.periodEnd,
+    });
+    if (classified.kind !== "intermediate" && classified.kind !== "complete") {
+      return cancelPlanChangeFailure({
+        clinicId: input.state.clinicId,
+        attemptId,
+        reason: classified.reason,
+        code: "unknown_schedule",
+      });
+    }
+    const released = await releaseVerifiedDowngradeSchedule({
+      stripe,
+      clinicId: input.state.clinicId,
+      scheduleId: schedule.id,
+      subscriptionId: subscription.id,
+      attemptId,
+    });
+    if (!released.ok) {
+      return cancelPlanChangeFailure({
+        clinicId: input.state.clinicId,
+        attemptId,
+        reason: "schedule_failed",
+        code: "schedule_failed",
+      });
+    }
+    await clear({ clinicId: input.state.clinicId });
+    if (classified.kind === "intermediate") {
+      logStripeBilling({
+        event: "plan_downgrade_partial_schedule_released",
+        clinicId: input.state.clinicId,
+        actorUserId: input.actorUserId ?? null,
+        attemptId,
+      });
+    } else {
+      logStripeBilling({
+        event: "plan_downgrade_reversed",
+        clinicId: input.state.clinicId,
+        actorUserId: input.actorUserId ?? null,
+        fromPlan: "PRACTICE",
+        targetPlan: "ESSENTIAL",
+      });
+    }
+    return { ok: true, releasedSchedule: true };
+  } catch {
+    return cancelPlanChangeFailure({
+      clinicId: input.state.clinicId,
+      attemptId,
+      reason: "schedule_failed",
+      code: "schedule_failed",
+    });
+  }
+}
+
+export async function submitClinicPlanDowngradeCancellation(input: {
+  clinicId: string;
+  actorUserId?: string | null;
+  env?: Env;
+  stripe?: PlanDowngradeStripePort;
+}): Promise<
+  | { ok: true; releasedSchedule: boolean }
+  | { ok: false; code: PlanDowngradeCode }
+> {
+  const state = await loadDowngradeState(input.clinicId);
+  if (!state) {
+    return cancelPlanChangeFailure({
+      clinicId: input.clinicId,
+      attemptId: null,
+      reason: "unsupported",
+      code: "unsupported",
+    });
+  }
+  return cancelClinicPlanDowngrade({
+    state,
+    actorUserId: input.actorUserId,
+    env: input.env,
+    stripe: input.stripe,
+  });
+}
+
 export async function executeClinicDowngradeReversal(input: {
   state: PlanDowngradeState;
   actorUserId?: string | null;
@@ -1486,43 +1796,14 @@ export async function executeClinicDowngradeReversal(input: {
       return failure(input.state.clinicId, "schedule_failed");
     }
     const attemptId = input.state.stripePlanDowngradeAttemptId;
-    await input.stripe.subscriptionSchedules.release(
-      schedule.id,
-      { preserve_cancel_date: false },
-      {
-        idempotencyKey: planDowngradeIdempotencyKey({
-          clinicId: input.state.clinicId,
-          stripeSubscriptionId: subscription.id,
-          attemptId,
-          step: "release",
-        }),
-      }
-    );
-    const freshSchedule = await input.stripe.subscriptionSchedules.retrieve(
-      schedule.id
-    );
-    const freshSubscription = await input.stripe.subscriptions.retrieve(
-      subscription.id
-    );
-    const releasedId =
-      freshSchedule.releasedSubscriptionId ?? freshSchedule.subscriptionId;
-    if (
-      freshSchedule.status !== "released" ||
-      freshSubscription.scheduleId ||
-      releasedId !== subscription.id
-    ) {
-      logVerificationFailed({
-        clinicId: input.state.clinicId,
-        stripeSubscriptionId: freshSubscription.id,
-        scheduleId: freshSchedule.id,
-        attemptId,
-        scheduleStatus: freshSchedule.status,
-        observedScheduleId: freshSubscription.scheduleId,
-        reason:
-          freshSchedule.status !== "released"
-            ? "schedule_status"
-            : "subscription_attachment",
-      });
+    const released = await releaseVerifiedDowngradeSchedule({
+      stripe: input.stripe,
+      clinicId: input.state.clinicId,
+      scheduleId: schedule.id,
+      subscriptionId: subscription.id,
+      attemptId,
+    });
+    if (!released.ok) {
       return failure(input.state.clinicId, "schedule_failed");
     }
     await clear({ clinicId: input.state.clinicId });

@@ -34,7 +34,6 @@ vi.mock("@/lib/auth/require-clinic-admin", () => ({
 
 vi.mock("@/lib/entitlements/downgrade-selection", () => ({
   beginClinicPlanDowngrade: beginMock,
-  cancelClinicDowngradePreparation: cancelMock,
   confirmClinicDowngradeSelection: vi.fn(),
   keepSelectionMessage: (code: string) => code,
 }));
@@ -42,12 +41,20 @@ vi.mock("@/lib/entitlements/downgrade-selection", () => ({
 vi.mock("@/lib/billing/plan-downgrade", () => ({
   submitClinicPlanDowngrade: scheduleMock,
   submitClinicDowngradeReversal: keepMock,
+  submitClinicPlanDowngradeCancellation: cancelMock,
   customerPlanDowngradeMessage: (code: string) =>
     code === "schedule_failed"
       ? "We couldn’t schedule the plan change. Your Practice plan is unchanged. Please try again."
       : code,
   customerKeepPracticeMessage: () =>
     "We couldn’t cancel the scheduled plan change. Please try again.",
+  customerCancelPlanChangeMessage: (code: string) =>
+    code === "unknown_schedule" ||
+    code === "subscription_shape" ||
+    code === "unsupported" ||
+    code === "already_transitioned"
+      ? "We couldn’t cancel the plan change automatically. Your Practice plan is unchanged. Please contact River Aftercare."
+      : "We couldn’t cancel the plan change. Your Practice plan is unchanged. Please try again.",
 }));
 
 import {
@@ -131,7 +138,10 @@ describe("self-service plan change authorization", () => {
 
     const cancelled = await cancelClinicPlanChangeAction({}, new FormData());
     expect(cancelled).toEqual({ notice: "cancelled" });
-    expect(cancelMock).toHaveBeenCalledWith({ clinicId: "clinic_a" });
+    expect(cancelMock).toHaveBeenCalledWith({
+      clinicId: "clinic_a",
+      actorUserId: "user_admin",
+    });
 
     const kept = await keepPracticeAction({}, new FormData());
     expect(kept).toEqual({ notice: "kept" });
@@ -157,8 +167,15 @@ describe("self-service plan change authorization", () => {
     requireClinicAdminMock.mockResolvedValue(
       session({ source: "operator_support" })
     );
-    const result = await scheduleClinicPlanDowngradeAction({}, new FormData());
-    expect(result.error).toContain("clinic administrator");
+    const scheduled = await scheduleClinicPlanDowngradeAction(
+      {},
+      new FormData()
+    );
+    const cancelled = await cancelClinicPlanChangeAction({}, new FormData());
+    const kept = await keepPracticeAction({}, new FormData());
+    expect(scheduled.error).toContain("clinic administrator");
+    expect(cancelled.error).toContain("clinic administrator");
+    expect(kept.error).toContain("clinic administrator");
     expect(scheduleMock).not.toHaveBeenCalled();
     expect(beginMock).not.toHaveBeenCalled();
     expect(keepMock).not.toHaveBeenCalled();
@@ -193,6 +210,23 @@ describe("self-service plan change authorization", () => {
     expect(result).not.toHaveProperty("notice");
   });
 
+  it("returns a retryable cancel error and a support message for an unknown schedule", async () => {
+    cancelMock.mockResolvedValue({ ok: false, code: "schedule_failed" });
+    const retry = await cancelClinicPlanChangeAction({}, new FormData());
+    expect(retry).toEqual({
+      error:
+        "We couldn’t cancel the plan change. Your Practice plan is unchanged. Please try again.",
+    });
+
+    cancelMock.mockResolvedValue({ ok: false, code: "unknown_schedule" });
+    const blocked = await cancelClinicPlanChangeAction({}, new FormData());
+    expect(blocked).toEqual({
+      error:
+        "We couldn’t cancel the plan change automatically. Your Practice plan is unchanged. Please contact River Aftercare.",
+    });
+    expect(blocked.error).not.toContain("sub_");
+  });
+
   it("keeps scheduling on the shared domain service and off the operator page", () => {
     const customer = readFileSync(
       "app/(staff)/account/billing/actions.ts",
@@ -207,7 +241,10 @@ describe("self-service plan change authorization", () => {
       "utf8"
     );
     expect(customer).toContain("submitClinicPlanDowngrade");
+    expect(customer).toContain("submitClinicPlanDowngradeCancellation");
+    expect(customer).toContain("customerCancelPlanChangeMessage");
     expect(customer).toContain("submitClinicDowngradeReversal");
+    expect(customer).not.toContain("cancelClinicDowngradePreparation");
     expect(customer).toContain('source === "operator_support"');
     expect(customer).not.toContain("subscriptionSchedules");
     expect(customer).not.toContain("stripeCustomerId");
