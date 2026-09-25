@@ -4,7 +4,9 @@ Audit only. No product behaviour, schema, Stripe, caching, or multi-location cha
 
 Starting `main` SHA: `228f8568587ebe98af79c475e8e8d1f09fa45cef` (PR #100, multi-site and multi-location product).
 
-Measured: 2026-09-25.
+Measured: 2026-09-25 (before the Sydney pin).
+
+**Status, 2026-09-25, after production deploy of `9b028f1`:** Function execution region is `syd1`. Region mismatch: **RESOLVED**. Sections 1–16 and the production baseline in section 4 are the pre-change record. After numbers, the health comparison, and the revised sequence are in [Sydney Region Post-Deployment Measurement](#sydney-region-post-deployment-measurement).
 
 ## 1. Executive summary
 
@@ -236,6 +238,241 @@ After the production deployment that includes this `vercel.json`, and before any
 
 Record status, TTFB, `x-vercel-id`, `x-vercel-cache`, and `cache-control`. The Function segment of `x-vercel-id` should be `syd1`. The first segment may still be the edge that accepted the probe. Do not start the later pull requests in [Recommended PR sequence](#17-recommended-pr-sequence) from the pre-change 1.3–1.5s figures.
 
+That rerun is recorded in [Sydney Region Post-Deployment Measurement](#sydney-region-post-deployment-measurement).
+
+## Sydney Region Post-Deployment Measurement
+
+Measurement only. No application code, Prisma query, React `cache()`, cache header, Vercel setting, Neon project, or deployment was changed in this pass.
+
+Measured 2026-09-25, 06:53–06:55 UTC, after the production deployment of `main` `9b028f192482287b1282c24c363660651d0074fe` (PR #102, commit time 2026-09-25 16:51:06 +1000).
+
+### Deployed configuration
+
+| Item | Value |
+| ---- | ----- |
+| `main` SHA | `9b028f192482287b1282c24c363660651d0074fe` |
+| PR #102 commit | `9b028f1` — Pin Vercel functions to Sydney (#102) |
+| `vercel.json` on `main` | Present |
+| Configured region | `syd1` only |
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["syd1"]
+}
+```
+
+PR #102 changes `vercel.json` and documentation only (`docs/launch/PRODUCTION-READINESS.md`, this audit, `docs/product/WORKING-MEMORY.md`). It does not change application code, Prisma queries, or cache behaviour.
+
+### Runner
+
+New Cursor cloud agent VM in AWS `us-east-1` (Ashburn). It is not the same process as the pre-change audit. It is the same class of vantage: the Vercel edge segment is `iad1`, DNS on the warmed requests was about 1ms, and TLS was about 19ms. The pre-change audit recorded DNS and TLS at about 1ms and 20ms from a runner that also entered at `iad1`.
+
+`x-vercel-id` is read the same way as [What `iad1::iad1` means](#what-iad1iad1-means). The first segment is the edge that accepted this probe. The second segment is the Function execution region. `x-vercel-execution-region` and `server-timing` were absent, as before.
+
+### Region check
+
+One GET, before the five-sample series:
+
+`https://demodental.riveraftercare.com.au/extraction`
+
+| Field | Value |
+| ----- | ----- |
+| HTTP status | 200 |
+| TTFB | 1,735.9ms |
+| Total | 1,737.6ms |
+| `x-vercel-id` | `iad1::syd1::n5spd-1790319224438-0b87fad09cb8` |
+| `x-vercel-cache` | `MISS` |
+| `cache-control` | `private, no-cache, no-store, max-age=0, must-revalidate` |
+
+Function segment: **`syd1`**. Edge segment: `iad1`, which matches this US runner. This request is the cold first touch of the guide route in this session. It is kept as evidence and is not folded into the five-sample median below.
+
+Region mismatch: **RESOLVED**. The five-sample series ran because the Function segment was `syd1`.
+
+### Five sequential samples
+
+Five requests per surface, one after another, no concurrency, no writes, no query-string cache busting. Every response was HTTP 200. Every `x-vercel-id` was `iad1::syd1::<id>`. Every `x-vercel-cache` was `MISS`. `age` was `0`. TTFB is curl `time_starttransfer`. Total is curl `time_total`. The median is the middle value of the five sorted TTFB samples. Cold-looking first hits stay in the median.
+
+Document `cache-control` on marketing, pricing, login, and every `demodental` page: `private, no-cache, no-store, max-age=0, must-revalidate`. Health: `no-store`.
+
+#### Marketing home — `https://riveraftercare.com.au/`
+
+| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
+| -: | -----: | ---: | ----: | ------------- | ---------------- |
+| 1 | 200 | 1,006.9ms | 1,008.6ms | `iad1::syd1::bsm5m-1790319293599-89069b3381e1` | `MISS` |
+| 2 | 200 | 327.8ms | 524.8ms | `iad1::syd1::cfx45-1790319294608-f684a2e9e48c` | `MISS` |
+| 3 | 200 | 301.3ms | 499.3ms | `iad1::syd1::qggbc-1790319295137-dfc258e06c5f` | `MISS` |
+| 4 | 200 | 300.9ms | 502.2ms | `iad1::syd1::x98hc-1790319295644-bd25d206c511` | `MISS` |
+| 5 | 200 | 300.8ms | 500.1ms | `iad1::syd1::vgxbj-1790319296148-8d4e24e80fbc` | `MISS` |
+
+Sample 1 is a cold first hit. Median 301.3ms. Min 300.8ms. Max 1,006.9ms.
+
+#### Pricing — `https://riveraftercare.com.au/pricing`
+
+| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
+| -: | -----: | ---: | ----: | ------------- | ---------------- |
+| 1 | 200 | 660.8ms | 661.7ms | `iad1::syd1::qm8ck-1790319296653-28874e87fa42` | `MISS` |
+| 2 | 200 | 297.5ms | 497.6ms | `iad1::syd1::kj7z5-1790319297320-cfe07d831767` | `MISS` |
+| 3 | 200 | 317.7ms | 517.7ms | `iad1::syd1::wkstl-1790319297823-edb1ae62132b` | `MISS` |
+| 4 | 200 | 311.8ms | 510.2ms | `iad1::syd1::qggbc-1790319298344-f87217656c9c` | `MISS` |
+| 5 | 200 | 294.0ms | 494.3ms | `iad1::syd1::nvt6s-1790319298860-4196d75ca07b` | `MISS` |
+
+Sample 1 is a cold first hit. Median 311.8ms. Min 294.0ms. Max 660.8ms.
+
+#### Logged-out staff login — `https://app.riveraftercare.com.au/login`
+
+| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
+| -: | -----: | ---: | ----: | ------------- | ---------------- |
+| 1 | 200 | 401.6ms | 402.4ms | `iad1::syd1::628pd-1790319299365-9373bfd8e0e4` | `MISS` |
+| 2 | 200 | 325.0ms | 325.1ms | `iad1::syd1::cqbq7-1790319299771-1a07ada270bd` | `MISS` |
+| 3 | 200 | 284.5ms | 284.7ms | `iad1::syd1::n6cwx-1790319300098-1d926defdaf9` | `MISS` |
+| 4 | 200 | 306.5ms | 307.7ms | `iad1::syd1::bxmfm-1790319300384-536bb687a3e8` | `MISS` |
+| 5 | 200 | 285.3ms | 285.8ms | `iad1::syd1::4zhc9-1790319300697-3dc0d0488e08` | `MISS` |
+
+Sample 1 is the slowest. Samples 2–5 stay in the same band, so this is not a single cold outlier. Median 306.5ms. Min 284.5ms. Max 401.6ms.
+
+#### Demo patient home — `https://demodental.riveraftercare.com.au/`
+
+| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
+| -: | -----: | ---: | ----: | ------------- | ---------------- |
+| 1 | 200 | 354.6ms | 355.0ms | `iad1::syd1::jnmps-1790319300986-c7f0b98c26bf` | `MISS` |
+| 2 | 200 | 305.2ms | 308.6ms | `iad1::syd1::6q455-1790319301346-afe9f6fc455e` | `MISS` |
+| 3 | 200 | 291.4ms | 292.3ms | `iad1::syd1::44kkb-1790319301659-aa3a54b8ac93` | `MISS` |
+| 4 | 200 | 296.3ms | 297.6ms | `iad1::syd1::jvdk2-1790319301955-919595c65621` | `MISS` |
+| 5 | 200 | 296.6ms | 297.3ms | `iad1::syd1::545jf-1790319302257-c23b2d7c6814` | `MISS` |
+
+Sample 1 is mildly slower than the rest. Median 296.6ms. Min 291.4ms. Max 354.6ms.
+
+#### Demo guide — `https://demodental.riveraftercare.com.au/extraction`
+
+The region-check GET above (1,735.9ms) already touched this URL. These five samples are the benchmark series. They do not include that cold request.
+
+| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
+| -: | -----: | ---: | ----: | ------------- | ---------------- |
+| 1 | 200 | 333.2ms | 334.1ms | `iad1::syd1::2stm6-1790319302561-0f55dda6af3d` | `MISS` |
+| 2 | 200 | 311.5ms | 430.5ms | `iad1::syd1::65vkt-1790319302898-a9badc25526c` | `MISS` |
+| 3 | 200 | 345.9ms | 346.8ms | `iad1::syd1::nh5fh-1790319303332-25f30bcaf859` | `MISS` |
+| 4 | 200 | 331.0ms | 332.7ms | `iad1::syd1::m8v2n-1790319303683-0384bed7ccd1` | `MISS` |
+| 5 | 200 | 313.9ms | 315.3ms | `iad1::syd1::h4pcc-1790319304026-9cd97020f163` | `MISS` |
+
+No sample in this series looks cold. Median 331.0ms. Min 311.5ms. Max 345.9ms.
+
+#### Demo print — `https://demodental.riveraftercare.com.au/extraction/print`
+
+| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
+| -: | -----: | ---: | ----: | ------------- | ---------------- |
+| 1 | 200 | 315.7ms | 316.9ms | `iad1::syd1::lklwz-1790319304341-708b5004f05b` | `MISS` |
+| 2 | 200 | 312.8ms | 314.3ms | `iad1::syd1::h4kj7-1790319304663-292a12ee5da3` | `MISS` |
+| 3 | 200 | 520.2ms | 523.2ms | `iad1::syd1::5h28f-1790319305095-a901eb0902a9` | `MISS` |
+| 4 | 200 | 340.4ms | 341.9ms | `iad1::syd1::2kdnx-1790319305508-83123d6307d1` | `MISS` |
+| 5 | 200 | 360.0ms | 362.3ms | `iad1::syd1::xhwjk-1790319305854-64848f12bea7` | `MISS` |
+
+Sample 3 is slower and is not the first request. Median 340.4ms. Min 312.8ms. Max 520.2ms.
+
+#### Health — `https://app.riveraftercare.com.au/api/health`
+
+| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
+| -: | -----: | ---: | ----: | ------------- | ---------------- |
+| 1 | 200 | 1,775.8ms | 1,775.9ms | `iad1::syd1::4hfnh-1790319306224-15ccf71b9750` | `MISS` |
+| 2 | 200 | 2,174.4ms | 2,174.5ms | `iad1::syd1::hkcf6-1790319308003-6d22558d9e83` | `MISS` |
+| 3 | 200 | 266.5ms | 266.7ms | `iad1::syd1::pfgz8-1790319310183-6df9e596d492` | `MISS` |
+| 4 | 200 | 333.9ms | 360.5ms | `iad1::syd1::wn5ng-1790319310454-caa27b735667` | `MISS` |
+| 5 | 200 | 289.7ms | 289.9ms | `iad1::syd1::h49gm-1790319310820-7bd976faedb2` | `MISS` |
+
+Body on every sample: `{ "status": "ok" }`. Samples 1 and 2 are cold. They stay in the all-five median. Median 333.9ms. Min 266.5ms. Max 2,174.4ms. Samples 3–5, the warm samples, are 266.5ms, 333.9ms, and 289.7ms. Their median is 289.7ms.
+
+The patient print request immediately before health sample 1 returned in 360.0ms and had already queried Neon. A fully asleep database is a weak explanation for the two slow health samples. They match the earlier audit’s cold health hits (1,525ms and 2,581ms) more than they match a colocated hot `SELECT 1`.
+
+### Before / after
+
+Before medians are the five-sample production baseline in section 4. Absolute change is after median minus before median. Percent change is that difference divided by the before median. A negative change is faster.
+
+| Surface | Before median | After median | Absolute change | Percent change |
+| ------- | ------------: | -----------: | --------------: | -------------: |
+| Marketing home | 327ms | 301.3ms | −25.7ms | −7.9% |
+| Pricing | 290ms | 311.8ms | +21.8ms | +7.5% |
+| Logged-out login | 80ms | 306.5ms | +226.5ms | +283.1% |
+| `demodental` home | 1,304ms | 296.6ms | −1,007.4ms | −77.3% |
+| `demodental` `/extraction` | 1,513ms | 331.0ms | −1,182.0ms | −78.1% |
+| `demodental` print | 1,504ms | 340.4ms | −1,163.6ms | −77.4% |
+
+Health has no five-sample before median. The recorded warm samples were 267ms (region pass 2) and 300ms (section 4). The recorded cold samples were 1,525ms and 2,581ms.
+
+| Health comparison | Before | After | Absolute change | Percent change |
+| ----------------- | -----: | ----: | --------------: | -------------: |
+| All five, this run | — | 333.9ms | — | — |
+| Warm sample vs 267ms | 267ms | 289.7ms | +22.7ms | +8.5% |
+| Warm sample vs 300ms | 300ms | 289.7ms | −10.3ms | −3.4% |
+
+The 289.7ms figure is the median of health samples 3–5 only. It is the warm comparison, not a replacement for the all-five median of 333.9ms.
+
+### Health interpretation
+
+Warm `/api/health` did not drop substantially. From this US runner it stayed in the same band as the `iad1` warm samples (about 267–334ms versus 267–300ms).
+
+That is what a single round trip looks like once the long hop has moved. Before, the edge and the Function were both in `iad1`, and the long hop was Function to Sydney Neon. After, the Function is in `syd1`, and the long hop is this probe’s edge (`iad1`) to the Sydney Function. One pooled `SELECT 1` still pays about one US-to-Sydney trip. Neon’s public hot reference (214.9ms from `iad1`, 9.9ms from `syd1`) describes the database leg, not this probe’s full TTFB. This run did not separate those legs with server timing.
+
+Cold health samples remain above 1.5s (1,775.8ms and 2,174.4ms).
+
+### Patient interpretation
+
+Directional only. Warm health is the infrastructure floor visible from this runner. Patient median minus that floor is an estimate of remaining application and database work. It is not a profiler.
+
+Using the warm-health median of 289.7ms:
+
+| Surface | After median | Minus 289.7ms |
+| ------- | -----------: | ------------: |
+| Patient home | 296.6ms | 6.9ms |
+| Guide | 331.0ms | 41.3ms |
+| Print | 340.4ms | 50.7ms |
+
+Using the fastest warm health sample, 266.5ms, as an alternate floor: home 30.1ms, guide 64.5ms, print 73.9ms.
+
+The all-five health median (333.9ms) sits above patient home because it includes two cold health starts. Subtracting it from the patient medians is not the application gap.
+
+Local production-build TTFB on loopback PostgreSQL was 50ms for home, 48ms for the guide, and 30ms for print. The remaining production gap is in that range. The earlier trace already showed the duplicated loader statements running together, so they do not each add a full round trip to wall time.
+
+### What the region move resolved
+
+About 1.0–1.2 seconds of patient TTFB, 77–78% of the previous medians. From this runner the pages sit on the same one-hop floor as warm health, plus a few tens of milliseconds.
+
+Logged-out login moved the other way on this runner: 80ms to 306.5ms. That page issues no SQL. The previous 80ms was an `iad1` Function next to the probe. The new samples are the trip to `syd1`. This is the expected cost for a US client of a Sydney Function. It is not a reason to add `iad1` back. Australian staff do not pay this probe’s edge hop. This run did not measure from Australia, and it does not invent an Australian millisecond figure.
+
+Marketing (−7.9%) and pricing (+7.5%) stayed near their previous medians. Both still render dynamically in `syd1` with `x-vercel-cache: MISS`.
+
+### Cache behaviour
+
+Unchanged, and consistent with the pre-change audit.
+
+- Patient, marketing, and login documents remain `private, no-cache, no-store, max-age=0, must-revalidate`.
+- Health remains `no-store`.
+- Every sample was `x-vercel-cache: MISS` and `age: 0`.
+- No CDN page cache appeared.
+- Compressed sizes stayed in the previous bands (marketing about 16.8KB, pricing about 14.1KB, login 4,889 bytes, health 21 bytes on the wire, `{ "status": "ok" }` in the body).
+
+The experiment isolates Function placement.
+
+### Remaining bottlenecks
+
+1. **One US-to-Sydney hop on every dynamic request from this vantage.** Warm health at about 267–334ms is that floor. Patient pages have joined it. Further patient SQL work cannot remove this probe’s edge-to-Function trip.
+2. **A small patient gap above that floor.** Guide and print are about 40–75ms slower than warm health, depending on which warm health sample is the floor. Home is within about 7–30ms. That is real work, and it is no longer the 1.2s gap.
+3. **Cold starts.** Health samples 1 and 2 were still above 1.5s, and the pre-benchmark guide touch was 1,735.9ms. Warm samples are the comparison that matches the earlier warm baseline.
+4. **Staff JavaScript.** The Zod chunk (about 388KB uncompressed) and the Prisma enum import are unchanged. They do not explain the login TTFB change.
+5. **Additional-location home.** Still 41 SQL executes on the local trace. `demodental` publishes no additional location, so production did not remeasure `/bondi`. Keep that miss path in a later query change. It is not the next change: root patient TTFB is no longer dominated by cross-Pacific groups.
+6. **Marketing is still dynamic.** ISR would change edge caching for marketing HTML. It was not part of this deploy, and the US marketing median barely moved.
+
+### Revised optimisation order
+
+Do not open a patient backend pull request next only because the statement counts are large. Guide and print do not still have a substantial avoidable gap above health.
+
+1. **Next — staff client Zod and Prisma enum split.** Former PR B. Login, password forms, the slug helper, and invitation constants. No patient behaviour change. Compare `route-bundle-stats.json` for `/login`, `/practice`, and `/practice/sites`.
+2. **Later — request-level React `cache()` for patient loaders.** Former PR A. The measured remainder is about 40–75ms on guide and print, and the duplicates already overlap. Revisit only if a later probe, preferably from Australia or on an additional-location URL, shows a larger gap.
+3. **Later — fewer statements in the guide loader, including the location-home miss path.** Former PR C. Retain the miss-path work in that pull request. Root guide versus location order stays. `demodental` still cannot show the production cost.
+4. **Later — branding CDN cache investigation.** Former PR D. Unchanged by this measurement.
+5. **Later — marketing ISR.** Former PR E. Separate from patient caching. Tenant hosts stay `no-store`.
+
+No index pull request. No second Function region.
+
 ## 4. Production-safe baseline
 
 All successful document responses were HTTP 200, Brotli, `age: 0`, `x-vercel-cache: MISS`, and `cache-control: private, no-cache, no-store, max-age=0, must-revalidate`. `www.riveraftercare.com.au` returned 308 to the apex in 59ms.
@@ -444,8 +681,9 @@ Rejected: one global `unstable_cache` for “the published guide”, any cache o
 
 ### P1. Patient TTFB is about 1.5s from this vantage, on an uncached dynamic render
 
+- **Status:** Region mismatch **RESOLVED** on 2026-09-25. Production Functions now execute in `syd1`. The 1.3–1.5s medians below are the before evidence. See [Sydney Region Post-Deployment Measurement](#sydney-region-post-deployment-measurement).
 - **Severity:** High
-- **Class:** Current. Functions that served these requests ran in `iad1` while Neon is in Sydney. If the project has only that one region, Australian visitors use the same function region and add the trip from their edge to `iad1` on top of the database round trips already in this US measurement.
+- **Class:** Current at audit time. Functions that served these requests ran in `iad1` while Neon is in Sydney. If the project has only that one region, Australian visitors use the same function region and add the trip from their edge to `iad1` on top of the database round trips already in this US measurement.
 - **Evidence:** Production median TTFB 1,304ms home, 1,513ms guide, 1,504ms print, all `x-vercel-cache: MISS` and `x-vercel-id` `iad1::iad1`. Local equivalents 19–73ms. Warm health `SELECT 1` was 267ms from the same runner. See [Function / Database Region Investigation](#function--database-region-investigation).
 - **Surface:** patient, infrastructure
 - **Impact:** TTFB, and therefore LCP on server-rendered HTML
@@ -532,6 +770,12 @@ Only items with direct evidence. Do not implement them in this branch.
 4. **PR C — reduce statements inside `getPublishedPracticeGuide` and the location-home miss path.** One PR if the miss path stays obviously correct; otherwise split. Keep pin and collision behaviour. Re-measure statement counts.
 5. **PR D — branding CDN cache investigation.** Only if a repeated request still misses. Do not change object keys.
 6. **PR E — marketing static or ISR.** Separate from patient caching. Re-measure marketing TTFB and confirm tenant hosts stay `no-store`.
+
+### Revised after the Sydney measurement
+
+PR 0 is done and measured. Follow [Sydney Region Post-Deployment Measurement](#sydney-region-post-deployment-measurement), not the 1.3–1.5s figures, for anything after this point.
+
+The next code change is the staff client Zod and Prisma enum split (former PR B). Patient loader dedupe and the location-home query reduction stay later. Guide and print are within about 40–75ms of warm `/api/health` from the same US runner, so statement count alone is not the next incident. The additional-location miss path stays inside that later query pull request. `demodental` has no additional location, so that path was not remeasured in production.
 
 Do not open an index PR from this audit.
 
