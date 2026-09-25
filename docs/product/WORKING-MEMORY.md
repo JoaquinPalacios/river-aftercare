@@ -5,7 +5,17 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-24 (legacy chairside schema removed after PR #96; GST not in scope)
+Last updated: 2026-09-25 (multi-location database foundation; runtime still single-location)
+
+## Durable multi-location foundation
+
+`Clinic` is the customer account (hostname, billing, entitlement, team, legal acceptance, branding, guide library). `ClinicLocation` is a physical practice belonging to that account. The additive migration `20260925021500_add_multi_location_foundation` backfills exactly one primary account-root location per existing clinic, including clinics with no profile and `demodental`.
+
+Root location rules: `slug` is null, `isPrimary` and `servesAccountRoot` are both true, `active` is true, `deactivatedAt` is null. Null slug means “no location path segment”. Do not copy `Clinic.slug` or invent `primary` / `main`. Non-root locations, when a later PR creates them, require a slug unique within the account. PostgreSQL checks `servesAccountRoot` against slug nullability and allows at most one primary and one account-root location per clinic. Those two flags are independent. Exactly one of each is not a database constraint.
+
+`PracticeGuidePlacement.publishedPracticeGuideRevisionId` points at an existing clinic-owned `PracticeGuideRevision` only when that revision is what patients currently resolve. Canonical template fallback leaves the pin null and does not create a revision. Draft and unpublished guides get a disabled placement. `PracticeGuide.copiedFromPracticeGuideId` stays null. `ClinicEntitlement.extraLocationAllowance` defaults to 0 and is not enforced. `DowngradeLocationSelection` is unused by the current downgrade flow.
+
+Do not switch patient, portal, QR, operator, or billing reads to these tables in this foundation. Do not add location UI. Do not change Stripe or public pricing. Contact columns remain on `ClinicProfile`. Marketing multi-location copy stays “Talk to us”.
 
 ## Durable legacy chairside removal
 

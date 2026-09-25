@@ -56,6 +56,10 @@ Evaluate a separate API service (NestJS or otherwise) only when one of these is 
 
 Until then, keep extracting **modules**, not processes. Do not add MCP, GraphQL, or a public API solely to look agentic.
 
+## Multi-location foundation
+
+`Clinic` is the customer account. `ClinicLocation` is a physical practice belonging to that account. The additive migration backfills exactly one primary account-root location per existing clinic (`slug` null, so current patient URLs gain no path segment) and one `PracticeGuidePlacement` per existing guide. `Clinic.slug`, `ClinicProfile` branding and contact fields, guide publication, QR targets, and billing stay as they are. Application reads do not use the location tables yet. Creating or editing multiple locations is not available.
+
 ## Schema releases
 
 Vercel automatic Production deployments from `main` stay **enabled**. Vercel deploys application code. It does **not** apply Prisma migrations. On Production builds the schema gate runs `prisma migrate status` (through runtime `DATABASE_URL`) and fails if migrations are pending; that is intentional. Human-approved schema apply uses unpooled `DIRECT_URL` from a local `.env.neon-production` file (`pnpm prod:db:status` / `pnpm prod:db:migrate --apply` / `pnpm prod:db:verify`), then the **same SHA** is redeployed. Do not add `DIRECT_URL` to Vercel for ordinary runtime. See [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md) and [ADR 0025](../adr/0025-migrate-before-promote.md).

@@ -10,6 +10,10 @@ Staff/admin UI for River Aftercare. Patient tenant rendering remains the source 
 | `app.<root>`       | Clinic staff, operator | Clinic portal and operator. Anonymous `/` redirects to `/login`. Retired chairside URLs 404. |
 | `<slug>.<root>`    | Patients               | Branded aftercare only                                                                       |
 
+## Locations
+
+The database has `ClinicLocation` rows, including one primary account-root location per existing clinic. The portal does not list, create, or edit locations. Practice settings still read and write `ClinicProfile`. Patient pages, print, and QR still use the account hostname plus the guide slug. Location management is a later change.
+
 ## Clinic portal
 
 Primary navigation (one group, identical row treatment):
