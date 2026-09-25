@@ -1,5 +1,9 @@
 import { lookup } from "node:dns/promises";
 
+import {
+  backfilledLocationId,
+  ensurePrimarySiteForClinic,
+} from "@/lib/clinics/primary-site-location.mjs";
 import { e2ePrisma as prisma } from "../helpers/prisma";
 import { HARBOR } from "./harbor";
 
@@ -65,6 +69,35 @@ export async function cleanupPhase1eFixtures(): Promise<void> {
   });
   await prisma.clinic.deleteMany({
     where: { id: { startsWith: PREFIX } },
+  });
+}
+
+async function upsertRootPlacement(input: {
+  guideId: string;
+  publicSlug: string;
+  isEnabled: boolean;
+}): Promise<void> {
+  const locationId = backfilledLocationId(HARBOR.clinicId);
+  await prisma.practiceGuidePlacement.upsert({
+    where: {
+      locationId_practiceGuideId: {
+        locationId,
+        practiceGuideId: input.guideId,
+      },
+    },
+    create: {
+      practiceGuideId: input.guideId,
+      locationId,
+      clinicId: HARBOR.clinicId,
+      publicSlug: input.publicSlug,
+      isEnabled: input.isEnabled,
+      publishedPracticeGuideRevisionId: null,
+    },
+    update: {
+      publicSlug: input.publicSlug,
+      isEnabled: input.isEnabled,
+      publishedPracticeGuideRevisionId: null,
+    },
   });
 }
 
@@ -167,6 +200,11 @@ async function upsertUnpublishedGuide(input: {
         input.guideStatus === "PUBLISHED" ? new Date("2026-09-01") : null,
     },
   });
+  await upsertRootPlacement({
+    guideId: input.guideId,
+    publicSlug: input.publicSlug,
+    isEnabled: false,
+  });
 }
 
 export async function seedPhase1eFixtures(): Promise<void> {
@@ -220,6 +258,7 @@ export async function seedPhase1eFixtures(): Promise<void> {
       showCareGuideAttribution: false,
     },
   });
+  await ensurePrimarySiteForClinic(prisma, HARBOR.clinicId);
 
   await prisma.practiceGuide.create({
     data: {
@@ -257,6 +296,11 @@ export async function seedPhase1eFixtures(): Promise<void> {
       sortOrder: 1,
       insertAfterSectionKey: "contact-practice",
     },
+  });
+  await upsertRootPlacement({
+    guideId: HARBOR.publishedGuideId,
+    publicSlug: "extraction",
+    isEnabled: true,
   });
 
   await upsertUnpublishedGuide({

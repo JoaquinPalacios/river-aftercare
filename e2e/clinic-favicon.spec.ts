@@ -19,6 +19,7 @@ import {
   pathnameOf,
 } from "./helpers/head-icons";
 import { e2ePrisma } from "./helpers/prisma";
+import { syncE2eClinicBranding } from "./helpers/sync-clinic-branding";
 import {
   DEMO_TENANT_SLUG,
   HARBOR_TENANT_SLUG,
@@ -98,10 +99,7 @@ function assertClinicFaviconOnly(html: string, faviconPath: string): void {
 }
 
 async function restoreDemoBranding(): Promise<void> {
-  await e2ePrisma.clinicProfile.update({
-    where: { clinicId: DEMO_CLINIC_ID },
-    data: ORIGINAL,
-  });
+  await syncE2eClinicBranding(DEMO_CLINIC_ID, ORIGINAL);
 }
 
 const E2E_ASSET_ROOT = path.join(process.cwd(), ".data", "clinic-assets-e2e");
@@ -122,15 +120,12 @@ async function seedBrandingAsset(
     bytes: new Uint8Array(bytes),
     mimeType: "image/png",
   });
-  const current = await e2ePrisma.clinicProfile.findUnique({
-    where: { clinicId: DEMO_CLINIC_ID },
+  const current = await e2ePrisma.clinicSite.findFirst({
+    where: { clinicId: DEMO_CLINIC_ID, isPrimary: true },
     select: { faviconUrl: true, logoUrl: true, darkLogoUrl: true },
   });
   const previous = current?.[field];
-  await e2ePrisma.clinicProfile.update({
-    where: { clinicId: DEMO_CLINIC_ID },
-    data: { [field]: storageKey },
-  });
+  await syncE2eClinicBranding(DEMO_CLINIC_ID, { [field]: storageKey });
   if (
     typeof previous === "string" &&
     previous.startsWith(`clinics/${DEMO_CLINIC_ID}/branding/`)
@@ -430,10 +425,7 @@ test.describe("clinic favicon end to end", () => {
   }) => {
     await installFavicon(page, browserName, FAVICON_A, "Upload favicon");
     if (browserName === "webkit") {
-      await e2ePrisma.clinicProfile.update({
-        where: { clinicId: DEMO_CLINIC_ID },
-        data: { faviconUrl: null },
-      });
+      await syncE2eClinicBranding(DEMO_CLINIC_ID, { faviconUrl: null });
     } else {
       await page.getByRole("button", { name: "Remove favicon" }).click();
       await expect(
@@ -506,9 +498,10 @@ test.describe("clinic favicon end to end", () => {
     page,
     browserName,
   }) => {
-    await e2ePrisma.clinicProfile.update({
-      where: { clinicId: DEMO_CLINIC_ID },
-      data: { logoUrl: null, darkLogoUrl: null, faviconUrl: null },
+    await syncE2eClinicBranding(DEMO_CLINIC_ID, {
+      logoUrl: null,
+      darkLogoUrl: null,
+      faviconUrl: null,
     });
     if (browserName === "webkit") {
       await seedBrandingAsset("logoUrl", LOGO_PNG);

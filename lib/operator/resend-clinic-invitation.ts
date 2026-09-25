@@ -14,6 +14,7 @@ import {
   CLINIC_NOT_FOUND_MESSAGE,
   INVITATION_NOT_PENDING_MESSAGE,
 } from "@/lib/operator/invite-clinic-user";
+import { publicPracticeName } from "@/lib/clinics/patient-profile";
 import { getPrisma } from "@/lib/prisma";
 
 export type ResendClinicInvitationResult =
@@ -70,7 +71,10 @@ export async function resendClinicInvitation(input: {
       select: {
         id: true,
         name: true,
-        profile: { select: { displayName: true } },
+        sites: {
+          where: { isPrimary: true, active: true },
+          select: { displayName: true, clinicId: true },
+        },
       },
     });
     if (!clinic) {
@@ -132,7 +136,13 @@ export async function resendClinicInvitation(input: {
       email: user.email,
       name: user.name,
       clinicId: clinic.id,
-      clinicName: clinic.profile?.displayName?.trim() || clinic.name,
+      clinicName: publicPracticeName({
+        siteDisplayName:
+          clinic.sites.length === 1 && clinic.sites[0]?.clinicId === clinic.id
+            ? clinic.sites[0].displayName
+            : null,
+        accountName: clinic.name,
+      }),
       role: latest.role,
     };
   });

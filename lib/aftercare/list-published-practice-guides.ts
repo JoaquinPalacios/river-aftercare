@@ -28,69 +28,92 @@ export async function listPublishedPracticeGuides(
     return null;
   }
 
-  const clinic = await getClinicBySlug(clinicSlug);
-
-  if (!clinic) {
+  const tenant = await getClinicBySlug(clinicSlug);
+  if (!tenant) {
     return null;
   }
 
+  const listed = {
+    clinic: {
+      id: tenant.id,
+      slug: tenant.slug,
+      name: tenant.name,
+    },
+    profile: tenant.profile,
+  };
+
   const guidesRemainPublic = await publishedPatientGuidesRemainPublic(
-    clinic.id
+    tenant.id
   );
   if (!guidesRemainPublic) {
-    return {
-      clinic: {
-        id: clinic.id,
-        slug: clinic.slug,
-        name: clinic.name,
-      },
-      profile: clinic.profile,
-      guides: [],
-    };
+    return { ...listed, guides: [] };
   }
 
-  const guides = await getPrisma().practiceGuide.findMany({
+  const placements = await getPrisma().practiceGuidePlacement.findMany({
     where: {
-      clinicId: clinic.id,
-      ...ACTIVE_PRACTICE_GUIDE_WHERE,
-      ...PUBLIC_PRACTICE_GUIDE_WHERE,
-    },
-    orderBy: [{ sortOrder: "asc" }, { publicSlug: "asc" }],
-    select: {
-      id: true,
-      publicSlug: true,
-      sortOrder: true,
-      publishedAt: true,
-      title: true,
-      guideTemplate: {
-        select: { title: true },
+      isEnabled: true,
+      clinicId: tenant.id,
+      location: {
+        servesSiteRoot: true,
+        active: true,
+        clinicId: tenant.id,
+        clinicSite: {
+          slug: tenant.slug,
+          active: true,
+          clinicId: tenant.id,
+        },
       },
-      contentRevisions: {
-        where: { status: "PUBLISHED", version: { gt: 0 } },
-        orderBy: { version: "desc" },
-        take: 1,
-        select: { title: true },
+      practiceGuide: {
+        clinicId: tenant.id,
+        ...ACTIVE_PRACTICE_GUIDE_WHERE,
+        ...PUBLIC_PRACTICE_GUIDE_WHERE,
+      },
+    },
+    orderBy: [{ practiceGuide: { sortOrder: "asc" } }, { publicSlug: "asc" }],
+    select: {
+      publicSlug: true,
+      clinicId: true,
+      publishedPracticeGuideRevision: {
+        select: { title: true, practiceGuideId: true },
+      },
+      practiceGuide: {
+        select: {
+          id: true,
+          clinicId: true,
+          title: true,
+          sortOrder: true,
+          publishedAt: true,
+          guideTemplate: {
+            select: { title: true },
+          },
+        },
       },
     },
   });
 
   return {
-    clinic: {
-      id: clinic.id,
-      slug: clinic.slug,
-      name: clinic.name,
-    },
-    profile: clinic.profile,
-    guides: guides.map((guide) => ({
-      id: guide.id,
-      publicSlug: guide.publicSlug,
-      title:
-        guide.contentRevisions[0]?.title?.trim() ||
-        guide.title.trim() ||
-        guide.guideTemplate?.title ||
-        "Aftercare guide",
-      sortOrder: guide.sortOrder,
-      publishedAt: guide.publishedAt,
-    })),
+    ...listed,
+    guides: placements
+      .filter(
+        (placement) =>
+          placement.clinicId === tenant.id &&
+          placement.practiceGuide.clinicId === tenant.id
+      )
+      .map((placement) => ({
+        id: placement.practiceGuide.id,
+        publicSlug: placement.publicSlug,
+        title:
+          placement.publishedPracticeGuideRevision?.practiceGuideId ===
+          placement.practiceGuide.id
+            ? placement.publishedPracticeGuideRevision.title.trim() ||
+              placement.practiceGuide.title.trim() ||
+              placement.practiceGuide.guideTemplate?.title ||
+              "Aftercare guide"
+            : placement.practiceGuide.title.trim() ||
+              placement.practiceGuide.guideTemplate?.title ||
+              "Aftercare guide",
+        sortOrder: placement.practiceGuide.sortOrder,
+        publishedAt: placement.practiceGuide.publishedAt,
+      })),
   };
 }

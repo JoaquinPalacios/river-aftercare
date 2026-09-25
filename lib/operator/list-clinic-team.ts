@@ -6,6 +6,7 @@ import {
   PlatformRole,
 } from "@prisma/client";
 
+import { publicPracticeName } from "@/lib/clinics/patient-profile";
 import { getPrisma } from "@/lib/prisma";
 
 export type ClinicTeamStatus = "active" | "inactive" | "pending" | "expired";
@@ -49,7 +50,10 @@ export async function listClinicTeam(
     select: {
       id: true,
       name: true,
-      profile: { select: { displayName: true } },
+      sites: {
+        where: { isPrimary: true, active: true },
+        select: { displayName: true, clinicId: true },
+      },
       memberships: {
         orderBy: { createdAt: "asc" },
         select: {
@@ -141,7 +145,13 @@ export async function listClinicTeam(
 
   return {
     clinicId: clinic.id,
-    clinicName: clinic.profile?.displayName?.trim() || clinic.name,
+    clinicName: publicPracticeName({
+      siteDisplayName:
+        clinic.sites.length === 1 && clinic.sites[0]?.clinicId === clinic.id
+          ? clinic.sites[0].displayName
+          : null,
+      accountName: clinic.name,
+    }),
     rows: [...memberRows, ...invitationRows],
   };
 }

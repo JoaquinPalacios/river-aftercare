@@ -15,9 +15,13 @@ const loadedAtImport = vi.hoisted(() => ({
 const previousDriver = process.env.CLINIC_ASSET_STORAGE_DRIVER;
 process.env.CLINIC_ASSET_STORAGE_DRIVER = "memory";
 
-const { profile } = vi.hoisted(() => ({
+const { profile, sites } = vi.hoisted(() => ({
   profile: {
     findUnique: vi.fn(),
+    update: vi.fn(),
+  },
+  sites: {
+    findMany: vi.fn(),
     update: vi.fn(),
   },
 }));
@@ -44,11 +48,14 @@ vi.mock("@/lib/clinic-assets/sanitize-clinic-logo-svg", () => {
   };
 });
 
-vi.mock("@/lib/prisma", () => ({
-  getPrisma: () => ({
+vi.mock("@/lib/prisma", () => {
+  const db = {
     clinicProfile: profile,
-  }),
-}));
+    clinicSite: sites,
+    $transaction: (work: (tx: unknown) => unknown) => work(db),
+  };
+  return { getPrisma: () => db };
+});
 
 import { resetClinicAssetStorageCache } from "@/lib/clinic-assets/get-clinic-asset-storage";
 import { resetMemoryClinicAssetStorage } from "@/lib/clinic-assets/memory-clinic-asset-storage";
@@ -83,11 +90,20 @@ describe("Practice save / logo upload jsdom isolation", () => {
     resetMemoryClinicAssetStorage();
     profile.findUnique.mockReset();
     profile.update.mockReset();
-    profile.findUnique.mockResolvedValue({
-      logoUrl: "/demo/riverside-mark.svg",
-      displayName: "Demo",
-    });
+    sites.findMany.mockReset();
+    sites.update.mockReset();
+    profile.findUnique.mockResolvedValue({ clinicId: "clinic_a" });
+    sites.findMany.mockResolvedValue([
+      {
+        id: "site_a",
+        clinicId: "clinic_a",
+        logoUrl: "/demo/riverside-mark.svg",
+        darkLogoUrl: null,
+        faviconUrl: null,
+      },
+    ]);
     profile.update.mockResolvedValue({});
+    sites.update.mockResolvedValue({});
     loaded.jsdom = false;
     loaded.sanitizer = false;
   });

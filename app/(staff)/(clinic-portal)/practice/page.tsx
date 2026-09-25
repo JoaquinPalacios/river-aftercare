@@ -7,10 +7,10 @@ import { PracticeSettingsForm } from "@/app/(staff)/(clinic-portal)/practice/pra
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
 import { isClinicAssetStorageConfigured } from "@/lib/clinic-assets/config";
 import { resolveClinicLogoSrc } from "@/lib/clinic-assets/public-url";
+import { getPrimaryPatientChrome } from "@/lib/aftercare/get-clinic-by-slug";
 import { getClinicPortalOverview } from "@/lib/clinic-portal/get-clinic-portal";
 import { listPracticeMembers } from "@/lib/clinic-portal/list-practice-members";
 import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
-import { getPrisma } from "@/lib/prisma";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import {
   marketingContactHref,
@@ -24,19 +24,19 @@ export const metadata: Metadata = {
 
 export default async function PracticePage() {
   const { clinicMembership } = await requireClinicAdmin();
-  const [overview, profile, members, allowance, links] = await Promise.all([
+  const [overview, chrome, members, allowance, links] = await Promise.all([
     getClinicPortalOverview(clinicMembership.clinic.id),
-    getPrisma().clinicProfile.findUnique({
-      where: { clinicId: clinicMembership.clinic.id },
-    }),
+    getPrimaryPatientChrome(clinicMembership.clinic.id),
     listPracticeMembers(clinicMembership.clinic.id),
     loadTeamAllowance(clinicMembership.clinic.id),
     marketingPublicLinks(),
   ]);
 
-  if (!overview) {
+  if (!overview || !chrome?.profile) {
     notFound();
   }
+
+  const profile = chrome.profile;
 
   const assisting = clinicMembership.source === "operator_support";
 

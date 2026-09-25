@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 
 import { pngBytes } from "../tests/helpers/og-image-bytes";
 import { e2ePrisma } from "./helpers/prisma";
+import { syncE2eClinicBranding } from "./helpers/sync-clinic-branding";
 import {
   DEMO_TENANT_SLUG,
   marketingUrl,
@@ -35,10 +36,7 @@ const ORIGINAL = {
 };
 
 async function restoreDemoBranding(): Promise<void> {
-  await e2ePrisma.clinicProfile.update({
-    where: { clinicId: DEMO_CLINIC_ID },
-    data: ORIGINAL,
-  });
+  await syncE2eClinicBranding(DEMO_CLINIC_ID, ORIGINAL);
 }
 
 test.describe("clinic Dark branding and favicon", () => {
@@ -146,13 +144,10 @@ test.describe("clinic Dark branding and favicon", () => {
     page,
   }) => {
     mkdirSync(ARTIFACT_DIR, { recursive: true });
-    await e2ePrisma.clinicProfile.update({
-      where: { clinicId: DEMO_CLINIC_ID },
-      data: {
-        useCustomDarkBranding: true,
-        darkPrimaryColor: "#22d3ee",
-        darkAccentColor: "#fde68a",
-      },
+    await syncE2eClinicBranding(DEMO_CLINIC_ID, {
+      useCustomDarkBranding: true,
+      darkPrimaryColor: "#22d3ee",
+      darkAccentColor: "#fde68a",
     });
 
     await page.emulateMedia({ colorScheme: "dark" });

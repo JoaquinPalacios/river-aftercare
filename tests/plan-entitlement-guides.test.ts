@@ -10,6 +10,7 @@ import {
 } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
 import { adaptPracticeGuideFromTemplate } from "@/lib/clinic-portal/adapt-practice-guide";
 import {
   createCustomPracticeGuide,
@@ -170,6 +171,7 @@ describe("guide allowance pools", () => {
         },
       },
     });
+    await ensurePrimarySiteForClinic(prisma, CLINIC_ID);
     await prisma.guideTemplate.create({
       data: {
         id: TEMPLATE_ID,

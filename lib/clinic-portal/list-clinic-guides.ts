@@ -45,7 +45,13 @@ export async function listClinicPortalGuides(
 ): Promise<ClinicPortalGuide[]> {
   const clinic = await getPrisma().clinic.findUnique({
     where: { id: clinicId },
-    select: { id: true, slug: true },
+    select: {
+      id: true,
+      sites: {
+        where: { isPrimary: true, active: true },
+        select: { slug: true, clinicId: true },
+      },
+    },
   });
 
   if (!clinic) {
@@ -77,6 +83,23 @@ export async function listClinicPortalGuides(
         select: {
           status: true,
         },
+      },
+      placements: {
+        where: {
+          clinicId: clinic.id,
+          location: {
+            servesSiteRoot: true,
+            active: true,
+            clinicId: clinic.id,
+            clinicSite: {
+              isPrimary: true,
+              active: true,
+              clinicId: clinic.id,
+            },
+          },
+        },
+        select: { publicSlug: true },
+        take: 2,
       },
       contentRevisions: {
         select: {
@@ -127,13 +150,20 @@ export async function listClinicPortalGuides(
         published ||
         guide.pinnedRevision?.status === GuideRevisionStatus.PUBLISHED
       );
+    const site = clinic.sites.length === 1 ? clinic.sites[0] : null;
+    const rootPlacement =
+      guide.placements.length === 1 ? guide.placements[0] : null;
     const previewHref =
-      canPreviewPublic && host
+      canPreviewPublic &&
+      host &&
+      site &&
+      site.clinicId === clinic.id &&
+      rootPlacement
         ? clinicPatientSiteUrl({
             requestHost: host,
-            clinicSlug: clinic.slug,
+            clinicSlug: site.slug,
             protocol,
-            pathname: `/${guide.publicSlug}`,
+            pathname: `/${rootPlacement.publicSlug}`,
           })
         : null;
 

@@ -56,11 +56,15 @@ Evaluate a separate API service (NestJS or otherwise) only when one of these is 
 
 Until then, keep extracting **modules**, not processes. Do not add MCP, GraphQL, or a public API solely to look agentic.
 
-## Multi-location foundation
+## Multi-location runtime
 
-`Clinic` remains the commercial account (billing, entitlement, team, legal acceptance, and the shared guide library). `ClinicSite` is the public clinic identity: future subdomain plus branding. `ClinicLocation` is a physical practice belonging to a site. The additive migration backfills one primary site per existing account (`ClinicSite.slug` copied from `Clinic.slug`, branding copied from `ClinicProfile`) and one root location per site (`slug` null, so current patient URLs gain no path segment). Each existing guide gets one `PracticeGuidePlacement` at that root location. Guides stay account-owned.
+`Clinic` remains the commercial account (billing, entitlement, team, legal acceptance, and the shared guide library). `ClinicSite` is the authoritative public identity: hostname and branding. `ClinicLocation` is the physical practice. The current product reads the site’s one active root location for phone, address, and emergency instructions. Each public guide is an enabled `PracticeGuidePlacement` at that root. Guides stay account-owned.
 
-Runtime still reads `Clinic.slug`, `ClinicProfile`, and `PracticeGuide`. Patient URLs, QR targets, staff UI, operator UI, Stripe, and public pricing are unchanged. `ClinicEntitlement.siteAllowance` and `locationAllowance` default to 1 and are not enforced. Group capacity is operator-configured later; Group prices are not published. Creating or editing extra sites or locations is not available. New operator clinics and the demo seed write the account, primary site, and root location together.
+`proxy.ts` still only rewrites the hostname. The patient loader resolves that string to an active `ClinicSite.slug` and does not fall back to `Clinic.slug`. Existing accounts were backfilled so those slugs match, which keeps current URLs. A site slug that differs from the account slug is the one that resolves. Patient URLs stay `https://{siteSlug}.{root}/{guideSlug}` with no location path segment. Print uses the same placement resolution. Share and QR hostnames come from `ClinicSite.slug`.
+
+Practice settings still look like one practice. Reads come from the primary site and its root location. Writes update those rows and the matching `ClinicProfile` fields together. `Clinic.slug` and `ClinicProfile` stay as rollback compatibility. Branding object keys are unchanged.
+
+`ClinicEntitlement.siteAllowance` and `locationAllowance` are not enforced. Missing entitlement means 1 site and 1 location, never unlimited. Creating or editing extra sites or locations is not available. Stripe and public pricing are unchanged. Provisional Group pricing (A$449/month for 2 sites and 5 locations, with a possible +A$50 site bundle that adds one site and one location) is not in Stripe. Marketing stays Talk to us. New operator clinics and the demo seed write the account, primary site, and root location together. The runtime switch adds no migration.
 
 ## Schema releases
 

@@ -3,6 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 
 import { authSessionCookieOptions } from "@/lib/auth/session-cookie";
+import { publicPracticeName } from "@/lib/clinics/patient-profile";
 import { getPrisma } from "@/lib/prisma";
 
 export const OPERATOR_SUPPORT_CLINIC_COOKIE = "river_operator_support_clinic";
@@ -25,7 +26,10 @@ export async function readOperatorSupportClinic(): Promise<{
     select: {
       id: true,
       name: true,
-      profile: { select: { displayName: true } },
+      sites: {
+        where: { isPrimary: true, active: true },
+        select: { displayName: true, clinicId: true },
+      },
     },
   });
   if (!clinic) {
@@ -34,7 +38,13 @@ export async function readOperatorSupportClinic(): Promise<{
 
   return {
     id: clinic.id,
-    name: clinic.profile?.displayName?.trim() || clinic.name,
+    name: publicPracticeName({
+      siteDisplayName:
+        clinic.sites.length === 1 && clinic.sites[0]?.clinicId === clinic.id
+          ? clinic.sites[0].displayName
+          : null,
+      accountName: clinic.name,
+    }),
   };
 }
 

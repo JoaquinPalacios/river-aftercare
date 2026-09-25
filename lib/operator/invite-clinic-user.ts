@@ -27,6 +27,7 @@ import { deliverClinicInvitationEmail } from "@/lib/operator/deliver-clinic-invi
 import { reserveTeamPlace } from "@/lib/entitlements/capacity";
 import { lockClinicTeamCapacity } from "@/lib/entitlements/locks";
 import { ENTITLEMENT_CODES } from "@/lib/entitlements/messages";
+import { publicPracticeName } from "@/lib/clinics/patient-profile";
 import { getPrisma } from "@/lib/prisma";
 
 export const ALREADY_MEMBER_MESSAGE =
@@ -205,7 +206,10 @@ export async function inviteClinicUser(input: {
       select: {
         id: true,
         name: true,
-        profile: { select: { displayName: true } },
+        sites: {
+          where: { isPrimary: true, active: true },
+          select: { displayName: true, clinicId: true },
+        },
       },
     });
     if (!clinic) {
@@ -226,7 +230,14 @@ export async function inviteClinicUser(input: {
       },
     });
 
-    const clinicName = clinic.profile?.displayName?.trim() || clinic.name;
+    const primarySite =
+      clinic.sites.length === 1 && clinic.sites[0]?.clinicId === clinic.id
+        ? clinic.sites[0]
+        : null;
+    const clinicName = publicPracticeName({
+      siteDisplayName: primarySite?.displayName,
+      accountName: clinic.name,
+    });
 
     if (!existing) {
       const reserved = await reserveTeamPlace(tx, {
