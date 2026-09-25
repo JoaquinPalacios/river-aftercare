@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-25 (function/database region investigation added to the performance audit; no product, schema, or region change)
+Last updated: 2026-09-25 (Vercel Functions pinned to `syd1` in `vercel.json`; measure after production deploy, before application optimisation)
 
 ## Durable multi-location product
 
@@ -31,13 +31,15 @@ Migration `20260925021500_add_multi_location_foundation` remains the only multi-
 
 ## Post-multi-location performance audit
 
-Audit only. Do not treat it as implemented optimisation. Report: [../performance/POST-MULTILOCATION-PERFORMANCE-AUDIT.md](../performance/POST-MULTILOCATION-PERFORMANCE-AUDIT.md). Reproduce query counts with `pnpm exec vitest run --config scripts/audit/vitest.config.ts` against local PostgreSQL only. That script refuses a non-loopback host and is not part of `pnpm test`.
+Report: [../performance/POST-MULTILOCATION-PERFORMANCE-AUDIT.md](../performance/POST-MULTILOCATION-PERFORMANCE-AUDIT.md). Reproduce query counts with `pnpm exec vitest run --config scripts/audit/vitest.config.ts` against local PostgreSQL only. That script refuses a non-loopback host and is not part of `pnpm test`.
+
+The Function region pin is in root `vercel.json` (`"regions": ["syd1"]` only). It is not a measured speedup until production is redeployed and the same probes are repeated. Do not start application optimisation before that.
 
 Headline, measured 2026-09-25 from a US runner whose Vercel id was `iad1`: public patient HTML is `private, no-store` and uncached (`x-vercel-cache: MISS`). `demodental` home/guide/print TTFB was about 1.3–1.5s. The same shapes on local PostgreSQL 18 were 20–70ms. Local EXPLAIN was sub-millisecond sequential scans because the fixture tables are tiny; the unique indexes already exist. The cost is round trips, not a missing index at this size.
 
 A full patient request repeats loader work for metadata and the page. Additional location home is the heaviest measured path (about 41 SQL executes) because `/{segment}` tries a root guide and then a location. Do not add a shared or CDN cache for patient, staff, or operator data unless the key includes the tenant, site, location, placement, and revision, and staff/operator responses stay uncached. React `cache()` inside one request is not that shared cache. Do not remove site/location advisory locks to save time.
 
-Region investigation, 2026-09-25, still audit-only: production `x-vercel-id` was `iad1::iad1::<request id>` on marketing, `demodental` home/guide/print, and `/api/health`. Vercel documents that header as the regions hit plus the function execution region. The repository sets no `regions`. Neon production is recorded as AWS Asia Pacific 2 (Sydney) in `docs/launch/NEON-RECOVERY.md` and `docs/launch/PRODUCTION-READINESS.md`. Warm `/api/health` (`SELECT 1`) was 267ms from `iad1`, next to Neon’s public ~215ms hot HTTP reference for `iad1` → `ap-southeast-2`. The first optimisation is a single function region `syd1` in its own change, then the same probes. The dashboard Function Regions list was not readable here; confirm it before that change. Neon stays pooled `DATABASE_URL` at runtime and unpooled `DIRECT_URL` for trusted migrations only.
+Region pin, 2026-09-25: before this file, production Functions executed in `iad1` (`x-vercel-id` `iad1::iad1::<request id>` on marketing, `demodental` home/guide/print, and `/api/health`). Neon production is AWS Asia Pacific 2 (Sydney). Root `vercel.json` now sets `"regions": ["syd1"]` only. One Function region matches that single primary. Several active Function regions could put some requests far from the database again. This is a latency and data-locality decision, not a multi-region resilience redesign. Static JS, CSS, and images stay on the global CDN. Requests may still enter at a nearby edge. Dynamic Node.js Functions run in `syd1`, so their database calls are colocated with Sydney Neon. Fluid Compute was not readable (no Vercel token, CLI, or `.vercel` link). It is orthogonal: repo-level `regions` is authoritative for placement, and `"fluid"` is not set. The pin applies on the next production deployment. After that deployment, rerun the audit’s production probes before React `cache()`, query, or index work. Do not record a target millisecond figure. Neon stays pooled `DATABASE_URL` at runtime and unpooled `DIRECT_URL` for trusted migrations only.
 
 ## Durable legacy chairside removal
 
