@@ -14,7 +14,7 @@ From a US runner, production `demodental` home, guide, and print returned in abo
 
 Each patient document loader issues many SQL statements because Prisma splits relation reads into separate queries (8 for a home list, 15 for one guide). Next.js then runs metadata and the page together, so those statements run again. An additional location home is the worst measured path: **41 SQL executes**, because `/{segment}` tries a root guide, misses, and then loads the location, and that whole sequence is duplicated.
 
-Do not start with indexes or a shared cache. Indexes for slug and `(locationId, publicSlug)` already exist, and a shared cache can serve one account’s guide to another. The first code change should dedupe work **inside one request**. The first infrastructure check should confirm whether Vercel functions run in Sydney next to Neon, or in `iad1`. This audit cannot prove the Australian field number from a US probe.
+Do not start with indexes or a shared cache. Indexes for slug and `(locationId, publicSlug)` already exist, and a shared cache can serve one account’s guide to another. The first change is infrastructure: production functions that served this audit executed in `iad1` (US East), and the production Neon database is recorded in AWS Asia Pacific 2 (Sydney). Colocate functions in a single `syd1` region, redeploy, and repeat these measurements before deduping loaders. Detail is in [Function / Database Region Investigation](#function--database-region-investigation).
 
 Staff JavaScript is a separate, smaller issue. Login, password, and Sites & Locations pull Zod into the browser (about **388KB uncompressed**) because client components import modules that construct Zod schemas. Patient pages do not.
 
@@ -29,7 +29,7 @@ Out of scope, and not implemented here: Group/Practice split, operator-assisted 
 | Source                 | What it is                                                                                                                                                                                                                        |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Production HTTP        | 5 sequential requests per public route, plus 2 health probes and 1 `www` redirect. No concurrency, no writes, no tenant crawl. Only `riveraftercare.com.au`, `app.riveraftercare.com.au`, and `demodental.riveraftercare.com.au`. |
-| Vantage                | This runner’s `x-vercel-id` was `iad1::iad1`. DNS and TLS were about 1ms and 20ms. The measured TTFB is server time from that edge, not a Sydney lab.                                                                             |
+| Vantage                | This runner reached Vercel in `iad1`. The function region on the same header was also `iad1`. DNS and TLS were about 1ms and 20ms. See [Function / Database Region Investigation](#function--database-region-investigation).      |
 | Local production build | `next build` (Next.js 16.3.5, Turbopack) on Node 24.21.0. Route table and `.next/diagnostics/route-bundle-stats.json`.                                                                                                            |
 | Local database         | PostgreSQL 18.6 in Docker (`postgres:18-alpine`), disposable database `care_guide_perf_audit`.                                                                                                                                    |
 | Query counts           | Prisma query events for one loader call, then PostgreSQL `log_statement=all` around real `next start` requests. Logging was turned back off afterwards.                                                                           |
@@ -37,6 +37,131 @@ Out of scope, and not implemented here: Group/Practice split, operator-assisted 
 | Not measured           | Lighthouse, LCP, CLS, INP, authenticated production pages, production `EXPLAIN`, production row counts. Chrome is installed. Lighthouse is not a project dependency, and a US lab score would not be Australian field data.       |
 
 Web vital **targets** (not measurements): LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.1.
+
+## Function / Database Region Investigation
+
+Checked 2026-09-25. No region setting, deployment, Neon project, or application code was changed. Vercel CLI was not installed and no `VERCEL_TOKEN` was present, so the project dashboard was not read. This environment’s `DATABASE_URL` is local PostgreSQL, so production Neon was not queried.
+
+### What `iad1::iad1` means
+
+Vercel documents `x-vercel-id` on both the request and the response as the list of regions the request hit, plus the region where the function executed, for Edge and Serverless. Source: [Request headers](https://vercel.com/docs/headers/request-headers) and [Response headers](https://vercel.com/docs/headers/response-headers).
+
+Vercel’s `@vercel/functions` parser treats the value as `region::id` or `region1:region2:...::id`, and uses the first region as the edge that received the request (`geolocation().region`). Source: [`packages/functions/src/headers.ts`](https://github.com/vercel/vercel/blob/22ae14af/packages/functions/src/headers.ts).
+
+Every production response in the follow-up probe had three `::` segments: `iad1`, `iad1`, and a request id. The request id is omitted here. `iad1` is Washington, D.C., USA (`us-east-1`) on the [region list](https://vercel.com/docs/regions). The first `iad1` is the edge that accepted this US probe. The second `iad1` is the function execution region: the documented header includes that region, and `syd1` does not appear. A public Vercel trace with the same shape pairs `fra1::iad1::<id>` with execution in `iad1` ([next.js#56447](https://github.com/vercel/next.js/issues/56447)). River Aftercare responses did not include `x-vercel-execution-region`.
+
+`iad1` on the first segment describes where this probe entered the network. It does not describe an Australian visitor’s nearest edge. The second segment describes where the function ran for that request.
+
+### Repository configuration
+
+There is no `vercel.json`, `vercel.ts`, or `.vercel` project link. `next.config.ts` sets no region. No route exports `preferredRegion`, `regions`, or `runtime = "edge"`. The only `runtime = "nodejs"` exports are `app/api/stripe/webhook/route.ts` and `app/api/billing/status/route.ts`. Patient, marketing, staff, and operator routes have no region override. No Fluid Compute key is set in the repo.
+
+With no `regions` key, function placement is the Vercel project setting, or the platform default when that setting was never changed. New projects default to a single region, `iad1` ([Configuring regions](https://vercel.com/docs/functions/configuring-functions/region)).
+
+### Vercel project settings
+
+Not readable from this environment. Joaquín can confirm the live value at:
+
+**Vercel → River Aftercare project → Settings → Functions → Function Regions**
+
+Also on that page: the Fluid Compute toggle, and whether Preview uses the same region. Fluid Compute has been the default for new projects since 23 April 2025 ([Fluid compute](https://vercel.com/docs/fluid-compute)). This audit did not read whether this project has it on. Fluid’s own defaults do not set a region. When Fluid is on, a `vercel.json` region overrides the dashboard, and the dashboard overrides Fluid defaults.
+
+### Observed production execution
+
+Two sequential GET passes, no concurrency, from the same US runner. `server-timing` was absent. `x-vercel-execution-region` was absent. Every `x-vercel-id` was `iad1::iad1::<request id>`.
+
+| Surface        | URL                                                         | Pass | Status |    TTFB | `x-vercel-cache` | `cache-control`                                           |
+| -------------- | ----------------------------------------------------------- | ---: | -----: | ------: | ---------------- | --------------------------------------------------------- |
+| Marketing home | `https://riveraftercare.com.au/`                            |    1 |    200 | 1,764ms | `MISS`           | `private, no-cache, no-store, max-age=0, must-revalidate` |
+| Patient home   | `https://demodental.riveraftercare.com.au/`                 |    1 |    200 | 2,575ms | `MISS`           | `private, no-cache, no-store, max-age=0, must-revalidate` |
+| Patient guide  | `https://demodental.riveraftercare.com.au/extraction`       |    1 |    200 | 2,738ms | `MISS`           | `private, no-cache, no-store, max-age=0, must-revalidate` |
+| Patient print  | `https://demodental.riveraftercare.com.au/extraction/print` |    1 |    200 | 2,837ms | `MISS`           | `private, no-cache, no-store, max-age=0, must-revalidate` |
+| DB health      | `https://app.riveraftercare.com.au/api/health`              |    1 |    200 | 1,525ms | `MISS`           | `no-store`                                                |
+| Marketing home | same                                                        |    2 |    200 |   302ms | `MISS`           | `private, no-cache, no-store, max-age=0, must-revalidate` |
+| Patient home   | same                                                        |    2 |    200 | 1,318ms | `MISS`           | `private, no-cache, no-store, max-age=0, must-revalidate` |
+| Patient guide  | same                                                        |    2 |    200 | 1,502ms | `MISS`           | `private, no-cache, no-store, max-age=0, must-revalidate` |
+| Patient print  | same                                                        |    2 |    200 | 1,513ms | `MISS`           | `private, no-cache, no-store, max-age=0, must-revalidate` |
+| DB health      | same                                                        |    2 |    200 |   267ms | `MISS`           | `no-store`                                                |
+
+Pass 2 matches the earlier five-sample patient medians (home 1,304ms, guide 1,513ms, print 1,504ms). The function region was `iad1` on marketing, patient, print, and health alike.
+
+`/api/health` runs one pooled `SELECT 1` (`lib/health/ping-application-database.ts`) and returns `{ "status": "ok" }`. Its warm TTFB was 267ms. That is one database round trip plus function time, from `iad1`.
+
+### Neon production region
+
+Recorded production facts, from the live project and the 20 September 2026 recovery drill:
+
+| Source                                                                   | Recorded region                                                              |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| [docs/launch/NEON-RECOVERY.md](../launch/NEON-RECOVERY.md)               | PostgreSQL 18, AWS Asia Pacific 2 (Sydney)                                   |
+| [docs/launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READINESS.md) | River Aftercare Production, branch `production`, AWS Asia Pacific 2 (Sydney) |
+
+No Neon API credential was available, and this session did not open a production connection. Joaquín can confirm the console field: **Neon Console → project River Aftercare Production → branch `production` → region**, which the runbooks record as AWS Asia Pacific 2 (Sydney) / `ap-southeast-2`.
+
+### Latency reference
+
+Neon’s public regional benchmark times `SELECT 1` from a Vercel function pinned to each region, over HTTP, and publishes the 30-day mean. Read on 2026-09-25 from [neon.com/demos/regional-latency](https://neon.com/demos/regional-latency) ([method](https://github.com/neondatabase-labs/latency-benchmarks)):
+
+| From          | To Neon `ap-southeast-2` | Hot mean | Cold mean |
+| ------------- | ------------------------ | -------: | --------: |
+| Vercel `iad1` | Sydney                   |  214.9ms | 1,352.5ms |
+| Vercel `syd1` | Sydney                   |    9.9ms |   713.3ms |
+
+These cells use Neon’s HTTP driver against empty benchmark databases. River Aftercare uses `PrismaPg` and `pg` over the pooled TCP connection. Treat the table as the shape of the network, not as a measurement of this app. Vercel’s own guidance is to run functions in the same region as the database ([regions](https://vercel.com/docs/regions), [configuring regions](https://vercel.com/docs/functions/configuring-functions/region)).
+
+The warm health probe (267ms, one `SELECT 1`) sits next to the `iad1` → Sydney hot reference (214.9ms). The first health probe (1,525ms) sits next to that path’s cold reference (1,352.5ms). Local `EXPLAIN` still finishes in under 0.1ms, and a warm local patient render is 20–70ms. PostgreSQL CPU is not the production 1.5s.
+
+### Why query count amplifies the gap
+
+A guide loader issues 15 SQL statements. A full guide or print request logged 27 executes because metadata and the page both run the loader. On the local home trace, the duplicated reads appeared at the same millisecond, and Prisma batched some repeated `findUnique` calls. Those statements share a round trip. They do not each wait for the previous one.
+
+27 serial trips at the 215ms reference would be several seconds. Production guide TTFB stayed near 1.5s, so the statements are grouped. The warm health check is one round trip at about 270ms. The guide page is about 1.2s slower than that, which fits a short chain of sequential groups plus render time. This audit did not trace production Prisma timing, so it does not assign a round-trip count to each statement.
+
+Moving the function to `syd1` shrinks every group. Reducing the number of groups still matters afterwards, and should be remeasured on the colocated baseline.
+
+### Australian visitors and a single region
+
+Static files stay on Vercel’s CDN in the region closest to the visitor. Choosing a function region leaves that in place ([configuring regions](https://vercel.com/docs/functions/configuring-functions/region)). Dynamic HTML is `private, no-store` and `x-vercel-cache: MISS`, so the function runs on every patient document.
+
+If Settings → Functions lists only `iad1`, Australian patients use that same function. Their nearest edge still accepts the connection, then forwards it to Washington before any SQL runs. The 1.3–1.5s figures above are from a runner already in `iad1`. An Australian visitor would add that extra hop. This audit did not measure from Australia.
+
+With a single function region of `syd1`:
+
+- The nearest edge still accepts the request.
+- The function runs in Sydney.
+- Database round trips stay inside `ap-southeast-2`.
+- A visitor outside Australia reaches that same Sydney function. Their edge hop is longer. Their database hops become the short ones. Patient pages are dominated by those database hops.
+
+A second active function region, such as `iad1` together with `syd1`, would run some requests far from the only database. That is a resilience question, not the latency fix. Hobby accounts can select one region. Pro can select more than one ([limits](https://vercel.com/docs/functions/configuring-functions/region)). `syd1` is in the public region list.
+
+Fluid Compute fails over to another availability zone in the same region, and only leaves the region if that whole region is unavailable. That failover is separate from pinning an active second region.
+
+### How to set Sydney later
+
+Do not set it in this audit.
+
+The dashboard Function Regions control is what production uses today, because the repository sets no `regions`. A `regions` entry in `vercel.json` overrides that dashboard value ([`vercel.json`](https://vercel.com/docs/project-configuration/vercel-json), Fluid precedence table). Per-function `functions` regions override the project list. `preferredRegion` is the Edge route-segment control; these patient routes are Node.js.
+
+Prefer a reviewed `vercel.json` with `"regions": ["syd1"]` in a later change, so the region is visible in git and wins over a dashboard edit. Setting only the dashboard to Sydney (`syd1`) is enough while the repo stays silent. Either way, the running deployment keeps its current region until a new production deployment. This audit does not deploy.
+
+Before that change, read the Function Regions accordion. If it already lists more than `iad1`, keep the follow-up to a single `syd1` rather than appending regions.
+
+### Confidence and next action
+
+| Claim                                                     | Confidence  | Why                                                                                                                  |
+| --------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| These production requests executed the function in `iad1` | High        | Every probed route returned `iad1::iad1::<id>`, and the header includes the function region                          |
+| Production Neon is AWS `ap-southeast-2` / Sydney          | High        | Launch and recovery runbooks record the live project. The Neon API was not re-read here                              |
+| The project setting is a single region, `iad1`            | Medium      | Matches the default and the header. The dashboard list was not opened, so an extra region beside `iad1` is unchecked |
+| Colocation removes most of the 1.3–1.5s patient TTFB      | Directional | Supported by the health probe and Neon’s reference. The after-change TTFB has to be measured                         |
+
+**Measured:** function region `iad1`; patient warm TTFB 1.3–1.5s; health `SELECT 1` 1,525ms then 267ms; local SQL under 0.1ms; local warm render 20–70ms.
+
+**Reference:** Neon HTTP `SELECT 1`, 30-day mean, `iad1` → Sydney 214.9ms hot / 1,352.5ms cold; `syd1` → Sydney 9.9ms hot / 713.3ms cold.
+
+**Expected:** after a single-region move to `syd1` and a redeploy, repeat the same URLs. The warm health check is the cleanest comparison, because it is one pooled `SELECT 1`. Patient TTFB should fall by the cross-Pacific part of its sequential groups. This audit does not promise a replacement millisecond figure.
+
+The first optimisation action is that region change, in its own pull request, followed by the same probes. Application dedupe stays behind that measurement.
 
 ## 4. Production-safe baseline
 
@@ -247,12 +372,12 @@ Rejected: one global `unstable_cache` for “the published guide”, any cache o
 ### P1. Patient TTFB is about 1.5s from this vantage, on an uncached dynamic render
 
 - **Severity:** High
-- **Class:** Current performance issue for requests executed in `iad1`. Australian field impact is unconfirmed.
-- **Evidence:** Production median TTFB 1,304ms home, 1,513ms guide, 1,504ms print, all `x-vercel-cache: MISS`. Local equivalents 19–73ms. Health `SELECT 1` was 300ms when warm from the same runner.
+- **Class:** Current. Functions that served these requests ran in `iad1` while Neon is in Sydney. If the project has only that one region, Australian visitors use the same function region and add the trip from their edge to `iad1` on top of the database round trips already in this US measurement.
+- **Evidence:** Production median TTFB 1,304ms home, 1,513ms guide, 1,504ms print, all `x-vercel-cache: MISS` and `x-vercel-id` `iad1::iad1`. Local equivalents 19–73ms. Warm health `SELECT 1` was 267ms from the same runner. See [Function / Database Region Investigation](#function--database-region-investigation).
 - **Surface:** patient, infrastructure
 - **Impact:** TTFB, and therefore LCP on server-rendered HTML
-- **Effort:** The region check is small. Query reduction is medium.
-- **Risk:** Low for measurement. Medium if the function region is changed without a dashboard review.
+- **Effort:** One region setting and a redeploy. Query reduction comes after the remeasure.
+- **Risk:** Low if the follow-up sets a single `syd1` and repeats these probes. Read the Function Regions list before changing it.
 
 ### P2. Additional location home performs a failed guide lookup, twice
 
@@ -318,7 +443,7 @@ Only items with direct evidence. Do not implement them in this branch.
 
 ## 16. Structural improvements
 
-1. **Confirm Vercel function region against Neon in Sydney.** The repo sets no `regions`. This probe executed in `iad1`. If production functions are pinned to `iad1`, moving them to `syd1` is the largest TTFB change available and should happen before query micro-optimisation. If they already follow the visitor, the 1.5s number is a US-visitor figure and Australian TTFB is closer to the local 20–70ms plus Sydney Neon latency. Use Vercel Speed Insights field data or one Sydney probe. Do not change region inside an application PR without that confirmation.
+1. **Move the single function region to `syd1`.** Confirmed in [Function / Database Region Investigation](#function--database-region-investigation): these production functions ran in `iad1`, and Neon is in Sydney. Do that in its own change, redeploy, then repeat the `demodental` and `/api/health` probes before editing loaders.
 2. **Fewer SQL statements per guide read.** Prisma emitted separate statements for site, clinic, location, placement, revision, sections, guide, template, overrides, and additions. A narrower `select` or one SQL statement would cut round trips after dedupe. Do this only with the same predicates and the same pin rule (null pin stays on the canonical template; a newer clinic revision is not substituted).
 3. **Location-home miss path.** After dedupe, `/bondi` still runs a full guide lookup that returns nothing. A cheaper existence check, still ordered so a real root guide wins, would cut the 41-statement request further. Slug collision rules in `lib/clinics/slug-collisions.ts` must keep working.
 4. **Marketing ISR, separate from patient caching.** Remove the `headers()` dependency from marketing render, or pass the origin another way, and let the existing SEO `revalidatePath` flow apply. Do not reuse that strategy on tenant hosts.
@@ -328,7 +453,7 @@ Only items with direct evidence. Do not implement them in this branch.
 
 ## 17. Recommended PR sequence
 
-1. **PR 0 — confirm function region (no application change unless the dashboard is wrong).** Compare Vercel project region with Neon `ap-southeast-2`. If functions run in `iad1` for Australian patients, schedule a region change as its own change and remeasure `demodental` TTFB before writing more code.
+1. **PR 0 — single function region `syd1`.** No application code. Read Settings → Functions → Function Regions first. Then set one region, `syd1`, preferably with `vercel.json` `"regions": ["syd1"]` so it overrides the dashboard. Redeploy production. Repeat the patient and `/api/health` probes from this audit. Leave React `cache()` and query changes until those numbers exist.
 2. **PR A — request-level patient loader dedupe.** React `cache()` only. No `unstable_cache`, no `Cache-Control` change, no removal of `force-dynamic`. Add a test that two calls in one request share one site lookup. Re-run the audit script’s HTTP counts and expect home below 12 and location home well below 41.
 3. **PR B — staff client Zod and Prisma enum split.** Login, password forms, slug helper, invitation constants. No patient behaviour change. Compare `route-bundle-stats.json` for `/login`, `/practice`, and `/practice/sites`.
 4. **PR C — reduce statements inside `getPublishedPracticeGuide` and the location-home miss path.** One PR if the miss path stays obviously correct; otherwise split. Keep pin and collision behaviour. Re-measure statement counts.
