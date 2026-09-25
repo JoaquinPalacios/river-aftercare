@@ -5,7 +5,29 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-24 (legacy chairside schema removed after PR #96; GST not in scope)
+Last updated: 2026-09-25 (revised multi-location foundation: Clinic → ClinicSite → ClinicLocation; runtime still single-location)
+
+## Durable multi-location foundation
+
+`Clinic` stays the Prisma account model. Do not rename the table. It is the paying customer: billing, entitlement, team, legal acceptance, and the shared guide library. `Clinic.slug` remains the hostname patients use today.
+
+`ClinicSite` is the public clinic identity. It owns the future subdomain (`slug`, globally unique, same format as `Clinic.slug`) and branding copied from `ClinicProfile` (logos, colours, typeface, radius, theme, terminology, attribution). Billing, legal, and contact do not move onto the site just because they currently sit near branding.
+
+`ClinicLocation` belongs to a `ClinicSite`, not directly to `Clinic`. It holds the physical place: name, optional path slug, phone, address, contact, booking, and emergency instructions. `servesSiteRoot` replaces the unshipped `servesAccountRoot` name. Root location: `slug` null and `servesSiteRoot` true. Additional locations require a slug unique within the site and `servesSiteRoot` false. `isPrimary` is independent of root ownership. At most one primary site per account, one primary location per site, and one site-root location per site.
+
+Migration `20260925021500_add_multi_location_foundation` is the only multi-location migration. It replaced an unmerged draft that attached locations directly to `Clinic`. That draft was never applied to production. The replacement is additive against `main`: one primary site per existing clinic (`ClinicSite.slug = Clinic.slug`), one root location per site, and one placement per guide at that root location. `demodental` is included. Original `Clinic.slug` and `ClinicProfile` columns stay.
+
+`PracticeGuide` stays account-owned so one guide can be offered at many locations and sites. `PracticeGuidePlacement` points at a guide and a location. Composite foreign keys require both sides to share `clinicId`. `publishedPracticeGuideRevisionId` stores the clinic revision patients already resolve, or null for canonical template fallback. Draft and unpublished guides get a disabled placement. No fake revision is created. `copiedFromPracticeGuideId` stays null. Placements are not read by patient pages yet.
+
+`ClinicEntitlement.siteAllowance` and `locationAllowance` are explicit totals, default 1, check `>= 1`. They replaced the unshipped `extraLocationAllowance`. Totals fit this dimension better than extras: there is no code base to add onto, a missing row must not mean unlimited (unlike guide/team legacy-open), Practice does not gain extra sites, and Group is an operator-set total such as 2 sites and 5 locations with any distribution. Do not enforce these caps in this foundation. Do not hard-code Group prices. A later enforcement pass should treat a missing entitlement row as 1 site and 1 location.
+
+`DowngradeLocationSelection` remains and is unused. `DowngradeSiteSelection` was not added; `ClinicDowngradePreparation` can gain that child later.
+
+Operator clinic creation and `prisma/seed.mjs` (via `lib/clinics/primary-site-location.mjs`) write the account, primary site, and root location together. Direct `prisma.clinic.create` in tests does not, so backfill tests can still insert pre-hierarchy clinics. Bootstrap of the sample template does not create a clinic.
+
+Future branding object keys may be `clinics/{clinicId}/sites/{clinicSiteId}/branding/...`. Current keys stay `clinics/{clinicId}/branding/{uuid}.{ext}`. Do not migrate objects or change asset reads in this foundation.
+
+Do not switch patient, portal, QR, operator, or billing reads. Do not add site or location UI. Do not change Stripe or public pricing. Marketing multi-location copy stays “Talk to us”.
 
 ## Durable legacy chairside removal
 

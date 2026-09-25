@@ -5,6 +5,8 @@ Practice identity stores `ClinicProfile.logoUrl` as a **provider-independent ref
 - Demo / static marks: a same-origin path such as `/demo/riverside-mark.svg`
 - Uploaded marks: an immutable object key `clinics/<clinicId>/branding/<uuid>.<ext>`
 
+Branding will belong to `ClinicSite` once runtime reads move. A later transition may store new uploads at `clinics/<clinicId>/sites/<clinicSiteId>/branding/<uuid>.<ext>`. Existing keys and `ClinicProfile.logoUrl` values stay as they are until that controlled change. Do not rewrite stored objects in the multi-location foundation.
+
 The patient renderer resolves that reference with `resolveClinicLogoSrc` and always renders the mark as `<img src="...">`. Uploaded SVG is never inlined, never passed to `dangerouslySetInnerHTML`, and never mounted via `object`/`embed`.
 
 ## Current status

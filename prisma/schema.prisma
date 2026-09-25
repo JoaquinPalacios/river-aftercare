@@ -91,40 +91,41 @@ enum PracticeSectionProvenance {
 }
 
 model Clinic {
-  id                 String                @id @default(cuid())
-  name               String
-  slug               String                @unique
-  memberships        ClinicMembership[]
-  profile            ClinicProfile?
-  billingProfile     ClinicBillingProfile?
-  entitlement        ClinicEntitlement?
-  legalAcceptances   LegalAcceptance[]
-  practiceGuides        PracticeGuide[]
-  accountTokens         AccountToken[]
-  downgradePreparation  ClinicDowngradePreparation?
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
+  id                   String                      @id @default(cuid())
+  name                 String
+  slug                 String                      @unique
+  memberships          ClinicMembership[]
+  profile              ClinicProfile?
+  billingProfile       ClinicBillingProfile?
+  entitlement          ClinicEntitlement?
+  legalAcceptances     LegalAcceptance[]
+  practiceGuides       PracticeGuide[]
+  accountTokens        AccountToken[]
+  downgradePreparation ClinicDowngradePreparation?
+  sites                ClinicSite[]
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
 }
 
 model User {
-  id                             String                  @id @default(cuid())
+  id                             String                       @id @default(cuid())
   name                           String?
-  email                          String                  @unique
+  email                          String                       @unique
   emailVerified                  DateTime?
   image                          String?
   passwordHash                   String?
-  platformRole                   PlatformRole            @default(NONE)
+  platformRole                   PlatformRole                 @default(NONE)
   memberships                    ClinicMembership[]
   accounts                       Account[]
   sessions                       Session[]
-  authoredPracticeGuideRevisions PracticeGuideRevision[] @relation("PracticeGuideRevisionAuthor")
-  attestedPracticeGuideRevisions PracticeGuideRevision[] @relation("PracticeGuideRevisionAttestation")
-  accountTokens                  AccountToken[]          @relation("AccountTokenSubject")
-  invitedAccountTokens           AccountToken[]          @relation("AccountTokenInviter")
+  authoredPracticeGuideRevisions PracticeGuideRevision[]      @relation("PracticeGuideRevisionAuthor")
+  attestedPracticeGuideRevisions PracticeGuideRevision[]      @relation("PracticeGuideRevisionAttestation")
+  accountTokens                  AccountToken[]               @relation("AccountTokenSubject")
+  invitedAccountTokens           AccountToken[]               @relation("AccountTokenInviter")
   legalAcceptances               LegalAcceptance[]
   confirmedDowngradePreparations ClinicDowngradePreparation[] @relation("DowngradeSelectionConfirmedBy")
-  createdAt                      DateTime                      @default(now())
-  updatedAt                      DateTime                      @updatedAt
+  createdAt                      DateTime                     @default(now())
+  updatedAt                      DateTime                     @updatedAt
 }
 
 model ClinicMembership {
@@ -255,6 +256,99 @@ model ClinicProfile {
   updatedAt                DateTime                     @updatedAt
 }
 
+/// Public clinic identity belonging to a Clinic account.
+/// Owns the future tenant hostname and branding. `slug` is globally unique
+/// and is backfilled from `Clinic.slug`. Runtime patient routing still reads
+/// `Clinic.slug`. Branding columns are copied from `ClinicProfile` and remain
+/// there until a later read switch. Billing, legal, and team stay on Clinic.
+/// PostgreSQL enforces slug format and at most one primary site per account.
+/// That predicate is in the migration because Prisma cannot express it.
+model ClinicSite {
+  id                       String                       @id @default(cuid())
+  clinicId                 String
+  name                     String
+  slug                     String                       @unique
+  displayName              String
+  active                   Boolean                      @default(true)
+  /// The account's primary public site. Independent of which location serves
+  /// that site's unprefixed patient URLs.
+  isPrimary                Boolean                      @default(false)
+  logoUrl                  String?
+  darkLogoUrl              String?
+  faviconUrl               String?
+  primaryColor             String?
+  accentColor              String?
+  darkPrimaryColor         String?
+  darkAccentColor          String?
+  useCustomDarkBranding    Boolean                      @default(false)
+  neutralColor             String?
+  radiusPreset             ClinicRadiusPreset           @default(MEDIUM)
+  typeface                 ClinicTypeface?
+  instructionTerminology   ClinicInstructionTerminology @default(AFTERCARE)
+  themeMode                ClinicThemeMode              @default(SYSTEM)
+  allowPatientThemeToggle  Boolean                      @default(false)
+  showCareGuideAttribution Boolean                      @default(true)
+  createdAt                DateTime                     @default(now())
+  updatedAt                DateTime                     @updatedAt
+  clinic                   Clinic                       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  locations                ClinicLocation[]
+
+  @@unique([id, clinicId])
+  @@index([clinicId])
+}
+
+/// Physical practice belonging to a ClinicSite.
+/// Contact and emergency fields are copied from ClinicProfile and remain
+/// there until a later read switch. Branding is not stored here.
+/// `slug` is null for the location that serves unprefixed site-root patient
+/// URLs. A non-root location requires a slug unique within the site.
+/// `clinicId` matches the parent site so a location cannot attach to another
+/// account's site. PostgreSQL enforces the root/slug pairing and at most one
+/// primary and one site-root location per site. Those predicates are in the
+/// migration because Prisma cannot express them.
+model ClinicLocation {
+  id                    String                       @id @default(cuid())
+  clinicSiteId          String
+  clinicId              String
+  /// Staff-facing place name.
+  name                  String
+  /// Path segment under the site hostname. Null means this location has no
+  /// path segment and is served on the site hostname root.
+  slug                  String?
+  /// Patient-facing place name.
+  displayName           String
+  phone                 String?
+  addressLine1          String?
+  addressLine2          String?
+  city                  String?
+  region                String?
+  postalCode            String?
+  country               String?
+  contactUrl            String?
+  contactEmail          String?
+  bookingUrl            String?
+  emergencyInstructions String?
+  /// The site's primary/default physical location. Independent of
+  /// `servesSiteRoot`, so a later default can change without moving historic
+  /// unprefixed patient URLs.
+  isPrimary             Boolean                      @default(false)
+  /// The location permanently associated with existing unprefixed patient URLs
+  /// on this site's hostname.
+  servesSiteRoot        Boolean                      @default(false)
+  active                Boolean                      @default(true)
+  deactivatedAt         DateTime?
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  clinicSite            ClinicSite                   @relation(fields: [clinicSiteId, clinicId], references: [id, clinicId], onDelete: Cascade)
+  placements            PracticeGuidePlacement[]
+  downgradeSelections   DowngradeLocationSelection[]
+
+  @@unique([clinicSiteId, slug])
+  @@unique([id, clinicId])
+  @@index([clinicSiteId])
+  @@index([clinicId])
+}
+
 model GuideTemplate {
   id                    String                  @id @default(cuid())
   specialty             Specialty
@@ -318,41 +412,49 @@ model GuideTemplateSection {
 /// guides leave both null. Patient-visible content is served from an immutable
 /// published `PracticeGuideRevision` snapshot, not from live overrides.
 model PracticeGuide {
-  id                    String                  @id @default(cuid())
-  clinicId              String
-  title                 String
-  guideTemplateId       String?
-  pinnedRevisionId      String?
+  id                        String                    @id @default(cuid())
+  clinicId                  String
+  title                     String
+  guideTemplateId           String?
+  pinnedRevisionId          String?
   /// Set when this row is forked from a River template into a clinic-owned
   /// editable copy. Provenance only: it does not keep the canonical pin.
   /// Existing rows stay null. Production has no historical adaptations to backfill.
-  adaptedAt             DateTime?
+  adaptedAt                 DateTime?
   /// Canonical River template this copy came from. Counts toward the
   /// adapted-template allowance, not the original custom-guide allowance.
   /// Null for original custom guides and for templates still used as supplied.
-  sourceGuideTemplateId String?
-  publicSlug            String
-  isEnabled             Boolean                 @default(false)
-  status                PracticeGuideStatus     @default(DRAFT)
-  sortOrder             Int                     @default(0)
-  publishedAt           DateTime?
+  sourceGuideTemplateId     String?
+  /// Set when this account-owned guide is a detached copy of another
+  /// account-owned guide. Provenance only. Existing rows stay null.
+  /// Do not infer this from a template relationship.
+  copiedFromPracticeGuideId String?
+  publicSlug                String
+  isEnabled                 Boolean                   @default(false)
+  status                    PracticeGuideStatus       @default(DRAFT)
+  sortOrder                 Int                       @default(0)
+  publishedAt               DateTime?
   /// Set when this clinic-owned guide enters 60-day downgrade retention.
   /// Null means the guide is active. Publication status is unchanged.
-  downgradeRetainedAt   DateTime?
+  downgradeRetainedAt       DateTime?
   /// First effective Practice → Essential transition plus 60 UTC days.
   /// Not moved by a replayed webhook. Null when the guide is active.
-  downgradeRetentionUntil DateTime?
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  clinic                Clinic                  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  guideTemplate         GuideTemplate?          @relation(fields: [guideTemplateId], references: [id], onDelete: Restrict)
-  pinnedRevision        GuideTemplateRevision?  @relation(fields: [pinnedRevisionId, guideTemplateId], references: [id, guideTemplateId], onDelete: Restrict)
-  sourceGuideTemplate   GuideTemplate?          @relation("PracticeGuideSourceTemplate", fields: [sourceGuideTemplateId], references: [id], onDelete: SetNull)
-  overrides             PracticeGuideOverride[]
-  additions             PracticeGuideAddition[]
-  contentRevisions      PracticeGuideRevision[]
-  downgradeSelections   DowngradeGuideSelection[]
+  downgradeRetentionUntil   DateTime?
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+  clinic                    Clinic                    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  guideTemplate             GuideTemplate?            @relation(fields: [guideTemplateId], references: [id], onDelete: Restrict)
+  pinnedRevision            GuideTemplateRevision?    @relation(fields: [pinnedRevisionId, guideTemplateId], references: [id, guideTemplateId], onDelete: Restrict)
+  sourceGuideTemplate       GuideTemplate?            @relation("PracticeGuideSourceTemplate", fields: [sourceGuideTemplateId], references: [id], onDelete: SetNull)
+  copiedFromPracticeGuide   PracticeGuide?            @relation("PracticeGuideCopyProvenance", fields: [copiedFromPracticeGuideId], references: [id], onDelete: SetNull)
+  detachedCopies            PracticeGuide[]           @relation("PracticeGuideCopyProvenance")
+  overrides                 PracticeGuideOverride[]
+  additions                 PracticeGuideAddition[]
+  contentRevisions          PracticeGuideRevision[]
+  downgradeSelections       DowngradeGuideSelection[]
+  placements                PracticeGuidePlacement[]
 
+  @@unique([id, clinicId])
   @@unique([clinicId, guideTemplateId])
   @@unique([clinicId, publicSlug])
   @@index([clinicId, status, isEnabled])
@@ -360,6 +462,7 @@ model PracticeGuide {
   @@index([guideTemplateId])
   @@index([pinnedRevisionId])
   @@index([sourceGuideTemplateId])
+  @@index([copiedFromPracticeGuideId])
 }
 
 /// Clinic-owned guide document. Version 0 is the mutable working draft.
@@ -386,6 +489,7 @@ model PracticeGuideRevision {
   createdBy              User?                          @relation("PracticeGuideRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: SetNull)
   reviewAttestedBy       User?                          @relation("PracticeGuideRevisionAttestation", fields: [reviewAttestedByUserId], references: [id], onDelete: SetNull)
   sections               PracticeGuideRevisionSection[]
+  placements             PracticeGuidePlacement[]
 
   @@unique([practiceGuideId, version])
   @@index([practiceGuideId, status])
@@ -412,6 +516,34 @@ model PracticeGuideRevisionSection {
   @@unique([revisionId, key])
   @@unique([revisionId, sortOrder])
   @@index([revisionId])
+}
+
+/// Account-owned guide offered at one physical location.
+/// `clinicId` is shared by the guide and location foreign keys, so both sides
+/// belong to the same Clinic account. This table is not read by patient pages yet.
+/// `publishedPracticeGuideRevisionId` points at a clinic-owned
+/// PracticeGuideRevision. It is null when patients are still served from the
+/// canonical template pin, or when the guide is not currently published.
+/// It is not PracticeGuide.pinnedRevisionId, which references GuideTemplateRevision.
+model PracticeGuidePlacement {
+  id                               String                 @id @default(cuid())
+  practiceGuideId                  String
+  locationId                       String
+  clinicId                         String
+  publishedPracticeGuideRevisionId String?
+  publicSlug                       String
+  isEnabled                        Boolean                @default(false)
+  createdAt                        DateTime               @default(now())
+  updatedAt                        DateTime               @updatedAt
+  practiceGuide                    PracticeGuide          @relation(fields: [practiceGuideId, clinicId], references: [id, clinicId], onDelete: Cascade)
+  location                         ClinicLocation         @relation(fields: [locationId, clinicId], references: [id, clinicId], onDelete: Cascade)
+  publishedPracticeGuideRevision   PracticeGuideRevision? @relation(fields: [publishedPracticeGuideRevisionId], references: [id], onDelete: SetNull)
+
+  @@unique([locationId, practiceGuideId])
+  @@unique([locationId, publicSlug])
+  @@index([practiceGuideId])
+  @@index([clinicId])
+  @@index([publishedPracticeGuideRevisionId])
 }
 
 model PracticeGuideOverride {
@@ -536,17 +668,18 @@ enum DowngradePreparationStatus {
 /// At most one row per clinic. Selected guides are child rows, not JSON.
 /// Confirming a selection does not call Stripe and does not retain guides.
 model ClinicDowngradePreparation {
-  id                String                     @id @default(cuid())
-  clinicId          String                     @unique
-  targetPlan        CommercialPlan
-  status            DowngradePreparationStatus
-  confirmedAt       DateTime?
-  confirmedByUserId String?
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
-  clinic            Clinic                     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  confirmedBy       User?                      @relation("DowngradeSelectionConfirmedBy", fields: [confirmedByUserId], references: [id], onDelete: SetNull)
-  selections        DowngradeGuideSelection[]
+  id                 String                       @id @default(cuid())
+  clinicId           String                       @unique
+  targetPlan         CommercialPlan
+  status             DowngradePreparationStatus
+  confirmedAt        DateTime?
+  confirmedByUserId  String?
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+  clinic             Clinic                       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  confirmedBy        User?                        @relation("DowngradeSelectionConfirmedBy", fields: [confirmedByUserId], references: [id], onDelete: SetNull)
+  selections         DowngradeGuideSelection[]
+  locationSelections DowngradeLocationSelection[]
 
   @@index([confirmedByUserId])
 }
@@ -565,44 +698,59 @@ model DowngradeGuideSelection {
   @@index([practiceGuideId])
 }
 
+/// Location the clinic administrator chose to keep active on a future
+/// Practice → Essential downgrade. Not read or written by the current
+/// downgrade flow.
+model DowngradeLocationSelection {
+  id            String                     @id @default(cuid())
+  preparationId String
+  locationId    String
+  createdAt     DateTime                   @default(now())
+  preparation   ClinicDowngradePreparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+  location      ClinicLocation             @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([preparationId, locationId])
+  @@index([locationId])
+}
+
 /// Legal/billing identity and Stripe Customer/Subscription linkage.
 /// Separate from ClinicProfile (patient-facing chrome). Existing clinics are
 /// not backfilled; rows are created when billing data exists.
 model ClinicBillingProfile {
-  id                      String   @id @default(cuid())
-  clinicId                String   @unique
-  legalEntityName         String?
-  tradingName             String?
-  billingContactName      String?
-  billingEmail            String?
-  addressLine1            String?
-  addressLine2            String?
-  city                    String?
-  region                  String?
-  postalCode              String?
-  country                 String?  @default("AU")
+  id                           String   @id @default(cuid())
+  clinicId                     String   @unique
+  legalEntityName              String?
+  tradingName                  String?
+  billingContactName           String?
+  billingEmail                 String?
+  addressLine1                 String?
+  addressLine2                 String?
+  city                         String?
+  region                       String?
+  postalCode                   String?
+  country                      String?  @default("AU")
   /// Australian Business Number. Nullable until captured. Not a combined
   /// business-number field; ACN is stored separately.
-  abn                     String?
+  abn                          String?
   /// Australian Company Number. Used when the customer has no ABN.
-  acn                     String?
-  stripeCustomerId        String?  @unique
-  stripeSubscriptionId    String?  @unique
+  acn                          String?
+  stripeCustomerId             String?  @unique
+  stripeSubscriptionId         String?  @unique
   /// River-managed Subscription Schedule for a Practice → Essential change
   /// at the next renewal. Opaque Stripe id. Not a second subscription.
   /// Null when no downgrade is scheduled. Multiple nulls are allowed.
-  stripeSubscriptionScheduleId String? @unique
+  stripeSubscriptionScheduleId String?  @unique
   /// One Practice → Essential scheduling lifecycle. Stable across retries of
   /// that attempt, including a create that succeeded before the update was
   /// confirmed. Cleared when that lifecycle ends. Not a Stripe id and not
   /// shown to customers. Multiple nulls are allowed.
-  stripePlanDowngradeAttemptId String? @unique
+  stripePlanDowngradeAttemptId String?  @unique
   /// Latest hosted Checkout Session, so a repeated click can reuse it.
   /// Cleared when the operator changes the offer. Not a payment credential.
-  stripeCheckoutSessionId String?  @unique
-  clinic                  Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  stripeCheckoutSessionId      String?  @unique
+  clinic                       Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
 }
 
 /// Local entitlement projection.
@@ -611,37 +759,47 @@ model ClinicBillingProfile {
 /// ACTIVE: product access is open.
 /// RESTRICTED / ENDED: preserved for a later enforcement phase. Not a lockout.
 model ClinicEntitlement {
-  id                        String            @id @default(cuid())
-  clinicId                  String            @unique
-  commercialPlan            CommercialPlan?
-  billingInterval           BillingInterval?
-  billingStatus             BillingStatus
-  entitlementStatus         EntitlementStatus
-  stripePriceId             String?
-  currentPeriodStart        DateTime?
-  currentPeriodEnd          DateTime?
-  paidThrough               DateTime?
-  cancelAtPeriodEnd         Boolean           @default(false)
-  subscriptionEndedAt       DateTime?
+  id                               String            @id @default(cuid())
+  clinicId                         String            @unique
+  commercialPlan                   CommercialPlan?
+  billingInterval                  BillingInterval?
+  billingStatus                    BillingStatus
+  entitlementStatus                EntitlementStatus
+  stripePriceId                    String?
+  currentPeriodStart               DateTime?
+  currentPeriodEnd                 DateTime?
+  paidThrough                      DateTime?
+  cancelAtPeriodEnd                Boolean           @default(false)
+  subscriptionEndedAt              DateTime?
   /// Calculated only when a subscription actually ends. Not set on
   /// cancel-at-period-end while the period is still paid.
-  publicGuideRetentionUntil DateTime?
-  lastStripeEventId         String?
-  lastProjectedAt           DateTime?
+  publicGuideRetentionUntil        DateTime?
+  lastStripeEventId                String?
+  lastProjectedAt                  DateTime?
   /// Persistent operator-granted additions. Effective allowance is the plan
   /// base plus these values. They do not change Stripe or commercialPlan.
-  extraTeamMemberAllowance          Int @default(0)
-  extraCustomGuideAllowance         Int @default(0)
-  extraTemplateAdaptationAllowance  Int @default(0)
+  extraTeamMemberAllowance         Int               @default(0)
+  extraCustomGuideAllowance        Int               @default(0)
+  extraTemplateAdaptationAllowance Int               @default(0)
+  /// Total ClinicSite capacity for this account, including the included site.
+  /// Existing rows default to 1 (Essential-compatible). Group totals are
+  /// operator-configured later. Not enforced yet. Does not change Stripe.
+  /// A missing entitlement row does not grant unlimited sites.
+  siteAllowance                    Int               @default(1)
+  /// Total active ClinicLocation capacity for this account, across every site.
+  /// Existing rows default to 1 (Essential-compatible). Not a per-site cap.
+  /// Not enforced yet. Does not change Stripe.
+  /// A missing entitlement row does not grant unlimited locations.
+  locationAllowance                Int               @default(1)
   /// Scheduled plan. Null when nothing is scheduled. commercialPlan stays
   /// the current plan until a trusted Stripe event shows the new Price.
-  scheduledCommercialPlan   CommercialPlan?
+  scheduledCommercialPlan          CommercialPlan?
   /// When scheduledCommercialPlan becomes effective. The current paid-period
   /// end. Not a cancellation date.
-  scheduledPlanEffectiveAt  DateTime?
-  clinic                    Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  createdAt                 DateTime          @default(now())
-  updatedAt                 DateTime          @updatedAt
+  scheduledPlanEffectiveAt         DateTime?
+  clinic                           Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  createdAt                        DateTime          @default(now())
+  updatedAt                        DateTime          @updatedAt
 
   @@index([billingStatus])
   @@index([entitlementStatus])

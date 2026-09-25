@@ -56,6 +56,12 @@ Evaluate a separate API service (NestJS or otherwise) only when one of these is 
 
 Until then, keep extracting **modules**, not processes. Do not add MCP, GraphQL, or a public API solely to look agentic.
 
+## Multi-location foundation
+
+`Clinic` remains the commercial account (billing, entitlement, team, legal acceptance, and the shared guide library). `ClinicSite` is the public clinic identity: future subdomain plus branding. `ClinicLocation` is a physical practice belonging to a site. The additive migration backfills one primary site per existing account (`ClinicSite.slug` copied from `Clinic.slug`, branding copied from `ClinicProfile`) and one root location per site (`slug` null, so current patient URLs gain no path segment). Each existing guide gets one `PracticeGuidePlacement` at that root location. Guides stay account-owned.
+
+Runtime still reads `Clinic.slug`, `ClinicProfile`, and `PracticeGuide`. Patient URLs, QR targets, staff UI, operator UI, Stripe, and public pricing are unchanged. `ClinicEntitlement.siteAllowance` and `locationAllowance` default to 1 and are not enforced. Group capacity is operator-configured later; Group prices are not published. Creating or editing extra sites or locations is not available. New operator clinics and the demo seed write the account, primary site, and root location together.
+
 ## Schema releases
 
 Vercel automatic Production deployments from `main` stay **enabled**. Vercel deploys application code. It does **not** apply Prisma migrations. On Production builds the schema gate runs `prisma migrate status` (through runtime `DATABASE_URL`) and fails if migrations are pending; that is intentional. Human-approved schema apply uses unpooled `DIRECT_URL` from a local `.env.neon-production` file (`pnpm prod:db:status` / `pnpm prod:db:migrate --apply` / `pnpm prod:db:verify`), then the **same SHA** is redeployed. Do not add `DIRECT_URL` to Vercel for ordinary runtime. See [../launch/PRODUCTION-MIGRATION.md](../launch/PRODUCTION-MIGRATION.md) and [ADR 0025](../adr/0025-migrate-before-promote.md).
