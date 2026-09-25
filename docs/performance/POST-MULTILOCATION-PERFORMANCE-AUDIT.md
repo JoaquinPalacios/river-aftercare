@@ -8,6 +8,8 @@ Measured: 2026-09-25 (before the Sydney pin).
 
 **Status, 2026-09-25, after production deploy of `9b028f1`:** Function execution region is `syd1`. Region mismatch: **RESOLVED**. Sections 1–16 and the production baseline in section 4 are the pre-change record. After numbers, the health comparison, and the revised sequence are in [Sydney Region Post-Deployment Measurement](#sydney-region-post-deployment-measurement).
 
+**Status, staff JavaScript:** the Zod and Prisma client-import split is measured in [Staff client bundle split](#staff-client-bundle-split). Login first-load JavaScript fell from 1,082,709 bytes to 695,120 bytes. The 387,769-byte Zod chunk and the 57,465-byte Prisma field chunk are absent from the production client graph. Patient routes did not grow.
+
 ## 1. Executive summary
 
 Patient pages are the performance problem. Marketing and logged-out staff login are not.
@@ -248,12 +250,12 @@ Measured 2026-09-25, 06:53–06:55 UTC, after the production deployment of `main
 
 ### Deployed configuration
 
-| Item | Value |
-| ---- | ----- |
-| `main` SHA | `9b028f192482287b1282c24c363660651d0074fe` |
-| PR #102 commit | `9b028f1` — Pin Vercel functions to Sydney (#102) |
-| `vercel.json` on `main` | Present |
-| Configured region | `syd1` only |
+| Item                    | Value                                             |
+| ----------------------- | ------------------------------------------------- |
+| `main` SHA              | `9b028f192482287b1282c24c363660651d0074fe`        |
+| PR #102 commit          | `9b028f1` — Pin Vercel functions to Sydney (#102) |
+| `vercel.json` on `main` | Present                                           |
+| Configured region       | `syd1` only                                       |
 
 ```json
 {
@@ -276,14 +278,14 @@ One GET, before the five-sample series:
 
 `https://demodental.riveraftercare.com.au/extraction`
 
-| Field | Value |
-| ----- | ----- |
-| HTTP status | 200 |
-| TTFB | 1,735.9ms |
-| Total | 1,737.6ms |
-| `x-vercel-id` | `iad1::syd1::n5spd-1790319224438-0b87fad09cb8` |
-| `x-vercel-cache` | `MISS` |
-| `cache-control` | `private, no-cache, no-store, max-age=0, must-revalidate` |
+| Field            | Value                                                     |
+| ---------------- | --------------------------------------------------------- |
+| HTTP status      | 200                                                       |
+| TTFB             | 1,735.9ms                                                 |
+| Total            | 1,737.6ms                                                 |
+| `x-vercel-id`    | `iad1::syd1::n5spd-1790319224438-0b87fad09cb8`            |
+| `x-vercel-cache` | `MISS`                                                    |
+| `cache-control`  | `private, no-cache, no-store, max-age=0, must-revalidate` |
 
 Function segment: **`syd1`**. Edge segment: `iad1`, which matches this US runner. This request is the cold first touch of the guide route in this session. It is kept as evidence and is not folded into the five-sample median below.
 
@@ -297,49 +299,49 @@ Document `cache-control` on marketing, pricing, login, and every `demodental` pa
 
 #### Marketing home — `https://riveraftercare.com.au/`
 
-| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
-| -: | -----: | ---: | ----: | ------------- | ---------------- |
-| 1 | 200 | 1,006.9ms | 1,008.6ms | `iad1::syd1::bsm5m-1790319293599-89069b3381e1` | `MISS` |
-| 2 | 200 | 327.8ms | 524.8ms | `iad1::syd1::cfx45-1790319294608-f684a2e9e48c` | `MISS` |
-| 3 | 200 | 301.3ms | 499.3ms | `iad1::syd1::qggbc-1790319295137-dfc258e06c5f` | `MISS` |
-| 4 | 200 | 300.9ms | 502.2ms | `iad1::syd1::x98hc-1790319295644-bd25d206c511` | `MISS` |
-| 5 | 200 | 300.8ms | 500.1ms | `iad1::syd1::vgxbj-1790319296148-8d4e24e80fbc` | `MISS` |
+|   # | Status |      TTFB |     Total | `x-vercel-id`                                  | `x-vercel-cache` |
+| --: | -----: | --------: | --------: | ---------------------------------------------- | ---------------- |
+|   1 |    200 | 1,006.9ms | 1,008.6ms | `iad1::syd1::bsm5m-1790319293599-89069b3381e1` | `MISS`           |
+|   2 |    200 |   327.8ms |   524.8ms | `iad1::syd1::cfx45-1790319294608-f684a2e9e48c` | `MISS`           |
+|   3 |    200 |   301.3ms |   499.3ms | `iad1::syd1::qggbc-1790319295137-dfc258e06c5f` | `MISS`           |
+|   4 |    200 |   300.9ms |   502.2ms | `iad1::syd1::x98hc-1790319295644-bd25d206c511` | `MISS`           |
+|   5 |    200 |   300.8ms |   500.1ms | `iad1::syd1::vgxbj-1790319296148-8d4e24e80fbc` | `MISS`           |
 
 Sample 1 is a cold first hit. Median 301.3ms. Min 300.8ms. Max 1,006.9ms.
 
 #### Pricing — `https://riveraftercare.com.au/pricing`
 
-| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
-| -: | -----: | ---: | ----: | ------------- | ---------------- |
-| 1 | 200 | 660.8ms | 661.7ms | `iad1::syd1::qm8ck-1790319296653-28874e87fa42` | `MISS` |
-| 2 | 200 | 297.5ms | 497.6ms | `iad1::syd1::kj7z5-1790319297320-cfe07d831767` | `MISS` |
-| 3 | 200 | 317.7ms | 517.7ms | `iad1::syd1::wkstl-1790319297823-edb1ae62132b` | `MISS` |
-| 4 | 200 | 311.8ms | 510.2ms | `iad1::syd1::qggbc-1790319298344-f87217656c9c` | `MISS` |
-| 5 | 200 | 294.0ms | 494.3ms | `iad1::syd1::nvt6s-1790319298860-4196d75ca07b` | `MISS` |
+|   # | Status |    TTFB |   Total | `x-vercel-id`                                  | `x-vercel-cache` |
+| --: | -----: | ------: | ------: | ---------------------------------------------- | ---------------- |
+|   1 |    200 | 660.8ms | 661.7ms | `iad1::syd1::qm8ck-1790319296653-28874e87fa42` | `MISS`           |
+|   2 |    200 | 297.5ms | 497.6ms | `iad1::syd1::kj7z5-1790319297320-cfe07d831767` | `MISS`           |
+|   3 |    200 | 317.7ms | 517.7ms | `iad1::syd1::wkstl-1790319297823-edb1ae62132b` | `MISS`           |
+|   4 |    200 | 311.8ms | 510.2ms | `iad1::syd1::qggbc-1790319298344-f87217656c9c` | `MISS`           |
+|   5 |    200 | 294.0ms | 494.3ms | `iad1::syd1::nvt6s-1790319298860-4196d75ca07b` | `MISS`           |
 
 Sample 1 is a cold first hit. Median 311.8ms. Min 294.0ms. Max 660.8ms.
 
 #### Logged-out staff login — `https://app.riveraftercare.com.au/login`
 
-| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
-| -: | -----: | ---: | ----: | ------------- | ---------------- |
-| 1 | 200 | 401.6ms | 402.4ms | `iad1::syd1::628pd-1790319299365-9373bfd8e0e4` | `MISS` |
-| 2 | 200 | 325.0ms | 325.1ms | `iad1::syd1::cqbq7-1790319299771-1a07ada270bd` | `MISS` |
-| 3 | 200 | 284.5ms | 284.7ms | `iad1::syd1::n6cwx-1790319300098-1d926defdaf9` | `MISS` |
-| 4 | 200 | 306.5ms | 307.7ms | `iad1::syd1::bxmfm-1790319300384-536bb687a3e8` | `MISS` |
-| 5 | 200 | 285.3ms | 285.8ms | `iad1::syd1::4zhc9-1790319300697-3dc0d0488e08` | `MISS` |
+|   # | Status |    TTFB |   Total | `x-vercel-id`                                  | `x-vercel-cache` |
+| --: | -----: | ------: | ------: | ---------------------------------------------- | ---------------- |
+|   1 |    200 | 401.6ms | 402.4ms | `iad1::syd1::628pd-1790319299365-9373bfd8e0e4` | `MISS`           |
+|   2 |    200 | 325.0ms | 325.1ms | `iad1::syd1::cqbq7-1790319299771-1a07ada270bd` | `MISS`           |
+|   3 |    200 | 284.5ms | 284.7ms | `iad1::syd1::n6cwx-1790319300098-1d926defdaf9` | `MISS`           |
+|   4 |    200 | 306.5ms | 307.7ms | `iad1::syd1::bxmfm-1790319300384-536bb687a3e8` | `MISS`           |
+|   5 |    200 | 285.3ms | 285.8ms | `iad1::syd1::4zhc9-1790319300697-3dc0d0488e08` | `MISS`           |
 
 Sample 1 is the slowest. Samples 2–5 stay in the same band, so this is not a single cold outlier. Median 306.5ms. Min 284.5ms. Max 401.6ms.
 
 #### Demo patient home — `https://demodental.riveraftercare.com.au/`
 
-| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
-| -: | -----: | ---: | ----: | ------------- | ---------------- |
-| 1 | 200 | 354.6ms | 355.0ms | `iad1::syd1::jnmps-1790319300986-c7f0b98c26bf` | `MISS` |
-| 2 | 200 | 305.2ms | 308.6ms | `iad1::syd1::6q455-1790319301346-afe9f6fc455e` | `MISS` |
-| 3 | 200 | 291.4ms | 292.3ms | `iad1::syd1::44kkb-1790319301659-aa3a54b8ac93` | `MISS` |
-| 4 | 200 | 296.3ms | 297.6ms | `iad1::syd1::jvdk2-1790319301955-919595c65621` | `MISS` |
-| 5 | 200 | 296.6ms | 297.3ms | `iad1::syd1::545jf-1790319302257-c23b2d7c6814` | `MISS` |
+|   # | Status |    TTFB |   Total | `x-vercel-id`                                  | `x-vercel-cache` |
+| --: | -----: | ------: | ------: | ---------------------------------------------- | ---------------- |
+|   1 |    200 | 354.6ms | 355.0ms | `iad1::syd1::jnmps-1790319300986-c7f0b98c26bf` | `MISS`           |
+|   2 |    200 | 305.2ms | 308.6ms | `iad1::syd1::6q455-1790319301346-afe9f6fc455e` | `MISS`           |
+|   3 |    200 | 291.4ms | 292.3ms | `iad1::syd1::44kkb-1790319301659-aa3a54b8ac93` | `MISS`           |
+|   4 |    200 | 296.3ms | 297.6ms | `iad1::syd1::jvdk2-1790319301955-919595c65621` | `MISS`           |
+|   5 |    200 | 296.6ms | 297.3ms | `iad1::syd1::545jf-1790319302257-c23b2d7c6814` | `MISS`           |
 
 Sample 1 is mildly slower than the rest. Median 296.6ms. Min 291.4ms. Max 354.6ms.
 
@@ -347,37 +349,37 @@ Sample 1 is mildly slower than the rest. Median 296.6ms. Min 291.4ms. Max 354.6m
 
 The region-check GET above (1,735.9ms) already touched this URL. These five samples are the benchmark series. They do not include that cold request.
 
-| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
-| -: | -----: | ---: | ----: | ------------- | ---------------- |
-| 1 | 200 | 333.2ms | 334.1ms | `iad1::syd1::2stm6-1790319302561-0f55dda6af3d` | `MISS` |
-| 2 | 200 | 311.5ms | 430.5ms | `iad1::syd1::65vkt-1790319302898-a9badc25526c` | `MISS` |
-| 3 | 200 | 345.9ms | 346.8ms | `iad1::syd1::nh5fh-1790319303332-25f30bcaf859` | `MISS` |
-| 4 | 200 | 331.0ms | 332.7ms | `iad1::syd1::m8v2n-1790319303683-0384bed7ccd1` | `MISS` |
-| 5 | 200 | 313.9ms | 315.3ms | `iad1::syd1::h4pcc-1790319304026-9cd97020f163` | `MISS` |
+|   # | Status |    TTFB |   Total | `x-vercel-id`                                  | `x-vercel-cache` |
+| --: | -----: | ------: | ------: | ---------------------------------------------- | ---------------- |
+|   1 |    200 | 333.2ms | 334.1ms | `iad1::syd1::2stm6-1790319302561-0f55dda6af3d` | `MISS`           |
+|   2 |    200 | 311.5ms | 430.5ms | `iad1::syd1::65vkt-1790319302898-a9badc25526c` | `MISS`           |
+|   3 |    200 | 345.9ms | 346.8ms | `iad1::syd1::nh5fh-1790319303332-25f30bcaf859` | `MISS`           |
+|   4 |    200 | 331.0ms | 332.7ms | `iad1::syd1::m8v2n-1790319303683-0384bed7ccd1` | `MISS`           |
+|   5 |    200 | 313.9ms | 315.3ms | `iad1::syd1::h4pcc-1790319304026-9cd97020f163` | `MISS`           |
 
 No sample in this series looks cold. Median 331.0ms. Min 311.5ms. Max 345.9ms.
 
 #### Demo print — `https://demodental.riveraftercare.com.au/extraction/print`
 
-| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
-| -: | -----: | ---: | ----: | ------------- | ---------------- |
-| 1 | 200 | 315.7ms | 316.9ms | `iad1::syd1::lklwz-1790319304341-708b5004f05b` | `MISS` |
-| 2 | 200 | 312.8ms | 314.3ms | `iad1::syd1::h4kj7-1790319304663-292a12ee5da3` | `MISS` |
-| 3 | 200 | 520.2ms | 523.2ms | `iad1::syd1::5h28f-1790319305095-a901eb0902a9` | `MISS` |
-| 4 | 200 | 340.4ms | 341.9ms | `iad1::syd1::2kdnx-1790319305508-83123d6307d1` | `MISS` |
-| 5 | 200 | 360.0ms | 362.3ms | `iad1::syd1::xhwjk-1790319305854-64848f12bea7` | `MISS` |
+|   # | Status |    TTFB |   Total | `x-vercel-id`                                  | `x-vercel-cache` |
+| --: | -----: | ------: | ------: | ---------------------------------------------- | ---------------- |
+|   1 |    200 | 315.7ms | 316.9ms | `iad1::syd1::lklwz-1790319304341-708b5004f05b` | `MISS`           |
+|   2 |    200 | 312.8ms | 314.3ms | `iad1::syd1::h4kj7-1790319304663-292a12ee5da3` | `MISS`           |
+|   3 |    200 | 520.2ms | 523.2ms | `iad1::syd1::5h28f-1790319305095-a901eb0902a9` | `MISS`           |
+|   4 |    200 | 340.4ms | 341.9ms | `iad1::syd1::2kdnx-1790319305508-83123d6307d1` | `MISS`           |
+|   5 |    200 | 360.0ms | 362.3ms | `iad1::syd1::xhwjk-1790319305854-64848f12bea7` | `MISS`           |
 
 Sample 3 is slower and is not the first request. Median 340.4ms. Min 312.8ms. Max 520.2ms.
 
 #### Health — `https://app.riveraftercare.com.au/api/health`
 
-| # | Status | TTFB | Total | `x-vercel-id` | `x-vercel-cache` |
-| -: | -----: | ---: | ----: | ------------- | ---------------- |
-| 1 | 200 | 1,775.8ms | 1,775.9ms | `iad1::syd1::4hfnh-1790319306224-15ccf71b9750` | `MISS` |
-| 2 | 200 | 2,174.4ms | 2,174.5ms | `iad1::syd1::hkcf6-1790319308003-6d22558d9e83` | `MISS` |
-| 3 | 200 | 266.5ms | 266.7ms | `iad1::syd1::pfgz8-1790319310183-6df9e596d492` | `MISS` |
-| 4 | 200 | 333.9ms | 360.5ms | `iad1::syd1::wn5ng-1790319310454-caa27b735667` | `MISS` |
-| 5 | 200 | 289.7ms | 289.9ms | `iad1::syd1::h49gm-1790319310820-7bd976faedb2` | `MISS` |
+|   # | Status |      TTFB |     Total | `x-vercel-id`                                  | `x-vercel-cache` |
+| --: | -----: | --------: | --------: | ---------------------------------------------- | ---------------- |
+|   1 |    200 | 1,775.8ms | 1,775.9ms | `iad1::syd1::4hfnh-1790319306224-15ccf71b9750` | `MISS`           |
+|   2 |    200 | 2,174.4ms | 2,174.5ms | `iad1::syd1::hkcf6-1790319308003-6d22558d9e83` | `MISS`           |
+|   3 |    200 |   266.5ms |   266.7ms | `iad1::syd1::pfgz8-1790319310183-6df9e596d492` | `MISS`           |
+|   4 |    200 |   333.9ms |   360.5ms | `iad1::syd1::wn5ng-1790319310454-caa27b735667` | `MISS`           |
+|   5 |    200 |   289.7ms |   289.9ms | `iad1::syd1::h49gm-1790319310820-7bd976faedb2` | `MISS`           |
 
 Body on every sample: `{ "status": "ok" }`. Samples 1 and 2 are cold. They stay in the all-five median. Median 333.9ms. Min 266.5ms. Max 2,174.4ms. Samples 3–5, the warm samples, are 266.5ms, 333.9ms, and 289.7ms. Their median is 289.7ms.
 
@@ -387,22 +389,22 @@ The patient print request immediately before health sample 1 returned in 360.0ms
 
 Before medians are the five-sample production baseline in section 4. Absolute change is after median minus before median. Percent change is that difference divided by the before median. A negative change is faster.
 
-| Surface | Before median | After median | Absolute change | Percent change |
-| ------- | ------------: | -----------: | --------------: | -------------: |
-| Marketing home | 327ms | 301.3ms | −25.7ms | −7.9% |
-| Pricing | 290ms | 311.8ms | +21.8ms | +7.5% |
-| Logged-out login | 80ms | 306.5ms | +226.5ms | +283.1% |
-| `demodental` home | 1,304ms | 296.6ms | −1,007.4ms | −77.3% |
-| `demodental` `/extraction` | 1,513ms | 331.0ms | −1,182.0ms | −78.1% |
-| `demodental` print | 1,504ms | 340.4ms | −1,163.6ms | −77.4% |
+| Surface                    | Before median | After median | Absolute change | Percent change |
+| -------------------------- | ------------: | -----------: | --------------: | -------------: |
+| Marketing home             |         327ms |      301.3ms |         −25.7ms |          −7.9% |
+| Pricing                    |         290ms |      311.8ms |         +21.8ms |          +7.5% |
+| Logged-out login           |          80ms |      306.5ms |        +226.5ms |        +283.1% |
+| `demodental` home          |       1,304ms |      296.6ms |      −1,007.4ms |         −77.3% |
+| `demodental` `/extraction` |       1,513ms |      331.0ms |      −1,182.0ms |         −78.1% |
+| `demodental` print         |       1,504ms |      340.4ms |      −1,163.6ms |         −77.4% |
 
 Health has no five-sample before median. The recorded warm samples were 267ms (region pass 2) and 300ms (section 4). The recorded cold samples were 1,525ms and 2,581ms.
 
-| Health comparison | Before | After | Absolute change | Percent change |
-| ----------------- | -----: | ----: | --------------: | -------------: |
-| All five, this run | — | 333.9ms | — | — |
-| Warm sample vs 267ms | 267ms | 289.7ms | +22.7ms | +8.5% |
-| Warm sample vs 300ms | 300ms | 289.7ms | −10.3ms | −3.4% |
+| Health comparison    | Before |   After | Absolute change | Percent change |
+| -------------------- | -----: | ------: | --------------: | -------------: |
+| All five, this run   |      — | 333.9ms |               — |              — |
+| Warm sample vs 267ms |  267ms | 289.7ms |         +22.7ms |          +8.5% |
+| Warm sample vs 300ms |  300ms | 289.7ms |         −10.3ms |          −3.4% |
 
 The 289.7ms figure is the median of health samples 3–5 only. It is the warm comparison, not a replacement for the all-five median of 333.9ms.
 
@@ -420,11 +422,11 @@ Directional only. Warm health is the infrastructure floor visible from this runn
 
 Using the warm-health median of 289.7ms:
 
-| Surface | After median | Minus 289.7ms |
-| ------- | -----------: | ------------: |
-| Patient home | 296.6ms | 6.9ms |
-| Guide | 331.0ms | 41.3ms |
-| Print | 340.4ms | 50.7ms |
+| Surface      | After median | Minus 289.7ms |
+| ------------ | -----------: | ------------: |
+| Patient home |      296.6ms |         6.9ms |
+| Guide        |      331.0ms |        41.3ms |
+| Print        |      340.4ms |        50.7ms |
 
 Using the fastest warm health sample, 266.5ms, as an alternate floor: home 30.1ms, guide 64.5ms, print 73.9ms.
 
@@ -457,7 +459,7 @@ The experiment isolates Function placement.
 1. **One US-to-Sydney hop on every dynamic request from this vantage.** Warm health at about 267–334ms is that floor. Patient pages have joined it. Further patient SQL work cannot remove this probe’s edge-to-Function trip.
 2. **A small patient gap above that floor.** Guide and print are about 40–75ms slower than warm health, depending on which warm health sample is the floor. Home is within about 7–30ms. That is real work, and it is no longer the 1.2s gap.
 3. **Cold starts.** Health samples 1 and 2 were still above 1.5s, and the pre-benchmark guide touch was 1,735.9ms. Warm samples are the comparison that matches the earlier warm baseline.
-4. **Staff JavaScript.** The Zod chunk (about 388KB uncompressed) and the Prisma enum import are unchanged. They do not explain the login TTFB change.
+4. **Staff JavaScript.** At the time of this probe, the Zod chunk (about 388KB uncompressed) and the Prisma enum import were unchanged. They do not explain the login TTFB change. The later split is in [Staff client bundle split](#staff-client-bundle-split).
 5. **Additional-location home.** Still 41 SQL executes on the local trace. `demodental` publishes no additional location, so production did not remeasure `/bondi`. Keep that miss path in a later query change. It is not the next change: root patient TTFB is no longer dominated by cross-Pacific groups.
 6. **Marketing is still dynamic.** ISR would change edge caching for marketing HTML. It was not part of this deploy, and the US marketing median barely moved.
 
@@ -465,7 +467,7 @@ The experiment isolates Function placement.
 
 Do not open a patient backend pull request next only because the statement counts are large. Guide and print do not still have a substantial avoidable gap above health.
 
-1. **Next — staff client Zod and Prisma enum split.** Former PR B. Login, password forms, the slug helper, and invitation constants. No patient behaviour change. Compare `route-bundle-stats.json` for `/login`, `/practice`, and `/practice/sites`.
+1. **Done in source — staff client Zod and Prisma enum split.** Former PR B. Measured in [Staff client bundle split](#staff-client-bundle-split). Login, password forms, the slug helper, and invitation constants. No patient behaviour change.
 2. **Later — request-level React `cache()` for patient loaders.** Former PR A. The measured remainder is about 40–75ms on guide and print, and the duplicates already overlap. Revisit only if a later probe, preferably from Australia or on an additional-location URL, shows a larger gap.
 3. **Later — fewer statements in the guide loader, including the location-home miss path.** Former PR C. Retain the miss-path work in that pull request. Root guide versus location order stays. `demodental` still cannot show the production cost.
 4. **Later — branding CDN cache investigation.** Former PR D. Unchanged by this measurement.
@@ -607,6 +609,8 @@ The guide editor placement board loads the guide’s placements and then every s
 
 ## 9. Client bundle findings
 
+These sizes are the audit build, before the staff client bundle split. The measured result is in [Staff client bundle split](#staff-client-bundle-split).
+
 First-load JavaScript from the production build, uncompressed, with gzip -9 of the chunks summed (a lower bound, not the wire size of one request):
 
 | Route                                |  Uncompressed | gzip -9 sum | Page-specific extra beyond the shared runtime |
@@ -712,8 +716,9 @@ Rejected: one global `unstable_cache` for “the published guide”, any cache o
 
 ### P4. Zod is in the staff client bundle
 
+- **Status:** Addressed by the staff client bundle split. The evidence below is the pre-split audit. After sizes are in [Staff client bundle split](#staff-client-bundle-split).
 - **Severity:** Medium
-- **Class:** Current, staff only.
+- **Class:** Current at audit time, staff only.
 - **Evidence:** 388KB chunk on `/login` (1,083KB first load), practice settings (1,197KB), and Sites & Locations. Import chain cited in section 9. Patient first load does not include that chunk. Guide editor does not either.
 - **Surface:** staff
 - **Impact:** JS size on login and practice admin
@@ -766,7 +771,7 @@ Only items with direct evidence. Do not implement them in this branch.
 
 1. **PR 0 — single function region `syd1`.** The region file is in place. See [Function region pin](#function-region-pin). No application code. Redeploy production through the normal `main` deployment. Repeat the patient and `/api/health` probes from this audit. Leave React `cache()` and query changes until those numbers exist.
 2. **PR A — request-level patient loader dedupe.** React `cache()` only. No `unstable_cache`, no `Cache-Control` change, no removal of `force-dynamic`. Add a test that two calls in one request share one site lookup. Re-run the audit script’s HTTP counts and expect home below 12 and location home well below 41.
-3. **PR B — staff client Zod and Prisma enum split.** Login, password forms, slug helper, invitation constants. No patient behaviour change. Compare `route-bundle-stats.json` for `/login`, `/practice`, and `/practice/sites`.
+3. **PR B — staff client Zod and Prisma enum split.** Done and measured in [Staff client bundle split](#staff-client-bundle-split). Login, password forms, slug helper, invitation constants. No patient behaviour change.
 4. **PR C — reduce statements inside `getPublishedPracticeGuide` and the location-home miss path.** One PR if the miss path stays obviously correct; otherwise split. Keep pin and collision behaviour. Re-measure statement counts.
 5. **PR D — branding CDN cache investigation.** Only if a repeated request still misses. Do not change object keys.
 6. **PR E — marketing static or ISR.** Separate from patient caching. Re-measure marketing TTFB and confirm tenant hosts stay `no-store`.
@@ -775,9 +780,89 @@ Only items with direct evidence. Do not implement them in this branch.
 
 PR 0 is done and measured. Follow [Sydney Region Post-Deployment Measurement](#sydney-region-post-deployment-measurement), not the 1.3–1.5s figures, for anything after this point.
 
-The next code change is the staff client Zod and Prisma enum split (former PR B). Patient loader dedupe and the location-home query reduction stay later. Guide and print are within about 40–75ms of warm `/api/health` from the same US runner, so statement count alone is not the next incident. The additional-location miss path stays inside that later query pull request. `demodental` has no additional location, so that path was not remeasured in production.
+The staff client Zod and Prisma enum split (former PR B) is measured in [Staff client bundle split](#staff-client-bundle-split). Patient loader dedupe and the location-home query reduction stay later. Guide and print are within about 40–75ms of warm `/api/health` from the same US runner, so statement count alone is not the next incident. The additional-location miss path stays inside that later query pull request. `demodental` has no additional location, so that path was not remeasured in production. The remaining first-load weight on every route is the shared Sentry browser chunk (about 371KB). Leave that SDK in place.
 
 Do not open an index PR from this audit.
+
+## Staff client bundle split
+
+Measured 2026-09-25 on Node 24.21.0 with `next build` (Next.js 16.3.5, Turbopack). Before is `main` `0714c51ca02465ed755cd6d6fe578dcc4284c09b` (PR #103). After is this branch. The metric is `firstLoadUncompressedJsBytes` in `.next/diagnostics/route-bundle-stats.json`. The audit’s “KB” figures are those bytes divided by 1,000. This change moves module boundaries. Authentication, passwords, validation rules, multi-location, entitlements, Stripe, patient pages, the Prisma schema, queries, caching, Vercel, R2, and Sentry are unchanged. Server Zod schemas remain the authoritative check. Client checks are UX only.
+
+### Import chains that pulled Zod into the browser
+
+A static walk of Client Components on `main` found these value-import chains. The guide editor was not among them, and its first-load set did not include the Zod chunk.
+
+- `app/(staff)/login/login-form.tsx` → `login-schema.ts` → `zod` (`loginSchema.safeParse` for UX).
+- `forgot-password-form.tsx` → `forgot-password-schema.ts` → `zod`.
+- `reset-password-form.tsx` and `accept-invitation-form.tsx` → `password-form-schema.ts` → `zod`.
+- `profile-form.tsx` and `confirm-email-change-form.tsx` → `lib/auth/account-profile-schema.ts` for message constants. That module also built a Zod schema.
+- `create-site-form.tsx` and `site-manager.tsx` → `lib/clinics/slug-suggestion.ts` → `lib/aftercare/slug.ts`, which constructed `careGuideSlugSchema` with Zod at module scope in order to export `isValidCareGuideSlug`.
+- `practice-members-section.tsx` and `invite-user-form.tsx` → `lib/operator/clinic-invitation-input.ts` for `INVITED_NAME_MAX_LENGTH`. That module also imported Zod and built `inviteClinicUserFormSchema`.
+
+`app/(staff)/login`’s API route does not use `loginSchema`. It keeps its existing length and normalisation checks. Adding Zod there would change the unauthenticated failure response, so this split leaves that route as it was.
+
+### Import chains that pulled Prisma into the browser
+
+- `practice-members-section.tsx` and the operator `team-table.tsx` imported `ClinicMembershipRole` from `@prisma/client`.
+- Those components, plus `invite-user-form.tsx`, also reached the generated client through `lib/clinic-portal/role-labels.ts`.
+- The guide editor, status pills, lifecycle actions, and staff preview imported `lib/clinic-portal/guide-status.ts`, which imports `GuideRevisionStatus` and `PracticeGuideStatus`. Turbopack had already tree-shaken the unused enum imports out of the editor bundle. The split still removes that import so a later edit cannot pull the runtime back in.
+
+The practice client chunk that contained `stripeCustomerId` and `ClinicMembershipRole` was `1w4ormvuu0z-z.js`, 57,465 bytes, on `/practice`, operator team, and the invite route.
+
+### Modules split
+
+Browser-safe modules, with no Zod and no `@prisma/client`:
+
+- `lib/aftercare/slug-rules.ts` — canonical slug pattern, length 3–32, and `isValidCareGuideSlug`.
+- `lib/clinic-portal/membership-role.ts` — `CLINIC_MEMBERSHIP_ROLE` (`ADMIN`, `STAFF`) and the derived union.
+- `lib/operator/clinic-invitation-fields.ts` — invitation messages, name length 80, normalisation, and the role re-export.
+- `lib/auth/account-profile-fields.ts` — profile and email-change message constants.
+- `lib/auth/login-input.ts` — login and email field messages, the same practical email pattern the server schema uses, and the client field helpers.
+- `lib/clinic-portal/guide-status-view.ts` — lifecycle labels, pills, and publication mode. No Prisma enums.
+
+Server modules keep Zod (or Prisma) and start with `import "server-only"`: `slug.ts`, both login and forgot-password schemas, `password-form-schema.ts`, `account-profile-schema.ts`, `clinic-invitation-input.ts`, `practice-settings-schema.ts`, `site-location-schemas.ts`, `guide-schemas.ts`, and `guide-status.ts`. `slug.ts` and the login schemas import the shared constants, so the client helper and the server schema are not two independently maintained rules. `lib/tenancy/parse-hostname.ts` imports `slug-rules.ts`, because the proxy stays database-free and must not load the server-only slug module.
+
+`newPasswordFieldErrors` matches Zod object `.refine`, which still reports a confirmation error when the password field itself fails. Reset and accept server actions still use `confirmNewPasswordError`. That single-string helper was already the server boundary, and it is unchanged.
+
+### Before and after
+
+| Route                                 | Before (bytes) | After (bytes) | Absolute | Percent |
+| ------------------------------------- | -------------: | ------------: | -------: | ------: |
+| `/login`                              |      1,082,709 |       695,120 | −387,589 |  −35.8% |
+| `/forgot-password`                    |      1,071,451 |       683,837 | −387,614 |  −36.2% |
+| `/reset-password`                     |      1,084,905 |       696,500 | −388,405 |  −35.8% |
+| `/accept-invitation`                  |      1,076,497 |       688,089 | −388,408 |  −36.1% |
+| `/confirm-email-change`               |      1,072,440 |       684,100 | −388,340 |  −36.2% |
+| `/practice`                           |      1,197,455 |       753,077 | −444,378 |  −37.1% |
+| `/practice/sites`                     |      1,093,745 |       705,944 | −387,801 |  −35.5% |
+| `/practice/sites/[siteId]`            |      1,121,247 |       733,446 | −387,801 |  −34.6% |
+| `/account`                            |      1,101,400 |       713,859 | −387,541 |  −35.2% |
+| Operator team                         |        765,586 |       708,536 |  −57,050 |   −7.5% |
+| Operator invite                       |      1,144,390 |       700,010 | −444,380 |  −38.8% |
+| Guide editor `/guides/[guideId]/edit` |        751,392 |       751,390 |       −2 |     ~0% |
+| Guide preview                         |        702,896 |       702,894 |       −2 |     ~0% |
+| Patient home `/_sites/[tenant]`       |        665,672 |       665,670 |       −2 |     ~0% |
+| Patient guide                         |        670,788 |       670,786 |       −2 |     ~0% |
+| Patient print                         |        669,583 |       669,581 |       −2 |     ~0% |
+
+Practice settings and the operator invite route dropped both the Zod chunk and the Prisma field chunk. Operator team had the Prisma chunk only. Sites & Locations had the Zod chunk via the slug helper. The guide editor is the comparison route: it never included the Zod chunk, and its −2 bytes is the same shared-chunk delta as the patient routes.
+
+### Zod chunk and Prisma client chunk
+
+Before, `233mxg4ahbcl8.js` was 387,769 bytes and was on login, the password routes, practice settings, Sites & Locations, account, and invite. After, no client chunk contains `$ZodError`, `invalid_format`, or `stripeCustomerId`. The large Zod chunk is gone from those routes. The Prisma field chunk is gone from `/practice`, operator team, and invite.
+
+The shared Sentry chunk remains: `3vo_j02_umy86.js`, 371,079 bytes (before: `1iaha0zb6-kf9.js`, 371,081 bytes). Strings that mention Prisma in that file are the Sentry denylist, not the Prisma client. That chunk is now the dominant first-load file on staff and patient routes. Do not remove Sentry to chase it. A later change could load the browser SDK from error boundaries only. That is a monitoring tradeoff.
+
+The −2 byte movement on patient routes, the guide editor, the dashboard, account security, and marketing home is that shared chunk (371,081 → 371,079). Patient bundles did not grow. Patient source was not edited for this split.
+
+### What stays later
+
+1. Optional Sentry browser-SDK loading, only as a monitoring decision.
+2. Request-level React `cache()` for patient loaders, if a later probe shows a larger gap than the current 40–75ms on guide and print.
+3. Fewer statements in the guide loader, including the location-home miss path.
+4. Branding CDN cache investigation, then marketing ISR.
+
+No index pull request. No patient loader edit in this change.
 
 ## 18. Items deliberately not recommended
 
