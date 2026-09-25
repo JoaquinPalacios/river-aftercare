@@ -9,7 +9,7 @@ import { guideQrDownloadPath } from "@/lib/clinic-portal/guide-qr";
 import type {
   ClinicGuideLifecycleStatus,
   GuideDestructiveAction,
-} from "@/lib/clinic-portal/guide-status";
+} from "@/lib/clinic-portal/guide-status-view";
 
 export function GuideRowActions({
   guideId,

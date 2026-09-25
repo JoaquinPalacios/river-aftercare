@@ -1,3 +1,5 @@
+import "server-only";
+
 import { z } from "zod";
 
 import { parseCssHexColor } from "@/lib/branding/aftercare-theme";

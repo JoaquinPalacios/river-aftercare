@@ -10,7 +10,7 @@ import {
   resolveEffectivePreviewAppearance,
   type PreviewAppearanceChoice,
 } from "@/lib/branding/preview-appearance";
-import type { ClinicGuideLifecycleStatus } from "@/lib/clinic-portal/guide-status";
+import type { ClinicGuideLifecycleStatus } from "@/lib/clinic-portal/guide-status-view";
 
 export function StaffPreviewShell({
   backHref,

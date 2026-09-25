@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { PasswordVisibilityField } from "@/app/(staff)/components/password-visibility-field";
-import { acceptInvitationSchema } from "@/app/(staff)/account/security/password-form-schema";
 import { readAccountTokenFromHash } from "@/lib/auth/account-token-format";
 import {
   INVITATION_INVALID_LINK_GUIDANCE,
   INVITATION_INVALID_LINK_MESSAGE,
   NEW_PASSWORD_MIN_MESSAGE,
+  newPasswordFieldErrors,
 } from "@/lib/auth/password-policy";
 
 const PENDING_STATUS = "Setting up your account. Please wait.";
@@ -76,16 +76,9 @@ export function AcceptInvitationForm() {
       return;
     }
 
-    const parsed = acceptInvitationSchema.safeParse({
-      newPassword,
-      confirmPassword,
-    });
-    if (!parsed.success) {
-      const fieldErrors = parsed.error.flatten().fieldErrors;
-      setErrors({
-        newPassword: fieldErrors.newPassword?.[0],
-        confirmPassword: fieldErrors.confirmPassword?.[0],
-      });
+    const fieldErrors = newPasswordFieldErrors(newPassword, confirmPassword);
+    if (fieldErrors.newPassword || fieldErrors.confirmPassword) {
+      setErrors(fieldErrors);
       return;
     }
 
@@ -100,8 +93,8 @@ export function AcceptInvitationForm() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             token,
-            newPassword: parsed.data.newPassword,
-            confirmPassword: parsed.data.confirmPassword,
+            newPassword,
+            confirmPassword,
           }),
         });
 

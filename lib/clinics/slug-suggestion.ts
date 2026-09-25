@@ -1,7 +1,7 @@
 import {
   CARE_GUIDE_SLUG_MAX_LENGTH,
   isValidCareGuideSlug,
-} from "@/lib/aftercare/slug";
+} from "@/lib/aftercare/slug-rules";
 import { isReservedLocationSlug } from "@/lib/clinics/reserved-location-slugs";
 import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
 

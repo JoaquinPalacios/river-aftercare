@@ -1,5 +1,23 @@
+import "server-only";
+
 import { z } from "zod";
 
+import {
+  EMAIL_CHANGE_CONFIRMED_MESSAGE,
+  EMAIL_CHANGE_INVALID_LINK_GUIDANCE,
+  EMAIL_CHANGE_INVALID_LINK_MESSAGE,
+  EMAIL_VERIFICATION_SENT_MESSAGE,
+  PROFILE_CURRENT_PASSWORD_HINT,
+  PROFILE_EMAIL_INVALID_MESSAGE,
+  PROFILE_EMAIL_MAX_MESSAGE,
+  PROFILE_EMAIL_REQUIRED_MESSAGE,
+  PROFILE_EMAIL_TAKEN_MESSAGE,
+  PROFILE_NAME_HTML_MESSAGE,
+  PROFILE_NAME_MAX_LENGTH,
+  PROFILE_NAME_MAX_MESSAGE,
+  PROFILE_NAME_REQUIRED_MESSAGE,
+  PROFILE_UPDATED_MESSAGE,
+} from "@/lib/auth/account-profile-fields";
 import {
   LOGIN_EMAIL_MAX_LENGTH,
   LOGIN_PASSWORD_MAX_LENGTH,
@@ -9,25 +27,24 @@ import {
   CURRENT_PASSWORD_TOO_LONG_MESSAGE,
 } from "@/lib/auth/password-policy";
 
-export const PROFILE_NAME_MAX_LENGTH = 80;
-export const PROFILE_NAME_REQUIRED_MESSAGE = "Enter your name.";
-export const PROFILE_NAME_MAX_MESSAGE = `Name must be ${PROFILE_NAME_MAX_LENGTH} characters or fewer.`;
-export const PROFILE_NAME_HTML_MESSAGE = "Name cannot include HTML.";
-export const PROFILE_EMAIL_REQUIRED_MESSAGE = "Enter an email address.";
-export const PROFILE_EMAIL_INVALID_MESSAGE = "Enter a valid email address.";
-export const PROFILE_EMAIL_MAX_MESSAGE = `Email must be ${LOGIN_EMAIL_MAX_LENGTH} characters or fewer.`;
-export const PROFILE_EMAIL_TAKEN_MESSAGE = "That email is already in use.";
-export const PROFILE_UPDATED_MESSAGE = "Profile updated.";
-export const EMAIL_VERIFICATION_SENT_MESSAGE =
-  "Check the new address to confirm this change. Your current email stays active until then.";
-export const EMAIL_CHANGE_CONFIRMED_MESSAGE =
-  "Your email has been updated. Sign in with the new address.";
-export const EMAIL_CHANGE_INVALID_LINK_MESSAGE =
-  "This email confirmation link is invalid or has expired.";
-export const EMAIL_CHANGE_INVALID_LINK_GUIDANCE =
-  "Sign in and request a new email change from Account.";
-export const PROFILE_CURRENT_PASSWORD_HINT =
-  "Required only when you change your email.";
+export {
+  EMAIL_CHANGE_CONFIRMED_MESSAGE,
+  EMAIL_CHANGE_INVALID_LINK_GUIDANCE,
+  EMAIL_CHANGE_INVALID_LINK_MESSAGE,
+  EMAIL_VERIFICATION_SENT_MESSAGE,
+  PROFILE_CURRENT_PASSWORD_HINT,
+  PROFILE_EMAIL_INVALID_MESSAGE,
+  PROFILE_EMAIL_MAX_MESSAGE,
+  PROFILE_EMAIL_REQUIRED_MESSAGE,
+  PROFILE_EMAIL_TAKEN_MESSAGE,
+  PROFILE_NAME_HTML_MESSAGE,
+  PROFILE_NAME_MAX_LENGTH,
+  PROFILE_NAME_MAX_MESSAGE,
+  PROFILE_NAME_REQUIRED_MESSAGE,
+  PROFILE_UPDATED_MESSAGE,
+};
+
+export { CURRENT_PASSWORD_REQUIRED_MESSAGE };
 
 export const updateOwnProfileSchema = z.object({
   name: z.string(),
@@ -81,5 +98,3 @@ export function profileEmailError(email: string): string | null {
   }
   return null;
 }
-
-export { CURRENT_PASSWORD_REQUIRED_MESSAGE };

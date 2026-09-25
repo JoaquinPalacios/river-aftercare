@@ -6,7 +6,7 @@ import {
   clinicGuideStatusPills,
   type ClinicGuideLifecycleStatus,
   type GuideStatusPill,
-} from "@/lib/clinic-portal/guide-status";
+} from "@/lib/clinic-portal/guide-status-view";
 
 export function retainedGuideIsPublic(lifecycle: ClinicGuideLifecycleStatus) {
   return lifecycle !== "draft" && lifecycle !== "unpublished";

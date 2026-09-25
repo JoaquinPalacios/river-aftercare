@@ -7,7 +7,7 @@ import { readAccountTokenFromHash } from "@/lib/auth/account-token-format";
 import {
   EMAIL_CHANGE_INVALID_LINK_GUIDANCE,
   EMAIL_CHANGE_INVALID_LINK_MESSAGE,
-} from "@/lib/auth/account-profile-schema";
+} from "@/lib/auth/account-profile-fields";
 
 const CHECKING_STATUS = "Checking confirmation link…";
 const PENDING_STATUS = "Confirming email. Please wait.";

@@ -6,9 +6,10 @@ import { useRef, useState, useTransition } from "react";
 
 import { PasswordVisibilityField } from "@/app/(staff)/components/password-visibility-field";
 import {
-  loginSchema,
+  loginClientFieldErrors,
+  normalizeLoginEmail,
   type LoginFormValues,
-} from "@/app/(staff)/login/login-schema";
+} from "@/lib/auth/login-input";
 import { startAppNavigation } from "@/lib/navigation-progress";
 
 interface LoginFormErrors {
@@ -56,16 +57,10 @@ export function LoginForm() {
       return;
     }
 
-    const parsedValues = loginSchema.safeParse(values);
+    const fieldErrors = loginClientFieldErrors(values);
 
-    if (!parsedValues.success) {
-      const fieldErrors = parsedValues.error.flatten().fieldErrors;
-
-      setErrors({
-        email: fieldErrors.email?.[0],
-        password: fieldErrors.password?.[0],
-      });
-
+    if (fieldErrors.email || fieldErrors.password) {
+      setErrors(fieldErrors);
       return;
     }
 
@@ -80,7 +75,10 @@ export function LoginForm() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(parsedValues.data),
+          body: JSON.stringify({
+            email: normalizeLoginEmail(values.email),
+            password: values.password,
+          }),
         });
 
         if (response.ok) {

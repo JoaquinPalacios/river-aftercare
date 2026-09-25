@@ -1,3 +1,5 @@
+import "server-only";
+
 import { careGuideSlugSchema } from "@/lib/aftercare/slug";
 import { GUIDE_SECTION_KINDS } from "@/lib/aftercare/types";
 import { z } from "zod";

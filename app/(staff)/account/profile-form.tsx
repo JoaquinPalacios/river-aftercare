@@ -13,7 +13,7 @@ import {
   EMAIL_VERIFICATION_SENT_MESSAGE,
   PROFILE_CURRENT_PASSWORD_HINT,
   PROFILE_UPDATED_MESSAGE,
-} from "@/lib/auth/account-profile-schema";
+} from "@/lib/auth/account-profile-fields";
 
 const initial: UpdateProfileActionState = {};
 const PENDING_STATUS = "Saving profile. Please wait.";

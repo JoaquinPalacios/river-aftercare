@@ -1,4 +1,4 @@
-import { isValidCareGuideSlug } from "@/lib/aftercare/slug";
+import { isValidCareGuideSlug } from "@/lib/aftercare/slug-rules";
 import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
 
 export type HostnameClassification =

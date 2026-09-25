@@ -17,8 +17,8 @@ import {
   TEAM_STAFF_ROLE_LABEL,
   clinicMembershipRoleLabel,
 } from "@/lib/clinic-portal/role-labels";
-import { INVITED_NAME_MAX_LENGTH } from "@/lib/operator/clinic-invitation-input";
-import { ClinicMembershipRole } from "@prisma/client";
+import { CLINIC_MEMBERSHIP_ROLE } from "@/lib/clinic-portal/membership-role";
+import { INVITED_NAME_MAX_LENGTH } from "@/lib/operator/clinic-invitation-fields";
 import type { PracticeMemberRow } from "@/lib/clinic-portal/list-practice-members";
 import type { TeamAllowanceSummary } from "@/lib/entitlements/team-usage";
 import {
@@ -198,7 +198,7 @@ export function PracticeMembersSection({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    {row.role === ClinicMembershipRole.STAFF ? (
+                    {row.role === CLINIC_MEMBERSHIP_ROLE.STAFF ? (
                       <button
                         type="button"
                         className="staffBtn staffBtnSecondary"

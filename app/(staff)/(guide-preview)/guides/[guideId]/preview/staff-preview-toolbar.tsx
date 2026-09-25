@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { GuideStatusPills } from "@/app/(staff)/components/guide-status-pills";
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
-import type { ClinicGuideLifecycleStatus } from "@/lib/clinic-portal/guide-status";
+import type { ClinicGuideLifecycleStatus } from "@/lib/clinic-portal/guide-status-view";
 
 export function StaffPreviewToolbar({
   backHref,
