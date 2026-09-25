@@ -54,7 +54,7 @@ Every production response in the follow-up probe had three `::` segments: `iad1`
 
 ### Repository configuration
 
-There is no `vercel.json`, `vercel.ts`, or `.vercel` project link. `next.config.ts` sets no region. No route exports `preferredRegion`, `regions`, or `runtime = "edge"`. The only `runtime = "nodejs"` exports are `app/api/stripe/webhook/route.ts` and `app/api/billing/status/route.ts`. Patient, marketing, staff, and operator routes have no region override. No Fluid Compute key is set in the repo.
+At audit time there was no `vercel.json`, `vercel.ts`, or `.vercel` project link. `next.config.ts` sets no region. No route exports `preferredRegion`, `regions`, or `runtime = "edge"`. The only `runtime = "nodejs"` exports are `app/api/stripe/webhook/route.ts` and `app/api/billing/status/route.ts`. Patient, marketing, staff, and operator routes have no region override. No Fluid Compute key is set in the repo. The later pin is [Function region pin](#function-region-pin). Route files stay without a region override.
 
 With no `regions` key, function placement is the Vercel project setting, or the platform default when that setting was never changed. New projects default to a single region, `iad1` ([Configuring regions](https://vercel.com/docs/functions/configuring-functions/region)).
 
@@ -146,6 +146,8 @@ Prefer a reviewed `vercel.json` with `"regions": ["syd1"]` in a later change, so
 
 Before that change, read the Function Regions accordion. If it already lists more than `iad1`, keep the follow-up to a single `syd1` rather than appending regions.
 
+The reviewed `vercel.json` from this section is now the repository file. See [Function region pin](#function-region-pin). It still takes effect only on a new production deployment.
+
 ### Confidence and next action
 
 | Claim                                                     | Confidence  | Why                                                                                                                  |
@@ -161,7 +163,78 @@ Before that change, read the Function Regions accordion. If it already lists mor
 
 **Expected:** after a single-region move to `syd1` and a redeploy, repeat the same URLs. The warm health check is the cleanest comparison, because it is one pooled `SELECT 1`. Patient TTFB should fall by the cross-Pacific part of its sequential groups. This audit does not promise a replacement millisecond figure.
 
-The first optimisation action is that region change, in its own pull request, followed by the same probes. Application dedupe stays behind that measurement.
+The region configuration for that change is [Function region pin](#function-region-pin). Application dedupe stays behind the post-deploy measurement.
+
+## Function region pin
+
+Recorded 2026-09-25. Root `vercel.json` pins normal Vercel Functions to Sydney. The measurements above stay the before state. This section does not replace them, and it does not record a predicted millisecond result.
+
+### Before
+
+| Piece            | State                                                                                                                                                                               |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vercel Functions | `iad1` (Washington, D.C., USA). Every probed production response used `x-vercel-id` `iad1::iad1::<request id>`.                                                                     |
+| Neon             | AWS `ap-southeast-2` / Sydney. One production primary, recorded in [NEON-RECOVERY.md](../launch/NEON-RECOVERY.md) and [PRODUCTION-READINESS.md](../launch/PRODUCTION-READINESS.md). |
+
+### Change
+
+Normal Vercel Functions are pinned to one region, Sydney `syd1`:
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["syd1"]
+}
+```
+
+That file is the whole configuration for this change. It does not set `iad1`, a second primary region, `functionFailoverRegions`, per-function `functions` regions, `fluid`, `memory`, `maxDuration`, redirects, or headers. No route file sets `preferredRegion` or a region override.
+
+`syd1` is Sydney, Australia (`ap-southeast-2`) on the [region list](https://vercel.com/docs/regions). Vercel’s project [`regions` key](https://vercel.com/docs/functions/configuring-functions/region) is the default for the deployment’s Serverless Functions. The [schema](https://openapi.vercel.sh/vercel.json) describes `regions` as the regions those functions should be deployed to. A `vercel.json` region overrides the dashboard and Fluid defaults ([precedence](https://vercel.com/docs/fluid-compute)).
+
+The running production deployment keeps `iad1` until a new production deployment includes this file. This change does not deploy.
+
+### Why one region
+
+River Aftercare has one production PostgreSQL primary, in AWS `ap-southeast-2` / Sydney. Patient rendering is database-heavy. Using several active Function regions against that single primary could send some requests on long-distance database round trips again. The Function region is therefore one region, `syd1`. This is a latency and data-locality decision. It is not a multi-region resilience redesign.
+
+### Static and CDN behaviour
+
+Checked against Vercel’s region docs on 2026-09-25.
+
+[Configuring regions](https://vercel.com/docs/functions/configuring-functions/region) says the platform caches static content in the CDN by default, so static files such as HTML, CSS, and JavaScript are served from the region closest to the user. Choosing a Function region leaves that cache in place. [Regions](https://vercel.com/docs/regions) describes the CDN as a global network: points of presence are the first contact for a request, and compute runs in a smaller set of regions.
+
+For this project that means:
+
+- Static JS, CSS, and images remain globally distributed. This change does not alter static caching.
+- Requests may enter through a nearby Vercel edge location. The first segment of `x-vercel-id` is that entry, not the Function region.
+- Dynamic Node.js Function execution is pinned to `syd1`.
+- Database communication from those Functions is therefore colocated with Sydney Neon.
+
+Patient and marketing HTML in this audit was `private, no-store` with `x-vercel-cache: MISS`, so those documents still execute a Function on each request. Only the Function moves to Sydney. Prerendered static files stay on the CDN.
+
+Vercel also deploys Routing Middleware to all regions by default, regardless of the Function `regions` setting (fewer regions on Hobby). `proxy.ts` does not query the database, so that default does not add a Sydney database round trip. This change does not configure middleware regions.
+
+### Fluid Compute
+
+The dashboard Fluid Compute toggle was not read. No Vercel token, Vercel CLI, or `.vercel` project link was available, which is the same limit as the audit.
+
+Fluid Compute is orthogonal to this region change. The repo-level `regions` setting is authoritative for Function placement: Vercel’s precedence table puts a `vercel.json` region above the dashboard and above Fluid defaults. `"fluid"` is not in `vercel.json`. This change does not enable or disable Fluid Compute.
+
+### Expected
+
+Remove cross-Pacific database round trips between Function execution and the Sydney primary.
+
+No expected final millisecond figure is recorded. The warm health probe and the patient TTFB have to be measured again after deployment.
+
+### Measurement plan
+
+After the production deployment that includes this `vercel.json`, and before any application-level optimisation (React `cache()`, Prisma query changes, indexes, or caching), rerun exactly the same production probes as this audit:
+
+- The method in [Environment and method](#3-environment-and-method): sequential requests, no concurrency, no writes, only `riveraftercare.com.au`, `app.riveraftercare.com.au`, and `demodental.riveraftercare.com.au`.
+- The two-pass table in [Observed production execution](#observed-production-execution): marketing home, `demodental` home, `/extraction`, `/extraction/print`, and `GET https://app.riveraftercare.com.au/api/health`.
+- The five-sample table in [Production-safe baseline](#4-production-safe-baseline), including pricing and logged-out staff login.
+
+Record status, TTFB, `x-vercel-id`, `x-vercel-cache`, and `cache-control`. The Function segment of `x-vercel-id` should be `syd1`. The first segment may still be the edge that accepted the probe. Do not start the later pull requests in [Recommended PR sequence](#17-recommended-pr-sequence) from the pre-change 1.3–1.5s figures.
 
 ## 4. Production-safe baseline
 
@@ -443,7 +516,7 @@ Only items with direct evidence. Do not implement them in this branch.
 
 ## 16. Structural improvements
 
-1. **Move the single function region to `syd1`.** Confirmed in [Function / Database Region Investigation](#function--database-region-investigation): these production functions ran in `iad1`, and Neon is in Sydney. Do that in its own change, redeploy, then repeat the `demodental` and `/api/health` probes before editing loaders.
+1. **Move the single function region to `syd1`.** Configured in [Function region pin](#function-region-pin): root `vercel.json` is `"regions": ["syd1"]` only. These production functions ran in `iad1`, and Neon is in Sydney. After the production deployment that includes the file, repeat the `demodental` and `/api/health` probes before editing loaders.
 2. **Fewer SQL statements per guide read.** Prisma emitted separate statements for site, clinic, location, placement, revision, sections, guide, template, overrides, and additions. A narrower `select` or one SQL statement would cut round trips after dedupe. Do this only with the same predicates and the same pin rule (null pin stays on the canonical template; a newer clinic revision is not substituted).
 3. **Location-home miss path.** After dedupe, `/bondi` still runs a full guide lookup that returns nothing. A cheaper existence check, still ordered so a real root guide wins, would cut the 41-statement request further. Slug collision rules in `lib/clinics/slug-collisions.ts` must keep working.
 4. **Marketing ISR, separate from patient caching.** Remove the `headers()` dependency from marketing render, or pass the origin another way, and let the existing SEO `revalidatePath` flow apply. Do not reuse that strategy on tenant hosts.
@@ -453,7 +526,7 @@ Only items with direct evidence. Do not implement them in this branch.
 
 ## 17. Recommended PR sequence
 
-1. **PR 0 — single function region `syd1`.** No application code. Read Settings → Functions → Function Regions first. Then set one region, `syd1`, preferably with `vercel.json` `"regions": ["syd1"]` so it overrides the dashboard. Redeploy production. Repeat the patient and `/api/health` probes from this audit. Leave React `cache()` and query changes until those numbers exist.
+1. **PR 0 — single function region `syd1`.** The region file is in place. See [Function region pin](#function-region-pin). No application code. Redeploy production through the normal `main` deployment. Repeat the patient and `/api/health` probes from this audit. Leave React `cache()` and query changes until those numbers exist.
 2. **PR A — request-level patient loader dedupe.** React `cache()` only. No `unstable_cache`, no `Cache-Control` change, no removal of `force-dynamic`. Add a test that two calls in one request share one site lookup. Re-run the audit script’s HTTP counts and expect home below 12 and location home well below 41.
 3. **PR B — staff client Zod and Prisma enum split.** Login, password forms, slug helper, invitation constants. No patient behaviour change. Compare `route-bundle-stats.json` for `/login`, `/practice`, and `/practice/sites`.
 4. **PR C — reduce statements inside `getPublishedPracticeGuide` and the location-home miss path.** One PR if the miss path stays obviously correct; otherwise split. Keep pin and collision behaviour. Re-measure statement counts.
