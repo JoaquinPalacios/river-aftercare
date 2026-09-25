@@ -12,6 +12,8 @@ Measured: 2026-09-25 (before the Sydney pin).
 
 **Status, marketing delivery:** public marketing HTML is prerendered, and production CDN behaviour is measured. The dynamic-render finding is **RESOLVED**. See [Marketing Static Delivery — Production Verification](#marketing-static-delivery--production-verification). Patient, staff, and operator routes stay dynamic.
 
+**Status, Sentry client bundle:** investigated in [Sentry Client Bundle Investigation](#sentry-client-bundle-investigation). The shared browser file was 371,081 bytes uncompressed and about 120 KB brotli on the production CDN. Turbopack was still shipping Sentry debug and tracing code. `compiler.define` removes that code. Error monitoring stays. The remaining shared Sentry file is 303,628 bytes uncompressed.
+
 ## 1. Executive summary
 
 Patient pages are the performance problem. Marketing and logged-out staff login are not.
@@ -785,7 +787,7 @@ Only items with direct evidence. Do not implement them in this branch.
 
 PR 0 is done and measured. Follow [Sydney Region Post-Deployment Measurement](#sydney-region-post-deployment-measurement), not the 1.3–1.5s figures, for anything after this point.
 
-The staff client Zod and Prisma enum split (former PR B) is measured in [Staff client bundle split](#staff-client-bundle-split). Patient loader dedupe and the location-home query reduction stay later. Guide and print are within about 40–75ms of warm `/api/health` from the same US runner, so statement count alone is not the next incident. The additional-location miss path stays inside that later query pull request. `demodental` has no additional location, so that path was not remeasured in production. The remaining first-load weight on every route is the shared Sentry browser chunk (about 371KB). Leave that SDK in place. After marketing static delivery was measured, that chunk is the next performance change, still without removing Sentry. See [Marketing Static Delivery — Production Verification](#marketing-static-delivery--production-verification).
+The staff client Zod and Prisma enum split (former PR B) is measured in [Staff client bundle split](#staff-client-bundle-split). Patient loader dedupe and the location-home query reduction stay later. Guide and print are within about 40–75ms of warm `/api/health` from the same US runner, so statement count alone is not the next incident. The additional-location miss path stays inside that later query pull request. `demodental` has no additional location, so that path was not remeasured in production. Marketing static delivery is measured in [Marketing Static Delivery — Production Verification](#marketing-static-delivery--production-verification). The shared Sentry browser chunk was about 371KB uncompressed at that point. The later measurement and the Turbopack tree-shake are in [Sentry Client Bundle Investigation](#sentry-client-bundle-investigation).
 
 Do not open an index PR from this audit.
 
@@ -1056,12 +1058,12 @@ The marketing dynamic-render finding in [section 6](#6-web-and-runtime-findings)
 
 ### Deployed state
 
-| Item | Value |
-| ---- | ----- |
-| `main` SHA | `97ce087daf2ba1c420c5cb6da0a91147426088fc` |
-| PR #105 | Merged 2026-09-25T08:35:12Z, commit `97ce087` — Enable ISR for marketing pages |
+| Item                         | Value                                                                                               |
+| ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| `main` SHA                   | `97ce087daf2ba1c420c5cb6da0a91147426088fc`                                                          |
+| PR #105                      | Merged 2026-09-25T08:35:12Z, commit `97ce087` — Enable ISR for marketing pages                      |
 | GitHub production deployment | `6656912822`, created 2026-09-25T08:36:32Z, state `success`, description “Deployment has completed” |
-| Previous production SHA | `08593df` (PR #104), replaced by this deployment |
+| Previous production SHA      | `08593df` (PR #104), replaced by this deployment                                                    |
 
 The deployment-specific host returned HTTP 302 to Vercel SSO, so this probe did not read a git SHA from that host. The live apex is this deployment for three reasons that agree:
 
@@ -1077,13 +1079,13 @@ Cursor cloud agent VM in AWS `us-east-1` (Ashburn). It is the same class of vant
 
 Every sample: HTTP 200, no redirect, `cache-control: public, max-age=0, must-revalidate`, `x-nextjs-prerender: 1`, `x-nextjs-stale-time: 300`, `x-matched-path: /_marketing`, the same weak ETag, Brotli body 16,922 bytes (115,000 bytes decoded). `server-timing` and `x-vercel-execution-region` were absent. `x-vercel-id` has two segments. There is no `syd1` function segment.
 
-| # | Status | TTFB | Total | `age` | `x-vercel-cache` | `x-vercel-id` |
-| -: | -----: | ---: | ----: | ----: | ---------------- | ------------- |
-| 1 | 200 | 1,917.4ms | 1,917.9ms | 350 | `HIT` | `iad1::l8js7-1790325766778-05d1ff4d4f04` |
-| 2 | 200 | 65.7ms | 66.2ms | 350 | `HIT` | `iad1::26mz9-1790325768673-aa5989508101` |
-| 3 | 200 | 84.8ms | 85.4ms | 350 | `HIT` | `iad1::nh5fh-1790325768745-087d65f44128` |
-| 4 | 200 | 85.9ms | 86.3ms | 350 | `HIT` | `iad1::8zg5t-1790325768836-9114ddfcc85b` |
-| 5 | 200 | 65.7ms | 66.2ms | 350 | `HIT` | `iad1::cqn4x-1790325768928-82e8a385fa52` |
+|   # | Status |      TTFB |     Total | `age` | `x-vercel-cache` | `x-vercel-id`                            |
+| --: | -----: | --------: | --------: | ----: | ---------------- | ---------------------------------------- |
+|   1 |    200 | 1,917.4ms | 1,917.9ms |   350 | `HIT`            | `iad1::l8js7-1790325766778-05d1ff4d4f04` |
+|   2 |    200 |    65.7ms |    66.2ms |   350 | `HIT`            | `iad1::26mz9-1790325768673-aa5989508101` |
+|   3 |    200 |    84.8ms |    85.4ms |   350 | `HIT`            | `iad1::nh5fh-1790325768745-087d65f44128` |
+|   4 |    200 |    85.9ms |    86.3ms |   350 | `HIT`            | `iad1::8zg5t-1790325768836-9114ddfcc85b` |
+|   5 |    200 |    65.7ms |    66.2ms |   350 | `HIT`            | `iad1::cqn4x-1790325768928-82e8a385fa52` |
 
 Median 84.8ms. Min 65.7ms. Max 1,917.4ms.
 
@@ -1097,13 +1099,13 @@ Title: `Patient Aftercare Software for Clinics | River Aftercare`. Canonical: `h
 
 Every sample: HTTP 200, no redirect, the same `cache-control`, `x-nextjs-prerender: 1`, `x-nextjs-stale-time: 300`, `x-matched-path: /_marketing/pricing`, the same weak ETag, Brotli body 14,114 bytes (99,209 bytes decoded). No `syd1` segment.
 
-| # | Status | TTFB | Total | `age` | `x-vercel-cache` | `x-vercel-id` |
-| -: | -----: | ---: | ----: | ----: | ---------------- | ------------- |
-| 1 | 200 | 380.4ms | 380.8ms | 0 | `PRERENDER` | `iad1::kvdl8-1790325768998-f43254c9b952` |
-| 2 | 200 | 54.5ms | 54.8ms | 0 | `HIT` | `iad1::frxrh-1790325769385-bcb1753c1a07` |
-| 3 | 200 | 90.0ms | 90.4ms | 0 | `HIT` | `iad1::zkzgb-1790325769452-d74c851a78e1` |
-| 4 | 200 | 55.0ms | 55.3ms | 0 | `HIT` | `iad1::vqkp4-1790325769540-10d5111e7b0c` |
-| 5 | 200 | 49.4ms | 49.7ms | 0 | `HIT` | `iad1::bvvjp-1790325769600-4a0d1a001f94` |
+|   # | Status |    TTFB |   Total | `age` | `x-vercel-cache` | `x-vercel-id`                            |
+| --: | -----: | ------: | ------: | ----: | ---------------- | ---------------------------------------- |
+|   1 |    200 | 380.4ms | 380.8ms |     0 | `PRERENDER`      | `iad1::kvdl8-1790325768998-f43254c9b952` |
+|   2 |    200 |  54.5ms |  54.8ms |     0 | `HIT`            | `iad1::frxrh-1790325769385-bcb1753c1a07` |
+|   3 |    200 |  90.0ms |  90.4ms |     0 | `HIT`            | `iad1::zkzgb-1790325769452-d74c851a78e1` |
+|   4 |    200 |  55.0ms |  55.3ms |     0 | `HIT`            | `iad1::vqkp4-1790325769540-10d5111e7b0c` |
+|   5 |    200 |  49.4ms |  49.7ms |     0 | `HIT`            | `iad1::bvvjp-1790325769600-4a0d1a001f94` |
 
 Median 55.0ms. Min 49.4ms. Max 380.4ms.
 
@@ -1115,10 +1117,10 @@ Title: `Patient Aftercare Software Pricing | River Aftercare`. Canonical: `https
 
 Before medians are the Sydney post-deploy five-sample medians (dynamic `syd1` renders). Absolute change is after median minus before median. Percent change is that difference divided by the before median. A negative change is faster.
 
-| Surface | Before median | After median | Absolute change | Percent change |
-| ------- | ------------: | -----------: | --------------: | -------------: |
-| Marketing home | 301.3ms | 84.8ms | −216.5ms | −71.9% |
-| Pricing | 311.8ms | 55.0ms | −256.8ms | −82.4% |
+| Surface        | Before median | After median | Absolute change | Percent change |
+| -------------- | ------------: | -----------: | --------------: | -------------: |
+| Marketing home |       301.3ms |       84.8ms |        −216.5ms |         −71.9% |
+| Pricing        |       311.8ms |       55.0ms |        −256.8ms |         −82.4% |
 
 The homepage median includes the 1,917.4ms first `HIT`. Dropping it would make the page look faster than the method used in the earlier audit. It is kept.
 
@@ -1126,11 +1128,11 @@ The homepage median includes the 1,917.4ms first `HIT`. Dropping it would make t
 
 Current Vercel `x-vercel-cache` values, from the response-header and cache-status docs:
 
-| Value | Meaning on these responses |
-| ----- | -------------------------- |
+| Value       | Meaning on these responses                                                                            |
+| ----------- | ----------------------------------------------------------------------------------------------------- |
 | `PRERENDER` | Served from static storage. The page was prerendered. Pricing sample 1 and the first contact request. |
-| `HIT` | Served from the CDN cache. Homepage samples 1–5, pricing samples 2–5, and the second contact request. |
-| `MISS` | Not served from that cache. The response was generated by the function. Tenant home and staff login. |
+| `HIT`       | Served from the CDN cache. Homepage samples 1–5, pricing samples 2–5, and the second contact request. |
+| `MISS`      | Not served from that cache. The response was generated by the function. Tenant home and staff login.  |
 
 `PRERENDER` and `HIT` are different. `PRERENDER` is the static file. `HIT` is the CDN copy of that file after this edge has stored it. Neither one is “the Sydney function ran and the CDN remembered the HTML.”
 
@@ -1146,19 +1148,19 @@ Two GETs each. No writes.
 
 `https://demodental.riveraftercare.com.au/`
 
-| # | Status | TTFB | `cache-control` | `x-vercel-cache` | `x-vercel-id` | `x-matched-path` |
-| -: | -----: | ---: | --------------- | ---------------- | ------------- | ---------------- |
-| 1 | 200 | 482.2ms | `private, no-cache, no-store, max-age=0, must-revalidate` | `MISS` | `iad1::syd1::s7fdr-1790325896507-a3bdd0edcfe3` | `/_sites/[tenant]` |
-| 2 | 200 | 345.2ms | same | `MISS` | `iad1::syd1::mvqxb-1790325896991-65ac312950ea` | `/_sites/[tenant]` |
+|   # | Status |    TTFB | `cache-control`                                           | `x-vercel-cache` | `x-vercel-id`                                  | `x-matched-path`   |
+| --: | -----: | ------: | --------------------------------------------------------- | ---------------- | ---------------------------------------------- | ------------------ |
+|   1 |    200 | 482.2ms | `private, no-cache, no-store, max-age=0, must-revalidate` | `MISS`           | `iad1::syd1::s7fdr-1790325896507-a3bdd0edcfe3` | `/_sites/[tenant]` |
+|   2 |    200 | 345.2ms | same                                                      | `MISS`           | `iad1::syd1::mvqxb-1790325896991-65ac312950ea` | `/_sites/[tenant]` |
 
 Title: `Riverside Dental Demo — Aftercare instructions`. The body does not contain the marketing title, “Request a demo”, or “View the dental demo”. `age` stayed 0. The Sydney function still runs.
 
 `https://app.riveraftercare.com.au/login`
 
-| # | Status | TTFB | `cache-control` | `x-vercel-cache` | `x-vercel-id` | `x-matched-path` |
-| -: | -----: | ---: | --------------- | ---------------- | ------------- | ---------------- |
-| 1 | 200 | 316.4ms | `private, no-cache, no-store, max-age=0, must-revalidate` | `MISS` | `iad1::syd1::f74n7-1790325897366-2ecef1bc19d5` | `/login` |
-| 2 | 200 | 321.6ms | same | `MISS` | `iad1::syd1::b42p5-1790325897664-356b9f8e030c` | `/login` |
+|   # | Status |    TTFB | `cache-control`                                           | `x-vercel-cache` | `x-vercel-id`                                  | `x-matched-path` |
+| --: | -----: | ------: | --------------------------------------------------------- | ---------------- | ---------------------------------------------- | ---------------- |
+|   1 |    200 | 316.4ms | `private, no-cache, no-store, max-age=0, must-revalidate` | `MISS`           | `iad1::syd1::f74n7-1790325897366-2ecef1bc19d5` | `/login`         |
+|   2 |    200 | 321.6ms | same                                                      | `MISS`           | `iad1::syd1::b42p5-1790325897664-356b9f8e030c` | `/login`         |
 
 Title: `Sign in · River Aftercare`. The document is the email/password form. It does not contain the marketing homepage or the patient title. It has not become a static marketing cache.
 
@@ -1166,10 +1168,10 @@ Title: `Sign in · River Aftercare`. The document is the email/password form. It
 
 `https://riveraftercare.com.au/contact`. The form was not submitted.
 
-| # | Status | TTFB | `age` | `x-vercel-cache` | `x-vercel-id` |
-| -: | -----: | ---: | ----: | ---------------- | ------------- |
-| 1 | 200 | 383.8ms | 0 | `PRERENDER` | `iad1::6n4mc-1790325896033-a71c1867062f` |
-| 2 | 200 | 52.3ms | 0 | `HIT` | `iad1::smp2b-1790325896422-96f0426d78ab` |
+|   # | Status |    TTFB | `age` | `x-vercel-cache` | `x-vercel-id`                            |
+| --: | -----: | ------: | ----: | ---------------- | ---------------------------------------- |
+|   1 |    200 | 383.8ms |     0 | `PRERENDER`      | `iad1::6n4mc-1790325896033-a71c1867062f` |
+|   2 |    200 |  52.3ms |     0 | `HIT`            | `iad1::smp2b-1790325896422-96f0426d78ab` |
 
 Both: `x-matched-path: /_marketing/contact`, `x-nextjs-prerender: 1`, `cache-control: public, max-age=0, must-revalidate`, no `syd1` segment. Title: `Book a Demo | River Aftercare`.
 
@@ -1193,11 +1195,11 @@ No unexpected redirect on the apex, `/pricing`, `/contact`, the tenant host, or 
 
 Three sequential GETs of the `demodental` logo SVG (420 bytes) at `assets.riveraftercare.com.au`, path `clinics/{clinicId}/branding/{uuid}.svg`.
 
-| # | Status | TTFB | `age` | `x-vercel-cache` | `x-vercel-id` |
-| -: | -----: | ---: | ----: | ---------------- | ------------- |
-| 1 | 200 | 1,245.7ms | 0 | `MISS` | `iad1::syd1::xvc8m-1790326024877-d36cf4af46e5` |
-| 2 | 200 | 35.9ms | 0 | `HIT` | `iad1::syd1::z2cgv-1790326026105-ac2d1d58f87b` |
-| 3 | 200 | 60.8ms | 21 | `HIT` | `iad1::syd1::c2jw4-1790326047737-72394a4dfc87` |
+|   # | Status |      TTFB | `age` | `x-vercel-cache` | `x-vercel-id`                                  |
+| --: | -----: | --------: | ----: | ---------------- | ---------------------------------------------- |
+|   1 |    200 | 1,245.7ms |     0 | `MISS`           | `iad1::syd1::xvc8m-1790326024877-d36cf4af46e5` |
+|   2 |    200 |    35.9ms |     0 | `HIT`            | `iad1::syd1::z2cgv-1790326026105-ac2d1d58f87b` |
+|   3 |    200 |    60.8ms |    21 | `HIT`            | `iad1::syd1::c2jw4-1790326047737-72394a4dfc87` |
 
 `cache-control` stayed `public, max-age=31536000, immutable`. The first request executed in `syd1`. The warm requests were `HIT` in tens of milliseconds, and `age` reached 21. The id still contains `syd1` because this URL is a function route’s cache, not a prerendered file like marketing HTML. The 36–61ms TTFB is not a full US-to-Sydney function run. P5’s “both requests missed” result is not what this edge did today.
 
@@ -1211,7 +1213,7 @@ Operator pagination is still not justified. This check did not count accounts.
 
 The largest remaining measured payload on the marketing page is the Sentry browser chunk: `32drio6y81ul7.js`, 371,706 bytes, `x-vercel-cache: HIT`, `public, max-age=31536000, immutable`. The build recorded the same chunk at 371,079 bytes. Strings that mention Prisma in it are the Sentry denylist. Other marketing files on that page include a 129,939-byte stylesheet and JavaScript files of 129,456 and 112,594 bytes. The Sentry file is the single largest. Australian visitors download it. They do not pay this probe’s edge-to-Sydney hop.
 
-**Next performance pull request:** load the Sentry browser SDK so that 371KB chunk is not on the shared first-load graph. Keep Sentry. Do not change the DSN requirement, privacy filters, tracing sample rate, or Session Replay. Do not drop the SDK to save bytes. A client error that the product already reports must still be reportable after the change. If the only way to remove the bytes is to miss errors that happen before the SDK loads, do not ship that. Measure `firstLoadUncompressedJsBytes` for marketing home, patient home, and `/login`. Do not cache patient or staff HTML in that pull request.
+**Follow-up:** that chunk is investigated in [Sentry Client Bundle Investigation](#sentry-client-bundle-investigation). The outcome keeps synchronous client init and error monitoring, and tree-shakes debug and tracing code Turbopack was still emitting. It does not remove the SDK from the shared first-load graph.
 
 ### Limitations
 
@@ -1222,3 +1224,153 @@ The largest remaining measured payload on the marketing page is the Sentry brows
 - Operator SEO propagation was not edited in production.
 - Sentry issues were not listed.
 - The branding recheck is one small SVG from one edge. It does not describe every logo.
+
+## Sentry Client Bundle Investigation
+
+Recorded 2026-09-25. Starting `main` SHA `97ce087daf2ba1c420c5cb6da0a91147426088fc` (PR #105). `@sentry/nextjs` stays on `10.75.0`. This is not a Sentry v11 upgrade. Patient caching, Prisma, Stripe, and multi-location behaviour were not changed. Server Sentry was not disabled.
+
+### Current client configuration
+
+Browser init is synchronous in `instrumentation-client.ts`, which calls `initClientErrorTracking()` and exports `onRouterTransitionStart`. Next.js runs that file after the HTML document is loaded and before React hydration. Only synchronous top-level code is guaranteed to finish before hydration ([instrumentation-client](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client)).
+
+`Sentry.init` options come from `createErrorTrackingInitOptions`:
+
+| Setting                                   | Value                                                                                                                                                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Enablement                                | `NEXT_PUBLIC_VERCEL_ENV` of `production` or `preview`, plus a valid `NEXT_PUBLIC_SENTRY_DSN`. Server-only `VERCEL_ENV` does not turn the browser on. Tests and `NODE_ENV=test` do not init.      |
+| `tracesSampleRate` / `profilesSampleRate` | `0` / `0`                                                                                                                                                                                        |
+| `beforeSendTransaction`                   | drops every transaction                                                                                                                                                                          |
+| Replay                                    | `replaysSessionSampleRate` and `replaysOnErrorSampleRate` are `0`. `replayIntegration` is not called.                                                                                            |
+| Logs                                      | `enableLogs: false`                                                                                                                                                                              |
+| Breadcrumbs                               | `maxBreadcrumbs: 0`, `beforeBreadcrumb` returns null, and the `Breadcrumbs` integration is removed                                                                                               |
+| PII                                       | `sendDefaultPii: false`. `dataCollection` turns off user info, cookies, HTTP bodies, and stack-frame variables. `beforeSend` strips user, headers, cookies, query, fragment, and request bodies. |
+| Release                                   | `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` when it is a git SHA. An absent release is omitted.                                                                                                          |
+| Source maps                               | `withSentryConfig` uploads only when `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are all set. Otherwise upload is off and the build still succeeds.                                  |
+| Other                                     | `attachStacktrace: true`, `sendClientReports: false`, `skipOpenTelemetrySetup: true`. No feedback widget, no metrics calls, no custom client fingerprint.                                        |
+
+There is no `sentry.edge.config.ts`. `instrumentation.ts` loads server Sentry only when `NEXT_RUNTIME === "nodejs"`. `proxy.ts` does not import Sentry.
+
+The browser SDK's default integrations are not assumed. `@sentry/nextjs` `10.75.0` client `init` builds defaults from `@sentry/react` / `@sentry/browser` and, when `__SENTRY_TRACING__` is undefined, also adds `browserTracingIntegration` plus `NextjsClientStackFrameNormalization`. River then filters by integration name. After that filter, a direct client-SDK init in Vitest had `GlobalHandlers`, `LinkedErrors`, and `NextjsClientStackFrameNormalization`, and did not have `BrowserTracing`, `Breadcrumbs`, or `Replay`. `HttpContext` is not in the removal list. `beforeSend` still reduces the request to an origin and path. `CultureContext` can run, and `beforeSend` keeps only the `runtime` context, so locale and timezone are not stored. `BrowserApiErrors`, `Dedupe`, `InboundFilters`, and `FunctionToString` are not removed.
+
+`global-error.tsx` and the marketing, staff, and patient `error.tsx` files do not import `@sentry/nextjs`. They render `ClientErrorReporter`, which calls `reportClientException` → `Sentry.captureException` after the error boundary commits. That import is in the client graph. `instrumentation-client.ts` also imports the SDK for every page. Either import is enough to keep one shared SDK chunk. Removing the reporter to shrink the bundle would drop React render reporting. That was not done.
+
+Server reporting (`reportServerException`, `onRequestError`, operational fingerprints) is unchanged.
+
+### What the 371 KB file contained
+
+Local `next build` (Next.js 16.3.5, Turbopack, Node 24.21.0) before the define change:
+
+| File                                      | Uncompressed | gzip -9 | Node brotli |
+| ----------------------------------------- | -----------: | ------: | ----------: |
+| `1iaha0zb6-kf9.js`                        |      371,081 | 117,977 |     100,644 |
+| Companion Sentry chunk `05g_wkr_x_wwg.js` |       44,774 |  15,095 |           — |
+
+The large file contained `GlobalHandlers`, `captureException`, `beforeSend`, `NextjsClientStackFrameNormalization`, breadcrumb code, 21 `[Tracing]` log strings, and web-vitals markers (`largest-contentful-paint`). It contained the identifiers `__SENTRY_DEBUG__` (6) and `__SENTRY_TRACING__` (4). It did not contain `rrweb` or `replayIntegration`. Stripe and Turnstile strings in that file are the SDK denylist.
+
+`bundleSizeOptimizations.excludeTracing` and `excludeDebugStatements` are set in `createSentryBuildOptions`. Sentry's webpack plugin turns those into defines ([tree shaking](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/tree-shaking/)). The same page says those options are not supported for Turbopack. This app's production build is Turbopack. The flags were still present in the emitted chunk, so the webpack treeshake did not run.
+
+Classification of the pre-change chunk:
+
+| Piece                                                                                                                   | Class                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Global handlers, linked errors, dedupe, inbound filters, stack-frame normalization, fetch transport, `captureException` | Required for current error monitoring                                                                                                                 |
+| `BrowserTracing`, idle spans, web vitals, debug logger branches                                                         | Optional code that was compiled in. Runtime already refused traces (`tracesSampleRate: 0`, integration filtered, `beforeSendTransaction` drops them). |
+| Session Replay, feedback, logs product, profiling                                                                       | Not used. Replay recorder code was not in the chunk.                                                                                                  |
+| Breadcrumb implementation                                                                                               | Bundled, then disabled at runtime                                                                                                                     |
+
+### Production transfer, before this change
+
+Measured 2026-09-25 against the deployed marketing and `demodental` documents. The shared file was `/_next/static/immutable/chunks/32jaxe9o1x3gg.js`.
+
+| Dimension          | Measurement                                                                                                                                                                                              |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Uncompressed body  | 371,706 bytes                                                                                                                                                                                            |
+| Brotli on the wire | 120,544 bytes (`content-encoding: br`)                                                                                                                                                                   |
+| Cache              | `cache-control: public, max-age=31536000, immutable`. First probe `x-vercel-cache: HIT` with `age: 0`. A second probe 29 seconds later was `HIT` with `age: 29`.                                         |
+| HTML               | Marketing and `demodental` home both reference that URL. The script tag is `async`. It does not block the HTML parser.                                                                                   |
+| Patient HTML       | Still `private, no-store` and `x-vercel-cache: MISS`. The script URL is the immutable shared file.                                                                                                       |
+| Companion chunk    | `2t_lt5l1auul4.js`, 45,138 bytes uncompressed, 16,193 bytes brotli, also immutable and `HIT`. It contains more Sentry core (`captureException`, breadcrumb helpers), not the tracing logs.               |
+| Parse              | On this Node 24 V8, `new Function` of the local 371,081-byte chunk was about 7 ms on the first timed call. That is not a Chrome or phone trace.                                                          |
+| Hydration          | The chunk is a dependency of synchronous `instrumentation-client` init, so its evaluation is before hydration once the async download finishes. Download itself is parallel with the other async chunks. |
+
+371 KB is the uncompressed build size. A current browser transfers about 121 KB for that file, then the CDN keeps it for a year.
+
+### Early-error window
+
+Do not defer this init.
+
+Next.js documents that a `Promise`, `import()`, or top-level `await` in `instrumentation-client` is not awaited and may finish after hydration has started. Errors that would be missed if the SDK loaded later:
+
+- an exception while evaluating a module that runs before the deferred import resolves
+- the first React render and hydration exception, including errors Next.js routes to `global-error` during that pass
+- an unhandled rejection scheduled before the import resolves
+- `ClientErrorReporter`'s `useEffect` if it runs before `Sentry.init`
+
+`global-error` and `error.tsx` report from `useEffect`, which is after commit. That does not cover a module-evaluation throw that prevents the reporter from mounting, and it does not cover an unhandled rejection that happens before init. A small `window.onerror` buffer would not see React errors that React handles inside the boundary. Replaying those into Sentry would be a custom client. That approach was rejected.
+
+Sentry's Next.js manual setup initializes in `instrumentation-client.ts` and captures render errors with `captureException` ([manual setup](https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/)). Lazy loading in the Sentry docs is for optional integrations such as Replay, not for replacing the error SDK ([integrations](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/integrations/)).
+
+### Options
+
+**A. Compile-time tree-shake. Accepted.**
+
+`compiler.define` in `next.config.ts` sets `__SENTRY_DEBUG__: false`, `__SENTRY_TRACING__: false`, and the three Replay exclude flags Sentry documents for manual tree shaking ([JavaScript tree shaking](https://docs.sentry.io/platforms/javascript/configuration/tree-shaking/)). Next.js `compiler.define` applies on Turbopack ([compiler define](https://nextjs.org/docs/architecture/nextjs-compiler#define-replacing-variables-during-build)). Server `@sentry/nextjs` is external, and the server build does not contain those flag identifiers, so server init is the published package.
+
+After a second `next build`, the tracing log strings and web-vitals markers were gone. `GlobalHandlers` and `captureException` remained.
+
+|                        |  Before |   After |
+| ---------------------- | ------: | ------: |
+| Shared Sentry chunk    | 371,081 | 303,628 |
+| gzip -9                | 117,977 |  96,716 |
+| Node brotli            | 100,644 |  83,129 |
+| Companion Sentry chunk |  44,774 |  44,564 |
+
+Every measured route's `firstLoadUncompressedJsBytes` fell by 67,663. That is the two Sentry files and nothing else.
+
+| Route                                        |  Before |   After |
+| -------------------------------------------- | ------: | ------: |
+| Patient home `/_sites/[tenant]`              | 665,672 | 598,009 |
+| Patient guide `/_sites/[tenant]/[guideSlug]` | 670,788 | 603,125 |
+| Marketing `/_marketing`                      | 830,013 | 762,350 |
+| `/login`                                     | 695,122 | 627,459 |
+| Practice settings `/practice`                | 753,079 | 685,416 |
+
+Monitoring change: debug logger branches and the tracing implementation that was already sampled at 0 are absent from the client bundle. Uncaught exceptions, unhandled rejections, `captureException`, and Next.js stack-frame normalization stay. `onRouterTransitionStart` stays exported. No production Sentry event was sent for this measurement.
+
+**B. Smaller client package. Rejected.**
+
+Sentry's tree-shaking page shows a `BrowserClient` built from `@sentry/browser` with an explicit integration list, which can drop unused default integrations. `@sentry/nextjs` client `init` always calls its own `getDefaultIntegrations` before user options are applied, and that function is what adds Next.js stack-frame normalization and the redirect filter. Calling `BrowserClient` from `@sentry/browser` directly would skip those. That is a second client stack beside `@sentry/nextjs` on the server. It was not implemented.
+
+**C. Defer init. Rejected.**
+
+Loading the SDK from `import()`, `requestIdleCallback`, or `window` `load` misses the early window above. The remaining file is about 304 KB uncompressed and about 83 KB brotli locally. That is not a reason to give up hydration errors. Official Next.js timing does not support an async init that still runs before hydration.
+
+**D. Early error buffer. Rejected.**
+
+A few lines can record `window.onerror` until the SDK loads. They do not record React render or hydration errors that the framework passes to `error.tsx` instead of `window.onerror`. Covering those as well means a custom queue in the reporter and in the global handlers. That was rejected.
+
+### Surfaces
+
+Marketing, patient, staff, and operator use the same `instrumentation-client.ts` and the same error reporter. The SDK chunk is one immutable CDN URL shared by those HTML documents. Splitting four Sentry setups would not remove the download for a person who only opens one host, and it would make a missed init a per-surface bug. No split was added.
+
+### Coverage test
+
+`tests/client-sentry-transport.test.ts` loads `@sentry/nextjs` `build/cjs/client` (the browser build; Node's package export is the server build) with `createErrorTrackingInitOptions` and an in-memory transport. One init captured:
+
+- `Sentry.captureException` (the call `ClientErrorReporter` makes for render and hydration errors)
+- `globalThis.onerror`
+- `globalThis.onunhandledrejection`
+
+The envelope used `sentry.javascript.nextjs`. A URL query and fragment were not in the payload. Nothing was sent to a Sentry project.
+
+### v11
+
+Sentry JavaScript SDK 11.0.0 is a breaking release (23 September 2026). The migration changes OpenTelemetry defaults, `dataCollection`, span streaming, and removes deprecated `withSentryConfig` options ([v10 to v11](https://docs.sentry.io/platforms/javascript/guides/nextjs/migration/v10-to-v11/)). It was not installed here. A later dependency PR can measure its client chunk. This change does not depend on that upgrade.
+
+### Chosen outcome
+
+Keep synchronous client init. Tree-shake debug and tracing code that Turbopack was emitting and the app was already refusing to send. Do not defer the SDK. Do not remove Sentry from marketing or from error boundaries.
+
+### Next performance step
+
+Do not spend the next change on the remaining ~304 KB Sentry file. That is the error SDK, on an immutable CDN response of roughly 80–100 KB. The audit's later patient-loader work stays behind a new probe: guide and print were already within about 40–75 ms of warm `/api/health` from the US runner after the Sydney move.
