@@ -218,10 +218,14 @@ test.describe("account split preparation", () => {
     await expect(page.getByText("Plan remains: GROUP")).toBeVisible();
     await expect(page.getByText("Active sites: 2")).toBeVisible();
     await expect(
-      page.getByText("Harbour Dental · e2espl-harbour")
+      page
+        .getByRole("listitem")
+        .filter({ hasText: "Harbour Dental · e2espl-harbour" })
     ).toBeVisible();
     await expect(
-      page.getByText("Northern Dental · e2espl-north")
+      page
+        .getByRole("listitem")
+        .filter({ hasText: "Northern Dental · e2espl-north" })
     ).toBeVisible();
     await expect(page.getByText("Split execution: READY")).toBeVisible();
     await expect(
