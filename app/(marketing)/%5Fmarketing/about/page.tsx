@@ -10,7 +10,7 @@ import { MarketingPrimaryLink } from "@/app/(marketing)/components/marketing-pri
 import { MarketingShell } from "@/app/(marketing)/components/marketing-shell";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { CLINIC_VERTICAL_NAV } from "@/lib/marketing/clinic-verticals";
-import { marketingPublicLinks } from "@/lib/marketing/public-links";
+import { marketingConfiguredPublicLinks } from "@/lib/marketing/configured-public-links";
 import { editorialRevealDelay } from "@/lib/marketing/reveal-timing";
 import {
   generateMarketingMetadata,
@@ -18,6 +18,8 @@ import {
 } from "@/lib/seo/marketing-page";
 
 import styles from "../../marketing.module.css";
+
+export const dynamic = "error";
 
 export const generateMetadata = () => generateMarketingMetadata("/about");
 
@@ -59,10 +61,8 @@ const WHO_COPY = [
 const SCOPE_COPY = `${PRODUCT_NAME} is built to publish clear, clinic-approved guidance patients can return to after care. It complements clinical systems rather than replacing them.`;
 
 export default async function MarketingAboutPage() {
-  const [{ staffHref }, jsonLd] = await Promise.all([
-    marketingPublicLinks(),
-    loadMarketingJsonLd("/about"),
-  ]);
+  const { staffHref } = marketingConfiguredPublicLinks();
+  const jsonLd = await loadMarketingJsonLd("/about");
 
   return (
     <MarketingShell currentPath="/about" staffHref={staffHref}>

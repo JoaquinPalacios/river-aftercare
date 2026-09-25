@@ -10,6 +10,8 @@ Measured: 2026-09-25 (before the Sydney pin).
 
 **Status, staff JavaScript:** the Zod and Prisma client-import split is measured in [Staff client bundle split](#staff-client-bundle-split). Login first-load JavaScript fell from 1,082,709 bytes to 695,120 bytes. The 387,769-byte Zod chunk and the 57,465-byte Prisma field chunk are absent from the production client graph. Patient routes did not grow.
 
+**Status, marketing delivery:** public marketing HTML is now prerendered. See [Marketing ISR](#marketing-isr). Patient, staff, and operator routes stay dynamic. Production CDN headers are not measured until this change is deployed.
+
 ## 1. Executive summary
 
 Patient pages are the performance problem. Marketing and logged-out staff login are not.
@@ -860,7 +862,7 @@ The −2 byte movement on patient routes, the guide editor, the dashboard, accou
 1. Optional Sentry browser-SDK loading, only as a monitoring decision.
 2. Request-level React `cache()` for patient loaders, if a later probe shows a larger gap than the current 40–75ms on guide and print.
 3. Fewer statements in the guide loader, including the location-home miss path.
-4. Branding CDN cache investigation, then marketing ISR.
+4. Branding CDN cache investigation. Marketing HTML prerender is [Marketing ISR](#marketing-isr).
 
 No index pull request. No patient loader edit in this change.
 
@@ -912,4 +914,133 @@ Database sessions. Logged-out `/login` is 0 SQL statements. Signed-in helpers ar
 
 ### Build route table
 
-`pnpm build` on this SHA: marketing, patient, staff product, operator, and API routes are dynamic. Robots and sitemap are static. Patient tenant layout is `force-dynamic`.
+At audit time, `pnpm build` marked marketing, patient, staff product, operator, and API routes dynamic. Robots and sitemap were static. Patient tenant layout was `force-dynamic`. The marketing rows changed in [Marketing ISR](#marketing-isr). Patient routes did not.
+
+## 21. Marketing ISR
+
+Recorded 2026-09-25 on `perf/marketing-isr`, starting from `08593df` (PR #104). Marketing pages only. Patient caching, staff and operator caching, Sentry, Prisma schema, Stripe, and multi-location behaviour were not changed. Marketing copy in source was not rewritten.
+
+### Why marketing was dynamic
+
+`next build` on `08593df` classified every marketing content route as `ƒ` (dynamic). The cause is `marketingPublicLinks()` in `lib/marketing/public-links.ts`, which calls `headers()` to build the dental-demo, staff-login, and apex links from the incoming host. Next.js treats that as a request-time API, so the whole route renders on demand.
+
+Those links are the only request data on the pages. Canonical URLs, Open Graph URLs, and JSON-LD origins already come from `marketingSiteOrigin()` (`CARE_GUIDE_METADATA_BASE`, otherwise `CARE_GUIDE_ROOT_DOMAIN`). They do not need `headers()`.
+
+Each page also reads `PlatformSeoSettings` and one `MarketingPageSeo` row (`loadPlatformSeoIdentity`, `loadMarketingPageSeo`). React `cache()` dedupes those inside a single request. They do not, by themselves, opt the route into dynamic rendering. There is no `cookies()`, `searchParams`, `draftMode()`, auth session, or clinic lookup on these pages.
+
+`/_marketing/[...slug]` is dynamic for a different reason: it is the unmatched-path catch-all that calls `notFound()`. It has no `generateStaticParams`. It stays dynamic.
+
+### What is stored, and who changes it
+
+| Store                 | What it holds                                                                                                                     | Who edits it                         |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `PlatformSeoSettings` | Singleton platform identity: site name, default description, organization copy, public email, default social image, `sameAs` URLs | Platform operator at `/operator/seo` |
+| `MarketingPageSeo`    | One row per public marketing path: title, description, social fields, index/follow                                                | Same operator form                   |
+
+Body copy, pricing figures, and legal text live in source. They change when the application is deployed. Operator SEO changes go through `savePlatformSeoAction`, `uploadPlatformSeoOgImageAction`, and `removePlatformSeoOgImageAction`. There is no schedule and no other writer. A time-based `revalidate` interval would regenerate pages when nothing had changed, so this change does not set one.
+
+### What changed
+
+Marketing content pages call `marketingConfiguredPublicLinks()`. That helper uses the same `labeledPublicUrl` / `apexPublicUrl` host rules as the request-host helper, with the host taken from configuration. It does not import `next/headers`. Staff and operator pages still call `marketingPublicLinks()`, which still reads the request host.
+
+Each content page exports `dynamic = "error"`, so a later `headers()` or `cookies()` call fails the build instead of silently returning to dynamic rendering.
+
+Operator saves now call `revalidatePath` on the filesystem routes the proxy rewrites to (`/_marketing`, `/_marketing/pricing`, and the other marketing destinations). `revalidatePath` follows the route file, not the browser URL. The previous calls to `revalidatePath("/")` and `revalidatePath("/pricing")` did not match those files. `revalidatePath("/", "layout")` was removed so an SEO save does not invalidate the staff `/` route. Patient paths are not in the list.
+
+`/sitemap.xml` and `/llms.txt` are still invalidated. Sitemap URLs are code-owned; `llms.txt` stays `force-dynamic` and reads platform identity on each request. `/operator/seo` is still invalidated so the operator form refreshes. That page stays dynamic.
+
+### Route classification
+
+`pnpm build` (Next.js 16.3.5, Node 24.21.0). Legend from the build: `○` static prerender, `ƒ` dynamic.
+
+Before (`08593df`):
+
+| Route                                       | Classification |
+| ------------------------------------------- | -------------- |
+| `/_marketing`                               | `ƒ`            |
+| `/_marketing/pricing`                       | `ƒ`            |
+| `/_marketing/contact`                       | `ƒ`            |
+| `/_marketing/about`                         | `ƒ`            |
+| `/_marketing/privacy`                       | `ƒ`            |
+| `/_marketing/terms`                         | `ƒ`            |
+| `/_marketing/clinics`                       | `ƒ`            |
+| `/_marketing/dental`                        | `ƒ`            |
+| `/_marketing/physiotherapy`                 | `ƒ`            |
+| `/_marketing/chiropractic`                  | `ƒ`            |
+| `/_marketing/cosmetic-clinics`              | `ƒ`            |
+| `/_marketing/[...slug]`                     | `ƒ`            |
+| `/_sites/[tenant]` and guide/print routes   | `ƒ`            |
+| `/`, `/login`, `/practice`, `/operator/seo` | `ƒ`            |
+| `/robots.txt`, `/sitemap.xml`               | `○`            |
+
+After this change:
+
+| Route                                           | Classification                         |
+| ----------------------------------------------- | -------------------------------------- |
+| `/_marketing`                                   | `○`                                    |
+| `/_marketing/pricing`                           | `○`                                    |
+| `/_marketing/contact`                           | `○`                                    |
+| `/_marketing/about`                             | `○`                                    |
+| `/_marketing/privacy`                           | `○`                                    |
+| `/_marketing/terms`                             | `○`                                    |
+| `/_marketing/clinics`                           | `○`                                    |
+| `/_marketing/dental`                            | `○`                                    |
+| `/_marketing/physiotherapy`                     | `○`                                    |
+| `/_marketing/chiropractic`                      | `○`                                    |
+| `/_marketing/cosmetic-clinics`                  | `○`                                    |
+| `/_marketing/[...slug]`                         | `ƒ` (unknown marketing URLs 404 here)  |
+| `/_sites/[tenant]` and guide/print routes       | `ƒ` (`force-dynamic` layout unchanged) |
+| `/`, `/login`, `/practice`, `/operator/*`, APIs | `ƒ`                                    |
+| `/llms.txt`                                     | `ƒ` (`force-dynamic` unchanged)        |
+| `/robots.txt`, `/sitemap.xml`                   | `○`                                    |
+
+`.next/prerender-manifest.json` records `/_marketing/pricing` as `compute: "static"`, `response: "complete"`, `initialRevalidateSeconds: false`. The same shape is on the other converted routes. `false` means no clock. `revalidatePath` still applies: the manifest allows `x-prerender-revalidate`. The build does not print a separate ISR glyph for that. These routes are static prerenders with on-demand revalidation.
+
+`x-nextjs-stale-time: 300` on a local `next start` response is the client router hint. It is not a 300-second regeneration interval. `Cache-Control` on those responses is `s-maxage=31536000`.
+
+This environment had no PostgreSQL server. The prerender used the existing loader fallback (defaults) because the database connection failed and was caught. A Vercel production build has `DATABASE_URL`, so the prerender includes the operator rows that exist at build time. A later operator save regenerates the page from the database. A failed build-time read does not fail the build; it ships the same defaults the dynamic page already returned when the read failed.
+
+### Local behaviour
+
+`next start` on this build, `Host: localhost:3000`:
+
+| Request                                      | Status                             | Cache                                                                                                                                                               |
+| -------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                                          | 200, rewrite `/_marketing`         | `x-nextjs-cache: HIT`, `x-nextjs-prerender: 1`, `Cache-Control: s-maxage=31536000`                                                                                  |
+| `/` again                                    | 200, same ETag                     | `HIT`                                                                                                                                                               |
+| `/pricing`                                   | 200, rewrite `/_marketing/pricing` | `HIT`, `s-maxage=31536000`                                                                                                                                          |
+| `/contact`                                   | 200, Turnstile field present       | `HIT`, `s-maxage=31536000`                                                                                                                                          |
+| `/_marketing`                                | 404                                | Proxy blocks the internal path                                                                                                                                      |
+| `Host: demodental.localhost:3000` `/`        | 500 (no local database)            | Rewrite `/_sites/demodental`, `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate`. Body is the Next error document, not the marketing homepage |
+| `Host: demodental.localhost:3000` `/pricing` | 500                                | Rewrite `/_sites/demodental/pricing`, `private, no-store`. Not the marketing pricing page                                                                           |
+| `Host: app.localhost:3000` `/login`          | 200                                | `private, no-store`. Sign-in document, not marketing HTML                                                                                                           |
+
+Homepage title in the prerender: `Patient Aftercare Software for Clinics | River Aftercare`. Pricing title: `Patient Aftercare Software Pricing | River Aftercare`. Both include JSON-LD. The static HTML does not contain `ClinicSite` or a session.
+
+### Cache isolation
+
+The hostname proxy is unchanged and database-free. A marketing host rewrites public pages to `/_marketing...`. A tenant host rewrites to `/_sites/{slug}...`. The staff host is not rewritten to either. Direct `/_marketing` is 404 on every public host (existing proxy tests).
+
+The static files are the `/_marketing` routes only. Patient routes stay `force-dynamic` and respond `private, no-store`. They do not share that prerender. Marketing loaders read `platformSeoSettings` and `marketingPageSeo` only. Configured links name the fixed demo slug `demodental` and the `app` label. They do not load a `ClinicSite`, a location, or a session.
+
+SEO revalidation paths are the `/_marketing` destinations, `/sitemap.xml`, `/llms.txt`, and `/operator/seo`. They do not include `/`, `/_sites`, `/login`, `/practice`, `/guides`, `/account`, `/dashboard`, or `/api`.
+
+### Post-deployment measurement
+
+Do not treat the local `HIT` as a production millisecond result. After this change is deployed, from the same style of US runner as the earlier audit, request each URL five times in sequence, one at a time, with no concurrency and no writes:
+
+1. `https://riveraftercare.com.au/`
+2. `https://riveraftercare.com.au/pricing`
+
+For each response record:
+
+- TTFB
+- total time
+- `x-vercel-cache`
+- `age`
+- `cache-control`
+- `x-vercel-id`
+
+Warm requests should show the CDN or static cache (`x-vercel-cache` `HIT`, or `STALE` only immediately after an operator save) rather than a Sydney function render on every request. `x-vercel-id` still names the edge that accepted the connection. Compare how many `::` segments it has with the earlier `iad1::syd1::<id>` dynamic renders. This plan does not set a target millisecond value.
+
+The hostname proxy still classifies the host before the rewrite. If a warm response is `HIT` and `x-vercel-id` still includes `syd1`, the proxy ran and the HTML was cached. If it is `HIT` and the id is only the edge region, the function did not run. Record which one production returns. Do not change patient URLs in this probe.

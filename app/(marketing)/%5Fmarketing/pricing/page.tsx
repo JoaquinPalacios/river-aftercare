@@ -22,7 +22,7 @@ import {
   PRICING_TYPOGRAPHY_FOOTNOTE_ID,
   PRICING_TYPOGRAPHY_NOTE,
 } from "@/lib/marketing/plans";
-import { marketingPublicLinks } from "@/lib/marketing/public-links";
+import { marketingConfiguredPublicLinks } from "@/lib/marketing/configured-public-links";
 import { editorialRevealDelay } from "@/lib/marketing/reveal-timing";
 import {
   generateMarketingMetadata,
@@ -31,13 +31,13 @@ import {
 
 import styles from "../../marketing.module.css";
 
+export const dynamic = "error";
+
 export const generateMetadata = () => generateMarketingMetadata("/pricing");
 
 export default async function MarketingPricingPage() {
-  const [{ staffHref }, jsonLd] = await Promise.all([
-    marketingPublicLinks(),
-    loadMarketingJsonLd("/pricing"),
-  ]);
+  const { staffHref } = marketingConfiguredPublicLinks();
+  const jsonLd = await loadMarketingJsonLd("/pricing");
 
   return (
     <MarketingShell currentPath="/pricing" staffHref={staffHref}>

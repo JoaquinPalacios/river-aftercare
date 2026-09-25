@@ -11,6 +11,11 @@ export type MarketingPublicLinks = {
   homeHref: string;
 };
 
+/**
+ * Sibling links from the current request host. Used by staff and operator
+ * pages, which are already dynamic. Marketing pages must call
+ * `marketingConfiguredPublicLinks` so `headers()` does not force them dynamic.
+ */
 export async function marketingPublicLinks(): Promise<MarketingPublicLinks> {
   const requestHeaders = await headers();
   const host =

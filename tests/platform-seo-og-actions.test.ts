@@ -5,6 +5,7 @@ const redirectMock = vi.hoisted(() => vi.fn());
 const getAuthContextMock = vi.hoisted(() => vi.fn());
 const uploadMock = vi.hoisted(() => vi.fn());
 const removeMock = vi.hoisted(() => vi.fn());
+const revalidatePathMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   notFound: notFoundMock,
@@ -12,7 +13,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next/cache", () => ({
-  revalidatePath: vi.fn(),
+  revalidatePath: revalidatePathMock,
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -30,6 +31,10 @@ import {
   removePlatformSeoOgImageAction,
   uploadPlatformSeoOgImageAction,
 } from "@/app/(staff)/(operator)/operator/seo/actions";
+import {
+  isPatientOrStaffRevalidatePath,
+  MARKETING_DELIVERY_PATHS,
+} from "@/lib/marketing/revalidate-marketing";
 import { pngBytes } from "./helpers/og-image-bytes";
 
 function fileData(): FormData {
@@ -48,6 +53,7 @@ describe("platform SEO OG image actions", () => {
     getAuthContextMock.mockReset();
     uploadMock.mockReset();
     removeMock.mockReset();
+    revalidatePathMock.mockReset();
     notFoundMock.mockImplementation(() => {
       throw new Error("NEXT_HTTP_ERROR_FALLBACK;404");
     });
@@ -78,6 +84,18 @@ describe("platform SEO OG image actions", () => {
     expect(uploadMock).toHaveBeenCalledWith(
       expect.objectContaining({ actorIsPlatformOperator: true })
     );
+    for (const path of MARKETING_DELIVERY_PATHS) {
+      expect(revalidatePathMock).toHaveBeenCalledWith(path);
+    }
+    const invalidated = revalidatePathMock.mock.calls.map((call) => call[0]);
+    expect(invalidated).toContain("/_marketing");
+    expect(invalidated).toContain("/_marketing/pricing");
+    expect(
+      invalidated.some((path) => isPatientOrStaffRevalidatePath(path))
+    ).toBe(false);
+    expect(invalidated.some((path) => String(path).startsWith("/_sites"))).toBe(
+      false
+    );
   });
 
   it("rejects unauthenticated upload", async () => {
@@ -90,6 +108,7 @@ describe("platform SEO OG image actions", () => {
       uploadPlatformSeoOgImageAction({}, fileData())
     ).rejects.toThrow("NEXT_REDIRECT");
     expect(uploadMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
   it("rejects clinic ADMIN upload", async () => {
