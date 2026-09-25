@@ -1,6 +1,8 @@
 import "dotenv/config";
 
 import {
+  BillingStatus,
+  EntitlementStatus,
   GuideRevisionStatus,
   PracticeGuideStatus,
   type PrismaClient,
@@ -622,6 +624,15 @@ describe("multi-location runtime switch", () => {
       userId: `${PREFIX}user`,
     });
     const template = await seedTemplate();
+    await db().clinicEntitlement.create({
+      data: {
+        clinicId: `${PREFIX}clinic`,
+        commercialPlan: "PRACTICE",
+        billingInterval: "MONTHLY",
+        billingStatus: BillingStatus.ACTIVE,
+        entitlementStatus: EntitlementStatus.ACTIVE,
+      },
+    });
     const fromTemplate = await createPracticeGuideFromTemplate({
       clinicId: `${PREFIX}clinic`,
       actorUserId: `${PREFIX}user`,
@@ -863,14 +874,20 @@ describe("multi-location runtime switch", () => {
       },
     });
 
-    const share = await loadPublishedGuideShareTarget({
-      clinicId: `${PREFIX}same`,
-      guideId: guide.id,
-      requestHost: "app.riveraftercare.com.au",
-      protocol: "https",
-    });
-    expect(share?.publicUrl).toBe(
-      "https://mlrt-same.riveraftercare.com.au/extraction"
-    );
+    const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
+    process.env.CARE_GUIDE_ROOT_DOMAIN = "riveraftercare.com.au";
+    try {
+      const share = await loadPublishedGuideShareTarget({
+        clinicId: `${PREFIX}same`,
+        guideId: guide.id,
+        requestHost: "app.riveraftercare.com.au",
+        protocol: "https",
+      });
+      expect(share?.publicUrl).toBe(
+        "https://mlrt-same.riveraftercare.com.au/extraction"
+      );
+    } finally {
+      process.env.CARE_GUIDE_ROOT_DOMAIN = previousRoot;
+    }
   });
 });

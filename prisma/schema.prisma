@@ -257,11 +257,10 @@ model ClinicProfile {
 }
 
 /// Public clinic identity belonging to a Clinic account.
-/// Owns the tenant hostname and branding. `slug` is globally unique and is
-/// the public tenant identity. `Clinic.slug` remains for compatibility.
-/// Branding columns are the patient and practice-settings read source.
-/// Matching ClinicProfile branding is kept in sync for rollback.
-/// Billing, legal, and team stay on Clinic.
+/// Owns the future tenant hostname and branding. `slug` is globally unique
+/// and is backfilled from `Clinic.slug`. Runtime patient routing still reads
+/// `Clinic.slug`. Branding columns are copied from `ClinicProfile` and remain
+/// there until a later read switch. Billing, legal, and team stay on Clinic.
 /// PostgreSQL enforces slug format and at most one primary site per account.
 /// That predicate is in the migration because Prisma cannot express it.
 model ClinicSite {
@@ -299,9 +298,8 @@ model ClinicSite {
 }
 
 /// Physical practice belonging to a ClinicSite.
-/// Contact and emergency fields are the patient and practice-settings read
-/// source. Matching ClinicProfile contact fields are kept in sync for
-/// rollback. Branding is not stored here.
+/// Contact and emergency fields are copied from ClinicProfile and remain
+/// there until a later read switch. Branding is not stored here.
 /// `slug` is null for the location that serves unprefixed site-root patient
 /// URLs. A non-root location requires a slug unique within the site.
 /// `clinicId` matches the parent site so a location cannot attach to another
@@ -522,8 +520,7 @@ model PracticeGuideRevisionSection {
 
 /// Account-owned guide offered at one physical location.
 /// `clinicId` is shared by the guide and location foreign keys, so both sides
-/// belong to the same Clinic account. Patient pages resolve guides through
-/// the root location's enabled placement.
+/// belong to the same Clinic account. This table is not read by patient pages yet.
 /// `publishedPracticeGuideRevisionId` points at a clinic-owned
 /// PracticeGuideRevision. It is null when patients are still served from the
 /// canonical template pin, or when the guide is not currently published.
