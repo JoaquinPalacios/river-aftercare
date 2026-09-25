@@ -196,7 +196,7 @@ async function upsertAftercareDemo(clinicId) {
   const profile = await prisma.clinicProfile.findUniqueOrThrow({
     where: { clinicId },
   });
-  await ensurePrimarySiteAndRootLocation(prisma, {
+  const hierarchy = await ensurePrimarySiteAndRootLocation(prisma, {
     clinicId: clinic.id,
     clinicName: clinic.name,
     slug: clinic.slug,
@@ -336,6 +336,31 @@ async function upsertAftercareDemo(clinicId) {
   });
 
   await snapshotDemoPracticeRevisions(practiceGuide.id);
+  await prisma.practiceGuidePlacement.upsert({
+    where: {
+      locationId_practiceGuideId: {
+        locationId: hierarchy.locationId,
+        practiceGuideId: practiceGuide.id,
+      },
+    },
+    create: {
+      id: `mpl_${practiceGuide.id}`,
+      practiceGuideId: practiceGuide.id,
+      locationId: hierarchy.locationId,
+      clinicId,
+      publishedPracticeGuideRevisionId:
+        "practice_rev_demo_rivers_extraction_v1",
+      publicSlug: DEMO_EXTRACTION_GUIDE.slug,
+      isEnabled: true,
+    },
+    update: {
+      clinicId,
+      publishedPracticeGuideRevisionId:
+        "practice_rev_demo_rivers_extraction_v1",
+      publicSlug: DEMO_EXTRACTION_GUIDE.slug,
+      isEnabled: true,
+    },
+  });
 
   return { template, revision, practiceGuide };
 }

@@ -9,6 +9,7 @@ import {
 } from "@prisma/client";
 
 import { DEMO_AFTERCARE_TENANT_SLUG } from "@/lib/aftercare/demo-tenant";
+import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
 import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practice-guide";
 import {
   createCustomPracticeGuide,
@@ -95,6 +96,7 @@ async function resolveDemoClinicId(): Promise<string> {
     select: { id: true },
   });
   if (existing) {
+    await ensurePrimarySiteForClinic(db(), existing.id);
     return existing.id;
   }
 
@@ -106,6 +108,7 @@ async function resolveDemoClinicId(): Promise<string> {
     },
   });
   createdFallbackDemoClinic = true;
+  await ensurePrimarySiteForClinic(db(), DEMO_FALLBACK_ID);
   return DEMO_FALLBACK_ID;
 }
 
@@ -143,6 +146,7 @@ async function seedActors() {
       profile: { create: { displayName: "Governance Clinic" } },
     },
   });
+  await ensurePrimarySiteForClinic(db(), CLINIC_ID);
   await db().clinicMembership.create({
     data: {
       clinicId: CLINIC_ID,

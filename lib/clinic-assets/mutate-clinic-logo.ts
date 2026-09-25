@@ -19,6 +19,7 @@ import {
   clinicAssetErrorClass,
 } from "@/lib/clinic-assets/errors";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { syncBrandingAssetReference } from "@/lib/clinic-portal/sync-practice-chrome";
 import { getPrisma } from "@/lib/prisma";
 
 export type ClinicBrandingAssetField = "logoUrl" | "darkLogoUrl" | "faviconUrl";
@@ -93,14 +94,32 @@ function otherFieldsStillUseKey(
 async function loadBrandingProfile(
   clinicId: string
 ): Promise<BrandingAssetProfile | null> {
-  return getPrisma().clinicProfile.findUnique({
-    where: { clinicId },
-    select: {
-      logoUrl: true,
-      darkLogoUrl: true,
-      faviconUrl: true,
-    },
-  });
+  const [profile, sites] = await Promise.all([
+    getPrisma().clinicProfile.findUnique({
+      where: { clinicId },
+      select: { clinicId: true },
+    }),
+    getPrisma().clinicSite.findMany({
+      where: { clinicId, isPrimary: true, active: true },
+      select: {
+        clinicId: true,
+        logoUrl: true,
+        darkLogoUrl: true,
+        faviconUrl: true,
+      },
+    }),
+  ]);
+
+  const site = sites.length === 1 ? sites[0] : null;
+  if (!profile || !site || site.clinicId !== clinicId) {
+    return null;
+  }
+
+  return {
+    logoUrl: site.logoUrl,
+    darkLogoUrl: site.darkLogoUrl,
+    faviconUrl: site.faviconUrl,
+  };
 }
 
 export async function uploadClinicBrandingAsset(input: {
@@ -199,10 +218,13 @@ export async function uploadClinicBrandingAsset(input: {
   }
 
   try {
-    await getPrisma().clinicProfile.update({
-      where: { clinicId: input.targetClinicId },
-      data: { [input.field]: uploaded.storageKey },
-    });
+    await getPrisma().$transaction((tx) =>
+      syncBrandingAssetReference(tx, {
+        clinicId: input.targetClinicId,
+        field: input.field,
+        storageKey: uploaded.storageKey,
+      })
+    );
   } catch (error) {
     logClinicAsset("db_update_failed_after_upload", {
       clinicId: input.targetClinicId,
@@ -292,10 +314,13 @@ export async function removeClinicBrandingAsset(input: {
     throw new ClinicPortalError(copy.missing, "not_found");
   }
 
-  await getPrisma().clinicProfile.update({
-    where: { clinicId: input.targetClinicId },
-    data: { [input.field]: null },
-  });
+  await getPrisma().$transaction((tx) =>
+    syncBrandingAssetReference(tx, {
+      clinicId: input.targetClinicId,
+      field: input.field,
+      storageKey: null,
+    })
+  );
 
   const previousKey = storedKeyForField(previous, input.field);
   if (

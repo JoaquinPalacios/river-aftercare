@@ -1,11 +1,11 @@
 import "server-only";
 
-import { GuideRevisionStatus } from "@prisma/client";
+import { GuideRevisionStatus, Prisma } from "@prisma/client";
 
 import { composeGuideDocument } from "@/lib/aftercare/compose-guide-document";
 import {
   type ClinicBySlugRecord,
-  clinicBySlugSelect,
+  getClinicBySlug,
 } from "@/lib/aftercare/get-clinic-by-slug";
 import { composedSectionsFromPracticeRevision } from "@/lib/aftercare/practice-revision-document";
 import { PUBLIC_PRACTICE_GUIDE_WHERE } from "@/lib/aftercare/public-practice-guide-predicates";
@@ -16,7 +16,8 @@ import type { ComposedGuideSection } from "@/lib/aftercare/types";
 import { getPrisma } from "@/lib/prisma";
 
 /**
- * Public patient document. Serve the clinic's published snapshot only.
+ * Public patient document. Serve the placement's pinned clinic revision, or
+ * the canonical template pin when that clinic revision is null.
  * Do not attach reviewAttestedBy, reviewAttestedAt, MedicalWebPage, or
  * canonical reviewedBy to this shape — ADR 0021.
  */
@@ -47,87 +48,115 @@ export interface PublishedPracticeGuideDocument {
   sections: ComposedGuideSection[];
 }
 
-const publishedGuideInclude = {
-  clinic: {
-    select: clinicBySlugSelect,
-  },
-  guideTemplate: {
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      specialty: true,
-    },
-  },
-  pinnedRevision: {
-    select: {
-      id: true,
-      version: true,
-      reviewedAt: true,
-      sections: {
-        orderBy: [{ sortOrder: "asc" as const }, { key: "asc" as const }],
-        select: {
-          key: true,
-          kind: true,
-          title: true,
-          body: true,
-          periodLabel: true,
-          startDay: true,
-          endDay: true,
-          sortOrder: true,
+const placementSelect = Prisma.validator<Prisma.PracticeGuidePlacementSelect>()(
+  {
+    id: true,
+    clinicId: true,
+    publicSlug: true,
+    isEnabled: true,
+    publishedPracticeGuideRevisionId: true,
+    location: {
+      select: {
+        clinicId: true,
+        clinicSite: {
+          select: {
+            slug: true,
+            clinicId: true,
+            active: true,
+          },
         },
       },
     },
-  },
-  overrides: {
-    select: {
-      sectionKey: true,
-      title: true,
-      body: true,
-    },
-  },
-  additions: {
-    select: {
-      key: true,
-      kind: true,
-      title: true,
-      body: true,
-      periodLabel: true,
-      startDay: true,
-      endDay: true,
-      sortOrder: true,
-      insertAfterSectionKey: true,
-    },
-  },
-  contentRevisions: {
-    where: {
-      status: GuideRevisionStatus.PUBLISHED,
-      version: { gt: 0 },
-    },
-    orderBy: { version: "desc" as const },
-    take: 1,
-    select: {
-      id: true,
-      version: true,
-      title: true,
-      publishedAt: true,
-      sections: {
-        orderBy: [{ sortOrder: "asc" as const }, { key: "asc" as const }],
-        select: {
-          key: true,
-          kind: true,
-          title: true,
-          body: true,
-          periodLabel: true,
-          startDay: true,
-          endDay: true,
-          sortOrder: true,
-          provenance: true,
+    publishedPracticeGuideRevision: {
+      select: {
+        id: true,
+        practiceGuideId: true,
+        version: true,
+        status: true,
+        title: true,
+        publishedAt: true,
+        sections: {
+          orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+          select: {
+            key: true,
+            kind: true,
+            title: true,
+            body: true,
+            periodLabel: true,
+            startDay: true,
+            endDay: true,
+            sortOrder: true,
+            provenance: true,
+          },
         },
       },
     },
-  },
-};
+    practiceGuide: {
+      select: {
+        id: true,
+        clinicId: true,
+        title: true,
+        publicSlug: true,
+        publishedAt: true,
+        downgradeRetainedAt: true,
+        downgradeRetentionUntil: true,
+        guideTemplate: {
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            specialty: true,
+          },
+        },
+        pinnedRevision: {
+          select: {
+            id: true,
+            version: true,
+            status: true,
+            reviewedAt: true,
+            sections: {
+              orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+              select: {
+                key: true,
+                kind: true,
+                title: true,
+                body: true,
+                periodLabel: true,
+                startDay: true,
+                endDay: true,
+                sortOrder: true,
+              },
+            },
+          },
+        },
+        overrides: {
+          select: {
+            sectionKey: true,
+            title: true,
+            body: true,
+          },
+        },
+        additions: {
+          select: {
+            key: true,
+            kind: true,
+            title: true,
+            body: true,
+            periodLabel: true,
+            startDay: true,
+            endDay: true,
+            sortOrder: true,
+            insertAfterSectionKey: true,
+          },
+        },
+      },
+    },
+  }
+);
+
+type PlacementRow = Prisma.PracticeGuidePlacementGetPayload<{
+  select: typeof placementSelect;
+}>;
 
 export async function getPublishedPracticeGuide(input: {
   clinicSlug: string;
@@ -141,28 +170,60 @@ export async function getPublishedPracticeGuide(input: {
     return null;
   }
 
-  const practiceGuide = await getPrisma().practiceGuide.findFirst({
+  const tenant = await getClinicBySlug(input.clinicSlug);
+  if (!tenant) {
+    return null;
+  }
+
+  const placements = await getPrisma().practiceGuidePlacement.findMany({
     where: {
       publicSlug: input.publicSlug,
-      clinic: { slug: input.clinicSlug },
-      ...PUBLIC_PRACTICE_GUIDE_WHERE,
+      isEnabled: true,
+      clinicId: tenant.id,
+      location: {
+        servesSiteRoot: true,
+        active: true,
+        clinicId: tenant.id,
+        clinicSite: {
+          slug: tenant.slug,
+          active: true,
+          clinicId: tenant.id,
+        },
+      },
+      practiceGuide: {
+        clinicId: tenant.id,
+        ...PUBLIC_PRACTICE_GUIDE_WHERE,
+      },
     },
-    include: publishedGuideInclude,
+    select: placementSelect,
   });
 
-  if (!practiceGuide) {
+  if (placements.length !== 1) {
+    return null;
+  }
+
+  const placement = placements[0];
+  if (
+    !placement ||
+    placement.clinicId !== tenant.id ||
+    placement.location.clinicId !== tenant.id ||
+    placement.location.clinicSite.clinicId !== tenant.id ||
+    placement.location.clinicSite.slug !== tenant.slug ||
+    !placement.location.clinicSite.active ||
+    placement.practiceGuide.clinicId !== tenant.id
+  ) {
     return null;
   }
 
   const now = input.now ?? new Date();
   const guidesRemainPublic = await publishedPatientGuidesRemainPublic(
-    practiceGuide.clinic.id,
+    tenant.id,
     now
   );
   if (
     !downgradeRetainedDirectUrlVisible({
-      downgradeRetainedAt: practiceGuide.downgradeRetainedAt,
-      downgradeRetentionUntil: practiceGuide.downgradeRetentionUntil,
+      downgradeRetainedAt: placement.practiceGuide.downgradeRetainedAt,
+      downgradeRetentionUntil: placement.practiceGuide.downgradeRetentionUntil,
       clinicGuidesRemainPublic: guidesRemainPublic,
       now,
     })
@@ -170,77 +231,80 @@ export async function getPublishedPracticeGuide(input: {
     return null;
   }
 
-  const publishedRevision = practiceGuide.contentRevisions[0] ?? null;
-  const title =
-    publishedRevision?.title?.trim() ||
-    practiceGuide.title.trim() ||
-    practiceGuide.guideTemplate?.title ||
-    "Aftercare guide";
-
-  const sections = publishedRevision
-    ? composedSectionsFromPracticeRevision(publishedRevision.sections)
-    : practiceGuide.pinnedRevision
-      ? composeGuideDocument({
-          canonicalSections: practiceGuide.pinnedRevision.sections.map(
-            (section) => ({
-              key: section.key,
-              kind: section.kind,
-              title: section.title,
-              body: section.body,
-              periodLabel: section.periodLabel,
-              startDay: section.startDay,
-              endDay: section.endDay,
-              sortOrder: section.sortOrder,
-            })
-          ),
-          overrides: practiceGuide.overrides,
-          additions: practiceGuide.additions.map((addition) => ({
-            key: addition.key,
-            kind: addition.kind,
-            title: addition.title,
-            body: addition.body,
-            periodLabel: addition.periodLabel,
-            startDay: addition.startDay,
-            endDay: addition.endDay,
-            sortOrder: addition.sortOrder,
-            insertAfterSectionKey: addition.insertAfterSectionKey,
-          })),
-        }).sections
-      : [];
-
-  const revision = publishedRevision
-    ? {
-        id: publishedRevision.id,
-        version: publishedRevision.version,
-        reviewedAt: publishedRevision.publishedAt,
-      }
-    : practiceGuide.pinnedRevision
-      ? {
-          id: practiceGuide.pinnedRevision.id,
-          version: practiceGuide.pinnedRevision.version,
-          reviewedAt: practiceGuide.pinnedRevision.reviewedAt,
-        }
-      : {
-          id: practiceGuide.id,
-          version: 0,
-          reviewedAt: practiceGuide.publishedAt,
-        };
+  const resolved = resolvePlacementContent(placement as PlacementRow);
+  if (!resolved) {
+    return null;
+  }
 
   return {
     clinic: {
-      id: practiceGuide.clinic.id,
-      slug: practiceGuide.clinic.slug,
-      name: practiceGuide.clinic.name,
+      id: tenant.id,
+      slug: tenant.slug,
+      name: tenant.name,
     },
-    profile: practiceGuide.clinic.profile,
-    title,
-    template: practiceGuide.guideTemplate,
+    profile: tenant.profile,
+    title: resolved.title,
+    template: placement.practiceGuide.guideTemplate,
     practiceGuide: {
-      id: practiceGuide.id,
-      publicSlug: practiceGuide.publicSlug,
-      publishedAt: practiceGuide.publishedAt,
+      id: placement.practiceGuide.id,
+      publicSlug: placement.publicSlug,
+      publishedAt: placement.practiceGuide.publishedAt,
     },
-    revision,
-    sections,
+    revision: resolved.revision,
+    sections: resolved.sections,
+  };
+}
+
+function resolvePlacementContent(placement: PlacementRow): {
+  title: string;
+  sections: ComposedGuideSection[];
+  revision: { id: string; version: number; reviewedAt: Date | null };
+} | null {
+  const guide = placement.practiceGuide;
+  const fallbackTitle =
+    guide.title.trim() || guide.guideTemplate?.title || "Aftercare guide";
+
+  if (placement.publishedPracticeGuideRevisionId) {
+    const pinned = placement.publishedPracticeGuideRevision;
+    if (
+      !pinned ||
+      pinned.id !== placement.publishedPracticeGuideRevisionId ||
+      pinned.practiceGuideId !== guide.id ||
+      pinned.status !== GuideRevisionStatus.PUBLISHED ||
+      pinned.version <= 0
+    ) {
+      return null;
+    }
+
+    return {
+      title: pinned.title.trim() || fallbackTitle,
+      sections: composedSectionsFromPracticeRevision(pinned.sections),
+      revision: {
+        id: pinned.id,
+        version: pinned.version,
+        reviewedAt: pinned.publishedAt,
+      },
+    };
+  }
+
+  if (
+    !guide.pinnedRevision ||
+    guide.pinnedRevision.status !== GuideRevisionStatus.PUBLISHED
+  ) {
+    return null;
+  }
+
+  return {
+    title: fallbackTitle,
+    sections: composeGuideDocument({
+      canonicalSections: guide.pinnedRevision.sections,
+      overrides: guide.overrides,
+      additions: guide.additions,
+    }).sections,
+    revision: {
+      id: guide.pinnedRevision.id,
+      version: guide.pinnedRevision.version,
+      reviewedAt: guide.pinnedRevision.reviewedAt,
+    },
   };
 }

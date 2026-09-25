@@ -12,7 +12,7 @@ Staff/admin UI for River Aftercare. Patient tenant rendering remains the source 
 
 ## Locations
 
-The database has one primary `ClinicSite` per existing account and one root `ClinicLocation` per site. The portal does not list, create, or edit sites or locations. Practice settings still read and write `ClinicProfile`. Patient pages, print, and QR still use the account hostname (`Clinic.slug`) plus the guide slug. Site and location management is a later change.
+The current product has one primary `ClinicSite` and one root `ClinicLocation`. The portal does not list, create, or edit sites or locations. Practice settings read branding from that site and contact, address, and emergency instructions from the root location. Saves write those rows and the matching `ClinicProfile` fields together. Patient pages, print, and QR use `ClinicSite.slug` plus the root placement’s public slug. There is no location path segment. Site and location management is a later change.
 
 ## Clinic portal
 

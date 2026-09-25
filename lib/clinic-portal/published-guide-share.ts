@@ -24,18 +24,48 @@ export async function loadPublishedGuideShareTarget(input: {
       ...PUBLIC_PRACTICE_GUIDE_WHERE,
     },
     select: {
-      publicSlug: true,
       downgradeRetainedAt: true,
       downgradeRetentionUntil: true,
-      clinic: {
+      placements: {
+        where: {
+          isEnabled: true,
+          clinicId: input.clinicId,
+          location: {
+            servesSiteRoot: true,
+            active: true,
+            clinicId: input.clinicId,
+            clinicSite: {
+              isPrimary: true,
+              active: true,
+              clinicId: input.clinicId,
+            },
+          },
+        },
         select: {
-          slug: true,
+          publicSlug: true,
+          clinicId: true,
+          location: {
+            select: {
+              clinicId: true,
+              clinicSite: {
+                select: { slug: true, clinicId: true, active: true },
+              },
+            },
+          },
         },
       },
     },
   });
 
-  if (!guide) {
+  const placement = guide?.placements.length === 1 ? guide.placements[0] : null;
+  if (
+    !guide ||
+    !placement ||
+    placement.clinicId !== input.clinicId ||
+    placement.location.clinicId !== input.clinicId ||
+    placement.location.clinicSite.clinicId !== input.clinicId ||
+    !placement.location.clinicSite.active
+  ) {
     return null;
   }
 
@@ -48,9 +78,9 @@ export async function loadPublishedGuideShareTarget(input: {
 
   const publicUrl = clinicPatientSiteUrl({
     requestHost: input.requestHost,
-    clinicSlug: guide.clinic.slug,
+    clinicSlug: placement.location.clinicSite.slug,
     protocol: input.protocol,
-    pathname: `/${guide.publicSlug}`,
+    pathname: `/${placement.publicSlug}`,
   });
 
   if (!publicUrl) {
@@ -59,7 +89,7 @@ export async function loadPublishedGuideShareTarget(input: {
 
   return {
     publicUrl,
-    clinicSlug: guide.clinic.slug,
-    publicSlug: guide.publicSlug,
+    clinicSlug: placement.location.clinicSite.slug,
+    publicSlug: placement.publicSlug,
   };
 }

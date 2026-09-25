@@ -4,18 +4,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const previousDriver = process.env.CLINIC_ASSET_STORAGE_DRIVER;
 process.env.CLINIC_ASSET_STORAGE_DRIVER = "memory";
 
-const { profile } = vi.hoisted(() => ({
+const { profile, sites, branding } = vi.hoisted(() => ({
   profile: {
     findUnique: vi.fn(),
     update: vi.fn(),
   },
+  sites: {
+    findMany: vi.fn(),
+    update: vi.fn(),
+  },
+  branding: {
+    logoUrl: "/demo/riverside-mark.svg" as string | null,
+    darkLogoUrl: null as string | null,
+    faviconUrl: null as string | null,
+  },
 }));
 
-vi.mock("@/lib/prisma", () => ({
-  getPrisma: () => ({
+vi.mock("@/lib/prisma", () => {
+  const db = {
     clinicProfile: profile,
-  }),
-}));
+    clinicSite: sites,
+    $transaction: (work: (tx: unknown) => unknown) => work(db),
+  };
+  return { getPrisma: () => db };
+});
 
 import {
   removeClinicLogo,
@@ -62,13 +74,25 @@ describe("uploadClinicLogo / removeClinicLogo", () => {
     delete process.env.CLINIC_ASSET_PUBLIC_ORIGIN;
     resetClinicAssetStorageCache();
     resetMemoryClinicAssetStorage();
+    branding.logoUrl = "/demo/riverside-mark.svg";
+    branding.darkLogoUrl = null;
+    branding.faviconUrl = null;
     profile.findUnique.mockReset();
     profile.update.mockReset();
-    profile.findUnique.mockResolvedValue({
-      logoUrl: "/demo/riverside-mark.svg",
-      displayName: "Demo",
-    });
+    sites.findMany.mockReset();
+    sites.update.mockReset();
+    profile.findUnique.mockResolvedValue({ clinicId: "clinic_a" });
+    sites.findMany.mockImplementation(async () => [
+      {
+        id: "site_a",
+        clinicId: "clinic_a",
+        logoUrl: branding.logoUrl,
+        darkLogoUrl: branding.darkLogoUrl,
+        faviconUrl: branding.faviconUrl,
+      },
+    ]);
     profile.update.mockResolvedValue({});
+    sites.update.mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -132,10 +156,7 @@ describe("uploadClinicLogo / removeClinicLogo", () => {
       mimeType: "image/png",
       fileName: "one.png",
     });
-    profile.findUnique.mockResolvedValue({
-      logoUrl: first.logoUrl,
-      displayName: "Demo",
-    });
+    branding.logoUrl = first.logoUrl;
 
     const second = await uploadClinicLogo({
       actorRole: ClinicMembershipRole.ADMIN,
@@ -263,10 +284,7 @@ describe("uploadClinicLogo / removeClinicLogo", () => {
       mimeType: "image/png",
       fileName: "one.png",
     });
-    profile.findUnique.mockResolvedValue({
-      logoUrl: first.logoUrl,
-      displayName: "Demo",
-    });
+    branding.logoUrl = first.logoUrl;
     const storage = getClinicAssetStorage();
     vi.spyOn(storage!, "deleteLogo").mockRejectedValueOnce(
       new Error("NoSuchKey")
@@ -300,10 +318,8 @@ describe("uploadClinicLogo / removeClinicLogo", () => {
   });
 
   it("clears the database reference before best-effort object delete", async () => {
-    profile.findUnique.mockResolvedValue({
-      logoUrl:
-        "clinics/clinic_a/branding/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.png",
-    });
+    branding.logoUrl =
+      "clinics/clinic_a/branding/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.png";
     const order: string[] = [];
     profile.update.mockImplementation(async () => {
       order.push("db");

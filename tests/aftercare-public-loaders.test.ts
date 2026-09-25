@@ -7,9 +7,9 @@ import {
 } from "@prisma/client";
 
 const prismaMock = vi.hoisted(() => ({
-  clinic: { findUnique: vi.fn() },
+  clinicSite: { findUnique: vi.fn() },
   clinicEntitlement: { findUnique: vi.fn() },
-  practiceGuide: { findFirst: vi.fn(), findMany: vi.fn() },
+  practiceGuidePlacement: { findMany: vi.fn() },
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -116,6 +116,91 @@ function publishedGuideRecord(clinic = CLINIC_A) {
   };
 }
 
+function siteFromClinic(clinic: typeof CLINIC_A) {
+  return {
+    id: `site_${clinic.id}`,
+    clinicId: clinic.id,
+    slug: clinic.slug,
+    displayName: clinic.profile.displayName,
+    active: true,
+    logoUrl: clinic.profile.logoUrl,
+    darkLogoUrl: null,
+    faviconUrl: null,
+    primaryColor: clinic.profile.primaryColor,
+    accentColor: clinic.profile.accentColor,
+    darkPrimaryColor: null,
+    darkAccentColor: null,
+    useCustomDarkBranding: false,
+    neutralColor: null,
+    radiusPreset: "MEDIUM",
+    typeface: clinic.profile.typeface,
+    instructionTerminology: "AFTERCARE",
+    themeMode: "SYSTEM",
+    allowPatientThemeToggle: false,
+    showCareGuideAttribution: clinic.profile.showCareGuideAttribution,
+    clinic: { id: clinic.id, name: clinic.name },
+    locations: [
+      {
+        id: `loc_${clinic.id}`,
+        clinicId: clinic.id,
+        clinicSiteId: `site_${clinic.id}`,
+        phone: clinic.profile.phone,
+        addressLine1: clinic.profile.addressLine1,
+        addressLine2: clinic.profile.addressLine2,
+        city: clinic.profile.city,
+        region: clinic.profile.region,
+        postalCode: clinic.profile.postalCode,
+        country: clinic.profile.country,
+        bookingUrl: clinic.profile.bookingUrl,
+        contactUrl: clinic.profile.contactUrl,
+        contactEmail: clinic.profile.contactEmail,
+        emergencyInstructions: clinic.profile.emergencyInstructions,
+      },
+    ],
+  };
+}
+
+function placementFromGuide(clinic = CLINIC_A) {
+  const guide = publishedGuideRecord(clinic);
+  return {
+    id: "placement_extraction",
+    clinicId: clinic.id,
+    publicSlug: guide.publicSlug,
+    isEnabled: true,
+    publishedPracticeGuideRevisionId: null,
+    location: {
+      clinicId: clinic.id,
+      clinicSite: {
+        slug: clinic.slug,
+        clinicId: clinic.id,
+        active: true,
+      },
+    },
+    publishedPracticeGuideRevision: null,
+    practiceGuide: {
+      id: guide.id,
+      clinicId: clinic.id,
+      title: guide.title,
+      publicSlug: guide.publicSlug,
+      publishedAt: guide.publishedAt,
+      downgradeRetainedAt: null,
+      downgradeRetentionUntil: null,
+      guideTemplate: guide.guideTemplate,
+      pinnedRevision: {
+        ...guide.pinnedRevision,
+        status: GuideRevisionStatus.PUBLISHED,
+      },
+      overrides: guide.overrides,
+      additions: guide.additions.map((addition) => ({
+        ...addition,
+        periodLabel: null,
+        startDay: null,
+        endDay: null,
+      })),
+    },
+  };
+}
+
 describe("aftercare public loaders", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -130,21 +215,34 @@ describe("aftercare public loaders", () => {
   });
 
   it("resolves a published enabled guide with a published pinned revision", async () => {
-    prismaMock.practiceGuide.findFirst.mockResolvedValue(
-      publishedGuideRecord()
+    prismaMock.clinicSite.findUnique.mockResolvedValue(
+      siteFromClinic(CLINIC_A)
     );
+    prismaMock.practiceGuidePlacement.findMany.mockResolvedValue([
+      placementFromGuide(),
+    ]);
 
     const result = await getPublishedPracticeGuide({
       clinicSlug: "demodental",
       publicSlug: "extraction",
     });
 
-    expect(prismaMock.practiceGuide.findFirst).toHaveBeenCalledWith(
+    expect(prismaMock.clinicSite.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { slug: "demodental" },
+      })
+    );
+    expect(prismaMock.practiceGuidePlacement.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           publicSlug: "extraction",
-          clinic: { slug: "demodental" },
-          ...PUBLIC_PRACTICE_GUIDE_WHERE,
+          isEnabled: true,
+          clinicId: CLINIC_A.id,
+          practiceGuide: expect.objectContaining(PUBLIC_PRACTICE_GUIDE_WHERE),
+          location: expect.objectContaining({
+            servesSiteRoot: true,
+            clinicSite: expect.objectContaining({ slug: "demodental" }),
+          }),
         }),
       })
     );
@@ -158,7 +256,10 @@ describe("aftercare public loaders", () => {
   });
 
   it("does not resolve a draft PracticeGuide", async () => {
-    prismaMock.practiceGuide.findFirst.mockResolvedValue(null);
+    prismaMock.clinicSite.findUnique.mockResolvedValue(
+      siteFromClinic(CLINIC_A)
+    );
+    prismaMock.practiceGuidePlacement.findMany.mockResolvedValue([]);
 
     await expect(
       getPublishedPracticeGuide({
@@ -168,12 +269,16 @@ describe("aftercare public loaders", () => {
     ).resolves.toBeNull();
 
     expect(
-      prismaMock.practiceGuide.findFirst.mock.calls[0]?.[0].where.status
+      prismaMock.practiceGuidePlacement.findMany.mock.calls[0]?.[0].where
+        .practiceGuide.status
     ).toBe(PracticeGuideStatus.PUBLISHED);
   });
 
   it("does not resolve a disabled PracticeGuide", async () => {
-    prismaMock.practiceGuide.findFirst.mockResolvedValue(null);
+    prismaMock.clinicSite.findUnique.mockResolvedValue(
+      siteFromClinic(CLINIC_A)
+    );
+    prismaMock.practiceGuidePlacement.findMany.mockResolvedValue([]);
 
     await expect(
       getPublishedPracticeGuide({
@@ -183,12 +288,16 @@ describe("aftercare public loaders", () => {
     ).resolves.toBeNull();
 
     expect(
-      prismaMock.practiceGuide.findFirst.mock.calls[0]?.[0].where.isEnabled
+      prismaMock.practiceGuidePlacement.findMany.mock.calls[0]?.[0].where
+        .isEnabled
     ).toBe(true);
   });
 
   it("does not resolve a guide whose pinned revision is still draft", async () => {
-    prismaMock.practiceGuide.findFirst.mockResolvedValue(null);
+    prismaMock.clinicSite.findUnique.mockResolvedValue(
+      siteFromClinic(CLINIC_A)
+    );
+    prismaMock.practiceGuidePlacement.findMany.mockResolvedValue([]);
 
     await expect(
       getPublishedPracticeGuide({
@@ -198,12 +307,16 @@ describe("aftercare public loaders", () => {
     ).resolves.toBeNull();
 
     expect(
-      prismaMock.practiceGuide.findFirst.mock.calls[0]?.[0].where.OR
+      prismaMock.practiceGuidePlacement.findMany.mock.calls[0]?.[0].where
+        .practiceGuide.OR
     ).toEqual(PUBLIC_PRACTICE_GUIDE_WHERE.OR);
   });
 
   it("does not resolve an unknown guide slug", async () => {
-    prismaMock.practiceGuide.findFirst.mockResolvedValue(null);
+    prismaMock.clinicSite.findUnique.mockResolvedValue(
+      siteFromClinic(CLINIC_A)
+    );
+    prismaMock.practiceGuidePlacement.findMany.mockResolvedValue([]);
 
     await expect(
       getPublishedPracticeGuide({
@@ -214,7 +327,10 @@ describe("aftercare public loaders", () => {
   });
 
   it("does not let clinic B load clinic A's PracticeGuide", async () => {
-    prismaMock.practiceGuide.findFirst.mockResolvedValue(null);
+    prismaMock.clinicSite.findUnique.mockResolvedValue(
+      siteFromClinic(CLINIC_B)
+    );
+    prismaMock.practiceGuidePlacement.findMany.mockResolvedValue([]);
 
     const result = await getPublishedPracticeGuide({
       clinicSlug: "otherclinic",
@@ -222,20 +338,25 @@ describe("aftercare public loaders", () => {
     });
 
     expect(result).toBeNull();
-    expect(prismaMock.practiceGuide.findFirst).toHaveBeenCalledWith(
+    expect(prismaMock.practiceGuidePlacement.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           publicSlug: "extraction",
-          clinic: { slug: "otherclinic" },
-          ...PUBLIC_PRACTICE_GUIDE_WHERE,
+          clinicId: CLINIC_B.id,
+          practiceGuide: expect.objectContaining({
+            clinicId: CLINIC_B.id,
+            ...PUBLIC_PRACTICE_GUIDE_WHERE,
+          }),
         }),
       })
     );
   });
 
   it("does not return clinic A override, addition, or profile to clinic B", async () => {
-    prismaMock.clinic.findUnique.mockResolvedValue(CLINIC_B);
-    prismaMock.practiceGuide.findMany.mockResolvedValue([]);
+    prismaMock.clinicSite.findUnique.mockResolvedValue(
+      siteFromClinic(CLINIC_B)
+    );
+    prismaMock.practiceGuidePlacement.findMany.mockResolvedValue([]);
 
     const listed = await listPublishedPracticeGuides("otherclinic");
 
@@ -244,20 +365,25 @@ describe("aftercare public loaders", () => {
     expect(listed?.profile?.phone).toBe("555-0199");
     expect(listed?.profile?.bookingUrl).toBe("https://example.test/book");
     expect(listed?.guides).toEqual([]);
-    expect(prismaMock.practiceGuide.findMany).toHaveBeenCalledWith(
+    expect(prismaMock.practiceGuidePlacement.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           clinicId: CLINIC_B.id,
-          ...PUBLIC_PRACTICE_GUIDE_WHERE,
+          practiceGuide: expect.objectContaining({
+            clinicId: CLINIC_B.id,
+            ...PUBLIC_PRACTICE_GUIDE_WHERE,
+          }),
         }),
-        orderBy: [{ sortOrder: "asc" }, { publicSlug: "asc" }],
+        orderBy: [
+          { practiceGuide: { sortOrder: "asc" } },
+          { publicSlug: "asc" },
+        ],
       })
     );
   });
 
   it("returns null for an unknown clinic slug", async () => {
-    prismaMock.clinic.findUnique.mockResolvedValue(null);
-    prismaMock.practiceGuide.findFirst.mockResolvedValue(null);
+    prismaMock.clinicSite.findUnique.mockResolvedValue(null);
 
     await expect(getClinicBySlug("missingclinic")).resolves.toBeNull();
     await expect(
@@ -269,19 +395,21 @@ describe("aftercare public loaders", () => {
         publicSlug: "extraction",
       })
     ).resolves.toBeNull();
-    expect(prismaMock.practiceGuide.findFirst).toHaveBeenCalledWith(
+    expect(prismaMock.clinicSite.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          clinic: { slug: "missingclinic" },
-        }),
+        where: { slug: "missingclinic" },
       })
     );
+    expect(prismaMock.practiceGuidePlacement.findMany).not.toHaveBeenCalled();
   });
 
   it("keeps a published guide available during the retention window", async () => {
-    prismaMock.practiceGuide.findFirst.mockResolvedValue(
-      publishedGuideRecord()
+    prismaMock.clinicSite.findUnique.mockResolvedValue(
+      siteFromClinic(CLINIC_A)
     );
+    prismaMock.practiceGuidePlacement.findMany.mockResolvedValue([
+      placementFromGuide(),
+    ]);
     prismaMock.clinicEntitlement.findUnique.mockResolvedValue({
       entitlementStatus: EntitlementStatus.ENDED,
       publicGuideRetentionUntil: new Date("2099-01-01T00:00:00.000Z"),
@@ -296,9 +424,12 @@ describe("aftercare public loaders", () => {
   });
 
   it("takes a published guide offline after retention expires", async () => {
-    prismaMock.practiceGuide.findFirst.mockResolvedValue(
-      publishedGuideRecord()
+    prismaMock.clinicSite.findUnique.mockResolvedValue(
+      siteFromClinic(CLINIC_A)
     );
+    prismaMock.practiceGuidePlacement.findMany.mockResolvedValue([
+      placementFromGuide(),
+    ]);
     prismaMock.clinicEntitlement.findUnique.mockResolvedValue({
       entitlementStatus: EntitlementStatus.ENDED,
       publicGuideRetentionUntil: new Date("2020-01-01T00:00:00.000Z"),
@@ -313,20 +444,26 @@ describe("aftercare public loaders", () => {
   });
 
   it("keeps published guides available when the clinic is restricted for non-payment", async () => {
-    prismaMock.clinic.findUnique.mockResolvedValue(CLINIC_A);
+    prismaMock.clinicSite.findUnique.mockResolvedValue(
+      siteFromClinic(CLINIC_A)
+    );
     prismaMock.clinicEntitlement.findUnique.mockResolvedValue({
       entitlementStatus: EntitlementStatus.RESTRICTED,
       publicGuideRetentionUntil: null,
     });
-    prismaMock.practiceGuide.findMany.mockResolvedValue([
+    prismaMock.practiceGuidePlacement.findMany.mockResolvedValue([
       {
-        id: "pg_extraction",
         publicSlug: "extraction",
-        sortOrder: 1,
-        publishedAt: PUBLISHED_AT,
-        title: "Tooth Extraction",
-        guideTemplate: { title: "Tooth Extraction" },
-        contentRevisions: [],
+        clinicId: CLINIC_A.id,
+        publishedPracticeGuideRevision: null,
+        practiceGuide: {
+          id: "pg_extraction",
+          clinicId: CLINIC_A.id,
+          title: "Tooth Extraction",
+          sortOrder: 1,
+          publishedAt: PUBLISHED_AT,
+          guideTemplate: { title: "Tooth Extraction" },
+        },
       },
     ]);
 
@@ -335,7 +472,9 @@ describe("aftercare public loaders", () => {
   });
 
   it("lists no guides after retention expires and does not publish drafts", async () => {
-    prismaMock.clinic.findUnique.mockResolvedValue(CLINIC_A);
+    prismaMock.clinicSite.findUnique.mockResolvedValue(
+      siteFromClinic(CLINIC_A)
+    );
     prismaMock.clinicEntitlement.findUnique.mockResolvedValue({
       entitlementStatus: EntitlementStatus.ENDED,
       publicGuideRetentionUntil: new Date("2020-01-01T00:00:00.000Z"),
@@ -343,7 +482,7 @@ describe("aftercare public loaders", () => {
 
     const listed = await listPublishedPracticeGuides("demodental");
     expect(listed?.guides).toEqual([]);
-    expect(prismaMock.practiceGuide.findMany).not.toHaveBeenCalled();
+    expect(prismaMock.practiceGuidePlacement.findMany).not.toHaveBeenCalled();
     expect(PUBLIC_PRACTICE_GUIDE_WHERE.status).toBe(
       PracticeGuideStatus.PUBLISHED
     );

@@ -5,29 +5,27 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-25 (revised multi-location foundation: Clinic → ClinicSite → ClinicLocation; runtime still single-location)
+Last updated: 2026-09-25 (runtime switch: ClinicSite, root ClinicLocation, and PracticeGuidePlacement are authoritative for the existing single-site product)
 
-## Durable multi-location foundation
+## Durable multi-location runtime
 
-`Clinic` stays the Prisma account model. Do not rename the table. It is the paying customer: billing, entitlement, team, legal acceptance, and the shared guide library. `Clinic.slug` remains the hostname patients use today.
+`Clinic` stays the Prisma account model. Do not rename the table. It is the paying customer: billing, entitlement, team, legal acceptance, and the shared guide library. Billing reads stay on `ClinicBillingProfile`. `Clinic.slug` remains compatibility data and is dual-written with the primary site slug only where the existing single-site product still creates an account. Patient hostname resolution does not fall back to `Clinic.slug`.
 
-`ClinicSite` is the public clinic identity. It owns the future subdomain (`slug`, globally unique, same format as `Clinic.slug`) and branding copied from `ClinicProfile` (logos, colours, typeface, radius, theme, terminology, attribution). Billing, legal, and contact do not move onto the site just because they currently sit near branding.
+`ClinicSite` is the public clinic identity and the authoritative tenant and branding runtime. `ClinicSite.slug` owns the hostname. Branding (display name, logos, favicon, colours, dark branding, neutral, radius, typeface, terminology, theme, patient theme toggle, attribution) is read from the site. `isPrimary` is an account/UI concept and does not transfer a hostname. There is no primary-site-changing UI.
 
-`ClinicLocation` belongs to a `ClinicSite`, not directly to `Clinic`. It holds the physical place: name, optional path slug, phone, address, contact, booking, and emergency instructions. `servesSiteRoot` replaces the unshipped `servesAccountRoot` name. Root location: `slug` null and `servesSiteRoot` true. Additional locations require a slug unique within the site and `servesSiteRoot` false. `isPrimary` is independent of root ownership. At most one primary site per account, one primary location per site, and one site-root location per site.
+`ClinicLocation` belongs to a `ClinicSite`. The site’s single active root (`servesSiteRoot`, `slug` null) is the authoritative physical/contact runtime for the current product: phone, address, contact URL, contact email, booking URL, and emergency instructions. Patient brand headings use `ClinicSite.displayName`. Location `displayName` is not substituted for the brand. Missing or invalid root location fails closed. Additional locations are not routed.
 
-Migration `20260925021500_add_multi_location_foundation` is the only multi-location migration. It replaced an unmerged draft that attached locations directly to `Clinic`. That draft was never applied to production. The replacement is additive against `main`: one primary site per existing clinic (`ClinicSite.slug = Clinic.slug`), one root location per site, and one placement per guide at that root location. `demodental` is included. Original `Clinic.slug` and `ClinicProfile` columns stay.
+`PracticeGuide` stays account-owned. Patient availability, public slug, print, and share/QR resolve through the root location’s `PracticeGuidePlacement`. An enabled placement is required. `publishedPracticeGuideRevisionId` pins that exact clinic revision when set; a newer published revision is not substituted. Null pin keeps the canonical `GuideTemplate` pinned-revision fallback and does not create a fake `PracticeGuideRevision`. New guides, publish, unpublish, and slug changes update that explicit root placement only. Deletion uses the existing placement cascade. `copiedFromPracticeGuideId` stays provenance only.
 
-`PracticeGuide` stays account-owned so one guide can be offered at many locations and sites. `PracticeGuidePlacement` points at a guide and a location. Composite foreign keys require both sides to share `clinicId`. `publishedPracticeGuideRevisionId` stores the clinic revision patients already resolve, or null for canonical template fallback. Draft and unpublished guides get a disabled placement. No fake revision is created. `copiedFromPracticeGuideId` stays null. Placements are not read by patient pages yet.
+`ClinicProfile` stays. Practice settings and branding asset references dual-write the new row and the matching legacy profile fields in one transaction so a rollback of the app would still see current data. New structures are the reads after a successful write. Object keys stay `clinics/{clinicId}/branding/{uuid}.{ext}`. Do not migrate R2 objects.
 
-`ClinicEntitlement.siteAllowance` and `locationAllowance` are explicit totals, default 1, check `>= 1`. They replaced the unshipped `extraLocationAllowance`. Totals fit this dimension better than extras: there is no code base to add onto, a missing row must not mean unlimited (unlike guide/team legacy-open), Practice does not gain extra sites, and Group is an operator-set total such as 2 sites and 5 locations with any distribution. Do not enforce these caps in this foundation. Do not hard-code Group prices. A later enforcement pass should treat a missing entitlement row as 1 site and 1 location.
+Patient URL shape stays `https://{siteSlug}.{root}/{guideSlug}`. Root location adds no path segment. Patient pages stay `noindex`. Sitemap policy is unchanged. `proxy.ts` stays database-free.
 
-`DowngradeLocationSelection` remains and is unused. `DowngradeSiteSelection` was not added; `ClinicDowngradePreparation` can gain that child later.
+`ClinicEntitlement.siteAllowance` and `locationAllowance` are not enforced. `effectiveSiteLocationAllowance` in `lib/clinics/site-location-allowance.ts` is the later policy: Essential 1/1, Practice site max 1 with a stored location total, Group uses the stored totals, missing entitlement is 1/1 and never unlimited. Guide and team entitlement behaviour is unchanged. Do not add site or location UI.
 
-Operator clinic creation and `prisma/seed.mjs` (via `lib/clinics/primary-site-location.mjs`) write the account, primary site, and root location together. Direct `prisma.clinic.create` in tests does not, so backfill tests can still insert pre-hierarchy clinics. Bootstrap of the sample template does not create a clinic.
+Provisional Group commercial direction, not in Stripe and not on the marketing page: A$449/month base includes 2 ClinicSites and 5 total Locations. An additional site bundle may later be +A$50/month and grant both +1 site and +1 location. Annual Group pricing and standalone extra-location pricing are not locked. Marketing stays Talk to us.
 
-Future branding object keys may be `clinics/{clinicId}/sites/{clinicSiteId}/branding/...`. Current keys stay `clinics/{clinicId}/branding/{uuid}.{ext}`. Do not migrate objects or change asset reads in this foundation.
-
-Do not switch patient, portal, QR, operator, or billing reads. Do not add site or location UI. Do not change Stripe or public pricing. Marketing multi-location copy stays “Talk to us”.
+Migration `20260925021500_add_multi_location_foundation` remains the only multi-location migration. The runtime switch adds no migration. Direct `prisma.clinic.create` in tests does not create the hierarchy. Callers that publish, save practice settings, or load patient pages must call `ensurePrimarySiteForClinic`.
 
 ## Durable legacy chairside removal
 

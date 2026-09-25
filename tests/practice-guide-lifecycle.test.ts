@@ -21,6 +21,7 @@ import { updatePracticeSettings } from "@/lib/clinic-portal/update-practice-sett
 import { listCanonicalGuideTemplates } from "@/lib/clinic-portal/list-canonical-templates";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { getClinicBySlug } from "@/lib/aftercare/get-clinic-by-slug";
+import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
 import { getPrisma } from "@/lib/prisma";
 
 const prisma = getPrisma();
@@ -88,6 +89,7 @@ describe("practice guide lifecycle and isolation", () => {
         },
       },
     });
+    await ensurePrimarySiteForClinic(prisma, CLINIC_A_ID);
     await prisma.clinic.create({
       data: {
         id: CLINIC_B_ID,
@@ -100,6 +102,7 @@ describe("practice guide lifecycle and isolation", () => {
         },
       },
     });
+    await ensurePrimarySiteForClinic(prisma, CLINIC_B_ID);
     await prisma.clinicMembership.create({
       data: {
         clinicId: CLINIC_A_ID,
@@ -545,6 +548,8 @@ describe("draft delete and discard", () => {
         profile: { create: { displayName: "Clinic B" } },
       },
     });
+    await ensurePrimarySiteForClinic(prisma, CLINIC_A_ID);
+    await ensurePrimarySiteForClinic(prisma, CLINIC_B_ID);
     await prisma.clinicMembership.create({
       data: {
         clinicId: CLINIC_A_ID,

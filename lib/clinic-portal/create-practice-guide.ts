@@ -16,6 +16,7 @@ import {
   WORKING_DRAFT_VERSION,
 } from "@/lib/aftercare/practice-revision-document";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { upsertRootPlacement } from "@/lib/clinic-portal/root-placement";
 import { reserveCustomGuidePlace } from "@/lib/entitlements/guide-usage";
 import type {
   CreateCustomGuideInput,
@@ -113,6 +114,14 @@ export async function createCustomPracticeGuide(input: {
           },
         },
       },
+    });
+
+    await upsertRootPlacement(tx, {
+      clinicId: input.clinicId,
+      practiceGuideId: guide.id,
+      publicSlug,
+      isEnabled: false,
+      publishedPracticeGuideRevisionId: null,
     });
 
     return { id: guide.id };
@@ -233,6 +242,14 @@ export async function createPracticeGuideFromTemplate(input: {
           create: draftSections,
         },
       },
+    });
+
+    await upsertRootPlacement(tx, {
+      clinicId: input.clinicId,
+      practiceGuideId: guide.id,
+      publicSlug,
+      isEnabled: false,
+      publishedPracticeGuideRevisionId: null,
     });
 
     return { id: guide.id };

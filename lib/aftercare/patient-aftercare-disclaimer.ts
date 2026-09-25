@@ -7,7 +7,7 @@
  * MedicalWebPage / reviewedBy.
  *
  * Practice name is clinic-controlled plain text from PracticeChrome.displayName
- * (`ClinicProfile.displayName`, falling back to `Clinic.name`). Render it as a
+ * (`ClinicSite.displayName`, falling back to `Clinic.name`). Render it as a
  * React text node so it stays escaped. If it is empty after trim, omit the
  * disclaimer rather than producing ungrammatical copy.
  *

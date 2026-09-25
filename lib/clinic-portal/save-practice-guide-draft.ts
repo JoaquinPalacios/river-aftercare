@@ -11,6 +11,7 @@ import {
   validateTimelineRanges,
 } from "@/lib/aftercare/timeline-range";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { alignRootPlacementSlug } from "@/lib/clinic-portal/root-placement";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import type { SaveGuideDraftInput } from "@/lib/clinic-portal/guide-schemas";
 import { suppliedTemplateContentChanged } from "@/lib/entitlements/guide-content";
@@ -235,6 +236,12 @@ export async function savePracticeGuideDraft(input: {
         title: input.values.title,
         publicSlug: input.values.publicSlug,
       },
+    });
+
+    await alignRootPlacementSlug(tx, {
+      clinicId: input.clinicId,
+      practiceGuideId: guide.id,
+      publicSlug: input.values.publicSlug,
     });
 
     return { id: guide.id };

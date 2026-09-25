@@ -21,6 +21,10 @@ import {
   type PlanDowngradeStripePort,
 } from "@/lib/billing/plan-downgrade";
 import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practice-guide";
+import {
+  backfilledLocationId,
+  ensurePrimarySiteForClinic,
+} from "@/lib/clinics/primary-site-location.mjs";
 import { listPublishedPracticeGuides } from "@/lib/aftercare/list-published-practice-guides";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { savePracticeGuideDraft } from "@/lib/clinic-portal/save-practice-guide-draft";
@@ -559,6 +563,7 @@ describe("downgrade guide selection persistence", () => {
         slug: "test-dg-sel-clinic",
       },
     });
+    await ensurePrimarySiteForClinic(prisma, CLINIC_ID);
     await prisma.clinicMembership.createMany({
       data: [
         {
@@ -868,6 +873,23 @@ describe("downgrade guide selection persistence", () => {
             },
           },
         },
+      },
+    });
+    const publishedRevision =
+      await prisma.practiceGuideRevision.findFirstOrThrow({
+        where: {
+          practiceGuideId: published.id,
+          status: GuideRevisionStatus.PUBLISHED,
+        },
+      });
+    await prisma.practiceGuidePlacement.create({
+      data: {
+        clinicId: CLINIC_ID,
+        locationId: backfilledLocationId(CLINIC_ID),
+        practiceGuideId: published.id,
+        publicSlug: published.publicSlug,
+        isEnabled: true,
+        publishedPracticeGuideRevisionId: publishedRevision.id,
       },
     });
     await prisma.practiceGuide.create({

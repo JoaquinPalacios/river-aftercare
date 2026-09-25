@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
+import { getPrimaryPatientChrome } from "@/lib/aftercare/get-clinic-by-slug";
 import { GuideEditor } from "@/app/(staff)/(clinic-portal)/guides/guide-editor";
 import { TemplateAdaptationPanel } from "@/app/(staff)/(clinic-portal)/guides/template-adaptation-panel";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
@@ -23,8 +24,6 @@ import {
   marketingContactHref,
   marketingPublicLinks,
 } from "@/lib/marketing/public-links";
-import { getPrisma } from "@/lib/prisma";
-
 interface GuideEditPageProps {
   params: Promise<{ guideId: string }>;
 }
@@ -44,10 +43,7 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
         clinicId: clinicMembership.clinic.id,
         guideId,
       }),
-      getPrisma().clinic.findUnique({
-        where: { id: clinicMembership.clinic.id },
-        select: { profile: true },
-      }),
+      getPrimaryPatientChrome(clinicMembership.clinic.id),
       loadGuideAllowance(clinicMembership.clinic.id),
       marketingPublicLinks(),
     ]);

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { ensureRootPlacement } from "@/lib/clinic-portal/root-placement";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import { decideTemplateAdaptation } from "@/lib/entitlements/guide-usage";
 import { lockClinicGuideCapacity } from "@/lib/entitlements/locks";
@@ -31,6 +32,7 @@ export async function adaptPracticeGuideFromTemplate(input: {
       select: {
         id: true,
         guideTemplateId: true,
+        publicSlug: true,
         downgradeRetainedAt: true,
       },
     });
@@ -62,6 +64,12 @@ export async function adaptPracticeGuideFromTemplate(input: {
         sourceGuideTemplateId: guide.guideTemplateId,
         adaptedAt: now,
       },
+    });
+
+    await ensureRootPlacement(tx, {
+      clinicId: input.clinicId,
+      practiceGuideId: guide.id,
+      publicSlug: guide.publicSlug,
     });
 
     return { id: guide.id };

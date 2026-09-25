@@ -1,5 +1,6 @@
 import { PracticeGuideStatus } from "@prisma/client";
 
+import { publicPracticeName } from "@/lib/clinics/patient-profile";
 import { clinicSetupChecks } from "@/lib/clinic-portal/setup-status";
 import { getPrisma } from "@/lib/prisma";
 
@@ -22,17 +23,27 @@ export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
       name: true,
       slug: true,
       updatedAt: true,
-      profile: {
+      sites: {
+        where: { isPrimary: true, active: true },
         select: {
+          slug: true,
           displayName: true,
+          clinicId: true,
+          updatedAt: true,
           logoUrl: true,
           primaryColor: true,
           accentColor: true,
           themeMode: true,
-          phone: true,
-          contactUrl: true,
-          emergencyInstructions: true,
-          updatedAt: true,
+          locations: {
+            where: { servesSiteRoot: true, active: true },
+            select: {
+              clinicId: true,
+              updatedAt: true,
+              phone: true,
+              contactUrl: true,
+              emergencyInstructions: true,
+            },
+          },
         },
       },
       practiceGuides: {
@@ -49,15 +60,23 @@ export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
       (guide) =>
         guide.status === PracticeGuideStatus.PUBLISHED && guide.isEnabled
     ).length;
+    const site = clinic.sites.length === 1 ? clinic.sites[0] : null;
+    const location =
+      site &&
+      site.clinicId === clinic.id &&
+      site.locations.length === 1 &&
+      site.locations[0]?.clinicId === clinic.id
+        ? site.locations[0]
+        : null;
     const setup = clinicSetupChecks({
-      displayName: clinic.profile?.displayName ?? null,
-      logoUrl: clinic.profile?.logoUrl ?? null,
-      primaryColor: clinic.profile?.primaryColor ?? null,
-      accentColor: clinic.profile?.accentColor ?? null,
-      themeMode: clinic.profile?.themeMode ?? null,
-      phone: clinic.profile?.phone ?? null,
-      contactUrl: clinic.profile?.contactUrl ?? null,
-      emergencyInstructions: clinic.profile?.emergencyInstructions ?? null,
+      displayName: site?.displayName ?? null,
+      logoUrl: site?.logoUrl ?? null,
+      primaryColor: site?.primaryColor ?? null,
+      accentColor: site?.accentColor ?? null,
+      themeMode: site?.themeMode ?? null,
+      phone: location?.phone ?? null,
+      contactUrl: location?.contactUrl ?? null,
+      emergencyInstructions: location?.emergencyInstructions ?? null,
       publishedGuideCount,
     });
     const needsAttention = setup.some(
@@ -67,12 +86,19 @@ export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
     return {
       id: clinic.id,
       name: clinic.name,
-      displayName: clinic.profile?.displayName?.trim() || clinic.name,
-      slug: clinic.slug,
+      displayName: publicPracticeName({
+        siteDisplayName: site?.displayName,
+        accountName: clinic.name,
+      }),
+      slug: site && location ? site.slug : clinic.slug,
       guideCount: clinic.practiceGuides.length,
       publishedGuideCount,
       setupLabel: needsAttention ? "Needs attention" : "Configured",
-      updatedAt: clinic.profile?.updatedAt ?? clinic.updatedAt,
+      updatedAt:
+        [site?.updatedAt, location?.updatedAt, clinic.updatedAt]
+          .filter((date): date is Date => Boolean(date))
+          .toSorted((left, right) => right.getTime() - left.getTime())[0] ??
+        clinic.updatedAt,
     };
   });
 }

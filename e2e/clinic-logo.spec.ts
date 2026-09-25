@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 
 import { e2ePrisma } from "./helpers/prisma";
+import { syncE2eClinicBranding } from "./helpers/sync-clinic-branding";
 import { DEMO_TENANT_SLUG, staffUrl, tenantUrl } from "./helpers/origins";
 import {
   acquireDemoBrandingLock,
@@ -23,10 +24,7 @@ const SVG = Buffer.from(
 );
 
 async function restoreDemoLogo(): Promise<void> {
-  await e2ePrisma.clinicProfile.update({
-    where: { clinicId: DEMO_CLINIC_ID },
-    data: { logoUrl: DEMO_LOGO },
-  });
+  await syncE2eClinicBranding(DEMO_CLINIC_ID, { logoUrl: DEMO_LOGO });
 }
 
 test.describe("clinic logo upload", () => {
@@ -50,10 +48,7 @@ test.describe("clinic logo upload", () => {
     mkdirSync(ARTIFACT_DIR, { recursive: true });
     mkdirSync("test-results/artifacts", { recursive: true });
 
-    await e2ePrisma.clinicProfile.update({
-      where: { clinicId: DEMO_CLINIC_ID },
-      data: { logoUrl: null },
-    });
+    await syncE2eClinicBranding(DEMO_CLINIC_ID, { logoUrl: null });
 
     await signInAsLocalAdmin(page);
     await page.goto(staffUrl("/practice"), { waitUntil: "load" });

@@ -1,6 +1,7 @@
 import { GuideRevisionStatus, PracticeGuideStatus } from "@prisma/client";
 
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { disableRootPlacement } from "@/lib/clinic-portal/root-placement";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import { getPrisma } from "@/lib/prisma";
 
@@ -17,6 +18,7 @@ export async function unpublishPracticeGuide(input: {
     select: {
       id: true,
       status: true,
+      publicSlug: true,
       downgradeRetainedAt: true,
       contentRevisions: {
         select: {
@@ -52,12 +54,19 @@ export async function unpublishPracticeGuide(input: {
     );
   }
 
-  await getPrisma().practiceGuide.update({
-    where: { id: guide.id },
-    data: {
-      status: PracticeGuideStatus.UNPUBLISHED,
-      isEnabled: false,
-    },
+  await getPrisma().$transaction(async (tx) => {
+    await tx.practiceGuide.update({
+      where: { id: guide.id },
+      data: {
+        status: PracticeGuideStatus.UNPUBLISHED,
+        isEnabled: false,
+      },
+    });
+    await disableRootPlacement(tx, {
+      clinicId: input.clinicId,
+      practiceGuideId: guide.id,
+      publicSlug: guide.publicSlug,
+    });
   });
 
   return { id: guide.id };

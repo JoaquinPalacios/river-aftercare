@@ -4,6 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { GuideRevisionStatus, type PrismaClient } from "@prisma/client";
 
 import { DEMO_AFTERCARE_TENANT_SLUG } from "@/lib/aftercare/demo-tenant";
+import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
 import { DEMO_EXTRACTION_TEMPLATE_SLUG } from "@/lib/aftercare/demo-extraction-template";
 import { createPracticeGuideFromTemplate } from "@/lib/clinic-portal/create-practice-guide";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
@@ -62,6 +63,7 @@ async function resolveDemoClinicId(): Promise<string> {
     select: { id: true },
   });
   if (existing) {
+    await ensurePrimarySiteForClinic(client, existing.id);
     return existing.id;
   }
 
@@ -73,6 +75,7 @@ async function resolveDemoClinicId(): Promise<string> {
     },
   });
   createdFallbackDemoClinic = true;
+  await ensurePrimarySiteForClinic(client, FALLBACK_DEMO_CLINIC_ID);
   return FALLBACK_DEMO_CLINIC_ID;
 }
 
@@ -94,6 +97,7 @@ async function seedFixtures() {
       slug: `${SLUG}normal`,
     },
   });
+  await ensurePrimarySiteForClinic(client, NORMAL_CLINIC_ID);
   return demoClinicId;
 }
 

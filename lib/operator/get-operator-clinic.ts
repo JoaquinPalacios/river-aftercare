@@ -1,5 +1,6 @@
 import { PracticeGuideStatus } from "@prisma/client";
 
+import { publicPracticeName } from "@/lib/clinics/patient-profile";
 import { clinicSetupChecks } from "@/lib/clinic-portal/setup-status";
 import { getPrisma } from "@/lib/prisma";
 
@@ -63,7 +64,43 @@ export async function getOperatorClinic(
       name: true,
       slug: true,
       updatedAt: true,
-      profile: true,
+      sites: {
+        where: { isPrimary: true, active: true },
+        select: {
+          slug: true,
+          displayName: true,
+          clinicId: true,
+          updatedAt: true,
+          logoUrl: true,
+          darkLogoUrl: true,
+          faviconUrl: true,
+          primaryColor: true,
+          accentColor: true,
+          darkPrimaryColor: true,
+          darkAccentColor: true,
+          useCustomDarkBranding: true,
+          neutralColor: true,
+          radiusPreset: true,
+          typeface: true,
+          instructionTerminology: true,
+          themeMode: true,
+          allowPatientThemeToggle: true,
+          locations: {
+            where: { servesSiteRoot: true, active: true },
+            select: {
+              clinicId: true,
+              updatedAt: true,
+              phone: true,
+              contactUrl: true,
+              emergencyInstructions: true,
+              addressLine1: true,
+              city: true,
+              region: true,
+              postalCode: true,
+            },
+          },
+        },
+      },
       practiceGuides: {
         orderBy: [{ sortOrder: "asc" }, { publicSlug: "asc" }],
         select: {
@@ -103,46 +140,63 @@ export async function getOperatorClinic(
       guide.isEnabled &&
       guide.downgradeRetainedAt === null
   ).length;
+  const site = clinic.sites.length === 1 ? clinic.sites[0] : null;
+  const location =
+    site &&
+    site.clinicId === clinic.id &&
+    site.locations.length === 1 &&
+    site.locations[0]?.clinicId === clinic.id
+      ? site.locations[0]
+      : null;
+  const publicSlug = site && location ? site.slug : clinic.slug;
+  const updatedAt = latestDate(
+    site?.updatedAt,
+    location?.updatedAt,
+    clinic.updatedAt
+  );
 
   return {
     id: clinic.id,
     name: clinic.name,
-    displayName: clinic.profile?.displayName?.trim() || clinic.name,
-    slug: clinic.slug,
+    displayName: publicPracticeName({
+      siteDisplayName: site?.displayName,
+      accountName: clinic.name,
+    }),
+    slug: publicSlug,
     branding: {
-      logoUrl: clinic.profile?.logoUrl ?? null,
-      darkLogoUrl: clinic.profile?.darkLogoUrl ?? null,
-      faviconUrl: clinic.profile?.faviconUrl ?? null,
-      primaryColor: clinic.profile?.primaryColor ?? null,
-      accentColor: clinic.profile?.accentColor ?? null,
-      darkPrimaryColor: clinic.profile?.darkPrimaryColor ?? null,
-      darkAccentColor: clinic.profile?.darkAccentColor ?? null,
-      useCustomDarkBranding: clinic.profile?.useCustomDarkBranding ?? false,
-      neutralColor: clinic.profile?.neutralColor ?? null,
-      radiusPreset: clinic.profile?.radiusPreset ?? null,
-      typeface: clinic.profile?.typeface ?? null,
-      instructionTerminology: clinic.profile?.instructionTerminology ?? null,
-      themeMode: clinic.profile?.themeMode ?? null,
-      allowPatientThemeToggle: clinic.profile?.allowPatientThemeToggle ?? null,
+      logoUrl: site?.logoUrl ?? null,
+      darkLogoUrl: site?.darkLogoUrl ?? null,
+      faviconUrl: site?.faviconUrl ?? null,
+      primaryColor: site?.primaryColor ?? null,
+      accentColor: site?.accentColor ?? null,
+      darkPrimaryColor: site?.darkPrimaryColor ?? null,
+      darkAccentColor: site?.darkAccentColor ?? null,
+      useCustomDarkBranding: site?.useCustomDarkBranding ?? false,
+      neutralColor: site?.neutralColor ?? null,
+      radiusPreset: site?.radiusPreset ?? null,
+      typeface: site?.typeface ?? null,
+      instructionTerminology: site?.instructionTerminology ?? null,
+      themeMode: site?.themeMode ?? null,
+      allowPatientThemeToggle: site?.allowPatientThemeToggle ?? null,
     },
     contact: {
-      phone: clinic.profile?.phone ?? null,
-      contactUrl: clinic.profile?.contactUrl ?? null,
-      emergencyInstructions: clinic.profile?.emergencyInstructions ?? null,
-      addressLine1: clinic.profile?.addressLine1 ?? null,
-      city: clinic.profile?.city ?? null,
-      region: clinic.profile?.region ?? null,
-      postalCode: clinic.profile?.postalCode ?? null,
+      phone: location?.phone ?? null,
+      contactUrl: location?.contactUrl ?? null,
+      emergencyInstructions: location?.emergencyInstructions ?? null,
+      addressLine1: location?.addressLine1 ?? null,
+      city: location?.city ?? null,
+      region: location?.region ?? null,
+      postalCode: location?.postalCode ?? null,
     },
     setup: clinicSetupChecks({
-      displayName: clinic.profile?.displayName ?? null,
-      logoUrl: clinic.profile?.logoUrl ?? null,
-      primaryColor: clinic.profile?.primaryColor ?? null,
-      accentColor: clinic.profile?.accentColor ?? null,
-      themeMode: clinic.profile?.themeMode ?? null,
-      phone: clinic.profile?.phone ?? null,
-      contactUrl: clinic.profile?.contactUrl ?? null,
-      emergencyInstructions: clinic.profile?.emergencyInstructions ?? null,
+      displayName: site?.displayName ?? null,
+      logoUrl: site?.logoUrl ?? null,
+      primaryColor: site?.primaryColor ?? null,
+      accentColor: site?.accentColor ?? null,
+      themeMode: site?.themeMode ?? null,
+      phone: location?.phone ?? null,
+      contactUrl: location?.contactUrl ?? null,
+      emergencyInstructions: location?.emergencyInstructions ?? null,
       publishedGuideCount,
     }),
     guides: clinic.practiceGuides,
@@ -153,6 +207,15 @@ export async function getOperatorClinic(
       email: membership.user.email,
       active: membership.active,
     })),
-    updatedAt: clinic.profile?.updatedAt ?? clinic.updatedAt,
+    updatedAt,
   };
+}
+
+function latestDate(...dates: Array<Date | null | undefined>): Date {
+  return dates.reduce<Date>((latest, date) => {
+    if (!date) {
+      return latest;
+    }
+    return date.getTime() > latest.getTime() ? date : latest;
+  }, new Date(0));
 }

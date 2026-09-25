@@ -21,34 +21,57 @@ vi.mock("next/headers", () => ({
 import { getClinicPortalOverview } from "@/lib/clinic-portal/get-clinic-portal";
 import { listClinicPortalGuides } from "@/lib/clinic-portal/list-clinic-guides";
 
-const CLINIC_A = {
+function clinicRecord(input: {
+  id: string;
+  name: string;
+  slug: string;
+  displayName: string;
+  phone: string;
+  guides: Array<{ status: PracticeGuideStatus }>;
+}) {
+  return {
+    id: input.id,
+    name: input.name,
+    practiceGuides: input.guides,
+    sites: [
+      {
+        slug: input.slug,
+        displayName: input.displayName,
+        clinicId: input.id,
+        logoUrl: "/demo/riverside-mark.svg",
+        primaryColor: "#0f766e",
+        accentColor: "#f59e0b",
+        themeMode: "SYSTEM",
+        locations: [
+          {
+            clinicId: input.id,
+            phone: input.phone,
+            contactUrl: "https://www.example.com/contact",
+            emergencyInstructions: "Call the clinic.",
+          },
+        ],
+      },
+    ],
+  };
+}
+
+const CLINIC_A = clinicRecord({
   id: "clinic_a",
   name: "Rivers Care Demo Clinic",
   slug: "demodental",
-  profile: {
-    displayName: "Riverside Dental Demo",
-    logoUrl: "/demo/riverside-mark.svg",
-    primaryColor: "#0f766e",
-    accentColor: "#f59e0b",
-    themeMode: "SYSTEM",
-    phone: "02 5550 0100",
-    contactUrl: "https://www.example.com/contact",
-    emergencyInstructions: "Call the clinic.",
-  },
-  practiceGuides: [{ status: PracticeGuideStatus.PUBLISHED }],
-};
+  displayName: "Riverside Dental Demo",
+  phone: "02 5550 0100",
+  guides: [{ status: PracticeGuideStatus.PUBLISHED }],
+});
 
-const CLINIC_B = {
+const CLINIC_B = clinicRecord({
   id: "clinic_b",
   name: "Harbor Family Dental",
   slug: "harbordental",
-  profile: {
-    ...CLINIC_A.profile,
-    displayName: "Harbor Family Dental",
-    phone: "555-0199",
-  },
-  practiceGuides: [{ status: PracticeGuideStatus.DRAFT }],
-};
+  displayName: "Harbor Family Dental",
+  phone: "555-0199",
+  guides: [{ status: PracticeGuideStatus.DRAFT }],
+});
 
 describe("clinic portal loaders", () => {
   const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
@@ -100,7 +123,7 @@ describe("clinic portal loaders", () => {
   it("lists only the authenticated clinic's guides and preview URLs", async () => {
     prismaMock.clinic.findUnique.mockResolvedValue({
       id: CLINIC_A.id,
-      slug: CLINIC_A.slug,
+      sites: [{ slug: "demodental", clinicId: CLINIC_A.id }],
     });
     prismaMock.practiceGuide.findMany.mockResolvedValue([
       {
@@ -116,6 +139,16 @@ describe("clinic portal loaders", () => {
           specialty: "DENTAL",
         },
         pinnedRevision: { status: GuideRevisionStatus.PUBLISHED },
+        placements: [{ publicSlug: "extraction" }],
+        contentRevisions: [
+          {
+            version: 1,
+            status: GuideRevisionStatus.PUBLISHED,
+            title: "Tooth Extraction",
+            updatedAt: new Date("2026-09-01T00:00:00.000Z"),
+            publishedAt: new Date("2026-09-01T00:00:00.000Z"),
+          },
+        ],
       },
       {
         id: "pg_draft",
@@ -130,6 +163,8 @@ describe("clinic portal loaders", () => {
           specialty: "DENTAL",
         },
         pinnedRevision: { status: GuideRevisionStatus.DRAFT },
+        placements: [{ publicSlug: "draft-guide" }],
+        contentRevisions: [],
       },
     ]);
 

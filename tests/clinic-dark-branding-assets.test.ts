@@ -4,18 +4,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const previousDriver = process.env.CLINIC_ASSET_STORAGE_DRIVER;
 process.env.CLINIC_ASSET_STORAGE_DRIVER = "memory";
 
-const { profile } = vi.hoisted(() => ({
+const { profile, sites, branding } = vi.hoisted(() => ({
   profile: {
     findUnique: vi.fn(),
     update: vi.fn(),
   },
+  sites: {
+    findMany: vi.fn(),
+    update: vi.fn(),
+  },
+  branding: {
+    logoUrl: "/demo/riverside-mark.svg" as string | null,
+    darkLogoUrl: null as string | null,
+    faviconUrl: null as string | null,
+  },
 }));
 
-vi.mock("@/lib/prisma", () => ({
-  getPrisma: () => ({
+vi.mock("@/lib/prisma", () => {
+  const db = {
     clinicProfile: profile,
-  }),
-}));
+    clinicSite: sites,
+    $transaction: (work: (tx: unknown) => unknown) => work(db),
+  };
+  return { getPrisma: () => db };
+});
 
 import {
   removeClinicDarkLogo,
@@ -51,14 +63,32 @@ describe("clinic Dark logo and favicon assets", () => {
     delete process.env.CLINIC_ASSET_PUBLIC_ORIGIN;
     resetClinicAssetStorageCache();
     resetMemoryClinicAssetStorage();
+    branding.logoUrl = "/demo/riverside-mark.svg";
+    branding.darkLogoUrl = null;
+    branding.faviconUrl = null;
     profile.findUnique.mockReset();
     profile.update.mockReset();
-    profile.findUnique.mockResolvedValue({
-      logoUrl: "/demo/riverside-mark.svg",
-      darkLogoUrl: null,
-      faviconUrl: null,
+    sites.findMany.mockReset();
+    sites.update.mockReset();
+    profile.findUnique.mockResolvedValue({ clinicId: "clinic_a" });
+    sites.findMany.mockImplementation(async () => [
+      {
+        id: "site_a",
+        clinicId: "clinic_a",
+        logoUrl: branding.logoUrl,
+        darkLogoUrl: branding.darkLogoUrl,
+        faviconUrl: branding.faviconUrl,
+      },
+    ]);
+    profile.update.mockImplementation(async ({ data }) => {
+      if (data && typeof data === "object") {
+        if ("logoUrl" in data) branding.logoUrl = data.logoUrl;
+        if ("darkLogoUrl" in data) branding.darkLogoUrl = data.darkLogoUrl;
+        if ("faviconUrl" in data) branding.faviconUrl = data.faviconUrl;
+      }
+      return {};
     });
-    profile.update.mockResolvedValue({});
+    sites.update.mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -92,11 +122,7 @@ describe("clinic Dark logo and favicon assets", () => {
       mimeType: "image/png",
       fileName: "icon.png",
     });
-    profile.findUnique.mockResolvedValue({
-      logoUrl: "/demo/riverside-mark.svg",
-      darkLogoUrl: null,
-      faviconUrl: first.faviconUrl,
-    });
+    branding.faviconUrl = first.faviconUrl;
     const second = await uploadClinicFavicon({
       actorRole: ClinicMembershipRole.ADMIN,
       actorClinicId: "clinic_a",
@@ -119,11 +145,9 @@ describe("clinic Dark logo and favicon assets", () => {
       mimeType: "image/png",
       fileName: "mark.png",
     });
-    profile.findUnique.mockResolvedValue({
-      logoUrl: logo.logoUrl,
-      darkLogoUrl: logo.logoUrl,
-      faviconUrl: null,
-    });
+    branding.logoUrl = logo.logoUrl;
+    branding.darkLogoUrl = logo.logoUrl;
+    branding.faviconUrl = null;
     await removeClinicDarkLogo({
       actorRole: ClinicMembershipRole.ADMIN,
       actorClinicId: "clinic_a",
