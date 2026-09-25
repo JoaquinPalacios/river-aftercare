@@ -8,7 +8,7 @@ import { MarketingPageHero } from "@/app/(marketing)/components/marketing-page-h
 import { MarketingShell } from "@/app/(marketing)/components/marketing-shell";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { getTurnstileSiteKey } from "@/lib/marketing/contact-config";
-import { marketingPublicLinks } from "@/lib/marketing/public-links";
+import { marketingConfiguredPublicLinks } from "@/lib/marketing/configured-public-links";
 import {
   generateMarketingMetadata,
   loadMarketingJsonLd,
@@ -16,13 +16,13 @@ import {
 
 import styles from "../../marketing.module.css";
 
+export const dynamic = "error";
+
 export const generateMetadata = () => generateMarketingMetadata("/contact");
 
 export default async function MarketingContactPage() {
-  const [{ demoHref, staffHref }, jsonLd] = await Promise.all([
-    marketingPublicLinks(),
-    loadMarketingJsonLd("/contact"),
-  ]);
+  const { demoHref, staffHref } = marketingConfiguredPublicLinks();
+  const jsonLd = await loadMarketingJsonLd("/contact");
 
   return (
     <MarketingShell currentPath="/contact" staffHref={staffHref}>

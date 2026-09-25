@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-25 (staff client Zod / Prisma enum split measured; login first-load JS 1,082,709 → 695,120 bytes; Zod and Prisma field chunks gone from the client graph; patient routes unchanged; next bundle weight is the shared Sentry chunk, and patient SQL stays later)
+Last updated: 2026-09-25 (marketing content routes prerendered as static HTML with on-demand `revalidatePath` after operator SEO saves; patient, staff, and operator routes stay dynamic; production CDN headers are not measured until deploy)
 
 ## Durable multi-location product
 
@@ -32,6 +32,8 @@ Migration `20260925021500_add_multi_location_foundation` remains the only multi-
 ## Post-multi-location performance audit
 
 Report: [../performance/POST-MULTILOCATION-PERFORMANCE-AUDIT.md](../performance/POST-MULTILOCATION-PERFORMANCE-AUDIT.md). Reproduce query counts with `pnpm exec vitest run --config scripts/audit/vitest.config.ts` against local PostgreSQL only. That script refuses a non-loopback host and is not part of `pnpm test`.
+
+Marketing content pages (`/_marketing` and the public pricing, contact, about, legal, clinics, and vertical routes) are static prerenders. They no longer call `headers()`. Demo and staff links on those pages come from `marketingConfiguredPublicLinks()` (`CARE_GUIDE_ROOT_DOMAIN` / `CARE_GUIDE_METADATA_BASE`). Staff pages still use `marketingPublicLinks()` and the request host. Operator SEO saves call `revalidatePath` on the `/_marketing...` destination routes, not on `/`, `/_sites`, or other staff paths. There is no time-based `revalidate` export. `/_marketing/[...slug]`, patient routes, login, practice, and operator stay dynamic. Detail is in the audit’s [Marketing ISR](../performance/POST-MULTILOCATION-PERFORMANCE-AUDIT.md#marketing-isr). Do not cache patient HTML in that change.
 
 The Function region pin is in root `vercel.json` (`"regions": ["syd1"]` only). Production now executes Functions in `syd1`. Region mismatch: **RESOLVED**. Measured 2026-09-25 from a US runner (`x-vercel-id` `iad1::syd1::<id>`). `demodental` home/guide/print medians fell from 1,304 / 1,513 / 1,504ms to 296.6 / 331.0 / 340.4ms. Warm `/api/health` stayed about 267–334ms, so the remaining patient gap above one database check is tens of milliseconds from this vantage. Do not open a patient query pull request next only because statement counts are large. The staff Zod / Prisma enum bundle split is measured in the audit’s [Staff client bundle split](../performance/POST-MULTILOCATION-PERFORMANCE-AUDIT.md#staff-client-bundle-split). Login first-load JavaScript fell from 1,082,709 bytes to 695,120 (−35.8%). Practice settings fell from 1,197,455 to 753,077 (−37.1%). The 387,769-byte Zod chunk and the 57,465-byte Prisma field chunk are absent from the production client graph. Patient home, guide, and print each changed by −2 bytes of shared-chunk noise. Server Zod schemas stay authoritative. The remaining shared first-load weight is the Sentry browser chunk (about 371KB). Detail is in the audit.
 

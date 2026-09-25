@@ -10,6 +10,7 @@ import {
   removePlatformSeoOgImage,
   uploadPlatformSeoOgImage,
 } from "@/lib/platform-assets/mutate-platform-seo-og";
+import { MARKETING_DELIVERY_PATHS } from "@/lib/marketing/revalidate-marketing";
 import { MARKETING_SEO_PAGE_KEYS } from "@/lib/seo/page-keys";
 import { MARKETING_SEO_PATHS } from "@/lib/seo/types";
 import { savePlatformSeoSettings } from "@/lib/seo/save-platform-seo";
@@ -43,18 +44,9 @@ function readChecked(formData: FormData, name: string): boolean {
 }
 
 function revalidateSeoSurfaces(): void {
-  revalidatePath("/", "layout");
-  revalidatePath("/_marketing", "layout");
-  revalidatePath("/pricing");
-  revalidatePath("/contact");
-  revalidatePath("/about");
-  revalidatePath("/privacy");
-  revalidatePath("/terms");
-  revalidatePath("/clinics");
-  revalidatePath("/dental");
-  revalidatePath("/physiotherapy");
-  revalidatePath("/chiropractic");
-  revalidatePath("/cosmetic-clinics");
+  for (const path of MARKETING_DELIVERY_PATHS) {
+    revalidatePath(path);
+  }
   revalidatePath("/sitemap.xml");
   revalidatePath("/llms.txt");
   revalidatePath("/operator/seo");

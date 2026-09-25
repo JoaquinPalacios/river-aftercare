@@ -20,7 +20,7 @@ import { MarketingWave } from "@/app/(marketing)/components/marketing-wave";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { CLINIC_VERTICAL_NAV } from "@/lib/marketing/clinic-verticals";
 import { MARKETING_DEMO_PATIENT_THEME_CSS } from "@/lib/marketing/demo-patient-preview";
-import { marketingPublicLinks } from "@/lib/marketing/public-links";
+import { marketingConfiguredPublicLinks } from "@/lib/marketing/configured-public-links";
 import { editorialRevealDelay } from "@/lib/marketing/reveal-timing";
 import {
   generateMarketingMetadata,
@@ -61,13 +61,13 @@ const BRAND_DIMENSIONS = [
   },
 ] as const;
 
+export const dynamic = "error";
+
 export const generateMetadata = () => generateMarketingMetadata("/");
 
 export default async function MarketingHomePage() {
-  const [{ demoHref, staffHref }, jsonLd] = await Promise.all([
-    marketingPublicLinks(),
-    loadMarketingJsonLd("/"),
-  ]);
+  const { demoHref, staffHref } = marketingConfiguredPublicLinks();
+  const jsonLd = await loadMarketingJsonLd("/");
 
   return (
     <MarketingShell currentPath="/" staffHref={staffHref}>
