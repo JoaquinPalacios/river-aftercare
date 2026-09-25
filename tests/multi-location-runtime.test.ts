@@ -415,93 +415,102 @@ describe("multi-location runtime switch", () => {
       siteSlug: OTHER_SLUG,
       userId: `${PREFIX}other_user`,
     });
-    const visible = await db().practiceGuide.create({
-      data: {
-        clinicId: `${PREFIX}clinic`,
-        title: "Visible",
-        publicSlug: "visible",
-        status: PracticeGuideStatus.PUBLISHED,
-        isEnabled: true,
-        sortOrder: 2,
-        publishedAt: new Date("2026-09-01T00:00:00.000Z"),
-        contentRevisions: {
-          create: {
-            version: 1,
-            status: GuideRevisionStatus.PUBLISHED,
-            title: "Visible",
-            publishedAt: new Date("2026-09-01T00:00:00.000Z"),
-            sections: {
-              create: {
-                key: "care",
-                kind: "IMMEDIATE_CARE",
-                title: "Care",
-                body: "Visible body.",
-                sortOrder: 1,
-                provenance: "PRACTICE_CUSTOM",
-              },
-            },
-          },
-        },
-      },
-    });
-    const hidden = await db().practiceGuide.create({
-      data: {
-        clinicId: `${PREFIX}clinic`,
-        title: "Hidden published",
-        publicSlug: "hidden",
-        status: PracticeGuideStatus.PUBLISHED,
-        isEnabled: true,
-        sortOrder: 1,
-        publishedAt: new Date("2026-09-01T00:00:00.000Z"),
-        contentRevisions: {
-          create: {
-            version: 1,
-            status: GuideRevisionStatus.PUBLISHED,
-            title: "Hidden published",
-            publishedAt: new Date("2026-09-01T00:00:00.000Z"),
-            sections: {
-              create: {
-                key: "care",
-                kind: "IMMEDIATE_CARE",
-                title: "Care",
-                body: "Hidden body.",
-                sortOrder: 1,
-                provenance: "PRACTICE_CUSTOM",
-              },
-            },
-          },
-        },
-      },
-    });
-    const otherLocation = await db().clinicLocation.create({
-      data: {
-        clinicSiteId: seeded.siteId,
-        clinicId: `${PREFIX}clinic`,
-        name: "Other place",
-        slug: "robina",
-        displayName: "Robina",
-        servesSiteRoot: false,
-        isPrimary: false,
-        active: true,
-      },
-    });
-    await db().practiceGuidePlacement.createMany({
-      data: [
-        {
+    await db().$transaction(async (tx) => {
+      const visible = await tx.practiceGuide.create({
+        data: {
           clinicId: `${PREFIX}clinic`,
-          locationId: seeded.locationId,
-          practiceGuideId: visible.id,
+          title: "Visible",
           publicSlug: "visible",
+          status: PracticeGuideStatus.PUBLISHED,
           isEnabled: true,
+          sortOrder: 2,
+          publishedAt: new Date("2026-09-01T00:00:00.000Z"),
+          contentRevisions: {
+            create: {
+              version: 1,
+              status: GuideRevisionStatus.PUBLISHED,
+              title: "Visible",
+              publishedAt: new Date("2026-09-01T00:00:00.000Z"),
+              sections: {
+                create: {
+                  key: "care",
+                  kind: "IMMEDIATE_CARE",
+                  title: "Care",
+                  body: "Visible body.",
+                  sortOrder: 1,
+                  provenance: "PRACTICE_CUSTOM",
+                },
+              },
+            },
+          },
         },
-        {
+      });
+      const hidden = await tx.practiceGuide.create({
+        data: {
           clinicId: `${PREFIX}clinic`,
-          locationId: otherLocation.id,
-          practiceGuideId: hidden.id,
+          title: "Hidden published",
           publicSlug: "hidden",
+          status: PracticeGuideStatus.PUBLISHED,
           isEnabled: true,
+          sortOrder: 1,
+          publishedAt: new Date("2026-09-01T00:00:00.000Z"),
+          contentRevisions: {
+            create: {
+              version: 1,
+              status: GuideRevisionStatus.PUBLISHED,
+              title: "Hidden published",
+              publishedAt: new Date("2026-09-01T00:00:00.000Z"),
+              sections: {
+                create: {
+                  key: "care",
+                  kind: "IMMEDIATE_CARE",
+                  title: "Care",
+                  body: "Hidden body.",
+                  sortOrder: 1,
+                  provenance: "PRACTICE_CUSTOM",
+                },
+              },
+            },
+          },
         },
-      ],
+      });
+      const otherLocation = await tx.clinicLocation.create({
+        data: {
+          clinicSiteId: seeded.siteId,
+          clinicId: `${PREFIX}clinic`,
+          name: "Other place",
+          slug: "robina",
+          displayName: "Robina",
+          servesSiteRoot: false,
+          isPrimary: false,
+          active: true,
+        },
+      });
+      await tx.practiceGuidePlacement.createMany({
+        data: [
+          {
+            clinicId: `${PREFIX}clinic`,
+            locationId: seeded.locationId,
+            practiceGuideId: visible.id,
+            publicSlug: "visible",
+            isEnabled: true,
+          },
+          {
+            clinicId: `${PREFIX}clinic`,
+            locationId: seeded.locationId,
+            practiceGuideId: hidden.id,
+            publicSlug: "hidden",
+            isEnabled: false,
+          },
+          {
+            clinicId: `${PREFIX}clinic`,
+            locationId: otherLocation.id,
+            practiceGuideId: hidden.id,
+            publicSlug: "hidden",
+            isEnabled: true,
+          },
+        ],
+      });
     });
 
     const listed = await listPublishedPracticeGuides(SITE_SLUG);

@@ -41,7 +41,31 @@ async function rerunBackfill(): Promise<void> {
     .filter((statement) => statement.length > 0);
   expect(statements).toHaveLength(3);
   for (const statement of statements) {
-    await getPrisma().$executeRawUnsafe(statement);
+    await executeIdempotentBackfill(statement);
+  }
+}
+
+/**
+ * The backfill inserts missing rows for every clinic. Parallel tests can
+ * create the same deterministic site or location id between the NOT EXISTS
+ * check and the insert. A unique conflict means that row now exists, so the
+ * statement is safe to run again.
+ */
+async function executeIdempotentBackfill(statement: string): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await getPrisma().$executeRawUnsafe(statement);
+      return;
+    } catch (error) {
+      const uniqueConflict =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        (error.code === "P2002" ||
+          error.message.includes("23505") ||
+          error.message.includes("duplicate key"));
+      if (!uniqueConflict || attempt === 2) {
+        throw error;
+      }
+    }
   }
 }
 
