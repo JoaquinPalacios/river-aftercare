@@ -2,7 +2,10 @@
 
 import { useRef, useState, useTransition } from "react";
 
-import { forgotPasswordSchema } from "@/app/(staff)/forgot-password/forgot-password-schema";
+import {
+  normalizeLoginEmail,
+  staffEmailFieldError,
+} from "@/lib/auth/login-input";
 import { FORGOT_PASSWORD_GENERIC_MESSAGE } from "@/lib/auth/password-policy";
 
 const PENDING_STATUS = "Sending reset instructions. Please wait.";
@@ -23,9 +26,9 @@ export function ForgotPasswordForm() {
       return;
     }
 
-    const parsed = forgotPasswordSchema.safeParse({ email });
-    if (!parsed.success) {
-      setEmailError(parsed.error.flatten().fieldErrors.email?.[0]);
+    const nextEmailError = staffEmailFieldError(email);
+    if (nextEmailError) {
+      setEmailError(nextEmailError);
       setSubmitted(false);
       return;
     }
@@ -40,7 +43,7 @@ export function ForgotPasswordForm() {
         const response = await fetch("/api/auth/forgot-password", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: parsed.data.email }),
+          body: JSON.stringify({ email: normalizeLoginEmail(email) }),
         });
 
         if (response.ok) {

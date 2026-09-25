@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { PasswordVisibilityField } from "@/app/(staff)/components/password-visibility-field";
-import { resetPasswordSchema } from "@/app/(staff)/account/security/password-form-schema";
 import { readPasswordResetTokenFromHash } from "@/lib/auth/account-token-format";
 import {
   NEW_PASSWORD_MIN_MESSAGE,
   PASSWORD_RESET_INVALID_LINK_MESSAGE,
+  newPasswordFieldErrors,
 } from "@/lib/auth/password-policy";
 
 const PENDING_STATUS = "Updating password. Please wait.";
@@ -43,16 +43,9 @@ export function ResetPasswordForm() {
       return;
     }
 
-    const parsed = resetPasswordSchema.safeParse({
-      newPassword,
-      confirmPassword,
-    });
-    if (!parsed.success) {
-      const fieldErrors = parsed.error.flatten().fieldErrors;
-      setErrors({
-        newPassword: fieldErrors.newPassword?.[0],
-        confirmPassword: fieldErrors.confirmPassword?.[0],
-      });
+    const fieldErrors = newPasswordFieldErrors(newPassword, confirmPassword);
+    if (fieldErrors.newPassword || fieldErrors.confirmPassword) {
+      setErrors(fieldErrors);
       return;
     }
 
@@ -67,8 +60,8 @@ export function ResetPasswordForm() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             token,
-            newPassword: parsed.data.newPassword,
-            confirmPassword: parsed.data.confirmPassword,
+            newPassword,
+            confirmPassword,
           }),
         });
 

@@ -1,3 +1,5 @@
+import "server-only";
+
 import { z } from "zod";
 
 import { LOGIN_PASSWORD_MAX_LENGTH } from "@/lib/auth/login-input";

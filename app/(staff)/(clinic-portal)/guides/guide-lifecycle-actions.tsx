@@ -14,7 +14,7 @@ import { OverflowMenu } from "@/app/(staff)/components/overflow-menu";
 import type {
   ClinicGuideLifecycleStatus,
   GuideDestructiveAction,
-} from "@/lib/clinic-portal/guide-status";
+} from "@/lib/clinic-portal/guide-status-view";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
 
 const empty: GuideActionState = {};

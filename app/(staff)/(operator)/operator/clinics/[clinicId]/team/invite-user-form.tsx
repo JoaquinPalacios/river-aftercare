@@ -6,7 +6,7 @@ import {
   inviteClinicUserAction,
   type ClinicTeamActionState,
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/team/actions";
-import { INVITED_NAME_MAX_LENGTH } from "@/lib/operator/clinic-invitation-input";
+import { INVITED_NAME_MAX_LENGTH } from "@/lib/operator/clinic-invitation-fields";
 import { LOGIN_EMAIL_MAX_LENGTH } from "@/lib/auth/login-input";
 import {
   TEAM_ADMIN_ROLE_LABEL,

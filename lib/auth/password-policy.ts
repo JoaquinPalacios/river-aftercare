@@ -47,3 +47,24 @@ export function confirmNewPasswordError(
   }
   return null;
 }
+
+export type NewPasswordFieldErrors = {
+  newPassword?: string;
+  confirmPassword?: string;
+};
+
+/** Field placement matches `resetPasswordSchema` / `acceptInvitationSchema`. */
+export function newPasswordFieldErrors(
+  newPassword: string,
+  confirmPassword: string
+): NewPasswordFieldErrors {
+  const errors: NewPasswordFieldErrors = {};
+  const policyError = newPasswordPolicyError(newPassword);
+  if (policyError) {
+    errors.newPassword = policyError;
+  }
+  if (newPassword !== confirmPassword) {
+    errors.confirmPassword = PASSWORDS_DO_NOT_MATCH_MESSAGE;
+  }
+  return errors;
+}

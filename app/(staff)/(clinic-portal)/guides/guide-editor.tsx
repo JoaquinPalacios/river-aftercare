@@ -36,7 +36,7 @@ import {
   clinicGuideDestructiveAction,
   clinicGuideStatusPills,
   guideEditorPublicationMode,
-} from "@/lib/clinic-portal/guide-status";
+} from "@/lib/clinic-portal/guide-status-view";
 import type { PracticeGuideEditorRecord } from "@/lib/clinic-portal/load-practice-guide-editor";
 import { PRACTICE_REVIEW_ATTESTATION_LABEL } from "@/lib/clinic-portal/practice-review-attestation";
 import type { GuideSectionKind } from "@/lib/aftercare/types";

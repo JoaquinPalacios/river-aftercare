@@ -1,8 +1,8 @@
 import type {
   ClinicGuideLifecycleStatus,
   GuideStatusPill,
-} from "@/lib/clinic-portal/guide-status";
-import { clinicGuideStatusPills } from "@/lib/clinic-portal/guide-status";
+} from "@/lib/clinic-portal/guide-status-view";
+import { clinicGuideStatusPills } from "@/lib/clinic-portal/guide-status-view";
 
 export function GuideStatusPills({
   lifecycle,
