@@ -6,6 +6,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, ClinicMembershipRole } from "@prisma/client";
 
 import { DEMO_EXTRACTION_CANONICAL_SECTIONS } from "../lib/aftercare/demo-extraction-template-payload.mjs";
+import { ensurePrimarySiteAndRootLocation } from "../lib/clinics/primary-site-location.mjs";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -187,6 +188,19 @@ async function upsertAftercareDemo(clinicId) {
       clinicId,
       ...DEMO_CLINIC_PROFILE,
     },
+  });
+
+  const clinic = await prisma.clinic.findUniqueOrThrow({
+    where: { id: clinicId },
+  });
+  const profile = await prisma.clinicProfile.findUniqueOrThrow({
+    where: { clinicId },
+  });
+  await ensurePrimarySiteAndRootLocation(prisma, {
+    clinicId: clinic.id,
+    clinicName: clinic.name,
+    slug: clinic.slug,
+    profile,
   });
 
   const template = await prisma.guideTemplate.upsert({

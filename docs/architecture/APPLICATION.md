@@ -58,7 +58,9 @@ Until then, keep extracting **modules**, not processes. Do not add MCP, GraphQL,
 
 ## Multi-location foundation
 
-`Clinic` is the customer account. `ClinicLocation` is a physical practice belonging to that account. The additive migration backfills exactly one primary account-root location per existing clinic (`slug` null, so current patient URLs gain no path segment) and one `PracticeGuidePlacement` per existing guide. `Clinic.slug`, `ClinicProfile` branding and contact fields, guide publication, QR targets, and billing stay as they are. Application reads do not use the location tables yet. Creating or editing multiple locations is not available.
+`Clinic` remains the commercial account (billing, entitlement, team, legal acceptance, and the shared guide library). `ClinicSite` is the public clinic identity: future subdomain plus branding. `ClinicLocation` is a physical practice belonging to a site. The additive migration backfills one primary site per existing account (`ClinicSite.slug` copied from `Clinic.slug`, branding copied from `ClinicProfile`) and one root location per site (`slug` null, so current patient URLs gain no path segment). Each existing guide gets one `PracticeGuidePlacement` at that root location. Guides stay account-owned.
+
+Runtime still reads `Clinic.slug`, `ClinicProfile`, and `PracticeGuide`. Patient URLs, QR targets, staff UI, operator UI, Stripe, and public pricing are unchanged. `ClinicEntitlement.siteAllowance` and `locationAllowance` default to 1 and are not enforced. Group capacity is operator-configured later; Group prices are not published. Creating or editing extra sites or locations is not available. New operator clinics and the demo seed write the account, primary site, and root location together.
 
 ## Schema releases
 

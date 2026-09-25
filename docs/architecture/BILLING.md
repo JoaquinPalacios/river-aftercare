@@ -187,7 +187,7 @@ Hostname tenancy ([ADR 0003](../adr/0003-tenant-identity-uses-hostname.md), [ADR
 
 Routing: [`proxy.ts`](../../proxy.ts) (Next.js 16 Node proxy, not Edge). Staff host allows all paths through. Marketing 404s `/api/*` via `isMarketingBlockedPath`. A Stripe webhook **must** be posted to the staff origin, for example `https://app.riveraftercare.com.au/api/stripe/webhook`.
 
-`Clinic` is the customer account and the tenant hostname. `ClinicLocation` is the physical practice. Every existing clinic is backfilled with one primary location that serves the account-root patient paths (`slug` null). Runtime patient, portal, QR, and billing reads still use `Clinic`, `ClinicProfile`, and `PracticeGuide`. Location tables are not authoritative yet, and location management UI is not enabled.
+`Clinic` is the commercial account. `Clinic.slug` is still the tenant hostname the application reads. `ClinicSite` is the public identity (future subdomain and branding). `ClinicLocation` is the physical practice and belongs to a site. Every existing account is backfilled with one primary site (`slug` copied from `Clinic.slug`) and one root location (`slug` null). Runtime patient, portal, QR, and billing reads still use `Clinic`, `ClinicProfile`, and `PracticeGuide`. Site and location tables are not authoritative yet, and there is no site or location management UI.
 
 ### A.2 Prisma domain (relevant)
 
@@ -195,14 +195,15 @@ Canonical schema: [`prisma/schema.prisma`](../../prisma/schema.prisma). PostgreS
 
 **Clinic / users / roles**
 
-| Model              | Role today                                                                                                                                                                                              |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Clinic`           | Customer account and tenant hostname. `id`, `name`, `slug`. **No plan, status, or billing fields.** Owns locations.                                                                                     |
-| `ClinicLocation`   | Physical practice. Foundation only: one primary account-root row per existing clinic. Not read by the application yet.                                                                                  |
-| `ClinicProfile`    | Account branding and patient chrome: `displayName`, logo, colours, typeface, contact, address, emergency. Contact fields are copied onto the root location and kept here. Not a legal/billing identity. |
-| `User`             | Auth.js user + `platformRole` (`NONE` \| `OPERATOR`) + optional `passwordHash`.                                                                                                                         |
-| `ClinicMembership` | Exactly one membership per user in the current auth resolver. Roles `ADMIN` \| `STAFF`.                                                                                                                 |
-| `AccountToken`     | Invitations and password reset. Hash-only.                                                                                                                                                              |
+| Model              | Role today                                                                                                                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Clinic`           | Commercial account. `id`, `name`, `slug`. **No plan, status, or billing fields.** `slug` remains the hostname patients use today. Owns sites and the guide library.                                         |
+| `ClinicSite`       | Public clinic identity. Future subdomain (`slug`, globally unique) and branding. One primary site is backfilled per account. Not read by the application yet.                                               |
+| `ClinicLocation`   | Physical practice belonging to a `ClinicSite`. One root location (`slug` null) is backfilled per site. Contact and emergency are copied here. Not read by the application yet.                              |
+| `ClinicProfile`    | Legacy patient chrome still read at runtime: branding, contact, address, emergency. Branding is also copied onto `ClinicSite`. Contact is also copied onto the root location. Not a legal/billing identity. |
+| `User`             | Auth.js user + `platformRole` (`NONE` \| `OPERATOR`) + optional `passwordHash`.                                                                                                                             |
+| `ClinicMembership` | Exactly one membership per user in the current auth resolver. Roles `ADMIN` \| `STAFF`.                                                                                                                     |
+| `AccountToken`     | Invitations and password reset. Hash-only.                                                                                                                                                                  |
 
 There is **no account-owner entity**. “Ownership” is clinic `ADMIN` membership. Operators (`platformRole=OPERATOR`) are platform-scoped and typically have **no** clinic membership ([ADR 0016](../adr/0016-platform-operator-is-distinct-from-clinic-admin.md)).
 
@@ -241,13 +242,13 @@ Clinic mutations: authenticate → membership → `ADMIN` → `clinicId` from se
 
 ### A.4 Clinic and operator onboarding
 
-| Flow              | Who                 | Code                                                                                                                                                                                 |
-| ----------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Create clinic     | OPERATOR            | [`lib/operator/create-operator-clinic.ts`](../../lib/operator/create-operator-clinic.ts) → `Clinic` + nested `ClinicProfile` (`displayName = name`). UI: `/operator/clinics/new`.    |
-| Invite users      | OPERATOR            | [`lib/operator/invite-clinic-user.ts`](../../lib/operator/invite-clinic-user.ts) + [`lib/auth/account-token-service.ts`](../../lib/auth/account-token-service.ts). Email via Resend. |
-| Accept invite     | Invitee             | `/accept-invitation` + `POST /api/auth/accept-invitation`                                                                                                                            |
-| Practice branding | Clinic ADMIN        | `/practice` → [`update-practice-settings.ts`](../../lib/clinic-portal/update-practice-settings.ts)                                                                                   |
-| Setup checklist   | Derived, not stored | [`setup-status.ts`](../../lib/clinic-portal/setup-status.ts): identity, branding, contact, emergency, published guide → `configured` \| `needs_attention`                            |
+| Flow              | Who                 | Code                                                                                                                                                                                                                                                                    |
+| ----------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Create clinic     | OPERATOR            | [`lib/operator/create-operator-clinic.ts`](../../lib/operator/create-operator-clinic.ts) → `Clinic` + `ClinicProfile` + primary `ClinicSite` + root `ClinicLocation` in one transaction. UI: `/operator/clinics/new`. Patient reads stay on `Clinic` / `ClinicProfile`. |
+| Invite users      | OPERATOR            | [`lib/operator/invite-clinic-user.ts`](../../lib/operator/invite-clinic-user.ts) + [`lib/auth/account-token-service.ts`](../../lib/auth/account-token-service.ts). Email via Resend.                                                                                    |
+| Accept invite     | Invitee             | `/accept-invitation` + `POST /api/auth/accept-invitation`                                                                                                                                                                                                               |
+| Practice branding | Clinic ADMIN        | `/practice` → [`update-practice-settings.ts`](../../lib/clinic-portal/update-practice-settings.ts)                                                                                                                                                                      |
+| Setup checklist   | Derived, not stored | [`setup-status.ts`](../../lib/clinic-portal/setup-status.ts): identity, branding, contact, emergency, published guide → `configured` \| `needs_attention`                                                                                                               |
 
 Marketing “onboarding steps” in `plans.ts` are copy only.
 
@@ -542,7 +543,7 @@ Follow Stripe’s catalogue rule: **one Product per plan the customer can choose
 
 All `tax_behavior: inclusive`. Currency `aud`. Nickname the Prices clearly (`essential_monthly`, etc.). Group is **not** a Stripe Product at launch.
 
-**Do not create additional-location Prices now.** `ClinicLocation` and `ClinicEntitlement.extraLocationAllowance` exist as unused foundation data. Public copy still does not advertise those rates, and premature Prices invite accidental Checkout of unsupported SKUs. When location billing is built, prefer **subscription items / extra Prices on a later Location add-on Product**, not quantity on the Practice Price (Practice quantity would imply N copies of the whole plan).
+**Do not create additional-site or additional-location Prices now.** `ClinicSite`, `ClinicLocation`, `ClinicEntitlement.siteAllowance`, and `ClinicEntitlement.locationAllowance` exist as unused foundation data. Both allowances are account totals and default to 1. Group capacity is operator-configured later. Group prices are not published. Public copy still does not advertise multi-location rates, and premature Prices invite accidental Checkout of unsupported SKUs. When location billing is built, prefer **subscription items / extra Prices on a later add-on Product**, not quantity on the Practice Price (Practice quantity would imply N copies of the whole plan). Practice does not gain extra sites.
 
 ### E.2 Price ID mapping
 
