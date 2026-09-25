@@ -251,6 +251,20 @@ export default async function OperatorClinicDetailPage({
       />
 
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+        <h2 className="text-base font-semibold">Account split</h2>
+        <p className="mt-2 text-sm text-staff-muted">
+          Prepare a Group site to become its own Account. This does not move the
+          site or change billing.
+        </p>
+        <Link
+          href={`/operator/clinics/${clinic.id}/split`}
+          className="mt-3 inline-flex text-sm font-medium text-staff-brand"
+        >
+          Account split / downgrade preparation
+        </Link>
+      </section>
+
+      <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
         <h2 className="text-base font-semibold">Team</h2>
         <p className="mt-2 text-sm text-staff-muted">
           Manage who can access this clinic.
