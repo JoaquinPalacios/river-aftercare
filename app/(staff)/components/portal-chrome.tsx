@@ -226,6 +226,7 @@ function PortalNav({
         ...(canManagePractice
           ? [{ href: "/practice", label: "Practice" }]
           : []),
+        { href: "/practice/sites", label: "Sites & Locations" },
       ]
     : [{ href: "/account/billing", label: "Billing" }];
 
@@ -236,7 +237,10 @@ function PortalNav({
           const current =
             item.href === "/dashboard"
               ? pathname === "/dashboard"
-              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+              : item.href === "/practice"
+                ? pathname === "/practice"
+                : pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}

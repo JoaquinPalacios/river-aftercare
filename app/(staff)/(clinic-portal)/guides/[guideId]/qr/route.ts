@@ -45,11 +45,13 @@ export async function GET(
     requestHeaders.get("x-forwarded-proto") ??
     (host.includes("localhost") ? "http" : "https");
 
+  const placementId = new URL(request.url).searchParams.get("placementId");
   const target = await loadPublishedGuideShareTarget({
     clinicId: auth.clinicMembership.clinic.id,
     guideId,
     requestHost: host,
     protocol,
+    placementId,
   });
 
   if (!target) {

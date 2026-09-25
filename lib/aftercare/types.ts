@@ -76,4 +76,5 @@ export interface PublishedPracticeGuideSummary {
   title: string;
   sortOrder: number;
   publishedAt: Date | null;
+  href?: string;
 }

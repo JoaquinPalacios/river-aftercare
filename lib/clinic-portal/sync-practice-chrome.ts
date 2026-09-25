@@ -148,3 +148,46 @@ export async function syncBrandingAssetReference(
     data: { [input.field]: input.storageKey },
   });
 }
+
+/**
+ * Writes a branding asset onto one ClinicSite. The primary site also updates
+ * ClinicProfile. Other sites do not.
+ */
+export async function syncSiteBrandingAssetReference(
+  db: PracticeChromeDb,
+  input: {
+    clinicId: string;
+    siteId: string;
+    field: "logoUrl" | "darkLogoUrl" | "faviconUrl";
+    storageKey: string | null;
+  }
+): Promise<void> {
+  const site = await db.clinicSite.findFirst({
+    where: { id: input.siteId, clinicId: input.clinicId },
+    select: { id: true, clinicId: true, isPrimary: true },
+  });
+  if (!site || site.clinicId !== input.clinicId) {
+    throw new ClinicPortalError("Clinic site not found.", "not_found");
+  }
+
+  await db.clinicSite.update({
+    where: { id: site.id },
+    data: { [input.field]: input.storageKey },
+  });
+
+  if (!site.isPrimary) {
+    return;
+  }
+
+  const profile = await db.clinicProfile.findUnique({
+    where: { clinicId: input.clinicId },
+    select: { clinicId: true },
+  });
+  if (!profile) {
+    throw new ClinicPortalError("Practice profile is missing.", "not_found");
+  }
+  await db.clinicProfile.update({
+    where: { clinicId: input.clinicId },
+    data: { [input.field]: input.storageKey },
+  });
+}

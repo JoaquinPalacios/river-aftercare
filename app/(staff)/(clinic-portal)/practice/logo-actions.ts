@@ -27,6 +27,11 @@ export interface ClinicFaviconActionState {
   ok?: boolean;
 }
 
+function optionalSiteId(formData: FormData): { siteId?: string } {
+  const siteId = formData.get("siteId");
+  return typeof siteId === "string" && siteId.length > 0 ? { siteId } : {};
+}
+
 function assetError(error: unknown, fallback: string): string {
   if (error instanceof ClinicAssetStorageUnavailableError) {
     return error.message;
@@ -61,6 +66,7 @@ export async function uploadClinicLogoAction(
   try {
     const uploaded = await uploadClinicLogo({
       ...actor,
+      ...optionalSiteId(formData),
       bytes: new Uint8Array(await file.arrayBuffer()),
       mimeType: file.type,
       fileName: file.name,
@@ -77,11 +83,11 @@ export async function uploadClinicLogoAction(
 
 export async function removeClinicLogoAction(
   _previous: ClinicLogoActionState,
-  _formData: FormData
+  formData: FormData
 ): Promise<ClinicLogoActionState> {
   const actor = await clinicAssetActor();
   try {
-    await removeClinicLogo(actor);
+    await removeClinicLogo({ ...actor, ...optionalSiteId(formData) });
     return { ok: true, logoUrl: null, logoSrc: null };
   } catch (error) {
     return { error: assetError(error, "Could not update the clinic logo.") };
@@ -101,6 +107,7 @@ export async function uploadClinicDarkLogoAction(
   try {
     const uploaded = await uploadClinicDarkLogo({
       ...actor,
+      ...optionalSiteId(formData),
       bytes: new Uint8Array(await file.arrayBuffer()),
       mimeType: file.type,
       fileName: file.name,
@@ -117,11 +124,11 @@ export async function uploadClinicDarkLogoAction(
 
 export async function removeClinicDarkLogoAction(
   _previous: ClinicLogoActionState,
-  _formData: FormData
+  formData: FormData
 ): Promise<ClinicLogoActionState> {
   const actor = await clinicAssetActor();
   try {
-    await removeClinicDarkLogo(actor);
+    await removeClinicDarkLogo({ ...actor, ...optionalSiteId(formData) });
     return { ok: true, logoUrl: null, logoSrc: null };
   } catch (error) {
     return { error: assetError(error, "Could not update the Dark-mode logo.") };
@@ -141,6 +148,7 @@ export async function uploadClinicFaviconAction(
   try {
     const uploaded = await uploadClinicFavicon({
       ...actor,
+      ...optionalSiteId(formData),
       bytes: new Uint8Array(await file.arrayBuffer()),
       mimeType: file.type,
       fileName: file.name,
@@ -157,11 +165,11 @@ export async function uploadClinicFaviconAction(
 
 export async function removeClinicFaviconAction(
   _previous: ClinicFaviconActionState,
-  _formData: FormData
+  formData: FormData
 ): Promise<ClinicFaviconActionState> {
   const actor = await clinicAssetActor();
   try {
-    await removeClinicFavicon(actor);
+    await removeClinicFavicon({ ...actor, ...optionalSiteId(formData) });
     return { ok: true, faviconUrl: null, faviconSrc: null };
   } catch (error) {
     return { error: assetError(error, "Could not update the clinic favicon.") };

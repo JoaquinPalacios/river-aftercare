@@ -19,7 +19,10 @@ import {
   clinicAssetErrorClass,
 } from "@/lib/clinic-assets/errors";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
-import { syncBrandingAssetReference } from "@/lib/clinic-portal/sync-practice-chrome";
+import {
+  syncBrandingAssetReference,
+  syncSiteBrandingAssetReference,
+} from "@/lib/clinic-portal/sync-practice-chrome";
 import { getPrisma } from "@/lib/prisma";
 
 export type ClinicBrandingAssetField = "logoUrl" | "darkLogoUrl" | "faviconUrl";
@@ -122,6 +125,29 @@ async function loadBrandingProfile(
   };
 }
 
+async function loadSiteBrandingProfile(
+  clinicId: string,
+  siteId: string
+): Promise<BrandingAssetProfile | null> {
+  const site = await getPrisma().clinicSite.findFirst({
+    where: { id: siteId, clinicId },
+    select: {
+      clinicId: true,
+      logoUrl: true,
+      darkLogoUrl: true,
+      faviconUrl: true,
+    },
+  });
+  if (!site || site.clinicId !== clinicId) {
+    return null;
+  }
+  return {
+    logoUrl: site.logoUrl,
+    darkLogoUrl: site.darkLogoUrl,
+    faviconUrl: site.faviconUrl,
+  };
+}
+
 export async function uploadClinicBrandingAsset(input: {
   field: ClinicBrandingAssetField;
   actorRole: "ADMIN" | "STAFF";
@@ -131,6 +157,7 @@ export async function uploadClinicBrandingAsset(input: {
   bytes: Uint8Array;
   mimeType: string;
   fileName?: string;
+  siteId?: string;
 }): Promise<{ storageKey: string; publicSrc: string }> {
   const copy = FIELD_COPY[input.field];
   const authorized = authorizeClinicLogoMutation({
@@ -188,7 +215,9 @@ export async function uploadClinicBrandingAsset(input: {
     }
   }
 
-  const previous = await loadBrandingProfile(input.targetClinicId);
+  const previous = input.siteId
+    ? await loadSiteBrandingProfile(input.targetClinicId, input.siteId)
+    : await loadBrandingProfile(input.targetClinicId);
   if (!previous) {
     throw new ClinicPortalError(copy.missing, "not_found");
   }
@@ -219,11 +248,18 @@ export async function uploadClinicBrandingAsset(input: {
 
   try {
     await getPrisma().$transaction((tx) =>
-      syncBrandingAssetReference(tx, {
-        clinicId: input.targetClinicId,
-        field: input.field,
-        storageKey: uploaded.storageKey,
-      })
+      input.siteId
+        ? syncSiteBrandingAssetReference(tx, {
+            clinicId: input.targetClinicId,
+            siteId: input.siteId as string,
+            field: input.field,
+            storageKey: uploaded.storageKey,
+          })
+        : syncBrandingAssetReference(tx, {
+            clinicId: input.targetClinicId,
+            field: input.field,
+            storageKey: uploaded.storageKey,
+          })
     );
   } catch (error) {
     logClinicAsset("db_update_failed_after_upload", {
@@ -290,6 +326,7 @@ export async function removeClinicBrandingAsset(input: {
   actorClinicId: string;
   targetClinicId: string;
   platformRole?: PlatformRole | "NONE" | "OPERATOR";
+  siteId?: string;
 }): Promise<void> {
   const copy = FIELD_COPY[input.field];
   const authorized = authorizeClinicLogoMutation({
@@ -309,17 +346,26 @@ export async function removeClinicBrandingAsset(input: {
     );
   }
 
-  const previous = await loadBrandingProfile(input.targetClinicId);
+  const previous = input.siteId
+    ? await loadSiteBrandingProfile(input.targetClinicId, input.siteId)
+    : await loadBrandingProfile(input.targetClinicId);
   if (!previous) {
     throw new ClinicPortalError(copy.missing, "not_found");
   }
 
   await getPrisma().$transaction((tx) =>
-    syncBrandingAssetReference(tx, {
-      clinicId: input.targetClinicId,
-      field: input.field,
-      storageKey: null,
-    })
+    input.siteId
+      ? syncSiteBrandingAssetReference(tx, {
+          clinicId: input.targetClinicId,
+          siteId: input.siteId as string,
+          field: input.field,
+          storageKey: null,
+        })
+      : syncBrandingAssetReference(tx, {
+          clinicId: input.targetClinicId,
+          field: input.field,
+          storageKey: null,
+        })
   );
 
   const previousKey = storedKeyForField(previous, input.field);
@@ -357,6 +403,7 @@ export async function uploadClinicLogo(input: {
   bytes: Uint8Array;
   mimeType: string;
   fileName?: string;
+  siteId?: string;
 }): Promise<{ logoUrl: string; logoSrc: string }> {
   const uploaded = await uploadClinicBrandingAsset({
     ...input,
@@ -373,6 +420,7 @@ export async function removeClinicLogo(input: {
   actorClinicId: string;
   targetClinicId: string;
   platformRole?: PlatformRole | "NONE" | "OPERATOR";
+  siteId?: string;
 }): Promise<void> {
   await removeClinicBrandingAsset({
     ...input,
@@ -388,6 +436,7 @@ export async function uploadClinicDarkLogo(input: {
   bytes: Uint8Array;
   mimeType: string;
   fileName?: string;
+  siteId?: string;
 }): Promise<{ logoUrl: string; logoSrc: string }> {
   const uploaded = await uploadClinicBrandingAsset({
     ...input,
@@ -404,6 +453,7 @@ export async function removeClinicDarkLogo(input: {
   actorClinicId: string;
   targetClinicId: string;
   platformRole?: PlatformRole | "NONE" | "OPERATOR";
+  siteId?: string;
 }): Promise<void> {
   await removeClinicBrandingAsset({
     ...input,
@@ -419,6 +469,7 @@ export async function uploadClinicFavicon(input: {
   bytes: Uint8Array;
   mimeType: string;
   fileName?: string;
+  siteId?: string;
 }): Promise<{ faviconUrl: string; faviconSrc: string }> {
   const uploaded = await uploadClinicBrandingAsset({
     ...input,
@@ -435,6 +486,7 @@ export async function removeClinicFavicon(input: {
   actorClinicId: string;
   targetClinicId: string;
   platformRole?: PlatformRole | "NONE" | "OPERATOR";
+  siteId?: string;
 }): Promise<void> {
   await removeClinicBrandingAsset({
     ...input,

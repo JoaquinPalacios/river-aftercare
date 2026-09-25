@@ -5,7 +5,7 @@ Practice identity stores the logo, dark logo, and favicon as **provider-independ
 - Demo / static marks: a same-origin path such as `/demo/riverside-mark.svg`
 - Uploaded marks: an immutable object key `clinics/<clinicId>/branding/<uuid>.<ext>`
 
-Patient and practice reads use the site reference. A later transition may store new uploads at `clinics/<clinicId>/sites/<clinicSiteId>/branding/<uuid>.<ext>`. Existing keys stay. Do not copy or rename stored objects in the runtime switch.
+Patient and practice reads use the site reference. Asset writes that name a site must prove that site belongs to the signed-in account. The primary site still dual-writes `ClinicProfile`. Another site does not. A later transition may store new uploads at `clinics/<clinicId>/sites/<clinicSiteId>/branding/<uuid>.<ext>`. Existing keys stay. Do not copy or rename stored objects.
 
 The patient renderer resolves that reference with `resolveClinicLogoSrc` and always renders the mark as `<img src="...">`. Uploaded SVG is never inlined, never passed to `dangerouslySetInnerHTML`, and never mounted via `object`/`embed`.
 

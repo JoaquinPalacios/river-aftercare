@@ -241,7 +241,7 @@ Platform Contact / Pricing live only on the **root marketing domain** (`/pricing
 - clinic phone
 - clinic urgent / emergency instructions
 
-Public published prices (AUD): Essential A$79/month or A$790/year, Practice A$149/month or A$1,490/year, Group custom pricing. Do not claim GST is included or excluded. River Aftercare is not registering for GST at this stage. Do not publish additional-location dollar rates until a Location model exists; public copy directs multi-location practices to talk to us. Check-ins remain unpriced post-launch work and are not advertised on the public pricing page. Contact delivery is a server-side clinic enquiry form (`CONTACT_EMAIL_TO` / Resend / Turnstile). See [MARKETING-CONTACT.md](../architecture/MARKETING-CONTACT.md).
+Public published prices (AUD): Essential A$79/month or A$790/year, Practice A$149/month or A$1,490/year, Group custom pricing. Do not claim GST is included or excluded. River Aftercare is not registering for GST at this stage. The product can manage multiple sites and locations, and the operator sets capacity. Do not publish additional-location or additional-site dollar rates; public copy directs multi-location practices to talk to us. Stripe add-on billing for those allowances is not implemented. Annual Group pricing is not decided. Check-ins remain unpriced post-launch work and are not advertised on the public pricing page. Contact delivery is a server-side clinic enquiry form (`CONTACT_EMAIL_TO` / Resend / Turnstile). See [MARKETING-CONTACT.md](../architecture/MARKETING-CONTACT.md).
 
 ---
 

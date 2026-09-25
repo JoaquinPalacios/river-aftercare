@@ -116,6 +116,7 @@ export function PracticeLogoField({
   canEdit,
   storageAvailable,
   onLogoChange,
+  siteId,
 }: {
   displayName: string;
   logoUrl: string | null;
@@ -126,6 +127,7 @@ export function PracticeLogoField({
     logoUrl: string | null;
     logoSrc: string | null;
   }) => void;
+  siteId?: string;
 }) {
   return (
     <PracticeBrandingAssetField
@@ -142,6 +144,7 @@ export function PracticeLogoField({
       previewName={`${displayName || "Practice"} logo`}
       uploadAction={uploadClinicLogoAction}
       removeAction={removeClinicLogoAction}
+      siteId={siteId}
       readUpload={readLogoState}
       onAssetChange={(next) =>
         onLogoChange({ logoUrl: next.storedUrl, logoSrc: next.previewSrc })
@@ -157,6 +160,7 @@ export function PracticeDarkLogoField({
   canEdit,
   storageAvailable,
   onLogoChange,
+  siteId,
 }: {
   displayName: string;
   logoUrl: string | null;
@@ -167,6 +171,7 @@ export function PracticeDarkLogoField({
     logoUrl: string | null;
     logoSrc: string | null;
   }) => void;
+  siteId?: string;
 }) {
   return (
     <PracticeBrandingAssetField
@@ -183,6 +188,7 @@ export function PracticeDarkLogoField({
       previewName={`${displayName || "Practice"} Dark-mode logo`}
       uploadAction={uploadClinicDarkLogoAction}
       removeAction={removeClinicDarkLogoAction}
+      siteId={siteId}
       readUpload={readLogoState}
       onAssetChange={(next) =>
         onLogoChange({ logoUrl: next.storedUrl, logoSrc: next.previewSrc })
@@ -198,6 +204,7 @@ export function PracticeFaviconField({
   canEdit,
   storageAvailable,
   onFaviconChange,
+  siteId,
 }: {
   displayName: string;
   faviconUrl: string | null;
@@ -208,6 +215,7 @@ export function PracticeFaviconField({
     faviconUrl: string | null;
     faviconSrc: string | null;
   }) => void;
+  siteId?: string;
 }) {
   return (
     <PracticeBrandingAssetField
@@ -224,6 +232,7 @@ export function PracticeFaviconField({
       previewName={`${displayName || "Practice"} favicon`}
       uploadAction={uploadClinicFaviconAction}
       removeAction={removeClinicFaviconAction}
+      siteId={siteId}
       readUpload={readFaviconState}
       onAssetChange={(next) =>
         onFaviconChange({

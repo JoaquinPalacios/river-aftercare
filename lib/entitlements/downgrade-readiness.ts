@@ -15,6 +15,7 @@ import {
   countTeamUsage,
   readStoredEntitlement,
 } from "@/lib/entitlements/team-usage";
+import { countActiveSiteLocationUsage } from "@/lib/clinics/site-location-capacity";
 import { getPrisma } from "@/lib/prisma";
 
 export const DOWNGRADE_CONFLICTS = {
@@ -22,6 +23,7 @@ export const DOWNGRADE_CONFLICTS = {
   CUSTOM_GUIDES: "CUSTOM_GUIDES",
   TEMPLATE_ADAPTATIONS: "TEMPLATE_ADAPTATIONS",
   COMBINED_GUIDES: "COMBINED_GUIDES",
+  SITE_LOCATIONS: "SITE_LOCATIONS",
 } as const;
 
 export type DowngradeConflict =
@@ -34,6 +36,8 @@ export type EssentialDowngradeReadiness = {
   guides: { current: number; limit: number };
   adaptedTemplates: { current: number; limit: number };
   combinedGuides: { current: number; limit: number };
+  sites?: { current: number; limit: number };
+  locations?: { current: number; limit: number };
 };
 
 /**
@@ -48,7 +52,9 @@ export function readinessHasGuideOverage(
   readiness: EssentialDowngradeReadiness
 ): boolean {
   return readiness.conflicts.some(
-    (conflict) => conflict !== DOWNGRADE_CONFLICTS.TEAM_MEMBERS
+    (conflict) =>
+      conflict !== DOWNGRADE_CONFLICTS.TEAM_MEMBERS &&
+      conflict !== DOWNGRADE_CONFLICTS.SITE_LOCATIONS
   );
 }
 
@@ -57,6 +63,8 @@ export function assessEssentialDowngradeReadiness(input: {
   customGuideCount: number;
   adaptedTemplateCount: number;
   extras?: AllowanceAmounts;
+  activeSites?: number;
+  activeLocations?: number;
 }): EssentialDowngradeReadiness {
   const extras = input.extras ?? ZERO_ALLOWANCE_EXTRAS;
   const limits = effectiveAllowances(
@@ -78,6 +86,11 @@ export function assessEssentialDowngradeReadiness(input: {
   if (combinedGuideCount > limits.combinedClinicOwnedGuides) {
     conflicts.push(DOWNGRADE_CONFLICTS.COMBINED_GUIDES);
   }
+  const activeSites = input.activeSites ?? 0;
+  const activeLocations = input.activeLocations ?? 0;
+  if (activeSites > 1 || activeLocations > 1) {
+    conflicts.push(DOWNGRADE_CONFLICTS.SITE_LOCATIONS);
+  }
 
   return {
     ready: conflicts.length === 0,
@@ -92,6 +105,8 @@ export function assessEssentialDowngradeReadiness(input: {
       current: combinedGuideCount,
       limit: limits.combinedClinicOwnedGuides,
     },
+    sites: { current: activeSites, limit: 1 },
+    locations: { current: activeLocations, limit: 1 },
   };
 }
 
@@ -104,10 +119,13 @@ export async function loadEssentialDowngradeReadiness(
   const team = await countTeamUsage(prisma, clinicId, now);
   const guides = await countOriginalCustomGuides(prisma, clinicId);
   const adapted = await countAdaptedTemplateGuides(prisma, clinicId);
+  const sites = await countActiveSiteLocationUsage(prisma, clinicId);
   return assessEssentialDowngradeReadiness({
     occupiedTeamPlaces: team.occupiedPlaces,
     customGuideCount: guides,
     adaptedTemplateCount: adapted,
     extras: allowanceExtrasFrom(entitlement),
+    activeSites: sites.activeSites,
+    activeLocations: sites.activeLocations,
   });
 }

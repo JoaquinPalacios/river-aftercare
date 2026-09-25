@@ -1,14 +1,19 @@
 import type { CommercialPlan } from "@prisma/client";
 
 /**
- * Future site and location caps. Not enforced in the runtime switch.
+ * Account site and location caps. Enforced by site-location-capacity.
  *
  * Essential is always one site and one location.
  * Practice is always one site; the location total may rise.
  * Group uses the operator-configured totals on ClinicEntitlement.
  * A missing entitlement row is 1 site and 1 location, never unlimited.
  * A stored allowance below 1 is treated as 1.
+ *
+ * Approved Group base, not a Stripe price: 2 sites and 5 locations.
+ * A later site bundle adds one site and one location. It is not charged here.
  */
+export const GROUP_BASE_SITE_ALLOWANCE = 2;
+export const GROUP_BASE_LOCATION_ALLOWANCE = 5;
 export const DEFAULT_SITE_ALLOWANCE = 1;
 export const DEFAULT_LOCATION_ALLOWANCE = 1;
 

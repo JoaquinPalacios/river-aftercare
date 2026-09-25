@@ -1,6 +1,7 @@
 import "server-only";
 
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
+import { placementPublicPath } from "@/lib/clinic-portal/placement-path";
 import { PUBLIC_PRACTICE_GUIDE_WHERE } from "@/lib/aftercare/public-practice-guide-predicates";
 import { downgradeRetentionIsOpen } from "@/lib/entitlements/downgrade-retention";
 import { getPrisma } from "@/lib/prisma";
@@ -16,6 +17,7 @@ export async function loadPublishedGuideShareTarget(input: {
   guideId: string;
   requestHost: string;
   protocol?: string;
+  placementId?: string | null;
 }): Promise<PublishedGuideShareTarget | null> {
   const guide = await getPrisma().practiceGuide.findFirst({
     where: {
@@ -30,12 +32,13 @@ export async function loadPublishedGuideShareTarget(input: {
         where: {
           isEnabled: true,
           clinicId: input.clinicId,
+          ...(input.placementId ? { id: input.placementId } : {}),
           location: {
-            servesSiteRoot: true,
+            ...(input.placementId ? {} : { servesSiteRoot: true }),
             active: true,
             clinicId: input.clinicId,
             clinicSite: {
-              isPrimary: true,
+              ...(input.placementId ? {} : { isPrimary: true }),
               active: true,
               clinicId: input.clinicId,
             },
@@ -47,6 +50,9 @@ export async function loadPublishedGuideShareTarget(input: {
           location: {
             select: {
               clinicId: true,
+              slug: true,
+              servesSiteRoot: true,
+              active: true,
               clinicSite: {
                 select: { slug: true, clinicId: true, active: true },
               },
@@ -64,7 +70,8 @@ export async function loadPublishedGuideShareTarget(input: {
     placement.clinicId !== input.clinicId ||
     placement.location.clinicId !== input.clinicId ||
     placement.location.clinicSite.clinicId !== input.clinicId ||
-    !placement.location.clinicSite.active
+    !placement.location.clinicSite.active ||
+    !placement.location.active
   ) {
     return null;
   }
@@ -80,7 +87,11 @@ export async function loadPublishedGuideShareTarget(input: {
     requestHost: input.requestHost,
     clinicSlug: placement.location.clinicSite.slug,
     protocol: input.protocol,
-    pathname: `/${placement.publicSlug}`,
+    pathname: placementPublicPath({
+      servesSiteRoot: placement.location.servesSiteRoot,
+      locationSlug: placement.location.slug,
+      publicSlug: placement.publicSlug,
+    }),
   });
 
   if (!publicUrl) {

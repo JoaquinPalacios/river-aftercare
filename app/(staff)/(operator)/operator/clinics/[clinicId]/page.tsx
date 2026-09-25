@@ -15,7 +15,9 @@ import { formatBillingDate } from "@/lib/billing/billing-presentation";
 import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
 import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
+import { SiteLocationCapacityForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/site-location-capacity-form";
 import { getOperatorClinic } from "@/lib/operator/get-operator-clinic";
+import { loadOperatorSiteLocationCapacity } from "@/lib/operator/update-site-location-allowance";
 import { clinicTypefaceLabel } from "@/lib/branding/clinic-typeface";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
@@ -36,11 +38,13 @@ export default async function OperatorClinicDetailPage({
   if (!clinic) {
     notFound();
   }
-  const [billing, teamAllowance, guideAllowance] = await Promise.all([
-    loadOperatorBillingPanel(clinic.id),
-    loadTeamAllowance(clinic.id),
-    loadGuideAllowance(clinic.id),
-  ]);
+  const [billing, teamAllowance, guideAllowance, siteCapacity] =
+    await Promise.all([
+      loadOperatorBillingPanel(clinic.id),
+      loadTeamAllowance(clinic.id),
+      loadGuideAllowance(clinic.id),
+      loadOperatorSiteLocationCapacity(clinic.id),
+    ]);
 
   const requestHeaders = await headers();
   const host =
@@ -235,6 +239,16 @@ export default async function OperatorClinicDetailPage({
           }}
         />
       ) : null}
+
+      <SiteLocationCapacityForm
+        clinicId={clinic.id}
+        plan={siteCapacity.allowance.commercialPlan}
+        siteAllowance={siteCapacity.allowance.siteAllowance}
+        locationAllowance={siteCapacity.allowance.locationAllowance}
+        activeSites={siteCapacity.usage.activeSites}
+        activeLocations={siteCapacity.usage.activeLocations}
+        sites={siteCapacity.sites}
+      />
 
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
         <h2 className="text-base font-semibold">Team</h2>

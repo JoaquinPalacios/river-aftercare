@@ -307,10 +307,18 @@ export function planDowngradeConflictMessage(
 ): string {
   const intro =
     "Team usage must be resolved before downgrade. Nothing was changed.";
-  if (!readiness?.conflicts.includes("TEAM_MEMBERS")) {
-    return intro;
+  const parts = [intro];
+  if (readiness?.conflicts.includes("TEAM_MEMBERS")) {
+    parts.push(
+      `Team members: ${readiness.team.current} used / ${readiness.team.limit} allowed.`
+    );
   }
-  return `${intro} Team members: ${readiness.team.current} used / ${readiness.team.limit} allowed`;
+  if (readiness?.conflicts.includes("SITE_LOCATIONS")) {
+    parts.push(
+      `Essential includes one clinic site and one location. This account is using ${readiness.sites?.current ?? 0} sites and ${readiness.locations?.current ?? 0} locations. Deactivate the extra sites or locations before changing plan. Nothing was removed.`
+    );
+  }
+  return parts.join(" ");
 }
 
 function checkoutPending(state: PlanDowngradeState): boolean {
@@ -368,7 +376,10 @@ export function assessClinicPlanDowngrade(input: {
   ) {
     return { ok: false, code: "not_active" };
   }
-  if (readiness.conflicts.includes("TEAM_MEMBERS")) {
+  if (
+    readiness.conflicts.includes("TEAM_MEMBERS") ||
+    readiness.conflicts.includes("SITE_LOCATIONS")
+  ) {
     return { ok: false, code: "not_ready" };
   }
   if (

@@ -104,6 +104,33 @@ export async function prepareClinicCommercialOffer(
     return revision;
   }
 
+  const usageDb = db as {
+    clinicSite?: { count?: (args: unknown) => Promise<number> };
+    clinicLocation?: { count?: (args: unknown) => Promise<number> };
+  };
+  if (usageDb.clinicSite?.count && usageDb.clinicLocation?.count) {
+    const { countActiveSiteLocationUsage, readAccountSiteLocationAllowance } =
+      await import("@/lib/clinics/site-location-capacity");
+    const allowance = effectiveOfferAllowance(
+      input.commercialPlan,
+      await readAccountSiteLocationAllowance(db as never, input.clinicId)
+    );
+    const usage = await countActiveSiteLocationUsage(
+      db as never,
+      input.clinicId
+    );
+    if (
+      usage.activeSites > allowance.sites ||
+      usage.activeLocations > allowance.locations
+    ) {
+      return {
+        ok: false,
+        message:
+          "This plan cannot cover the account's active clinic sites and locations. Deactivate the extra sites or locations first. Nothing was removed.",
+      };
+    }
+  }
+
   const planChanged = Boolean(
     existing &&
     (existing.commercialPlan !== input.commercialPlan ||
@@ -146,6 +173,19 @@ export async function prepareClinicCommercialOffer(
   });
 
   return { ok: true };
+}
+
+function effectiveOfferAllowance(
+  plan: "ESSENTIAL" | "PRACTICE",
+  stored: { locationAllowance: number }
+): { sites: number; locations: number } {
+  if (plan === "PRACTICE") {
+    return {
+      sites: 1,
+      locations: Math.max(1, stored.locationAllowance),
+    };
+  }
+  return { sites: 1, locations: 1 };
 }
 
 async function expireOpenCheckoutSession(

@@ -30,3 +30,15 @@ export async function lockClinicPlanDowngrade(
 ): Promise<void> {
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`clinic-plan-downgrade:${clinicId}`}))`;
 }
+
+/**
+ * One account-scoped lock for site and location capacity, and for slug
+ * collisions between a root guide address and a location path.
+ * Advisory locks are re-entrant inside the same transaction.
+ */
+export async function lockClinicSiteLocationCapacity(
+  tx: Prisma.TransactionClient,
+  clinicId: string
+): Promise<void> {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`clinic-site-location-capacity:${clinicId}`}))`;
+}
