@@ -10,7 +10,9 @@ Measured: 2026-09-25 (before the Sydney pin).
 
 **Status, staff JavaScript:** the Zod and Prisma client-import split is measured in [Staff client bundle split](#staff-client-bundle-split). Login first-load JavaScript fell from 1,082,709 bytes to 695,120 bytes. The 387,769-byte Zod chunk and the 57,465-byte Prisma field chunk are absent from the production client graph. Patient routes did not grow.
 
-**Status, marketing delivery:** public marketing HTML is now prerendered. See [Marketing ISR](#marketing-isr). Patient, staff, and operator routes stay dynamic. Production CDN headers are not measured until this change is deployed.
+**Status, marketing delivery:** public marketing HTML is now prerendered. See [Marketing ISR](#marketing-isr). Patient, staff, and operator routes stay dynamic. Production CDN headers for that HTML were measured after deploy: apex `/` is `x-vercel-cache: HIT`.
+
+**Status, Sentry client bundle:** investigated in [Sentry Client Bundle Investigation](#sentry-client-bundle-investigation). The shared browser file was 371,081 bytes uncompressed and about 120 KB brotli on the production CDN. Turbopack was still shipping Sentry debug and tracing code. `compiler.define` removes that code. Error monitoring stays. The remaining shared Sentry file is 303,628 bytes uncompressed.
 
 ## 1. Executive summary
 
@@ -782,7 +784,7 @@ Only items with direct evidence. Do not implement them in this branch.
 
 PR 0 is done and measured. Follow [Sydney Region Post-Deployment Measurement](#sydney-region-post-deployment-measurement), not the 1.3–1.5s figures, for anything after this point.
 
-The staff client Zod and Prisma enum split (former PR B) is measured in [Staff client bundle split](#staff-client-bundle-split). Patient loader dedupe and the location-home query reduction stay later. Guide and print are within about 40–75ms of warm `/api/health` from the same US runner, so statement count alone is not the next incident. The additional-location miss path stays inside that later query pull request. `demodental` has no additional location, so that path was not remeasured in production. The remaining first-load weight on every route is the shared Sentry browser chunk (about 371KB). Leave that SDK in place.
+The staff client Zod and Prisma enum split (former PR B) is measured in [Staff client bundle split](#staff-client-bundle-split). Patient loader dedupe and the location-home query reduction stay later. Guide and print are within about 40–75ms of warm `/api/health` from the same US runner, so statement count alone is not the next incident. The additional-location miss path stays inside that later query pull request. `demodental` has no additional location, so that path was not remeasured in production. The remaining first-load weight on every route is the shared Sentry browser chunk (about 371KB at this point in the audit). The later measurement and the Turbopack tree-shake are in [Sentry Client Bundle Investigation](#sentry-client-bundle-investigation).
 
 Do not open an index PR from this audit.
 
@@ -1044,3 +1046,153 @@ For each response record:
 Warm requests should show the CDN or static cache (`x-vercel-cache` `HIT`, or `STALE` only immediately after an operator save) rather than a Sydney function render on every request. `x-vercel-id` still names the edge that accepted the connection. Compare how many `::` segments it has with the earlier `iad1::syd1::<id>` dynamic renders. This plan does not set a target millisecond value.
 
 The hostname proxy still classifies the host before the rewrite. If a warm response is `HIT` and `x-vercel-id` still includes `syd1`, the proxy ran and the HTML was cached. If it is `HIT` and the id is only the edge region, the function did not run. Record which one production returns. Do not change patient URLs in this probe.
+
+## Sentry Client Bundle Investigation
+
+Recorded 2026-09-25. Starting `main` SHA `97ce087daf2ba1c420c5cb6da0a91147426088fc` (PR #105). `@sentry/nextjs` stays on `10.75.0`. This is not a Sentry v11 upgrade. Patient caching, Prisma, Stripe, and multi-location behaviour were not changed. Server Sentry was not disabled.
+
+### Current client configuration
+
+Browser init is synchronous in `instrumentation-client.ts`, which calls `initClientErrorTracking()` and exports `onRouterTransitionStart`. Next.js runs that file after the HTML document is loaded and before React hydration. Only synchronous top-level code is guaranteed to finish before hydration ([instrumentation-client](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client)).
+
+`Sentry.init` options come from `createErrorTrackingInitOptions`:
+
+| Setting                                   | Value                                                                                                                                                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Enablement                                | `NEXT_PUBLIC_VERCEL_ENV` of `production` or `preview`, plus a valid `NEXT_PUBLIC_SENTRY_DSN`. Server-only `VERCEL_ENV` does not turn the browser on. Tests and `NODE_ENV=test` do not init.      |
+| `tracesSampleRate` / `profilesSampleRate` | `0` / `0`                                                                                                                                                                                        |
+| `beforeSendTransaction`                   | drops every transaction                                                                                                                                                                          |
+| Replay                                    | `replaysSessionSampleRate` and `replaysOnErrorSampleRate` are `0`. `replayIntegration` is not called.                                                                                            |
+| Logs                                      | `enableLogs: false`                                                                                                                                                                              |
+| Breadcrumbs                               | `maxBreadcrumbs: 0`, `beforeBreadcrumb` returns null, and the `Breadcrumbs` integration is removed                                                                                               |
+| PII                                       | `sendDefaultPii: false`. `dataCollection` turns off user info, cookies, HTTP bodies, and stack-frame variables. `beforeSend` strips user, headers, cookies, query, fragment, and request bodies. |
+| Release                                   | `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` when it is a git SHA. An absent release is omitted.                                                                                                          |
+| Source maps                               | `withSentryConfig` uploads only when `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are all set. Otherwise upload is off and the build still succeeds.                                  |
+| Other                                     | `attachStacktrace: true`, `sendClientReports: false`, `skipOpenTelemetrySetup: true`. No feedback widget, no metrics calls, no custom client fingerprint.                                        |
+
+There is no `sentry.edge.config.ts`. `instrumentation.ts` loads server Sentry only when `NEXT_RUNTIME === "nodejs"`. `proxy.ts` does not import Sentry.
+
+The browser SDK's default integrations are not assumed. `@sentry/nextjs` `10.75.0` client `init` builds defaults from `@sentry/react` / `@sentry/browser` and, when `__SENTRY_TRACING__` is undefined, also adds `browserTracingIntegration` plus `NextjsClientStackFrameNormalization`. River then filters by integration name. After that filter, a direct client-SDK init in Vitest had `GlobalHandlers`, `LinkedErrors`, and `NextjsClientStackFrameNormalization`, and did not have `BrowserTracing`, `Breadcrumbs`, or `Replay`. `HttpContext` is not in the removal list. `beforeSend` still reduces the request to an origin and path. `CultureContext` can run, and `beforeSend` keeps only the `runtime` context, so locale and timezone are not stored. `BrowserApiErrors`, `Dedupe`, `InboundFilters`, and `FunctionToString` are not removed.
+
+`global-error.tsx` and the marketing, staff, and patient `error.tsx` files do not import `@sentry/nextjs`. They render `ClientErrorReporter`, which calls `reportClientException` → `Sentry.captureException` after the error boundary commits. That import is in the client graph. `instrumentation-client.ts` also imports the SDK for every page. Either import is enough to keep one shared SDK chunk. Removing the reporter to shrink the bundle would drop React render reporting. That was not done.
+
+Server reporting (`reportServerException`, `onRequestError`, operational fingerprints) is unchanged.
+
+### What the 371 KB file contained
+
+Local `next build` (Next.js 16.3.5, Turbopack, Node 24.21.0) before the define change:
+
+| File                                      | Uncompressed | gzip -9 | Node brotli |
+| ----------------------------------------- | -----------: | ------: | ----------: |
+| `1iaha0zb6-kf9.js`                        |      371,081 | 117,977 |     100,644 |
+| Companion Sentry chunk `05g_wkr_x_wwg.js` |       44,774 |  15,095 |           — |
+
+The large file contained `GlobalHandlers`, `captureException`, `beforeSend`, `NextjsClientStackFrameNormalization`, breadcrumb code, 21 `[Tracing]` log strings, and web-vitals markers (`largest-contentful-paint`). It contained the identifiers `__SENTRY_DEBUG__` (6) and `__SENTRY_TRACING__` (4). It did not contain `rrweb` or `replayIntegration`. Stripe and Turnstile strings in that file are the SDK denylist.
+
+`bundleSizeOptimizations.excludeTracing` and `excludeDebugStatements` are set in `createSentryBuildOptions`. Sentry's webpack plugin turns those into defines ([tree shaking](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/tree-shaking/)). The same page says those options are not supported for Turbopack. This app's production build is Turbopack. The flags were still present in the emitted chunk, so the webpack treeshake did not run.
+
+Classification of the pre-change chunk:
+
+| Piece                                                                                                                   | Class                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Global handlers, linked errors, dedupe, inbound filters, stack-frame normalization, fetch transport, `captureException` | Required for current error monitoring                                                                                                                 |
+| `BrowserTracing`, idle spans, web vitals, debug logger branches                                                         | Optional code that was compiled in. Runtime already refused traces (`tracesSampleRate: 0`, integration filtered, `beforeSendTransaction` drops them). |
+| Session Replay, feedback, logs product, profiling                                                                       | Not used. Replay recorder code was not in the chunk.                                                                                                  |
+| Breadcrumb implementation                                                                                               | Bundled, then disabled at runtime                                                                                                                     |
+
+### Production transfer, before this change
+
+Measured 2026-09-25 against the deployed marketing and `demodental` documents. The shared file was `/_next/static/immutable/chunks/32jaxe9o1x3gg.js`.
+
+| Dimension          | Measurement                                                                                                                                                                                              |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Uncompressed body  | 371,706 bytes                                                                                                                                                                                            |
+| Brotli on the wire | 120,544 bytes (`content-encoding: br`)                                                                                                                                                                   |
+| Cache              | `cache-control: public, max-age=31536000, immutable`. First probe `x-vercel-cache: HIT` with `age: 0`. A second probe 29 seconds later was `HIT` with `age: 29`.                                         |
+| HTML               | Marketing and `demodental` home both reference that URL. The script tag is `async`. It does not block the HTML parser.                                                                                   |
+| Patient HTML       | Still `private, no-store` and `x-vercel-cache: MISS`. The script URL is the immutable shared file.                                                                                                       |
+| Companion chunk    | `2t_lt5l1auul4.js`, 45,138 bytes uncompressed, 16,193 bytes brotli, also immutable and `HIT`. It contains more Sentry core (`captureException`, breadcrumb helpers), not the tracing logs.               |
+| Parse              | On this Node 24 V8, `new Function` of the local 371,081-byte chunk was about 7 ms on the first timed call. That is not a Chrome or phone trace.                                                          |
+| Hydration          | The chunk is a dependency of synchronous `instrumentation-client` init, so its evaluation is before hydration once the async download finishes. Download itself is parallel with the other async chunks. |
+
+371 KB is the uncompressed build size. A current browser transfers about 121 KB for that file, then the CDN keeps it for a year.
+
+### Early-error window
+
+Do not defer this init.
+
+Next.js documents that a `Promise`, `import()`, or top-level `await` in `instrumentation-client` is not awaited and may finish after hydration has started. Errors that would be missed if the SDK loaded later:
+
+- an exception while evaluating a module that runs before the deferred import resolves
+- the first React render and hydration exception, including errors Next.js routes to `global-error` during that pass
+- an unhandled rejection scheduled before the import resolves
+- `ClientErrorReporter`'s `useEffect` if it runs before `Sentry.init`
+
+`global-error` and `error.tsx` report from `useEffect`, which is after commit. That does not cover a module-evaluation throw that prevents the reporter from mounting, and it does not cover an unhandled rejection that happens before init. A small `window.onerror` buffer would not see React errors that React handles inside the boundary. Replaying those into Sentry would be a custom client. That approach was rejected.
+
+Sentry's Next.js manual setup initializes in `instrumentation-client.ts` and captures render errors with `captureException` ([manual setup](https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/)). Lazy loading in the Sentry docs is for optional integrations such as Replay, not for replacing the error SDK ([integrations](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/integrations/)).
+
+### Options
+
+**A. Compile-time tree-shake. Accepted.**
+
+`compiler.define` in `next.config.ts` sets `__SENTRY_DEBUG__: false`, `__SENTRY_TRACING__: false`, and the three Replay exclude flags Sentry documents for manual tree shaking ([JavaScript tree shaking](https://docs.sentry.io/platforms/javascript/configuration/tree-shaking/)). Next.js `compiler.define` applies on Turbopack ([compiler define](https://nextjs.org/docs/architecture/nextjs-compiler#define-replacing-variables-during-build)). Server `@sentry/nextjs` is external, and the server build does not contain those flag identifiers, so server init is the published package.
+
+After a second `next build`, the tracing log strings and web-vitals markers were gone. `GlobalHandlers` and `captureException` remained.
+
+|                        |  Before |   After |
+| ---------------------- | ------: | ------: |
+| Shared Sentry chunk    | 371,081 | 303,628 |
+| gzip -9                | 117,977 |  96,716 |
+| Node brotli            | 100,644 |  83,129 |
+| Companion Sentry chunk |  44,774 |  44,564 |
+
+Every measured route's `firstLoadUncompressedJsBytes` fell by 67,663. That is the two Sentry files and nothing else.
+
+| Route                                        |  Before |   After |
+| -------------------------------------------- | ------: | ------: |
+| Patient home `/_sites/[tenant]`              | 665,672 | 598,009 |
+| Patient guide `/_sites/[tenant]/[guideSlug]` | 670,788 | 603,125 |
+| Marketing `/_marketing`                      | 830,013 | 762,350 |
+| `/login`                                     | 695,122 | 627,459 |
+| Practice settings `/practice`                | 753,079 | 685,416 |
+
+Monitoring change: debug logger branches and the tracing implementation that was already sampled at 0 are absent from the client bundle. Uncaught exceptions, unhandled rejections, `captureException`, and Next.js stack-frame normalization stay. `onRouterTransitionStart` stays exported. No production Sentry event was sent for this measurement.
+
+**B. Smaller client package. Rejected.**
+
+Sentry's tree-shaking page shows a `BrowserClient` built from `@sentry/browser` with an explicit integration list, which can drop unused default integrations. `@sentry/nextjs` client `init` always calls its own `getDefaultIntegrations` before user options are applied, and that function is what adds Next.js stack-frame normalization and the redirect filter. Calling `BrowserClient` from `@sentry/browser` directly would skip those. That is a second client stack beside `@sentry/nextjs` on the server. It was not implemented.
+
+**C. Defer init. Rejected.**
+
+Loading the SDK from `import()`, `requestIdleCallback`, or `window` `load` misses the early window above. The remaining file is about 304 KB uncompressed and about 83 KB brotli locally. That is not a reason to give up hydration errors. Official Next.js timing does not support an async init that still runs before hydration.
+
+**D. Early error buffer. Rejected.**
+
+A few lines can record `window.onerror` until the SDK loads. They do not record React render or hydration errors that the framework passes to `error.tsx` instead of `window.onerror`. Covering those as well means a custom queue in the reporter and in the global handlers. That was rejected.
+
+### Surfaces
+
+Marketing, patient, staff, and operator use the same `instrumentation-client.ts` and the same error reporter. The SDK chunk is one immutable CDN URL shared by those HTML documents. Splitting four Sentry setups would not remove the download for a person who only opens one host, and it would make a missed init a per-surface bug. No split was added.
+
+### Coverage test
+
+`tests/client-sentry-transport.test.ts` loads `@sentry/nextjs` `build/cjs/client` (the browser build; Node's package export is the server build) with `createErrorTrackingInitOptions` and an in-memory transport. One init captured:
+
+- `Sentry.captureException` (the call `ClientErrorReporter` makes for render and hydration errors)
+- `globalThis.onerror`
+- `globalThis.onunhandledrejection`
+
+The envelope used `sentry.javascript.nextjs`. A URL query and fragment were not in the payload. Nothing was sent to a Sentry project.
+
+### v11
+
+Sentry JavaScript SDK 11.0.0 is a breaking release (23 September 2026). The migration changes OpenTelemetry defaults, `dataCollection`, span streaming, and removes deprecated `withSentryConfig` options ([v10 to v11](https://docs.sentry.io/platforms/javascript/guides/nextjs/migration/v10-to-v11/)). It was not installed here. A later dependency PR can measure its client chunk. This change does not depend on that upgrade.
+
+### Chosen outcome
+
+Keep synchronous client init. Tree-shake debug and tracing code that Turbopack was emitting and the app was already refusing to send. Do not defer the SDK. Do not remove Sentry from marketing or from error boundaries.
+
+### Next performance step
+
+Do not spend the next change on the remaining ~304 KB Sentry file. That is the error SDK, on an immutable CDN response of roughly 80–100 KB. The audit's later patient-loader work stays behind a new probe: guide and print were already within about 40–75 ms of warm `/api/health` from the US runner after the Sydney move.

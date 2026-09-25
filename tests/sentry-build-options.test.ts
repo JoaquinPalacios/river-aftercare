@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -55,5 +57,17 @@ describe("Sentry source-map build options", () => {
     expect(options.release.name).toBe("deadbeefcafebabe");
     expect(options.release.create).toBe(true);
     expect(options.authToken).toBe("sntrys_example");
+  });
+
+  it("defines Sentry tree-shake flags for the Turbopack client build", () => {
+    const source = readFileSync("next.config.ts", "utf8");
+    expect(source).toContain("compiler:");
+    expect(source).toContain("define:");
+    expect(source).toContain("__SENTRY_DEBUG__: false");
+    expect(source).toContain("__SENTRY_TRACING__: false");
+    expect(source).toContain("__RRWEB_EXCLUDE_IFRAME__: true");
+    expect(source).toContain("__RRWEB_EXCLUDE_SHADOW_DOM__: true");
+    expect(source).toContain("__SENTRY_EXCLUDE_REPLAY_WORKER__: true");
+    expect(source).toContain('"@sentry/nextjs"');
   });
 });
