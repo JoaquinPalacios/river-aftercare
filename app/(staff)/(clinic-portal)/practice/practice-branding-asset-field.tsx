@@ -55,6 +55,7 @@ export function PracticeBrandingAssetField({
   removeAction,
   readUpload,
   onAssetChange,
+  siteId,
 }: {
   copy: PracticeBrandingAssetCopy;
   storedUrl: string | null;
@@ -80,6 +81,7 @@ export function PracticeBrandingAssetField({
     storedUrl: string | null;
     previewSrc: string | null;
   }) => void;
+  siteId?: string;
 }) {
   const appliedUploadKey = useRef<string | null>(null);
   const seenUploadState = useRef<unknown>(emptyState);
@@ -169,6 +171,9 @@ export function PracticeBrandingAssetField({
     try {
       const data = new FormData();
       data.set("intent", `remove-${hiddenName}`);
+      if (siteId) {
+        data.set("siteId", siteId);
+      }
       const result = readUpload(await removeAction(emptyState as never, data));
       if (result.ok) {
         setPreviewSrc(null);
@@ -384,7 +389,14 @@ export function PracticeBrandingAssetField({
       ) : null}
 
       {mounted && storageAvailable && canEdit
-        ? createPortal(<form id={formId} action={boundUpload} />, document.body)
+        ? createPortal(
+            <form id={formId} action={boundUpload}>
+              {siteId ? (
+                <input type="hidden" name="siteId" value={siteId} />
+              ) : null}
+            </form>,
+            document.body
+          )
         : null}
     </div>
   );

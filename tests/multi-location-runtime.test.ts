@@ -806,7 +806,7 @@ describe("multi-location runtime switch", () => {
       }
     );
     expect(rootUnpublished.isEnabled).toBe(false);
-    expect(otherUnpublished.isEnabled).toBe(true);
+    expect(otherUnpublished.isEnabled).toBe(false);
     await expect(
       getPublishedPracticeGuide({
         clinicSlug: SITE_SLUG,

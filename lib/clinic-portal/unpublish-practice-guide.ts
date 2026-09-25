@@ -62,6 +62,13 @@ export async function unpublishPracticeGuide(input: {
         isEnabled: false,
       },
     });
+    await tx.practiceGuidePlacement.updateMany({
+      where: {
+        practiceGuideId: guide.id,
+        clinicId: input.clinicId,
+      },
+      data: { isEnabled: false },
+    });
     await disableRootPlacement(tx, {
       clinicId: input.clinicId,
       practiceGuideId: guide.id,

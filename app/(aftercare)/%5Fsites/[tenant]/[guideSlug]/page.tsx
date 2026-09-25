@@ -13,6 +13,8 @@ import {
   timelineStatusByKey,
 } from "@/lib/aftercare/demo-recovery-state";
 import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practice-guide";
+import { listPublishedLocationGuides } from "@/lib/aftercare/list-published-location-guides";
+import { GuideList } from "@/app/(aftercare)/components/guide-list";
 import { instructionLabel } from "@/lib/aftercare/instruction-terminology";
 import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
 import { timelineSectionsOf } from "@/lib/aftercare/section-body";
@@ -41,9 +43,27 @@ export async function generateMetadata({
   });
 
   if (!document) {
+    const locationHome = await listPublishedLocationGuides({
+      siteSlug: tenant,
+      locationSlug: guideSlug,
+    });
+    if (!locationHome) {
+      return aftercarePageMetadata({
+        title: instructionLabel(null),
+        description: "Patient aftercare instructions.",
+      });
+    }
+    const displayName =
+      locationHome.profile.displayName ?? locationHome.clinic.name;
     return aftercarePageMetadata({
-      title: instructionLabel(null),
-      description: "Patient aftercare instructions.",
+      title: `${locationHome.placeName} · ${displayName}`,
+      description: `${instructionLabel(locationHome.profile.instructionTerminology)} from ${displayName} at ${locationHome.placeName}.`,
+      siteName: displayName,
+      canonicalUrl: await publicTenantCanonicalUrl(
+        `/${locationHome.locationSlug}`
+      ),
+      faviconUrl: locationHome.profile.faviconUrl,
+      theme: locationHome.profile,
     });
   }
 
@@ -79,7 +99,36 @@ export default async function TenantGuidePage({
   });
 
   if (!document) {
-    notFound();
+    const locationHome = await listPublishedLocationGuides({
+      siteSlug: tenant,
+      locationSlug: guideSlug,
+    });
+    if (!locationHome) {
+      notFound();
+    }
+    const chrome = resolvePracticeChrome({
+      slug: locationHome.clinic.slug,
+      name: locationHome.clinic.name,
+      profile: locationHome.profile,
+    });
+    return (
+      <PatientPage chrome={chrome}>
+        <header className={styles.hero}>
+          <h1 className={styles.title}>{chrome.displayName}</h1>
+          <p className={styles.kicker}>{locationHome.placeName}</p>
+          <p className={styles.lede}>
+            Recovery information from {chrome.displayName} at{" "}
+            {locationHome.placeName}. Open a guide if you have just had
+            treatment, or return to this page whenever you need to check what to
+            do next.
+          </p>
+        </header>
+        <GuideList
+          guides={locationHome.guides}
+          instructionsLabel={chrome.instructionsLabel}
+        />
+      </PatientPage>
+    );
   }
 
   const chrome = resolvePracticeChrome({

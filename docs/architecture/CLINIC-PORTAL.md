@@ -12,7 +12,7 @@ Staff/admin UI for River Aftercare. Patient tenant rendering remains the source 
 
 ## Locations
 
-The current product has one primary `ClinicSite` and one root `ClinicLocation`. The portal does not list, create, or edit sites or locations. Practice settings read branding from that site and contact, address, and emergency instructions from the root location. Saves write those rows and the matching `ClinicProfile` fields together. Patient pages, print, and QR use `ClinicSite.slug` plus the root placement’s public slug. There is no location path segment. Site and location management is a later change.
+Sites & Locations is `/practice/sites` and `/practice/sites/[siteId]`. Practice settings stay at `/practice` for the primary site brand and the primary root location, and those saves still dual-write `ClinicProfile`. Other sites and locations do not. Clinic admins create sites and locations when capacity allows. Staff can view them. Operators set site and location allowances and deactivate or reactivate sites. Those allowance changes do not charge or refund. Site and location slugs are immutable after creation. Patient pages, print, and QR use the placement path: the root location has no path segment, and another location uses `/{locationSlug}/{guideSlug}`.
 
 ## Clinic portal
 
@@ -21,6 +21,7 @@ Primary navigation (one group, identical row treatment):
 1. Overview — `/dashboard`
 2. Guides — `/guides`
 3. Practice — `/practice` (clinic `ADMIN` only)
+4. Sites & Locations — `/practice/sites` (staff can view; admins manage)
 
 Utility action, separated by a divider:
 

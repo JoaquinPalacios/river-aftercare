@@ -23,7 +23,10 @@ export function GuideList({
       <ul className={styles.guideList}>
         {guides.map((guide) => (
           <li key={guide.id}>
-            <a className={styles.guideLink} href={`/${guide.publicSlug}`}>
+            <a
+              className={styles.guideLink}
+              href={guide.href ?? `/${guide.publicSlug}`}
+            >
               <span>
                 <span className={styles.guideTitle}>{guide.title}</span>
                 <span className={styles.guideHint}>

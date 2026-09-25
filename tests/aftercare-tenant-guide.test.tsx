@@ -1,15 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-const { getPublishedPracticeGuide, notFound } = vi.hoisted(() => ({
-  getPublishedPracticeGuide: vi.fn(),
-  notFound: vi.fn(() => {
-    throw new Error("NEXT_HTTP_ERROR_FALLBACK;404");
-  }),
-}));
+const { getPublishedPracticeGuide, listPublishedLocationGuides, notFound } =
+  vi.hoisted(() => ({
+    getPublishedPracticeGuide: vi.fn(),
+    listPublishedLocationGuides: vi.fn(),
+    notFound: vi.fn(() => {
+      throw new Error("NEXT_HTTP_ERROR_FALLBACK;404");
+    }),
+  }));
 
 vi.mock("@/lib/aftercare/get-published-practice-guide", () => ({
   getPublishedPracticeGuide,
+}));
+
+vi.mock("@/lib/aftercare/list-published-location-guides", () => ({
+  listPublishedLocationGuides,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -173,6 +179,8 @@ function headingTags(html: string): string[] {
 describe("tenant guide page", () => {
   beforeEach(() => {
     getPublishedPracticeGuide.mockReset();
+    listPublishedLocationGuides.mockReset();
+    listPublishedLocationGuides.mockResolvedValue(null);
     notFound.mockClear();
   });
 

@@ -6,9 +6,11 @@ import { notFound } from "next/navigation";
 import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import { getPrimaryPatientChrome } from "@/lib/aftercare/get-clinic-by-slug";
 import { GuideEditor } from "@/app/(staff)/(clinic-portal)/guides/guide-editor";
+import { GuidePlacementBoard } from "@/app/(staff)/(clinic-portal)/guides/guide-placement-board";
 import { TemplateAdaptationPanel } from "@/app/(staff)/(clinic-portal)/guides/template-adaptation-panel";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import { isClinicPortalError } from "@/lib/clinic-portal/errors";
+import { loadGuidePlacementBoard } from "@/lib/clinic-portal/guide-placements";
 import { loadPracticeGuideEditor } from "@/lib/clinic-portal/load-practice-guide-editor";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import { getClinicPortalOverview } from "@/lib/clinic-portal/get-clinic-portal";
@@ -38,15 +40,6 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
   const overview = await getClinicPortalOverview(clinicMembership.clinic.id);
 
   try {
-    const [guide, clinic, allowance, links] = await Promise.all([
-      loadPracticeGuideEditor({
-        clinicId: clinicMembership.clinic.id,
-        guideId,
-      }),
-      getPrimaryPatientChrome(clinicMembership.clinic.id),
-      loadGuideAllowance(clinicMembership.clinic.id),
-      marketingPublicLinks(),
-    ]);
     const requestHeaders = await headers();
     const host =
       requestHeaders.get("x-forwarded-host") ??
@@ -55,6 +48,21 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
     const protocol =
       requestHeaders.get("x-forwarded-proto") ??
       (host.includes("localhost") ? "http" : "https");
+    const [guide, clinic, allowance, links, placements] = await Promise.all([
+      loadPracticeGuideEditor({
+        clinicId: clinicMembership.clinic.id,
+        guideId,
+      }),
+      getPrimaryPatientChrome(clinicMembership.clinic.id),
+      loadGuideAllowance(clinicMembership.clinic.id),
+      marketingPublicLinks(),
+      loadGuidePlacementBoard({
+        clinicId: clinicMembership.clinic.id,
+        guideId,
+        requestHost: host,
+        protocol,
+      }),
+    ]);
     const theme = resolveAftercareTheme(clinic?.profile);
     const font = clinicFontPresentation(clinic?.profile?.typeface);
     const clinicSlug = overview?.slug;
@@ -118,6 +126,17 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
           fontClassName={font.className}
           fontCssVariable={font.cssVariable}
         />
+        {placements ? (
+          <GuidePlacementBoard
+            guideId={guide.id}
+            canEdit={
+              (clinicMembership.source === "operator_support" ||
+                clinicMembership.role === ClinicMembershipRole.ADMIN) &&
+              !guide.downgradeRetainedAt
+            }
+            sites={placements.sites}
+          />
+        ) : null}
       </>
     );
   } catch (error) {

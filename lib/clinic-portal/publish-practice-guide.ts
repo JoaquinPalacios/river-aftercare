@@ -9,7 +9,7 @@ import {
   isPracticeReviewAttested,
   PRACTICE_REVIEW_ATTESTATION_REQUIRED_MESSAGE,
 } from "@/lib/clinic-portal/practice-review-attestation";
-import { upsertRootPlacement } from "@/lib/clinic-portal/root-placement";
+import { advancePublishedPlacement } from "@/lib/clinic-portal/root-placement";
 import { getPrisma } from "@/lib/prisma";
 
 export async function publishPracticeGuide(input: {
@@ -130,11 +130,10 @@ export async function publishPracticeGuide(input: {
       },
     });
 
-    await upsertRootPlacement(tx, {
+    await advancePublishedPlacement(tx, {
       clinicId: input.clinicId,
       practiceGuideId: guide.id,
       publicSlug: guide.publicSlug,
-      isEnabled: true,
       publishedPracticeGuideRevisionId: published.id,
     });
 

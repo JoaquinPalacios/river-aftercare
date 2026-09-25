@@ -7,6 +7,7 @@ import {
   type ClinicBySlugRecord,
   getClinicBySlug,
 } from "@/lib/aftercare/get-clinic-by-slug";
+import { getPatientLocation } from "@/lib/aftercare/get-patient-location";
 import { composedSectionsFromPracticeRevision } from "@/lib/aftercare/practice-revision-document";
 import { PUBLIC_PRACTICE_GUIDE_WHERE } from "@/lib/aftercare/public-practice-guide-predicates";
 import { downgradeRetainedDirectUrlVisible } from "@/lib/entitlements/downgrade-retention";
@@ -46,6 +47,8 @@ export interface PublishedPracticeGuideDocument {
     reviewedAt: Date | null;
   };
   sections: ComposedGuideSection[];
+  /** Set for an additional location. Root guides omit it. */
+  placeName?: string;
 }
 
 const placementSelect = Prisma.validator<Prisma.PracticeGuidePlacementSelect>()(
@@ -161,13 +164,25 @@ type PlacementRow = Prisma.PracticeGuidePlacementGetPayload<{
 export async function getPublishedPracticeGuide(input: {
   clinicSlug: string;
   publicSlug: string;
+  locationSlug?: string;
   now?: Date;
 }): Promise<PublishedPracticeGuideDocument | null> {
   if (
     !isValidCareGuideSlug(input.clinicSlug) ||
-    !isValidCareGuideSlug(input.publicSlug)
+    !isValidCareGuideSlug(input.publicSlug) ||
+    (input.locationSlug !== undefined &&
+      !isValidCareGuideSlug(input.locationSlug))
   ) {
     return null;
+  }
+
+  if (input.locationSlug) {
+    return getPublishedLocationGuide({
+      clinicSlug: input.clinicSlug,
+      locationSlug: input.locationSlug,
+      publicSlug: input.publicSlug,
+      now: input.now,
+    });
   }
 
   const tenant = await getClinicBySlug(input.clinicSlug);
@@ -252,6 +267,101 @@ export async function getPublishedPracticeGuide(input: {
     },
     revision: resolved.revision,
     sections: resolved.sections,
+  };
+}
+
+async function getPublishedLocationGuide(input: {
+  clinicSlug: string;
+  locationSlug: string;
+  publicSlug: string;
+  now?: Date;
+}): Promise<PublishedPracticeGuideDocument | null> {
+  const place = await getPatientLocation({
+    siteSlug: input.clinicSlug,
+    locationSlug: input.locationSlug,
+  });
+  if (!place) {
+    return null;
+  }
+
+  const placements = await getPrisma().practiceGuidePlacement.findMany({
+    where: {
+      publicSlug: input.publicSlug,
+      isEnabled: true,
+      clinicId: place.clinic.id,
+      locationId: place.locationId,
+      location: {
+        id: place.locationId,
+        active: true,
+        servesSiteRoot: false,
+        slug: place.locationSlug,
+        clinicId: place.clinic.id,
+        clinicSite: {
+          id: place.siteId,
+          slug: place.clinic.slug,
+          active: true,
+          clinicId: place.clinic.id,
+        },
+      },
+      practiceGuide: {
+        clinicId: place.clinic.id,
+        ...PUBLIC_PRACTICE_GUIDE_WHERE,
+      },
+    },
+    select: placementSelect,
+  });
+
+  if (placements.length !== 1) {
+    return null;
+  }
+
+  const placement = placements[0];
+  if (
+    !placement ||
+    placement.clinicId !== place.clinic.id ||
+    placement.location.clinicId !== place.clinic.id ||
+    placement.location.clinicSite.clinicId !== place.clinic.id ||
+    placement.location.clinicSite.slug !== place.clinic.slug ||
+    !placement.location.clinicSite.active ||
+    placement.practiceGuide.clinicId !== place.clinic.id
+  ) {
+    return null;
+  }
+
+  const now = input.now ?? new Date();
+  const guidesRemainPublic = await publishedPatientGuidesRemainPublic(
+    place.clinic.id,
+    now
+  );
+  if (
+    !downgradeRetainedDirectUrlVisible({
+      downgradeRetainedAt: placement.practiceGuide.downgradeRetainedAt,
+      downgradeRetentionUntil: placement.practiceGuide.downgradeRetentionUntil,
+      clinicGuidesRemainPublic: guidesRemainPublic,
+      now,
+    })
+  ) {
+    return null;
+  }
+
+  const resolved = resolvePlacementContent(placement);
+  if (!resolved) {
+    return null;
+  }
+
+  return {
+    clinic: place.clinic,
+    profile: place.profile,
+    title: resolved.title,
+    template: placement.practiceGuide.guideTemplate,
+    practiceGuide: {
+      id: placement.practiceGuide.id,
+      publicSlug: placement.publicSlug,
+      publishedAt: placement.practiceGuide.publishedAt,
+    },
+    revision: resolved.revision,
+    sections: resolved.sections,
+    placeName: place.placeName,
   };
 }
 

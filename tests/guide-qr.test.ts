@@ -156,7 +156,10 @@ describe("published guide QR", () => {
     expect(rowActions).toContain("isPublishedPublic && previewHref");
     expect(shareLoader).toContain("clinicPatientSiteUrl");
     expect(shareLoader).toContain("PUBLIC_PRACTICE_GUIDE_WHERE");
-    expect(shareLoader).toContain("pathname: `/${placement.publicSlug}`");
+    expect(shareLoader).toContain("placementPublicPath");
+    expect(
+      readFileSync("lib/clinic-portal/placement-path.ts", "utf8")
+    ).toContain("return `/${input.publicSlug}`");
     expect(shareLoader).toContain("clinicSite");
     expect(route).toContain("loadPublishedGuideShareTarget");
     expect(route).not.toContain("/preview");
