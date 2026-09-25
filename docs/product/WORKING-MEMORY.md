@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-25 (multi-location product: sites, locations, placements, and capacity)
+Last updated: 2026-09-25 (function/database region investigation added to the performance audit; no product, schema, or region change)
 
 ## Durable multi-location product
 
@@ -28,6 +28,16 @@ Approved commercial direction, not a Stripe price and not public marketing copy:
 Downgrade to a plan that cannot cover active sites or locations fails closed. Group to Practice does not pick a surviving site. Webhook projection does not delete sites or locations.
 
 Migration `20260925021500_add_multi_location_foundation` remains the only multi-location migration. This product adds no migration. Direct `prisma.clinic.create` in tests does not create the hierarchy. Callers that publish, save practice settings, or load patient pages must call `ensurePrimarySiteForClinic`.
+
+## Post-multi-location performance audit
+
+Audit only. Do not treat it as implemented optimisation. Report: [../performance/POST-MULTILOCATION-PERFORMANCE-AUDIT.md](../performance/POST-MULTILOCATION-PERFORMANCE-AUDIT.md). Reproduce query counts with `pnpm exec vitest run --config scripts/audit/vitest.config.ts` against local PostgreSQL only. That script refuses a non-loopback host and is not part of `pnpm test`.
+
+Headline, measured 2026-09-25 from a US runner whose Vercel id was `iad1`: public patient HTML is `private, no-store` and uncached (`x-vercel-cache: MISS`). `demodental` home/guide/print TTFB was about 1.3–1.5s. The same shapes on local PostgreSQL 18 were 20–70ms. Local EXPLAIN was sub-millisecond sequential scans because the fixture tables are tiny; the unique indexes already exist. The cost is round trips, not a missing index at this size.
+
+A full patient request repeats loader work for metadata and the page. Additional location home is the heaviest measured path (about 41 SQL executes) because `/{segment}` tries a root guide and then a location. Do not add a shared or CDN cache for patient, staff, or operator data unless the key includes the tenant, site, location, placement, and revision, and staff/operator responses stay uncached. React `cache()` inside one request is not that shared cache. Do not remove site/location advisory locks to save time.
+
+Region investigation, 2026-09-25, still audit-only: production `x-vercel-id` was `iad1::iad1::<request id>` on marketing, `demodental` home/guide/print, and `/api/health`. Vercel documents that header as the regions hit plus the function execution region. The repository sets no `regions`. Neon production is recorded as AWS Asia Pacific 2 (Sydney) in `docs/launch/NEON-RECOVERY.md` and `docs/launch/PRODUCTION-READINESS.md`. Warm `/api/health` (`SELECT 1`) was 267ms from `iad1`, next to Neon’s public ~215ms hot HTTP reference for `iad1` → `ap-southeast-2`. The first optimisation is a single function region `syd1` in its own change, then the same probes. The dashboard Function Regions list was not readable here; confirm it before that change. Neon stays pooled `DATABASE_URL` at runtime and unpooled `DIRECT_URL` for trusted migrations only.
 
 ## Durable legacy chairside removal
 
