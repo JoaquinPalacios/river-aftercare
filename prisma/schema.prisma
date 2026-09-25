@@ -694,6 +694,9 @@ enum ClinicAccountSplitStatus {
 enum ClinicAccountSplitSiteDecisionKind {
   SPLIT
   DEACTIVATE
+  /// Stays on the source Account and stays active when it is active now.
+  /// A later preparation can split it. This does not deactivate it.
+  RETAIN_ON_SOURCE
 }
 
 /// Local preparation for a Practice → Essential downgrade.

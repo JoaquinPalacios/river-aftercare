@@ -7,7 +7,7 @@ Operator-only preparation for moving one ClinicSite off a Group Account onto a n
 - Additive preparation records and empty guide/revision map tables
 - One open preparation per source Account
 - Destination shell Account (`Clinic` + `ClinicProfile` only)
-- Persisted kept Site, per-site Split or Deactivate decisions, and staff intent
+- Persisted kept Site, per-site Split, Deactivate, or Retain decisions, and staff intent
 - Destination Essential or Practice target, monthly or yearly
 - Dry-run preview and readiness calculated from current data
 - Operator UI at `/operator/clinics/[clinicId]/split`
@@ -24,7 +24,7 @@ Operator-only preparation for moving one ClinicSite off a Group Account onto a n
 - Copying R2 objects or changing Site branding URLs
 - An Execute control
 
-`READY_TO_EXECUTE` means the current snapshot would pass every prerequisite if an execution engine existed. This release has no execute operation and never sets `COMPLETED`.
+`READY_TO_EXECUTE` means this specific Site split could execute if an execution engine existed. It does not mean the source Account is ready to become Practice. This release has no execute operation and never sets `COMPLETED`.
 
 ## V1 limits
 
@@ -32,7 +32,17 @@ One user cannot be active in both the source and destination Accounts. A prepara
 
 The destination needs an administrator who will not remain an active source member. There is no operator impersonation path for legal acceptance or Checkout. If the customer cannot name that person, the split stays not ready.
 
-A preparation splits one Site onto a **new** shell Account. It does not split into an existing populated Account, merge Accounts, or enter another customer's Account. A Group with several Sites that should each become Accounts is a sequence of preparations. Only one preparation for a source Account is open at a time. Reaching ready requires the hypothetical source to fit Practice, including one active Site, so every other Site in that preparation is an explicit Deactivate. Do not mark a Site Deactivate if it still needs its own later Account. That sequencing limit stays until execution and the deferred Group billing conversion are designed together.
+A preparation splits one Site onto a **new** shell Account. It does not split into an existing populated Account, merge Accounts, or enter another customer's Account. Only one non-terminal preparation may be open for a source Account. A second split is created after execution marks the first `COMPLETED`.
+
+Every Site other than the kept Site has an explicit decision:
+
+- `SPLIT` — exactly one. This is the Site that would move.
+- `DEACTIVATE` — would become inactive on the source.
+- `RETAIN_ON_SOURCE` — stays on the source and stays active if it is active now. A later preparation can split it.
+
+Example: sites A, B, and C. Preparation 1 keeps A, splits B, and retains C. After execution the source Group is A + C and the destination Practice is B. A later preparation can keep A and split C. The source commercial plan is still not changed here.
+
+The kept Site can be any active Site. It does not have to be primary already. If the current primary Site would be split or deactivated, the dry run sets `primaryPromotionRequired` and names the future primary, normally the kept Site. No primary flag is changed in this release. If the current primary stays on the source and remains valid, no promotion is needed.
 
 Practice capacity is one **active** Site. Inactive historical Sites may remain.
 
@@ -60,7 +70,26 @@ Allowed projection, always from current data:
 
 `CANCELLED` is available before execution. `COMPLETED` is reserved. A later read can move readiness backward when the source, destination, guides, staff, or billing no longer pass. Counts are not trusted from an old preview.
 
+`READY_TO_EXECUTE` requires split integrity and destination commercial readiness. It does not require the source to have only one active Site. The post-split structural check asks whether the source would stay consistent after this operation: a deterministic future primary, an active root location on every site that would stay active, placements that still belong to this Account, and valid memberships. A missing future primary blocks the split.
+
+`practiceDowngradeReady` is a separate dry-run result, with `practiceDowngradeBlockers`. It asks whether the source would also meet Practice limits after this operation: one active Site, location allowance, team allowance, and guide allowances. Retained active Sites make it false and leave the source on Group. Those Practice limits do not block the split. The source commercial plan is not mutated. A later preparation, after this one is `COMPLETED`, can split a retained Site.
+
 `BILLING_READY` requires the destination's local projection: entitlement `ACTIVE`, billing `ACTIVE`, the preparation's plan and interval, no scheduled cancellation or scheduled plan change, and location allowance enough for the active locations on the moving Site. The dry run does not call Stripe.
+
+## Destination admin and billing
+
+The shell has zero Sites. The existing Operator invitation, legal acceptance, offer, Checkout, and webhook path does not require a Site, a root Location, Site branding on `ClinicProfile`, or `createOperatorClinic`.
+
+1. Operator opens `/operator/clinics/{destinationClinicId}/team/invite`.
+2. `inviteClinicUserAction` calls `inviteClinicUser`. With no primary Site, the invitation name falls back to the shell Account name. A new user, or an existing user with no active membership, can be invited as `ADMIN`. An active source member is rejected. Email delivery is not a readiness prerequisite.
+3. The person opens `/accept-invitation` and `acceptInvitationWithToken` creates the destination `ClinicMembership`.
+4. That admin submits `/account/billing/setup`. `saveBillingSetup` writes `ClinicBillingProfile` and a `LegalAcceptance` for the destination Account only. The Operator does not accept legal terms.
+5. Operator prepares the offer with `prepareClinicBillingAction` → `prepareClinicCommercialOffer` (Essential or Practice). Zero active Sites satisfies the allowance check.
+6. The destination admin starts Checkout from `/account/billing` via `createClinicCheckout`.
+7. `POST /api/stripe/webhook` runs `processVerifiedStripeEvent`. `invoice.paid` projects local entitlement `ACTIVE`.
+8. The split page recalculates readiness from that local row. A browser return does not mark billing ready.
+
+A destination administrator is either a source member selected to leave the source as `ADMIN`, or an active destination `ADMIN` who is not an active source member. A pending invitation alone is not enough.
 
 Essential is 1 Site and 1 Location. Practice is 1 Site and the configured location allowance. Group is not a destination plan.
 

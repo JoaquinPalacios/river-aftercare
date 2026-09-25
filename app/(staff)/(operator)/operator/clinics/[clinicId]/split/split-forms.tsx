@@ -117,7 +117,7 @@ export function SplitSiteDecisionsForm({
     displayName: string;
     slug: string;
     active: boolean;
-    decision: "SPLIT" | "DEACTIVATE" | null;
+    decision: "SPLIT" | "DEACTIVATE" | "RETAIN_ON_SOURCE" | null;
   }>;
 }) {
   const [state, action, pending] = useActionState(
@@ -158,6 +158,16 @@ export function SplitSiteDecisionsForm({
                 required
               />
               Deactivate
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="radio"
+                name={`decision:${site.id}`}
+                value="RETAIN_ON_SOURCE"
+                defaultChecked={site.decision === "RETAIN_ON_SOURCE"}
+                required
+              />
+              Keep active on the source Account
             </label>
           </div>
         </fieldset>

@@ -41,7 +41,6 @@ export const ACCOUNT_SPLIT_BLOCKER_CODES = [
   "split_site_inactive",
   "kept_site_missing",
   "kept_site_inactive",
-  "missing_primary_site",
   "missing_root_location",
   "source_active_site_count",
   "source_active_location_count",
@@ -74,6 +73,17 @@ const STRUCTURAL_BLOCKERS = new Set<AccountSplitBlockerCode>([
   "kept_site_missing",
   "kept_site_inactive",
   "staff_selection_missing",
+]);
+
+/** Practice product limits after this operation. They do not block the split. */
+const PRACTICE_DOWNGRADE_BLOCKERS = new Set<AccountSplitBlockerCode>([
+  "source_active_site_count",
+  "source_active_location_count",
+  "source_team_count",
+  "source_custom_guide_allowance",
+  "source_adapted_guide_allowance",
+  "source_combined_guide_allowance",
+  "guides_lose_all_placements",
 ]);
 
 export type AccountSplitBlocker = {
@@ -219,6 +229,12 @@ export type AccountSplitSnapshot = {
       extraCustomGuideAllowance: number;
       extraTemplateAdaptationAllowance: number;
     } | null;
+    memberships: Array<{
+      userId: string;
+      role: ClinicMembershipRole;
+      active: boolean;
+      platformRole: PlatformRole;
+    }>;
   };
 };
 
@@ -227,6 +243,14 @@ export type AccountSplitAssessment = {
   preparationComplete: boolean;
   billing: SplitBillingPhase;
   blockers: AccountSplitBlocker[];
+  practiceDowngradeReady: boolean;
+  practiceDowngradeBlockers: AccountSplitBlocker[];
+  primaryPromotion: {
+    required: boolean;
+    currentPrimarySite: AccountSplitSnapshot["sites"][number] | null;
+    futurePrimarySite: AccountSplitSnapshot["sites"][number] | null;
+    message: string | null;
+  };
   warnings: AccountSplitWarning[];
   confirmationPhrase: string | null;
   keptSite: AccountSplitSnapshot["sites"][number] | null;
@@ -246,6 +270,9 @@ export type AccountSplitAssessment = {
     combinedGuideLimit: number;
     guidesLosingAllPlacements: Array<{ id: string; title: string }>;
     deactivatedSiteIds: string[];
+    retainedSiteIds: string[];
+    activeSites: Array<{ id: string; displayName: string; slug: string }>;
+    planRemains: "GROUP";
   };
   destinationPreview: {
     accountName: string;
@@ -356,6 +383,7 @@ export function assessAccountSplit(
   snapshot: AccountSplitSnapshot
 ): AccountSplitAssessment {
   const blockers: AccountSplitBlocker[] = [];
+  const practiceDowngradeBlockers: AccountSplitBlocker[] = [];
   const warnings: AccountSplitWarning[] = [
     {
       code: "source_plan_conversion_deferred",
@@ -388,6 +416,11 @@ export function assessAccountSplit(
   const deactivateIds = otherSites
     .filter((site) => decisionBySite.get(site.id) === "DEACTIVATE")
     .map((site) => site.id);
+  const retainedSites = otherSites.filter(
+    (site) => decisionBySite.get(site.id) === "RETAIN_ON_SOURCE"
+  );
+  const retainIds = retainedSites.map((site) => site.id);
+  const retainedActiveSites = retainedSites.filter((site) => site.active);
 
   if (
     !snapshot.preparation.destinationClinicId ||
@@ -408,7 +441,8 @@ export function assessAccountSplit(
   if (unresolvedSites.length > 0 || decisionsOutsideSites.length > 0) {
     blockers.push({
       code: "unresolved_site_decisions",
-      message: "Choose Split or Deactivate for every site that is not kept.",
+      message:
+        "Choose Split, Deactivate, or Retain for every site that is not kept.",
     });
   }
   if (splitSites.length !== 1) {
@@ -432,28 +466,26 @@ export function assessAccountSplit(
       code: "kept_site_inactive",
       message: "The site chosen to stay on the source Account must be active.",
     });
-  } else if (!keptSite.isPrimary) {
-    blockers.push({
-      code: "missing_primary_site",
-      message:
-        "The site that stays must already be the primary site. This preparation does not switch the primary site.",
-    });
   }
 
-  const keptRoot = keptSite
-    ? snapshot.locations.find(
-        (location) =>
-          location.clinicSiteId === keptSite.id &&
-          location.servesSiteRoot &&
-          location.active
-      )
-    : null;
-  if (keptSite?.active && !keptRoot) {
-    blockers.push({
-      code: "missing_root_location",
-      message: "The site that stays needs an active root location.",
-    });
-  }
+  const currentPrimary = snapshot.sites.find((site) => site.isPrimary) ?? null;
+  const primaryRemains =
+    currentPrimary?.active === true &&
+    currentPrimary.id !== splitSite?.id &&
+    !deactivateIds.includes(currentPrimary.id);
+  const futurePrimary = primaryRemains ? currentPrimary : keptSite;
+  const primaryPromotionRequired = Boolean(
+    futurePrimary && currentPrimary && futurePrimary.id !== currentPrimary.id
+  );
+  const primaryPromotion = {
+    required: primaryPromotionRequired,
+    currentPrimarySite: currentPrimary,
+    futurePrimarySite: futurePrimary,
+    message:
+      primaryPromotionRequired && futurePrimary
+        ? `${futurePrimary.displayName} will become the source Account primary Clinic Site during execution.`
+        : null,
+  };
 
   const removedSiteId = splitSite?.id ?? null;
   const activeRemainingSites = snapshot.sites.filter((site) => {
@@ -472,19 +504,45 @@ export function assessAccountSplit(
     (location) =>
       location.active && activeRemainingSiteIds.has(location.clinicSiteId)
   );
+  const sitesMissingRoot = activeRemainingSites.filter(
+    (site) =>
+      !snapshot.locations.some(
+        (location) =>
+          location.clinicSiteId === site.id &&
+          location.servesSiteRoot &&
+          location.active
+      )
+  );
+  if (sitesMissingRoot.length > 0) {
+    blockers.push({
+      code: "missing_root_location",
+      message: sitesMissingRoot
+        .map((site) =>
+          futurePrimary && site.id === futurePrimary.id
+            ? `${site.displayName} needs an active root location before it can be the source primary Clinic Site.`
+            : `${site.displayName} needs an active root location to remain on the source Account.`
+        )
+        .join(" "),
+    });
+  }
   const sourceLimits = effectiveAllowances(
     PLAN_ENTITLEMENT_POLICIES.PRACTICE.base,
     snapshot.source.extras
   );
   const sourceLocationLimit = Math.max(snapshot.source.locationAllowance, 1);
-  if (activeRemainingSites.length > 1) {
-    blockers.push({
+  if (retainedActiveSites.length > 0) {
+    practiceDowngradeBlockers.push({
+      code: "source_active_site_count",
+      message: `Source Account will remain Group because ${retainedActiveSites.length} additional active Clinic Site${retainedActiveSites.length === 1 ? " is" : "s are"} retained for a later split.`,
+    });
+  } else if (activeRemainingSites.length > 1) {
+    practiceDowngradeBlockers.push({
       code: "source_active_site_count",
       message: `Practice allows 1 active site. This split would leave ${activeRemainingSites.length}.`,
     });
   }
   if (activeRemainingLocations.length > sourceLocationLimit) {
-    blockers.push({
+    practiceDowngradeBlockers.push({
       code: "source_active_location_count",
       message: `Practice location allowance is ${sourceLocationLimit}. This split would leave ${activeRemainingLocations.length} active locations.`,
     });
@@ -515,7 +573,7 @@ export function assessAccountSplit(
   );
   const sourceTeamUsed = staying.length + pendingInvites.length;
   if (sourceTeamUsed > sourceLimits.teamMembers) {
-    blockers.push({
+    practiceDowngradeBlockers.push({
       code: "source_team_count",
       message: `Practice allows ${sourceLimits.teamMembers} team places. This split would leave ${sourceTeamUsed}.`,
     });
@@ -532,19 +590,19 @@ export function assessAccountSplit(
   ).length;
   const sourceCombined = sourceCustom + sourceAdapted;
   if (sourceCustom > sourceLimits.customGuides) {
-    blockers.push({
+    practiceDowngradeBlockers.push({
       code: "source_custom_guide_allowance",
       message: `Practice allows ${sourceLimits.customGuides} custom guides. ${sourceCustom} would remain on the source Account.`,
     });
   }
   if (sourceAdapted > sourceLimits.templateAdaptations) {
-    blockers.push({
+    practiceDowngradeBlockers.push({
       code: "source_adapted_guide_allowance",
       message: `Practice allows ${sourceLimits.templateAdaptations} adapted templates. ${sourceAdapted} would remain on the source Account.`,
     });
   }
   if (sourceCombined > sourceLimits.combinedClinicOwnedGuides) {
-    blockers.push({
+    practiceDowngradeBlockers.push({
       code: "source_combined_guide_allowance",
       message: `Practice allows ${sourceLimits.combinedClinicOwnedGuides} clinic-owned guides. ${sourceCombined} would remain on the source Account.`,
     });
@@ -572,7 +630,7 @@ export function assessAccountSplit(
       })
     : [];
   if (guidesLosingAllPlacements.length > 0) {
-    blockers.push({
+    practiceDowngradeBlockers.push({
       code: "guides_lose_all_placements",
       message: `${guidesLosingAllPlacements.length} source guide${guidesLosingAllPlacements.length === 1 ? "" : "s"} would remain with no placements. Guides are not deleted automatically.`,
     });
@@ -600,7 +658,10 @@ export function assessAccountSplit(
     });
   }
 
-  const destinationAdmins = activeMembers.filter((membership) => {
+  const sourceActiveIds = new Set(
+    activeMembers.map((membership) => membership.userId)
+  );
+  const selectedDestinationAdmin = activeMembers.some((membership) => {
     const selection = selectionByUser.get(membership.userId);
     return (
       selection?.grantOnDestination === true &&
@@ -608,7 +669,24 @@ export function assessAccountSplit(
       selection.destinationRole === "ADMIN"
     );
   });
-  if (destinationAdmins.length === 0) {
+  const establishedDestinationAdmin = snapshot.destination.memberships.some(
+    (membership) =>
+      membership.active &&
+      membership.role === "ADMIN" &&
+      membership.platformRole !== "OPERATOR" &&
+      !sourceActiveIds.has(membership.userId)
+  );
+  const liveDualMembership = snapshot.destination.memberships.some(
+    (membership) => membership.active && sourceActiveIds.has(membership.userId)
+  );
+  if (liveDualMembership) {
+    blockers.push({
+      code: "dual_membership",
+      message:
+        "A person cannot have an active membership on both the source Account and the destination Account.",
+    });
+  }
+  if (!selectedDestinationAdmin && !establishedDestinationAdmin) {
     blockers.push({
       code: "destination_admin_required",
       message: DESTINATION_ADMIN_BLOCKER_MESSAGE,
@@ -770,6 +848,13 @@ export function assessAccountSplit(
   const preparationComplete = !blockers.some((blocker) =>
     STRUCTURAL_BLOCKERS.has(blocker.code)
   );
+  const decisionsComplete =
+    unresolvedSites.length === 0 &&
+    decisionsOutsideSites.length === 0 &&
+    splitSites.length === 1 &&
+    Boolean(keptSite?.active);
+  const practiceDowngradeReady =
+    decisionsComplete && practiceDowngradeBlockers.length === 0;
   const ready =
     preparationComplete && billing.phase === "ready" && blockers.length === 0;
   const status = projectAccountSplitStatus({
@@ -801,12 +886,18 @@ export function assessAccountSplit(
   const orderedBlockers = ACCOUNT_SPLIT_BLOCKER_CODES.flatMap((code) =>
     blockers.filter((blocker) => blocker.code === code)
   );
+  const orderedPracticeBlockers = ACCOUNT_SPLIT_BLOCKER_CODES.flatMap((code) =>
+    practiceDowngradeBlockers.filter((blocker) => blocker.code === code)
+  );
 
   return {
     status,
     preparationComplete,
     billing,
     blockers: orderedBlockers,
+    practiceDowngradeReady,
+    practiceDowngradeBlockers: orderedPracticeBlockers,
+    primaryPromotion,
     warnings,
     confirmationPhrase: splitSite
       ? splitConfirmationPhrase(splitSite.slug)
@@ -831,6 +922,13 @@ export function assessAccountSplit(
         title: guide.title,
       })),
       deactivatedSiteIds: deactivateIds,
+      retainedSiteIds: retainIds,
+      activeSites: activeRemainingSites.map((site) => ({
+        id: site.id,
+        displayName: site.displayName,
+        slug: site.slug,
+      })),
+      planRemains: "GROUP",
     },
     destinationPreview: {
       accountName:

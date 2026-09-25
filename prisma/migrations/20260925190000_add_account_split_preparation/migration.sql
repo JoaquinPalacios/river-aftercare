@@ -6,7 +6,7 @@
 CREATE TYPE "ClinicAccountSplitStatus" AS ENUM ('DRAFT', 'DESTINATION_READY', 'AWAITING_PAYMENT', 'BILLING_READY', 'READY_TO_EXECUTE', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "ClinicAccountSplitSiteDecisionKind" AS ENUM ('SPLIT', 'DEACTIVATE');
+CREATE TYPE "ClinicAccountSplitSiteDecisionKind" AS ENUM ('SPLIT', 'DEACTIVATE', 'RETAIN_ON_SOURCE');
 
 -- CreateTable
 CREATE TABLE "ClinicAccountSplitPreparation" (

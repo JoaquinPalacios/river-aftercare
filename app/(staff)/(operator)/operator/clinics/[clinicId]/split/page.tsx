@@ -178,8 +178,9 @@ export default async function AccountSplitPreparationPage({
             <>
               <p className="mt-2 text-sm text-staff-muted">
                 Choose the site that stays. Every other site needs an explicit
-                Split or Deactivate decision after this starts. One preparation
-                covers one destination Account.
+                Split, Deactivate, or Retain decision. One preparation covers
+                one destination Account. Sites kept active on the source can be
+                split in a later preparation.
               </p>
               <CreateSplitPreparationForm
                 sourceClinicId={clinic.id}
@@ -258,6 +259,17 @@ export default async function AccountSplitPreparationPage({
                 >
                   Open destination account
                 </Link>
+                {". "}
+                <Link
+                  href={`/operator/clinics/${preparation.destinationClinicId}/team/invite`}
+                  className="font-medium text-staff-brand"
+                >
+                  Invite destination admin
+                </Link>
+                . Use the normal invitation. The person must not already be an
+                active member of the source Account. They accept the invitation,
+                then accept Terms and Privacy and complete Checkout on the
+                destination Account. This page does not accept legal terms.
               </p>
             ) : null}
             <SplitTargetForm
@@ -275,10 +287,11 @@ export default async function AccountSplitPreparationPage({
           <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
             <h2 className="text-base font-semibold">Sites</h2>
             <p className="mt-2 text-sm text-staff-muted">
-              The kept site stays. Exactly one other site can be split. Every
-              remaining site must be marked Deactivate. Inactive historical
-              sites can stay on the source once they are explicitly deactivated
-              here.
+              The kept site stays. Exactly one other site is split onto this
+              destination. Every remaining site is an explicit Deactivate or
+              Retain. Retain leaves an active site on the source Group for a
+              later preparation. The kept site does not have to be primary
+              today.
             </p>
             <SplitSiteDecisionsForm
               key={clinic.sites
@@ -299,7 +312,11 @@ export default async function AccountSplitPreparationPage({
                             site.id
                           )
                         ? "DEACTIVATE"
-                        : null,
+                        : preview?.sourcePreview.retainedSiteIds.includes(
+                              site.id
+                            )
+                          ? "RETAIN_ON_SOURCE"
+                          : null,
                 }))}
             />
           </section>
@@ -393,6 +410,63 @@ export default async function AccountSplitPreparationPage({
           </section>
 
           <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+            <h2 className="text-base font-semibold">After this split</h2>
+            <p className="mt-2 text-sm text-staff-muted">
+              Split execution and a later Group to Practice downgrade are
+              separate. Retained sites stay active on the source Account.
+            </p>
+            {preview ? (
+              <div className="mt-4 grid gap-4 text-sm lg:grid-cols-2">
+                <div>
+                  <h3 className="font-semibold">Source Account</h3>
+                  <p className="mt-2">
+                    Plan remains: {preview.sourcePreview.planRemains}
+                  </p>
+                  <p>Active sites: {preview.sourcePreview.activeSiteCount}</p>
+                  <ul className="mt-2 list-disc pl-5">
+                    {preview.sourcePreview.activeSites.map((site) => (
+                      <li key={site.id}>
+                        {site.displayName} · {site.slug}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-semibold">Destination</h3>
+                  <p className="mt-2">
+                    {preview.destinationPreview.accountName}
+                  </p>
+                  <p>
+                    Target plan:{" "}
+                    {preview.destinationPreview.plan ??
+                      preparation.destinationPlan}
+                  </p>
+                  <p className="mt-3 font-medium">
+                    Split execution:{" "}
+                    {preview.status === "READY_TO_EXECUTE"
+                      ? "READY"
+                      : "NOT READY"}
+                  </p>
+                  <p className="font-medium">
+                    Group to Practice downgrade:{" "}
+                    {preview.practiceDowngradeReady ? "READY" : "NOT READY"}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            {preview?.primaryPromotion.message ? (
+              <p className="mt-4 text-sm">{preview.primaryPromotion.message}</p>
+            ) : null}
+            {preview && preview.practiceDowngradeBlockers.length > 0 ? (
+              <ul className="mt-3 list-disc pl-5 text-sm">
+                {preview.practiceDowngradeBlockers.map((blocker) => (
+                  <li key={blocker.code}>{blocker.message}</li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+
+          <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
             <h2 className="text-base font-semibold">Validation</h2>
             {preview?.destinationPreview.publicUrlStatement ===
             PUBLIC_URLS_UNCHANGED_STATEMENT ? (
@@ -415,7 +489,9 @@ export default async function AccountSplitPreparationPage({
                 ))}
               </ul>
             ) : null}
-            <h3 className="mt-4 text-sm font-semibold">Blockers</h3>
+            <h3 className="mt-4 text-sm font-semibold">
+              Split execution blockers
+            </h3>
             {preview && preview.blockers.length > 0 ? (
               <ul className="mt-2 list-disc pl-5 text-sm">
                 {preview.blockers.map((blocker) => (

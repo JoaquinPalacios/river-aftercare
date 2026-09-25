@@ -154,7 +154,10 @@ export async function updateAccountSplitDestinationTarget(input: {
 
 export async function saveAccountSplitSiteDecisions(input: {
   preparationId: string;
-  decisions: Array<{ clinicSiteId: string; decision: "SPLIT" | "DEACTIVATE" }>;
+  decisions: Array<{
+    clinicSiteId: string;
+    decision: "SPLIT" | "DEACTIVATE" | "RETAIN_ON_SOURCE";
+  }>;
 }): Promise<void> {
   await getPrisma().$transaction(async (tx) => {
     const preparation = await loadWritablePreparation(tx, input.preparationId);
@@ -181,7 +184,7 @@ export async function saveAccountSplitSiteDecisions(input: {
       otherSites.some((site) => !byId.has(site.id))
     ) {
       throw new ClinicPortalError(
-        "Choose Split or Deactivate for every site that is not kept.",
+        "Choose Split, Deactivate, or Retain for every site that is not kept.",
         "invalid"
       );
     }

@@ -83,6 +83,7 @@ export async function loadAccountSplitSnapshot(
     placements,
     destinationClinic,
     destinationEntitlement,
+    destinationMemberships,
   ] = await runAccountSplitReads([
     () =>
       db.clinic.findUnique({
@@ -172,6 +173,10 @@ export async function loadAccountSplitSnapshot(
             db
           )
         : Promise.resolve(null),
+    () =>
+      preparation.destinationClinicId
+        ? loadMemberships(db, preparation.destinationClinicId)
+        : Promise.resolve([]),
   ]);
 
   if (!sourceClinic) {
@@ -204,6 +209,12 @@ export async function loadAccountSplitSnapshot(
     destination: {
       clinic: destinationClinic,
       entitlement: destinationEntitlement,
+      memberships: destinationMemberships.map((membership) => ({
+        userId: membership.userId,
+        role: membership.role,
+        active: membership.active,
+        platformRole: membership.platformRole,
+      })),
     },
   };
 }

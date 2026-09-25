@@ -10,7 +10,19 @@ import {
 } from "@prisma/client";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
+import { hashAccountToken } from "@/lib/auth/account-token";
+import { acceptInvitationWithToken } from "@/lib/auth/accept-invitation";
 import { DESTINATION_ADMIN_BLOCKER_MESSAGE } from "@/lib/account-split/policy";
+import { createClinicCheckout } from "@/lib/billing/checkout";
+import { saveBillingSetup } from "@/lib/billing/save-billing-setup";
+import { prepareClinicCommercialOffer } from "@/lib/billing/prepare-offer";
+import { processVerifiedStripeEvent } from "@/lib/billing/webhook-processor";
+import {
+  clearTransactionalEmailMemoryInbox,
+  getTransactionalEmailMemoryInbox,
+} from "@/lib/email/transactional-mailer";
+import { inviteClinicUser } from "@/lib/operator/invite-clinic-user";
+import { BILLING_TEST_ENV } from "@/tests/helpers/billing";
 import {
   cancelAccountSplitPreparation,
   createAccountSplitPreparation,
@@ -46,7 +58,14 @@ async function cleanup(): Promise<void> {
   await prisma.guideTemplate.deleteMany({
     where: { slug: { startsWith: PREFIX } },
   });
-  await prisma.user.deleteMany({ where: { id: { startsWith: PREFIX } } });
+  await prisma.stripeEventReceipt.deleteMany({
+    where: { stripeEventId: { startsWith: "evt_aspl_" } },
+  });
+  await prisma.user.deleteMany({
+    where: {
+      OR: [{ id: { startsWith: PREFIX } }, { email: { startsWith: PREFIX } }],
+    },
+  });
 }
 
 async function seedGroup(key: string): Promise<{
@@ -976,6 +995,331 @@ describe("account split preparation", () => {
     expect(stored.executedAt).toBeNull();
   });
 
+  it("lets a three-site group split one site and retain another", async () => {
+    const account = await seedGroup("seq");
+    const retained = await addSite(account, "retain", "Northern Dental");
+    const preparation = await openPreparation(account);
+    await saveAccountSplitSiteDecisions({
+      preparationId: preparation.id,
+      decisions: [
+        { clinicSiteId: account.splitSiteId, decision: "SPLIT" },
+        { clinicSiteId: retained.id, decision: "RETAIN_ON_SOURCE" },
+      ],
+    });
+    await moveAdminToDestination(preparation.id, account);
+    const shell = await createSplitDestinationAccount(preparation.id);
+    await activateDestinationBilling(shell.id);
+    await revalidateAccountSplitPreparation(preparation.id);
+    const preview = await previewAccountSplit(preparation.id);
+    expect(preview?.status).toBe("READY_TO_EXECUTE");
+    expect(preview?.practiceDowngradeReady).toBe(false);
+    expect(
+      preview?.practiceDowngradeBlockers.map((blocker) => blocker.message)
+    ).toContain(
+      "Source Account will remain Group because 1 additional active Clinic Site is retained for a later split."
+    );
+    expect(
+      preview?.sourcePreview.activeSites.map((site) => site.displayName).sort()
+    ).toEqual(["Kept Clinic", "Northern Dental"]);
+    expect(preview?.sourcePreview.planRemains).toBe("GROUP");
+    const sourcePlan = await db().clinicEntitlement.findUnique({
+      where: { clinicId: account.clinicId },
+    });
+    expect(sourcePlan?.commercialPlan).toBe("GROUP");
+    await expect(openPreparation(account)).rejects.toBeInstanceOf(
+      ClinicPortalError
+    );
+
+    await db().clinicAccountSplitPreparation.update({
+      where: { id: preparation.id },
+      data: { status: "COMPLETED" },
+    });
+    const later = await openPreparation(account);
+    await saveAccountSplitSiteDecisions({
+      preparationId: later.id,
+      decisions: [
+        { clinicSiteId: retained.id, decision: "SPLIT" },
+        { clinicSiteId: account.splitSiteId, decision: "RETAIN_ON_SOURCE" },
+      ],
+    });
+    const laterPreview = await previewAccountSplit(later.id);
+    expect(laterPreview?.keptSite?.id).toBe(account.keptSiteId);
+    expect(laterPreview?.splitSite?.id).toBe(retained.id);
+    expect(laterPreview?.status).not.toBe("COMPLETED");
+  });
+
+  it("marks practice downgrade ready when the only extra site is deactivated", async () => {
+    const account = await seedGroup("final");
+    const extra = await addSite(account, "extra", "Northern Dental");
+    const preparation = await openPreparation(account);
+    await saveAccountSplitSiteDecisions({
+      preparationId: preparation.id,
+      decisions: [
+        { clinicSiteId: account.splitSiteId, decision: "SPLIT" },
+        { clinicSiteId: extra.id, decision: "DEACTIVATE" },
+      ],
+    });
+    const preview = await previewAccountSplit(preparation.id);
+    expect(preview?.practiceDowngradeReady).toBe(true);
+    expect(preview?.sourcePreview.activeSiteCount).toBe(1);
+    expect(preview?.sourcePreview.planRemains).toBe("GROUP");
+    const sourcePlan = await db().clinicEntitlement.findUnique({
+      where: { clinicId: account.clinicId },
+    });
+    expect(sourcePlan?.commercialPlan).toBe("GROUP");
+    expect(preview?.status).not.toBe("COMPLETED");
+  });
+
+  it("allows more than one site to stay active on the source", async () => {
+    const account = await seedGroup("four");
+    const north = await addSite(account, "north", "Northern Dental");
+    const west = await addSite(account, "west", "Western Dental");
+    const preparation = await openPreparation(account);
+    await saveAccountSplitSiteDecisions({
+      preparationId: preparation.id,
+      decisions: [
+        { clinicSiteId: account.splitSiteId, decision: "SPLIT" },
+        { clinicSiteId: north.id, decision: "RETAIN_ON_SOURCE" },
+        { clinicSiteId: west.id, decision: "RETAIN_ON_SOURCE" },
+      ],
+    });
+    const preview = await previewAccountSplit(preparation.id);
+    expect(preview?.splitSite?.id).toBe(account.splitSiteId);
+    expect(preview?.sourcePreview.retainedSiteIds.sort()).toEqual(
+      [north.id, west.id].sort()
+    );
+    expect(preview?.sourcePreview.activeSiteCount).toBe(3);
+    expect(preview?.practiceDowngradeReady).toBe(false);
+    expect(
+      preview?.practiceDowngradeBlockers
+        .map((blocker) => blocker.message)
+        .join(" ")
+    ).toContain("2 additional active Clinic Sites are retained");
+  });
+
+  it("previews primary promotion when the kept site is not primary", async () => {
+    const account = await seedGroup("promo");
+    const primary = await addSite(account, "primary", "Pacific Dental");
+    await db().clinicSite.update({
+      where: { id: account.keptSiteId },
+      data: { isPrimary: false },
+    });
+    await db().clinicSite.update({
+      where: { id: primary.id },
+      data: { isPrimary: true },
+    });
+    const preparation = await openPreparation(account);
+    await saveAccountSplitSiteDecisions({
+      preparationId: preparation.id,
+      decisions: [
+        { clinicSiteId: account.splitSiteId, decision: "SPLIT" },
+        { clinicSiteId: primary.id, decision: "DEACTIVATE" },
+      ],
+    });
+    await moveAdminToDestination(preparation.id, account);
+    const shell = await createSplitDestinationAccount(preparation.id);
+    await activateDestinationBilling(shell.id);
+    const preview = await previewAccountSplit(preparation.id);
+    expect(preview?.primaryPromotion.required).toBe(true);
+    expect(preview?.primaryPromotion.currentPrimarySite?.displayName).toBe(
+      "Pacific Dental"
+    );
+    expect(preview?.primaryPromotion.futurePrimarySite?.id).toBe(
+      account.keptSiteId
+    );
+    expect(preview?.primaryPromotion.message).toBe(
+      "Kept Clinic will become the source Account primary Clinic Site during execution."
+    );
+    expect(preview?.blockers.map((blocker) => blocker.code)).not.toContain(
+      "missing_primary_site"
+    );
+    expect(preview?.status).toBe("READY_TO_EXECUTE");
+    const storedPrimary = await db().clinicSite.findUniqueOrThrow({
+      where: { id: primary.id },
+    });
+    expect(storedPrimary.isPrimary).toBe(true);
+    expect(storedPrimary.active).toBe(true);
+  });
+
+  it("onboards a destination admin on a shell without creating a site", async () => {
+    const account = await seedGroup("onboard");
+    const preparation = await openPreparation(account);
+    await saveAccountSplitSiteDecisions({
+      preparationId: preparation.id,
+      decisions: [{ clinicSiteId: account.splitSiteId, decision: "SPLIT" }],
+    });
+    const shell = await createSplitDestinationAccount(preparation.id);
+    expect(await db().clinicSite.count({ where: { clinicId: shell.id } })).toBe(
+      0
+    );
+
+    clearTransactionalEmailMemoryInbox();
+    const invited = await inviteClinicUser({
+      clinicId: shell.id,
+      invitedByUserId: account.operatorId,
+      name: "Dest Admin",
+      email: `${PREFIX}dest_${account.clinicId}@example.test`,
+      role: "ADMIN",
+    });
+    expect(invited.ok).toBe(true);
+    if (!invited.ok || invited.outcome !== "INVITATION_SENT") {
+      throw new Error("destination invitation was not created");
+    }
+    const tokenRow = await db().accountToken.findFirstOrThrow({
+      where: { userId: invited.userId, consumedAt: null, revokedAt: null },
+    });
+    const rawToken = recoverInvitationToken(tokenRow.tokenHash);
+    expect(rawToken).toBeTruthy();
+    const accepted = await acceptInvitationWithToken({
+      rawToken: rawToken!,
+      newPassword: "LocalOnly12345!",
+      confirmPassword: "LocalOnly12345!",
+    });
+    expect(accepted.ok).toBe(true);
+    const membership = await db().clinicMembership.findFirstOrThrow({
+      where: { clinicId: shell.id, userId: invited.userId },
+    });
+    expect(membership.role).toBe("ADMIN");
+    expect(membership.active).toBe(true);
+    expect(
+      await db().clinicMembership.count({
+        where: { userId: invited.userId, clinicId: account.clinicId },
+      })
+    ).toBe(0);
+
+    const setup = await saveBillingSetup({
+      clinicId: shell.id,
+      userId: invited.userId,
+      form: {
+        legalEntityName: "Coast Dental Pty Ltd",
+        tradingName: "Coast Dental",
+        billingContactName: "Dest Admin",
+        billingEmail: "billing.coast@example.test",
+        addressLine1: "10 River Street",
+        addressLine2: "",
+        city: "Tweed Heads",
+        region: "NSW",
+        postalCode: "2486",
+        country: "AU",
+        businessNumberKind: "abn",
+        abn: "32 671 297 130",
+        acn: "",
+        termsAccepted: true,
+      },
+    });
+    expect(setup.ok).toBe(true);
+    const acceptance = await db().legalAcceptance.findFirstOrThrow({
+      where: { clinicId: shell.id, userId: invited.userId },
+    });
+    expect(acceptance.clinicId).toBe(shell.id);
+    expect(
+      await db().legalAcceptance.count({
+        where: { clinicId: account.clinicId },
+      })
+    ).toBe(0);
+
+    const offer = await prepareClinicCommercialOffer(
+      {
+        clinicId: shell.id,
+        commercialPlan: "PRACTICE",
+        billingInterval: "MONTHLY",
+      },
+      db()
+    );
+    expect(offer.ok).toBe(true);
+    const checkout = await createClinicCheckout({
+      clinicId: shell.id,
+      userId: invited.userId,
+      successUrl: "https://staff.example.test/account/billing/complete",
+      cancelUrl: "https://staff.example.test/account/billing",
+      env: BILLING_TEST_ENV,
+      db: db(),
+      stripe: fakeCheckoutStripe(),
+    });
+    expect(checkout.ok).toBe(true);
+
+    const projected = await processVerifiedStripeEvent(
+      {
+        id: "evt_aspl_onboard",
+        object: "event",
+        created: 1_747_000_000,
+        type: "invoice.paid",
+        data: {
+          object: {
+            id: "in_aspl_onboard",
+            object: "invoice",
+            customer: "cus_aspl_onboard",
+            status: "paid",
+            metadata: { clinicId: shell.id },
+            parent: {
+              type: "subscription_details",
+              subscription_details: {
+                subscription: "sub_aspl_onboard",
+                metadata: { clinicId: shell.id },
+              },
+            },
+            lines: {
+              object: "list",
+              data: [
+                {
+                  id: "il_aspl_onboard",
+                  object: "line_item",
+                  pricing: {
+                    type: "price_details",
+                    price_details: {
+                      price: "price_test_practice_monthly",
+                      product: "prod_aspl",
+                    },
+                  },
+                },
+              ],
+            },
+            period_start: 1_746_000_000,
+            period_end: 1_748_600_000,
+          },
+        },
+      } as never,
+      {
+        env: BILLING_TEST_ENV,
+        reader: {
+          async retrieveSubscription() {
+            return {
+              id: "sub_aspl_onboard",
+              object: "subscription",
+              status: "active",
+              customer: "cus_aspl_onboard",
+              cancel_at_period_end: false,
+              metadata: { clinicId: shell.id },
+              items: {
+                object: "list",
+                data: [
+                  {
+                    id: "si_aspl_onboard",
+                    price: { id: "price_test_practice_monthly" },
+                    current_period_start: 1_746_000_000,
+                    current_period_end: 1_748_600_000,
+                  },
+                ],
+              },
+            } as never;
+          },
+        },
+        downgradeStripe: null,
+      }
+    );
+    expect(projected.outcome).toBe("processed");
+    await revalidateAccountSplitPreparation(preparation.id);
+    const preview = await previewAccountSplit(preparation.id);
+    expect(preview?.billing.phase).toBe("ready");
+    expect(preview?.status).toBe("READY_TO_EXECUTE");
+    expect(await db().clinicSite.count({ where: { clinicId: shell.id } })).toBe(
+      0
+    );
+    expect(
+      await db().clinicLocation.count({ where: { clinicId: shell.id } })
+    ).toBe(0);
+  });
+
   it("does not contain execution writes", () => {
     const source = readSplitSources();
     expect(source).not.toContain("clinicSite.update");
@@ -994,6 +1338,134 @@ describe("account split preparation", () => {
     expect(source).not.toContain("resend");
   });
 });
+
+async function addSite(
+  account: { clinicId: string },
+  key: string,
+  displayName: string
+) {
+  const site = await db().clinicSite.create({
+    data: {
+      id: `${PREFIX}site_${key}`,
+      clinicId: account.clinicId,
+      name: displayName,
+      slug: `aspl-${key}`.slice(0, 32),
+      displayName,
+      active: true,
+      isPrimary: false,
+    },
+  });
+  await db().clinicLocation.create({
+    data: {
+      id: `${PREFIX}loc_${key}`,
+      clinicSiteId: site.id,
+      clinicId: account.clinicId,
+      name: `${displayName} root`,
+      slug: null,
+      displayName: `${displayName} root`,
+      isPrimary: true,
+      servesSiteRoot: true,
+      active: true,
+    },
+  });
+  return site;
+}
+
+async function moveAdminToDestination(
+  preparationId: string,
+  account: { adminId: string; staffId: string }
+) {
+  await saveAccountSplitStaffSelections({
+    preparationId,
+    selections: [
+      {
+        userId: account.adminId,
+        keepOnSource: false,
+        grantOnDestination: true,
+        destinationRole: "ADMIN",
+      },
+      {
+        userId: account.staffId,
+        keepOnSource: true,
+        grantOnDestination: false,
+        destinationRole: "STAFF",
+      },
+    ],
+  });
+}
+
+async function activateDestinationBilling(clinicId: string) {
+  await db().clinicEntitlement.upsert({
+    where: { clinicId },
+    create: {
+      clinicId,
+      commercialPlan: "PRACTICE",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      siteAllowance: 1,
+      locationAllowance: 1,
+      cancelAtPeriodEnd: false,
+    },
+    update: {
+      commercialPlan: "PRACTICE",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      siteAllowance: 1,
+      locationAllowance: 1,
+      cancelAtPeriodEnd: false,
+      scheduledCommercialPlan: null,
+    },
+  });
+}
+
+function recoverInvitationToken(tokenHash: string): string | null {
+  for (const message of getTransactionalEmailMemoryInbox()) {
+    const match = message.text.match(/#token=([A-Za-z0-9_-]+)/);
+    if (match?.[1] && hashAccountToken(match[1]) === tokenHash) {
+      return match[1];
+    }
+  }
+  return null;
+}
+
+function fakeCheckoutStripe() {
+  return {
+    customers: {
+      async create() {
+        return { id: "cus_aspl_onboard" };
+      },
+      async update(id: string) {
+        return { id };
+      },
+    },
+    checkout: {
+      sessions: {
+        async create() {
+          return {
+            id: "cs_aspl_onboard",
+            url: "https://checkout.stripe.com/c/pay/cs_aspl_onboard",
+            status: "open" as const,
+          };
+        },
+        async retrieve(id: string) {
+          return {
+            id,
+            url: "https://checkout.stripe.com/c/pay/cs_aspl_onboard",
+            status: "open" as const,
+            line_items: {
+              data: [{ price: { id: "price_test_practice_monthly" } }],
+            },
+          };
+        },
+        async expire(id: string) {
+          return { id };
+        },
+      },
+    },
+  };
+}
 
 async function structuralFingerprint(clinicId: string) {
   const prisma = db();

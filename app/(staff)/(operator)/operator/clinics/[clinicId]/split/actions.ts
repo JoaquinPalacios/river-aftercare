@@ -72,13 +72,18 @@ export async function saveSplitSiteDecisionsAction(
   const siteIds = formData.getAll("siteId").map((value) => String(value));
   const decisions: Array<{
     clinicSiteId: string;
-    decision: "SPLIT" | "DEACTIVATE";
+    decision: "SPLIT" | "DEACTIVATE" | "RETAIN_ON_SOURCE";
   }> = [];
   for (const clinicSiteId of siteIds) {
     const decision = formData.get(`decision:${clinicSiteId}`);
-    if (decision !== "SPLIT" && decision !== "DEACTIVATE") {
+    if (
+      decision !== "SPLIT" &&
+      decision !== "DEACTIVATE" &&
+      decision !== "RETAIN_ON_SOURCE"
+    ) {
       return {
-        error: "Choose Split or Deactivate for every site that is not kept.",
+        error:
+          "Choose Split, Deactivate, or Retain for every site that is not kept.",
       };
     }
     decisions.push({ clinicSiteId, decision });
