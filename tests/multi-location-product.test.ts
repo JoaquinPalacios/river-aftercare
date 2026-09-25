@@ -690,6 +690,195 @@ describe("multi-location product", () => {
     expect(actionResult.error).toMatch(/cannot be changed/);
   });
 
+  it("refuses to republish a root guide over a location that now owns its slug", async () => {
+    const account = await seedAccount({
+      key: "shadow",
+      siteSlug: "mlpd-shadow",
+      plan: "GROUP",
+      siteAllowance: 2,
+      locationAllowance: 5,
+    });
+    const published = await publishGuide({
+      clinicId: account.clinicId,
+      userId: account.userId,
+      slug: "robina",
+      body: "Root robina guide.",
+    });
+    await unpublishPracticeGuide({
+      clinicId: account.clinicId,
+      actorUserId: account.userId,
+      guideId: published.guideId,
+    });
+    const disabled = await db().practiceGuidePlacement.findFirstOrThrow({
+      where: {
+        practiceGuideId: published.guideId,
+        locationId: account.locationId,
+      },
+    });
+    expect(disabled.publicSlug).toBe("robina");
+    expect(disabled.isEnabled).toBe(false);
+
+    const location = await createClinicLocation({
+      clinicId: account.clinicId,
+      siteId: account.siteId,
+      values: { ...locationInput("Robina"), slug: "robina" },
+    });
+    expect(location.locationId).toBeTruthy();
+    await expect(
+      getPublishedPracticeGuide({
+        clinicSlug: account.siteSlug,
+        publicSlug: "robina",
+      })
+    ).resolves.toBeNull();
+    await expect(
+      listPublishedLocationGuides({
+        siteSlug: account.siteSlug,
+        locationSlug: "robina",
+      })
+    ).resolves.toMatchObject({ locationSlug: "robina" });
+
+    await expect(
+      publishPracticeGuide({
+        clinicId: account.clinicId,
+        actorUserId: account.userId,
+        guideId: published.guideId,
+        reviewAttested: true,
+      })
+    ).rejects.toThrow(/already used by a location/);
+    await expect(
+      setGuideAvailableAtLocation({
+        clinicId: account.clinicId,
+        guideId: published.guideId,
+        locationId: account.locationId,
+        available: true,
+      })
+    ).rejects.toThrow(/already used by a location/);
+
+    const after = await db().practiceGuide.findUniqueOrThrow({
+      where: { id: published.guideId },
+    });
+    const placement = await db().practiceGuidePlacement.findUniqueOrThrow({
+      where: { id: disabled.id },
+    });
+    expect(after.status).toBe("UNPUBLISHED");
+    expect(after.publicSlug).toBe("robina");
+    expect(placement.isEnabled).toBe(false);
+    await expect(
+      getPublishedPracticeGuide({
+        clinicSlug: account.siteSlug,
+        publicSlug: "robina",
+      })
+    ).resolves.toBeNull();
+    await expect(
+      listPublishedLocationGuides({
+        siteSlug: account.siteSlug,
+        locationSlug: "robina",
+      })
+    ).resolves.toMatchObject({ placeName: "Robina" });
+
+    await savePracticeGuideDraft({
+      clinicId: account.clinicId,
+      actorUserId: account.userId,
+      values: {
+        guideId: published.guideId,
+        title: "Extraction",
+        publicSlug: "former-robina",
+        introduction: null,
+        sections: [
+          {
+            key: "introduction",
+            kind: "INTRODUCTION",
+            title: "About",
+            body: "Root robina guide.",
+            periodLabel: null,
+            startDay: null,
+            endDay: null,
+          },
+        ],
+      },
+    });
+    const moved = await db().practiceGuide.findUniqueOrThrow({
+      where: { id: published.guideId },
+    });
+    expect(moved.publicSlug).toBe("former-robina");
+    expect(moved.status).toBe("UNPUBLISHED");
+
+    await expect(
+      createCustomPracticeGuide({
+        clinicId: account.clinicId,
+        actorUserId: account.userId,
+        values: { title: "Second", publicSlug: "robina" },
+      })
+    ).rejects.toThrow(/already used by a location/);
+    const other = await createCustomPracticeGuide({
+      clinicId: account.clinicId,
+      actorUserId: account.userId,
+      values: { title: "Other", publicSlug: "other-guide" },
+    });
+    await savePracticeGuideDraft({
+      clinicId: account.clinicId,
+      actorUserId: account.userId,
+      values: {
+        guideId: other.id,
+        title: "Other",
+        publicSlug: "other-guide",
+        introduction: null,
+        sections: [
+          {
+            key: "introduction",
+            kind: "INTRODUCTION",
+            title: "About",
+            body: "Other body.",
+            periodLabel: null,
+            startDay: null,
+            endDay: null,
+          },
+        ],
+      },
+    });
+    await expect(
+      savePracticeGuideDraft({
+        clinicId: account.clinicId,
+        actorUserId: account.userId,
+        values: {
+          guideId: other.id,
+          title: "Other",
+          publicSlug: "robina",
+          introduction: null,
+          sections: [
+            {
+              key: "introduction",
+              kind: "INTRODUCTION",
+              title: "About",
+              body: "Stolen body.",
+              periodLabel: null,
+              startDay: null,
+              endDay: null,
+            },
+          ],
+        },
+      })
+    ).rejects.toThrow(/already used by a location/);
+    await publishPracticeGuide({
+      clinicId: account.clinicId,
+      actorUserId: account.userId,
+      guideId: other.id,
+      reviewAttested: true,
+    });
+    await expect(
+      getPublishedPracticeGuide({
+        clinicSlug: account.siteSlug,
+        publicSlug: "robina",
+      })
+    ).resolves.toBeNull();
+    await expect(
+      getPublishedPracticeGuide({
+        clinicSlug: account.siteSlug,
+        publicSlug: "other-guide",
+      })
+    ).resolves.toMatchObject({ sections: [{ body: "Other body." }] });
+  });
+
   it("resolves nested location pages and keeps root URLs on the root placement", async () => {
     const pacific = await seedAccount({
       key: "route",
