@@ -43,6 +43,14 @@ test.describe("product typography", () => {
   test("marketing, staff, patient, and print resolve Geist as the primary family", async ({
     page,
   }) => {
+    const failedFontResponses: string[] = [];
+    page.on("response", (response) => {
+      const url = response.url();
+      if (/\.woff2(\?|$)/i.test(url) && response.status() >= 400) {
+        failedFontResponses.push(`${response.status()} ${url}`);
+      }
+    });
+
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await expect
       .poll(async () => primaryFontFamily(page, "h1"))
@@ -50,6 +58,11 @@ test.describe("product typography", () => {
     await page.screenshot({
       path: "test-results/artifacts/phase-2a.5-font-marketing.png",
     });
+
+    await page.goto(staffUrl("/login"), { waitUntil: "load" });
+    await expect
+      .poll(async () => primaryFontFamily(page, "h1"))
+      .toMatch(/geist/i);
 
     await signInAsLocalAdmin(page);
     await expect
@@ -76,12 +89,14 @@ test.describe("product typography", () => {
     await expect
       .poll(async () => primaryFontFamily(page, "h1"))
       .toMatch(/geist/i);
+    expect(failedFontResponses).toEqual([]);
   });
 
   test("practice settings expose curated patient typefaces and apply Inter on tenant pages only", async ({
     page,
   }) => {
     const googleFontRequests: string[] = [];
+    const failedFontResponses: string[] = [];
     page.on("request", (request) => {
       const url = request.url();
       if (
@@ -89,6 +104,12 @@ test.describe("product typography", () => {
         url.includes("fonts.gstatic.com")
       ) {
         googleFontRequests.push(url);
+      }
+    });
+    page.on("response", (response) => {
+      const url = response.url();
+      if (/\.woff2(\?|$)/i.test(url) && response.status() >= 400) {
+        failedFontResponses.push(`${response.status()} ${url}`);
       }
     });
 
@@ -105,14 +126,27 @@ test.describe("product typography", () => {
       "Inter",
     ]);
 
-    await typeface.selectOption("INTER");
-    await page
-      .getByRole("button", { name: "Save changes" })
-      .filter({ visible: true })
-      .click();
-    await expect(page.locator("[data-save-state=saved]")).toBeVisible();
-
     try {
+      await typeface.selectOption("OPEN_SANS");
+      await page
+        .getByRole("button", { name: "Save changes" })
+        .filter({ visible: true })
+        .click();
+      await expect(page.locator("[data-save-state=saved]")).toBeVisible();
+      await page.goto(tenantUrl(DEMO_TENANT_SLUG, "/extraction"), {
+        waitUntil: "load",
+      });
+      await expect
+        .poll(async () => primaryFontFamily(page, "h1"))
+        .toMatch(/open\s*sans/i);
+
+      await page.goto(staffUrl("/practice"), { waitUntil: "load" });
+      await page.locator("#typeface").selectOption("INTER");
+      await page
+        .getByRole("button", { name: "Save changes" })
+        .filter({ visible: true })
+        .click();
+      await expect(page.locator("[data-save-state=saved]")).toBeVisible();
       await page.goto(tenantUrl(DEMO_TENANT_SLUG, "/extraction"), {
         waitUntil: "load",
       });
@@ -125,6 +159,7 @@ test.describe("product typography", () => {
         .poll(async () => primaryFontFamily(page, "h1"))
         .toMatch(/geist/i);
       expect(googleFontRequests).toEqual([]);
+      expect(failedFontResponses).toEqual([]);
     } finally {
       await page.goto(staffUrl("/practice"), { waitUntil: "load" });
       await page.locator("#typeface").selectOption("");

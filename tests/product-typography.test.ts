@@ -21,9 +21,18 @@ describe("product typography", () => {
     const aftercareLayout = read("app/(aftercare)/layout.tsx");
     const marketingLayout = read("app/(marketing)/layout.tsx");
 
-    expect(fonts).toContain('from "next/font/google"');
+    expect(fonts).toContain('from "next/font/local"');
+    expect(fonts).not.toContain("next/font/google");
     expect(fonts).toContain('variable: "--font-geist-sans"');
-    expect(fonts).toContain('subsets: ["latin"]');
+    expect(fonts).toContain('variable: "--font-geist-mono"');
+    expect(fonts).toContain('weight: "100 900"');
+    expect(fonts).toContain("font-files/geist-latin.woff2");
+    expect(fonts).toContain("font-files/geist-mono-latin.woff2");
+    expect(
+      readFileSync("lib/branding/font-files/geist-latin.woff2")
+        .subarray(0, 4)
+        .toString()
+    ).toBe("wOF2");
     expect(staffLayout).toContain('from "@/lib/branding/fonts"');
     expect(aftercareLayout).toContain('from "@/lib/branding/fonts"');
     expect(marketingLayout).toContain('from "@/lib/branding/fonts"');
@@ -42,13 +51,24 @@ describe("product typography", () => {
     expect(nextFontImports).toEqual(
       ["lib/branding/clinic-fonts.ts", "lib/branding/fonts.ts"].sort()
     );
-    expect(read("lib/branding/clinic-fonts.ts")).toContain("preload: false");
-    expect(read("lib/branding/clinic-fonts.ts")).not.toContain(
-      "fonts.googleapis.com"
-    );
-    expect(read("lib/branding/clinic-fonts.ts")).not.toContain(
-      "fonts.gstatic.com"
-    );
+    const clinicFonts = read("lib/branding/clinic-fonts.ts");
+    expect(clinicFonts).toContain('from "next/font/local"');
+    expect(clinicFonts).not.toContain("next/font/google");
+    expect(clinicFonts).toContain("preload: false");
+    expect(clinicFonts).toContain('weight: "400 700"');
+    expect(clinicFonts).toContain("font-files/open-sans-latin.woff2");
+    expect(clinicFonts).toContain("font-files/lato-latin-400.woff2");
+    expect(clinicFonts).toContain("font-files/lato-latin-700.woff2");
+    expect(clinicFonts).toContain("font-files/poppins-latin-400.woff2");
+    expect(clinicFonts).toContain("font-files/poppins-latin-600.woff2");
+    expect(clinicFonts).toContain("font-files/poppins-latin-700.woff2");
+    expect(clinicFonts).not.toContain("fonts.googleapis.com");
+    expect(clinicFonts).not.toContain("fonts.gstatic.com");
+    expect(
+      readFileSync("lib/branding/font-files/open-sans-latin.woff2")
+        .subarray(0, 4)
+        .toString()
+    ).toBe("wOF2");
   });
 
   it("keeps Geist as the product typeface and clinic fonts as a patient token", () => {

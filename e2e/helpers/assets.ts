@@ -190,7 +190,7 @@ export function expectStaffCssHasTailwind(css: AssetMeasurement[]): void {
 }
 
 const CLINIC_TYPEFACE_FAMILY =
-  /^(Open Sans|Roboto|Montserrat|Lato|Poppins|Inter)( Fallback)?$/i;
+  /^(Open Sans|OpenSans|Roboto|Montserrat|Lato|Poppins|Inter)( Fallback)?$/i;
 
 export interface PatientCssParts {
   coreBody: string;

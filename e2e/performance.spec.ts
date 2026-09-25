@@ -46,7 +46,7 @@ test.describe("Phase 1 performance and asset contracts", () => {
       "Inter",
       "Lato",
       "Montserrat",
-      "Open Sans",
+      "OpenSans",
       "Poppins",
       "Roboto",
     ]);
