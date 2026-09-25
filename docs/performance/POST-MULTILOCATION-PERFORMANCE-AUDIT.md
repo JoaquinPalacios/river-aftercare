@@ -10,7 +10,7 @@ Measured: 2026-09-25 (before the Sydney pin).
 
 **Status, staff JavaScript:** the Zod and Prisma client-import split is measured in [Staff client bundle split](#staff-client-bundle-split). Login first-load JavaScript fell from 1,082,709 bytes to 695,120 bytes. The 387,769-byte Zod chunk and the 57,465-byte Prisma field chunk are absent from the production client graph. Patient routes did not grow.
 
-**Status, marketing delivery:** public marketing HTML is now prerendered. See [Marketing ISR](#marketing-isr). Patient, staff, and operator routes stay dynamic. Production CDN headers are not measured until this change is deployed.
+**Status, marketing delivery:** public marketing HTML is prerendered, and production CDN behaviour is measured. The dynamic-render finding is **RESOLVED**. See [Marketing Static Delivery — Production Verification](#marketing-static-delivery--production-verification). Patient, staff, and operator routes stay dynamic.
 
 ## 1. Executive summary
 
@@ -463,7 +463,7 @@ The experiment isolates Function placement.
 3. **Cold starts.** Health samples 1 and 2 were still above 1.5s, and the pre-benchmark guide touch was 1,735.9ms. Warm samples are the comparison that matches the earlier warm baseline.
 4. **Staff JavaScript.** At the time of this probe, the Zod chunk (about 388KB uncompressed) and the Prisma enum import were unchanged. They do not explain the login TTFB change. The later split is in [Staff client bundle split](#staff-client-bundle-split).
 5. **Additional-location home.** Still 41 SQL executes on the local trace. `demodental` publishes no additional location, so production did not remeasure `/bondi`. Keep that miss path in a later query change. It is not the next change: root patient TTFB is no longer dominated by cross-Pacific groups.
-6. **Marketing is still dynamic.** ISR would change edge caching for marketing HTML. It was not part of this deploy, and the US marketing median barely moved.
+6. **Marketing dynamic render.** Resolved in production by PR #105. The US medians above are the pre-change dynamic renders. After numbers are in [Marketing Static Delivery — Production Verification](#marketing-static-delivery--production-verification).
 
 ### Revised optimisation order
 
@@ -472,8 +472,8 @@ Do not open a patient backend pull request next only because the statement count
 1. **Done in source — staff client Zod and Prisma enum split.** Former PR B. Measured in [Staff client bundle split](#staff-client-bundle-split). Login, password forms, the slug helper, and invitation constants. No patient behaviour change.
 2. **Later — request-level React `cache()` for patient loaders.** Former PR A. The measured remainder is about 40–75ms on guide and print, and the duplicates already overlap. Revisit only if a later probe, preferably from Australia or on an additional-location URL, shows a larger gap.
 3. **Later — fewer statements in the guide loader, including the location-home miss path.** Former PR C. Retain the miss-path work in that pull request. Root guide versus location order stays. `demodental` still cannot show the production cost.
-4. **Later — branding CDN cache investigation.** Former PR D. Unchanged by this measurement.
-5. **Later — marketing ISR.** Former PR E. Separate from patient caching. Tenant hosts stay `no-store`.
+4. **Not next — branding CDN.** Former PR D. Rechecked with the marketing verification. The demo SVG missed once, then returned `HIT`, and `age` advanced. Do not open a pull request from the earlier double `MISS`.
+5. **Done and measured — marketing static delivery.** Former PR E. See [Marketing Static Delivery — Production Verification](#marketing-static-delivery--production-verification). Tenant hosts stay `no-store`.
 
 No index pull request. No second Function region.
 
@@ -537,6 +537,8 @@ Local warm requests on the production build, same process, loopback PostgreSQL:
 **Print uses the same guide loader as the HTML guide.** Root print was 27 executes, the same count as the guide. It is not a cheaper document.
 
 **Marketing is dynamic for a small reason.** Each marketing page calls `headers()` via `marketingPublicLinks()` and reads two SEO rows (`loadPlatformSeoIdentity`, `loadMarketingPageSeo`), which React `cache()` dedupes inside the request only. Local marketing home was 2 SQL statements. Production TTFB was about 300ms, far below patient pages. Operator SEO saves already call `revalidatePath`. The pages still cannot be static while `headers()` runs.
+
+**Resolved in production, 2026-09-25, PR #105 (`97ce087`).** Marketing content routes no longer call `headers()` during render. Warm production responses are prerendered static HTML served from the edge, without a `syd1` function segment. The paragraph above is the pre-change finding. Evidence is in [Marketing Static Delivery — Production Verification](#marketing-static-delivery--production-verification).
 
 **Staff login does no database work until submit.** Auth.js uses database sessions (`auth.ts` `strategy: "database"`). With no cookie, `/login` issued 0 SQL statements. That matches the 80ms production TTFB.
 
@@ -729,8 +731,9 @@ Rejected: one global `unstable_cache` for “the published guide”, any cache o
 
 ### P5. Immutable branding responses were not CDN-cached
 
+- **Status:** Rechecked 2026-09-25 with the marketing verification. The double `MISS` did not repeat: the first GET missed, and the next two were `HIT` with `age` advancing to 21. The lines below are the earlier audit. Do not open a pull request from that double `MISS`.
 - **Severity:** Low
-- **Class:** Current, small for the 420-byte demo SVG. Relevant for larger logos.
+- **Class:** Current at audit time, small for the 420-byte demo SVG. Relevant for larger logos.
 - **Evidence:** Two GETs, both `x-vercel-cache: MISS`, `age: 0`, despite `public, max-age=31536000, immutable`.
 - **Surface:** patient, infrastructure
 - **Impact:** repeat origin and R2 reads for logos
@@ -775,14 +778,14 @@ Only items with direct evidence. Do not implement them in this branch.
 2. **PR A — request-level patient loader dedupe.** React `cache()` only. No `unstable_cache`, no `Cache-Control` change, no removal of `force-dynamic`. Add a test that two calls in one request share one site lookup. Re-run the audit script’s HTTP counts and expect home below 12 and location home well below 41.
 3. **PR B — staff client Zod and Prisma enum split.** Done and measured in [Staff client bundle split](#staff-client-bundle-split). Login, password forms, slug helper, invitation constants. No patient behaviour change.
 4. **PR C — reduce statements inside `getPublishedPracticeGuide` and the location-home miss path.** One PR if the miss path stays obviously correct; otherwise split. Keep pin and collision behaviour. Re-measure statement counts.
-5. **PR D — branding CDN cache investigation.** Only if a repeated request still misses. Do not change object keys.
-6. **PR E — marketing static or ISR.** Separate from patient caching. Re-measure marketing TTFB and confirm tenant hosts stay `no-store`.
+5. **PR D — branding CDN cache investigation.** Rechecked 2026-09-25: the demo SVG missed once, then `HIT`. Open this only if a repeated request still misses. Do not change object keys.
+6. **PR E — marketing static or ISR.** Done and measured in [Marketing Static Delivery — Production Verification](#marketing-static-delivery--production-verification). Tenant hosts stay `no-store`.
 
 ### Revised after the Sydney measurement
 
 PR 0 is done and measured. Follow [Sydney Region Post-Deployment Measurement](#sydney-region-post-deployment-measurement), not the 1.3–1.5s figures, for anything after this point.
 
-The staff client Zod and Prisma enum split (former PR B) is measured in [Staff client bundle split](#staff-client-bundle-split). Patient loader dedupe and the location-home query reduction stay later. Guide and print are within about 40–75ms of warm `/api/health` from the same US runner, so statement count alone is not the next incident. The additional-location miss path stays inside that later query pull request. `demodental` has no additional location, so that path was not remeasured in production. The remaining first-load weight on every route is the shared Sentry browser chunk (about 371KB). Leave that SDK in place.
+The staff client Zod and Prisma enum split (former PR B) is measured in [Staff client bundle split](#staff-client-bundle-split). Patient loader dedupe and the location-home query reduction stay later. Guide and print are within about 40–75ms of warm `/api/health` from the same US runner, so statement count alone is not the next incident. The additional-location miss path stays inside that later query pull request. `demodental` has no additional location, so that path was not remeasured in production. The remaining first-load weight on every route is the shared Sentry browser chunk (about 371KB). Leave that SDK in place. After marketing static delivery was measured, that chunk is the next performance change, still without removing Sentry. See [Marketing Static Delivery — Production Verification](#marketing-static-delivery--production-verification).
 
 Do not open an index PR from this audit.
 
@@ -859,10 +862,10 @@ The −2 byte movement on patient routes, the guide editor, the dashboard, accou
 
 ### What stays later
 
-1. Optional Sentry browser-SDK loading, only as a monitoring decision.
+1. **Next — Sentry browser SDK loading, without removing Sentry.** Production marketing HTML still downloads a 371,706-byte chunk that contains `@sentry`. It is already a CDN `HIT`. The constraint is in [Marketing Static Delivery — Production Verification](#marketing-static-delivery--production-verification).
 2. Request-level React `cache()` for patient loaders, if a later probe shows a larger gap than the current 40–75ms on guide and print.
 3. Fewer statements in the guide loader, including the location-home miss path.
-4. Branding CDN cache investigation. Marketing HTML prerender is [Marketing ISR](#marketing-isr).
+4. Branding CDN only if a later probe shows repeated misses, or a large logo that stays slow after the first request. The 2026-09-25 recheck cached the 420-byte demo SVG.
 
 No index pull request. No patient loader edit in this change.
 
@@ -1027,7 +1030,7 @@ SEO revalidation paths are the `/_marketing` destinations, `/sitemap.xml`, `/llm
 
 ### Post-deployment measurement
 
-Do not treat the local `HIT` as a production millisecond result. After this change is deployed, from the same style of US runner as the earlier audit, request each URL five times in sequence, one at a time, with no concurrency and no writes:
+Production results for this plan are in [Marketing Static Delivery — Production Verification](#marketing-static-delivery--production-verification). The steps below are the plan that was followed. Do not treat the local `HIT` as a production millisecond result. After this change is deployed, from the same style of US runner as the earlier audit, request each URL five times in sequence, one at a time, with no concurrency and no writes:
 
 1. `https://riveraftercare.com.au/`
 2. `https://riveraftercare.com.au/pricing`
@@ -1044,3 +1047,178 @@ For each response record:
 Warm requests should show the CDN or static cache (`x-vercel-cache` `HIT`, or `STALE` only immediately after an operator save) rather than a Sydney function render on every request. `x-vercel-id` still names the edge that accepted the connection. Compare how many `::` segments it has with the earlier `iad1::syd1::<id>` dynamic renders. This plan does not set a target millisecond value.
 
 The hostname proxy still classifies the host before the rewrite. If a warm response is `HIT` and `x-vercel-id` still includes `syd1`, the proxy ran and the HTML was cached. If it is `HIT` and the id is only the edge region, the function did not run. Record which one production returns. Do not change patient URLs in this probe.
+
+## Marketing Static Delivery — Production Verification
+
+Measured 2026-09-25 after PR #105 was on production. No application code, cache configuration, SEO copy, or Sentry configuration was changed for this check.
+
+The marketing dynamic-render finding in [section 6](#6-web-and-runtime-findings) is **RESOLVED**.
+
+### Deployed state
+
+| Item | Value |
+| ---- | ----- |
+| `main` SHA | `97ce087daf2ba1c420c5cb6da0a91147426088fc` |
+| PR #105 | Merged 2026-09-25T08:35:12Z, commit `97ce087` — Enable ISR for marketing pages |
+| GitHub production deployment | `6656912822`, created 2026-09-25T08:36:32Z, state `success`, description “Deployment has completed” |
+| Previous production SHA | `08593df` (PR #104), replaced by this deployment |
+
+The deployment-specific host returned HTTP 302 to Vercel SSO, so this probe did not read a git SHA from that host. The live apex is this deployment for three reasons that agree:
+
+- GitHub recorded a successful Production deployment of `97ce087`.
+- The first homepage response at 08:42:48 GMT had `age: 350`, so the cached object was generated about 08:36:58 GMT, 26 seconds after that deployment completed.
+- Every marketing document carried `x-nextjs-prerender: 1` and `x-matched-path: /_marketing` or `/_marketing/...`. The previous production behaviour was `private, no-store` and `x-vercel-cache: MISS` with `x-vercel-id` `iad1::syd1::<id>`.
+
+### Runner
+
+Cursor cloud agent VM in AWS `us-east-1` (Ashburn). It is the same class of vantage as the Sydney measurement: the Vercel edge segment is `iad1`. It is not the same VM. Five requests per URL, one after another, no concurrency, no writes, no query-string cache busting. The first request is kept. TTFB is curl `time_starttransfer`. Total is curl `time_total`. The median is the middle value of the five sorted TTFB samples, rounded to 0.1ms.
+
+### Homepage — `https://riveraftercare.com.au/`
+
+Every sample: HTTP 200, no redirect, `cache-control: public, max-age=0, must-revalidate`, `x-nextjs-prerender: 1`, `x-nextjs-stale-time: 300`, `x-matched-path: /_marketing`, the same weak ETag, Brotli body 16,922 bytes (115,000 bytes decoded). `server-timing` and `x-vercel-execution-region` were absent. `x-vercel-id` has two segments. There is no `syd1` function segment.
+
+| # | Status | TTFB | Total | `age` | `x-vercel-cache` | `x-vercel-id` |
+| -: | -----: | ---: | ----: | ----: | ---------------- | ------------- |
+| 1 | 200 | 1,917.4ms | 1,917.9ms | 350 | `HIT` | `iad1::l8js7-1790325766778-05d1ff4d4f04` |
+| 2 | 200 | 65.7ms | 66.2ms | 350 | `HIT` | `iad1::26mz9-1790325768673-aa5989508101` |
+| 3 | 200 | 84.8ms | 85.4ms | 350 | `HIT` | `iad1::nh5fh-1790325768745-087d65f44128` |
+| 4 | 200 | 85.9ms | 86.3ms | 350 | `HIT` | `iad1::8zg5t-1790325768836-9114ddfcc85b` |
+| 5 | 200 | 65.7ms | 66.2ms | 350 | `HIT` | `iad1::cqn4x-1790325768928-82e8a385fa52` |
+
+Median 84.8ms. Min 65.7ms. Max 1,917.4ms.
+
+Sample 1 is a slow `HIT`, not a function render. DNS, connect, and TLS on that request finished by 47ms, and the id does not name `syd1`. The edge already held the page (`age: 350`). This run did not see `PRERENDER` on `/`, because the `iad1` CDN entry already existed. Samples 2–5 are 65.7–85.9ms.
+
+`age` stayed 350 across the five samples (about 2.1 seconds). A later GET, 129 seconds after sample 1, returned `age: 477`, the same ETag, and `x-vercel-cache: HIT` in 106.8ms. Age does increase. It does not move inside a two-second window when the header is whole seconds.
+
+Title: `Patient Aftercare Software for Clinics | River Aftercare`. Canonical: `https://riveraftercare.com.au`. The body is the marketing page. “Riverside Dental” and “Tooth Extraction” appear in the phone mock, not as the patient application. “Sign in” points at `https://app.riveraftercare.com.au/login`. The demo control points at `https://demodental.riveraftercare.com.au/`.
+
+### Pricing — `https://riveraftercare.com.au/pricing`
+
+Every sample: HTTP 200, no redirect, the same `cache-control`, `x-nextjs-prerender: 1`, `x-nextjs-stale-time: 300`, `x-matched-path: /_marketing/pricing`, the same weak ETag, Brotli body 14,114 bytes (99,209 bytes decoded). No `syd1` segment.
+
+| # | Status | TTFB | Total | `age` | `x-vercel-cache` | `x-vercel-id` |
+| -: | -----: | ---: | ----: | ----: | ---------------- | ------------- |
+| 1 | 200 | 380.4ms | 380.8ms | 0 | `PRERENDER` | `iad1::kvdl8-1790325768998-f43254c9b952` |
+| 2 | 200 | 54.5ms | 54.8ms | 0 | `HIT` | `iad1::frxrh-1790325769385-bcb1753c1a07` |
+| 3 | 200 | 90.0ms | 90.4ms | 0 | `HIT` | `iad1::zkzgb-1790325769452-d74c851a78e1` |
+| 4 | 200 | 55.0ms | 55.3ms | 0 | `HIT` | `iad1::vqkp4-1790325769540-10d5111e7b0c` |
+| 5 | 200 | 49.4ms | 49.7ms | 0 | `HIT` | `iad1::bvvjp-1790325769600-4a0d1a001f94` |
+
+Median 55.0ms. Min 49.4ms. Max 380.4ms.
+
+Sample 1 is `PRERENDER`: Vercel served the build-time static file from static storage ([cache status](https://vercel.com/docs/caching/cache-status)). Samples 2–5 are `HIT`: the same bytes from the CDN cache. A later GET, 127 seconds after sample 1, returned `age: 126` and `HIT` in 81.5ms. The five-sample `age: 0` values are the same second as the cache fill.
+
+Title: `Patient Aftercare Software Pricing | River Aftercare`. Canonical: `https://riveraftercare.com.au/pricing`.
+
+### Before / after
+
+Before medians are the Sydney post-deploy five-sample medians (dynamic `syd1` renders). Absolute change is after median minus before median. Percent change is that difference divided by the before median. A negative change is faster.
+
+| Surface | Before median | After median | Absolute change | Percent change |
+| ------- | ------------: | -----------: | --------------: | -------------: |
+| Marketing home | 301.3ms | 84.8ms | −216.5ms | −71.9% |
+| Pricing | 311.8ms | 55.0ms | −256.8ms | −82.4% |
+
+The homepage median includes the 1,917.4ms first `HIT`. Dropping it would make the page look faster than the method used in the earlier audit. It is kept.
+
+### How Vercel labelled the responses
+
+Current Vercel `x-vercel-cache` values, from the response-header and cache-status docs:
+
+| Value | Meaning on these responses |
+| ----- | -------------------------- |
+| `PRERENDER` | Served from static storage. The page was prerendered. Pricing sample 1 and the first contact request. |
+| `HIT` | Served from the CDN cache. Homepage samples 1–5, pricing samples 2–5, and the second contact request. |
+| `MISS` | Not served from that cache. The response was generated by the function. Tenant home and staff login. |
+
+`PRERENDER` and `HIT` are different. `PRERENDER` is the static file. `HIT` is the CDN copy of that file after this edge has stored it. Neither one is “the Sydney function ran and the CDN remembered the HTML.”
+
+`x-vercel-id` on marketing documents is `iad1::<request id>`. The earlier dynamic renders were `iad1::syd1::<request id>`. The function region is absent, so the Sydney function did not execute for these marketing documents.
+
+`cache-control: public, max-age=0, must-revalidate` is the header Vercel sends to the browser when the origin asks the CDN to cache (local `next start` sent `s-maxage=31536000`). It is not `private, no-store`. The browser revalidates. The CDN keeps the object, which is what `age` and `HIT` show. `x-nextjs-stale-time: 300` is the client router hint already described in [Marketing ISR](#marketing-isr). It is not a 300-second regeneration interval. These routes have no clock revalidate; operator saves use `revalidatePath`.
+
+`www.riveraftercare.com.au` returned 308 to the apex in 43ms. That matches the earlier audit.
+
+### Tenant and staff isolation
+
+Two GETs each. No writes.
+
+`https://demodental.riveraftercare.com.au/`
+
+| # | Status | TTFB | `cache-control` | `x-vercel-cache` | `x-vercel-id` | `x-matched-path` |
+| -: | -----: | ---: | --------------- | ---------------- | ------------- | ---------------- |
+| 1 | 200 | 482.2ms | `private, no-cache, no-store, max-age=0, must-revalidate` | `MISS` | `iad1::syd1::s7fdr-1790325896507-a3bdd0edcfe3` | `/_sites/[tenant]` |
+| 2 | 200 | 345.2ms | same | `MISS` | `iad1::syd1::mvqxb-1790325896991-65ac312950ea` | `/_sites/[tenant]` |
+
+Title: `Riverside Dental Demo — Aftercare instructions`. The body does not contain the marketing title, “Request a demo”, or “View the dental demo”. `age` stayed 0. The Sydney function still runs.
+
+`https://app.riveraftercare.com.au/login`
+
+| # | Status | TTFB | `cache-control` | `x-vercel-cache` | `x-vercel-id` | `x-matched-path` |
+| -: | -----: | ---: | --------------- | ---------------- | ------------- | ---------------- |
+| 1 | 200 | 316.4ms | `private, no-cache, no-store, max-age=0, must-revalidate` | `MISS` | `iad1::syd1::f74n7-1790325897366-2ecef1bc19d5` | `/login` |
+| 2 | 200 | 321.6ms | same | `MISS` | `iad1::syd1::b42p5-1790325897664-356b9f8e030c` | `/login` |
+
+Title: `Sign in · River Aftercare`. The document is the email/password form. It does not contain the marketing homepage or the patient title. It has not become a static marketing cache.
+
+### Contact
+
+`https://riveraftercare.com.au/contact`. The form was not submitted.
+
+| # | Status | TTFB | `age` | `x-vercel-cache` | `x-vercel-id` |
+| -: | -----: | ---: | ----: | ---------------- | ------------- |
+| 1 | 200 | 383.8ms | 0 | `PRERENDER` | `iad1::6n4mc-1790325896033-a71c1867062f` |
+| 2 | 200 | 52.3ms | 0 | `HIT` | `iad1::smp2b-1790325896422-96f0426d78ab` |
+
+Both: `x-matched-path: /_marketing/contact`, `x-nextjs-prerender: 1`, `cache-control: public, max-age=0, must-revalidate`, no `syd1` segment. Title: `Book a Demo | River Aftercare`.
+
+The HTML contains one `POST` form with `fullName`, `workEmail`, `clinicName`, `phone`, and `message`, plus the verification widget (`contactTurnstileWidget`). The flight data passes `turnstileSiteKey` into the client form. `/_next/static/immutable/chunks/1mdc51zbayzx2.js` (9,151 bytes) contains `https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit` and `cf-turnstile-response`. That chunk was itself a CDN `HIT` (`age: 12037`, `public, max-age=31536000, immutable`). The client resource that hydrates Turnstile is in the static graph. This check did not execute the widget in a browser and did not post the form.
+
+### SEO revalidation
+
+SEO REVALIDATION NOT MANUALLY PROBED IN PRODUCTION
+
+This runner has no operator session and no production database credential. No SEO field was changed. Public titles and canonicals on `/`, `/pricing`, and `/contact` match the expected marketing copy, which shows the prerender is not an error document. It does not show that a later operator save reaches the CDN.
+
+`tests/marketing-isr.test.ts` asserts that a successful operator save calls `revalidatePath` on every `/_marketing` delivery path, `/sitemap.xml`, `/llms.txt`, and `/operator/seo`, and that a rejected save does not. Those tests were not re-run in this production check.
+
+### Sentry and other behaviour
+
+This runner has no Sentry auth token. The issue list was not queried. Sentry configuration was not changed. The probed documents were HTTP 200 and were the pages named above. None was an application error document.
+
+No unexpected redirect on the apex, `/pricing`, `/contact`, the tenant host, or `/login`. The `www` 308 is the existing apex redirect.
+
+### Branding recheck
+
+Three sequential GETs of the `demodental` logo SVG (420 bytes) at `assets.riveraftercare.com.au`, path `clinics/{clinicId}/branding/{uuid}.svg`.
+
+| # | Status | TTFB | `age` | `x-vercel-cache` | `x-vercel-id` |
+| -: | -----: | ---: | ----: | ---------------- | ------------- |
+| 1 | 200 | 1,245.7ms | 0 | `MISS` | `iad1::syd1::xvc8m-1790326024877-d36cf4af46e5` |
+| 2 | 200 | 35.9ms | 0 | `HIT` | `iad1::syd1::z2cgv-1790326026105-ac2d1d58f87b` |
+| 3 | 200 | 60.8ms | 21 | `HIT` | `iad1::syd1::c2jw4-1790326047737-72394a4dfc87` |
+
+`cache-control` stayed `public, max-age=31536000, immutable`. The first request executed in `syd1`. The warm requests were `HIT` in tens of milliseconds, and `age` reached 21. The id still contains `syd1` because this URL is a function route’s cache, not a prerendered file like marketing HTML. The 36–61ms TTFB is not a full US-to-Sydney function run. P5’s “both requests missed” result is not what this edge did today.
+
+### Remaining work
+
+Do not open a patient loader or guide-query pull request next because the statement counts are large. From this vantage, after the Sydney pin, guide and print sit about 40–75ms above warm health. That gap is not the marketing result above.
+
+Do not open a branding-cache pull request from the old double `MISS`. The warm demo SVG is already cached. Revisit only if a repeated request misses, or a large logo stays slow after the first GET.
+
+Operator pagination is still not justified. This check did not count accounts.
+
+The largest remaining measured payload on the marketing page is the Sentry browser chunk: `32drio6y81ul7.js`, 371,706 bytes, `x-vercel-cache: HIT`, `public, max-age=31536000, immutable`. The build recorded the same chunk at 371,079 bytes. Strings that mention Prisma in it are the Sentry denylist. Other marketing files on that page include a 129,939-byte stylesheet and JavaScript files of 129,456 and 112,594 bytes. The Sentry file is the single largest. Australian visitors download it. They do not pay this probe’s edge-to-Sydney hop.
+
+**Next performance pull request:** load the Sentry browser SDK so that 371KB chunk is not on the shared first-load graph. Keep Sentry. Do not change the DSN requirement, privacy filters, tracing sample rate, or Session Replay. Do not drop the SDK to save bytes. A client error that the product already reports must still be reportable after the change. If the only way to remove the bytes is to miss errors that happen before the SDK loads, do not ship that. Measure `firstLoadUncompressedJsBytes` for marketing home, patient home, and `/login`. Do not cache patient or staff HTML in that pull request.
+
+### Limitations
+
+- One US runner, five sequential samples. Not CrUX, Lighthouse, or an Australian vantage.
+- Homepage sample 1 was already a CDN `HIT`. This run did not observe `PRERENDER` for `/`.
+- `age` is whole seconds, so the five-sample window did not show it tick. Later requests did.
+- Contact hydration was checked from HTML and the static chunk, not by running the widget in a browser.
+- Operator SEO propagation was not edited in production.
+- Sentry issues were not listed.
+- The branding recheck is one small SVG from one edge. It does not describe every logo.
