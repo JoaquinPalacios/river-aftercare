@@ -35,6 +35,7 @@ Business rules should not live only inside React components. Current server modu
 | Error tracking               | `lib/observability/*`, `instrumentation.ts`, `instrumentation-client.ts`, `sentry.server.config.ts`                                                                       |
 | Billing projection           | `lib/billing/*`, `POST /api/stripe/webhook` — test-mode Checkout, Customer Portal, and local entitlement projection. No plan-limit enforcement.                           |
 | Operator clinic queries      | `lib/operator/list-operator-clinics.ts`                                                                                                                                   |
+| Account split preparation    | `lib/account-split/*`, `/operator/clinics/[clinicId]/split`. Preparation, shell, and dry-run only. See [ACCOUNT-SPLIT.md](ACCOUNT-SPLIT.md).                              |
 | Platform SEO                 | `lib/seo/*`                                                                                                                                                               |
 | Logo storage boundary        | `lib/clinic-assets/*`                                                                                                                                                     |
 | Platform SEO assets          | `lib/platform-assets/*`                                                                                                                                                   |
@@ -64,7 +65,9 @@ Until then, keep extracting **modules**, not processes. Do not add MCP, GraphQL,
 
 Practice settings still edit the primary site brand and the primary root location, and those writes still dual-write `ClinicProfile`. Other sites and locations do not. `Clinic.slug` and `ClinicProfile` stay. Branding object keys stay `clinics/{clinicId}/branding/{uuid}.{ext}`. A later optional key layout is `clinics/{clinicId}/sites/{siteId}/branding/...`. Do not migrate existing objects.
 
-Capacity is enforced. Essential is 1 site and 1 location. Practice is 1 site and the stored location allowance. Group uses the operator-configured totals. A missing entitlement is 1 site and 1 location, never unlimited. Approved direction that is not in Stripe: Group A$449/month base is 2 sites and 5 locations, and a +A$50/month site bundle adds one site and one location. Annual Group pricing is not decided. Marketing stays Talk to us. New operator clinics and the demo seed write the account, primary site, and root location together. The product adds no migration.
+Capacity is enforced. Essential is 1 site and 1 location. Practice is 1 site and the stored location allowance. Group uses the operator-configured totals. A missing entitlement is 1 site and 1 location, never unlimited. Approved direction that is not in Stripe: Group A$449/month base is 2 sites and 5 locations, and a +A$50/month site bundle adds one site and one location. Annual Group pricing is not decided. Marketing stays Talk to us. New operator clinics and the demo seed write the account, primary site, and root location together.
+
+Operator account-split preparation is separate from that create path. It can add an empty destination shell with no Site. The shell slug is not a patient hostname. The preparation migration is additive and is not applied from the application. Execution, guide copy, membership moves, and Group → Practice billing are not implemented. See [ACCOUNT-SPLIT.md](ACCOUNT-SPLIT.md).
 
 ## Schema releases
 

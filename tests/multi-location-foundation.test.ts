@@ -34,6 +34,21 @@ function backfillSql(): string {
   return sql.slice(start + BACKFILL_BEGIN.length, end).trim();
 }
 
+/**
+ * The migration SQL backfills every Clinic. Re-running that on the shared
+ * test database would invent a Site for an account-split shell, which is
+ * allowed to have zero Sites. Scope the replay to this file's clinics.
+ */
+function scopeBackfillToOwnedClinics(statement: string): string {
+  if (statement.includes('FROM "Clinic" AS clinic')) {
+    return `${statement}\n  AND clinic."id" LIKE '${PREFIX}%'`;
+  }
+  if (statement.includes('FROM "PracticeGuide" AS guide')) {
+    return `${statement}\n  AND guide."clinicId" LIKE '${PREFIX}%'`;
+  }
+  return statement;
+}
+
 async function rerunBackfill(): Promise<void> {
   const statements = backfillSql()
     .split(";")
@@ -41,7 +56,7 @@ async function rerunBackfill(): Promise<void> {
     .filter((statement) => statement.length > 0);
   expect(statements).toHaveLength(3);
   for (const statement of statements) {
-    await executeIdempotentBackfill(statement);
+    await executeIdempotentBackfill(scopeBackfillToOwnedClinics(statement));
   }
 }
 

@@ -91,41 +91,46 @@ enum PracticeSectionProvenance {
 }
 
 model Clinic {
-  id                   String                      @id @default(cuid())
-  name                 String
-  slug                 String                      @unique
-  memberships          ClinicMembership[]
-  profile              ClinicProfile?
-  billingProfile       ClinicBillingProfile?
-  entitlement          ClinicEntitlement?
-  legalAcceptances     LegalAcceptance[]
-  practiceGuides       PracticeGuide[]
-  accountTokens        AccountToken[]
-  downgradePreparation ClinicDowngradePreparation?
-  sites                ClinicSite[]
-  createdAt            DateTime                    @default(now())
-  updatedAt            DateTime                    @updatedAt
+  id                       String                          @id @default(cuid())
+  name                     String
+  slug                     String                          @unique
+  memberships              ClinicMembership[]
+  profile                  ClinicProfile?
+  billingProfile           ClinicBillingProfile?
+  entitlement              ClinicEntitlement?
+  legalAcceptances         LegalAcceptance[]
+  practiceGuides           PracticeGuide[]
+  accountTokens            AccountToken[]
+  downgradePreparation     ClinicDowngradePreparation?
+  sites                    ClinicSite[]
+  sourceAccountSplits      ClinicAccountSplitPreparation[] @relation("AccountSplitSource")
+  destinationAccountSplits ClinicAccountSplitPreparation[] @relation("AccountSplitDestination")
+  createdAt                DateTime                        @default(now())
+  updatedAt                DateTime                        @updatedAt
 }
 
 model User {
-  id                             String                       @id @default(cuid())
+  id                             String                             @id @default(cuid())
   name                           String?
-  email                          String                       @unique
+  email                          String                             @unique
   emailVerified                  DateTime?
   image                          String?
   passwordHash                   String?
-  platformRole                   PlatformRole                 @default(NONE)
+  platformRole                   PlatformRole                       @default(NONE)
   memberships                    ClinicMembership[]
   accounts                       Account[]
   sessions                       Session[]
-  authoredPracticeGuideRevisions PracticeGuideRevision[]      @relation("PracticeGuideRevisionAuthor")
-  attestedPracticeGuideRevisions PracticeGuideRevision[]      @relation("PracticeGuideRevisionAttestation")
-  accountTokens                  AccountToken[]               @relation("AccountTokenSubject")
-  invitedAccountTokens           AccountToken[]               @relation("AccountTokenInviter")
+  authoredPracticeGuideRevisions PracticeGuideRevision[]            @relation("PracticeGuideRevisionAuthor")
+  attestedPracticeGuideRevisions PracticeGuideRevision[]            @relation("PracticeGuideRevisionAttestation")
+  accountTokens                  AccountToken[]                     @relation("AccountTokenSubject")
+  invitedAccountTokens           AccountToken[]                     @relation("AccountTokenInviter")
   legalAcceptances               LegalAcceptance[]
-  confirmedDowngradePreparations ClinicDowngradePreparation[] @relation("DowngradeSelectionConfirmedBy")
-  createdAt                      DateTime                     @default(now())
-  updatedAt                      DateTime                     @updatedAt
+  confirmedDowngradePreparations ClinicDowngradePreparation[]       @relation("DowngradeSelectionConfirmedBy")
+  preparedAccountSplits          ClinicAccountSplitPreparation[]    @relation("AccountSplitPreparedBy")
+  executedAccountSplits          ClinicAccountSplitPreparation[]    @relation("AccountSplitExecutedBy")
+  accountSplitStaffSelections    ClinicAccountSplitStaffSelection[]
+  createdAt                      DateTime                           @default(now())
+  updatedAt                      DateTime                           @updatedAt
 }
 
 model ClinicMembership {
@@ -264,15 +269,15 @@ model ClinicProfile {
 /// PostgreSQL enforces slug format and at most one primary site per account.
 /// That predicate is in the migration because Prisma cannot express it.
 model ClinicSite {
-  id                       String                       @id @default(cuid())
+  id                       String                           @id @default(cuid())
   clinicId                 String
   name                     String
-  slug                     String                       @unique
+  slug                     String                           @unique
   displayName              String
-  active                   Boolean                      @default(true)
+  active                   Boolean                          @default(true)
   /// The account's primary public site. Independent of which location serves
   /// that site's unprefixed patient URLs.
-  isPrimary                Boolean                      @default(false)
+  isPrimary                Boolean                          @default(false)
   logoUrl                  String?
   darkLogoUrl              String?
   faviconUrl               String?
@@ -280,18 +285,20 @@ model ClinicSite {
   accentColor              String?
   darkPrimaryColor         String?
   darkAccentColor          String?
-  useCustomDarkBranding    Boolean                      @default(false)
+  useCustomDarkBranding    Boolean                          @default(false)
   neutralColor             String?
-  radiusPreset             ClinicRadiusPreset           @default(MEDIUM)
+  radiusPreset             ClinicRadiusPreset               @default(MEDIUM)
   typeface                 ClinicTypeface?
-  instructionTerminology   ClinicInstructionTerminology @default(AFTERCARE)
-  themeMode                ClinicThemeMode              @default(SYSTEM)
-  allowPatientThemeToggle  Boolean                      @default(false)
-  showCareGuideAttribution Boolean                      @default(true)
-  createdAt                DateTime                     @default(now())
-  updatedAt                DateTime                     @updatedAt
-  clinic                   Clinic                       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  instructionTerminology   ClinicInstructionTerminology     @default(AFTERCARE)
+  themeMode                ClinicThemeMode                  @default(SYSTEM)
+  allowPatientThemeToggle  Boolean                          @default(false)
+  showCareGuideAttribution Boolean                          @default(true)
+  createdAt                DateTime                         @default(now())
+  updatedAt                DateTime                         @updatedAt
+  clinic                   Clinic                           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   locations                ClinicLocation[]
+  keptByAccountSplits      ClinicAccountSplitPreparation[]  @relation("AccountSplitKeptSite")
+  accountSplitDecisions    ClinicAccountSplitSiteDecision[]
 
   @@unique([id, clinicId])
   @@index([clinicId])
@@ -412,47 +419,49 @@ model GuideTemplateSection {
 /// guides leave both null. Patient-visible content is served from an immutable
 /// published `PracticeGuideRevision` snapshot, not from live overrides.
 model PracticeGuide {
-  id                        String                    @id @default(cuid())
-  clinicId                  String
-  title                     String
-  guideTemplateId           String?
-  pinnedRevisionId          String?
+  id                               String                       @id @default(cuid())
+  clinicId                         String
+  title                            String
+  guideTemplateId                  String?
+  pinnedRevisionId                 String?
   /// Set when this row is forked from a River template into a clinic-owned
   /// editable copy. Provenance only: it does not keep the canonical pin.
   /// Existing rows stay null. Production has no historical adaptations to backfill.
-  adaptedAt                 DateTime?
+  adaptedAt                        DateTime?
   /// Canonical River template this copy came from. Counts toward the
   /// adapted-template allowance, not the original custom-guide allowance.
   /// Null for original custom guides and for templates still used as supplied.
-  sourceGuideTemplateId     String?
+  sourceGuideTemplateId            String?
   /// Set when this account-owned guide is a detached copy of another
   /// account-owned guide. Provenance only. Existing rows stay null.
   /// Do not infer this from a template relationship.
-  copiedFromPracticeGuideId String?
-  publicSlug                String
-  isEnabled                 Boolean                   @default(false)
-  status                    PracticeGuideStatus       @default(DRAFT)
-  sortOrder                 Int                       @default(0)
-  publishedAt               DateTime?
+  copiedFromPracticeGuideId        String?
+  publicSlug                       String
+  isEnabled                        Boolean                      @default(false)
+  status                           PracticeGuideStatus          @default(DRAFT)
+  sortOrder                        Int                          @default(0)
+  publishedAt                      DateTime?
   /// Set when this clinic-owned guide enters 60-day downgrade retention.
   /// Null means the guide is active. Publication status is unchanged.
-  downgradeRetainedAt       DateTime?
+  downgradeRetainedAt              DateTime?
   /// First effective Practice → Essential transition plus 60 UTC days.
   /// Not moved by a replayed webhook. Null when the guide is active.
-  downgradeRetentionUntil   DateTime?
-  createdAt                 DateTime                  @default(now())
-  updatedAt                 DateTime                  @updatedAt
-  clinic                    Clinic                    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  guideTemplate             GuideTemplate?            @relation(fields: [guideTemplateId], references: [id], onDelete: Restrict)
-  pinnedRevision            GuideTemplateRevision?    @relation(fields: [pinnedRevisionId, guideTemplateId], references: [id, guideTemplateId], onDelete: Restrict)
-  sourceGuideTemplate       GuideTemplate?            @relation("PracticeGuideSourceTemplate", fields: [sourceGuideTemplateId], references: [id], onDelete: SetNull)
-  copiedFromPracticeGuide   PracticeGuide?            @relation("PracticeGuideCopyProvenance", fields: [copiedFromPracticeGuideId], references: [id], onDelete: SetNull)
-  detachedCopies            PracticeGuide[]           @relation("PracticeGuideCopyProvenance")
-  overrides                 PracticeGuideOverride[]
-  additions                 PracticeGuideAddition[]
-  contentRevisions          PracticeGuideRevision[]
-  downgradeSelections       DowngradeGuideSelection[]
-  placements                PracticeGuidePlacement[]
+  downgradeRetentionUntil          DateTime?
+  createdAt                        DateTime                     @default(now())
+  updatedAt                        DateTime                     @updatedAt
+  clinic                           Clinic                       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  guideTemplate                    GuideTemplate?               @relation(fields: [guideTemplateId], references: [id], onDelete: Restrict)
+  pinnedRevision                   GuideTemplateRevision?       @relation(fields: [pinnedRevisionId, guideTemplateId], references: [id, guideTemplateId], onDelete: Restrict)
+  sourceGuideTemplate              GuideTemplate?               @relation("PracticeGuideSourceTemplate", fields: [sourceGuideTemplateId], references: [id], onDelete: SetNull)
+  copiedFromPracticeGuide          PracticeGuide?               @relation("PracticeGuideCopyProvenance", fields: [copiedFromPracticeGuideId], references: [id], onDelete: SetNull)
+  detachedCopies                   PracticeGuide[]              @relation("PracticeGuideCopyProvenance")
+  overrides                        PracticeGuideOverride[]
+  additions                        PracticeGuideAddition[]
+  contentRevisions                 PracticeGuideRevision[]
+  downgradeSelections              DowngradeGuideSelection[]
+  placements                       PracticeGuidePlacement[]
+  sourceAccountSplitGuideMaps      ClinicAccountSplitGuideMap[] @relation("AccountSplitSourceGuide")
+  destinationAccountSplitGuideMaps ClinicAccountSplitGuideMap[] @relation("AccountSplitDestinationGuide")
 
   @@unique([id, clinicId])
   @@unique([clinicId, guideTemplateId])
@@ -469,27 +478,29 @@ model PracticeGuide {
 /// Versions 1+ are immutable published snapshots. Public pages pin the
 /// highest published version; draft edits never mutate those rows.
 model PracticeGuideRevision {
-  id                     String                         @id @default(cuid())
-  practiceGuideId        String
-  version                Int
-  status                 GuideRevisionStatus            @default(DRAFT)
-  title                  String
-  introduction           String?                        @db.Text
-  publishedAt            DateTime?
-  createdByUserId        String?
+  id                                  String                          @id @default(cuid())
+  practiceGuideId                     String
+  version                             Int
+  status                              GuideRevisionStatus             @default(DRAFT)
+  title                               String
+  introduction                        String?                         @db.Text
+  publishedAt                         DateTime?
+  createdByUserId                     String?
   /// Practice confirmation that this clinic approved the snapshot for
   /// patients. Not River Aftercare clinical approval. The attesting user is
   /// the Clinic ADMIN who confirmed the practice's review process — not
   /// necessarily the clinician who performed that review.
-  reviewAttestedAt       DateTime?
-  reviewAttestedByUserId String?
-  createdAt              DateTime                       @default(now())
-  updatedAt              DateTime                       @updatedAt
-  practiceGuide          PracticeGuide                  @relation(fields: [practiceGuideId], references: [id], onDelete: Cascade)
-  createdBy              User?                          @relation("PracticeGuideRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  reviewAttestedBy       User?                          @relation("PracticeGuideRevisionAttestation", fields: [reviewAttestedByUserId], references: [id], onDelete: SetNull)
-  sections               PracticeGuideRevisionSection[]
-  placements             PracticeGuidePlacement[]
+  reviewAttestedAt                    DateTime?
+  reviewAttestedByUserId              String?
+  createdAt                           DateTime                        @default(now())
+  updatedAt                           DateTime                        @updatedAt
+  practiceGuide                       PracticeGuide                   @relation(fields: [practiceGuideId], references: [id], onDelete: Cascade)
+  createdBy                           User?                           @relation("PracticeGuideRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  reviewAttestedBy                    User?                           @relation("PracticeGuideRevisionAttestation", fields: [reviewAttestedByUserId], references: [id], onDelete: SetNull)
+  sections                            PracticeGuideRevisionSection[]
+  placements                          PracticeGuidePlacement[]
+  sourceAccountSplitRevisionMaps      ClinicAccountSplitRevisionMap[] @relation("AccountSplitSourceRevision")
+  destinationAccountSplitRevisionMaps ClinicAccountSplitRevisionMap[] @relation("AccountSplitDestinationRevision")
 
   @@unique([practiceGuideId, version])
   @@index([practiceGuideId, status])
@@ -664,6 +675,27 @@ enum DowngradePreparationStatus {
   SELECTION_CONFIRMED
 }
 
+/// Operator preparation for splitting one ClinicSite onto a new Account.
+/// COMPLETED is reserved for execution. Preparation never sets it.
+/// At most one non-terminal row per source Account. That predicate is a
+/// partial unique index in the migration because Prisma cannot express it.
+enum ClinicAccountSplitStatus {
+  DRAFT
+  DESTINATION_READY
+  AWAITING_PAYMENT
+  BILLING_READY
+  READY_TO_EXECUTE
+  COMPLETED
+  CANCELLED
+}
+
+/// What will happen to a source Site that is not the kept Site.
+/// There is no implicit default.
+enum ClinicAccountSplitSiteDecisionKind {
+  SPLIT
+  DEACTIVATE
+}
+
 /// Local preparation for a Practice → Essential downgrade.
 /// At most one row per clinic. Selected guides are child rows, not JSON.
 /// Confirming a selection does not call Stripe and does not retain guides.
@@ -711,6 +743,125 @@ model DowngradeLocationSelection {
 
   @@unique([preparationId, locationId])
   @@index([locationId])
+}
+
+/// Operator preparation for moving one Site onto a new shell Account.
+/// Does not move the Site, copy guides, change memberships, or convert
+/// source billing. Execution fields stay null until a later release.
+/// Open-preparation uniqueness is a partial index in the migration.
+model ClinicAccountSplitPreparation {
+  id                         String                             @id @default(cuid())
+  sourceClinicId             String
+  /// Null until the destination shell Account is created.
+  destinationClinicId        String?
+  keptClinicSiteId           String
+  status                     ClinicAccountSplitStatus           @default(DRAFT)
+  /// Destination commercial target. Group is not offered.
+  destinationPlan            CommercialPlan
+  destinationBillingInterval BillingInterval
+  /// Preview target for the source Account after the split. Always Practice.
+  /// This row does not change the source subscription or commercial plan.
+  targetSourcePlan           CommercialPlan                     @default(PRACTICE)
+  preparedByUserId           String
+  /// Reserved for execution. Preparation does not set this.
+  executingOperatorUserId    String?
+  /// Reserved for execution. Preparation does not set this.
+  executedAt                 DateTime?
+  /// Future execution phrase `split {siteSlug}`. Display only.
+  expectedConfirmation       String?
+  cancelledAt                DateTime?
+  createdAt                  DateTime                           @default(now())
+  updatedAt                  DateTime                           @updatedAt
+  sourceClinic               Clinic                             @relation("AccountSplitSource", fields: [sourceClinicId], references: [id], onDelete: Cascade)
+  destinationClinic          Clinic?                            @relation("AccountSplitDestination", fields: [destinationClinicId], references: [id], onDelete: SetNull)
+  keptClinicSite             ClinicSite                         @relation("AccountSplitKeptSite", fields: [keptClinicSiteId], references: [id], onDelete: Cascade)
+  preparedBy                 User                               @relation("AccountSplitPreparedBy", fields: [preparedByUserId], references: [id], onDelete: Restrict)
+  executingOperator          User?                              @relation("AccountSplitExecutedBy", fields: [executingOperatorUserId], references: [id], onDelete: SetNull)
+  siteDecisions              ClinicAccountSplitSiteDecision[]
+  staffSelections            ClinicAccountSplitStaffSelection[]
+  guideMaps                  ClinicAccountSplitGuideMap[]
+  revisionMaps               ClinicAccountSplitRevisionMap[]
+
+  @@index([sourceClinicId])
+  @@index([destinationClinicId])
+  @@index([keptClinicSiteId])
+  @@index([preparedByUserId])
+  @@index([executingOperatorUserId])
+  @@index([status])
+}
+
+/// Explicit fate of every source Site other than the kept Site.
+/// At most one SPLIT row per preparation. That predicate is a partial
+/// unique index in the migration.
+model ClinicAccountSplitSiteDecision {
+  id            String                             @id @default(cuid())
+  preparationId String
+  clinicSiteId  String
+  decision      ClinicAccountSplitSiteDecisionKind
+  createdAt     DateTime                           @default(now())
+  updatedAt     DateTime                           @updatedAt
+  preparation   ClinicAccountSplitPreparation      @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+  clinicSite    ClinicSite                         @relation(fields: [clinicSiteId], references: [id], onDelete: Cascade)
+
+  @@unique([preparationId, clinicSiteId])
+  @@index([clinicSiteId])
+}
+
+/// Staff intent for the future split. Does not change ClinicMembership.
+model ClinicAccountSplitStaffSelection {
+  id                 String                        @id @default(cuid())
+  preparationId      String
+  userId             String
+  keepOnSource       Boolean
+  grantOnDestination Boolean
+  destinationRole    ClinicMembershipRole
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+  preparation        ClinicAccountSplitPreparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+  user               User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([preparationId, userId])
+  @@index([userId])
+}
+
+/// Cross-account guide provenance. Empty until execution copies guides.
+/// Do not point PracticeGuide.copiedFromPracticeGuideId at another Account.
+model ClinicAccountSplitGuideMap {
+  id                         String                          @id @default(cuid())
+  preparationId              String
+  sourcePracticeGuideId      String
+  /// Null until execution creates the destination guide.
+  destinationPracticeGuideId String?
+  createdAt                  DateTime                        @default(now())
+  preparation                ClinicAccountSplitPreparation   @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+  sourcePracticeGuide        PracticeGuide                   @relation("AccountSplitSourceGuide", fields: [sourcePracticeGuideId], references: [id], onDelete: Restrict)
+  destinationPracticeGuide   PracticeGuide?                  @relation("AccountSplitDestinationGuide", fields: [destinationPracticeGuideId], references: [id], onDelete: SetNull)
+  revisions                  ClinicAccountSplitRevisionMap[]
+
+  @@unique([preparationId, sourcePracticeGuideId])
+  @@index([sourcePracticeGuideId])
+  @@index([destinationPracticeGuideId])
+}
+
+/// Cross-account revision provenance. Empty until execution copies revisions.
+model ClinicAccountSplitRevisionMap {
+  id                    String                        @id @default(cuid())
+  preparationId         String
+  guideMapId            String
+  sourceRevisionId      String
+  /// Null until execution creates the destination revision.
+  destinationRevisionId String?
+  createdAt             DateTime                      @default(now())
+  preparation           ClinicAccountSplitPreparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+  guideMap              ClinicAccountSplitGuideMap    @relation(fields: [guideMapId], references: [id], onDelete: Cascade)
+  sourceRevision        PracticeGuideRevision         @relation("AccountSplitSourceRevision", fields: [sourceRevisionId], references: [id], onDelete: Restrict)
+  destinationRevision   PracticeGuideRevision?        @relation("AccountSplitDestinationRevision", fields: [destinationRevisionId], references: [id], onDelete: SetNull)
+
+  @@unique([preparationId, sourceRevisionId])
+  @@unique([guideMapId, sourceRevisionId])
+  @@index([guideMapId])
+  @@index([sourceRevisionId])
+  @@index([destinationRevisionId])
 }
 
 /// Legal/billing identity and Stripe Customer/Subscription linkage.

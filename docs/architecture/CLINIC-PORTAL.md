@@ -165,7 +165,7 @@ ADMIN can upload, replace, or remove a clinic logo when `CLINIC_ASSET_STORAGE_DR
 
 The operator console is the River Aftercare operational control plane. Page identity is **PLATFORM / All Clinics**. Local seed identity may show **Demo Operator** as the account name; that is not a demo product.
 
-Current destinations: **Clinics** and **SEO & Discovery**. Clinic detail includes a **Team** area at `/operator/clinics/[clinicId]/team` for operator-managed invitations. Canonical **Templates** management is the next operator-console capability and is not implemented here.
+Current destinations: **Clinics** and **SEO & Discovery**. Clinic detail includes a **Team** area at `/operator/clinics/[clinicId]/team` for operator-managed invitations, and **Account split / downgrade preparation** at `/operator/clinics/[clinicId]/split`. That flow is platform-operator only. It prepares one Group site for a new shell Account and previews the split. It does not move the site, copy guides, change memberships, or convert Group billing. See [ACCOUNT-SPLIT.md](ACCOUNT-SPLIT.md). Canonical **Templates** management is the next operator-console capability and is not implemented here.
 
 All Clinics may show real derived counts: total clinics, configured clinics, published guides, needs attention. No invented analytics.
 

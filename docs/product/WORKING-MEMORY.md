@@ -5,7 +5,7 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
-Last updated: 2026-09-25 (production marketing static delivery verified on `97ce087`; homepage median TTFB 84.8ms and pricing 55.0ms from a US runner; patient and staff hosts stay `no-store`. Sentry client bundle: Turbopack `compiler.define` drops unused debug/tracing code from the shared browser chunk, 371,081 → 303,628 bytes uncompressed; early `instrumentation-client` init and server Sentry stay; production transfer of the previous chunk was about 120 KB brotli, immutable, CDN HIT)
+Last updated: 2026-09-25 (account split preparation only: additive `ClinicAccountSplit*` records, destination shell, operator dry-run. No site move, guide copy, membership move, or Group → Practice billing. See [../architecture/ACCOUNT-SPLIT.md](../architecture/ACCOUNT-SPLIT.md). Production marketing static delivery verified on `97ce087`; homepage median TTFB 84.8ms and pricing 55.0ms from a US runner; patient and staff hosts stay `no-store`. Sentry client bundle: Turbopack `compiler.define` drops unused debug/tracing code from the shared browser chunk, 371,081 → 303,628 bytes uncompressed; early `instrumentation-client` init and server Sentry stay; production transfer of the previous chunk was about 120 KB brotli, immutable, CDN HIT)
 
 ## Durable multi-location product
 
@@ -26,6 +26,8 @@ Capacity is enforced in `lib/clinics/site-location-capacity.ts` with the account
 Approved commercial direction, not a Stripe price and not public marketing copy: Group base A$449/month is 2 sites and 5 locations. Each later site bundle is +A$50/month and adds one site and one location (3/6, 4/7, and operator-configured custom totals). Annual Group pricing and standalone extra Group location pricing are not decided. Practice extra locations remain the existing commercial direction (second +A$79/month, third and later +A$59/month) and are also not charged here.
 
 Downgrade to a plan that cannot cover active sites or locations fails closed. Group to Practice does not pick a surviving site. Webhook projection does not delete sites or locations.
+
+Account split preparation is operator-only and does not perform that downgrade. It stores one open preparation per source Group Account, a new empty destination shell (`Clinic` + `ClinicProfile` only), explicit Split or Deactivate decisions, and staff intent. Dry-run and readiness are recalculated from current data. V1 rejects dual membership, requires a destination administrator who will not stay on the source, and does not offer Group as a destination. `targetSourcePlan` may be Practice for preview. Source Stripe and the source commercial plan stay unchanged. Guide and revision map tables exist and stay empty. Public URLs and branding object keys are not rewritten. There is no execute action and no `COMPLETED` write. Detail: [../architecture/ACCOUNT-SPLIT.md](../architecture/ACCOUNT-SPLIT.md).
 
 Migration `20260925021500_add_multi_location_foundation` remains the only multi-location migration. This product adds no migration. Direct `prisma.clinic.create` in tests does not create the hierarchy. Callers that publish, save practice settings, or load patient pages must call `ensurePrimarySiteForClinic`.
 
