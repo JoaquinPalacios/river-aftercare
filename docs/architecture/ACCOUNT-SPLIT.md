@@ -20,7 +20,7 @@ Operator-only preparation and execution for moving one ClinicSite off a Group Ac
 ## Still not implemented
 
 - Multi-account login or session Account selection
-- Group → Practice Stripe conversion, source plan change, or guide deletion (PR C)
+- Group → Practice Stripe conversion, source plan change, or guide deletion (PR C). The 2026-09-26 billing checkpoint is recorded in [WORKING-MEMORY.md](../product/WORKING-MEMORY.md#group--practice-billing-checkpoint). It does not implement that conversion. `GROUP` has no application writer and no Stripe Price. Do not reuse destination Checkout or the Essential→Practice item update on the source. Recalculate `practiceDowngradeReady` from current rows. `invoice.paid` for a mapped Practice Price remains the only local paid-plan writer. Extra Practice Location prices are not in the catalogue.
 - Copying or deleting R2 objects
 - Moving outstanding source invitations
 - Merging into a populated Account
