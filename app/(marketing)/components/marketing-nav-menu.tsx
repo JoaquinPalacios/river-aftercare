@@ -18,17 +18,21 @@ export function MarketingNavMenu({
   items,
   clinicItems,
   staffHref,
+  onOpenChange,
 }: {
   items: MarketingMenuItem[];
   clinicItems: MarketingMenuItem[];
   staffHref: string;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const reactId = useId().replace(/:/g, "");
   const menuId = `mk-nav-${reactId}`;
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const openIntentRef = useRef<"pointer" | "keyboard">("pointer");
+  const onOpenChangeRef = useRef(onOpenChange);
   const [open, setOpen] = useState(false);
+  onOpenChangeRef.current = onOpenChange;
 
   useEffect(() => {
     const menu = menuRef.current;
@@ -49,6 +53,7 @@ export function MarketingNavMenu({
     const sync = () => {
       const nextOpen = menu.matches(":popover-open");
       setOpen(nextOpen);
+      onOpenChangeRef.current?.(nextOpen);
       if (!nextOpen) {
         return;
       }

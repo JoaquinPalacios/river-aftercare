@@ -508,6 +508,10 @@
   border-bottom: 1px solid var(--mk-line);
 }
 
+.top[data-nav-hidden="true"] {
+  pointer-events: none;
+}
+
 .topInner,
 .inner {
   width: min(80rem, calc(100% - 2.5rem));

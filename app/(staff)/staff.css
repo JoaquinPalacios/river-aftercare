@@ -2637,6 +2637,18 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   color: var(--staff-muted);
 }
 
+.staffSectionButton {
+  width: 100%;
+  height: auto;
+  align-items: flex-start;
+  border: 0;
+  background: transparent;
+  padding-block: 0.45rem;
+  font: inherit;
+  text-align: left;
+  white-space: normal;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .staffSectionNavRow:hover {
     background: var(--staff-panel);

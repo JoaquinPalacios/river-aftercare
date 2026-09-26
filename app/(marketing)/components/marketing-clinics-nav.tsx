@@ -13,8 +13,10 @@ import styles from "../marketing.module.css";
 
 export function MarketingClinicsNav({
   currentPath,
+  onOpenChange,
 }: {
   currentPath: MarketingSeoPath;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const reactId = useId().replace(/:/g, "");
   const menuId = `mk-clinics-${reactId}`;
@@ -22,6 +24,10 @@ export function MarketingClinicsNav({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const current = isClinicAcquisitionPath(currentPath);
+
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
   const items = clinicDirectoryNavItems(currentPath);
 
   useEffect(() => {

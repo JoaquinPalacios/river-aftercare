@@ -1,11 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { MarketingClinicsNav } from "@/app/(marketing)/components/marketing-clinics-nav";
 import { MarketingExperience } from "@/app/(marketing)/components/marketing-experience";
-import { MarketingNavMenu } from "@/app/(marketing)/components/marketing-nav-menu";
-import { MarketingThemeControl } from "@/app/(marketing)/components/marketing-theme-control";
-import { ProductLogo } from "@/lib/branding/product-logo";
+import { MarketingSiteHeader } from "@/app/(marketing)/components/marketing-site-header";
 import { ProductMark } from "@/lib/branding/product-mark";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { clinicDirectoryNavItems } from "@/lib/marketing/clinic-verticals";
@@ -118,44 +115,12 @@ export function MarketingShell({
 
   return (
     <MarketingExperience className={styles.page} verticalId={verticalId}>
-      <header className={`${styles.top} ${styles.marketingBase}`}>
-        <div className={styles.topInner}>
-          <Link className={styles.wordmark} href="/" aria-label={PRODUCT_NAME}>
-            <ProductLogo className={styles.logo} />
-            <span className={styles.wordmarkName}>
-              <ProductMark className={styles.mark} />
-              {PRODUCT_NAME}
-            </span>
-          </Link>
-          <nav className={styles.nav} aria-label="Marketing">
-            <MarketingClinicsNav currentPath={currentPath} />
-            {PRIMARY_NAV.map((item) => (
-              <Link
-                key={item.href}
-                className={`${styles.navRoute} ${styles.textLink}`}
-                href={item.href}
-                aria-current={currentPath === item.href ? "page" : undefined}
-              >
-                {item.label}
-              </Link>
-            ))}
-            <a
-              className={`${styles.navStaff} ${styles.textLink}`}
-              href={staffHref}
-            >
-              {SIGN_IN_LABEL}
-            </a>
-            <span className={styles.navTheme}>
-              <MarketingThemeControl />
-            </span>
-            <MarketingNavMenu
-              items={menuItems}
-              clinicItems={clinicItems}
-              staffHref={staffHref}
-            />
-          </nav>
-        </div>
-      </header>
+      <MarketingSiteHeader
+        currentPath={currentPath}
+        staffHref={staffHref}
+        menuItems={menuItems}
+        clinicItems={clinicItems}
+      />
       {children}
       <footer className={styles.footer}>
         <div className={styles.inner}>
