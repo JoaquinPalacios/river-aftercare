@@ -33,7 +33,10 @@ import {
   loadConfirmedDowngradeSelection,
   type ConfirmedGuideKeep,
 } from "@/lib/entitlements/downgrade-selection";
-import { lockClinicPlanDowngrade } from "@/lib/entitlements/locks";
+import {
+  lockClinicAccountStructure,
+  lockClinicPlanDowngrade,
+} from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 
 /**
@@ -824,19 +827,20 @@ async function persistScheduledDowngrade(input: {
   effectiveAt: Date;
 }): Promise<void> {
   const prisma = getPrisma();
-  await prisma.$transaction([
-    prisma.clinicBillingProfile.update({
+  await prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
+    await tx.clinicBillingProfile.update({
       where: { clinicId: input.clinicId },
       data: { stripeSubscriptionScheduleId: input.scheduleId },
-    }),
-    prisma.clinicEntitlement.update({
+    });
+    await tx.clinicEntitlement.update({
       where: { clinicId: input.clinicId },
       data: {
         scheduledCommercialPlan: "ESSENTIAL",
         scheduledPlanEffectiveAt: input.effectiveAt,
       },
-    }),
-  ]);
+    });
+  });
 }
 
 export async function ensureDowngradeAttemptId(
@@ -844,6 +848,7 @@ export async function ensureDowngradeAttemptId(
 ): Promise<DowngradeAttemptAllocation> {
   const prisma = getPrisma();
   return prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, clinicId);
     await lockClinicPlanDowngrade(tx, clinicId);
     const profile = await tx.clinicBillingProfile.findUnique({
       where: { clinicId },
@@ -876,22 +881,23 @@ export async function clearScheduledDowngradeProjection(input: {
   retireAttempt: boolean;
 }): Promise<void> {
   const prisma = getPrisma();
-  await prisma.$transaction([
-    prisma.clinicBillingProfile.update({
+  await prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
+    await tx.clinicBillingProfile.update({
       where: { clinicId: input.clinicId },
       data: {
         stripeSubscriptionScheduleId: null,
         ...(input.retireAttempt ? { stripePlanDowngradeAttemptId: null } : {}),
       },
-    }),
-    prisma.clinicEntitlement.update({
+    });
+    await tx.clinicEntitlement.update({
       where: { clinicId: input.clinicId },
       data: {
         scheduledCommercialPlan: null,
         scheduledPlanEffectiveAt: null,
       },
-    }),
-  ]);
+    });
+  });
 }
 
 /**
@@ -903,25 +909,26 @@ async function clearScheduledDowngrade(input: {
   clinicId: string;
 }): Promise<void> {
   const prisma = getPrisma();
-  await prisma.$transaction([
-    prisma.clinicBillingProfile.update({
+  await prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
+    await tx.clinicBillingProfile.update({
       where: { clinicId: input.clinicId },
       data: {
         stripeSubscriptionScheduleId: null,
         stripePlanDowngradeAttemptId: null,
       },
-    }),
-    prisma.clinicEntitlement.update({
+    });
+    await tx.clinicEntitlement.update({
       where: { clinicId: input.clinicId },
       data: {
         scheduledCommercialPlan: null,
         scheduledPlanEffectiveAt: null,
       },
-    }),
-    prisma.clinicDowngradePreparation.deleteMany({
+    });
+    await tx.clinicDowngradePreparation.deleteMany({
       where: { clinicId: input.clinicId },
-    }),
-  ]);
+    });
+  });
 }
 
 function claimsScheduledProjection(state: PlanDowngradeState): boolean {

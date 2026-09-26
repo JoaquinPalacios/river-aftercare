@@ -2,6 +2,7 @@ import { PracticeGuideStatus } from "@prisma/client";
 
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 
 export async function deletePracticeGuide(input: {
@@ -35,12 +36,15 @@ export async function deletePracticeGuide(input: {
     );
   }
 
-  const deleted = await getPrisma().practiceGuide.deleteMany({
-    where: {
-      id: guide.id,
-      clinicId: input.clinicId,
-      status: { not: PracticeGuideStatus.PUBLISHED },
-    },
+  const deleted = await getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
+    return tx.practiceGuide.deleteMany({
+      where: {
+        id: guide.id,
+        clinicId: input.clinicId,
+        status: { not: PracticeGuideStatus.PUBLISHED },
+      },
+    });
   });
 
   if (deleted.count !== 1) {

@@ -17,7 +17,10 @@ import {
   passwordResetExpiresAt,
 } from "@/lib/auth/account-token";
 import { LOGIN_EMAIL_MAX_LENGTH } from "@/lib/auth/login-input";
-import { lockClinicTeamCapacity } from "@/lib/entitlements/locks";
+import {
+  lockClinicAccountStructure,
+  lockClinicTeamCapacity,
+} from "@/lib/entitlements/locks";
 import { parseEmailAddress } from "@/lib/email/mailbox";
 import { getPrisma } from "@/lib/prisma";
 
@@ -273,6 +276,7 @@ async function runInvitationMutation<T>(
 ): Promise<T> {
   if (hasTransaction(client)) {
     return client.$transaction(async (tx) => {
+      await lockClinicAccountStructure(tx, clinicId);
       await lockOutstandingScope(
         tx,
         `account-token:${AccountTokenType.INVITATION}:${userId}:${clinicId}`
@@ -281,6 +285,7 @@ async function runInvitationMutation<T>(
     });
   }
 
+  await lockClinicAccountStructure(client, clinicId);
   await lockOutstandingScope(
     client,
     `account-token:${AccountTokenType.INVITATION}:${userId}:${clinicId}`
@@ -525,6 +530,7 @@ export async function completeInvitation(input: {
     // creation so a concurrent invite cannot observe a gap where neither
     // the reservation nor the membership occupies the place. Acceptance
     // does not take a second place.
+    await lockClinicAccountStructure(tx, existing.clinicId);
     await lockClinicTeamCapacity(tx, existing.clinicId);
     await lockOutstandingScope(tx, `clinic-access:${existing.userId}`);
     await lockOutstandingScope(

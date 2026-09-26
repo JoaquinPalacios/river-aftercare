@@ -7,6 +7,7 @@ import {
   WORKING_DRAFT_VERSION,
 } from "@/lib/aftercare/practice-revision-document";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import {
   clinicGuideLifecycleStatus,
   clinicGuideStatusLabel,
@@ -94,6 +95,7 @@ async function snapshotLegacyComposition(guideId: string) {
   const sections = practiceRevisionSectionsFromComposed(composed.sections);
 
   await getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, guide.clinicId);
     const existing = await tx.practiceGuideRevision.findMany({
       where: { practiceGuideId: guide.id },
       select: { version: true },

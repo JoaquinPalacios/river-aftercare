@@ -18,6 +18,7 @@ import {
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { upsertRootPlacement } from "@/lib/clinic-portal/root-placement";
 import { reserveCustomGuidePlace } from "@/lib/entitlements/guide-usage";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import type {
   CreateCustomGuideInput,
   CreateTemplateGuideInput,
@@ -75,6 +76,7 @@ export async function createCustomPracticeGuide(input: {
   const sortOrder = await nextSortOrder(input.clinicId);
 
   return getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     const reserved = await reserveCustomGuidePlace(tx, input.clinicId);
     if (!reserved.ok) {
       throw new ClinicPortalError(
@@ -218,6 +220,7 @@ export async function createPracticeGuideFromTemplate(input: {
   const draftSections = practiceRevisionSectionsFromComposed(composed.sections);
 
   return getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     const guide = await tx.practiceGuide.create({
       data: {
         clinicId: input.clinicId,

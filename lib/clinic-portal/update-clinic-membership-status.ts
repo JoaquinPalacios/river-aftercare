@@ -12,7 +12,10 @@ import {
   type ClinicActor,
 } from "@/lib/auth/clinic-authorization";
 import { reserveTeamPlace } from "@/lib/entitlements/capacity";
-import { lockClinicTeamCapacity } from "@/lib/entitlements/locks";
+import {
+  lockClinicAccountStructure,
+  lockClinicTeamCapacity,
+} from "@/lib/entitlements/locks";
 import { CLINIC_NOT_FOUND_MESSAGE } from "@/lib/operator/invite-clinic-user";
 import { MEMBERSHIP_NOT_FOUND_MESSAGE } from "@/lib/operator/remove-clinic-access";
 import { getPrisma } from "@/lib/prisma";
@@ -41,6 +44,7 @@ export async function updateClinicMembershipStatus(input: {
   const now = input.now ?? new Date();
 
   return prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     await lockClinicTeamCapacity(tx, input.clinicId);
     const clinic = await tx.clinic.findUnique({
       where: { id: input.clinicId },

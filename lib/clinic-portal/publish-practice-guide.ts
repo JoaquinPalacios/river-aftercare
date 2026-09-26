@@ -10,6 +10,7 @@ import {
   PRACTICE_REVIEW_ATTESTATION_REQUIRED_MESSAGE,
 } from "@/lib/clinic-portal/practice-review-attestation";
 import { advancePublishedPlacement } from "@/lib/clinic-portal/root-placement";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 
 export async function publishPracticeGuide(input: {
@@ -86,6 +87,7 @@ export async function publishPracticeGuide(input: {
     demoTenant || !attested ? null : input.actorUserId;
 
   return prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     const published = await tx.practiceGuideRevision.create({
       data: {
         practiceGuideId: guide.id,

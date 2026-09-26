@@ -9,6 +9,7 @@ import {
 } from "@prisma/client";
 
 import { logStripeBilling } from "@/lib/billing/log";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import type {
   BillingIntervalCode,
   SelfServeCommercialPlan,
@@ -69,6 +70,38 @@ export function assessCommercialOfferRevision(input: {
 }
 
 type OfferDb = Pick<PrismaClient, "clinicEntitlement" | "clinicBillingProfile">;
+
+/**
+ * Locks account structure around the local entitlement write when the client
+ * is a real Prisma transaction host. Narrow test doubles write directly.
+ * Stripe Checkout expiry stays outside this transaction.
+ */
+async function writePreparedOffer(
+  db: OfferDb,
+  clinicId: string,
+  write: (writer: OfferDb) => Promise<unknown>
+): Promise<void> {
+  const transactional = db as OfferDb & {
+    $executeRaw?: unknown;
+    $transaction?: (
+      fn: (tx: OfferDb & { $executeRaw: unknown }) => Promise<void>
+    ) => Promise<void>;
+  };
+  if (
+    typeof transactional.$transaction === "function" &&
+    typeof transactional.$executeRaw === "function"
+  ) {
+    await transactional.$transaction(async (tx) => {
+      await lockClinicAccountStructure(
+        tx as Parameters<typeof lockClinicAccountStructure>[0],
+        clinicId
+      );
+      await write(tx);
+    });
+    return;
+  }
+  await write(db);
+}
 
 export async function prepareClinicCommercialOffer(
   input: {
@@ -137,32 +170,36 @@ export async function prepareClinicCommercialOffer(
       existing.billingInterval !== input.billingInterval)
   );
 
-  await db.clinicEntitlement.upsert({
-    where: { clinicId: input.clinicId },
-    create: {
-      clinicId: input.clinicId,
-      commercialPlan: input.commercialPlan as CommercialPlan,
-      billingInterval: input.billingInterval as BillingInterval,
-      billingStatus: BillingStatus.OFFER_PREPARED,
-      entitlementStatus: EntitlementStatus.PENDING,
-    },
-    update: {
-      commercialPlan: input.commercialPlan as CommercialPlan,
-      billingInterval: input.billingInterval as BillingInterval,
-      billingStatus: BillingStatus.OFFER_PREPARED,
-      entitlementStatus: EntitlementStatus.PENDING,
-    },
-  });
+  await writePreparedOffer(db, input.clinicId, (writer) =>
+    writer.clinicEntitlement.upsert({
+      where: { clinicId: input.clinicId },
+      create: {
+        clinicId: input.clinicId,
+        commercialPlan: input.commercialPlan as CommercialPlan,
+        billingInterval: input.billingInterval as BillingInterval,
+        billingStatus: BillingStatus.OFFER_PREPARED,
+        entitlementStatus: EntitlementStatus.PENDING,
+      },
+      update: {
+        commercialPlan: input.commercialPlan as CommercialPlan,
+        billingInterval: input.billingInterval as BillingInterval,
+        billingStatus: BillingStatus.OFFER_PREPARED,
+        entitlementStatus: EntitlementStatus.PENDING,
+      },
+    })
+  );
 
   if (planChanged && profile?.stripeCheckoutSessionId) {
     await expireOpenCheckoutSession(
       profile.stripeCheckoutSessionId,
       input.clinicId
     );
-    await db.clinicBillingProfile.update({
-      where: { clinicId: input.clinicId },
-      data: { stripeCheckoutSessionId: null },
-    });
+    await writePreparedOffer(db, input.clinicId, (writer) =>
+      writer.clinicBillingProfile.update({
+        where: { clinicId: input.clinicId },
+        data: { stripeCheckoutSessionId: null },
+      })
+    );
   }
 
   logStripeBilling({

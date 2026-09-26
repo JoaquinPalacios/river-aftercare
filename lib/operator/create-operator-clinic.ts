@@ -8,6 +8,7 @@ import {
   rootClinicLocationData,
 } from "@/lib/clinics/primary-site-location.mjs";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
 import { getPrisma } from "@/lib/prisma";
 
@@ -72,6 +73,7 @@ export async function createOperatorClinic(
         },
         select: { id: true },
       });
+      await lockClinicAccountStructure(tx, clinic.id);
       const site = await tx.clinicSite.create({
         data: primaryClinicSiteData({
           clinicId: clinic.id,

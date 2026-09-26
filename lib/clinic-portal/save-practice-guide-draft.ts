@@ -12,6 +12,7 @@ import {
 } from "@/lib/aftercare/timeline-range";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { alignRootPlacementSlug } from "@/lib/clinic-portal/root-placement";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import type { SaveGuideDraftInput } from "@/lib/clinic-portal/guide-schemas";
 import { suppliedTemplateContentChanged } from "@/lib/entitlements/guide-content";
@@ -163,6 +164,7 @@ export async function savePracticeGuideDraft(input: {
   );
 
   return getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     if (!draft) {
       draft = await tx.practiceGuideRevision.create({
         data: {

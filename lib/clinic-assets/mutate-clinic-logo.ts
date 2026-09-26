@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import type { PlatformRole } from "@prisma/client";
 
 import { authorizeClinicLogoMutation } from "@/lib/clinic-assets/authorize-clinic-logo";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getClinicAssetStorage } from "@/lib/clinic-assets/get-clinic-asset-storage";
 import {
   clinicLogoObjectKey,
@@ -247,20 +248,25 @@ export async function uploadClinicBrandingAsset(input: {
   }
 
   try {
-    await getPrisma().$transaction((tx) =>
-      input.siteId
-        ? syncSiteBrandingAssetReference(tx, {
-            clinicId: input.targetClinicId,
-            siteId: input.siteId as string,
-            field: input.field,
-            storageKey: uploaded.storageKey,
-          })
-        : syncBrandingAssetReference(tx, {
-            clinicId: input.targetClinicId,
-            field: input.field,
-            storageKey: uploaded.storageKey,
-          })
-    );
+    // The object upload above finishes before this transaction. The structure
+    // lock covers the database reference write only.
+    await getPrisma().$transaction(async (tx) => {
+      await lockClinicAccountStructure(tx, input.targetClinicId);
+      if (input.siteId) {
+        await syncSiteBrandingAssetReference(tx, {
+          clinicId: input.targetClinicId,
+          siteId: input.siteId,
+          field: input.field,
+          storageKey: uploaded.storageKey,
+        });
+        return;
+      }
+      await syncBrandingAssetReference(tx, {
+        clinicId: input.targetClinicId,
+        field: input.field,
+        storageKey: uploaded.storageKey,
+      });
+    });
   } catch (error) {
     logClinicAsset("db_update_failed_after_upload", {
       clinicId: input.targetClinicId,
@@ -353,20 +359,23 @@ export async function removeClinicBrandingAsset(input: {
     throw new ClinicPortalError(copy.missing, "not_found");
   }
 
-  await getPrisma().$transaction((tx) =>
-    input.siteId
-      ? syncSiteBrandingAssetReference(tx, {
-          clinicId: input.targetClinicId,
-          siteId: input.siteId as string,
-          field: input.field,
-          storageKey: null,
-        })
-      : syncBrandingAssetReference(tx, {
-          clinicId: input.targetClinicId,
-          field: input.field,
-          storageKey: null,
-        })
-  );
+  await getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.targetClinicId);
+    if (input.siteId) {
+      await syncSiteBrandingAssetReference(tx, {
+        clinicId: input.targetClinicId,
+        siteId: input.siteId,
+        field: input.field,
+        storageKey: null,
+      });
+      return;
+    }
+    await syncBrandingAssetReference(tx, {
+      clinicId: input.targetClinicId,
+      field: input.field,
+      storageKey: null,
+    });
+  });
 
   const previousKey = storedKeyForField(previous, input.field);
   if (

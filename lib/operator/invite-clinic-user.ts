@@ -25,7 +25,10 @@ import {
 } from "@/lib/operator/clinic-invitation-input";
 import { deliverClinicInvitationEmail } from "@/lib/operator/deliver-clinic-invitation-email";
 import { reserveTeamPlace } from "@/lib/entitlements/capacity";
-import { lockClinicTeamCapacity } from "@/lib/entitlements/locks";
+import {
+  lockClinicAccountStructure,
+  lockClinicTeamCapacity,
+} from "@/lib/entitlements/locks";
 import { ENTITLEMENT_CODES } from "@/lib/entitlements/messages";
 import { publicPracticeName } from "@/lib/clinics/patient-profile";
 import { getPrisma } from "@/lib/prisma";
@@ -198,6 +201,7 @@ export async function inviteClinicUser(input: {
   const prisma = input.prisma ?? getPrisma();
 
   const created = await prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     await lockClinicTeamCapacity(tx, input.clinicId);
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`clinic-invite-email:${email}`}))`;
 

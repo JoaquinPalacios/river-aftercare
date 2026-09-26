@@ -60,7 +60,7 @@ Email stays outside the database transaction and outside readiness. Successful d
 
 `createSplitDestinationAccount` creates `Clinic` and `ClinicProfile` only. It does not create `ClinicSite`, `ClinicLocation`, `PracticeGuide`, or `PracticeGuidePlacement`. It does not copy Stripe customers, subscriptions, schedules, checkout ids, billing attempts, entitlement extras, legal acceptance, account tokens, or a source downgrade preparation.
 
-The shell `Clinic.slug` matches `xsp` plus 8 hex characters. Allocation checks both `Clinic.slug` and `ClinicSite.slug`. The slug is not written to `ClinicSite`, so it is not a patient hostname. Execution is expected to replace that compatibility slug with the moved Site slug. The shell may have zero Sites. Its name uses the split Site's display name so the operator can recognise it. That does not mean the Site has moved. Do not re-run the historical multi-location site backfill against a shell. That statement inserts a Site for every Clinic that has none, which would turn the compatibility slug into a patient hostname.
+The shell `Clinic.slug` matches `xsp` plus 8 hex characters. Allocation checks both `Clinic.slug` and `ClinicSite.slug`. The slug is not written to `ClinicSite`, so it is not a patient hostname. Execution replaces that compatibility slug using the sequential-split rule below. The shell may have zero Sites. Its name uses the split Site's display name so the operator can recognise it. That does not mean the Site has moved. Do not re-run the historical multi-location site backfill against a shell. That statement inserts a Site for every Clinic that has none, which would turn the compatibility slug into a patient hostname.
 
 ## Status
 
@@ -93,11 +93,90 @@ A destination administrator is either a source member selected to leave the sour
 
 Essential is 1 Site and 1 Location. Practice is 1 Site and the configured location allowance. Group is not a destination plan.
 
-## Concurrency
+## Account structure lock
 
-Preparation creation, shell creation, and readiness transitions take `pg_advisory_xact_lock` on `clinic-account-split:{clinicId}`. Shell slug allocation also takes `clinic-account-split-shell-slug`.
+Ordinary account mutations and the future split execution share one PostgreSQL transaction advisory lock:
 
-A later execution engine should take `clinic-account-split:{sourceClinicId}` before it changes Site ownership, copies guides, or edits memberships. This release does not take that lock around ordinary clinic edits.
+`clinic-account-structure:{clinicId}`
+
+`lockClinicAccountStructure(tx, clinicId)` derives that key. Callers pass a transaction client and a clinic id. They do not pass a lock name. `lockClinicAccountStructures(tx, clinicIds)` deduplicates ids, sorts them, and acquires each structure lock in that order. PostgreSQL transaction advisory locks are re-entrant, so a nested helper may request the same lock again inside the transaction that already holds it. There is no application mutex.
+
+The lock is acquired inside the same transaction as the write, before the first structural write and before any narrower advisory lock. It is released at commit or rollback. It is not held across Stripe API calls, Checkout, webhook delivery, email, R2 upload or download, operator review, or browser input.
+
+An open preparation does not freeze the Account. Staff and Operators keep editing. The next dry run may revoke `READY_TO_EXECUTE`. That is intentional. The structure lock only stops those writes from running inside the future execution transaction.
+
+### Mutations that take the lock
+
+- Site create, branding, deactivate, and reactivate, including the primary Site and root Location created with a new Operator Account
+- Location create, contact/address update, deactivate, and reactivate
+- Practice settings dual-write of the primary Site, root Location, and `ClinicProfile`
+- Branding asset reference writes after the R2 upload has finished, and reference clears before the R2 delete
+- Guide create, draft save, legacy revision snapshot, publish (including the published revision), unpublish, discard, delete, template adapt, downgrade retention, and retained-guide restore
+- Placement enable, disable, latest-revision pin, and location-specific copy
+- Invitation create, resend, cancel, and acceptance; direct membership create; role change; activation; and removal
+- Operator site, location, team, and guide allowance writes
+- Commercial offer preparation writes to `ClinicEntitlement`
+- Local Stripe projection into `ClinicBillingProfile` and `ClinicEntitlement`, including scheduled plan and cancellation fields
+- Practice → Essential attempt-id allocation and the local schedule projection that follows a completed Stripe call
+
+Reads, page rendering, dry-run preview, patient GETs, marketing pages, and email delivery do not take it.
+
+Preparation create, site decisions, staff selections, shell creation, cancel, and readiness recalculation keep `clinic-account-split:{clinicId}`. They do not take the structure lock. Saving site decisions may rename the destination shell under that preparation lock. Shell slug allocation still takes `clinic-account-split-shell-slug`.
+
+### Lock order
+
+Every participating mutation uses this order. Skip a lock the mutation does not need. Do not invert the ones it does take.
+
+1. `clinic-account-structure:{clinicId}`. Several accounts: sort clinic ids ascending, then lock.
+2. Narrower account locks already used by that mutation: `clinic-team-capacity` before `clinic-guide-capacity` when both are taken; `clinic-guide-capacity` before `clinic-site-location-capacity` when both are taken. `clinic-plan-downgrade` is taken after the structure lock in its own short transaction.
+3. User and token locks: `clinic-invite-email`, then `clinic-access`, then `account-token`.
+
+Capacity, slug-collision, and team-capacity locks stay. The structure lock does not replace them.
+
+`createClinicCheckout` still calls Stripe inside its database transaction and does not take the structure lock. That transaction writes Checkout session and customer ids. Plan, billing status, allowances, and scheduled changes are projected later by the webhook, which locks only around the local write.
+
+R2 upload and delete stay outside the branding reference transaction. The upload finishes, then the locked transaction stores the object key. A failed database write deletes the new object after the transaction. Removal clears the key inside the locked transaction, then deletes the object.
+
+### Future execution
+
+Execution is still not implemented. When it is, one transaction does this:
+
+1. Sort the source and destination clinic ids.
+2. Acquire both `clinic-account-structure` locks in that order.
+3. Acquire `clinic-account-split:{sourceClinicId}`, then any narrower account or user locks in the order above.
+4. Reload the preparation.
+5. Recompute readiness from current rows.
+6. Execute only if that recomputation is still `READY_TO_EXECUTE`.
+
+## Sequential-split Clinic.slug
+
+In a sequence of splits, the preparation's kept Site is not always the source primary Site after this split.
+
+Example: Site A is the eventual kept Site, Site B is `SPLIT`, and Site C is the current primary and `RETAIN_ON_SOURCE`. After B moves, C remains the source primary.
+
+Future execution therefore sets:
+
+- destination `Clinic.slug` = the moved `ClinicSite.slug`
+- source `Clinic.slug` = the actual post-execution primary `ClinicSite.slug`
+
+The source slug mirrors C in that example, not A, and not `preparation.keptClinicSite.slug`. Source `ClinicProfile` mirrors that same post-execution primary Site. This release does not change slugs or primary flags.
+
+## Compatibility slug preflight
+
+`Clinic.slug` and `ClinicSite.slug` each have their own unique index. There is no cross-table unique constraint. `createOperatorClinic` and `allocateSplitShellSlug` check both tables. `createClinicSiteWithRootLocation` relies on the `ClinicSite` unique index only, so a Site slug can equal another Account's `Clinic.slug`. The historical backfill copies one Clinic's slug onto its own primary Site, which is the same row's compatibility value, not a guarantee about other Accounts.
+
+Before execution writes either compatibility slug, inside the locked transaction, preflight both targets:
+
+- destination target `S` = moved `ClinicSite.slug`
+- source target `P` = actual post-execution primary `ClinicSite.slug`
+
+Reject when another `Clinic` already uses `S` or `P`, except the source and destination rows that this transaction will move off that value. `Clinic.slug` unique indexes are not deferrable. If one row currently holds the other row's target, update the releasing row first. If the two rows would exchange slugs, park one on a fresh `xsp` compatibility slug from the shell allocator, then write `S` and `P`. Do not change `ClinicSite.slug` in that cutover.
+
+## Historical site backfill
+
+`20260925021500_add_multi_location_foundation` runs before `20260925190000_add_account_split_preparation`. On a fresh database the backfill runs before application code can create a zero-Site shell. The split migration does not insert shells.
+
+Do not re-run that backfill SQL against a live database that contains split shells. It inserts a `ClinicSite` for every `Clinic` that has none and copies `Clinic.slug` onto that Site, which would publish the shell compatibility slug as a patient hostname. The test replay in `tests/multi-location-foundation.test.ts` scopes the statements to its own clinic ids. There is no separate operational script. Do not edit the deployed migration.
 
 ## Security
 

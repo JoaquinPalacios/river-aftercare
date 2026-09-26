@@ -16,6 +16,7 @@ import type {
   SiteBrandingInput,
 } from "@/lib/clinics/site-location-schemas";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 
 const PROFILE_BRANDING_FIELDS = [
@@ -76,6 +77,7 @@ export async function createClinicSiteWithRootLocation(input: {
   assertSiteSlug(input.values.siteSlug);
   try {
     return await getPrisma().$transaction(async (tx) => {
+      await lockClinicAccountStructure(tx, input.clinicId);
       const reserved = await reserveSiteLocationCapacity(tx, {
         clinicId: input.clinicId,
         additionalSites: 1,
@@ -137,6 +139,7 @@ export async function createClinicLocation(input: {
 }): Promise<{ locationId: string }> {
   try {
     return await getPrisma().$transaction(async (tx) => {
+      await lockClinicAccountStructure(tx, input.clinicId);
       const site = await requireOwnedSite(tx, input.clinicId, input.siteId);
       if (!site.active) {
         throw new ClinicPortalError(
@@ -197,6 +200,7 @@ export async function updateClinicLocation(input: {
   values: LocationDetailsInput;
 }): Promise<void> {
   await getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     const location = await tx.clinicLocation.findFirst({
       where: { id: input.locationId, clinicId: input.clinicId },
       select: {
@@ -263,6 +267,7 @@ export async function deactivateClinicLocation(input: {
 }): Promise<void> {
   const now = input.now ?? new Date();
   await getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     const location = await tx.clinicLocation.findFirst({
       where: { id: input.locationId, clinicId: input.clinicId },
       select: {
@@ -297,6 +302,7 @@ export async function reactivateClinicLocation(input: {
 }): Promise<void> {
   try {
     await getPrisma().$transaction(async (tx) => {
+      await lockClinicAccountStructure(tx, input.clinicId);
       const location = await tx.clinicLocation.findFirst({
         where: { id: input.locationId, clinicId: input.clinicId },
         select: {
@@ -356,6 +362,7 @@ export async function updateClinicSiteBranding(input: {
   values: SiteBrandingInput;
 }): Promise<void> {
   await getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     const site = await requireOwnedSite(tx, input.clinicId, input.siteId);
     const branding = {
       displayName: input.values.displayName,
@@ -400,6 +407,7 @@ export async function deactivateClinicSite(input: {
   siteId: string;
 }): Promise<void> {
   await getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     const site = await requireOwnedSite(tx, input.clinicId, input.siteId);
     if (!site.active) {
       return;
@@ -416,6 +424,7 @@ export async function reactivateClinicSite(input: {
   siteId: string;
 }): Promise<void> {
   await getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     const site = await requireOwnedSite(tx, input.clinicId, input.siteId);
     if (site.active) {
       return;

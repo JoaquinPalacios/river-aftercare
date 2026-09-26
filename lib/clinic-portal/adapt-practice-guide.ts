@@ -4,7 +4,10 @@ import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { ensureRootPlacement } from "@/lib/clinic-portal/root-placement";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import { decideTemplateAdaptation } from "@/lib/entitlements/guide-usage";
-import { lockClinicGuideCapacity } from "@/lib/entitlements/locks";
+import {
+  lockClinicAccountStructure,
+  lockClinicGuideCapacity,
+} from "@/lib/entitlements/locks";
 import { ENTITLEMENT_CODES } from "@/lib/entitlements/messages";
 import { getPrisma } from "@/lib/prisma";
 
@@ -23,6 +26,7 @@ export async function adaptPracticeGuideFromTemplate(input: {
   const now = input.now ?? new Date();
 
   return getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     await lockClinicGuideCapacity(tx, input.clinicId);
     const guide = await tx.practiceGuide.findFirst({
       where: {

@@ -10,6 +10,7 @@ import {
   GROUP_BASE_LOCATION_ALLOWANCE,
   GROUP_BASE_SITE_ALLOWANCE,
 } from "@/lib/clinics/site-location-allowance";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 
 export { GROUP_BASE_LOCATION_ALLOWANCE, GROUP_BASE_SITE_ALLOWANCE };
@@ -66,12 +67,16 @@ export async function updateOperatorSiteLocationAllowance(input: {
     };
   }
 
-  await prisma.clinicEntitlement.update({
-    where: { clinicId: input.clinicId },
-    data: {
-      siteAllowance: plan === "GROUP" ? sites : 1,
-      locationAllowance: plan === "ESSENTIAL" || plan === null ? 1 : locations,
-    },
+  await prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
+    await tx.clinicEntitlement.update({
+      where: { clinicId: input.clinicId },
+      data: {
+        siteAllowance: plan === "GROUP" ? sites : 1,
+        locationAllowance:
+          plan === "ESSENTIAL" || plan === null ? 1 : locations,
+      },
+    });
   });
   return { ok: true };
 }
