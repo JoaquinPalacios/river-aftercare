@@ -5,6 +5,7 @@ import {
   resolveAftercareTheme,
   serializeAftercareThemeCss,
 } from "@/lib/branding/aftercare-theme";
+import { clinicLogoSrcForAppearance } from "@/lib/branding/clinic-logo-theme";
 import { PRODUCT_FAVICON_32_SRC } from "@/lib/branding/product-assets";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import type { PracticeSettingsInput } from "@/lib/clinic-portal/practice-settings-schema";
@@ -25,8 +26,10 @@ export function PracticeBrandingPreview({
   onAppearanceChange: (appearance: "light" | "dark") => void;
 }) {
   const theme = resolveAftercareTheme(values);
-  const previewLogo =
-    appearance === "dark" && darkLogoSrc ? darkLogoSrc : logoSrc;
+  const previewLogo = clinicLogoSrcForAppearance(appearance, {
+    logoSrc,
+    darkLogoSrc,
+  });
   const tabIcon = faviconSrc ?? PRODUCT_FAVICON_32_SRC;
   const tabIconLabel = faviconSrc
     ? "Clinic favicon"

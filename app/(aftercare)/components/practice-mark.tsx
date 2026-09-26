@@ -1,4 +1,5 @@
 import type { PracticeChrome } from "@/lib/aftercare/practice-chrome";
+import { resolvePatientThemeLogos } from "@/lib/branding/clinic-logo-theme";
 
 import styles from "../patient.module.css";
 
@@ -9,28 +10,21 @@ export function PracticeMark({
   chrome: Pick<PracticeChrome, "logoSrc" | "darkLogoSrc" | "displayName">;
   className?: string;
 }) {
-  if (!chrome.logoSrc && !chrome.darkLogoSrc) {
+  const { lightSrc, darkSrc } = resolvePatientThemeLogos(chrome);
+  if (!lightSrc) {
     return null;
   }
 
-  const lightSrc = chrome.logoSrc ?? chrome.darkLogoSrc;
-  const darkSrc = chrome.darkLogoSrc;
-  const showDarkAlternate = Boolean(
-    lightSrc && darkSrc && darkSrc !== lightSrc
-  );
-
   return (
     <span className={`${styles.logoStack} ${className ?? ""}`.trim()}>
-      {lightSrc ? (
-        <img
-          className={`${styles.logo} ${styles.logoLight}`}
-          src={lightSrc}
-          alt=""
-          width={44}
-          height={44}
-        />
-      ) : null}
-      {showDarkAlternate && darkSrc ? (
+      <img
+        className={`${styles.logo} ${styles.logoLight}`}
+        src={lightSrc}
+        alt=""
+        width={44}
+        height={44}
+      />
+      {darkSrc ? (
         <img
           className={`${styles.logo} ${styles.logoDark}`}
           src={darkSrc}

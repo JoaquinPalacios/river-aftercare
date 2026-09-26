@@ -8,6 +8,7 @@ import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { AllowanceExtrasForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/allowance-extras-form";
 import { PrepareBillingForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/prepare-billing-form";
 import { UpgradePlanForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/upgrade-plan-form";
+import { ManageClinicWorkspaceButton } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/manage-clinic-workspace-button";
 import { startOperatorClinicSupportAction } from "@/app/(staff)/(operator)/operator/support-actions";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { loadOperatorBillingPanel } from "@/lib/billing/billing-page";
@@ -282,9 +283,7 @@ export default async function OperatorClinicDetailPage({
         </Link>
         <form action={startOperatorClinicSupportAction} className="mt-4">
           <input type="hidden" name="clinicId" value={clinic.id} />
-          <button type="submit" className="staffBtn staffBtnPrimary">
-            Manage clinic workspace
-          </button>
+          <ManageClinicWorkspaceButton />
         </form>
       </section>
 

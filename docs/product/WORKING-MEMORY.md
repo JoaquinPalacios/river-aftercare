@@ -138,7 +138,17 @@ Phase 5 manual acceptance, including the Practice → Essential downgrade, has p
 
 River Aftercare is **not registering for GST** at this stage. Do not charge GST. Do not implement Stripe Tax. Do not add GST line items. Do not label public prices as including GST or excluding GST. No Stripe Tax work is currently planned.
 
-Public prices stay: Essential **A$79/month or A$790/year**, Practice **A$149/month or A$1,490/year**, Group custom. Public `/pricing` copy, metadata, and JSON-LD must not claim a GST treatment. Do not add “plus GST”, “including GST”, “excluding GST”, GST-exclusive prices, a tax rate, or `valueAddedTaxIncluded`. Terms remain “GST will be charged where applicable.” Do not treat historical GST-inclusive marketing copy, or the BILLING.md investigation recommendation, as the current decision.
+Public prices stay: Essential **A$79/month or A$790/year**, Practice **A$149/month or A$1,490/year**, Group custom. Public `/pricing` copy, metadata, and JSON-LD must not claim a GST treatment. Do not add “plus GST”, “including GST”, “excluding GST”, GST-exclusive prices, a tax rate, or `valueAddedTaxIncluded`. Terms remain “GST will be charged where applicable.” Do not treat historical GST-inclusive marketing copy, or the BILLING.md investigation recommendation, as the current decision. `InclGst` in `lib/marketing/plans.ts` is a historical field name, not a user-facing label.
+
+## Durable SEO editor, logo fallback, and public header
+
+Operator SEO (`seo-discovery-form.tsx`) shows one marketing page at a time. Desktop uses a page list; narrower widths use a page `<select>`. Every page’s fields stay mounted in the same form, so changing pages does not discard edits and Save still writes identity, social, and every page. The save control is `PendingSubmitButton` (`staffBtnSpinner`, pending label “Saving”) in the selected-page header.
+
+Patient logos resolve in `resolvePatientThemeLogos` (`lib/branding/clinic-logo-theme.ts`). Dark theme shows the dedicated dark logo when it differs from the standard logo; otherwise the standard logo stays visible. `patient.module.css` hides `.logoLight` only inside `.logoStack:has(.logoDark)`. A dark-only upload still renders as that single mark. No logos still render no mark. Print still uses the standard `logoSrc`. The branding preview uses `clinicLogoSrcForAppearance` and keeps initials when light mode has no standard logo.
+
+`Manage clinic workspace` is `ManageClinicWorkspaceButton`. It still posts `startOperatorClinicSupportAction` and redirects to `/dashboard`. The idle label holds the button width while `staffBtnSpinner` and “Opening” show.
+
+The public marketing header (`marketing-site-header.tsx`) translates with Motion (`y: 0` / `y: -100%`). It stays visible within 72px of the top, after an upward move of more than 16px, and while the mobile menu or For clinics menu is open. `isMarketingMotionEnabled` keeps the first paint and reduced-motion preference on a zero-duration transition. Staff and patient headers do not hide on scroll.
 
 ## Durable pricing support-copy rule
 

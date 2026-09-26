@@ -1,7 +1,14 @@
 "use client";
 
-import { useActionState, useMemo, useState, type ChangeEvent } from "react";
+import {
+  useActionState,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+} from "react";
 
+import { PendingSubmitButton } from "@/app/(staff)/components/pending-submit-button";
 import { DefaultOgImageField } from "@/app/(staff)/(operator)/operator/seo/og-image-field";
 import {
   savePlatformSeoAction,
@@ -136,13 +143,34 @@ export function SeoDiscoveryForm({
     savePlatformSeoAction,
     initial
   );
+  const [selectedPath, setSelectedPath] = useState<MarketingSeoPath>(
+    MARKETING_SEO_PATHS[0]
+  );
   const pagesByPath = useMemo(
     () => new Map(pages.map((page) => [page.path, page])),
     [pages]
   );
+  const selectedLabel = MARKETING_PAGE_LABELS[selectedPath];
+
+  useEffect(() => {
+    const errors = state.fieldErrors;
+    if (!errors) {
+      return;
+    }
+    const next = MARKETING_SEO_PATHS.find((path) =>
+      Object.keys(errors).some((field) => field.startsWith(`pages.${path}.`))
+    );
+    if (next) {
+      setSelectedPath(next);
+    }
+  }, [state]);
 
   return (
-    <form action={action} className="flex flex-col gap-10">
+    <form
+      action={action}
+      className="flex flex-col gap-10"
+      aria-busy={pending || undefined}
+    >
       <section className="flex flex-col gap-4" aria-labelledby="seo-identity">
         <div>
           <h2
@@ -249,7 +277,7 @@ export function SeoDiscoveryForm({
         </div>
       </section>
 
-      <section className="flex flex-col gap-6" aria-labelledby="seo-pages">
+      <section className="flex flex-col gap-4" aria-labelledby="seo-pages">
         <div>
           <h2 id="seo-pages" className="text-lg font-semibold tracking-tight">
             Marketing pages
@@ -260,117 +288,176 @@ export function SeoDiscoveryForm({
             platform default.
           </p>
         </div>
-        {MARKETING_SEO_PATHS.map((path) => {
-          const key = PAGE_KEYS[path];
-          const page = pagesByPath.get(path);
-          const title = page?.seoTitle ?? "";
-          const description = page?.metaDescription ?? "";
-          return (
-            <fieldset
-              key={path}
-              className="flex flex-col gap-4 rounded-xl border border-staff-line bg-staff-panel p-5"
-            >
-              <legend className="px-1 text-sm font-semibold">
-                {MARKETING_PAGE_LABELS[path]}{" "}
-                <span className="font-normal text-staff-muted">{path}</span>
-              </legend>
-              <SerpPreview title={title} description={description} />
-              <TextField
-                id={`${key}SeoTitle`}
-                name={`${key}SeoTitle`}
-                label="SEO title"
-                defaultValue={title}
-                guide={TITLE_GUIDE_LENGTH}
-                max={TITLE_MAX_LENGTH}
-                error={state.fieldErrors?.[`pages.${path}.seoTitle`]}
-              />
-              <TextField
-                id={`${key}MetaDescription`}
-                name={`${key}MetaDescription`}
-                label="Meta description"
-                defaultValue={description}
-                guide={DESCRIPTION_GUIDE_LENGTH}
-                max={DESCRIPTION_MAX_LENGTH}
-                multiline
-                error={state.fieldErrors?.[`pages.${path}.metaDescription`]}
-              />
-              <TextField
-                id={`${key}OgTitle`}
-                name={`${key}OgTitle`}
-                label="OG title override"
-                defaultValue={page?.ogTitle ?? ""}
-                guide={TITLE_GUIDE_LENGTH}
-                max={TITLE_MAX_LENGTH}
-                error={state.fieldErrors?.[`pages.${path}.ogTitle`]}
-              />
-              <TextField
-                id={`${key}OgDescription`}
-                name={`${key}OgDescription`}
-                label="OG description override"
-                defaultValue={page?.ogDescription ?? ""}
-                guide={DESCRIPTION_GUIDE_LENGTH}
-                max={DESCRIPTION_MAX_LENGTH}
-                multiline
-                error={state.fieldErrors?.[`pages.${path}.ogDescription`]}
-              />
-              <div className="flex flex-col gap-2">
+        <div className="lg:grid lg:grid-cols-[minmax(12.5rem,15rem)_minmax(0,1fr)] lg:items-start lg:gap-8">
+          <nav
+            aria-label="Marketing pages"
+            className="hidden lg:sticky lg:top-0 lg:block"
+          >
+            <ul className="staffNavGroup">
+              {MARKETING_SEO_PATHS.map((path) => {
+                const selected = path === selectedPath;
+                return (
+                  <li key={path}>
+                    <button
+                      type="button"
+                      className="staffNavRow staffSectionNavRow staffSectionButton"
+                      aria-current={selected ? "page" : undefined}
+                      aria-controls="seo-page-editor"
+                      onClick={() => setSelectedPath(path)}
+                    >
+                      <span className="flex min-w-0 flex-col items-start">
+                        <span>{MARKETING_PAGE_LABELS[path]}</span>
+                        <span className="text-xs font-normal text-staff-muted">
+                          {path}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+          <div id="seo-page-editor" className="min-w-0">
+            <div className="sticky top-0 z-20 flex flex-col gap-3 bg-staff-canvas py-2">
+              <div className="flex flex-col gap-2 lg:hidden">
                 <label
                   className="text-sm font-medium"
-                  htmlFor={`${key}OgImagePath`}
+                  htmlFor="seo-page-select"
                 >
-                  OG image override
+                  Page
                 </label>
-                <input
-                  id={`${key}OgImagePath`}
-                  name={`${key}OgImagePath`}
-                  defaultValue={page?.ogImagePath ?? ""}
-                  className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
+                <select
+                  id="seo-page-select"
+                  className="staffSelect"
+                  value={selectedPath}
+                  onChange={(event) =>
+                    setSelectedPath(event.target.value as MarketingSeoPath)
+                  }
+                >
+                  {MARKETING_SEO_PATHS.map((path) => (
+                    <option key={path} value={path}>
+                      {MARKETING_PAGE_LABELS[path]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <h3
+                  id="seo-selected-page"
+                  className="text-base font-semibold tracking-tight text-staff-ink"
+                >
+                  {selectedLabel}
+                </h3>
+                <PendingSubmitButton
+                  label="Save changes"
+                  pendingLabel="Saving"
+                  className="staffBtn staffBtnPrimary shrink-0"
                 />
-                {fieldError(state.fieldErrors, `pages.${path}.ogImagePath`)}
               </div>
-              <div className="flex flex-wrap gap-6">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name={`${key}Index`}
-                    defaultChecked={page?.index ?? true}
-                    className="size-4"
+              {state.error ? (
+                <p className="text-sm text-red-600" role="alert">
+                  {state.error}
+                </p>
+              ) : null}
+              {state.success ? (
+                <p className="text-sm text-staff-muted" role="status">
+                  {state.success}
+                </p>
+              ) : null}
+            </div>
+            {MARKETING_SEO_PATHS.map((path) => {
+              const key = PAGE_KEYS[path];
+              const page = pagesByPath.get(path);
+              const title = page?.seoTitle ?? "";
+              const description = page?.metaDescription ?? "";
+              return (
+                <div
+                  key={path}
+                  role="group"
+                  aria-labelledby="seo-selected-page"
+                  hidden={path !== selectedPath}
+                  className="flex flex-col gap-4 rounded-xl border border-staff-line bg-staff-panel p-5"
+                >
+                  <SerpPreview title={title} description={description} />
+                  <TextField
+                    id={`${key}SeoTitle`}
+                    name={`${key}SeoTitle`}
+                    label="SEO title"
+                    defaultValue={title}
+                    guide={TITLE_GUIDE_LENGTH}
+                    max={TITLE_MAX_LENGTH}
+                    error={state.fieldErrors?.[`pages.${path}.seoTitle`]}
                   />
-                  Allow indexing
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name={`${key}Follow`}
-                    defaultChecked={page?.follow ?? true}
-                    className="size-4"
+                  <TextField
+                    id={`${key}MetaDescription`}
+                    name={`${key}MetaDescription`}
+                    label="Meta description"
+                    defaultValue={description}
+                    guide={DESCRIPTION_GUIDE_LENGTH}
+                    max={DESCRIPTION_MAX_LENGTH}
+                    multiline
+                    error={state.fieldErrors?.[`pages.${path}.metaDescription`]}
                   />
-                  Follow links
-                </label>
-              </div>
-            </fieldset>
-          );
-        })}
+                  <TextField
+                    id={`${key}OgTitle`}
+                    name={`${key}OgTitle`}
+                    label="OG title override"
+                    defaultValue={page?.ogTitle ?? ""}
+                    guide={TITLE_GUIDE_LENGTH}
+                    max={TITLE_MAX_LENGTH}
+                    error={state.fieldErrors?.[`pages.${path}.ogTitle`]}
+                  />
+                  <TextField
+                    id={`${key}OgDescription`}
+                    name={`${key}OgDescription`}
+                    label="OG description override"
+                    defaultValue={page?.ogDescription ?? ""}
+                    guide={DESCRIPTION_GUIDE_LENGTH}
+                    max={DESCRIPTION_MAX_LENGTH}
+                    multiline
+                    error={state.fieldErrors?.[`pages.${path}.ogDescription`]}
+                  />
+                  <div className="flex flex-col gap-2">
+                    <label
+                      className="text-sm font-medium"
+                      htmlFor={`${key}OgImagePath`}
+                    >
+                      OG image override
+                    </label>
+                    <input
+                      id={`${key}OgImagePath`}
+                      name={`${key}OgImagePath`}
+                      defaultValue={page?.ogImagePath ?? ""}
+                      className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
+                    />
+                    {fieldError(state.fieldErrors, `pages.${path}.ogImagePath`)}
+                  </div>
+                  <div className="flex flex-wrap gap-6">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name={`${key}Index`}
+                        defaultChecked={page?.index ?? true}
+                        className="size-4"
+                      />
+                      Allow indexing
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name={`${key}Follow`}
+                        defaultChecked={page?.follow ?? true}
+                        className="size-4"
+                      />
+                      Follow links
+                    </label>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </section>
-
-      {state.error ? (
-        <p className="text-sm text-red-600" role="alert">
-          {state.error}
-        </p>
-      ) : null}
-      {state.success ? (
-        <p className="text-sm text-staff-muted" role="status">
-          {state.success}
-        </p>
-      ) : null}
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="staffBtn staffBtnPrimary w-fit"
-      >
-        {pending ? "Saving…" : "Save SEO settings"}
-      </button>
     </form>
   );
 }
