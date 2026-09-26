@@ -49,7 +49,7 @@ export function CreateSplitPreparationForm({
       <input type="hidden" name="sourceClinicId" value={sourceClinicId} />
       <label className="flex flex-col gap-2 text-sm">
         <span className="font-medium">
-          Site that stays on the source Account
+          Clinic Site that stays on the source Account
         </span>
         <select
           name="keptClinicSiteId"
@@ -58,7 +58,7 @@ export function CreateSplitPreparationForm({
           className="h-11 rounded-md border border-staff-line bg-staff-panel px-3"
         >
           <option value="" disabled>
-            Choose a site
+            Choose a Clinic Site
           </option>
           {activeSites.map((site) => (
             <option key={site.id} value={site.id}>
@@ -148,7 +148,7 @@ export function SplitSiteDecisionsForm({
                 defaultChecked={site.decision === "SPLIT"}
                 required
               />
-              Split to the new Account
+              Move this Clinic Site to the new Account
             </label>
             <label className="inline-flex items-center gap-2">
               <input
@@ -179,7 +179,7 @@ export function SplitSiteDecisionsForm({
         disabled={pending}
         className="staffBtn staffBtnPrimary w-fit"
       >
-        {pending ? "Saving…" : "Save site decisions"}
+        {pending ? "Saving…" : "Save Clinic Site decisions"}
       </button>
     </form>
   );

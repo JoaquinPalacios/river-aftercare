@@ -10,23 +10,37 @@ Related: [BILLING.md](../architecture/BILLING.md), [LEGAL-REQUIREMENTS.md](LEGAL
 
 ## Products and Prices (TEST MODE)
 
-Create two Products. Monthly and yearly are Prices on the same Product. Currency **AUD**. Do not mark tax inclusive. Do not attach a GST tax rate. Do not enable automatic tax.
+Create four Products. Monthly and yearly are Prices on the same Product. Currency **AUD**. Do not mark tax inclusive. Do not attach a GST tax rate. Do not enable automatic tax. Annual billing is 12 months for the price of 10.
 
-| Product                   | Recurring Price |
-| ------------------------- | --------------- |
-| River Aftercare Essential | A$79 / month    |
-| River Aftercare Essential | A$790 / year    |
-| River Aftercare Practice  | A$149 / month   |
-| River Aftercare Practice  | A$1,490 / year  |
+| Product                                        | Recurring Price   | Capacity                                    |
+| ---------------------------------------------- | ----------------- | ------------------------------------------- |
+| River Aftercare Essential                      | A$79 / month      |                                             |
+| River Aftercare Essential                      | A$790 / year      |                                             |
+| River Aftercare Practice                       | A$149 / month     | 1 Clinic Site and the first Location        |
+| River Aftercare Practice                       | A$1,490 / year    | 1 Clinic Site and the first Location        |
+| River Aftercare Practice — Additional Location | Graduated monthly | First extra Location A$79, then A$59 each   |
+| River Aftercare Practice — Additional Location | Graduated yearly  | First extra Location A$790, then A$590 each |
+| River Aftercare Group                          | A$449 / month     | 2 Clinic Sites and 5 Locations              |
+| River Aftercare Group                          | A$4,490 / year    | 2 Clinic Sites and 5 Locations              |
+| River Aftercare Group Additional Site          | A$50 / month      | +1 Clinic Site and +1 Location              |
+| River Aftercare Group Additional Site          | A$500 / year      | +1 Clinic Site and +1 Location              |
 
-Do **not** create a Group Product or Group Price. Group remains custom / operator-managed.
+Essential has no additional-location Price. Practice Additional Location is one quantity-based graduated Price per interval, not a second base plan. Group has no standalone Additional Location Price. Public Group marketing stays Custom pricing. The application does not start Group Checkout or Practice add-on Checkout yet.
 
-Copy the four resulting `price_...` identifiers into server-only environment variables:
+Copy the ten resulting `price_...` identifiers into server-only environment variables:
 
 - `STRIPE_ESSENTIAL_MONTHLY_PRICE_ID`
 - `STRIPE_ESSENTIAL_YEARLY_PRICE_ID`
 - `STRIPE_PRACTICE_MONTHLY_PRICE_ID`
 - `STRIPE_PRACTICE_YEARLY_PRICE_ID`
+- `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID`
+- `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID`
+- `STRIPE_GROUP_MONTHLY_PRICE_ID`
+- `STRIPE_GROUP_YEARLY_PRICE_ID`
+- `STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID`
+- `STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID`
+
+The ten Price IDs must be unique. If any Group Price ID is missing, Group billing stays unavailable and Essential and Practice continue to work. If the Practice Additional Location Price IDs are missing, one-location Practice billing continues to work. An Additional Site Price and an Additional Location Price are not plans.
 
 Never commit secrets or Price IDs. Never prefix these with `NEXT_PUBLIC_`.
 
@@ -161,7 +175,7 @@ Also check cancellation: schedule a downgrade, then cancel at period end in the 
 ## Local Checkout test path
 
 1. Use the local PostgreSQL 18 database (or another non-production database). Apply `prisma/migrations/20260921180000_add_billing_checkout_onboarding` there. Do not apply it to production from this note.
-2. Put test-mode `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and the four test Price IDs in local env. The app refuses `sk_live_` and `rk_live_`.
+2. Put test-mode `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and the test Price IDs in local env. The app refuses `sk_live_` and `rk_live_`. Group Checkout is not available on this path.
 3. Forward webhooks with Stripe CLI to `http://app.localhost:3000/api/stripe/webhook`.
 4. As OPERATOR, open the clinic and choose Essential or Practice plus monthly or yearly, then Prepare billing.
 5. Sign in as that clinic's ADMIN, complete billing identity and Terms acceptance, and continue to Stripe Checkout.
@@ -170,8 +184,8 @@ Also check cancellation: schedule a downgrade, then cancel at period end in the 
 
 ## What Joaquín still does in TEST MODE
 
-1. Create the two Products and four AUD Prices above. Do not create a Group Price.
-2. Store the four Price IDs and a test restricted key + webhook secret in local env (and Preview only if that environment is not production data).
+1. Create the Essential, Practice, Group, and Group Additional Site Products and the eight AUD Prices above. Do not enable Group Checkout from the Dashboard.
+2. Store the Price IDs and a test restricted key + webhook secret in local env (and Preview only if that environment is not production data).
 3. Enable card + AU BECS in the TEST MODE Payment Method Configuration. Leave Stripe Tax off.
 4. Register the staff-host webhook (or local CLI forwarding) and the events listed above. Pin API version `2026-08-26.dahlia`.
 5. Do not create live-mode catalogue, keys, endpoints, or charges in this phase.

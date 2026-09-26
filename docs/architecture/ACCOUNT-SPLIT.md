@@ -17,6 +17,16 @@ Operator-only preparation and execution for moving one ClinicSite off a Group Ac
 - Operator execution UI on a `READY_TO_EXECUTE` preparation
 - Idempotent return of the persisted completed result
 
+## Approved later, not implemented
+
+These structural operations are approved product requirements. This foundation does not implement them, and the UI does not offer disabled placeholders for them.
+
+- Split one physical Location out of a Practice Account into a new independent Account. That Location would become a Clinic Site on the destination Account.
+- Move an existing Clinic Site into another existing Group Account.
+- Split or move a Clinic Site directly into a new Group Account.
+
+Today's only operation is the Group Clinic Site split described above. Essential has nothing to split. Clinic ADMIN and STAFF cannot prepare or execute a split.
+
 ## Still not implemented
 
 - Multi-account login or session Account selection
@@ -55,7 +65,7 @@ The execution phrase is `split {siteSlug}`, using the SPLIT Site slug loaded fro
 
 Email stays outside the database transaction and outside readiness. Successful delivery is not a prerequisite.
 
-`targetSourcePlan` is Practice for preview only. Source Stripe subscription, source commercial plan, and Group catalog price are unchanged. Group → Practice billing is a later change, after this structure is proven. The current Stripe catalog has no Group price, and the upgrade/downgrade engines reject Group.
+`targetSourcePlan` is Practice for preview only. Source Stripe subscription, source commercial plan, and Group catalog price are unchanged. Group → Practice billing is a later change, after this structure is proven. The catalogue includes Group Prices, and this split does not call Stripe. The upgrade and downgrade engines still reject Group.
 
 ## Destination shell
 

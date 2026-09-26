@@ -14,6 +14,23 @@ export const BILLING_TEST_ENV = {
   STRIPE_PRACTICE_YEARLY_PRICE_ID: "price_test_practice_yearly",
 } as const;
 
+export const PRACTICE_LOCATION_BILLING_TEST_ENV = {
+  ...BILLING_TEST_ENV,
+  STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID:
+    "price_test_practice_location_monthly",
+  STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID:
+    "price_test_practice_location_yearly",
+} as const;
+
+export const GROUP_BILLING_TEST_ENV = {
+  ...PRACTICE_LOCATION_BILLING_TEST_ENV,
+  STRIPE_GROUP_MONTHLY_PRICE_ID: "price_test_group_monthly",
+  STRIPE_GROUP_YEARLY_PRICE_ID: "price_test_group_yearly",
+  STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID:
+    "price_test_group_site_monthly",
+  STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID: "price_test_group_site_yearly",
+} as const;
+
 export function uniqueP2002(target: string[] = ["stripeCustomerId"]) {
   return { code: "P2002", meta: { target } };
 }

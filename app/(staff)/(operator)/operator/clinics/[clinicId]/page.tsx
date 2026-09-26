@@ -18,6 +18,8 @@ import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import { SiteLocationCapacityForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/site-location-capacity-form";
 import { getOperatorClinic } from "@/lib/operator/get-operator-clinic";
+import { supportedAccountSplitAction } from "@/lib/account-split/policy";
+import { findOpenAccountSplitPreparation } from "@/lib/account-split/snapshot";
 import { loadOperatorSiteLocationCapacity } from "@/lib/operator/update-site-location-allowance";
 import { clinicTypefaceLabel } from "@/lib/branding/clinic-typeface";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -39,13 +41,19 @@ export default async function OperatorClinicDetailPage({
   if (!clinic) {
     notFound();
   }
-  const [billing, teamAllowance, guideAllowance, siteCapacity] =
+  const [billing, teamAllowance, guideAllowance, siteCapacity, openSplit] =
     await Promise.all([
       loadOperatorBillingPanel(clinic.id),
       loadTeamAllowance(clinic.id),
       loadGuideAllowance(clinic.id),
       loadOperatorSiteLocationCapacity(clinic.id),
+      findOpenAccountSplitPreparation(clinic.id),
     ]);
+  const splitAction = supportedAccountSplitAction({
+    commercialPlan: siteCapacity.allowance.commercialPlan,
+    activeClinicSiteCount: siteCapacity.usage.activeSites,
+    hasOpenPreparation: openSplit !== null,
+  });
 
   const requestHeaders = await headers();
   const host =
@@ -249,21 +257,26 @@ export default async function OperatorClinicDetailPage({
         activeSites={siteCapacity.usage.activeSites}
         activeLocations={siteCapacity.usage.activeLocations}
         sites={siteCapacity.sites}
+        groupCapacity={siteCapacity.groupCapacity}
+        practiceCapacity={siteCapacity.practiceCapacity}
       />
 
-      <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
-        <h2 className="text-base font-semibold">Account split</h2>
-        <p className="mt-2 text-sm text-staff-muted">
-          Prepare a Group site to become its own Account, then execute that
-          split. Execution does not change the source subscription.
-        </p>
-        <Link
-          href={`/operator/clinics/${clinic.id}/split`}
-          className="mt-3 inline-flex text-sm font-medium text-staff-brand"
-        >
-          Account split / downgrade preparation
-        </Link>
-      </section>
+      {splitAction.available ? (
+        <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+          <h2 className="text-base font-semibold">Clinic Site split</h2>
+          <p className="mt-2 text-sm text-staff-muted">
+            Move one Clinic Site from this Group Account onto a new Account. The
+            destination plan is Essential or Practice. This does not change the
+            source subscription, and it does not move a Location by itself.
+          </p>
+          <Link
+            href={`/operator/clinics/${clinic.id}/split`}
+            className="mt-3 inline-flex text-sm font-medium text-staff-brand"
+          >
+            Prepare Clinic Site split
+          </Link>
+        </section>
+      ) : null}
 
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
         <h2 className="text-base font-semibold">Team</h2>

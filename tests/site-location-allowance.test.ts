@@ -46,6 +46,38 @@ describe("site and location allowance policy", () => {
     ).toEqual({ siteAllowance: 2, locationAllowance: 5 });
   });
 
+  it("keeps a pending Group offer on stored totals", () => {
+    expect(
+      effectiveSiteLocationAllowance({
+        entitlement: {
+          commercialPlan: "GROUP",
+          capacityEntitlementActive: false,
+          purchasedAdditionalSiteQuantity: 0,
+          extraSiteAllowance: 0,
+          extraLocationAllowance: 0,
+          siteAllowance: 1,
+          locationAllowance: 1,
+        },
+      })
+    ).toEqual({ siteAllowance: 1, locationAllowance: 1 });
+  });
+
+  it("uses the Group formula only for an active configured entitlement", () => {
+    expect(
+      effectiveSiteLocationAllowance({
+        entitlement: {
+          commercialPlan: "GROUP",
+          capacityEntitlementActive: true,
+          purchasedAdditionalSiteQuantity: 0,
+          extraSiteAllowance: 0,
+          extraLocationAllowance: 0,
+          siteAllowance: 1,
+          locationAllowance: 1,
+        },
+      })
+    ).toEqual({ siteAllowance: 2, locationAllowance: 5 });
+  });
+
   it("does not treat an unspecified plan or a sub-1 total as unlimited", () => {
     expect(
       effectiveSiteLocationAllowance({

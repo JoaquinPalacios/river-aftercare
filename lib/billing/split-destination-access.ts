@@ -26,6 +26,11 @@ export type SplitDestinationCommercialState = {
   scheduledCommercialPlan: CommercialPlan | null;
   siteAllowance: number;
   locationAllowance: number;
+  capacityEntitlementActive: boolean;
+  purchasedAdditionalSiteQuantity: number | null;
+  purchasedAdditionalLocationQuantity: number | null;
+  extraSiteAllowance: number;
+  extraLocationAllowance: number;
   extraTeamMemberAllowance: number;
   extraCustomGuideAllowance: number;
   extraTemplateAdaptationAllowance: number;
@@ -46,6 +51,10 @@ export async function readSplitDestinationCommercialState(
       scheduledCommercialPlan: true,
       siteAllowance: true,
       locationAllowance: true,
+      purchasedAdditionalSiteQuantity: true,
+      purchasedAdditionalLocationQuantity: true,
+      extraSiteAllowance: true,
+      extraLocationAllowance: true,
       extraTeamMemberAllowance: true,
       extraCustomGuideAllowance: true,
       extraTemplateAdaptationAllowance: true,
@@ -63,6 +72,12 @@ export async function readSplitDestinationCommercialState(
     scheduledCommercialPlan: row.scheduledCommercialPlan,
     siteAllowance: row.siteAllowance,
     locationAllowance: row.locationAllowance,
+    capacityEntitlementActive: row.entitlementStatus === "ACTIVE",
+    purchasedAdditionalSiteQuantity: row.purchasedAdditionalSiteQuantity,
+    purchasedAdditionalLocationQuantity:
+      row.purchasedAdditionalLocationQuantity,
+    extraSiteAllowance: row.extraSiteAllowance,
+    extraLocationAllowance: row.extraLocationAllowance,
     extraTeamMemberAllowance: row.extraTeamMemberAllowance,
     extraCustomGuideAllowance: row.extraCustomGuideAllowance,
     extraTemplateAdaptationAllowance: row.extraTemplateAdaptationAllowance,

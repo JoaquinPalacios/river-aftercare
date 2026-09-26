@@ -10,7 +10,11 @@ import {
   reactivateClinicSite,
 } from "@/lib/clinics/site-location-mutations";
 import { isClinicPortalError } from "@/lib/clinic-portal/errors";
-import { updateOperatorSiteLocationAllowance } from "@/lib/operator/update-site-location-allowance";
+import { parseOperatorExtraAllowance } from "@/lib/entitlements/allowance-input";
+import {
+  updateOperatorGroupComplimentaryCapacity,
+  updateOperatorSiteLocationAllowance,
+} from "@/lib/operator/update-site-location-allowance";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 
 export interface SiteCapacityActionState {
@@ -44,6 +48,33 @@ export async function updateSiteLocationAllowanceAction(
   formData: FormData
 ): Promise<SiteCapacityActionState> {
   const clinicId = await operatorClinicId(formData);
+  if (formData.get("capacityKind") === "group-extras") {
+    const extraSiteAllowance = parseOperatorExtraAllowance(
+      formData.get("extraSiteAllowance")
+    );
+    const extraLocationAllowance = parseOperatorExtraAllowance(
+      formData.get("extraLocationAllowance")
+    );
+    if (extraSiteAllowance === null || extraLocationAllowance === null) {
+      return { error: "Enter a whole number of zero or more." };
+    }
+    const result = await updateOperatorGroupComplimentaryCapacity({
+      clinicId,
+      extraSiteAllowance,
+      extraLocationAllowance,
+    });
+    if (!result.ok) {
+      return { error: result.error };
+    }
+    revalidatePath(`/operator/clinics/${clinicId}`);
+    revalidatePath("/practice/sites");
+    return {
+      success: result.commerciallyActive
+        ? "Complimentary capacity saved. Effective totals are derived. This does not charge or refund the customer."
+        : "Complimentary extras saved. Effective capacity stays unchanged until the entitlement is active. This does not charge or refund the customer.",
+    };
+  }
+
   const siteAllowance = wholeNumber(formData.get("siteAllowance"));
   const locationAllowance = wholeNumber(formData.get("locationAllowance"));
   if (siteAllowance === null || locationAllowance === null) {

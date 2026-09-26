@@ -47,6 +47,7 @@ import { loadEssentialDowngradeReadiness } from "@/lib/entitlements/downgrade-re
 import { prepareClinicCommercialOffer } from "@/lib/billing/prepare-offer";
 import {
   loadOperatorSiteLocationCapacity,
+  updateOperatorGroupComplimentaryCapacity,
   updateOperatorSiteLocationAllowance,
 } from "@/lib/operator/update-site-location-allowance";
 import { getPrisma } from "@/lib/prisma";
@@ -460,12 +461,12 @@ describe("multi-location product", () => {
     ).rejects.toMatchObject({ code: "capacity" });
 
     expect(
-      await updateOperatorSiteLocationAllowance({
+      await updateOperatorGroupComplimentaryCapacity({
         clinicId: account.clinicId,
-        siteAllowance: 3,
-        locationAllowance: 6,
+        extraSiteAllowance: 1,
+        extraLocationAllowance: 1,
       })
-    ).toEqual({ ok: true });
+    ).toEqual({ ok: true, commerciallyActive: true });
     await createClinicSiteWithRootLocation({
       clinicId: account.clinicId,
       values: siteInput("Third Dental", "mlpd-third", "Third Place"),
@@ -476,12 +477,12 @@ describe("multi-location product", () => {
     });
 
     expect(
-      await updateOperatorSiteLocationAllowance({
+      await updateOperatorGroupComplimentaryCapacity({
         clinicId: account.clinicId,
-        siteAllowance: 4,
-        locationAllowance: 7,
+        extraSiteAllowance: 2,
+        extraLocationAllowance: 2,
       })
-    ).toEqual({ ok: true });
+    ).toEqual({ ok: true, commerciallyActive: true });
     await createClinicSiteWithRootLocation({
       clinicId: account.clinicId,
       values: siteInput("Fourth Dental", "mlpd-fourth", "Fourth Place"),
@@ -1380,26 +1381,48 @@ describe("multi-location product", () => {
     expect(loaded.usage).toEqual({ activeSites: 2, activeLocations: 3 });
     expect(loaded.allowance.siteAllowance).toBe(2);
     expect(loaded.allowance.locationAllowance).toBe(5);
+    expect(loaded.groupCapacity?.configured).toBe(false);
 
     expect(
       await updateOperatorSiteLocationAllowance({
         clinicId: group.clinicId,
-        siteAllowance: 1,
-        locationAllowance: 5,
+        siteAllowance: 9,
+        locationAllowance: 9,
       })
     ).toMatchObject({ ok: false });
     const unchanged = await db().clinicEntitlement.findUniqueOrThrow({
       where: { clinicId: group.clinicId },
     });
     expect(unchanged.siteAllowance).toBe(2);
+    expect(unchanged.purchasedAdditionalSiteQuantity).toBeNull();
 
     expect(
-      await updateOperatorSiteLocationAllowance({
+      await updateOperatorGroupComplimentaryCapacity({
         clinicId: group.clinicId,
-        siteAllowance: 9,
-        locationAllowance: 4,
+        extraSiteAllowance: 7,
+        extraLocationAllowance: 0,
       })
-    ).toEqual({ ok: true });
+    ).toEqual({ ok: true, commerciallyActive: true });
+    const raised = await db().clinicEntitlement.findUniqueOrThrow({
+      where: { clinicId: group.clinicId },
+    });
+    expect(raised.purchasedAdditionalSiteQuantity).toBe(0);
+    expect(raised.extraSiteAllowance).toBe(7);
+    expect(raised.extraLocationAllowance).toBe(0);
+    expect(raised.siteAllowance).toBe(9);
+    expect(raised.locationAllowance).toBe(5);
+    expect(
+      await updateOperatorGroupComplimentaryCapacity({
+        clinicId: group.clinicId,
+        extraSiteAllowance: 7,
+        extraLocationAllowance: 0,
+      })
+    ).toEqual({ ok: true, commerciallyActive: true });
+    const repeated = await db().clinicEntitlement.findUniqueOrThrow({
+      where: { clinicId: group.clinicId },
+    });
+    expect(repeated.siteAllowance).toBe(9);
+    expect(repeated.locationAllowance).toBe(5);
 
     await deactivateClinicSite({
       clinicId: group.clinicId,
@@ -1415,23 +1438,23 @@ describe("multi-location product", () => {
     });
     await expect(getClinicBySlug("mlpd-op-coast")).resolves.toBeNull();
 
-    expect(
-      await updateOperatorSiteLocationAllowance({
-        clinicId: group.clinicId,
+    await db().clinicEntitlement.update({
+      where: { clinicId: group.clinicId },
+      data: {
+        purchasedAdditionalSiteQuantity: null,
+        extraSiteAllowance: 0,
+        extraLocationAllowance: 0,
         siteAllowance: 2,
         locationAllowance: 2,
-      })
-    ).toEqual({ ok: true });
+      },
+    });
     await expect(
       reactivateClinicSite({ clinicId: group.clinicId, siteId: second.siteId })
     ).rejects.toMatchObject({ code: "capacity" });
-    expect(
-      await updateOperatorSiteLocationAllowance({
-        clinicId: group.clinicId,
-        siteAllowance: 2,
-        locationAllowance: 3,
-      })
-    ).toEqual({ ok: true });
+    await db().clinicEntitlement.update({
+      where: { clinicId: group.clinicId },
+      data: { locationAllowance: 3 },
+    });
     await reactivateClinicSite({
       clinicId: group.clinicId,
       siteId: second.siteId,
@@ -1455,6 +1478,60 @@ describe("multi-location product", () => {
     );
     expect(allowanceSource.toLowerCase()).not.toContain("stripe");
     expect(actionSource.toLowerCase()).not.toContain("stripe");
+  });
+
+  it("reduces Group complimentary extras below usage without deactivating sites", async () => {
+    const group = await seedAccount({
+      key: "extras-over",
+      plan: "GROUP",
+      siteAllowance: 4,
+      locationAllowance: 7,
+    });
+    await createClinicSiteWithRootLocation({
+      clinicId: group.clinicId,
+      values: siteInput("Second", "mlpd-extras-two", "Second"),
+    });
+    await createClinicSiteWithRootLocation({
+      clinicId: group.clinicId,
+      values: siteInput("Third", "mlpd-extras-three", "Third"),
+    });
+    expect(await countActiveSiteLocationUsage(db(), group.clinicId)).toEqual({
+      activeSites: 3,
+      activeLocations: 3,
+    });
+
+    expect(
+      await updateOperatorGroupComplimentaryCapacity({
+        clinicId: group.clinicId,
+        extraSiteAllowance: 0,
+        extraLocationAllowance: 0,
+      })
+    ).toEqual({ ok: true, commerciallyActive: true });
+
+    const row = await db().clinicEntitlement.findUniqueOrThrow({
+      where: { clinicId: group.clinicId },
+    });
+    expect(row.purchasedAdditionalSiteQuantity).toBe(0);
+    expect(row.extraSiteAllowance).toBe(0);
+    expect(row.extraLocationAllowance).toBe(0);
+    expect(row.siteAllowance).toBe(2);
+    expect(row.locationAllowance).toBe(5);
+    expect(
+      await db().clinicSite.count({
+        where: { clinicId: group.clinicId, active: true },
+      })
+    ).toBe(3);
+    expect(
+      await db().clinicLocation.count({
+        where: { clinicId: group.clinicId, active: true },
+      })
+    ).toBe(3);
+    await expect(
+      createClinicSiteWithRootLocation({
+        clinicId: group.clinicId,
+        values: siteInput("Fourth", "mlpd-extras-four", "Fourth"),
+      })
+    ).rejects.toMatchObject({ code: "capacity" });
   });
 
   it("fails a plan transition closed when active sites or locations would not fit", async () => {

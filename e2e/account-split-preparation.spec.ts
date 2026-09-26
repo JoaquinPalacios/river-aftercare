@@ -140,27 +140,31 @@ test.describe("account split preparation", () => {
     });
     await expect(
       page.getByRole("heading", {
-        name: "Account split / downgrade preparation",
+        name: "Clinic Site split",
       })
     ).toBeVisible();
 
     await page
-      .getByLabel("Site that stays on the source Account")
+      .getByLabel("Clinic Site that stays on the source Account")
       .selectOption({ label: "Harbour Dental · e2espl-harbour" });
     await page.getByRole("button", { name: "Start preparation" }).click();
-    await expect(page.getByRole("heading", { name: "Sites" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Clinic Sites" })
+    ).toBeVisible();
 
     const coast = page.getByRole("group", { name: /Coast Dental/ });
     const north = page.getByRole("group", { name: /Northern Dental/ });
     const pacific = page.getByRole("group", { name: /Pacific Dental/ });
     await coast
-      .getByRole("radio", { name: "Split to the new Account" })
+      .getByRole("radio", { name: "Move this Clinic Site to the new Account" })
       .check();
     await north
       .getByRole("radio", { name: "Keep active on the source Account" })
       .check();
     await pacific.getByRole("radio", { name: "Deactivate" }).check();
-    await page.getByRole("button", { name: "Save site decisions" }).click();
+    await page
+      .getByRole("button", { name: "Save Clinic Site decisions" })
+      .click();
 
     const createShell = page.getByRole("button", {
       name: "Create destination shell",
@@ -216,7 +220,7 @@ test.describe("account split preparation", () => {
     await page.reload({ waitUntil: "load" });
 
     await expect(page.getByText("Plan remains: GROUP")).toBeVisible();
-    await expect(page.getByText("Active sites: 2")).toBeVisible();
+    await expect(page.getByText("Active Clinic Sites: 2")).toBeVisible();
     await expect(
       page
         .getByRole("listitem")
