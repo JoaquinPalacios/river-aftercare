@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import {
@@ -203,16 +204,24 @@ export function CreateGuideForm({
               {customState.error}
             </p>
           ) : null}
-          {allowance.customGuides.atLimit ||
-          allowance.combinedGuides.atLimit ? null : (
-            <button
-              type="submit"
-              disabled={customPending}
-              className="staffBtn staffBtnPrimary"
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
+            <Link
+              href="/guides"
+              className="staffBtn staffBtnSecondary h-11 w-full sm:w-auto"
             >
-              {customPending ? "Creating…" : "Create custom guide"}
-            </button>
-          )}
+              Cancel
+            </Link>
+            {allowance.customGuides.atLimit ||
+            allowance.combinedGuides.atLimit ? null : (
+              <button
+                type="submit"
+                disabled={customPending}
+                className="staffBtn staffBtnPrimary h-11 w-full sm:w-auto"
+              >
+                {customPending ? "Creating…" : "Create custom guide"}
+              </button>
+            )}
+          </div>
         </form>
       </section>
     </div>

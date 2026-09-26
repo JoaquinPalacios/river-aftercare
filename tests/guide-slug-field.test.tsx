@@ -128,6 +128,51 @@ describe("guide slug fields", () => {
     expect(slug.value).toBe("wisdom-teeth-care");
   });
 
+  it("cancels creation back to Guides without submitting", async () => {
+    await renderCreateForm();
+    const form = container.querySelector("#title")!.closest("form")!;
+    let submitted = 0;
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitted += 1;
+    });
+
+    const cancel = form.querySelector("a");
+    const submit = form.querySelector('button[type="submit"]');
+    const row = cancel?.parentElement;
+
+    expect(cancel?.textContent).toBe("Cancel");
+    expect(cancel?.getAttribute("href")).toBe("/guides");
+    expect(cancel?.tagName).toBe("A");
+    expect(cancel?.getAttribute("type")).toBeNull();
+    expect(cancel?.className).toContain("staffBtnSecondary");
+    expect(cancel?.className).not.toContain("staffBtnPrimary");
+    expect(cancel?.className).toContain("w-full");
+    expect(cancel?.className).toContain("sm:w-auto");
+
+    expect(submit?.textContent).toBe("Create custom guide");
+    expect(submit?.className).toContain("staffBtnPrimary");
+    expect(submit?.className).not.toContain("staffBtnSecondary");
+    expect(submit?.className).toContain("w-full");
+    expect(submit?.className).toContain("sm:w-auto");
+
+    expect(row?.className).toContain("flex-col-reverse");
+    expect(row?.className).toContain("sm:flex-row");
+    expect(row?.className).not.toContain("sm:flex-row-reverse");
+    expect(row?.children[0]).toBe(cancel);
+    expect(row?.children[1]).toBe(submit);
+
+    cancel?.addEventListener("click", (event) => {
+      event.preventDefault();
+    });
+    await act(async () => {
+      cancel?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true })
+      );
+    });
+    expect(submitted).toBe(0);
+  });
+
   it("keeps a cleared slug blank instead of filling it from the name again", async () => {
     await renderCreateForm();
     const title = container.querySelector("#title") as HTMLInputElement;
