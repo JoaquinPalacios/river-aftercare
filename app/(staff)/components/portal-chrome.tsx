@@ -4,8 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
+import { PendingSubmitButton } from "@/app/(staff)/components/pending-submit-button";
 import { PortalAppearanceControl } from "@/app/(staff)/components/portal-appearance-control";
 import { StaffAccountPanel } from "@/app/(staff)/components/staff-account-panel";
+import { isClinicPortalNavCurrent } from "@/app/(staff)/components/staff-nav-current";
 import { stopOperatorClinicSupportAction } from "@/app/(staff)/(operator)/operator/support-actions";
 import { ProductMark } from "@/lib/branding/product-mark";
 import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
@@ -157,9 +159,11 @@ export function PortalChrome({
                   </p>
                 </div>
                 <form action={stopOperatorClinicSupportAction}>
-                  <button type="submit" className="staffBtn staffBtnQuiet">
-                    Exit support
-                  </button>
+                  <PendingSubmitButton
+                    label="Exit support"
+                    pendingLabel="Exiting…"
+                    className="staffBtn staffBtnQuiet"
+                  />
                 </form>
               </div>
             ) : null}
@@ -234,13 +238,7 @@ function PortalNav({
     <nav aria-label="Clinic portal">
       <div className="staffNavGroup">
         {items.map((item) => {
-          const current =
-            item.href === "/dashboard"
-              ? pathname === "/dashboard"
-              : item.href === "/practice"
-                ? pathname === "/practice"
-                : pathname === item.href ||
-                  pathname.startsWith(`${item.href}/`);
+          const current = isClinicPortalNavCurrent(item.href, pathname);
           return (
             <Link
               key={item.href}

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { isNestedStaffNavCurrent } from "@/app/(staff)/components/staff-nav-current";
+
 const LINKS = [
   { href: "/operator/clinics", label: "Clinics" },
   { href: "/operator/seo", label: "SEO & Discovery" },
@@ -14,8 +16,7 @@ export function OperatorPlatformNav() {
   return (
     <nav className="staffNavGroup" aria-label="Platform">
       {LINKS.map((link) => {
-        const current =
-          pathname === link.href || pathname.startsWith(`${link.href}/`);
+        const current = isNestedStaffNavCurrent(link.href, pathname);
         return (
           <Link
             key={link.href}

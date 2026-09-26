@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { LogoutButton } from "@/app/(staff)/components/logout-button";
+import { staffAccountNavCurrent } from "@/app/(staff)/components/staff-nav-current";
 
 export function StaffAccountPanel({
   userLabel,
@@ -15,10 +16,8 @@ export function StaffAccountPanel({
   billingHref?: string | null;
 }) {
   const pathname = usePathname();
-  const billingCurrent = pathname.startsWith("/account/billing");
-  const accountCurrent =
-    pathname === "/account" ||
-    (pathname.startsWith("/account/") && !billingCurrent);
+  const { account: accountCurrent, billing: billingCurrent } =
+    staffAccountNavCurrent(pathname);
 
   return (
     <div className="staffAccountBlock">

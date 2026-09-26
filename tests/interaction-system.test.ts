@@ -83,4 +83,26 @@ describe("interaction system", () => {
       /\.staffOverflowItem:hover,\s*\.staffOverflowItem:focus-visible/
     );
   });
+
+  it("keeps sidebar current, hover, and focus-visible visually distinct", () => {
+    const hover = staff.match(/\.staffNavRow:hover\s*\{[^}]*\}/)?.[0] ?? "";
+    const current =
+      staff.match(/\.staffNavRow\[aria-current\]\s*\{[^}]*\}/)?.[0] ?? "";
+    const focus =
+      staff.match(/\.staffNavRow:focus-visible\s*\{[^}]*\}/)?.[0] ?? "";
+
+    expect(hover).toContain(
+      "color-mix(in srgb, var(--staff-line) 65%, var(--staff-panel))"
+    );
+    expect(hover).not.toContain("#eef0fb");
+    expect(hover).not.toContain("#3b4bd1");
+    expect(current).toContain("background:");
+    expect(current).toContain("color:");
+    expect(current).toContain("#eef0fb");
+    expect(current).toContain("#3b4bd1");
+    expect(focus).toContain("outline:");
+    expect(focus).not.toContain("background:");
+    expect(staff).not.toMatch(/\.staffNavRow:focus\s*\{/);
+    expect(staff).toContain("@media (hover: hover) and (pointer: fine)");
+  });
 });
