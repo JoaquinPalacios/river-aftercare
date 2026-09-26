@@ -71,18 +71,25 @@ export function MarketingNavMenu({
       if (!mobileNavOpen()) {
         return;
       }
-      unlockScroll = lockDocumentScroll({ allowScrollWithin: menu });
+      const header = menu.closest("header");
+      unlockScroll = lockDocumentScroll({
+        allowScrollWithin: menu,
+        pinHeader: header instanceof HTMLElement ? header : null,
+      });
     };
 
     const sync = () => {
       const nextOpen = menu.matches(":popover-open");
       setOpen(nextOpen);
-      onOpenChangeRef.current?.(nextOpen);
       if (!nextOpen) {
+        // Release while the header still treats the menu as open, so the
+        // scroll-position restore is not read as a user scroll.
         releaseScroll();
+        onOpenChangeRef.current?.(false);
         return;
       }
 
+      onOpenChangeRef.current?.(true);
       engageScroll();
 
       // Keyboard open: move to the first link so Tab/Enter continue in-menu.

@@ -8,8 +8,14 @@ function clearDocumentStyles() {
   document.documentElement.style.overflow = "";
   document.documentElement.style.overscrollBehavior = "";
   document.documentElement.style.scrollBehavior = "";
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.left = "";
+  document.body.style.right = "";
+  document.body.style.width = "";
   document.body.style.overflow = "";
   document.body.style.overscrollBehavior = "";
+  document.body.style.paddingTop = "";
   document.body.style.paddingRight = "";
 }
 
@@ -75,15 +81,21 @@ describe("lockDocumentScroll", () => {
     document.body.style.overscrollBehavior = "contain";
     document.body.style.paddingRight = "4px";
 
+    document.body.style.position = "relative";
+    document.body.style.top = "2px";
+
     const unlock = lockDocumentScroll();
-    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(document.documentElement.style.overflow).toBe("clip");
     expect(document.documentElement.style.overscrollBehavior).toBe("none");
+    expect(document.body.style.position).toBe("fixed");
     expect(document.body.style.overflow).toBe("hidden");
     expect(document.body.style.overscrollBehavior).toBe("none");
 
     unlock();
     expect(document.documentElement.style.overflow).toBe("clip");
     expect(document.documentElement.style.overscrollBehavior).toBe("contain");
+    expect(document.body.style.position).toBe("relative");
+    expect(document.body.style.top).toBe("2px");
     expect(document.body.style.overflow).toBe("scroll");
     expect(document.body.style.overscrollBehavior).toBe("contain");
     expect(document.body.style.paddingRight).toBe("4px");
@@ -92,17 +104,20 @@ describe("lockDocumentScroll", () => {
 
   it("can lock and unlock repeatedly without leaving stale styles", () => {
     const first = lockDocumentScroll();
+    expect(document.body.style.position).toBe("fixed");
     expect(document.body.style.overflow).toBe("hidden");
     first();
+    expect(document.body.style.position).toBe("");
     expect(document.body.style.overflow).toBe("");
 
     const second = lockDocumentScroll();
-    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(document.body.style.position).toBe("fixed");
     second();
     second();
-    expect(document.documentElement.style.overflow).toBe("");
+    expect(document.body.style.position).toBe("");
     expect(document.body.style.overflow).toBe("");
     expect(document.body.style.overscrollBehavior).toBe("");
+    expect(document.body.style.top).toBe("");
   });
 
   it("reserves the scrollbar gap while locked and restores the previous padding", () => {
@@ -153,7 +168,21 @@ describe("lockDocumentScroll", () => {
       });
     document.documentElement.style.scrollBehavior = "smooth";
 
-    const unlock = lockDocumentScroll();
+    const header = document.createElement("header");
+    Object.defineProperty(header, "offsetHeight", {
+      configurable: true,
+      value: 64,
+    });
+    header.style.position = "sticky";
+    document.body.appendChild(header);
+    restorers.push(() => header.remove());
+
+    const unlock = lockDocumentScroll({ pinHeader: header });
+    expect(document.body.style.position).toBe("fixed");
+    expect(document.body.style.top).toBe("-480px");
+    expect(document.body.style.paddingTop).toBe("64px");
+    expect(header.style.position).toBe("fixed");
+    expect(header.style.top).toBe("0px");
     expect(scrollTo).not.toHaveBeenCalled();
     expect(document.documentElement.style.scrollBehavior).toBe("smooth");
 
@@ -166,6 +195,9 @@ describe("lockDocumentScroll", () => {
     });
     expect(y).toBe(480);
     expect(document.documentElement.style.scrollBehavior).toBe("smooth");
+    expect(document.body.style.position).toBe("");
+    expect(document.body.style.paddingTop).toBe("");
+    expect(header.style.position).toBe("sticky");
   });
 
   it("does not restore the previous page scroll after navigation", () => {

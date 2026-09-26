@@ -1,17 +1,20 @@
 /**
  * Locks scrolling on the marketing document while the mobile menu is open.
  *
- * The public header is sticky and the menu is an anchored popover, so the
- * body is not pinned with `position: fixed`. That technique pulls a sticky
- * header out of the viewport and jumps the page. Overflow is clipped on the
- * document scroller instead. Background touch and wheel gestures are
- * cancelled so iOS Safari cannot rubber-band the page behind the menu. The
- * menu panel can still scroll when its content is taller than the viewport.
+ * The public header is sticky. Setting `overflow: hidden` on the document
+ * breaks that stickiness and jumps the page, so the lock pins the body with
+ * `position: fixed` at the current scroll offset instead. The header is
+ * pinned to the viewport for the same moment so it stays where the menu
+ * opened it. Padding replaces the header's in-flow space and any classic
+ * scrollbar gap, which keeps the page from shifting.
+ *
+ * Background touch and wheel gestures are cancelled so iOS Safari cannot
+ * rubber-band the page. The menu panel can still scroll internally.
  *
  * Inline styles written here are restored to the values they had before the
- * lock. Scroll position is written back only if the browser moved it, and
- * that write is instant so `scroll-behavior: smooth` on `html` cannot
- * animate a jump.
+ * lock. On the same page, scroll position is written back instantly so
+ * `scroll-behavior: smooth` on `html` cannot animate a jump. A client
+ * navigation does not reuse the previous page's scroll offset.
  */
 
 type ScrollPosition = {
@@ -19,25 +22,41 @@ type ScrollPosition = {
   y: number;
 };
 
+type HeaderSnapshot = {
+  element: HTMLElement;
+  position: string;
+  top: string;
+  left: string;
+  right: string;
+  width: string;
+};
+
 type ScrollLockSnapshot = {
-  htmlOverflow: string;
   htmlOverscrollBehavior: string;
+  bodyPosition: string;
+  bodyTop: string;
+  bodyLeft: string;
+  bodyRight: string;
+  bodyWidth: string;
   bodyOverflow: string;
   bodyOverscrollBehavior: string;
+  bodyPaddingTop: string;
   bodyPaddingRight: string;
+  header: HeaderSnapshot | null;
   position: ScrollPosition;
 };
 
 export type DocumentScrollLockOptions = {
   /** Panel that may scroll internally while the document is locked. */
   allowScrollWithin?: HTMLElement | null;
+  /** Sticky header to keep fixed to the viewport while the body is pinned. */
+  pinHeader?: HTMLElement | null;
 };
 
 function readScrollPosition(): ScrollPosition {
-  const scrolling = document.scrollingElement;
   return {
-    x: window.scrollX || scrolling?.scrollLeft || 0,
-    y: window.scrollY || scrolling?.scrollTop || 0,
+    x: window.scrollX,
+    y: window.scrollY,
   };
 }
 
@@ -134,15 +153,39 @@ function bindBackgroundGestureLock(allow: HTMLElement | null | undefined) {
   };
 }
 
-function captureSnapshot(): ScrollLockSnapshot {
+function captureHeader(
+  header: HTMLElement | null | undefined
+): HeaderSnapshot | null {
+  if (!header) {
+    return null;
+  }
+  return {
+    element: header,
+    position: header.style.position,
+    top: header.style.top,
+    left: header.style.left,
+    right: header.style.right,
+    width: header.style.width,
+  };
+}
+
+function captureSnapshot(
+  pinHeader: HTMLElement | null | undefined
+): ScrollLockSnapshot {
   const root = document.documentElement;
   const body = document.body;
   return {
-    htmlOverflow: root.style.overflow,
     htmlOverscrollBehavior: root.style.overscrollBehavior,
+    bodyPosition: body.style.position,
+    bodyTop: body.style.top,
+    bodyLeft: body.style.left,
+    bodyRight: body.style.right,
+    bodyWidth: body.style.width,
     bodyOverflow: body.style.overflow,
     bodyOverscrollBehavior: body.style.overscrollBehavior,
+    bodyPaddingTop: body.style.paddingTop,
     bodyPaddingRight: body.style.paddingRight,
+    header: captureHeader(pinHeader),
     position: readScrollPosition(),
   };
 }
@@ -151,29 +194,61 @@ function applyLock(snapshot: ScrollLockSnapshot) {
   const root = document.documentElement;
   const body = document.body;
   const gutter = scrollbarWidth();
+  const header = snapshot.header?.element ?? null;
+  const headerHeight = header?.offsetHeight ?? 0;
 
-  root.style.overflow = "hidden";
   root.style.overscrollBehavior = "none";
+  body.style.position = "fixed";
+  body.style.top = `-${snapshot.position.y}px`;
+  body.style.left = "0";
+  body.style.right = "0";
+  body.style.width = "auto";
   body.style.overflow = "hidden";
   body.style.overscrollBehavior = "none";
 
-  if (gutter > 0) {
-    const existing = Number.parseFloat(getComputedStyle(body).paddingRight);
-    const base = Number.isFinite(existing) ? existing : 0;
-    body.style.paddingRight = `${base + gutter}px`;
+  if (header && headerHeight > 0) {
+    const existingTop = Number.parseFloat(getComputedStyle(body).paddingTop);
+    const baseTop = Number.isFinite(existingTop) ? existingTop : 0;
+    body.style.paddingTop = `${baseTop + headerHeight}px`;
+    header.style.position = "fixed";
+    header.style.top = "0px";
+    header.style.left = "0";
+    header.style.right = gutter > 0 ? `${gutter}px` : "0";
+    header.style.width = "auto";
   }
 
-  holdScrollPosition(snapshot.position);
+  if (gutter > 0) {
+    const existingRight = Number.parseFloat(
+      getComputedStyle(body).paddingRight
+    );
+    const baseRight = Number.isFinite(existingRight) ? existingRight : 0;
+    body.style.paddingRight = `${baseRight + gutter}px`;
+  }
 }
 
 function restoreSnapshot(snapshot: ScrollLockSnapshot, restoreScroll: boolean) {
   const root = document.documentElement;
   const body = document.body;
-  root.style.overflow = snapshot.htmlOverflow;
   root.style.overscrollBehavior = snapshot.htmlOverscrollBehavior;
+  body.style.position = snapshot.bodyPosition;
+  body.style.top = snapshot.bodyTop;
+  body.style.left = snapshot.bodyLeft;
+  body.style.right = snapshot.bodyRight;
+  body.style.width = snapshot.bodyWidth;
   body.style.overflow = snapshot.bodyOverflow;
   body.style.overscrollBehavior = snapshot.bodyOverscrollBehavior;
+  body.style.paddingTop = snapshot.bodyPaddingTop;
   body.style.paddingRight = snapshot.bodyPaddingRight;
+
+  const header = snapshot.header;
+  if (header) {
+    header.element.style.position = header.position;
+    header.element.style.top = header.top;
+    header.element.style.left = header.left;
+    header.element.style.right = header.right;
+    header.element.style.width = header.width;
+  }
+
   if (restoreScroll) {
     holdScrollPosition(snapshot.position);
   }
@@ -182,7 +257,7 @@ function restoreSnapshot(snapshot: ScrollLockSnapshot, restoreScroll: boolean) {
 export function lockDocumentScroll(
   options: DocumentScrollLockOptions = {}
 ): () => void {
-  const snapshot = captureSnapshot();
+  const snapshot = captureSnapshot(options.pinHeader);
   const path = window.location.pathname;
   applyLock(snapshot);
   const releaseGestures = bindBackgroundGestureLock(options.allowScrollWithin);

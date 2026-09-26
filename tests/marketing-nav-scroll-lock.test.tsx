@@ -125,8 +125,14 @@ describe("marketing mobile navigation scroll lock", () => {
     Element.prototype.matches = originalMatches;
     document.documentElement.style.overflow = "";
     document.documentElement.style.overscrollBehavior = "";
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
     document.body.style.overflow = "";
     document.body.style.overscrollBehavior = "";
+    document.body.style.paddingTop = "";
     document.body.style.paddingRight = "";
   });
 
@@ -158,12 +164,14 @@ describe("marketing mobile navigation scroll lock", () => {
     openMenu(rendered.menu);
     expect(rendered.trigger.getAttribute("aria-expanded")).toBe("true");
     expect(rendered.onOpenChange).toHaveBeenCalledWith(true);
-    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(document.documentElement.style.overflow).toBe("clip");
+    expect(document.body.style.position).toBe("fixed");
     expect(document.body.style.overflow).toBe("hidden");
 
     closeMenu(rendered.menu);
     expect(rendered.trigger.getAttribute("aria-expanded")).toBe("false");
     expect(document.documentElement.style.overflow).toBe("clip");
+    expect(document.body.style.position).toBe("");
     expect(document.body.style.overflow).toBe("");
     expect(document.body.style.paddingRight).toBe("3px");
     expect(document.documentElement.style.overscrollBehavior).toBe("");
@@ -174,13 +182,14 @@ describe("marketing mobile navigation scroll lock", () => {
     root = rendered.root;
     container = rendered.container;
     openMenu(rendered.menu);
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body.style.position).toBe("fixed");
 
     act(() => {
       root?.unmount();
     });
     root = undefined;
     expect(document.documentElement.style.overflow).toBe("clip");
+    expect(document.body.style.position).toBe("");
     expect(document.body.style.overflow).toBe("");
     expect(document.body.style.paddingRight).toBe("3px");
   });
@@ -190,7 +199,7 @@ describe("marketing mobile navigation scroll lock", () => {
     root = rendered.root;
     container = rendered.container;
     openMenu(rendered.menu);
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body.style.position).toBe("fixed");
 
     act(() => {
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
@@ -198,6 +207,7 @@ describe("marketing mobile navigation scroll lock", () => {
 
     expect(rendered.trigger.getAttribute("aria-expanded")).toBe("false");
     expect(document.documentElement.style.overflow).toBe("clip");
+    expect(document.body.style.position).toBe("");
     expect(document.body.style.overflow).toBe("");
   });
 
@@ -208,6 +218,7 @@ describe("marketing mobile navigation scroll lock", () => {
     container = rendered.container;
     openMenu(rendered.menu);
     expect(document.documentElement.style.overflow).toBe("clip");
+    expect(document.body.style.position).toBe("");
     expect(document.body.style.overflow).toBe("");
   });
 
@@ -216,7 +227,7 @@ describe("marketing mobile navigation scroll lock", () => {
     root = rendered.root;
     container = rendered.container;
     openMenu(rendered.menu);
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body.style.position).toBe("fixed");
 
     act(() => {
       media?.setMatches(false);
@@ -224,6 +235,7 @@ describe("marketing mobile navigation scroll lock", () => {
 
     expect(rendered.trigger.getAttribute("aria-expanded")).toBe("false");
     expect(document.documentElement.style.overflow).toBe("clip");
+    expect(document.body.style.position).toBe("");
     expect(document.body.style.overflow).toBe("");
     expect(document.body.style.paddingRight).toBe("3px");
   });
