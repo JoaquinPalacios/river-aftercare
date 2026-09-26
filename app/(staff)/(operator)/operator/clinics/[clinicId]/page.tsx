@@ -249,6 +249,7 @@ export default async function OperatorClinicDetailPage({
         activeSites={siteCapacity.usage.activeSites}
         activeLocations={siteCapacity.usage.activeLocations}
         sites={siteCapacity.sites}
+        groupCapacity={siteCapacity.groupCapacity}
       />
 
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5">

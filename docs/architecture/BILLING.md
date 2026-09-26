@@ -23,7 +23,7 @@ Request demo
 → onboarding
 ```
 
-GROUP stays custom/manual. Phase 3 adds Customer Portal for payment methods, invoices, and cancellation at period end. It does not add self-serve plan switching, downgrades, interval changes, or refunds. Phase 4 enforces product allowances. It does not add per-seat billing.
+GROUP stays assisted sales on the public site. The Group Stripe catalogue and derived capacity model exist in application code. Group Checkout, subscription mutations, and capacity-change APIs are not wired. Phase 3 adds Customer Portal for payment methods, invoices, and cancellation at period end. It does not add self-serve plan switching, downgrades, interval changes, or refunds. Phase 4 enforces product allowances. It does not add per-seat billing.
 
 ### Phase 1 remains
 
@@ -143,11 +143,56 @@ Migration `20260923200000_add_scheduled_plan_downgrade` is additive and must not
 ### Not yet present
 
 - Monthly ↔ annual interval changes
-- Per-seat billing, extra-seat prices, or subscription quantities
-- Self-service Essential → Practice upgrade, monthly ↔ annual changes, refunds, coupons, trials, Group Stripe prices, Group fixed caps
+- Per-seat billing, extra-seat prices, or subscription quantities other than the Group Additional Site quantity model below
+- Self-service Essential → Practice upgrade, refunds, coupons, trials
+- Group Checkout, Group subscription mutation, and Group capacity increase or decrease APIs
+- Practice → Group and Group → Practice billing mutation
 - Production / live Stripe configuration
 - Live payments
 - GST / Stripe Tax (not in scope: River Aftercare is not registering for GST at this stage)
+
+### Group billing foundation
+
+Public marketing for Group stays **Custom pricing**. There is no GST label and no Stripe Tax. Annual billing is 12 months for the price of 10. Checkout still sells only Essential and Practice.
+
+Approved Group catalogue, not yet used by Checkout:
+
+| Item                   | Monthly | Yearly  | Included capacity                           |
+| ---------------------- | ------- | ------- | ------------------------------------------- |
+| Group base             | A$449   | A$4,490 | 2 Clinic Sites and 5 Locations              |
+| Additional Site bundle | A$50    | A$500   | +1 Clinic Site and +1 Location per quantity |
+
+There is no standalone paid Additional Location product. Server environment variables, blank in `.env.example`:
+
+- `STRIPE_GROUP_MONTHLY_PRICE_ID`
+- `STRIPE_GROUP_YEARLY_PRICE_ID`
+- `STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID`
+- `STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID`
+
+All eight configured Price IDs must be unique. A missing Group Price makes Group billing unavailable and leaves Essential and Practice operational. Unknown Prices stay fail-closed. `planFromStripePriceId` still resolves only Essential and Practice, so the current webhook does not treat a Group Price as a self-serve plan. An Additional Site Price is never a `CommercialPlan`.
+
+A valid Group subscription shape, not yet applied by the webhook, is exactly one Group base item at quantity 1, plus zero or one Additional Site item whose interval matches the base. N=0 means the add-on item is absent. When present, its quantity is an integer greater than or equal to 1. Mixed Essential or Practice items, duplicate Group items, unknown items, and zero, negative, or fractional quantities fail closed with `group_subscription_shape_invalid`. That code is prepared for Sentry. The webhook does not emit it yet. The later policy is to keep the last-known-good entitlement, fail the event, and block further Group commercial mutation until the shape is reconciled.
+
+Capacity is three separate facts:
+
+1. `purchasedAdditionalSiteQuantity` is the Stripe-purchased Additional Site quantity. Operators do not type it. Null means the account has not been configured under the derived model, so the stored `siteAllowance` and `locationAllowance` remain the effective totals. Zero means configured with no paid bundle. A separate marker is unnecessary: null versus a recorded integer is the boundary. Defaulting the column to 0 would have treated every existing Group row as N=0.
+2. `extraSiteAllowance` and `extraLocationAllowance` are complimentary operator deltas. They do not create Stripe items and do not charge or refund.
+3. Usage is still the count of active Clinic Sites and active Locations on active sites. Stripe quantities never create, delete, activate, or deactivate those rows.
+
+For an ACTIVE Group entitlement whose purchased quantity is recorded:
+
+```text
+effectiveSiteAllowance = 2 + N + extraSiteAllowance
+effectiveLocationAllowance = 5 + N + extraLocationAllowance
+```
+
+`groupEffectiveAllowances` is the only formula. `groupCapacityPersistence` is the only writer of the materialized Group totals, and only while entitlement status is ACTIVE. A PENDING or `OFFER_PREPARED` Group does not receive 2/5 merely because `commercialPlan` is GROUP. Essential stays 1/1. Practice stays 1 site and its existing location allowance.
+
+Existing Group rows keep their stored totals until an operator saves complimentary extras. That save records purchased quantity 0 when none is stored, stores the typed extras, and does not copy the old totals into extras. A later Stripe projection must replace N and must not infer extras from the old total, or a raw 4/7 plus N=2 would become 6/9. Repeated saves with the same extras keep the recorded N. Lowering extras below current usage does not delete or deactivate sites or locations.
+
+`offeredAdditionalSiteQuantity`, `scheduledAdditionalSiteQuantity`, and `scheduledCapacityEffectiveAt` are reserved for later offer and schedule work. They are not capacity. The Customer Portal contract is unchanged: invoice history, payment method changes, and cancel at period end. Price, quantity, interval, and plan changes stay off.
+
+Migration `20260926140000_add_group_capacity_foundation` is additive. Do not apply it to production from this change.
 
 ### Superseded investigation recommendations
 
@@ -535,6 +580,8 @@ Do not add these columns in the first billing-identity migration unless enforcem
 
 ### E.1 Products and Prices
 
+The current Group catalogue is in **Group billing foundation** above. The table below is the original Essential and Practice investigation. Do not read “Group is not a Stripe Product” as the current catalogue rule.
+
 Follow Stripe’s catalogue rule: **one Product per plan the customer can choose**; monthly/yearly are Prices on that Product.
 
 | Stripe Product            | Monthly Price                   | Yearly Price                    |
@@ -542,9 +589,9 @@ Follow Stripe’s catalogue rule: **one Product per plan the customer can choose
 | River Aftercare Essential | AUD 7900 cents, interval month  | AUD 79000 cents, interval year  |
 | River Aftercare Practice  | AUD 14900 cents, interval month | AUD 149000 cents, interval year |
 
-All `tax_behavior: inclusive`. Currency `aud`. Nickname the Prices clearly (`essential_monthly`, etc.). Group is **not** a Stripe Product at launch.
+All `tax_behavior: inclusive`. Currency `aud`. Nickname the Prices clearly (`essential_monthly`, etc.).
 
-**Do not create additional-site or additional-location Prices now.** Site and location capacity is enforced in the product. Stripe add-on charging is not. Both allowances are account totals. A missing entitlement is 1 site and 1 location, never unlimited. Essential is always 1/1. Practice is always one site; the operator may raise the location allowance. Group capacity is operator-configured. Approved direction, not a Stripe Price and not public copy: A$449/month includes 2 ClinicSites and 5 total Locations. A later site bundle is +A$50/month and grants both +1 site allowance and +1 location allowance. Annual Group pricing and standalone extra-location pricing are not decided. Public copy still does not advertise multi-location rates. When location billing is built, prefer **subscription items / extra Prices on a later add-on Product**, not quantity on the Practice Price (Practice quantity would imply N copies of the whole plan).
+Group is a Stripe Product in the approved catalogue above: base A$449/month or A$4,490/year, plus an Additional Site Price of A$50/month or A$500/year. Checkout does not sell it yet. There is no standalone paid Additional Location Price. Practice location changes stay an operator allowance and must not become quantity on the Practice Price. Public Group copy stays custom. Site and location capacity is still enforced in the product. A missing entitlement is 1 site and 1 location, never unlimited. Essential is always 1/1. Practice is always one site; the operator may raise the location allowance.
 
 ### E.2 Price ID mapping
 

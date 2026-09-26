@@ -12,6 +12,8 @@ import {
   GROUP_BASE_LOCATION_ALLOWANCE,
   GROUP_BASE_SITE_ALLOWANCE,
 } from "@/lib/clinics/site-location-allowance";
+import { groupEffectiveAllowances } from "@/lib/clinics/group-capacity";
+import { parseOperatorExtraAllowance } from "@/lib/entitlements/allowance-input";
 
 const initialState: SiteCapacityActionState = {};
 
@@ -23,6 +25,7 @@ export function SiteLocationCapacityForm({
   activeSites,
   activeLocations,
   sites,
+  groupCapacity,
 }: {
   clinicId: string;
   plan: "ESSENTIAL" | "PRACTICE" | "GROUP" | null;
@@ -37,104 +40,109 @@ export function SiteLocationCapacityForm({
     active: boolean;
     activeLocations: number;
   }>;
+  groupCapacity: {
+    configured: boolean;
+    commerciallyActive: boolean;
+    purchasedAdditionalSiteQuantity: number | null;
+    extraSiteAllowance: number;
+    extraLocationAllowance: number;
+  } | null;
 }) {
   const [state, action, pending] = useActionState(
     updateSiteLocationAllowanceAction,
     initialState
   );
-  const groupDefaults =
-    plan === "GROUP" && siteAllowance === 1 && locationAllowance === 1;
   const [sitesValue, setSitesValue] = useState(
-    groupDefaults ? String(GROUP_BASE_SITE_ALLOWANCE) : String(siteAllowance)
+    String(groupCapacity?.extraSiteAllowance ?? siteAllowance)
   );
   const [locationsValue, setLocationsValue] = useState(
-    groupDefaults
-      ? String(GROUP_BASE_LOCATION_ALLOWANCE)
-      : String(locationAllowance)
+    String(groupCapacity?.extraLocationAllowance ?? locationAllowance)
   );
   const siteLocked = plan !== "GROUP";
   const locationLocked = plan !== "GROUP" && plan !== "PRACTICE";
+  const paidAdditionalSites =
+    groupCapacity?.purchasedAdditionalSiteQuantity ?? 0;
+  const extraSites = parseOperatorExtraAllowance(sitesValue);
+  const extraLocations = parseOperatorExtraAllowance(locationsValue);
+  const groupPreview =
+    plan === "GROUP" && extraSites !== null && extraLocations !== null
+      ? groupEffectiveAllowances({
+          purchasedAdditionalSiteQuantity: paidAdditionalSites,
+          extraSiteAllowance: extraSites,
+          extraLocationAllowance: extraLocations,
+        })
+      : null;
 
   return (
     <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
       <h2 className="text-base font-semibold">Sites and locations</h2>
       <p className="mt-2 text-sm text-staff-muted">
         {planLabel(plan)}. Active sites {activeSites} / {siteAllowance}. Active
-        locations {activeLocations} / {locationAllowance}. Changing these
-        allowances does not charge or refund the customer.
+        locations {activeLocations} / {locationAllowance}.
       </p>
-      {plan === "GROUP" ? (
-        <p className="mt-2 text-sm text-staff-muted">
-          Group base is {GROUP_BASE_SITE_ALLOWANCE} sites and{" "}
-          {GROUP_BASE_LOCATION_ALLOWANCE} locations. Each later site bundle adds
-          one site and one location. Billing for that bundle is not automated.
-        </p>
-      ) : null}
-      <form action={action} className="mt-4 grid gap-3 sm:grid-cols-2">
-        <input type="hidden" name="clinicId" value={clinicId} />
-        <label className="grid gap-1 text-sm" htmlFor="siteAllowance">
-          Site allowance
-          <input
-            id="siteAllowance"
-            name="siteAllowance"
-            inputMode="numeric"
-            value={siteLocked ? "1" : sitesValue}
-            readOnly={siteLocked}
-            onChange={(event) => setSitesValue(event.target.value)}
-            className="staffField"
-          />
-        </label>
-        <label className="grid gap-1 text-sm" htmlFor="locationAllowance">
-          Location allowance
-          <input
-            id="locationAllowance"
-            name="locationAllowance"
-            inputMode="numeric"
-            value={locationLocked ? "1" : locationsValue}
-            readOnly={locationLocked}
-            onChange={(event) => setLocationsValue(event.target.value)}
-            className="staffField"
-          />
-        </label>
-        <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
-          <button
-            type="submit"
-            className="staffBtn staffBtnPrimary"
-            disabled={pending}
-          >
-            {pending ? "Saving…" : "Save capacity"}
-          </button>
-          {plan === "GROUP" ? (
+      {plan === "GROUP" && groupCapacity ? (
+        <GroupCapacityFields
+          clinicId={clinicId}
+          action={action}
+          pending={pending}
+          state={state}
+          configured={groupCapacity.configured}
+          commerciallyActive={groupCapacity.commerciallyActive}
+          purchasedAdditionalSiteQuantity={
+            groupCapacity.purchasedAdditionalSiteQuantity
+          }
+          sitesValue={sitesValue}
+          locationsValue={locationsValue}
+          setSitesValue={setSitesValue}
+          setLocationsValue={setLocationsValue}
+          preview={groupPreview}
+          siteAllowance={siteAllowance}
+          locationAllowance={locationAllowance}
+          activeSites={activeSites}
+          activeLocations={activeLocations}
+        />
+      ) : (
+        <form action={action} className="mt-4 grid gap-3 sm:grid-cols-2">
+          <input type="hidden" name="clinicId" value={clinicId} />
+          <label className="grid gap-1 text-sm" htmlFor="siteAllowance">
+            Site allowance
+            <input
+              id="siteAllowance"
+              name="siteAllowance"
+              inputMode="numeric"
+              value={siteLocked ? "1" : sitesValue}
+              readOnly={siteLocked}
+              onChange={(event) => setSitesValue(event.target.value)}
+              className="staffField"
+            />
+          </label>
+          <label className="grid gap-1 text-sm" htmlFor="locationAllowance">
+            Location allowance
+            <input
+              id="locationAllowance"
+              name="locationAllowance"
+              inputMode="numeric"
+              value={locationLocked ? "1" : locationsValue}
+              readOnly={locationLocked}
+              onChange={(event) => setLocationsValue(event.target.value)}
+              className="staffField"
+            />
+          </label>
+          <div className="sm:col-span-2">
             <button
-              type="button"
-              className="staffBtn staffBtnSecondary"
-              onClick={() => {
-                setSitesValue(String(GROUP_BASE_SITE_ALLOWANCE));
-                setLocationsValue(String(GROUP_BASE_LOCATION_ALLOWANCE));
-              }}
+              type="submit"
+              className="staffBtn staffBtnPrimary"
+              disabled={pending}
             >
-              Use Group base ({GROUP_BASE_SITE_ALLOWANCE} /{" "}
-              {GROUP_BASE_LOCATION_ALLOWANCE})
+              {pending ? "Saving…" : "Save capacity"}
             </button>
-          ) : null}
-        </div>
-        {state.error ? (
-          <p className="text-sm text-red-700 sm:col-span-2" role="alert">
-            {state.error}
-          </p>
-        ) : null}
-        {state.success ? (
-          <p className="text-sm text-staff-muted sm:col-span-2" role="status">
-            {state.success}
-          </p>
-        ) : null}
-        {groupDefaults ? (
+          </div>
+          <CapacityMessages state={state} />
           <p className="text-sm text-staff-muted sm:col-span-2">
-            Group base values are shown for a first save. They are not stored
-            until you save capacity.
+            Changing these allowances does not charge or refund the customer.
           </p>
-        ) : null}
-      </form>
+        </form>
+      )}
       <ul className="mt-4 divide-y divide-staff-line">
         {sites.map((site) => (
           <li key={site.id} className="flex flex-wrap items-center gap-3 py-3">
@@ -156,6 +164,170 @@ export function SiteLocationCapacityForm({
         ))}
       </ul>
     </section>
+  );
+}
+
+function CapacityMessages({ state }: { state: SiteCapacityActionState }) {
+  return (
+    <>
+      {state.error ? (
+        <p className="text-sm text-red-700 sm:col-span-2" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+      {state.success ? (
+        <p className="text-sm text-staff-muted sm:col-span-2" role="status">
+          {state.success}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+function GroupCapacityFields({
+  clinicId,
+  action,
+  pending,
+  state,
+  configured,
+  commerciallyActive,
+  purchasedAdditionalSiteQuantity,
+  sitesValue,
+  locationsValue,
+  setSitesValue,
+  setLocationsValue,
+  preview,
+  siteAllowance,
+  locationAllowance,
+  activeSites,
+  activeLocations,
+}: {
+  clinicId: string;
+  action: (formData: FormData) => void;
+  pending: boolean;
+  state: SiteCapacityActionState;
+  configured: boolean;
+  commerciallyActive: boolean;
+  purchasedAdditionalSiteQuantity: number | null;
+  sitesValue: string;
+  locationsValue: string;
+  setSitesValue: (value: string) => void;
+  setLocationsValue: (value: string) => void;
+  preview: { siteAllowance: number; locationAllowance: number } | null;
+  siteAllowance: number;
+  locationAllowance: number;
+  activeSites: number;
+  activeLocations: number;
+}) {
+  const enforcedSites = commerciallyActive
+    ? (preview?.siteAllowance ?? siteAllowance)
+    : siteAllowance;
+  const enforcedLocations = commerciallyActive
+    ? (preview?.locationAllowance ?? locationAllowance)
+    : locationAllowance;
+  const overSites = activeSites > enforcedSites;
+  const overLocations = activeLocations > enforcedLocations;
+  return (
+    <form action={action} className="mt-4 grid gap-3">
+      <input type="hidden" name="clinicId" value={clinicId} />
+      <input type="hidden" name="capacityKind" value="group-extras" />
+      <p className="text-sm text-staff-muted">
+        Included Group capacity is {GROUP_BASE_SITE_ALLOWANCE} Clinic Sites and{" "}
+        {GROUP_BASE_LOCATION_ALLOWANCE} Locations. Each paid Additional Site
+        bundle will add one Clinic Site and one Location. Those paid bundles
+        will be managed through Group billing later. They are not edited here.
+      </p>
+      <p className="text-sm text-staff-muted">
+        Complimentary extras are manual allowances. They do not charge or refund
+        the customer. Effective totals are derived from the included capacity,
+        the recorded paid quantity, and these extras.
+      </p>
+      <p className="text-sm">
+        Paid Additional Site bundles:{" "}
+        {purchasedAdditionalSiteQuantity === null
+          ? "Not recorded yet"
+          : purchasedAdditionalSiteQuantity}
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-1 text-sm" htmlFor="extraSiteAllowance">
+          Complimentary extra Clinic Sites
+          <input
+            id="extraSiteAllowance"
+            name="extraSiteAllowance"
+            inputMode="numeric"
+            value={sitesValue}
+            onChange={(event) => setSitesValue(event.target.value)}
+            className="staffField"
+          />
+        </label>
+        <label className="grid gap-1 text-sm" htmlFor="extraLocationAllowance">
+          Complimentary extra Locations
+          <input
+            id="extraLocationAllowance"
+            name="extraLocationAllowance"
+            inputMode="numeric"
+            value={locationsValue}
+            onChange={(event) => setLocationsValue(event.target.value)}
+            className="staffField"
+          />
+        </label>
+      </div>
+      {preview && commerciallyActive ? (
+        <p className="text-sm">
+          Effective capacity after save: {preview.siteAllowance} Clinic Sites /{" "}
+          {preview.locationAllowance} Locations.
+        </p>
+      ) : preview ? (
+        <p className="text-sm">
+          Effective capacity stays {siteAllowance} Clinic Sites /{" "}
+          {locationAllowance} Locations until the entitlement is active. Once
+          active, derived capacity is {preview.siteAllowance} Clinic Sites /{" "}
+          {preview.locationAllowance} Locations.
+        </p>
+      ) : (
+        <p className="text-sm text-red-700" role="alert">
+          Enter a whole number of zero or more for each complimentary extra.
+        </p>
+      )}
+      {!configured ? (
+        <p className="text-sm text-staff-muted">
+          Saving configures this Group account. Previously stored site and
+          location totals are not added on top of the included capacity.
+        </p>
+      ) : null}
+      {!commerciallyActive ? (
+        <p className="text-sm text-staff-muted">
+          This entitlement is not active. Saving records the complimentary
+          extras and does not grant Group capacity.
+        </p>
+      ) : null}
+      {overSites || overLocations ? (
+        <p className="text-sm text-staff-muted">
+          Usage is above the effective allowance after this save. Existing sites
+          and locations stay. Nothing is deactivated.
+        </p>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="submit"
+          className="staffBtn staffBtnPrimary"
+          disabled={pending || preview === null}
+        >
+          {pending ? "Saving…" : "Save complimentary capacity"}
+        </button>
+        <button
+          type="button"
+          className="staffBtn staffBtnSecondary"
+          onClick={() => {
+            setSitesValue("0");
+            setLocationsValue("0");
+          }}
+        >
+          Clear complimentary extras
+        </button>
+      </div>
+      <CapacityMessages state={state} />
+    </form>
   );
 }
 
