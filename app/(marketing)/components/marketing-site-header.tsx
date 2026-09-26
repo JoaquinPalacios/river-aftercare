@@ -41,8 +41,12 @@ export function MarketingSiteHeader({
   const mobileOpenRef = useRef(false);
   const clinicsOpenRef = useRef(false);
 
-  const reveal = useCallback(() => {
-    anchorRef.current = window.scrollY;
+  const reveal = useCallback((preserveAnchor = false) => {
+    // While the mobile menu locks the document, window.scrollY is not the
+    // page position. Focus inside the open menu must not replace the anchor.
+    if (!preserveAnchor) {
+      anchorRef.current = window.scrollY;
+    }
     if (!hiddenRef.current) {
       return;
     }
@@ -87,11 +91,17 @@ export function MarketingSiteHeader({
       }
       frame = window.requestAnimationFrame(() => {
         frame = 0;
+        // The mobile menu pins the body, which resets window.scrollY.
+        // Ignore that while the menu is open so the anchor captured by
+        // reveal() is still the real page position when the menu closes.
+        if (mobileOpenRef.current) {
+          return;
+        }
         const next = nextMarketingNavVisibility({
           hidden: hiddenRef.current,
           scrollY: window.scrollY,
           anchorY: anchorRef.current,
-          menuOpen: mobileOpenRef.current || clinicsOpenRef.current,
+          menuOpen: clinicsOpenRef.current,
         });
         anchorRef.current = next.anchorY;
         if (next.hidden !== hiddenRef.current) {
@@ -119,7 +129,9 @@ export function MarketingSiteHeader({
       transition={
         motionOn ? { duration: 0.22, ease: REVEAL_EASE } : { duration: 0 }
       }
-      onFocusCapture={reveal}
+      onFocusCapture={() => {
+        reveal(mobileOpenRef.current);
+      }}
     >
       <div className={styles.topInner}>
         <Link className={styles.wordmark} href="/" aria-label={PRODUCT_NAME}>

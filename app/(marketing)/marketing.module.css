@@ -3470,7 +3470,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .planCompare {
-  margin: 1.15rem 0 0;
+  margin: 2.5rem 0 0;
   border: 1px solid var(--mk-card-line);
   border-radius: var(--mk-card-radius);
   background: var(--mk-card);
@@ -3618,6 +3618,10 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 @media (min-width: 64rem) {
+  .planCompare {
+    margin-top: 3rem;
+  }
+
   .planCompareTable {
     display: table;
     table-layout: fixed;

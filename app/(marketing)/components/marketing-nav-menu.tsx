@@ -4,8 +4,12 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { MarketingNavTheme } from "@/app/(marketing)/components/marketing-nav-theme";
+import { MARKETING_MOBILE_MAX_REM } from "@/lib/marketing/breakpoints";
+import { lockDocumentScroll } from "@/lib/marketing/document-scroll-lock";
 
 import styles from "../marketing.module.css";
+
+const MOBILE_NAV_MEDIA_QUERY = `(max-width: ${MARKETING_MOBILE_MAX_REM}rem)`;
 
 export type MarketingMenuItem = {
   href: string;
@@ -50,13 +54,43 @@ export function MarketingNavMenu({
       }
     };
 
+    const mobileNavMedia =
+      typeof window.matchMedia === "function"
+        ? window.matchMedia(MOBILE_NAV_MEDIA_QUERY)
+        : null;
+    const mobileNavOpen = () =>
+      menu.matches(":popover-open") && (mobileNavMedia?.matches ?? true);
+
+    let unlockScroll: (() => void) | undefined;
+    const releaseScroll = () => {
+      unlockScroll?.();
+      unlockScroll = undefined;
+    };
+    const engageScroll = () => {
+      releaseScroll();
+      if (!mobileNavOpen()) {
+        return;
+      }
+      const header = menu.closest("header");
+      unlockScroll = lockDocumentScroll({
+        allowScrollWithin: menu,
+        pinHeader: header instanceof HTMLElement ? header : null,
+      });
+    };
+
     const sync = () => {
       const nextOpen = menu.matches(":popover-open");
       setOpen(nextOpen);
-      onOpenChangeRef.current?.(nextOpen);
       if (!nextOpen) {
+        // Release while the header still treats the menu as open, so the
+        // scroll-position restore is not read as a user scroll.
+        releaseScroll();
+        onOpenChangeRef.current?.(false);
         return;
       }
+
+      onOpenChangeRef.current?.(true);
+      engageScroll();
 
       // Keyboard open: move to the first link so Tab/Enter continue in-menu.
       // Pointer/touch open: park focus on the panel so About is not pre-selected.
@@ -72,13 +106,30 @@ export function MarketingNavMenu({
       menu.focus({ preventScroll: true });
     };
 
+    const onBreakpoint = () => {
+      if (!menu.matches(":popover-open")) {
+        return;
+      }
+      if (mobileNavMedia?.matches ?? true) {
+        engageScroll();
+        return;
+      }
+      releaseScroll();
+      if (typeof menu.hidePopover === "function") {
+        menu.hidePopover();
+      }
+    };
+
     trigger.addEventListener("pointerdown", markPointer);
     trigger.addEventListener("keydown", markKeyboard);
     menu.addEventListener("toggle", sync);
+    mobileNavMedia?.addEventListener("change", onBreakpoint);
     return () => {
+      releaseScroll();
       trigger.removeEventListener("pointerdown", markPointer);
       trigger.removeEventListener("keydown", markKeyboard);
       menu.removeEventListener("toggle", sync);
+      mobileNavMedia?.removeEventListener("change", onBreakpoint);
     };
   }, []);
 
