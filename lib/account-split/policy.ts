@@ -21,9 +21,59 @@ import {
   type GovernedCommercialPlan,
   ZERO_ALLOWANCE_EXTRAS,
 } from "@/lib/entitlements/plan-policy";
-import { effectiveSiteLocationAllowance } from "@/lib/clinics/site-location-allowance";
+import {
+  effectiveSiteLocationAllowance,
+  type SiteLocationAllowance,
+} from "@/lib/clinics/site-location-allowance";
 
 export const ACCOUNT_SPLIT_TARGET_SOURCE_PLAN = "PRACTICE" as const;
+
+export type SupportedAccountSplitAction =
+  | {
+      available: true;
+      operation: "group_clinic_site_to_new_account";
+    }
+  | { available: false };
+
+/**
+ * The only split that can be started today moves one Clinic Site from a
+ * Group Account with at least two active Clinic Sites onto a new Account.
+ * An open preparation stays reachable so the operator can finish or cancel it.
+ */
+export function supportedAccountSplitAction(input: {
+  commercialPlan: string | null;
+  activeClinicSiteCount: number;
+  hasOpenPreparation?: boolean;
+}): SupportedAccountSplitAction {
+  if (input.hasOpenPreparation) {
+    return {
+      available: true,
+      operation: "group_clinic_site_to_new_account",
+    };
+  }
+  if (input.commercialPlan === "GROUP" && input.activeClinicSiteCount > 1) {
+    return {
+      available: true,
+      operation: "group_clinic_site_to_new_account",
+    };
+  }
+  return { available: false };
+}
+
+export function unsupportedAccountSplitMessage(
+  commercialPlan: string | null
+): string {
+  if (commercialPlan === "ESSENTIAL") {
+    return "Essential has one Clinic Site and one Location. This Account has no split.";
+  }
+  if (commercialPlan === "PRACTICE") {
+    return "This Account has no split. Today's split moves one Clinic Site from a Group Account onto a new Account.";
+  }
+  if (commercialPlan === "GROUP") {
+    return "A Group split needs more than one active Clinic Site.";
+  }
+  return "This Account has no split.";
+}
 
 export const DESTINATION_ADMIN_BLOCKER_MESSAGE =
   "Destination Account requires an administrator who will not remain an active member of the source Account.";
@@ -123,7 +173,13 @@ export type AccountSplitSnapshot = {
     slug: string;
     commercialPlan: CommercialPlan | null;
     extras: AllowanceAmounts;
+    siteAllowance: number;
     locationAllowance: number;
+    capacityEntitlementActive: boolean;
+    purchasedAdditionalSiteQuantity: number | null;
+    purchasedAdditionalLocationQuantity: number | null;
+    extraSiteAllowance: number;
+    extraLocationAllowance: number;
   };
   sites: Array<{
     id: string;
@@ -222,6 +278,11 @@ export type AccountSplitSnapshot = {
       scheduledCommercialPlan: CommercialPlan | null;
       siteAllowance: number;
       locationAllowance: number;
+      capacityEntitlementActive?: boolean;
+      purchasedAdditionalSiteQuantity?: number | null;
+      purchasedAdditionalLocationQuantity?: number | null;
+      extraSiteAllowance?: number | null;
+      extraLocationAllowance?: number | null;
       extraTeamMemberAllowance: number;
       extraCustomGuideAllowance: number;
       extraTemplateAdaptationAllowance: number;
@@ -388,7 +449,7 @@ export function assessExecutedPracticeDowngrade(input: {
   } else if (input.activeSiteCount > 1) {
     blockers.push({
       code: "source_active_site_count",
-      message: `Practice allows 1 active site. This split would leave ${input.activeSiteCount}.`,
+      message: `Practice allows 1 active Clinic Site. This split would leave ${input.activeSiteCount}.`,
     });
   }
   if (input.activeLocationCount > locationLimit) {
@@ -532,29 +593,32 @@ export function assessAccountSplit(
     blockers.push({
       code: "unresolved_site_decisions",
       message:
-        "Choose Split, Deactivate, or Retain for every site that is not kept.",
+        "Choose Split, Deactivate, or Retain for every Clinic Site that is not kept.",
     });
   }
   if (splitSites.length !== 1) {
     blockers.push({
       code: "split_site_count",
-      message: "This preparation splits exactly one site onto one new Account.",
+      message:
+        "This preparation moves exactly one Clinic Site onto one new Account.",
     });
   } else if (splitSite && !splitSite.active) {
     blockers.push({
       code: "split_site_inactive",
-      message: "The site to split must be active.",
+      message: "The Clinic Site to move must be active.",
     });
   }
   if (!keptSite) {
     blockers.push({
       code: "kept_site_missing",
-      message: "The site chosen to stay on the source Account is missing.",
+      message:
+        "The Clinic Site chosen to stay on the source Account is missing.",
     });
   } else if (!keptSite.active) {
     blockers.push({
       code: "kept_site_inactive",
-      message: "The site chosen to stay on the source Account must be active.",
+      message:
+        "The Clinic Site chosen to stay on the source Account must be active.",
     });
   }
 
@@ -619,7 +683,9 @@ export function assessAccountSplit(
     PLAN_ENTITLEMENT_POLICIES.PRACTICE.base,
     snapshot.source.extras
   );
-  const sourceLocationLimit = Math.max(snapshot.source.locationAllowance, 1);
+  const sourceLocationLimit = accountSplitSourceAllowance(
+    snapshot.source
+  ).locationAllowance;
   if (retainedActiveSites.length > 0) {
     practiceDowngradeBlockers.push({
       code: "source_active_site_count",
@@ -628,7 +694,7 @@ export function assessAccountSplit(
   } else if (activeRemainingSites.length > 1) {
     practiceDowngradeBlockers.push({
       code: "source_active_site_count",
-      message: `Practice allows 1 active site. This split would leave ${activeRemainingSites.length}.`,
+      message: `Practice allows 1 active Clinic Site. This split would leave ${activeRemainingSites.length}.`,
     });
   }
   if (activeRemainingLocations.length > sourceLocationLimit) {
@@ -801,20 +867,9 @@ export function assessAccountSplit(
         destinationExtras
       )
     : null;
-  const destinationSiteAllowance = effectiveSiteLocationAllowance({
-    entitlement: snapshot.destination.entitlement
-      ? {
-          commercialPlan: destinationPlan,
-          siteAllowance: snapshot.destination.entitlement.siteAllowance,
-          locationAllowance: snapshot.destination.entitlement.locationAllowance,
-        }
-      : destinationPlan
-        ? {
-            commercialPlan: destinationPlan,
-            siteAllowance: 1,
-            locationAllowance: 1,
-          }
-        : null,
+  const destinationSiteAllowance = accountSplitDestinationAllowance({
+    plan: destinationPlan,
+    entitlement: snapshot.destination.entitlement,
   });
   if (
     splitSite &&
@@ -822,7 +877,7 @@ export function assessAccountSplit(
   ) {
     blockers.push({
       code: "destination_location_allowance",
-      message: `The destination plan allows ${destinationSiteAllowance.locationAllowance} active location${destinationSiteAllowance.locationAllowance === 1 ? "" : "s"}. The moving site has ${movingActiveLocations.length}.`,
+      message: `The destination plan allows ${destinationSiteAllowance.locationAllowance} active location${destinationSiteAllowance.locationAllowance === 1 ? "" : "s"}. The moving Clinic Site has ${movingActiveLocations.length}.`,
     });
   }
 
@@ -912,7 +967,7 @@ export function assessAccountSplit(
   if (sharedCount > 0) {
     warnings.push({
       code: "guides_shared_with_kept_site",
-      message: `${sharedCount} guide${sharedCount === 1 ? "" : "s"} placed on the moving site ${sharedCount === 1 ? "is" : "are"} also placed on the site that stays. The source guide remains. The destination would receive a copy.`,
+      message: `${sharedCount} guide${sharedCount === 1 ? "" : "s"} placed on the moving Clinic Site ${sharedCount === 1 ? "is" : "are"} also placed on the Clinic Site that stays. The source guide remains. The destination would receive a copy.`,
     });
   }
   const inactiveRemaining = snapshot.sites.filter(
@@ -922,7 +977,7 @@ export function assessAccountSplit(
     warnings.push({
       code: "inactive_sites_remain",
       message:
-        "Historical inactive sites can stay on the source Account. Practice allows one active site, not one site row.",
+        "Historical inactive Clinic Sites can stay on the source Account. Practice allows one active Clinic Site, not one Clinic Site row.",
     });
   }
   if (
@@ -1100,6 +1155,54 @@ export function assessAccountSplit(
   };
 }
 
+export function accountSplitSourceAllowance(
+  source: AccountSplitSnapshot["source"]
+): SiteLocationAllowance {
+  return effectiveSiteLocationAllowance({
+    entitlement: {
+      commercialPlan: source.commercialPlan,
+      siteAllowance: source.siteAllowance,
+      locationAllowance: source.locationAllowance,
+      capacityEntitlementActive: source.capacityEntitlementActive,
+      purchasedAdditionalSiteQuantity: source.purchasedAdditionalSiteQuantity,
+      purchasedAdditionalLocationQuantity:
+        source.purchasedAdditionalLocationQuantity,
+      extraSiteAllowance: source.extraSiteAllowance,
+      extraLocationAllowance: source.extraLocationAllowance,
+    },
+  });
+}
+
+export function accountSplitDestinationAllowance(input: {
+  plan: GovernedCommercialPlan | null;
+  entitlement: AccountSplitSnapshot["destination"]["entitlement"];
+}): SiteLocationAllowance {
+  return effectiveSiteLocationAllowance({
+    entitlement: input.entitlement
+      ? {
+          commercialPlan: input.plan,
+          siteAllowance: input.entitlement.siteAllowance,
+          locationAllowance: input.entitlement.locationAllowance,
+          capacityEntitlementActive:
+            input.entitlement.capacityEntitlementActive ??
+            input.entitlement.access === "ACTIVE",
+          purchasedAdditionalSiteQuantity:
+            input.entitlement.purchasedAdditionalSiteQuantity,
+          purchasedAdditionalLocationQuantity:
+            input.entitlement.purchasedAdditionalLocationQuantity,
+          extraSiteAllowance: input.entitlement.extraSiteAllowance,
+          extraLocationAllowance: input.entitlement.extraLocationAllowance,
+        }
+      : input.plan
+        ? {
+            commercialPlan: input.plan,
+            siteAllowance: 1,
+            locationAllowance: 1,
+          }
+        : null,
+  });
+}
+
 function governedDestinationPlan(
   plan: CommercialPlan
 ): GovernedCommercialPlan | null {
@@ -1165,19 +1268,16 @@ export function classifyDestinationBilling(input: {
   if (entitlement.scheduledCommercialPlan) {
     reasons.push("Destination subscription has a scheduled plan change.");
   }
-  const allowance = effectiveSiteLocationAllowance({
-    entitlement: {
-      commercialPlan: input.plan,
-      siteAllowance: entitlement.siteAllowance,
-      locationAllowance: entitlement.locationAllowance,
-    },
+  const allowance = accountSplitDestinationAllowance({
+    plan: input.plan,
+    entitlement,
   });
   if (allowance.siteAllowance < 1) {
-    reasons.push("Destination site allowance is insufficient.");
+    reasons.push("Destination Clinic Site allowance is insufficient.");
   }
   if (allowance.locationAllowance < input.activeLocations) {
     reasons.push(
-      "Destination location allowance is insufficient for the site that would move."
+      "Destination Location allowance is insufficient for the Clinic Site that would move."
     );
   }
   if (reasons.length > 0) {

@@ -2,7 +2,10 @@ import "server-only";
 
 import * as Sentry from "@sentry/nextjs";
 
-import { GROUP_SUBSCRIPTION_SHAPE_FAILURE_CODE } from "@/lib/billing/group-billing-codes";
+import {
+  GROUP_SUBSCRIPTION_SHAPE_FAILURE_CODE,
+  PRACTICE_SUBSCRIPTION_SHAPE_FAILURE_CODE,
+} from "@/lib/billing/group-billing-codes";
 import { ALLOWED_ERROR_TAG_KEYS } from "@/lib/observability/error-tracking-allowlists";
 import { getServerErrorTrackingConfig } from "@/lib/observability/error-tracking-env";
 import { sanitizeSensitiveValue } from "@/lib/observability/sensitive-value-sanitizer";
@@ -14,6 +17,7 @@ export const OPERATIONAL_FAILURE_CODES = {
   STRIPE_WEBHOOK_FAILED: "stripe_webhook_failed",
   STRIPE_WEBHOOK_NOT_CONFIGURED: "stripe_webhook_not_configured",
   GROUP_SUBSCRIPTION_SHAPE_INVALID: GROUP_SUBSCRIPTION_SHAPE_FAILURE_CODE,
+  PRACTICE_SUBSCRIPTION_SHAPE_INVALID: PRACTICE_SUBSCRIPTION_SHAPE_FAILURE_CODE,
 } as const;
 
 export type OperationalFailureCode =
@@ -139,6 +143,20 @@ export function reportContactEmailFailure(
 export function reportGroupSubscriptionShapeFailure(): void {
   reportOperationalFailure(
     OPERATIONAL_FAILURE_CODES.GROUP_SUBSCRIPTION_SHAPE_INVALID,
+    {
+      component: "stripe-webhook",
+      failure_code: "processing_failed",
+    }
+  );
+}
+
+/**
+ * Prepared for a later Practice subscription projector.
+ * Not called from webhook processing in this foundation.
+ */
+export function reportPracticeSubscriptionShapeFailure(): void {
+  reportOperationalFailure(
+    OPERATIONAL_FAILURE_CODES.PRACTICE_SUBSCRIPTION_SHAPE_INVALID,
     {
       component: "stripe-webhook",
       failure_code: "processing_failed",

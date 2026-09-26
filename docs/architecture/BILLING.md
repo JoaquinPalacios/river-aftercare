@@ -162,7 +162,7 @@ Approved Group catalogue, not yet used by Checkout:
 | Group base             | A$449   | A$4,490 | 2 Clinic Sites and 5 Locations              |
 | Additional Site bundle | A$50    | A$500   | +1 Clinic Site and +1 Location per quantity |
 
-There is no standalone paid Additional Location product. Server environment variables, blank in `.env.example`:
+Group has no standalone paid Additional Location product. Practice Additional Location is a separate quantity-based tiered Price, documented below. Server environment variables, blank in `.env.example`:
 
 - `STRIPE_GROUP_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_YEARLY_PRICE_ID`
@@ -192,7 +192,29 @@ Existing Group rows keep their stored totals until an operator saves complimenta
 
 `offeredAdditionalSiteQuantity`, `scheduledAdditionalSiteQuantity`, and `scheduledCapacityEffectiveAt` are reserved for later offer and schedule work. They are not capacity. The Customer Portal contract is unchanged: invoice history, payment method changes, and cancel at period end. Price, quantity, interval, and plan changes stay off.
 
-Migration `20260926140000_add_group_capacity_foundation` is additive. Do not apply it to production from this change.
+Migration `20260926140000_add_group_capacity_foundation` is additive. Migration `20260926203000_add_practice_additional_location_quantity` adds nullable `purchasedAdditionalLocationQuantity`. Do not apply either to production from this change.
+
+### Practice Additional Location
+
+Practice base remains A$149/month or A$1,490/year and includes the first physical Location and one Clinic Site. There is no Essential additional-location Price. Essential stays 1 Clinic Site and 1 Location.
+
+One graduated Price per interval, `River Aftercare Practice — Additional Location`:
+
+| Additional physical Location      | Monthly | Yearly |
+| --------------------------------- | ------- | ------ |
+| First above the included Location | A$79    | A$790  |
+| Each later Location               | A$59    | A$590  |
+
+N on that Price is the number of Locations above the included first Location. Annual billing stays 12 months for the price of 10. No GST and no Stripe Tax. Checkout does not add this line item yet.
+
+`purchasedAdditionalLocationQuantity` is null until the account is explicitly configured. Null keeps the stored `locationAllowance`. Zero means configured with no paid additional Location. `extraLocationAllowance` is the shared complimentary location delta for Practice and Group. A converted ACTIVE Practice account is 1 Clinic Site and `1 + N + extraLocationAllowance`. A pending offer does not gain that capacity. Historical Practice totals are not inferred as paid N or as extras.
+
+Environment variables, blank in `.env.example`:
+
+- `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID`
+- `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID`
+
+A Practice Additional Location Price is never a `CommercialPlan`. Missing those variables leaves one-location Practice billing operational. A malformed Practice shape fails closed with `practice_subscription_shape_invalid`. The webhook does not emit that code yet.
 
 ### Superseded investigation recommendations
 
@@ -591,7 +613,7 @@ Follow Stripe’s catalogue rule: **one Product per plan the customer can choose
 
 All `tax_behavior: inclusive`. Currency `aud`. Nickname the Prices clearly (`essential_monthly`, etc.).
 
-Group is a Stripe Product in the approved catalogue above: base A$449/month or A$4,490/year, plus an Additional Site Price of A$50/month or A$500/year. Checkout does not sell it yet. There is no standalone paid Additional Location Price. Practice location changes stay an operator allowance and must not become quantity on the Practice Price. Public Group copy stays custom. Site and location capacity is still enforced in the product. A missing entitlement is 1 site and 1 location, never unlimited. Essential is always 1/1. Practice is always one site; the operator may raise the location allowance.
+Group is a Stripe Product in the approved catalogue above: base A$449/month or A$4,490/year, plus an Additional Site Price of A$50/month or A$500/year. Checkout does not sell it yet. Group has no standalone paid Additional Location Price. Practice Additional Location is a separate graduated Price, not quantity on the Practice base Price. Until an account is converted, an operator may still raise the stored Practice location allowance. Public Group copy stays custom. Site and location capacity is still enforced in the product. A missing entitlement is 1 site and 1 location, never unlimited. Essential is always 1/1. Practice is always one site.
 
 ### E.2 Price ID mapping
 

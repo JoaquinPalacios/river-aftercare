@@ -58,6 +58,7 @@ export type AccountSiteLocationAllowance = SiteLocationAllowance & {
   commercialPlan: CommercialPlan | null;
   capacityEntitlementActive: boolean;
   purchasedAdditionalSiteQuantity: number | null;
+  purchasedAdditionalLocationQuantity: number | null;
   extraSiteAllowance: number;
   extraLocationAllowance: number;
 };
@@ -75,6 +76,8 @@ export async function readAccountSiteLocationAllowance(
     commercialPlan: entitlement?.commercialPlan ?? null,
     capacityEntitlementActive: flags.capacityEntitlementActive,
     purchasedAdditionalSiteQuantity: flags.purchasedAdditionalSiteQuantity,
+    purchasedAdditionalLocationQuantity:
+      flags.purchasedAdditionalLocationQuantity,
     extraSiteAllowance: flags.extraSiteAllowance,
     extraLocationAllowance: flags.extraLocationAllowance,
     ...effectiveSiteLocationAllowance({
@@ -86,6 +89,8 @@ export async function readAccountSiteLocationAllowance(
             capacityEntitlementActive: flags.capacityEntitlementActive,
             purchasedAdditionalSiteQuantity:
               entitlement.purchasedAdditionalSiteQuantity,
+            purchasedAdditionalLocationQuantity:
+              entitlement.purchasedAdditionalLocationQuantity,
             extraSiteAllowance: entitlement.extraSiteAllowance,
             extraLocationAllowance: entitlement.extraLocationAllowance,
           }

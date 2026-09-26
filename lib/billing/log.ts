@@ -1,6 +1,9 @@
 import "server-only";
 
-import { GROUP_SUBSCRIPTION_SHAPE_LOG_EVENT } from "@/lib/billing/group-billing-codes";
+import {
+  GROUP_SUBSCRIPTION_SHAPE_LOG_EVENT,
+  PRACTICE_SUBSCRIPTION_SHAPE_LOG_EVENT,
+} from "@/lib/billing/group-billing-codes";
 
 export type StripeBillingLogEvent =
   | {
@@ -47,6 +50,13 @@ export type StripeBillingLogEvent =
     }
   | {
       event: typeof GROUP_SUBSCRIPTION_SHAPE_LOG_EVENT;
+      stripeEventId?: string;
+      eventType?: string;
+      clinicId?: string | null;
+      reason: string;
+    }
+  | {
+      event: typeof PRACTICE_SUBSCRIPTION_SHAPE_LOG_EVENT;
       stripeEventId?: string;
       eventType?: string;
       clinicId?: string | null;
@@ -200,6 +210,7 @@ export function logStripeBilling(entry: StripeBillingLogEvent): void {
   if (
     entry.event === "stripe_webhook_failed" ||
     entry.event === GROUP_SUBSCRIPTION_SHAPE_LOG_EVENT ||
+    entry.event === PRACTICE_SUBSCRIPTION_SHAPE_LOG_EVENT ||
     entry.event === "stripe_webhook_unknown_price" ||
     entry.event === "stripe_webhook_unknown_clinic" ||
     entry.event === "stripe_webhook_not_configured" ||

@@ -154,7 +154,14 @@ describe("Group subscription shape", () => {
     });
     expect(
       classifySubscriptionShape([item(PRACTICE_YEARLY, 1)], BILLING_TEST_ENV)
-    ).toMatchObject({ ok: true, kind: "self_serve", plan: "PRACTICE" });
+    ).toEqual({
+      ok: true,
+      kind: "practice",
+      plan: "PRACTICE",
+      interval: "YEARLY",
+      basePriceId: PRACTICE_YEARLY,
+      additionalLocationQuantity: 0,
+    });
     expect(
       classifySubscriptionShape(
         [item(ESSENTIAL_MONTHLY, 1), item(ESSENTIAL_MONTHLY, 1)],

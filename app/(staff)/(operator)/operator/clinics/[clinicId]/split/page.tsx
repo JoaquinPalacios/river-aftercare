@@ -15,7 +15,11 @@ import {
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/split/split-forms";
 import { requireAccountSplitOperator } from "@/lib/account-split/authorize";
 import { loadAccountSplitExecutionSummary } from "@/lib/account-split/execute";
-import { PUBLIC_URLS_UNCHANGED_STATEMENT } from "@/lib/account-split/policy";
+import {
+  PUBLIC_URLS_UNCHANGED_STATEMENT,
+  supportedAccountSplitAction,
+  unsupportedAccountSplitMessage,
+} from "@/lib/account-split/policy";
 import {
   previewAccountSplit,
   revalidateAccountSplitPreparation,
@@ -98,8 +102,11 @@ export default async function AccountSplitPreparationPage({
       ? await loadStaffRows(clinic.id, preparation.id)
       : [];
   const activeSiteCount = clinic.sites.filter((site) => site.active).length;
-  const canStart =
-    clinic.entitlement?.commercialPlan === "GROUP" && activeSiteCount > 1;
+  const plan = clinic.entitlement?.commercialPlan ?? null;
+  const canStart = supportedAccountSplitAction({
+    commercialPlan: plan,
+    activeClinicSiteCount: activeSiteCount,
+  }).available;
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
@@ -115,12 +122,14 @@ export default async function AccountSplitPreparationPage({
           Platform
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          Account split / downgrade preparation
+          Clinic Site split
         </h1>
         <p className="mt-2 max-w-3xl text-sm text-staff-muted">
-          Prepare one Group site to become its own Account, then execute that
-          split. Execution moves the site, copies its guides, and applies staff
-          decisions. It does not change the source subscription.
+          Today this moves one Clinic Site from a Group Account onto a new
+          Account. The destination plan is Essential or Practice. Execution
+          moves that Clinic Site and its Locations, copies guides that are
+          placed on it, and applies staff decisions. It does not change the
+          source subscription, and it does not move a Location by itself.
         </p>
       </header>
 
@@ -136,7 +145,7 @@ export default async function AccountSplitPreparationPage({
             <dd>{clinic.entitlement?.commercialPlan ?? "No entitlement"}</dd>
           </div>
           <div>
-            <dt className="text-staff-muted">Active sites</dt>
+            <dt className="text-staff-muted">Active Clinic Sites</dt>
             <dd>{activeSiteCount}</dd>
           </div>
           <div>
@@ -261,10 +270,10 @@ export default async function AccountSplitPreparationPage({
           {canStart ? (
             <>
               <p className="mt-2 text-sm text-staff-muted">
-                Choose the site that stays. Every other site needs an explicit
-                Split, Deactivate, or Retain decision. One preparation covers
-                one destination Account. Sites kept active on the source can be
-                split in a later preparation.
+                Choose the Clinic Site that stays. Every other Clinic Site needs
+                an explicit Split, Deactivate, or Retain decision. One
+                preparation covers one new destination Account. Clinic Sites
+                kept active on the source can be moved in a later preparation.
               </p>
               <CreateSplitPreparationForm
                 sourceClinicId={clinic.id}
@@ -273,8 +282,7 @@ export default async function AccountSplitPreparationPage({
             </>
           ) : (
             <p className="mt-2 text-sm text-staff-muted">
-              Split preparation is for a Group account with more than one active
-              site.
+              {unsupportedAccountSplitMessage(plan)}
             </p>
           )}
           {cancelled?.destinationClinic ? (
@@ -297,7 +305,7 @@ export default async function AccountSplitPreparationPage({
             {preview?.destinationPreview.compatibilitySlug ? (
               <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                 <div>
-                  <dt className="text-staff-muted">Shell account</dt>
+                  <dt className="text-staff-muted">Shell Account</dt>
                   <dd>{preview.destinationPreview.accountName}</dd>
                 </div>
                 <div>
@@ -341,7 +349,7 @@ export default async function AccountSplitPreparationPage({
                   href={`/operator/clinics/${preparation.destinationClinicId}`}
                   className="font-medium text-staff-brand"
                 >
-                  Open destination account
+                  Open destination Account
                 </Link>
                 {". "}
                 <Link
@@ -369,13 +377,14 @@ export default async function AccountSplitPreparationPage({
           </section>
 
           <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
-            <h2 className="text-base font-semibold">Sites</h2>
+            <h2 className="text-base font-semibold">Clinic Sites</h2>
             <p className="mt-2 text-sm text-staff-muted">
-              The kept site stays. Exactly one other site is split onto this
-              destination. Every remaining site is an explicit Deactivate or
-              Retain. Retain leaves an active site on the source Group for a
-              later preparation. The kept site does not have to be primary
-              today.
+              The Clinic Site that stays remains on the source Account. Exactly
+              one other Clinic Site moves onto this new destination Account.
+              Every remaining Clinic Site is an explicit Deactivate or Retain.
+              Retain leaves an active Clinic Site on the source Group for a
+              later preparation. The Clinic Site that stays does not have to be
+              primary today.
             </p>
             <SplitSiteDecisionsForm
               key={clinic.sites
@@ -506,7 +515,9 @@ export default async function AccountSplitPreparationPage({
                   <p className="mt-2">
                     Plan remains: {preview.sourcePreview.planRemains}
                   </p>
-                  <p>Active sites: {preview.sourcePreview.activeSiteCount}</p>
+                  <p>
+                    Active Clinic Sites: {preview.sourcePreview.activeSiteCount}
+                  </p>
                   <ul className="mt-2 list-disc pl-5">
                     {preview.sourcePreview.activeSites.map((site) => (
                       <li key={site.id}>
@@ -559,8 +570,8 @@ export default async function AccountSplitPreparationPage({
               </p>
             ) : (
               <p className="mt-3 text-sm">
-                Public URL continuity is not confirmed until the moving site is
-                chosen and its placements are consistent.
+                Public URL continuity is not confirmed until the moving Clinic
+                Site is chosen and its placements are consistent.
               </p>
             )}
             {preview && preview.destinationPreview.publicUrls.length > 0 ? (
@@ -618,7 +629,8 @@ export default async function AccountSplitPreparationPage({
                       {preview.sourcePreview.deactivatedSiteIds.length > 0 ? (
                         <li>
                           Deactivate{" "}
-                          {preview.sourcePreview.deactivatedSiteIds.length} site
+                          {preview.sourcePreview.deactivatedSiteIds.length}{" "}
+                          Clinic Site
                           {preview.sourcePreview.deactivatedSiteIds.length === 1
                             ? ""
                             : "s"}

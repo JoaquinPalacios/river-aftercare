@@ -32,7 +32,11 @@ export async function updateOperatorSiteLocationAllowance(input: {
   const prisma = getPrisma();
   const entitlement = await prisma.clinicEntitlement.findUnique({
     where: { clinicId: input.clinicId },
-    select: { id: true, commercialPlan: true },
+    select: {
+      id: true,
+      commercialPlan: true,
+      purchasedAdditionalLocationQuantity: true,
+    },
   });
   if (!entitlement) {
     return {
@@ -47,6 +51,16 @@ export async function updateOperatorSiteLocationAllowance(input: {
       ok: false,
       error:
         "Group capacity is saved as complimentary extras. Paid Additional Site bundles are not edited here.",
+    };
+  }
+  if (
+    plan === "PRACTICE" &&
+    entitlement.purchasedAdditionalLocationQuantity !== null
+  ) {
+    return {
+      ok: false,
+      error:
+        "This Practice Account uses derived location capacity. Paid Additional Locations are not edited here.",
     };
   }
   const sites = input.siteAllowance;
@@ -235,6 +249,16 @@ export async function loadOperatorSiteLocationCapacity(clinicId: string) {
             purchasedAdditionalSiteQuantity:
               allowance.purchasedAdditionalSiteQuantity,
             extraSiteAllowance: allowance.extraSiteAllowance,
+            extraLocationAllowance: allowance.extraLocationAllowance,
+          }
+        : null,
+    practiceCapacity:
+      allowance.commercialPlan === "PRACTICE"
+        ? {
+            configured: allowance.purchasedAdditionalLocationQuantity !== null,
+            commerciallyActive: allowance.capacityEntitlementActive,
+            purchasedAdditionalLocationQuantity:
+              allowance.purchasedAdditionalLocationQuantity,
             extraLocationAllowance: allowance.extraLocationAllowance,
           }
         : null,

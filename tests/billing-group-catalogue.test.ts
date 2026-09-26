@@ -9,13 +9,19 @@ import {
   planFromStripePriceId,
   stripePriceIdForPlan,
 } from "@/lib/billing/price-map";
-import { BILLING_TEST_ENV, GROUP_BILLING_TEST_ENV } from "./helpers/billing";
+import {
+  BILLING_TEST_ENV,
+  GROUP_BILLING_TEST_ENV,
+  PRACTICE_LOCATION_BILLING_TEST_ENV,
+} from "./helpers/billing";
 
-const EIGHT_PRICE_IDS = [
+const TEN_PRICE_IDS = [
   GROUP_BILLING_TEST_ENV.STRIPE_ESSENTIAL_MONTHLY_PRICE_ID,
   GROUP_BILLING_TEST_ENV.STRIPE_ESSENTIAL_YEARLY_PRICE_ID,
   GROUP_BILLING_TEST_ENV.STRIPE_PRACTICE_MONTHLY_PRICE_ID,
   GROUP_BILLING_TEST_ENV.STRIPE_PRACTICE_YEARLY_PRICE_ID,
+  GROUP_BILLING_TEST_ENV.STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID,
+  GROUP_BILLING_TEST_ENV.STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID,
   GROUP_BILLING_TEST_ENV.STRIPE_GROUP_MONTHLY_PRICE_ID,
   GROUP_BILLING_TEST_ENV.STRIPE_GROUP_YEARLY_PRICE_ID,
   GROUP_BILLING_TEST_ENV.STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID,
@@ -23,8 +29,8 @@ const EIGHT_PRICE_IDS = [
 ];
 
 describe("Group Stripe catalogue", () => {
-  it("keeps all eight configured Price IDs unique", () => {
-    expect(new Set(EIGHT_PRICE_IDS).size).toBe(8);
+  it("keeps all ten configured Price IDs unique", () => {
+    expect(new Set(TEN_PRICE_IDS).size).toBe(10);
     expect(groupBillingAvailable(GROUP_BILLING_TEST_ENV)).toBe(true);
     expect(
       stripePriceIdForPlan("ESSENTIAL", "MONTHLY", GROUP_BILLING_TEST_ENV)
@@ -79,6 +85,47 @@ describe("Group Stripe catalogue", () => {
     expect(yearly).not.toHaveProperty("plan");
   });
 
+  it("classifies Practice Additional Location prices as add-ons", () => {
+    const monthly = classifyConfiguredStripePrice(
+      "price_test_practice_location_monthly",
+      PRACTICE_LOCATION_BILLING_TEST_ENV
+    );
+    const yearly = classifyConfiguredStripePrice(
+      "price_test_practice_location_yearly",
+      PRACTICE_LOCATION_BILLING_TEST_ENV
+    );
+    expect(monthly).toEqual({
+      role: "PRACTICE_LOCATION_ADDON",
+      interval: "MONTHLY",
+      priceId: "price_test_practice_location_monthly",
+    });
+    expect(yearly).toEqual({
+      role: "PRACTICE_LOCATION_ADDON",
+      interval: "YEARLY",
+      priceId: "price_test_practice_location_yearly",
+    });
+    expect(monthly).not.toHaveProperty("plan");
+    expect(yearly).not.toHaveProperty("plan");
+    expect(() =>
+      planFromStripePriceId(
+        "price_test_practice_location_monthly",
+        PRACTICE_LOCATION_BILLING_TEST_ENV
+      )
+    ).toThrow(UnknownStripePriceError);
+  });
+
+  it("keeps base Practice operational when the location add-on is not configured", () => {
+    expect(stripePriceIdForPlan("PRACTICE", "MONTHLY", BILLING_TEST_ENV)).toBe(
+      "price_test_practice_monthly"
+    );
+    expect(() =>
+      classifyConfiguredStripePrice(
+        "price_test_practice_location_monthly",
+        BILLING_TEST_ENV
+      )
+    ).toThrow(UnknownStripePriceError);
+  });
+
   it("does not treat an add-on Price as a self-serve CommercialPlan", () => {
     expect(() =>
       planFromStripePriceId(
@@ -130,6 +177,14 @@ describe("Group Stripe catalogue", () => {
       "price_test_essential_yearly",
     ],
     ["STRIPE_GROUP_YEARLY_PRICE_ID", "price_test_group_monthly"],
+    [
+      "STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID",
+      "price_test_practice_monthly",
+    ],
+    [
+      "STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID",
+      "price_test_group_site_yearly",
+    ],
   ] as const)("rejects duplicate Price ID %s", (envKey, priceId) => {
     expect(() =>
       buildStripePriceMap({

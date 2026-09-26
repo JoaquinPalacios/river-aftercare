@@ -3,6 +3,7 @@ import "server-only";
 import { AccountTokenType, type Prisma } from "@prisma/client";
 
 import type { AccountSplitSnapshot } from "@/lib/account-split/policy";
+import { readAccountCapacityFacts } from "@/lib/billing/group-capacity-gate";
 import { readSplitDestinationCommercialState } from "@/lib/billing/split-destination-access";
 import { getPrisma } from "@/lib/prisma";
 
@@ -101,17 +102,7 @@ export async function loadAccountSplitSnapshot(
         where: { id: preparation.sourceClinicId },
         select: { id: true, name: true, slug: true },
       }),
-    () =>
-      db.clinicEntitlement.findUnique({
-        where: { clinicId: preparation.sourceClinicId },
-        select: {
-          commercialPlan: true,
-          locationAllowance: true,
-          extraTeamMemberAllowance: true,
-          extraCustomGuideAllowance: true,
-          extraTemplateAdaptationAllowance: true,
-        },
-      }),
+    () => readAccountCapacityFacts(preparation.sourceClinicId, db),
     () =>
       db.clinicSite.findMany({
         where: { clinicId: preparation.sourceClinicId },
@@ -207,7 +198,16 @@ export async function loadAccountSplitSnapshot(
         templateAdaptations:
           sourceEntitlement?.extraTemplateAdaptationAllowance ?? 0,
       },
+      siteAllowance: sourceEntitlement?.siteAllowance ?? 1,
       locationAllowance: sourceEntitlement?.locationAllowance ?? 1,
+      capacityEntitlementActive:
+        sourceEntitlement?.capacityEntitlementActive ?? false,
+      purchasedAdditionalSiteQuantity:
+        sourceEntitlement?.purchasedAdditionalSiteQuantity ?? null,
+      purchasedAdditionalLocationQuantity:
+        sourceEntitlement?.purchasedAdditionalLocationQuantity ?? null,
+      extraSiteAllowance: sourceEntitlement?.extraSiteAllowance ?? 0,
+      extraLocationAllowance: sourceEntitlement?.extraLocationAllowance ?? 0,
     },
     sites,
     locations,

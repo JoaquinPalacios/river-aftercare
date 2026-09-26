@@ -7,6 +7,8 @@ import {
   STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID_ENV,
   STRIPE_GROUP_MONTHLY_PRICE_ID_ENV,
   STRIPE_GROUP_YEARLY_PRICE_ID_ENV,
+  STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID_ENV,
+  STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID_ENV,
   STRIPE_PRACTICE_MONTHLY_PRICE_ID_ENV,
   STRIPE_PRACTICE_YEARLY_PRICE_ID_ENV,
 } from "@/lib/billing/env";
@@ -32,6 +34,11 @@ type CatalogueSlot =
   | {
       role: "BASE_PLAN";
       plan: CommercialPlanCode;
+      interval: BillingIntervalCode;
+      envKey: string;
+    }
+  | {
+      role: "PRACTICE_LOCATION_ADDON";
       interval: BillingIntervalCode;
       envKey: string;
     }
@@ -88,6 +95,16 @@ const STRIPE_CATALOGUE_SLOTS: readonly CatalogueSlot[] = [
     plan: "PRACTICE",
     interval: "YEARLY",
     envKey: STRIPE_PRACTICE_YEARLY_PRICE_ID_ENV,
+  },
+  {
+    role: "PRACTICE_LOCATION_ADDON",
+    interval: "MONTHLY",
+    envKey: STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID_ENV,
+  },
+  {
+    role: "PRACTICE_LOCATION_ADDON",
+    interval: "YEARLY",
+    envKey: STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID_ENV,
   },
   {
     role: "BASE_PLAN",
@@ -153,6 +170,11 @@ export type ClassifiedStripePrice =
       priceId: string;
     }
   | {
+      role: "PRACTICE_LOCATION_ADDON";
+      interval: BillingIntervalCode;
+      priceId: string;
+    }
+  | {
       role: "GROUP_SITE_ADDON";
       interval: BillingIntervalCode;
       priceId: string;
@@ -182,7 +204,7 @@ function readConfiguredCatalogue(
     const previous = seen.get(priceId);
     if (previous) {
       throw new StripePriceMappingError(
-        "Stripe Price IDs must be unique across every configured base plan and Group add-on price."
+        "Stripe Price IDs must be unique across every configured base plan and add-on price."
       );
     }
     seen.set(priceId, slot.envKey);
@@ -213,9 +235,12 @@ export function classifyConfiguredStripePrice(
   if (!slot) {
     throw new UnknownStripePriceError(trimmed);
   }
-  if (slot.role === "GROUP_SITE_ADDON") {
+  if (
+    slot.role === "GROUP_SITE_ADDON" ||
+    slot.role === "PRACTICE_LOCATION_ADDON"
+  ) {
     return {
-      role: "GROUP_SITE_ADDON",
+      role: slot.role,
       interval: slot.interval,
       priceId: slot.priceId,
     };

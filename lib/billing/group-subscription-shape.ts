@@ -4,6 +4,8 @@ import type { BillingIntervalCode } from "@/lib/billing/price-map";
 import {
   GROUP_SUBSCRIPTION_SHAPE_FAILURE_CODE,
   GROUP_SUBSCRIPTION_SHAPE_LOG_EVENT,
+  PRACTICE_SUBSCRIPTION_SHAPE_FAILURE_CODE,
+  PRACTICE_SUBSCRIPTION_SHAPE_LOG_EVENT,
 } from "@/lib/billing/group-billing-codes";
 import {
   classifyConfiguredStripePrice,
@@ -14,6 +16,8 @@ import {
 export {
   GROUP_SUBSCRIPTION_SHAPE_FAILURE_CODE,
   GROUP_SUBSCRIPTION_SHAPE_LOG_EVENT,
+  PRACTICE_SUBSCRIPTION_SHAPE_FAILURE_CODE,
+  PRACTICE_SUBSCRIPTION_SHAPE_LOG_EVENT,
 };
 
 export type SubscriptionItemShape = {
@@ -33,13 +37,32 @@ export type GroupShapeRejection =
   | "interval_mismatch"
   | "group_billing_unavailable";
 
+export type PracticeShapeRejection =
+  | "invalid_quantity"
+  | "unknown_item"
+  | "mixed_plan"
+  | "addon_without_base"
+  | "duplicate_base"
+  | "duplicate_addon"
+  | "base_quantity"
+  | "addon_quantity"
+  | "interval_mismatch";
+
 export type ClassifiedSubscriptionShape =
   | {
       ok: true;
       kind: "self_serve";
-      plan: "ESSENTIAL" | "PRACTICE";
+      plan: "ESSENTIAL";
       interval: BillingIntervalCode;
       priceId: string;
+    }
+  | {
+      ok: true;
+      kind: "practice";
+      plan: "PRACTICE";
+      interval: BillingIntervalCode;
+      basePriceId: string;
+      additionalLocationQuantity: number;
     }
   | {
       ok: true;
@@ -53,6 +76,11 @@ export type ClassifiedSubscriptionShape =
       ok: false;
       code: typeof GROUP_SUBSCRIPTION_SHAPE_FAILURE_CODE;
       reason: GroupShapeRejection;
+    }
+  | {
+      ok: false;
+      code: typeof PRACTICE_SUBSCRIPTION_SHAPE_FAILURE_CODE;
+      reason: PracticeShapeRejection;
     }
   | {
       ok: false;
@@ -70,8 +98,9 @@ type ClassifiedItem = {
 
 /**
  * Classifies subscription items without reading Stripe and without depending
- * on item order. Essential and Practice stay one base item at quantity 1.
- * Group Checkout and webhook projection do not call this yet.
+ * on item order. Essential is one base item at quantity 1. Practice is one
+ * base item at quantity 1 plus an optional Additional Location quantity.
+ * Checkout and webhook projection do not call this yet.
  */
 export function classifySubscriptionShape(
   items: readonly SubscriptionItemShape[],
@@ -80,31 +109,24 @@ export function classifySubscriptionShape(
   const classified = items.map((item) => classifyItem(item, env));
   const groupItems = classified.filter((item) => isGroupPrice(item.price));
 
+  const practiceItems = classified.filter((item) =>
+    isPracticePrice(item.price)
+  );
+
   if (classified.some((item) => !isFiniteInteger(item.quantity))) {
-    if (groupItems.length > 0) {
-      return groupFailure("invalid_quantity");
-    }
-    return {
-      ok: false,
-      code: "subscription_shape_invalid",
-      reason: "invalid_quantity",
-    };
+    return quantityFailure(groupItems.length > 0, practiceItems.length > 0);
   }
 
   if (classified.some((item) => item.quantity < 0)) {
-    if (groupItems.length > 0) {
-      return groupFailure("invalid_quantity");
-    }
-    return {
-      ok: false,
-      code: "subscription_shape_invalid",
-      reason: "invalid_quantity",
-    };
+    return quantityFailure(groupItems.length > 0, practiceItems.length > 0);
   }
 
   if (classified.some((item) => item.price === null)) {
     if (groupItems.length > 0) {
       return groupFailure("unknown_item");
+    }
+    if (practiceItems.length > 0) {
+      return practiceFailure("unknown_item");
     }
     return {
       ok: false,
@@ -115,6 +137,10 @@ export function classifySubscriptionShape(
 
   if (groupItems.length > 0) {
     return classifyGroupShape(classified, env);
+  }
+
+  if (practiceItems.length > 0) {
+    return classifyPracticeShape(classified);
   }
 
   return classifySelfServeShape(classified);
@@ -180,6 +206,63 @@ function classifyGroupShape(
   };
 }
 
+function classifyPracticeShape(
+  items: readonly ClassifiedItem[]
+): ClassifiedSubscriptionShape {
+  const practiceBases = items.filter(
+    (item) => item.price?.role === "BASE_PLAN" && item.price.plan === "PRACTICE"
+  );
+  const addons = items.filter(
+    (item) => item.price?.role === "PRACTICE_LOCATION_ADDON"
+  );
+  const otherItems = items.filter(
+    (item) =>
+      !(item.price?.role === "BASE_PLAN" && item.price.plan === "PRACTICE") &&
+      item.price?.role !== "PRACTICE_LOCATION_ADDON"
+  );
+
+  if (otherItems.length > 0) {
+    return practiceFailure("mixed_plan");
+  }
+  if (practiceBases.length === 0) {
+    return practiceFailure("addon_without_base");
+  }
+  if (practiceBases.length > 1) {
+    return practiceFailure("duplicate_base");
+  }
+  if (addons.length > 1) {
+    return practiceFailure("duplicate_addon");
+  }
+
+  const base = practiceBases[0];
+  if (!base?.price || base.price.role !== "BASE_PLAN") {
+    return practiceFailure("addon_without_base");
+  }
+  if (base.quantity !== 1) {
+    return practiceFailure("base_quantity");
+  }
+
+  const addon = addons[0];
+  if (addon && addon.quantity < 1) {
+    return practiceFailure("addon_quantity");
+  }
+  if (
+    addon?.price?.role === "PRACTICE_LOCATION_ADDON" &&
+    addon.price.interval !== base.price.interval
+  ) {
+    return practiceFailure("interval_mismatch");
+  }
+
+  return {
+    ok: true,
+    kind: "practice",
+    plan: "PRACTICE",
+    interval: base.price.interval,
+    basePriceId: base.price.priceId,
+    additionalLocationQuantity: addon ? addon.quantity : 0,
+  };
+}
+
 function classifySelfServeShape(
   items: readonly ClassifiedItem[]
 ): ClassifiedSubscriptionShape {
@@ -194,7 +277,7 @@ function classifySelfServeShape(
   if (
     !item?.price ||
     item.price.role !== "BASE_PLAN" ||
-    item.price.plan === "GROUP" ||
+    item.price.plan !== "ESSENTIAL" ||
     item.quantity !== 1
   ) {
     return {
@@ -229,6 +312,43 @@ function classifyItem(item: SubscriptionItemShape, env: Env): ClassifiedItem {
     }
     throw error;
   }
+}
+
+function isPracticePrice(price: ClassifiedItem["price"]): boolean {
+  if (!price) {
+    return false;
+  }
+  return (
+    (price.role === "BASE_PLAN" && price.plan === "PRACTICE") ||
+    price.role === "PRACTICE_LOCATION_ADDON"
+  );
+}
+
+function quantityFailure(
+  group: boolean,
+  practice: boolean
+): ClassifiedSubscriptionShape {
+  if (group) {
+    return groupFailure("invalid_quantity");
+  }
+  if (practice) {
+    return practiceFailure("invalid_quantity");
+  }
+  return {
+    ok: false,
+    code: "subscription_shape_invalid",
+    reason: "invalid_quantity",
+  };
+}
+
+function practiceFailure(
+  reason: PracticeShapeRejection
+): ClassifiedSubscriptionShape {
+  return {
+    ok: false,
+    code: PRACTICE_SUBSCRIPTION_SHAPE_FAILURE_CODE,
+    reason,
+  };
 }
 
 function isGroupPrice(price: ClassifiedItem["price"]): boolean {

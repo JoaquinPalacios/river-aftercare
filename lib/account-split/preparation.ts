@@ -14,6 +14,8 @@ import {
   assessAccountSplit,
   isTerminalAccountSplitStatus,
   splitConfirmationPhrase,
+  supportedAccountSplitAction,
+  unsupportedAccountSplitMessage,
 } from "@/lib/account-split/policy";
 import {
   allocateSplitShellSlug,
@@ -42,6 +44,16 @@ export async function createAccountSplitPreparation(input: {
   try {
     return await getPrisma().$transaction(async (tx) => {
       await lockAccountSplit(tx, input.sourceClinicId);
+      const operator = await tx.user.findUnique({
+        where: { id: input.operatorUserId },
+        select: { platformRole: true },
+      });
+      if (operator?.platformRole !== "OPERATOR") {
+        throw new ClinicPortalError(
+          "Only a platform operator can prepare an account split.",
+          "forbidden"
+        );
+      }
       const clinic = await tx.clinic.findUnique({
         where: { id: input.sourceClinicId },
         select: {
@@ -53,16 +65,16 @@ export async function createAccountSplitPreparation(input: {
       if (!clinic) {
         throw new ClinicPortalError("That account was not found.", "not_found");
       }
-      if (clinic.entitlement?.commercialPlan !== "GROUP") {
-        throw new ClinicPortalError(
-          "Account split preparation starts from a Group account.",
-          "invalid"
-        );
-      }
       const activeSites = clinic.sites.filter((site) => site.active);
-      if (activeSites.length < 2) {
+      const plan = clinic.entitlement?.commercialPlan ?? null;
+      if (
+        !supportedAccountSplitAction({
+          commercialPlan: plan,
+          activeClinicSiteCount: activeSites.length,
+        }).available
+      ) {
         throw new ClinicPortalError(
-          "A split needs more than one active site.",
+          unsupportedAccountSplitMessage(plan),
           "invalid"
         );
       }
@@ -71,13 +83,13 @@ export async function createAccountSplitPreparation(input: {
       );
       if (!kept) {
         throw new ClinicPortalError(
-          "Choose a site that belongs to this account.",
+          "Choose a Clinic Site that belongs to this Account.",
           "invalid"
         );
       }
       if (!kept.active) {
         throw new ClinicPortalError(
-          "Choose an active site to keep on the source account.",
+          "Choose an active Clinic Site to keep on the source Account.",
           "invalid"
         );
       }
@@ -175,7 +187,7 @@ export async function saveAccountSplitSiteDecisions(input: {
     );
     if (byId.size !== input.decisions.length) {
       throw new ClinicPortalError(
-        "Each site can have only one decision.",
+        "Each Clinic Site can have only one decision.",
         "invalid"
       );
     }
@@ -184,7 +196,7 @@ export async function saveAccountSplitSiteDecisions(input: {
       otherSites.some((site) => !byId.has(site.id))
     ) {
       throw new ClinicPortalError(
-        "Choose Split, Deactivate, or Retain for every site that is not kept.",
+        "Choose Split, Deactivate, or Retain for every Clinic Site that is not kept.",
         "invalid"
       );
     }
@@ -193,14 +205,14 @@ export async function saveAccountSplitSiteDecisions(input: {
     );
     if (splitSites.length !== 1) {
       throw new ClinicPortalError(
-        "This preparation splits exactly one site onto one new Account.",
+        "This preparation moves exactly one Clinic Site onto one new Account.",
         "invalid"
       );
     }
     const splitSite = splitSites[0];
     if (!splitSite?.active) {
       throw new ClinicPortalError(
-        "The site to split must be active.",
+        "The Clinic Site to move must be active.",
         "invalid"
       );
     }
@@ -327,7 +339,7 @@ export async function createSplitDestinationAccount(
       });
       if (!splitDecision) {
         throw new ClinicPortalError(
-          "Choose the site to split before creating the destination account.",
+          "Choose the Clinic Site to move before creating the destination Account.",
           "invalid"
         );
       }
@@ -340,7 +352,7 @@ export async function createSplitDestinationAccount(
       });
       if (!site || !site.active) {
         throw new ClinicPortalError(
-          "The site to split must be active.",
+          "The Clinic Site to move must be active.",
           "invalid"
         );
       }

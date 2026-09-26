@@ -942,20 +942,27 @@ model ClinicEntitlement {
   siteAllowance                    Int               @default(1)
   /// Total active ClinicLocation capacity for this account, across every site.
   /// Existing rows default to 1 (Essential-compatible). Not a per-site cap.
-  /// For a configured ACTIVE Group account this is the materialized total
-  /// written by group capacity persistence. It is not typed as a raw Group total.
+  /// For a configured ACTIVE Group or Practice account this is the materialized
+  /// total written by capacity persistence. It is not typed as a raw total.
   /// A missing entitlement row does not grant unlimited locations.
   locationAllowance                Int               @default(1)
   /// Stripe-purchased Group Additional Site quantity.
-  /// Null: this account still uses the stored site and location totals.
+  /// Null: this Group account still uses the stored site and location totals.
   /// Zero: configured with no paid Additional Site bundle.
   /// Operators do not type this value. It does not create Site rows.
   purchasedAdditionalSiteQuantity  Int?
+  /// Stripe-purchased Practice Additional Location quantity.
+  /// N is the number of physical Locations above the included first Location.
+  /// Null: this Practice account still uses the stored locationAllowance.
+  /// Zero: configured with no paid additional Location.
+  /// It does not increase Clinic Site capacity and does not create Location rows.
+  purchasedAdditionalLocationQuantity Int?
   /// Complimentary Clinic Site capacity above the Group formula.
+  /// Practice does not gain Clinic Sites from this value.
   /// Does not create a Stripe item and does not charge or refund.
   extraSiteAllowance               Int               @default(0)
-  /// Complimentary Location capacity above the Group formula.
-  /// Does not create a Stripe item and does not charge or refund.
+  /// Complimentary Location capacity for Practice and Group.
+  /// One shared delta. It does not create a Stripe item and does not charge or refund.
   extraLocationAllowance           Int               @default(0)
   /// Additional Site quantity prepared on an offer. Not capacity.
   offeredAdditionalSiteQuantity    Int?

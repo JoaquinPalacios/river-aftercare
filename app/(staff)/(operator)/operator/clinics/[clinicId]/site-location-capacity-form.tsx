@@ -26,6 +26,7 @@ export function SiteLocationCapacityForm({
   activeLocations,
   sites,
   groupCapacity,
+  practiceCapacity,
 }: {
   clinicId: string;
   plan: "ESSENTIAL" | "PRACTICE" | "GROUP" | null;
@@ -45,6 +46,12 @@ export function SiteLocationCapacityForm({
     commerciallyActive: boolean;
     purchasedAdditionalSiteQuantity: number | null;
     extraSiteAllowance: number;
+    extraLocationAllowance: number;
+  } | null;
+  practiceCapacity: {
+    configured: boolean;
+    commerciallyActive: boolean;
+    purchasedAdditionalLocationQuantity: number | null;
     extraLocationAllowance: number;
   } | null;
 }) {
@@ -101,6 +108,32 @@ export function SiteLocationCapacityForm({
           activeSites={activeSites}
           activeLocations={activeLocations}
         />
+      ) : practiceCapacity?.configured ? (
+        <div className="mt-4 grid gap-2 text-sm">
+          <p className="text-staff-muted">
+            This Practice Account uses derived location capacity. The included
+            Location stays one. Paid Additional Locations and the complimentary
+            location extra are not edited here. They do not add a Clinic Site
+            and they do not charge or refund from this screen.
+          </p>
+          <p>
+            Paid Additional Locations:{" "}
+            {practiceCapacity.purchasedAdditionalLocationQuantity ?? 0}
+          </p>
+          <p>
+            Complimentary extra Locations:{" "}
+            {practiceCapacity.extraLocationAllowance}
+          </p>
+          <p>
+            Effective capacity: 1 Clinic Site / {locationAllowance} Locations.
+          </p>
+          {!practiceCapacity.commerciallyActive ? (
+            <p className="text-staff-muted">
+              This entitlement is not active. Derived Practice capacity is not
+              in force.
+            </p>
+          ) : null}
+        </div>
       ) : (
         <form action={action} className="mt-4 grid gap-3 sm:grid-cols-2">
           <input type="hidden" name="clinicId" value={clinicId} />

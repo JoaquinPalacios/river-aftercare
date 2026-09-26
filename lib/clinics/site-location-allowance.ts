@@ -6,6 +6,10 @@ import {
   groupCapacityIsDerived,
   groupEffectiveAllowances,
 } from "@/lib/clinics/group-capacity";
+import {
+  practiceCapacityIsDerived,
+  practiceEffectiveAllowances,
+} from "@/lib/clinics/practice-capacity";
 
 export { GROUP_BASE_LOCATION_ALLOWANCE, GROUP_BASE_SITE_ALLOWANCE };
 
@@ -13,9 +17,15 @@ export { GROUP_BASE_LOCATION_ALLOWANCE, GROUP_BASE_SITE_ALLOWANCE };
  * Account site and location caps. Enforced by site-location-capacity.
  *
  * Essential is always one site and one location.
- * Practice is always one site; the location total may rise.
+ * Practice is always one site.
  * A missing entitlement row is 1 site and 1 location, never unlimited.
  * A stored allowance below 1 is treated as 1.
+ *
+ * Practice location capacity uses the derived model only when the entitlement
+ * is ACTIVE and purchasedAdditionalLocationQuantity has been recorded,
+ * including zero: 1 + N + complimentary location extra.
+ * Until that explicit configuration, the stored location total remains.
+ * A pending Practice offer does not receive paid additional locations.
  *
  * Group capacity uses the derived model only when the entitlement is ACTIVE
  * and purchasedAdditionalSiteQuantity has been recorded, including zero.
@@ -37,6 +47,7 @@ export function effectiveSiteLocationAllowance(input: {
     locationAllowance: number;
     capacityEntitlementActive?: boolean;
     purchasedAdditionalSiteQuantity?: number | null;
+    purchasedAdditionalLocationQuantity?: number | null;
     extraSiteAllowance?: number | null;
     extraLocationAllowance?: number | null;
   } | null;
@@ -52,6 +63,22 @@ export function effectiveSiteLocationAllowance(input: {
   const storedLocations = normalizeAllowance(
     input.entitlement.locationAllowance
   );
+
+  if (
+    practiceCapacityIsDerived({
+      commercialPlan: input.entitlement.commercialPlan,
+      capacityEntitlementActive: input.entitlement.capacityEntitlementActive,
+      purchasedAdditionalLocationQuantity:
+        input.entitlement.purchasedAdditionalLocationQuantity,
+      extraLocationAllowance: input.entitlement.extraLocationAllowance,
+    })
+  ) {
+    return practiceEffectiveAllowances({
+      purchasedAdditionalLocationQuantity:
+        input.entitlement.purchasedAdditionalLocationQuantity ?? 0,
+      extraLocationAllowance: input.entitlement.extraLocationAllowance ?? 0,
+    });
+  }
 
   if (
     groupCapacityIsDerived({

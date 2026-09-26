@@ -27,7 +27,9 @@ import {
   isSplitShellCompatibilitySlug,
 } from "@/lib/account-split/shell-slug";
 import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
+import { readAccountCapacityFacts } from "@/lib/billing/group-capacity-gate";
 import { readSplitDestinationCommercialState } from "@/lib/billing/split-destination-access";
+import { effectiveSiteLocationAllowance } from "@/lib/clinics/site-location-allowance";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { countTeamUsage } from "@/lib/entitlements/team-usage";
 import {
@@ -199,6 +201,12 @@ export async function executeClinicAccountSplit(input: {
           "conflict"
         );
       }
+      if (snapshot.source.commercialPlan !== "GROUP") {
+        throw new ClinicPortalError(
+          "This split moves one Clinic Site off a Group Account. The source Account is no longer Group.",
+          "conflict"
+        );
+      }
 
       const assessment = assessAccountSplit(snapshot);
       const splitSite = assessment.splitSite;
@@ -209,7 +217,7 @@ export async function executeClinicAccountSplit(input: {
         throw new ClinicPortalError(
           splitSite
             ? `Type the confirmation exactly as ${splitConfirmationPhrase(splitSite.slug)}.`
-            : "Type the confirmation for the site this preparation splits.",
+            : "Type the confirmation for the Clinic Site this preparation moves.",
           "invalid"
         );
       }
@@ -1443,15 +1451,23 @@ async function readPracticeDowngradeReady(
   db: Tx | ReturnType<typeof getPrisma>,
   input: { sourceClinicId: string; preparationId: string }
 ): Promise<boolean> {
-  const entitlement = await db.clinicEntitlement.findUnique({
-    where: { clinicId: input.sourceClinicId },
-    select: {
-      locationAllowance: true,
-      extraTeamMemberAllowance: true,
-      extraCustomGuideAllowance: true,
-      extraTemplateAdaptationAllowance: true,
-    },
-  });
+  const entitlement = await readAccountCapacityFacts(input.sourceClinicId, db);
+  const locationAllowance = effectiveSiteLocationAllowance({
+    entitlement: entitlement
+      ? {
+          commercialPlan: entitlement.commercialPlan,
+          siteAllowance: entitlement.siteAllowance,
+          locationAllowance: entitlement.locationAllowance,
+          capacityEntitlementActive: entitlement.capacityEntitlementActive,
+          purchasedAdditionalSiteQuantity:
+            entitlement.purchasedAdditionalSiteQuantity,
+          purchasedAdditionalLocationQuantity:
+            entitlement.purchasedAdditionalLocationQuantity,
+          extraSiteAllowance: entitlement.extraSiteAllowance,
+          extraLocationAllowance: entitlement.extraLocationAllowance,
+        }
+      : null,
+  }).locationAllowance;
   const sites = await db.clinicSite.findMany({
     where: { clinicId: input.sourceClinicId, active: true },
     select: { id: true },
@@ -1490,7 +1506,7 @@ async function readPracticeDowngradeReady(
   return assessExecutedPracticeDowngrade({
     activeSiteCount: sites.length,
     activeLocationCount,
-    locationAllowance: entitlement?.locationAllowance ?? 1,
+    locationAllowance,
     teamUsed: team.occupiedPlaces,
     extras: {
       teamMembers: entitlement?.extraTeamMemberAllowance ?? 0,

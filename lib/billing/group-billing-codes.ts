@@ -10,3 +10,9 @@ export const GROUP_SUBSCRIPTION_SHAPE_FAILURE_CODE =
 
 export const GROUP_SUBSCRIPTION_SHAPE_LOG_EVENT =
   "stripe_webhook_group_subscription_shape_invalid" as const;
+
+export const PRACTICE_SUBSCRIPTION_SHAPE_FAILURE_CODE =
+  "practice_subscription_shape_invalid" as const;
+
+export const PRACTICE_SUBSCRIPTION_SHAPE_LOG_EVENT =
+  "stripe_webhook_practice_subscription_shape_invalid" as const;

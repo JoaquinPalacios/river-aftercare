@@ -12,31 +12,35 @@ Related: [BILLING.md](../architecture/BILLING.md), [LEGAL-REQUIREMENTS.md](LEGAL
 
 Create four Products. Monthly and yearly are Prices on the same Product. Currency **AUD**. Do not mark tax inclusive. Do not attach a GST tax rate. Do not enable automatic tax. Annual billing is 12 months for the price of 10.
 
-| Product                               | Recurring Price | Capacity                       |
-| ------------------------------------- | --------------- | ------------------------------ |
-| River Aftercare Essential             | A$79 / month    |                                |
-| River Aftercare Essential             | A$790 / year    |                                |
-| River Aftercare Practice              | A$149 / month   |                                |
-| River Aftercare Practice              | A$1,490 / year  |                                |
-| River Aftercare Group                 | A$449 / month   | 2 Clinic Sites and 5 Locations |
-| River Aftercare Group                 | A$4,490 / year  | 2 Clinic Sites and 5 Locations |
-| River Aftercare Group Additional Site | A$50 / month    | +1 Clinic Site and +1 Location |
-| River Aftercare Group Additional Site | A$500 / year    | +1 Clinic Site and +1 Location |
+| Product                                        | Recurring Price   | Capacity                                    |
+| ---------------------------------------------- | ----------------- | ------------------------------------------- |
+| River Aftercare Essential                      | A$79 / month      |                                             |
+| River Aftercare Essential                      | A$790 / year      |                                             |
+| River Aftercare Practice                       | A$149 / month     | 1 Clinic Site and the first Location        |
+| River Aftercare Practice                       | A$1,490 / year    | 1 Clinic Site and the first Location        |
+| River Aftercare Practice — Additional Location | Graduated monthly | First extra Location A$79, then A$59 each   |
+| River Aftercare Practice — Additional Location | Graduated yearly  | First extra Location A$790, then A$590 each |
+| River Aftercare Group                          | A$449 / month     | 2 Clinic Sites and 5 Locations              |
+| River Aftercare Group                          | A$4,490 / year    | 2 Clinic Sites and 5 Locations              |
+| River Aftercare Group Additional Site          | A$50 / month      | +1 Clinic Site and +1 Location              |
+| River Aftercare Group Additional Site          | A$500 / year      | +1 Clinic Site and +1 Location              |
 
-There is no standalone paid Additional Location Price. Public Group marketing stays Custom pricing. The application does not start Group Checkout yet.
+Essential has no additional-location Price. Practice Additional Location is one quantity-based graduated Price per interval, not a second base plan. Group has no standalone Additional Location Price. Public Group marketing stays Custom pricing. The application does not start Group Checkout or Practice add-on Checkout yet.
 
-Copy the eight resulting `price_...` identifiers into server-only environment variables:
+Copy the ten resulting `price_...` identifiers into server-only environment variables:
 
 - `STRIPE_ESSENTIAL_MONTHLY_PRICE_ID`
 - `STRIPE_ESSENTIAL_YEARLY_PRICE_ID`
 - `STRIPE_PRACTICE_MONTHLY_PRICE_ID`
 - `STRIPE_PRACTICE_YEARLY_PRICE_ID`
+- `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID`
+- `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID`
 - `STRIPE_GROUP_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_YEARLY_PRICE_ID`
 - `STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID`
 
-The eight Price IDs must be unique. If any Group Price ID is missing, Group billing stays unavailable and Essential and Practice continue to work. An Additional Site Price is not a plan.
+The ten Price IDs must be unique. If any Group Price ID is missing, Group billing stays unavailable and Essential and Practice continue to work. If the Practice Additional Location Price IDs are missing, one-location Practice billing continues to work. An Additional Site Price and an Additional Location Price are not plans.
 
 Never commit secrets or Price IDs. Never prefix these with `NEXT_PUBLIC_`.
 
