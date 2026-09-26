@@ -34,7 +34,7 @@ export async function findLatestCompletedAccountSplit(
   db: Db = getPrisma()
 ) {
   return db.clinicAccountSplitPreparation.findFirst({
-    where: { sourceClinicId, status: "COMPLETED" },
+    where: { sourceClinicId, status: { equals: "COMPLETED" } },
     orderBy: { executedAt: "desc" },
     select: { id: true, executedAt: true, destinationClinicId: true },
   });

@@ -1,6 +1,21 @@
 import "dotenv/config";
 import { readFileSync } from "node:fs";
 
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("next-auth", () => ({
+  default: () => ({
+    auth: vi.fn(),
+    handlers: { GET: vi.fn(), POST: vi.fn() },
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+  }),
+}));
+
+vi.mock("@auth/prisma-adapter", () => ({
+  PrismaAdapter: vi.fn(() => ({})),
+}));
+
 import {
   AccountTokenType,
   BillingStatus,
@@ -10,7 +25,6 @@ import {
   PracticeGuideStatus,
   PracticeSectionProvenance,
 } from "@prisma/client";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
   AccountSplitExecutionInterrupted,
@@ -1244,15 +1258,16 @@ describe("account split execution", () => {
         publicSlug: "old-guide",
         status: PracticeGuideStatus.PUBLISHED,
         isEnabled: true,
-        placements: {
-          create: {
-            id: `${PREFIX}place_off`,
-            clinicId: account.clinicId,
-            locationId: extra.locationId,
-            publicSlug: "old-guide",
-            isEnabled: true,
-          },
-        },
+      },
+    });
+    await db().practiceGuidePlacement.create({
+      data: {
+        id: `${PREFIX}place_off`,
+        clinicId: account.clinicId,
+        locationId: extra.locationId,
+        practiceGuideId: `${PREFIX}guide_off`,
+        publicSlug: "old-guide",
+        isEnabled: true,
       },
     });
     const ready = await prepareReady({ account });
@@ -1392,14 +1407,15 @@ describe("account split execution", () => {
             },
           },
         },
-        placements: {
-          create: {
-            clinicId: account.clinicId,
-            locationId: kept.locationId,
-            publicSlug: "draft-guide",
-            isEnabled: false,
-          },
-        },
+      },
+    });
+    await db().practiceGuidePlacement.create({
+      data: {
+        clinicId: account.clinicId,
+        locationId: kept.locationId,
+        practiceGuideId: guide.id,
+        publicSlug: "draft-guide",
+        isEnabled: false,
       },
     });
     const ready = await prepareReady({
