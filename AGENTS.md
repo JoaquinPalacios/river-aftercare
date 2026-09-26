@@ -2,7 +2,9 @@
 
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
 
@@ -42,3 +44,23 @@ Package manager: latest stable pnpm, pinned via `packageManager`.
 `@types/node` tracks the Node 24 LTS contract (`^24`), not `@types/node@latest` (Node Current 26).
 
 TypeScript is `7.0.2` (latest stable). `eslint-config-next` still loads `typescript-eslint` 8.x, which requires the TypeScript 5/6 compiler API (`ts.Extension`). TypeScript 7 no longer exports that API from `require("typescript")`, so this repo does not import `eslint-config-next`. ESLint 10 uses `@next/eslint-plugin-next` plus `@babel/eslint-parser` with TypeScript/JSX plugins until `typescript-eslint` supports TypeScript 7. Do not downgrade TypeScript to restore `eslint-config-next`.
+
+# Cursor Cloud specific instructions
+
+Cloud Agents develop against local PostgreSQL 18 only (`care_guide` for the app, `care_guide_e2e` for Playwright). Production Neon is forbidden. Never substitute production credentials, production URLs, or `DIRECT_URL` when Cloud credentials are absent.
+
+`CLOUD_ADMIN_*`, `CLOUD_STAFF_*`, and `CLOUD_OPERATOR_*` are disposable Cloud-development accounts supplied by Cursor. `AUTH_SECRET` is a Cloud-only Runtime Secret. Do not hardcode, commit, or log their values. When those Cloud variables are unset, seed and browser auth fall back to `LOCAL_*` exactly as local development does. A partial Cloud pair is a setup error.
+
+Test role-specific flows through the real UI login. Use the Admin, Staff, and Operator Cloud accounts for their own roles. Filesystem clinic-asset storage replaces R2. Contact mail and auth mail stay non-delivering and in memory. Published Turnstile test keys are the local verification path.
+
+Do not deploy. Production deployment, production migration, and production service commands require explicit Joaquín approval. Schema changes may be developed and tested against Cloud PostgreSQL. They must never cause an automatic production migration. Run the normal verification commands before completion (`pnpm lint`, `pnpm exec tsc -b`, `pnpm test`, and, when the change needs a browser, `pnpm build` then `pnpm test:e2e`).
+
+In-VM routes are `http://localhost:3000`, `http://app.localhost:3000`, and `http://<slug>.localhost:3000`. The externally forwarded preview hostname does not satisfy River Aftercare tenancy. Do not weaken hostname routing to make that preview host work. Validate hostname-sensitive behaviour inside the VM.
+
+Human-readable setup, lifecycle, and troubleshooting: [docs/development/CURSOR-CLOUD.md](docs/development/CURSOR-CLOUD.md).
+
+## Cursor Cloud maintenance contract
+
+Any repository change that alters development or runtime requirements must review the Cursor Cloud environment in the same change. Review is required for Node, pnpm, native dependencies, scripts, Prisma, PostgreSQL, `compose.yaml`, migrations and seeding, environment variables, authentication, hostname/tenancy routing, ports, Playwright, the E2E database, build/start commands, new local services, and external integrations used by development or tests.
+
+When that change affects Cloud development, update the needed combination of `.cursor/environment.json`, `.cursor/Dockerfile`, `docs/development/CURSOR-CLOUD.md`, and `AGENTS.md` in the same branch. Do not defer the environment update. When one of those areas changes and no Cloud update is required, the final task report must state: `Cursor Cloud environment reviewed; no update required.`

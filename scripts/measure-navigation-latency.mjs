@@ -2,6 +2,8 @@ import "dotenv/config";
 
 import { chromium } from "@playwright/test";
 
+import { resolveLocalLoginSeed } from "../lib/dev/local-login-accounts.ts";
+
 const SAMPLES = Number(process.env.NAV_SAMPLES ?? 20);
 const PORT = process.env.NAV_PORT ?? "4173";
 const MARKETING = `http://localhost:${PORT}`;
@@ -119,12 +121,18 @@ async function main() {
     )
   );
 
-  const email = process.env.LOCAL_ADMIN_EMAIL?.trim();
-  const password = process.env.LOCAL_ADMIN_PASSWORD;
-  if (email && password) {
+  const login = resolveLocalLoginSeed();
+  if (login.status === "invalid" || login.status === "refused") {
+    throw new Error(login.reason);
+  }
+  const admin =
+    login.status === "seed"
+      ? login.accounts.find((account) => account.role === "ADMIN")
+      : null;
+  if (admin) {
     await page.goto(`${STAFF}/login`, { waitUntil: "load" });
-    await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Password", { exact: true }).fill(password);
+    await page.getByLabel("Email").fill(admin.email);
+    await page.getByLabel("Password", { exact: true }).fill(admin.password);
     await page.getByRole("button", { name: "Sign in" }).click();
     await page.waitForURL(`${STAFF}/dashboard`);
 

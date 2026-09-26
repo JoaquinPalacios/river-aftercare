@@ -25,6 +25,7 @@ This directory is the product and architecture documentation for Care Guide.
 | [launch/AGENTIC-READINESS.md](launch/AGENTIC-READINESS.md)                 | Architecture audit vs Is Agentic. No claimed production score.                                                                                                         |
 | [launch/R2-PROVISIONING.md](launch/R2-PROVISIONING.md)                     | Manual Cloudflare R2 bucket/token/domain steps for Joaquín. Not executed from Cursor.                                                                                  |
 | [development/POSTGRES-18-UPGRADE.md](development/POSTGRES-18-UPGRADE.md)   | Local PostgreSQL 17 → 18 dump/restore runbook. Protects the existing PG17 Docker volume.                                                                               |
+| [development/CURSOR-CLOUD.md](development/CURSOR-CLOUD.md)                 | Cursor Cloud Agent environment: local PostgreSQL 18, disposable login accounts, and the maintenance contract. Isolated from production.                                |
 
 ## How to read these documents
 

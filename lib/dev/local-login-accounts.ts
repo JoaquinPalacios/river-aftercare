@@ -12,36 +12,55 @@ export interface LocalLoginAccount {
   password: string;
   userId: string;
   name: string;
+  emailKey: string;
+  passwordKey: string;
 }
 
 export type LocalLoginSeedPlan =
   | { status: "seed"; accounts: LocalLoginAccount[] }
   | { status: "skipped"; reason: "production" | "missing" }
-  | { status: "refused"; reason: string };
+  | { status: "refused"; reason: string }
+  | { status: "invalid"; reason: string };
 
 const ACCOUNT_META: Record<
   LocalLoginRole,
-  { userId: string; name: string; emailKey: string; passwordKey: string }
+  {
+    userId: string;
+    name: string;
+    emailKey: string;
+    passwordKey: string;
+    cloudEmailKey: string;
+    cloudPasswordKey: string;
+  }
 > = {
   ADMIN: {
     userId: "user_demo_admin",
     name: "Demo Admin",
     emailKey: "LOCAL_ADMIN_EMAIL",
     passwordKey: "LOCAL_ADMIN_PASSWORD",
+    cloudEmailKey: "CLOUD_ADMIN_EMAIL",
+    cloudPasswordKey: "CLOUD_ADMIN_PASSWORD",
   },
   STAFF: {
     userId: "user_demo_staff",
     name: "Demo Staff",
     emailKey: "LOCAL_STAFF_EMAIL",
     passwordKey: "LOCAL_STAFF_PASSWORD",
+    cloudEmailKey: "CLOUD_STAFF_EMAIL",
+    cloudPasswordKey: "CLOUD_STAFF_PASSWORD",
   },
   OPERATOR: {
     userId: "user_demo_operator",
     name: "Demo Operator",
     emailKey: "LOCAL_OPERATOR_EMAIL",
     passwordKey: "LOCAL_OPERATOR_PASSWORD",
+    cloudEmailKey: "CLOUD_OPERATOR_EMAIL",
+    cloudPasswordKey: "CLOUD_OPERATOR_PASSWORD",
   },
 };
+
+const PRODUCTION_CREDENTIAL_REFUSAL =
+  "LOCAL_* and CLOUD_* authentication variables must not be set in production. Development accounts were not created.";
 
 export function localLoginEnvKeys(role: LocalLoginRole): {
   emailKey: string;
@@ -57,36 +76,71 @@ function platformRoleFor(role: LocalLoginRole): PlatformRole {
   return role === "OPERATOR" ? PlatformRole.OPERATOR : PlatformRole.NONE;
 }
 
-function readPair(
+function envPresent(value: string | undefined): boolean {
+  return typeof value === "string" && value !== "";
+}
+
+function hasAnyDevelopmentLoginEnv(env: NodeJS.Dict<string>): boolean {
+  return LOCAL_LOGIN_ROLES.some((role) => {
+    const meta = ACCOUNT_META[role];
+    return (
+      envPresent(env[meta.emailKey]) ||
+      envPresent(env[meta.passwordKey]) ||
+      envPresent(env[meta.cloudEmailKey]) ||
+      envPresent(env[meta.cloudPasswordKey])
+    );
+  });
+}
+
+function resolveRoleAccount(
   env: NodeJS.Dict<string>,
   role: LocalLoginRole
-): LocalLoginAccount | null {
+): { account: LocalLoginAccount | null } | { error: string } {
   const meta = ACCOUNT_META[role];
-  const email = env[meta.emailKey]?.trim() ?? "";
-  const password = env[meta.passwordKey] ?? "";
+  const cloudEmailPresent = envPresent(env[meta.cloudEmailKey]);
+  const cloudPasswordPresent = envPresent(env[meta.cloudPasswordKey]);
 
-  if (!email && !password) {
-    return null;
+  if (cloudEmailPresent || cloudPasswordPresent) {
+    const email = env[meta.cloudEmailKey]?.trim() ?? "";
+    const password = env[meta.cloudPasswordKey] ?? "";
+    if (!email || !password) {
+      return {
+        error:
+          `Incomplete Cloud credentials for ${role}. Set both ${meta.cloudEmailKey} and ${meta.cloudPasswordKey}, or set neither. ` +
+          `Refusing to combine Cloud and Local credentials for the same role.`,
+      };
+    }
+
+    return {
+      account: {
+        role,
+        email,
+        password,
+        userId: meta.userId,
+        name: meta.name,
+        emailKey: meta.cloudEmailKey,
+        passwordKey: meta.cloudPasswordKey,
+      },
+    };
   }
 
+  const email = env[meta.emailKey]?.trim() ?? "";
+  const password = env[meta.passwordKey] ?? "";
   if (!email || !password) {
-    return null;
+    return { account: null };
   }
 
   return {
-    role,
-    email,
-    password,
-    userId: meta.userId,
-    name: meta.name,
+    account: {
+      role,
+      email,
+      password,
+      userId: meta.userId,
+      name: meta.name,
+      emailKey: meta.emailKey,
+      passwordKey: meta.passwordKey,
+    },
   };
-}
-
-function hasAnyLocalLoginEnv(env: NodeJS.Dict<string>): boolean {
-  return LOCAL_LOGIN_ROLES.some((role) => {
-    const keys = localLoginEnvKeys(role);
-    return Boolean(env[keys.emailKey] || env[keys.passwordKey]);
-  });
 }
 
 export function resolveLocalLoginSeed(
@@ -94,13 +148,12 @@ export function resolveLocalLoginSeed(
   nodeEnv = env.NODE_ENV
 ): LocalLoginSeedPlan {
   const production = nodeEnv === "production";
-  const configured = hasAnyLocalLoginEnv(env);
+  const configured = hasAnyDevelopmentLoginEnv(env);
 
   if (production && configured) {
     return {
       status: "refused",
-      reason:
-        "LOCAL_* authentication variables must not be set in production. Development accounts were not created.",
+      reason: PRODUCTION_CREDENTIAL_REFUSAL,
     };
   }
 
@@ -108,9 +161,23 @@ export function resolveLocalLoginSeed(
     return { status: "skipped", reason: "production" };
   }
 
-  const accounts = LOCAL_LOGIN_ROLES.map((role) => readPair(env, role)).filter(
-    (account): account is LocalLoginAccount => account !== null
-  );
+  const accounts: LocalLoginAccount[] = [];
+  const errors: string[] = [];
+
+  for (const role of LOCAL_LOGIN_ROLES) {
+    const resolved = resolveRoleAccount(env, role);
+    if ("error" in resolved) {
+      errors.push(resolved.error);
+      continue;
+    }
+    if (resolved.account) {
+      accounts.push(resolved.account);
+    }
+  }
+
+  if (errors.length > 0) {
+    return { status: "invalid", reason: errors.join(" ") };
+  }
 
   if (accounts.length === 0) {
     return { status: "skipped", reason: "missing" };

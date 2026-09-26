@@ -52,5 +52,7 @@ next-env.d.ts
 # vscode
 .vscode
 
-# cursor
-.cursor
+# cursor runtime state; keep the Cloud Agent definition tracked
+.cursor/*
+!.cursor/environment.json
+!.cursor/Dockerfile

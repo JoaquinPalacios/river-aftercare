@@ -3,46 +3,20 @@ import "dotenv/config";
 import { randomBytes, scryptSync } from "node:crypto";
 
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient, ClinicMembershipRole } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 import { DEMO_EXTRACTION_CANONICAL_SECTIONS } from "../lib/aftercare/demo-extraction-template-payload.mjs";
 import { ensurePrimarySiteAndRootLocation } from "../lib/clinics/primary-site-location.mjs";
+import {
+  resolveLocalLoginSeed,
+  upsertLocalLoginAccounts,
+} from "../lib/dev/local-login-accounts.ts";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
 
 const prisma = new PrismaClient({ adapter });
-
-const LOCAL_LOGIN_ACCOUNTS = [
-  {
-    role: ClinicMembershipRole.ADMIN,
-    userId: "user_demo_admin",
-    name: "Demo Admin",
-    emailKey: "LOCAL_ADMIN_EMAIL",
-    passwordKey: "LOCAL_ADMIN_PASSWORD",
-    platformRole: "NONE",
-    clinicMembership: true,
-  },
-  {
-    role: ClinicMembershipRole.STAFF,
-    userId: "user_demo_staff",
-    name: "Demo Staff",
-    emailKey: "LOCAL_STAFF_EMAIL",
-    passwordKey: "LOCAL_STAFF_PASSWORD",
-    platformRole: "NONE",
-    clinicMembership: true,
-  },
-  {
-    role: null,
-    userId: "user_demo_operator",
-    name: "Demo Operator",
-    emailKey: "LOCAL_OPERATOR_EMAIL",
-    passwordKey: "LOCAL_OPERATOR_PASSWORD",
-    platformRole: "OPERATOR",
-    clinicMembership: false,
-  },
-];
 
 const DEMO_CLINIC = {
   id: "clinic_demo_rivers",
@@ -122,62 +96,6 @@ function createPasswordHash(password) {
   const hash = scryptSync(password, salt, 64).toString("hex");
 
   return `scrypt:${salt}:${hash}`;
-}
-
-function resolveLocalLoginAccounts(env = process.env) {
-  const production = env.NODE_ENV === "production";
-  const configured = LOCAL_LOGIN_ACCOUNTS.some(
-    (account) => env[account.emailKey] || env[account.passwordKey]
-  );
-
-  if (production && configured) {
-    return {
-      status: "refused",
-      reason:
-        "LOCAL_* authentication variables must not be set in production. Development accounts were not created.",
-      accounts: [],
-    };
-  }
-
-  if (production) {
-    return { status: "skipped", reason: "production", accounts: [] };
-  }
-
-  const accounts = LOCAL_LOGIN_ACCOUNTS.flatMap((account) => {
-    const email = env[account.emailKey]?.trim() ?? "";
-    const password = env[account.passwordKey] ?? "";
-    if (!email || !password) {
-      return [];
-    }
-    return [{ ...account, email, password }];
-  });
-
-  if (accounts.length === 0) {
-    return { status: "skipped", reason: "missing", accounts: [] };
-  }
-
-  return { status: "seed", accounts };
-}
-
-async function upsertLocalLoginUser(account) {
-  const passwordHash = createPasswordHash(account.password);
-
-  return prisma.user.upsert({
-    where: { id: account.userId },
-    update: {
-      name: account.name,
-      email: account.email,
-      passwordHash,
-      platformRole: account.platformRole,
-    },
-    create: {
-      id: account.userId,
-      name: account.name,
-      email: account.email,
-      passwordHash,
-      platformRole: account.platformRole,
-    },
-  });
 }
 
 async function upsertAftercareDemo(clinicId) {
@@ -439,6 +357,13 @@ async function snapshotDemoPracticeRevisions(practiceGuideId) {
 }
 
 async function main() {
+  const login = resolveLocalLoginSeed();
+  if (login.status === "refused" || login.status === "invalid") {
+    console.error(login.reason);
+    process.exitCode = 1;
+    return;
+  }
+
   const clinic = await prisma.clinic.upsert({
     where: { id: DEMO_CLINIC.id },
     update: {
@@ -448,40 +373,18 @@ async function main() {
     create: DEMO_CLINIC,
   });
 
-  const localLogin = resolveLocalLoginAccounts();
-  if (localLogin.status === "refused") {
-    console.error(localLogin.reason);
-  } else if (
-    localLogin.status === "skipped" &&
-    localLogin.reason === "missing"
-  ) {
+  if (login.status === "skipped" && login.reason === "missing") {
     console.info(
-      "No LOCAL_ADMIN_* / LOCAL_STAFF_* credentials found. Staff login accounts were not seeded."
+      "No complete Admin, Staff, or Operator development credentials found. Login accounts were not seeded."
     );
   }
 
-  for (const account of localLogin.accounts) {
-    const user = await upsertLocalLoginUser(account);
-    if (!account.clinicMembership || !account.role) {
-      continue;
-    }
-    await prisma.clinicMembership.upsert({
-      where: {
-        clinicId_userId: {
-          clinicId: clinic.id,
-          userId: user.id,
-        },
-      },
-      update: {
-        role: account.role,
-        active: true,
-      },
-      create: {
-        clinicId: clinic.id,
-        userId: user.id,
-        role: account.role,
-        active: true,
-      },
+  if (login.status === "seed") {
+    await upsertLocalLoginAccounts({
+      prisma,
+      clinicId: clinic.id,
+      accounts: login.accounts,
+      hashPassword: createPasswordHash,
     });
   }
 
@@ -491,10 +394,10 @@ async function main() {
   console.info(
     `- Clinic: ${clinic.name} (${clinic.id}) slug=${DEMO_CLINIC.slug}`
   );
-  if (localLogin.accounts.length > 0) {
-    for (const account of localLogin.accounts) {
+  if (login.status === "seed") {
+    for (const account of login.accounts) {
       console.info(
-        `- ${account.role ?? account.platformRole}: ${account.email} (${account.emailKey} / ${account.passwordKey})`
+        `- ${account.role}: seeded from ${account.emailKey} / ${account.passwordKey}`
       );
     }
   }

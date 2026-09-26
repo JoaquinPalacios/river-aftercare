@@ -71,6 +71,12 @@ Verified 20 September 2026: history retention is **6 hours**; historical SQL and
 
 Canonical detail: [../launch/NEON-RECOVERY.md](../launch/NEON-RECOVERY.md).
 
+## Durable Cursor Cloud environment rule
+
+Cursor Cloud development uses an isolated local PostgreSQL 18 container (`care_guide`, Playwright on `care_guide_e2e`). It does not use production Neon, R2, Resend, Stripe, Vercel, Sentry, or Cloudflare credentials. Disposable Admin, Staff, and Operator accounts come from `CLOUD_*` Cursor variables when a complete pair is present, otherwise from `LOCAL_*`. `AUTH_SECRET` is a Cloud-only Runtime Secret and is never committed. Hostname tenancy stays `*.localhost` inside the VM.
+
+Any change to development or runtime requirements reviews `.cursor/environment.json`, `.cursor/Dockerfile`, and this contract in the same branch. Canonical detail: [../development/CURSOR-CLOUD.md](../development/CURSOR-CLOUD.md).
+
 ## Durable production error and health rule
 
 User-facing failures must stay usable when Neon, R2, clinic profile fetch, or membership lookup is already failing. Marketing, staff, patient, and `global-error` fallbacks use local River Aftercare assets and CSS only. They do not query the database, R2, Resend, or remote brand files. Multiple root layouts do not apply group `not-found.tsx` to unmatched URLs; marketing `_marketing/[...slug]`, staff `[...slug]`, and nested tenant `[guideSlug]/[...rest]` catch-alls only call `notFound()`.
