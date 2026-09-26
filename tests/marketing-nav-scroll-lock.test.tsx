@@ -103,12 +103,15 @@ describe("marketing mobile navigation scroll lock", () => {
 
   beforeEach(() => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-    Element.prototype.matches = function matches(selector: string) {
+    Element.prototype.matches = function matches(
+      this: Element,
+      selector: string
+    ) {
       if (selector === ":popover-open") {
         return openMenus.has(this);
       }
       return originalMatches.call(this, selector);
-    };
+    } as typeof Element.prototype.matches;
     media = installMatchMedia(true);
     document.documentElement.style.overflow = "clip";
     document.body.style.overflow = "";

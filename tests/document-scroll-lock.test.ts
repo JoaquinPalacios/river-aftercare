@@ -4,6 +4,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { lockDocumentScroll } from "@/lib/marketing/document-scroll-lock";
 
+function scrollTop(options: unknown) {
+  if (!options || typeof options !== "object" || !("top" in options)) {
+    return undefined;
+  }
+  const top = options.top;
+  return typeof top === "number" ? top : undefined;
+}
+
 function clearDocumentStyles() {
   document.documentElement.style.overflow = "";
   document.documentElement.style.overscrollBehavior = "";
@@ -157,13 +165,9 @@ describe("lockDocumentScroll", () => {
     const scrollTo = vi
       .spyOn(window, "scrollTo")
       .mockImplementation((options) => {
-        if (
-          options &&
-          typeof options === "object" &&
-          "top" in options &&
-          typeof options.top === "number"
-        ) {
-          y = options.top;
+        const top = scrollTop(options);
+        if (top !== undefined) {
+          y = top;
         }
       });
     document.documentElement.style.scrollBehavior = "smooth";
@@ -216,13 +220,9 @@ describe("lockDocumentScroll", () => {
     const scrollTo = vi
       .spyOn(window, "scrollTo")
       .mockImplementation((options) => {
-        if (
-          options &&
-          typeof options === "object" &&
-          "top" in options &&
-          typeof options.top === "number"
-        ) {
-          y = options.top;
+        const top = scrollTop(options);
+        if (top !== undefined) {
+          y = top;
         }
       });
 
