@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import {
   createCustomGuideAction,
@@ -10,6 +10,7 @@ import {
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import type { CanonicalGuideTemplateOption } from "@/lib/clinic-portal/list-canonical-templates";
 import type { GuideAllowanceSummary } from "@/lib/entitlements/guide-usage";
+import { suggestGuideSlug } from "@/lib/clinics/slug-suggestion";
 
 const initialState: GuideActionState = {};
 
@@ -32,6 +33,13 @@ export function CreateGuideForm({
     createCustomGuideAction,
     initialState
   );
+  const [title, setTitle] = useState("");
+  const [publicSlug, setPublicSlug] = useState("");
+  const [slugEdited, setSlugEdited] = useState(false);
+  const customLocked =
+    customPending ||
+    allowance.customGuides.atLimit ||
+    allowance.combinedGuides.atLimit;
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -143,11 +151,15 @@ export function CreateGuideForm({
               id="title"
               name="title"
               required
-              disabled={
-                customPending ||
-                allowance.customGuides.atLimit ||
-                allowance.combinedGuides.atLimit
-              }
+              value={title}
+              onChange={(event) => {
+                const next = event.target.value;
+                setTitle(next);
+                if (!slugEdited) {
+                  setPublicSlug(suggestGuideSlug(next));
+                }
+              }}
+              disabled={customLocked}
               className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
             />
             {customState.fieldErrors?.title ? (
@@ -164,14 +176,22 @@ export function CreateGuideForm({
               id="publicSlug"
               name="publicSlug"
               required
-              disabled={
-                customPending ||
-                allowance.customGuides.atLimit ||
-                allowance.combinedGuides.atLimit
-              }
+              value={publicSlug}
+              onChange={(event) => {
+                setSlugEdited(true);
+                setPublicSlug(event.target.value);
+              }}
+              disabled={customLocked}
               placeholder="extraction"
+              autoCapitalize="none"
+              autoComplete="off"
+              spellCheck={false}
+              aria-describedby="publicSlug-hint"
               className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
             />
+            <p id="publicSlug-hint" className="text-sm text-staff-muted">
+              This becomes part of the patient guide URL.
+            </p>
             {customState.fieldErrors?.publicSlug ? (
               <p className="text-sm text-red-600">
                 {customState.fieldErrors.publicSlug}
