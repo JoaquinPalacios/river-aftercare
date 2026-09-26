@@ -108,6 +108,16 @@ describe("marketing pricing page", () => {
     expect(compareCss).toContain("display: block");
     expect(compareCss).toContain("@media (min-width: 64rem)");
     expect(compareCss).toContain("display: table");
+    expect(compareCss).toContain("margin: 2.5rem 0 0");
+    expect(compareCss).not.toContain("margin: 1.15rem 0 0");
+    expect(compareCss).toMatch(
+      /@media \(min-width: 64rem\)\s*\{\s*\.planCompare\s*\{\s*margin-top:\s*3rem;/
+    );
+    const footnoteRule = styles.slice(
+      styles.indexOf(".planFootnote {"),
+      styles.indexOf(".planCompare {")
+    );
+    expect(footnoteRule).toContain("margin: 0.75rem 0 0");
     const planFeaturesRule = styles.slice(
       styles.indexOf(".planFeatures {"),
       styles.indexOf(".planFeatures li")
