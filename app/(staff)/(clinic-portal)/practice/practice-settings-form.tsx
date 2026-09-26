@@ -475,6 +475,9 @@ export function PracticeSettingsForm({
             <input
               id="phone"
               name="phone"
+              type="tel"
+              autoComplete="tel"
+              inputMode="tel"
               data-practice-field
               value={form.phone ?? ""}
               onChange={(event) => patch("phone", event.target.value || null)}
@@ -488,6 +491,10 @@ export function PracticeSettingsForm({
             <input
               id="contactUrl"
               name="contactUrl"
+              type="url"
+              autoComplete="url"
+              inputMode="url"
+              spellCheck={false}
               data-practice-field
               value={form.contactUrl ?? ""}
               onChange={(event) =>

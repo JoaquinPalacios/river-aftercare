@@ -46,3 +46,8 @@ export function suggestLocationSlug(name: string): string {
     ? safe
     : "location";
 }
+
+/** Suggested guide slug. Does not rewrite reserved hosts or add collision suffixes. */
+export function suggestGuideSlug(name: string): string {
+  return normalizeSlugSource(name);
+}

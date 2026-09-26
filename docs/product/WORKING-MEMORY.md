@@ -146,7 +146,11 @@ Operator SEO (`seo-discovery-form.tsx`) shows one marketing page at a time. Desk
 
 Patient logos resolve in `resolvePatientThemeLogos` (`lib/branding/clinic-logo-theme.ts`). Dark theme shows the dedicated dark logo when it differs from the standard logo; otherwise the standard logo stays visible. `patient.module.css` hides `.logoLight` only inside `.logoStack:has(.logoDark)`. A dark-only upload still renders as that single mark. No logos still render no mark. Print still uses the standard `logoSrc`. The branding preview uses `clinicLogoSrcForAppearance` and keeps initials when light mode has no standard logo.
 
-`Manage clinic workspace` is `ManageClinicWorkspaceButton`. It still posts `startOperatorClinicSupportAction` and redirects to `/dashboard`. The idle label holds the button width while `staffBtnSpinner` and “Opening” show.
+`Manage clinic workspace` is `ManageClinicWorkspaceButton`. It still posts `startOperatorClinicSupportAction` and redirects to `/dashboard`. The idle label holds the button width while `staffBtnSpinner` and “Opening” show. That pending state was verified after #114 and did not need another production change.
+
+Custom guide creation suggests `publicSlug` from the title with `suggestGuideSlug` (`lib/clinics/slug-suggestion.ts`), the same normalisation as site and location addresses. The suggestion follows the title until the user edits the slug, including clearing it. A cleared slug stays blank and fails the existing required/schema check. Editing an existing guide does not rewrite its slug when the title changes. Client suggestion does not add `-2` suffixes. `nextUnusedSlug` in `create-practice-guide.ts` remains the server collision rule for creates. Template enablement and location-copy slugs are unchanged.
+
+Timeline Start day and End day are `type="number"` `min={0}` `step={1}`. Empty stays an empty string. Clinic phone and location phone are `type="tel"`. Practice contact URL, location contact URL, and booking URL are `type="url"`. Location contact email is `type="email"`. Postal codes, ABN/ACN, slugs, hex colours, and SEO image paths stay text.
 
 The public marketing header (`marketing-site-header.tsx`) translates with Motion (`y: 0` / `y: -100%`). It stays visible within 72px of the top, after an upward move of more than 16px, and while the mobile menu or For clinics menu is open. `isMarketingMotionEnabled` keeps the first paint and reduced-motion preference on a zero-duration transition. Staff and patient headers do not hide on scroll.
 
@@ -2043,7 +2047,7 @@ Public `/pricing` copy only. No Stripe, billing, plan enforcement, fonts, or edi
 
 Commercial distinction: original custom guides and editable River-template copies are separate categories with a combined clinic-owned ceiling. Essential base is 2 team members, 2 original custom guides, 2 editable template copies, and 4 clinic-owned guides in total. Practice base is 5, 30, 30, and 40. Using a River template as supplied consumes neither category. Editing it forks a clinic-owned copy and consumes one editable-template place and one combined place. Phase 4 enforces those allowances, plus persistent operator extras that do not change Stripe. Group has no fixed cap. A clinic with no entitlement row stays legacy-open.
 
-Operator extra inputs are `type="number"` with server-side whole-number validation. A whole-app input-semantics audit is recorded for a follow-up after PR #91. That follow-up does not belong in the Phase 4 diff.
+Operator extra inputs are `type="number"` with server-side whole-number validation. The later input-semantics follow-up set timeline days to `type="number"` (`min` 0, `step` 1), clinic and location phones to `type="tel"`, absolute http(s) contact and booking URLs to `type="url"`, and location contact email to `type="email"`. Postal codes, ABN/ACN, slugs, and hex colours stay text because formatting or non-URL syntax is meaningful. Zod and server validation are unchanged.
 
 ---
 
