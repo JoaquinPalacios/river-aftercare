@@ -1,0 +1,23 @@
+{
+  "name": "River Aftercare",
+  "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "install": "bash scripts/cursor-cloud-install.sh",
+  "start": "bash scripts/cursor-cloud-start.sh",
+  "terminals": [
+    {
+      "name": "next-dev",
+      "command": "bash scripts/cursor-cloud-dev.sh",
+      "description": "Next.js development server on port 3000. Exercise tenancy inside the VM at http://localhost:3000, http://app.localhost:3000, and http://<slug>.localhost:3000."
+    }
+  ],
+  "ports": [
+    {
+      "name": "web",
+      "port": 3000
+    }
+  ],
+  "chromeExecutablePath": "/home/ubuntu/.local/bin/river-aftercare-chromium"
+}

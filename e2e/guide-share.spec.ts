@@ -170,9 +170,8 @@ test.describe("published guide QR sharing", () => {
     await page.keyboard.press("Escape");
     await page
       .locator(".staffEditorToolbarActions")
-      .getByRole("button", { name: "More actions" })
+      .getByRole("button", { name: "Unpublish", exact: true })
       .click();
-    await page.getByRole("menuitem", { name: "Unpublish guide" }).click();
     await page
       .getByRole("dialog", { name: "Unpublish this guide?" })
       .getByRole("button", { name: "Unpublish guide" })
@@ -206,9 +205,8 @@ test.describe("published guide QR sharing", () => {
 
     await page
       .locator(".staffEditorToolbarActions")
-      .getByRole("button", { name: "More actions" })
+      .getByRole("button", { name: "Unpublish", exact: true })
       .click();
-    await page.getByRole("menuitem", { name: "Unpublish guide" }).click();
     await page
       .getByRole("dialog", { name: "Unpublish this guide?" })
       .getByRole("button", { name: "Unpublish guide" })

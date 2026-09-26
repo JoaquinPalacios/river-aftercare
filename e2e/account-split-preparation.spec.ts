@@ -241,7 +241,22 @@ test.describe("account split preparation", () => {
         "Harbour Dental will become the source Account primary Clinic Site during execution."
       )
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: /execute/i })).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Execute this split" })
+    ).toBeVisible();
+    await expect(page.getByText("Move Coast Dental")).toBeVisible();
+    await expect(page.getByText("Preserve public URLs")).toBeVisible();
+    await expect(
+      page.getByText("Downgrade the source Group subscription")
+    ).toBeVisible();
+    await expect(page.getByText("Change patient URLs")).toBeVisible();
+    await expect(
+      page.getByLabel("Type split e2espl-coast to execute")
+    ).toHaveValue("");
+    await page.getByRole("button", { name: "Execute split" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Completed split" })
+    ).toHaveCount(0);
 
     expect(
       await e2ePrisma.clinicSite.count({ where: { clinicId: destinationId! } })

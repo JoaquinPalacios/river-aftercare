@@ -7,7 +7,7 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
-    seed: "node prisma/seed.mjs",
+    seed: "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON prisma/seed.mjs",
   },
   datasource: {
     // Local Docker: DATABASE_URL only. Production CLI prefers DIRECT_URL

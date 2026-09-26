@@ -60,14 +60,19 @@ test.describe("guide delete lifecycle", () => {
       page.getByText("Published", { exact: true }).first()
     ).toBeVisible();
 
-    await page
-      .locator(".staffEditorToolbarActions")
-      .getByRole("button", { name: "More actions" })
-      .click();
+    const toolbar = page.locator(".staffEditorToolbarActions");
+    await expect(
+      toolbar.getByRole("button", { name: "Unpublish", exact: true })
+    ).toBeVisible();
+    await expect(
+      toolbar.getByRole("button", { name: "More actions" })
+    ).toHaveCount(0);
     await expect(
       page.getByRole("menuitem", { name: "Delete guide" })
     ).toHaveCount(0);
-    await page.getByRole("menuitem", { name: "Unpublish guide" }).click();
+    await toolbar
+      .getByRole("button", { name: "Unpublish", exact: true })
+      .click();
     await page
       .getByRole("dialog", { name: "Unpublish this guide?" })
       .getByRole("button", { name: "Unpublish guide" })
