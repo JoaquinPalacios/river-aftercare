@@ -3,6 +3,11 @@ import "server-only";
 import type { CommercialPlan, Prisma } from "@prisma/client";
 
 import {
+  groupCapacityEntitlementFlags,
+  groupCapacityEntitlementSelect,
+} from "@/lib/billing/group-capacity-gate";
+
+import {
   effectiveSiteLocationAllowance,
   type SiteLocationAllowance,
 } from "@/lib/clinics/site-location-allowance";
@@ -49,21 +54,43 @@ export async function countActiveSiteLocationUsage(
   return { activeSites, activeLocations };
 }
 
+export type AccountSiteLocationAllowance = SiteLocationAllowance & {
+  commercialPlan: CommercialPlan | null;
+  capacityEntitlementActive: boolean;
+  purchasedAdditionalSiteQuantity: number | null;
+  extraSiteAllowance: number;
+  extraLocationAllowance: number;
+};
+
 export async function readAccountSiteLocationAllowance(
   db: CapacityClient,
   clinicId: string
-): Promise<SiteLocationAllowance & { commercialPlan: CommercialPlan | null }> {
+): Promise<AccountSiteLocationAllowance> {
   const entitlement = await db.clinicEntitlement.findUnique({
     where: { clinicId },
-    select: {
-      commercialPlan: true,
-      siteAllowance: true,
-      locationAllowance: true,
-    },
+    select: groupCapacityEntitlementSelect,
   });
+  const flags = groupCapacityEntitlementFlags(entitlement);
   return {
     commercialPlan: entitlement?.commercialPlan ?? null,
-    ...effectiveSiteLocationAllowance({ entitlement }),
+    capacityEntitlementActive: flags.capacityEntitlementActive,
+    purchasedAdditionalSiteQuantity: flags.purchasedAdditionalSiteQuantity,
+    extraSiteAllowance: flags.extraSiteAllowance,
+    extraLocationAllowance: flags.extraLocationAllowance,
+    ...effectiveSiteLocationAllowance({
+      entitlement: entitlement
+        ? {
+            commercialPlan: entitlement.commercialPlan,
+            siteAllowance: entitlement.siteAllowance,
+            locationAllowance: entitlement.locationAllowance,
+            capacityEntitlementActive: flags.capacityEntitlementActive,
+            purchasedAdditionalSiteQuantity:
+              entitlement.purchasedAdditionalSiteQuantity,
+            extraSiteAllowance: entitlement.extraSiteAllowance,
+            extraLocationAllowance: entitlement.extraLocationAllowance,
+          }
+        : null,
+    }),
   };
 }
 

@@ -1,5 +1,16 @@
 import "server-only";
 
+import {
+  STRIPE_ESSENTIAL_MONTHLY_PRICE_ID_ENV,
+  STRIPE_ESSENTIAL_YEARLY_PRICE_ID_ENV,
+  STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID_ENV,
+  STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID_ENV,
+  STRIPE_GROUP_MONTHLY_PRICE_ID_ENV,
+  STRIPE_GROUP_YEARLY_PRICE_ID_ENV,
+  STRIPE_PRACTICE_MONTHLY_PRICE_ID_ENV,
+  STRIPE_PRACTICE_YEARLY_PRICE_ID_ENV,
+} from "@/lib/billing/env";
+
 export const PUBLIC_GUIDE_RETENTION_DAYS = 60;
 
 export const SELF_SERVE_COMMERCIAL_PLANS = ["ESSENTIAL", "PRACTICE"] as const;
@@ -17,27 +28,96 @@ export type StripeCatalogSlot = {
   envKey: string;
 };
 
+type CatalogueSlot =
+  | {
+      role: "BASE_PLAN";
+      plan: CommercialPlanCode;
+      interval: BillingIntervalCode;
+      envKey: string;
+    }
+  | {
+      role: "GROUP_SITE_ADDON";
+      interval: BillingIntervalCode;
+      envKey: string;
+    };
+
 export const STRIPE_CATALOG_SLOTS: readonly StripeCatalogSlot[] = [
   {
     plan: "ESSENTIAL",
     interval: "MONTHLY",
-    envKey: "STRIPE_ESSENTIAL_MONTHLY_PRICE_ID",
+    envKey: STRIPE_ESSENTIAL_MONTHLY_PRICE_ID_ENV,
   },
   {
     plan: "ESSENTIAL",
     interval: "YEARLY",
-    envKey: "STRIPE_ESSENTIAL_YEARLY_PRICE_ID",
+    envKey: STRIPE_ESSENTIAL_YEARLY_PRICE_ID_ENV,
   },
   {
     plan: "PRACTICE",
     interval: "MONTHLY",
-    envKey: "STRIPE_PRACTICE_MONTHLY_PRICE_ID",
+    envKey: STRIPE_PRACTICE_MONTHLY_PRICE_ID_ENV,
   },
   {
     plan: "PRACTICE",
     interval: "YEARLY",
-    envKey: "STRIPE_PRACTICE_YEARLY_PRICE_ID",
+    envKey: STRIPE_PRACTICE_YEARLY_PRICE_ID_ENV,
   },
+] as const;
+
+const STRIPE_CATALOGUE_SLOTS: readonly CatalogueSlot[] = [
+  {
+    role: "BASE_PLAN",
+    plan: "ESSENTIAL",
+    interval: "MONTHLY",
+    envKey: STRIPE_ESSENTIAL_MONTHLY_PRICE_ID_ENV,
+  },
+  {
+    role: "BASE_PLAN",
+    plan: "ESSENTIAL",
+    interval: "YEARLY",
+    envKey: STRIPE_ESSENTIAL_YEARLY_PRICE_ID_ENV,
+  },
+  {
+    role: "BASE_PLAN",
+    plan: "PRACTICE",
+    interval: "MONTHLY",
+    envKey: STRIPE_PRACTICE_MONTHLY_PRICE_ID_ENV,
+  },
+  {
+    role: "BASE_PLAN",
+    plan: "PRACTICE",
+    interval: "YEARLY",
+    envKey: STRIPE_PRACTICE_YEARLY_PRICE_ID_ENV,
+  },
+  {
+    role: "BASE_PLAN",
+    plan: "GROUP",
+    interval: "MONTHLY",
+    envKey: STRIPE_GROUP_MONTHLY_PRICE_ID_ENV,
+  },
+  {
+    role: "BASE_PLAN",
+    plan: "GROUP",
+    interval: "YEARLY",
+    envKey: STRIPE_GROUP_YEARLY_PRICE_ID_ENV,
+  },
+  {
+    role: "GROUP_SITE_ADDON",
+    interval: "MONTHLY",
+    envKey: STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID_ENV,
+  },
+  {
+    role: "GROUP_SITE_ADDON",
+    interval: "YEARLY",
+    envKey: STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID_ENV,
+  },
+] as const;
+
+const GROUP_PRICE_ENV_KEYS = [
+  STRIPE_GROUP_MONTHLY_PRICE_ID_ENV,
+  STRIPE_GROUP_YEARLY_PRICE_ID_ENV,
+  STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID_ENV,
+  STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID_ENV,
 ] as const;
 
 export class UnknownStripePriceError extends Error {
@@ -65,6 +145,21 @@ export type StripePriceMap = {
   >;
 };
 
+export type ClassifiedStripePrice =
+  | {
+      role: "BASE_PLAN";
+      plan: CommercialPlanCode;
+      interval: BillingIntervalCode;
+      priceId: string;
+    }
+  | {
+      role: "GROUP_SITE_ADDON";
+      interval: BillingIntervalCode;
+      priceId: string;
+    };
+
+type ConfiguredCatalogueSlot = CatalogueSlot & { priceId: string };
+
 function readPriceId(
   env: Record<string, string | undefined>,
   envKey: string
@@ -73,24 +168,78 @@ function readPriceId(
   return value ? value : null;
 }
 
+function readConfiguredCatalogue(
+  env: Record<string, string | undefined>
+): ConfiguredCatalogueSlot[] {
+  const configured: ConfiguredCatalogueSlot[] = [];
+  const seen = new Map<string, string>();
+
+  for (const slot of STRIPE_CATALOGUE_SLOTS) {
+    const priceId = readPriceId(env, slot.envKey);
+    if (!priceId) {
+      continue;
+    }
+    const previous = seen.get(priceId);
+    if (previous) {
+      throw new StripePriceMappingError(
+        "Stripe Price IDs must be unique across every configured base plan and Group add-on price."
+      );
+    }
+    seen.set(priceId, slot.envKey);
+    configured.push({ ...slot, priceId });
+  }
+
+  return configured;
+}
+
+export function groupBillingAvailable(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  readConfiguredCatalogue(env);
+  return GROUP_PRICE_ENV_KEYS.every((envKey) => readPriceId(env, envKey));
+}
+
+export function classifyConfiguredStripePrice(
+  stripePriceId: string,
+  env: Record<string, string | undefined> = process.env
+): ClassifiedStripePrice {
+  const trimmed = stripePriceId.trim();
+  if (!trimmed) {
+    throw new UnknownStripePriceError(stripePriceId);
+  }
+  const slot = readConfiguredCatalogue(env).find(
+    (candidate) => candidate.priceId === trimmed
+  );
+  if (!slot) {
+    throw new UnknownStripePriceError(trimmed);
+  }
+  if (slot.role === "GROUP_SITE_ADDON") {
+    return {
+      role: "GROUP_SITE_ADDON",
+      interval: slot.interval,
+      priceId: slot.priceId,
+    };
+  }
+  return {
+    role: "BASE_PLAN",
+    plan: slot.plan,
+    interval: slot.interval,
+    priceId: slot.priceId,
+  };
+}
+
 export function buildStripePriceMap(
   env: Record<string, string | undefined> = process.env
 ): StripePriceMap {
   const bySlot = {} as StripePriceMap["bySlot"];
   const byPriceId: StripePriceMap["byPriceId"] = {};
 
-  for (const slot of STRIPE_CATALOG_SLOTS) {
-    const priceId = readPriceId(env, slot.envKey);
-    if (!priceId) {
+  for (const slot of readConfiguredCatalogue(env)) {
+    if (slot.role !== "BASE_PLAN" || slot.plan === "GROUP") {
       continue;
     }
-    if (byPriceId[priceId]) {
-      throw new StripePriceMappingError(
-        "Stripe Price IDs must be unique across Essential and Practice prices."
-      );
-    }
-    bySlot[`${slot.plan}:${slot.interval}`] = priceId;
-    byPriceId[priceId] = { plan: slot.plan, interval: slot.interval };
+    bySlot[`${slot.plan}:${slot.interval}`] = slot.priceId;
+    byPriceId[slot.priceId] = { plan: slot.plan, interval: slot.interval };
   }
 
   return { bySlot, byPriceId };

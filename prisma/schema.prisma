@@ -935,16 +935,34 @@ model ClinicEntitlement {
   extraTeamMemberAllowance         Int               @default(0)
   extraCustomGuideAllowance        Int               @default(0)
   extraTemplateAdaptationAllowance Int               @default(0)
-  /// Total ClinicSite capacity for this account, including the included site.
-  /// Existing rows default to 1 (Essential-compatible). Group totals are
-  /// operator-configured later. Not enforced yet. Does not change Stripe.
+  /// Materialized ClinicSite capacity, including the included site.
+  /// Existing rows default to 1 (Essential-compatible). For a configured
+  /// ACTIVE Group account, group capacity persistence is the writer.
   /// A missing entitlement row does not grant unlimited sites.
   siteAllowance                    Int               @default(1)
   /// Total active ClinicLocation capacity for this account, across every site.
   /// Existing rows default to 1 (Essential-compatible). Not a per-site cap.
-  /// Not enforced yet. Does not change Stripe.
+  /// For a configured ACTIVE Group account this is the materialized total
+  /// written by group capacity persistence. It is not typed as a raw Group total.
   /// A missing entitlement row does not grant unlimited locations.
   locationAllowance                Int               @default(1)
+  /// Stripe-purchased Group Additional Site quantity.
+  /// Null: this account still uses the stored site and location totals.
+  /// Zero: configured with no paid Additional Site bundle.
+  /// Operators do not type this value. It does not create Site rows.
+  purchasedAdditionalSiteQuantity  Int?
+  /// Complimentary Clinic Site capacity above the Group formula.
+  /// Does not create a Stripe item and does not charge or refund.
+  extraSiteAllowance               Int               @default(0)
+  /// Complimentary Location capacity above the Group formula.
+  /// Does not create a Stripe item and does not charge or refund.
+  extraLocationAllowance           Int               @default(0)
+  /// Additional Site quantity prepared on an offer. Not capacity.
+  offeredAdditionalSiteQuantity    Int?
+  /// Additional Site quantity waiting for a later effective time. Not capacity yet.
+  scheduledAdditionalSiteQuantity  Int?
+  /// When scheduledAdditionalSiteQuantity becomes purchased capacity.
+  scheduledCapacityEffectiveAt     DateTime?
   /// Scheduled plan. Null when nothing is scheduled. commercialPlan stays
   /// the current plan until a trusted Stripe event shows the new Price.
   scheduledCommercialPlan          CommercialPlan?
