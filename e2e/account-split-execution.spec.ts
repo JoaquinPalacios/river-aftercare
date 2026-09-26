@@ -145,16 +145,17 @@ async function seedPreparedSplit(): Promise<void> {
           },
         },
       },
-      placements: {
-        create: {
-          id: "e2eex_place",
-          clinicId: CLINIC_ID,
-          locationId: `${MOVE_ID}_root`,
-          publishedPracticeGuideRevisionId: "e2eex_rev",
-          publicSlug: "extraction",
-          isEnabled: true,
-        },
-      },
+    },
+  });
+  await e2ePrisma.practiceGuidePlacement.create({
+    data: {
+      id: "e2eex_place",
+      clinicId: CLINIC_ID,
+      locationId: `${MOVE_ID}_root`,
+      practiceGuideId: "e2eex_guide",
+      publishedPracticeGuideRevisionId: "e2eex_rev",
+      publicSlug: "extraction",
+      isEnabled: true,
     },
   });
   await e2ePrisma.clinicAccountSplitPreparation.create({
@@ -237,7 +238,15 @@ test.describe("account split execution", () => {
         "This preparation has been executed. It cannot be executed again."
       )
     ).toBeVisible();
-    await expect(page.getByText("Coast Dental · e2eex-coast")).toBeVisible();
+    const completed = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Completed split" }) });
+    await expect(completed.getByText("Moved Site").locator("..")).toContainText(
+      "Coast Dental · e2eex-coast"
+    );
+    await expect(
+      completed.getByText("Destination Account").locator("..")
+    ).toContainText("e2eex-coast");
     await expect(page.getByText("Group to Practice downgrade")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Execute split" })
