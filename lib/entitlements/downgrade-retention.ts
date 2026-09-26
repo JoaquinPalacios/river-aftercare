@@ -7,7 +7,10 @@ import {
   isOriginalCustomGuide,
   type GuideOriginFields,
 } from "@/lib/entitlements/guide-usage";
-import { lockClinicGuideCapacity } from "@/lib/entitlements/locks";
+import {
+  lockClinicAccountStructure,
+  lockClinicGuideCapacity,
+} from "@/lib/entitlements/locks";
 import {
   effectiveAllowances,
   PLAN_ENTITLEMENT_POLICIES,
@@ -297,6 +300,7 @@ export async function applyDowngradeGuideTransition(input: {
     return;
   }
 
+  await lockClinicAccountStructure(db, input.clinicId);
   await lockClinicGuideCapacity(db, input.clinicId);
 
   const entitlement = await db.clinicEntitlement.findUnique({

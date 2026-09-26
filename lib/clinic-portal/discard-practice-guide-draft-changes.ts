@@ -3,6 +3,7 @@ import { GuideRevisionStatus, PracticeGuideStatus } from "@prisma/client";
 import { WORKING_DRAFT_VERSION } from "@/lib/aftercare/practice-revision-document";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 
 export async function discardPracticeGuideDraftChanges(input: {
@@ -58,6 +59,7 @@ export async function discardPracticeGuideDraftChanges(input: {
   const restoreAt = published.publishedAt ?? published.updatedAt;
 
   await getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     await tx.practiceGuideRevisionSection.deleteMany({
       where: { revisionId: draft.id },
     });

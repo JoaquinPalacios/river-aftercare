@@ -4,9 +4,9 @@ import type { Prisma } from "@prisma/client";
  * Account-scoped lock for split preparation creation, destination shell
  * creation, and readiness transitions.
  *
- * Execution must take this same lock on the source Account before it moves
- * a Site, copies guides, or changes memberships. That execution lock is not
- * taken across ordinary clinic edits in this preparation release.
+ * Ordinary account mutations take `clinic-account-structure` instead.
+ * Future execution acquires those structure locks first, then this
+ * preparation lock. This function does not lock account structure.
  */
 export function accountSplitLockKey(clinicId: string): string {
   return `clinic-account-split:${clinicId}`;

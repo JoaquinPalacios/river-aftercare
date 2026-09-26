@@ -23,7 +23,10 @@ import {
   isOriginalCustomGuide,
   type GuideOriginFields,
 } from "@/lib/entitlements/guide-usage";
-import { lockClinicGuideCapacity } from "@/lib/entitlements/locks";
+import {
+  lockClinicAccountStructure,
+  lockClinicGuideCapacity,
+} from "@/lib/entitlements/locks";
 import {
   effectiveAllowances,
   PLAN_ENTITLEMENT_POLICIES,
@@ -667,6 +670,7 @@ export async function restoreDowngradeRetainedGuide(input: {
   const now = input.now ?? new Date();
   const prisma = getPrisma();
   return prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     await lockClinicGuideCapacity(tx, input.clinicId);
     const allowed = await clinicAdminMayConfirm(tx, {
       actorUserId: input.actorUserId,

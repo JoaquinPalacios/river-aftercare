@@ -18,7 +18,10 @@ import { placementPublicPath } from "@/lib/clinic-portal/placement-path";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import { assertRootGuideSlugAvailable } from "@/lib/clinics/slug-collisions";
-import { lockClinicSiteLocationCapacity } from "@/lib/entitlements/locks";
+import {
+  lockClinicAccountStructure,
+  lockClinicSiteLocationCapacity,
+} from "@/lib/entitlements/locks";
 import { reserveCustomGuidePlace } from "@/lib/entitlements/guide-usage";
 import { isUniqueConstraintError } from "@/lib/clinics/prisma-errors";
 import { getPrisma } from "@/lib/prisma";
@@ -90,6 +93,7 @@ export async function setGuideAvailableAtLocation(input: {
   const guide = await requireGuide(input.clinicId, input.guideId);
   try {
     return await getPrisma().$transaction(async (tx) => {
+      await lockClinicAccountStructure(tx, input.clinicId);
       await lockClinicSiteLocationCapacity(tx, input.clinicId);
       const location = await tx.clinicLocation.findFirst({
         where: { id: input.locationId, clinicId: input.clinicId },
@@ -215,6 +219,7 @@ export async function useLatestPlacementVersion(input: {
   placementId: string;
 }): Promise<void> {
   await getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     const placement = await tx.practiceGuidePlacement.findFirst({
       where: { id: input.placementId, clinicId: input.clinicId },
       select: {
@@ -270,6 +275,7 @@ export async function detachPlacementGuide(input: {
 }): Promise<{ guideId: string }> {
   try {
     return await getPrisma().$transaction(async (tx) => {
+      await lockClinicAccountStructure(tx, input.clinicId);
       const placement = await tx.practiceGuidePlacement.findFirst({
         where: { id: input.placementId, clinicId: input.clinicId },
         include: {

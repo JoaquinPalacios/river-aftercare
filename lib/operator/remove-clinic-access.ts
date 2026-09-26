@@ -4,6 +4,7 @@ import { PlatformRole, type PrismaClient } from "@prisma/client";
 
 import { logInvitationLifecycle } from "@/lib/auth/invitation-lifecycle-log";
 import { deleteDatabaseSessionsForUser } from "@/lib/auth/session";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { CLINIC_NOT_FOUND_MESSAGE } from "@/lib/operator/invite-clinic-user";
 import { getPrisma } from "@/lib/prisma";
 
@@ -28,6 +29,7 @@ export async function removeClinicAccess(input: {
   const prisma = input.prisma ?? getPrisma();
 
   return prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     const clinic = await tx.clinic.findUnique({
       where: { id: input.clinicId },
       select: { id: true },

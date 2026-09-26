@@ -11,6 +11,7 @@ import {
 } from "@/lib/entitlements/downgrade-selection";
 import { selectionFitsLimits } from "@/lib/entitlements/downgrade-retention";
 import {
+  lockClinicAccountStructure,
   lockClinicGuideCapacity,
   lockClinicTeamCapacity,
 } from "@/lib/entitlements/locks";
@@ -71,6 +72,7 @@ export async function updateOperatorAllowanceExtras(input: {
 
   const prisma = getPrisma();
   return prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     await lockClinicTeamCapacity(tx, input.clinicId);
     await lockClinicGuideCapacity(tx, input.clinicId);
 

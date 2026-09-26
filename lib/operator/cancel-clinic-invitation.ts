@@ -8,7 +8,10 @@ import {
 
 import { revokeOutstandingInvitations } from "@/lib/auth/account-token-service";
 import { logInvitationLifecycle } from "@/lib/auth/invitation-lifecycle-log";
-import { lockClinicTeamCapacity } from "@/lib/entitlements/locks";
+import {
+  lockClinicAccountStructure,
+  lockClinicTeamCapacity,
+} from "@/lib/entitlements/locks";
 import {
   CLINIC_NOT_FOUND_MESSAGE,
   INVITATION_NOT_PENDING_MESSAGE,
@@ -29,6 +32,7 @@ export async function cancelClinicInvitation(input: {
   const prisma = input.prisma ?? getPrisma();
 
   return prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     await lockClinicTeamCapacity(tx, input.clinicId);
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`clinic-access:${input.userId}`}))`;
 

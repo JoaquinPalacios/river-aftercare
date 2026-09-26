@@ -52,6 +52,7 @@ vi.mock("@/lib/prisma", () => {
   const db = {
     clinicProfile: profile,
     clinicSite: sites,
+    $executeRaw: async () => 0,
     $transaction: (work: (tx: unknown) => unknown) => work(db),
   };
   return { getPrisma: () => db };

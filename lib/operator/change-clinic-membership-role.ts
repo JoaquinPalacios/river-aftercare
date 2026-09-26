@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 
 import { logInvitationLifecycle } from "@/lib/auth/invitation-lifecycle-log";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { INVITED_ROLE_INVALID_MESSAGE } from "@/lib/operator/clinic-invitation-input";
 import { CLINIC_NOT_FOUND_MESSAGE } from "@/lib/operator/invite-clinic-user";
 import { MEMBERSHIP_NOT_FOUND_MESSAGE } from "@/lib/operator/remove-clinic-access";
@@ -56,6 +57,7 @@ export async function changeClinicMembershipRole(input: {
   const prisma = input.prisma ?? getPrisma();
 
   return prisma.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     const clinic = await tx.clinic.findUnique({
       where: { id: input.clinicId },
       select: { id: true },

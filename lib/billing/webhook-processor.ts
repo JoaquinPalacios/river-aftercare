@@ -32,6 +32,7 @@ import {
   type LocalEntitlementSnapshot,
 } from "@/lib/billing/projection";
 import { applyDowngradeGuideTransition } from "@/lib/entitlements/downgrade-retention";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 import {
   mergeSubscriptionIntoSnapshot,
@@ -589,6 +590,7 @@ export async function processVerifiedStripeEvent(
 
   try {
     await db.$transaction(async (tx) => {
+      await lockClinicAccountStructure(tx, identity.clinicId!);
       await applyProjection({
         db: tx as unknown as BillingDb,
         clinicId: identity.clinicId!,
@@ -877,6 +879,7 @@ async function applySubscriptionScheduleEvent(input: {
   }
 
   await input.db.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, profile.clinicId);
     const transaction = tx as unknown as BillingDb;
     if (clearSchedule || dropScheduled) {
       await transaction.clinicBillingProfile.update({

@@ -3,6 +3,7 @@ import { GuideRevisionStatus, PracticeGuideStatus } from "@prisma/client";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { disableRootPlacement } from "@/lib/clinic-portal/root-placement";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
+import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 
 export async function unpublishPracticeGuide(input: {
@@ -55,6 +56,7 @@ export async function unpublishPracticeGuide(input: {
   }
 
   await getPrisma().$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
     await tx.practiceGuide.update({
       where: { id: guide.id },
       data: {

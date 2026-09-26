@@ -1154,6 +1154,8 @@ describe("account split preparation", () => {
     );
 
     clearTransactionalEmailMemoryInbox();
+    process.env.AUTH_EMAIL_FROM ??= "River Aftercare <accounts@example.test>";
+    process.env.CARE_GUIDE_ROOT_DOMAIN ??= "localhost";
     const invited = await inviteClinicUser({
       clinicId: shell.id,
       invitedByUserId: account.operatorId,
