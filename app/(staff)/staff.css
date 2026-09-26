@@ -210,7 +210,7 @@ body {
 
 @media (hover: hover) and (pointer: fine) {
   .staffNavRow:hover {
-    background: var(--staff-canvas);
+    background: color-mix(in srgb, var(--staff-line) 65%, var(--staff-panel));
   }
 }
 
