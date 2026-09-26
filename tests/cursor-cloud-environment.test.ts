@@ -69,5 +69,19 @@ describe("Cursor Cloud environment contract", () => {
     expect(guide).toContain(".cursor/environment.json");
     expect(guide).toContain("CLOUD_ADMIN_PASSWORD");
     expect(guide).not.toMatch(/CLOUD_ADMIN_PASSWORD=.+/);
+    expect(guide).toContain("CARE_GUIDE_METADATA_BASE=http://localhost:4173");
+    expect(guide).toContain(".next-e2e");
+    expect(start).not.toContain("CARE_GUIDE_METADATA_BASE");
+    expect(start).not.toContain("CARE_GUIDE_E2E_BUILD");
+    const e2eServer = readFileSync("scripts/e2e-next-server.sh", "utf8");
+    expect(e2eServer).toContain("CARE_GUIDE_METADATA_BASE=");
+    expect(e2eServer).toContain("next build");
+    expect(e2eServer).toContain("next start");
+    const playwright = readFileSync("playwright.config.ts", "utf8");
+    expect(playwright).toContain("scripts/e2e-next-server.sh");
+    expect(playwright).toContain("CARE_GUIDE_E2E_BUILD");
+    expect(playwright).toContain(
+      "CARE_GUIDE_METADATA_BASE: `http://localhost:${E2E_PORT}`"
+    );
   });
 });

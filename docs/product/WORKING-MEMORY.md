@@ -73,7 +73,7 @@ Canonical detail: [../launch/NEON-RECOVERY.md](../launch/NEON-RECOVERY.md).
 
 ## Durable Cursor Cloud environment rule
 
-Cursor Cloud development uses an isolated local PostgreSQL 18 container (`care_guide`, Playwright on `care_guide_e2e`). It does not use production Neon, R2, Resend, Stripe, Vercel, Sentry, or Cloudflare credentials. Disposable Admin, Staff, and Operator accounts come from `CLOUD_*` Cursor variables when a complete pair is present, otherwise from `LOCAL_*`. `AUTH_SECRET` is a Cloud-only Runtime Secret and is never committed. Hostname tenancy stays `*.localhost` inside the VM.
+Cursor Cloud development uses an isolated local PostgreSQL 18 container (`care_guide`, Playwright on `care_guide_e2e`). It does not use production Neon, R2, Resend, Stripe, Vercel, Sentry, or Cloudflare credentials. Disposable Admin, Staff, and Operator accounts come from `CLOUD_*` Cursor variables when a complete pair is present, otherwise from `LOCAL_*`. `AUTH_SECRET` is a Cloud-only Runtime Secret and is never committed. Hostname tenancy stays `*.localhost` inside the VM. `pnpm test:e2e` builds `.next-e2e` with `CARE_GUIDE_METADATA_BASE=http://localhost:4173`. The Cloud dev server and `pnpm build` stay on `.next` and port 3000.
 
 Any change to development or runtime requirements reviews `.cursor/environment.json`, `.cursor/Dockerfile`, and this contract in the same branch. Canonical detail: [../development/CURSOR-CLOUD.md](../development/CURSOR-CLOUD.md).
 

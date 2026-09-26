@@ -156,9 +156,9 @@ pnpm test:e2e
 
 `pnpm build` generates the Prisma client, lints, typechecks, and runs `next build`. The production schema gate runs only when `VERCEL_ENV=production`, which Cloud startup rejects. Do not set `SKIP_PRODUCTION_SCHEMA_GATE`.
 
-`pnpm test:e2e` uses `care_guide_e2e` and refuses `care_guide`. Playwright starts `next start` on port 4173 from the existing production build, so run `pnpm build` first.
+`pnpm test:e2e` uses `care_guide_e2e` and refuses `care_guide`. Playwright builds and starts its own server on port 4173. That build sets `CARE_GUIDE_METADATA_BASE=http://localhost:4173` and `CARE_GUIDE_E2E_BUILD=1`, so static marketing links match port 4173 and the output goes to `.next-e2e`.
 
-Static marketing pages bake demo and staff links at build time. With `CARE_GUIDE_METADATA_BASE` unset, those links use port 3000, which is correct for the Cloud dev server and wrong for Playwright. Before `pnpm test:e2e`, rebuild with `CARE_GUIDE_METADATA_BASE=http://localhost:4173` so the baked hrefs match port 4173. Do not put that value in the Cloud `.env`: the dev server on port 3000 must keep port 3000 links. Do not change tenancy routing to hide this.
+Do not put either value in the Cloud `.env`. `pnpm dev` and `pnpm build` keep `.next` and port 3000 links. Do not change tenancy routing to hide this.
 
 Re-run `bash scripts/cursor-cloud-start.sh` to confirm startup is safe the second time.
 

@@ -98,11 +98,11 @@ Staff surfaces use Tailwind. Patient tenant routes use CSS Modules and server-re
 
 ```bash
 pnpm test          # Vitest (unit, loaders, routing, server render)
-pnpm test:e2e      # Playwright against production `next start` on port 4173
+pnpm test:e2e      # Playwright builds .next-e2e and starts it on port 4173
 pnpm test:all      # Vitest then Playwright
 ```
 
-Browser tests use a **dedicated PostgreSQL 18 database** (`care_guide_e2e` by default), not `DATABASE_URL`. Playwright creates that database if needed, runs `prisma migrate deploy` + `prisma db seed` against it, and starts `next start` with `DATABASE_URL` pointed at the e2e database. `CI=1 pnpm test:e2e` therefore must not add guides to the normal local development dataset. Playwright refuses to start unless the server major is 18.
+Browser tests use a **dedicated PostgreSQL 18 database** (`care_guide_e2e` by default), not `DATABASE_URL`. Playwright creates that database if needed, runs `prisma migrate deploy` + `prisma db seed` against it, then builds with `CARE_GUIDE_METADATA_BASE=http://localhost:4173` into `.next-e2e` and starts that build with `DATABASE_URL` pointed at the e2e database. A normal `pnpm dev` or `pnpm build` does not use that metadata base or output directory. `CI=1 pnpm test:e2e` therefore must not add guides to the normal local development dataset. Playwright refuses to start unless the server major is 18.
 
 Optional override:
 

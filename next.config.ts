@@ -4,6 +4,9 @@ import { withSentryConfig } from "@sentry/nextjs/config";
 import { createSentryBuildOptions } from "./lib/observability/sentry-build-options";
 
 const nextConfig: NextConfig = {
+  // Playwright sets this only for its own build and `next start`. A normal
+  // `pnpm dev` / `pnpm build` keeps `.next` and does not inherit port 4173.
+  distDir: process.env.CARE_GUIDE_E2E_BUILD === "1" ? ".next-e2e" : ".next",
   allowedDevOrigins: ["*.localhost"],
   // `next build` uses Turbopack. Sentry's webpack treeshake options do not
   // run there, so the client bundle kept debug and tracing code even with

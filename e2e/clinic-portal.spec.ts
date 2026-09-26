@@ -509,7 +509,9 @@ test.describe("platform operator", () => {
         .getByRole("link", { name: "SEO & Discovery" })
     ).toBeVisible();
     await expect(page.getByText("Riverside Dental Demo")).toBeVisible();
-    await expect(page.getByText("demodental")).toBeVisible();
+    await expect(
+      page.getByRole("cell", { name: "demodental", exact: true })
+    ).toBeVisible();
     await page.screenshot({
       path: "test-results/artifacts/operator-clinics-1440.png",
       fullPage: true,
@@ -520,7 +522,9 @@ test.describe("platform operator", () => {
     await expect(
       page.getByRole("heading", { name: "Riverside Dental Demo" })
     ).toBeVisible();
-    await expect(page.getByText("demodental")).toBeVisible();
+    await expect(
+      page.locator("header").getByText("Rivers Care Demo Clinic · demodental")
+    ).toBeVisible();
     await expect(page.getByText("Tooth Extraction")).toBeVisible();
     await expect(
       page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", {
@@ -1069,20 +1073,12 @@ test.describe("clinic portal UX polish", () => {
     await expect(page.getByText("Draft changes", { exact: true })).toHaveCount(
       0
     );
+    const toolbar = page.locator(".staffEditorToolbarActions");
     await expect(
-      page.locator(".staffEditorToolbarActions").getByRole("button", {
-        name: "More actions",
-      })
-    ).toBeVisible();
-    await page
-      .locator(".staffEditorToolbarActions")
-      .getByRole("button", { name: "More actions" })
-      .click();
-    await expect(
-      page.getByRole("menuitem", { name: "Discard draft changes" })
+      toolbar.getByRole("button", { name: "More actions" })
     ).toHaveCount(0);
     await expect(
-      page.getByRole("menuitem", { name: "Unpublish guide" })
+      toolbar.getByRole("button", { name: "Unpublish", exact: true })
     ).toBeVisible();
   });
 

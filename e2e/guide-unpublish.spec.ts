@@ -38,17 +38,19 @@ test.describe("published guide unpublish lifecycle", () => {
     const live = await page.request.get(publicUrl);
     expect(live.status()).toBe(200);
 
-    await page
-      .locator(".staffEditorToolbarActions")
-      .getByRole("button", { name: "More actions" })
-      .click();
-    await expect(
-      page.getByRole("menuitem", { name: "Unpublish guide" })
-    ).toBeVisible();
-    await page.screenshot({
-      path: "test-results/artifacts/phase-2a.5-unpublish-more-actions.png",
+    const toolbar = page.locator(".staffEditorToolbarActions");
+    const unpublish = toolbar.getByRole("button", {
+      name: "Unpublish",
+      exact: true,
     });
-    await page.getByRole("menuitem", { name: "Unpublish guide" }).click();
+    await expect(unpublish).toBeVisible();
+    await expect(
+      toolbar.getByRole("button", { name: "More actions" })
+    ).toHaveCount(0);
+    await page.screenshot({
+      path: "test-results/artifacts/phase-2a.5-unpublish-toolbar.png",
+    });
+    await unpublish.click();
     const unpublishDialog = page.getByRole("dialog", {
       name: "Unpublish this guide?",
     });

@@ -407,7 +407,9 @@ test.describe("marketing conversion routes", () => {
     );
     await expect(assistedEssential).toHaveText(/Not included/);
     expect(await assistedEssential.innerText()).not.toMatch(/\bIncluded\b/);
-    await expect(assistedPractice).toHaveText(/\bIncluded\b/);
+    await expect(
+      assistedPractice.getByText("Included", { exact: true })
+    ).toBeVisible();
     expect(await assistedPractice.innerText()).not.toContain("Not included");
     await expect(assistedGroup).toContainText("Custom onboarding");
     await expect(
