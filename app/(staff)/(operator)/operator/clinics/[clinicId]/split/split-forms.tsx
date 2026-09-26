@@ -6,6 +6,7 @@ import {
   cancelSplitPreparationAction,
   createSplitPreparationAction,
   createSplitShellAction,
+  executeSplitAction,
   saveSplitSiteDecisionsAction,
   saveSplitStaffAction,
   updateSplitTargetAction,
@@ -340,6 +341,45 @@ export function CreateSplitShellForm({
         className="staffBtn staffBtnPrimary w-fit"
       >
         {pending ? "Creating…" : "Create destination shell"}
+      </button>
+    </form>
+  );
+}
+
+export function ExecuteSplitForm({
+  sourceClinicId,
+  preparationId,
+  confirmationPhrase,
+}: {
+  sourceClinicId: string;
+  preparationId: string;
+  confirmationPhrase: string;
+}) {
+  const [state, action, pending] = useActionState(executeSplitAction, initial);
+  return (
+    <form action={action} className="mt-4 flex flex-col gap-3">
+      <input type="hidden" name="sourceClinicId" value={sourceClinicId} />
+      <input type="hidden" name="preparationId" value={preparationId} />
+      <label className="flex flex-col gap-2 text-sm">
+        <span className="font-medium">
+          Type <span className="font-mono">{confirmationPhrase}</span> to
+          execute
+        </span>
+        <input
+          name="confirmation"
+          required
+          autoComplete="off"
+          spellCheck={false}
+          className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 font-mono"
+        />
+      </label>
+      <FieldError message={state.error} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="staffBtn staffBtnPrimary w-fit"
+      >
+        {pending ? "Executing…" : "Execute split"}
       </button>
     </form>
   );

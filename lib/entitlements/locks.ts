@@ -15,10 +15,10 @@ import type { Prisma } from "@prisma/client";
  *    `clinic-access`, then `account-token`.
  *
  * Preparation transactions keep `clinic-account-split` and do not take the
- * structure lock. Future split execution takes structure locks first, then
- * the preparation lock. PostgreSQL transaction advisory locks are
- * re-entrant, so a helper may request the structure lock again inside a
- * transaction that already holds it.
+ * structure lock. Split execution takes structure locks first, then the
+ * preparation lock. PostgreSQL transaction advisory locks are re-entrant,
+ * so a helper may request the structure lock again inside a transaction
+ * that already holds it.
  *
  * Do not hold these locks across Stripe, email, R2, or user input.
  */

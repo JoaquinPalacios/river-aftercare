@@ -749,8 +749,8 @@ model DowngradeLocationSelection {
 }
 
 /// Operator preparation for moving one Site onto a new shell Account.
-/// Does not move the Site, copy guides, change memberships, or convert
-/// source billing. Execution fields stay null until a later release.
+/// Execution sets executingOperatorUserId and executedAt in the same
+/// transaction as the structural cutover. Source billing is not converted.
 /// Open-preparation uniqueness is a partial index in the migration.
 model ClinicAccountSplitPreparation {
   id                         String                             @id @default(cuid())

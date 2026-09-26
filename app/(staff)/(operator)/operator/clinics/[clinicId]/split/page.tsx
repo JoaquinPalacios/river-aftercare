@@ -8,21 +8,21 @@ import {
   CancelSplitPreparationForm,
   CreateSplitPreparationForm,
   CreateSplitShellForm,
+  ExecuteSplitForm,
   SplitSiteDecisionsForm,
   SplitStaffForm,
   SplitTargetForm,
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/split/split-forms";
 import { requireAccountSplitOperator } from "@/lib/account-split/authorize";
-import {
-  EXECUTION_NOT_IN_THIS_RELEASE,
-  PUBLIC_URLS_UNCHANGED_STATEMENT,
-} from "@/lib/account-split/policy";
+import { loadAccountSplitExecutionSummary } from "@/lib/account-split/execute";
+import { PUBLIC_URLS_UNCHANGED_STATEMENT } from "@/lib/account-split/policy";
 import {
   previewAccountSplit,
   revalidateAccountSplitPreparation,
 } from "@/lib/account-split/preparation";
 import {
   findLatestCancelledAccountSplit,
+  findLatestCompletedAccountSplit,
   findOpenAccountSplitPreparation,
 } from "@/lib/account-split/snapshot";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -83,9 +83,16 @@ export default async function AccountSplitPreparationPage({
         },
       })
     : null;
-  const cancelled = preparation
+  const completed = preparation
     ? null
-    : await findLatestCancelledAccountSplit(clinic.id);
+    : await findLatestCompletedAccountSplit(clinic.id);
+  const completedSummary = completed
+    ? await loadAccountSplitExecutionSummary(completed.id)
+    : null;
+  const cancelled =
+    preparation || completedSummary
+      ? null
+      : await findLatestCancelledAccountSplit(clinic.id);
   const staffRows =
     preparation && preview
       ? await loadStaffRows(clinic.id, preparation.id)
@@ -111,9 +118,9 @@ export default async function AccountSplitPreparationPage({
           Account split / downgrade preparation
         </h1>
         <p className="mt-2 max-w-3xl text-sm text-staff-muted">
-          Prepare one Group site to become its own Account. Nothing is moved,
-          copied, or billed from this page. You can leave and resume an open
-          preparation.
+          Prepare one Group site to become its own Account, then execute that
+          split. Execution moves the site, copies its guides, and applies staff
+          decisions. It does not change the source subscription.
         </p>
       </header>
 
@@ -170,6 +177,83 @@ export default async function AccountSplitPreparationPage({
           </dl>
         ) : null}
       </section>
+
+      {completedSummary ? (
+        <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+          <h2 className="text-base font-semibold">Completed split</h2>
+          <p className="mt-2 text-sm text-staff-muted">
+            This preparation has been executed. It cannot be executed again.
+          </p>
+          <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-staff-muted">Source Account</dt>
+              <dd>
+                {completedSummary.source.name} · {completedSummary.source.slug}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-staff-muted">Destination Account</dt>
+              <dd>
+                {completedSummary.destination.name} ·{" "}
+                {completedSummary.destination.slug}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-staff-muted">Moved Site</dt>
+              <dd>
+                {completedSummary.movedSite.displayName} ·{" "}
+                {completedSummary.movedSite.slug}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-staff-muted">Public hostname</dt>
+              <dd>{completedSummary.movedSite.slug}</dd>
+            </div>
+            <div>
+              <dt className="text-staff-muted">Guide copies</dt>
+              <dd>
+                {completedSummary.guideCopyCount} guide
+                {completedSummary.guideCopyCount === 1 ? "" : "s"},{" "}
+                {completedSummary.revisionCopyCount} revision
+                {completedSummary.revisionCopyCount === 1 ? "" : "s"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-staff-muted">Staff moved</dt>
+              <dd>
+                {completedSummary.staffMovedCount} membership
+                {completedSummary.staffMovedCount === 1 ? "" : "s"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-staff-muted">Source primary</dt>
+              <dd>
+                {completedSummary.sourcePrimarySite.displayName} ·{" "}
+                {completedSummary.sourcePrimarySite.slug}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-staff-muted">Group to Practice downgrade</dt>
+              <dd>
+                {completedSummary.practiceDowngradeReady
+                  ? "READY"
+                  : "NOT READY"}
+              </dd>
+            </div>
+          </dl>
+          <p className="mt-4 text-sm text-staff-muted">
+            Executed{" "}
+            {completedSummary.executedAt.toLocaleString("en-AU", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+            {completedSummary.executedByName
+              ? ` by ${completedSummary.executedByName}`
+              : ""}
+            . The source subscription was not changed.
+          </p>
+        </section>
+      ) : null}
 
       {!preparation ? (
         <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
@@ -509,17 +593,66 @@ export default async function AccountSplitPreparationPage({
                 ))}
               </ul>
             ) : null}
-            <h3 className="mt-4 text-sm font-semibold">
-              Future execution phrase
-            </h3>
-            <p className="mt-2 font-mono text-sm">
-              {preparation.expectedConfirmation ??
-                preview?.confirmationPhrase ??
-                "split {siteSlug}"}
-            </p>
-            <p className="mt-2 text-sm text-staff-muted">
-              {EXECUTION_NOT_IN_THIS_RELEASE}
-            </p>
+            {preview?.status === "READY_TO_EXECUTE" &&
+            preview.confirmationPhrase &&
+            preview.splitSite ? (
+              <div className="mt-4 rounded-lg border border-staff-line p-4">
+                <h3 className="text-sm font-semibold">Execute this split</h3>
+                <div className="mt-3 grid gap-4 text-sm lg:grid-cols-2">
+                  <div>
+                    <p className="font-medium">This will</p>
+                    <ul className="mt-2 list-disc pl-5">
+                      <li>Move {preview.splitSite.displayName}</li>
+                      <li>Preserve public URLs</li>
+                      <li>
+                        Copy {preview.destinationPreview.guideCount} guide
+                        {preview.destinationPreview.guideCount === 1 ? "" : "s"}
+                      </li>
+                      <li>
+                        Move {preview.destinationPreview.staff.length} staff
+                        membership
+                        {preview.destinationPreview.staff.length === 1
+                          ? ""
+                          : "s"}
+                      </li>
+                      {preview.sourcePreview.deactivatedSiteIds.length > 0 ? (
+                        <li>
+                          Deactivate{" "}
+                          {preview.sourcePreview.deactivatedSiteIds.length} site
+                          {preview.sourcePreview.deactivatedSiteIds.length === 1
+                            ? ""
+                            : "s"}
+                        </li>
+                      ) : null}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-medium">This will not</p>
+                    <ul className="mt-2 list-disc pl-5">
+                      <li>Downgrade the source Group subscription</li>
+                      <li>Delete source guides</li>
+                      <li>Change patient URLs</li>
+                    </ul>
+                  </div>
+                </div>
+                <ExecuteSplitForm
+                  sourceClinicId={clinic.id}
+                  preparationId={preparation.id}
+                  confirmationPhrase={preview.confirmationPhrase}
+                />
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-staff-muted">
+                Execution stays closed until this preparation is ready. The
+                confirmation will be{" "}
+                <span className="font-mono">
+                  {preparation.expectedConfirmation ??
+                    preview?.confirmationPhrase ??
+                    "split {siteSlug}"}
+                </span>
+                .
+              </p>
+            )}
             <CancelSplitPreparationForm
               sourceClinicId={clinic.id}
               preparationId={preparation.id}

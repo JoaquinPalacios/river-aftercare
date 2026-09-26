@@ -30,9 +30,6 @@ export const DESTINATION_ADMIN_BLOCKER_MESSAGE =
 
 export const PUBLIC_URLS_UNCHANGED_STATEMENT = "PUBLIC URLS WILL NOT CHANGE";
 
-export const EXECUTION_NOT_IN_THIS_RELEASE =
-  "Execution will be added after the preparation architecture is independently reviewed and deployed.";
-
 export const ACCOUNT_SPLIT_BLOCKER_CODES = [
   "shell_missing",
   "destination_shell_has_sites",
@@ -342,6 +339,99 @@ export type AccountSplitAssessment = {
 
 export function splitConfirmationPhrase(siteSlug: string): string {
   return `split ${siteSlug}`;
+}
+
+/**
+ * Typed split confirmation. Surrounding whitespace is ignored.
+ * The phrase must otherwise match `split {siteSlug}` exactly.
+ * Account names, site display names, and any other slug are rejected.
+ */
+export function normalizeSplitConfirmation(value: string): string {
+  return value.trim();
+}
+
+export function confirmationMatchesSplitSite(
+  siteSlug: string,
+  typed: string
+): boolean {
+  return (
+    normalizeSplitConfirmation(typed) === splitConfirmationPhrase(siteSlug)
+  );
+}
+
+/**
+ * Practice downgrade readiness from the source Account after a split has
+ * already moved the Site. Does not change a plan, entitlement, or guide.
+ */
+export function assessExecutedPracticeDowngrade(input: {
+  activeSiteCount: number;
+  activeLocationCount: number;
+  locationAllowance: number;
+  teamUsed: number;
+  extras: AllowanceAmounts;
+  customGuides: number;
+  adaptedGuides: number;
+  guidesLosingAllPlacements: number;
+}): { ready: boolean; blockers: AccountSplitBlocker[] } {
+  const blockers: AccountSplitBlocker[] = [];
+  const limits = effectiveAllowances(
+    PLAN_ENTITLEMENT_POLICIES.PRACTICE.base,
+    input.extras
+  );
+  const locationLimit = Math.max(input.locationAllowance, 1);
+  const retainedActiveSiteCount = Math.max(input.activeSiteCount - 1, 0);
+  if (retainedActiveSiteCount > 0) {
+    blockers.push({
+      code: "source_active_site_count",
+      message: `Source Account will remain Group because ${retainedActiveSiteCount} additional active Clinic Site${retainedActiveSiteCount === 1 ? " is" : "s are"} retained for a later split.`,
+    });
+  } else if (input.activeSiteCount > 1) {
+    blockers.push({
+      code: "source_active_site_count",
+      message: `Practice allows 1 active site. This split would leave ${input.activeSiteCount}.`,
+    });
+  }
+  if (input.activeLocationCount > locationLimit) {
+    blockers.push({
+      code: "source_active_location_count",
+      message: `Practice location allowance is ${locationLimit}. This split would leave ${input.activeLocationCount} active locations.`,
+    });
+  }
+  if (input.teamUsed > limits.teamMembers) {
+    blockers.push({
+      code: "source_team_count",
+      message: `Practice allows ${limits.teamMembers} team places. This split would leave ${input.teamUsed}.`,
+    });
+  }
+  const combined = input.customGuides + input.adaptedGuides;
+  if (input.customGuides > limits.customGuides) {
+    blockers.push({
+      code: "source_custom_guide_allowance",
+      message: `Practice allows ${limits.customGuides} custom guides. ${input.customGuides} would remain on the source Account.`,
+    });
+  }
+  if (input.adaptedGuides > limits.templateAdaptations) {
+    blockers.push({
+      code: "source_adapted_guide_allowance",
+      message: `Practice allows ${limits.templateAdaptations} adapted templates. ${input.adaptedGuides} would remain on the source Account.`,
+    });
+  }
+  if (combined > limits.combinedClinicOwnedGuides) {
+    blockers.push({
+      code: "source_combined_guide_allowance",
+      message: `Practice allows ${limits.combinedClinicOwnedGuides} clinic-owned guides. ${combined} would remain on the source Account.`,
+    });
+  }
+  if (input.guidesLosingAllPlacements > 0) {
+    blockers.push({
+      code: "guides_lose_all_placements",
+      message: `${input.guidesLosingAllPlacements} source guide${input.guidesLosingAllPlacements === 1 ? "" : "s"} would remain with no placements. Guides are not deleted automatically.`,
+    });
+  }
+  const ordered = ACCOUNT_SPLIT_BLOCKER_CODES.flatMap((code) =>
+    blockers.filter((blocker) => blocker.code === code)
+  );
+  return { ready: ordered.length === 0, blockers: ordered };
 }
 
 export function isTerminalAccountSplitStatus(
