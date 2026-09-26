@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAccountSplitOperator } from "@/lib/account-split/authorize";
+import { executeClinicAccountSplit } from "@/lib/account-split/execute";
 import {
   cancelAccountSplitPreparation,
   createAccountSplitPreparation,
@@ -182,6 +183,30 @@ export async function updateSplitTargetAction(
     revalidatePath(splitPath(sourceClinicId));
     return {};
   } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function executeSplitAction(
+  _previous: SplitActionState,
+  formData: FormData
+): Promise<SplitActionState> {
+  const { user } = await requireAccountSplitOperator();
+  const preparationId = String(formData.get("preparationId") ?? "");
+  const sourceClinicId = String(formData.get("sourceClinicId") ?? "");
+  const confirmation = String(formData.get("confirmation") ?? "");
+  try {
+    const result = await executeClinicAccountSplit({
+      preparationId,
+      confirmation,
+      operatorUserId: user.id,
+    });
+    revalidatePath(splitPath(sourceClinicId));
+    revalidatePath(splitPath(result.source.id));
+    revalidatePath(`/operator/clinics/${result.destination.id}`);
+    return {};
+  } catch (error) {
+    revalidatePath(splitPath(sourceClinicId));
     return failure(error);
   }
 }

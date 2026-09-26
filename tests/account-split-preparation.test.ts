@@ -212,8 +212,8 @@ async function openPreparation(
 }
 
 function readSplitSources(): string {
-  const files = readdirSync("lib/account-split").filter((file) =>
-    file.endsWith(".ts")
+  const files = readdirSync("lib/account-split").filter(
+    (file) => file.endsWith(".ts") && file !== "execute.ts"
   );
   return files
     .map((file) => readFileSync(join("lib/account-split", file), "utf8"))

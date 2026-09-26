@@ -29,6 +29,17 @@ export async function findOpenAccountSplitPreparation(
   });
 }
 
+export async function findLatestCompletedAccountSplit(
+  sourceClinicId: string,
+  db: Db = getPrisma()
+) {
+  return db.clinicAccountSplitPreparation.findFirst({
+    where: { sourceClinicId, status: { equals: "COMPLETED" } },
+    orderBy: { executedAt: "desc" },
+    select: { id: true, executedAt: true, destinationClinicId: true },
+  });
+}
+
 export async function findLatestCancelledAccountSplit(
   sourceClinicId: string,
   db: Db = getPrisma()
