@@ -163,7 +163,10 @@ export function TimelineAccordion({
                     <Field label="Start day" htmlFor={`${stage.key}-start`}>
                       <input
                         id={`${stage.key}-start`}
+                        type="number"
                         inputMode="numeric"
+                        min={0}
+                        step={1}
                         value={stage.startDay}
                         onChange={(event) =>
                           update(index, { startDay: event.target.value })
@@ -175,7 +178,10 @@ export function TimelineAccordion({
                     <Field label="End day" htmlFor={`${stage.key}-end`}>
                       <input
                         id={`${stage.key}-end`}
+                        type="number"
                         inputMode="numeric"
+                        min={0}
+                        step={1}
                         value={stage.endDay}
                         onChange={(event) =>
                           update(index, { endDay: event.target.value })

@@ -115,30 +115,60 @@ export function LocationFields({
   values?: Partial<Record<string, string | null>>;
 }) {
   const fields = [
-    ["phone", "Phone"],
-    ["addressLine1", "Address line 1"],
-    ["addressLine2", "Address line 2"],
-    ["city", "City"],
-    ["region", "Region"],
-    ["postalCode", "Postal code"],
-    ["country", "Country"],
-    ["contactUrl", "Contact URL"],
-    ["contactEmail", "Contact email"],
-    ["bookingUrl", "Booking URL"],
+    { name: "phone", label: "Phone", type: "tel", autoComplete: "tel" },
+    { name: "addressLine1", label: "Address line 1" },
+    { name: "addressLine2", label: "Address line 2" },
+    { name: "city", label: "City" },
+    { name: "region", label: "Region" },
+    { name: "postalCode", label: "Postal code" },
+    { name: "country", label: "Country" },
+    {
+      name: "contactUrl",
+      label: "Contact URL",
+      type: "url",
+      autoComplete: "url",
+    },
+    {
+      name: "contactEmail",
+      label: "Contact email",
+      type: "email",
+      autoComplete: "email",
+    },
+    {
+      name: "bookingUrl",
+      label: "Booking URL",
+      type: "url",
+      autoComplete: "url",
+    },
   ] as const;
   return (
     <>
-      {fields.map(([name, label]) => (
+      {fields.map((field) => (
         <label
-          key={name}
+          key={field.name}
           className="grid gap-1 text-sm"
-          htmlFor={`${idPrefix}-${name}`}
+          htmlFor={`${idPrefix}-${field.name}`}
         >
-          {label}
+          {field.label}
           <input
-            id={`${idPrefix}-${name}`}
-            name={name}
-            defaultValue={values?.[name] ?? ""}
+            id={`${idPrefix}-${field.name}`}
+            name={field.name}
+            type={"type" in field ? field.type : "text"}
+            autoComplete={
+              "autoComplete" in field ? field.autoComplete : undefined
+            }
+            inputMode={
+              "type" in field && (field.type === "tel" || field.type === "url")
+                ? field.type
+                : undefined
+            }
+            spellCheck={
+              "type" in field &&
+              (field.type === "url" || field.type === "email")
+                ? false
+                : undefined
+            }
+            defaultValue={values?.[field.name] ?? ""}
             className="staffField"
           />
         </label>
