@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { GuideDocument } from "@/app/(aftercare)/components/guide-document";
 import { PatientPage } from "@/app/(aftercare)/components/patient-page";
 import { PrintableGuide } from "@/app/(aftercare)/components/print-care-plan";
 import { isDemoPatientExperienceEnabled } from "@/lib/aftercare/demo-tenant";
 import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practice-guide";
+import {
+  resolveRetiredLocationRedirectHref,
+  retiredLocationRedirectPathFromRest,
+} from "@/lib/aftercare/patient-location-redirect";
 import { instructionLabel } from "@/lib/aftercare/instruction-terminology";
 import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
 import {
@@ -39,6 +43,25 @@ function locationGuidePath(rest: string[]): {
   return null;
 }
 
+async function redirectRetiredLocation(
+  tenant: string,
+  fromSlug: string,
+  rest: string[]
+): Promise<void> {
+  const path = retiredLocationRedirectPathFromRest(rest);
+  if (!path) {
+    return;
+  }
+  const href = await resolveRetiredLocationRedirectHref({
+    sourceSiteSlug: tenant,
+    fromSlug,
+    path,
+  });
+  if (href) {
+    permanentRedirect(href);
+  }
+}
+
 async function loadNestedGuide(
   tenant: string,
   locationSlug: string,
@@ -65,6 +88,7 @@ export async function generateMetadata({
   const { tenant, guideSlug, rest } = await params;
   const loaded = await loadNestedGuide(tenant, guideSlug, rest);
   if (!loaded) {
+    await redirectRetiredLocation(tenant, guideSlug, rest);
     return aftercarePageMetadata({
       title: instructionLabel(null),
       description: "Patient aftercare instructions.",
@@ -99,6 +123,7 @@ export default async function NestedLocationPage({
   const { tenant, guideSlug, rest } = await params;
   const loaded = await loadNestedGuide(tenant, guideSlug, rest);
   if (!loaded) {
+    await redirectRetiredLocation(tenant, guideSlug, rest);
     notFound();
   }
   const { document, print } = loaded;

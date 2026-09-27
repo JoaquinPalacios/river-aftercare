@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-const { requireTenantClinic } = vi.hoisted(() => ({
-  requireTenantClinic: vi.fn(),
+const { getClinicBySlug } = vi.hoisted(() => ({
+  getClinicBySlug: vi.fn(),
 }));
 
-vi.mock("@/lib/tenancy/require-tenant-clinic", () => ({
-  requireTenantClinic,
+vi.mock("@/lib/aftercare/get-clinic-by-slug", () => ({
+  getClinicBySlug,
+}));
+
+vi.mock("@/lib/aftercare/patient-location-redirect", () => ({
+  resolveInactiveSourceLocationRedirect: vi.fn(async () => null),
 }));
 
 import TenantLayout, {
@@ -16,11 +20,11 @@ import TenantLayout, {
 
 describe("tenant layout branding", () => {
   beforeEach(() => {
-    requireTenantClinic.mockReset();
+    getClinicBySlug.mockReset();
   });
 
   it("applies server-rendered semantic tokens for the clinic", async () => {
-    requireTenantClinic.mockResolvedValue({
+    getClinicBySlug.mockResolvedValue({
       id: "clinic_demo_rivers",
       slug: "demodental",
       name: "Rivers Care Demo Clinic",
@@ -57,7 +61,7 @@ describe("tenant layout branding", () => {
     ["DARK", "dark"],
     ["SYSTEM", "light dark"],
   ] as const)("honours clinic theme mode %s", async (themeMode, scheme) => {
-    requireTenantClinic.mockResolvedValue({
+    getClinicBySlug.mockResolvedValue({
       id: "clinic_b",
       slug: "otherclinic",
       name: "Other Clinic",
@@ -82,7 +86,7 @@ describe("tenant layout branding", () => {
   });
 
   it("emits clinic theme-color from generateViewport, not page markup", async () => {
-    requireTenantClinic.mockResolvedValue({
+    getClinicBySlug.mockResolvedValue({
       id: "clinic_b",
       slug: "otherclinic",
       name: "Other Clinic",
@@ -112,7 +116,7 @@ describe("tenant layout branding", () => {
   });
 
   it("emits clinic icons without the River pack when a favicon is configured", async () => {
-    requireTenantClinic.mockResolvedValue({
+    getClinicBySlug.mockResolvedValue({
       id: "clinic_a",
       slug: "demodental",
       name: "Harbor",
@@ -135,7 +139,7 @@ describe("tenant layout branding", () => {
   });
 
   it("emits the River icon pack when the clinic has no favicon", async () => {
-    requireTenantClinic.mockResolvedValue({
+    getClinicBySlug.mockResolvedValue({
       id: "clinic_a",
       slug: "demodental",
       name: "Harbor",
@@ -151,7 +155,7 @@ describe("tenant layout branding", () => {
   });
 
   it("applies custom Dark brand tokens while leaving Light tokens unchanged", async () => {
-    requireTenantClinic.mockResolvedValue({
+    getClinicBySlug.mockResolvedValue({
       id: "clinic_b",
       slug: "otherclinic",
       name: "Other Clinic",
@@ -180,7 +184,7 @@ describe("tenant layout branding", () => {
   });
 
   it("renders the patient theme control only when the clinic allows it", async () => {
-    requireTenantClinic.mockResolvedValue({
+    getClinicBySlug.mockResolvedValue({
       id: "clinic_demo_rivers",
       slug: "demodental",
       name: "Rivers Care Demo Clinic",
@@ -207,7 +211,7 @@ describe("tenant layout branding", () => {
   });
 
   it("does not apply tenant A colours when rendering tenant B", async () => {
-    requireTenantClinic.mockResolvedValue({
+    getClinicBySlug.mockResolvedValue({
       id: "clinic_b",
       slug: "otherclinic",
       name: "Other Clinic",
@@ -227,11 +231,11 @@ describe("tenant layout branding", () => {
 
     expect(html).toContain("--cg-brand:#7c3aed");
     expect(html).not.toContain("#0f766e");
-    expect(requireTenantClinic).toHaveBeenCalledWith("otherclinic");
+    expect(getClinicBySlug).toHaveBeenCalledWith("otherclinic");
   });
 
   it("applies the selected clinic typeface token on the patient surface", async () => {
-    requireTenantClinic.mockResolvedValue({
+    getClinicBySlug.mockResolvedValue({
       id: "clinic_demo_rivers",
       slug: "demodental",
       name: "Rivers Care Demo Clinic",
@@ -258,7 +262,7 @@ describe("tenant layout branding", () => {
   });
 
   it("ignores an invalid stored typeface and keeps the product default", async () => {
-    requireTenantClinic.mockResolvedValue({
+    getClinicBySlug.mockResolvedValue({
       id: "clinic_demo_rivers",
       slug: "demodental",
       name: "Rivers Care Demo Clinic",

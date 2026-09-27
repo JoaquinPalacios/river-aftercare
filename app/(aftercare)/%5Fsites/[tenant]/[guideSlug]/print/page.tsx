@@ -57,6 +57,7 @@ export async function generateMetadata({
   });
 }
 
+/** `/{guideSlug}/print` is the root-guide print URL, not a location redirect. */
 export default async function TenantGuidePrintPage({
   params,
 }: TenantGuidePrintPageProps) {

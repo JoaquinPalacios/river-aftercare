@@ -25,6 +25,27 @@ export function assertLocationSlug(slug: string): void {
   }
 }
 
+export const RETIRED_LOCATION_SLUG_MESSAGE =
+  "That address is reserved because a location used to be published there.";
+
+async function assertSlugNotRetired(
+  db: CollisionDb,
+  input: { clinicSiteId: string; slug: string }
+): Promise<void> {
+  const retired = await db.clinicLocationRedirect.findUnique({
+    where: {
+      sourceClinicSiteId_fromSlug: {
+        sourceClinicSiteId: input.clinicSiteId,
+        fromSlug: input.slug,
+      },
+    },
+    select: { sourceClinicSiteId: true },
+  });
+  if (retired) {
+    throw new ClinicPortalError(RETIRED_LOCATION_SLUG_MESSAGE, "retired_slug");
+  }
+}
+
 /** Root guide addresses and additional location paths share the first URL segment. */
 export async function assertLocationSlugAvailable(
   db: CollisionDb,
@@ -51,6 +72,10 @@ export async function assertLocationSlugAvailable(
       "conflict"
     );
   }
+  await assertSlugNotRetired(db, {
+    clinicSiteId: input.clinicSiteId,
+    slug: input.slug,
+  });
 }
 
 export async function assertRootGuideSlugAvailable(
@@ -76,4 +101,8 @@ export async function assertRootGuideSlugAvailable(
       "conflict"
     );
   }
+  await assertSlugNotRetired(db, {
+    clinicSiteId: input.clinicSiteId,
+    slug: input.publicSlug,
+  });
 }

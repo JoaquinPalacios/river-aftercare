@@ -8,14 +8,16 @@ import {
   PATIENT_THEME_STORAGE_KEY,
   themePreferenceBootstrapScript,
 } from "@/lib/branding/theme-preference";
+import { getClinicBySlug } from "@/lib/aftercare/get-clinic-by-slug";
+import { resolveInactiveSourceLocationRedirect } from "@/lib/aftercare/patient-location-redirect";
 import {
   aftercareTenantBrandMetadata,
   aftercareThemeFromProfile,
   clinicThemeColorViewport,
 } from "@/lib/aftercare/tenant-metadata";
-import { requireTenantClinic } from "@/lib/tenancy/require-tenant-clinic";
 
 import type { Metadata, Viewport } from "next";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 interface TenantLayoutProps {
@@ -25,11 +27,28 @@ interface TenantLayoutProps {
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Active public tenants render as today. When that resolution fails, an exact
+ * retired-location redirect may still 308. Every other path 404s. The source
+ * site is not rendered.
+ */
+async function loadTenantClinic(tenant: string) {
+  const clinic = await getClinicBySlug(tenant);
+  if (clinic) {
+    return clinic;
+  }
+  const href = await resolveInactiveSourceLocationRedirect(tenant);
+  if (href) {
+    permanentRedirect(href);
+  }
+  notFound();
+}
+
 export async function generateMetadata({
   params,
 }: TenantLayoutProps): Promise<Metadata> {
   const { tenant } = await params;
-  const clinic = await requireTenantClinic(tenant);
+  const clinic = await loadTenantClinic(tenant);
   return aftercareTenantBrandMetadata(
     aftercareThemeFromProfile(clinic.profile)
   );
@@ -39,7 +58,7 @@ export async function generateViewport({
   params,
 }: TenantLayoutProps): Promise<Viewport> {
   const { tenant } = await params;
-  const clinic = await requireTenantClinic(tenant);
+  const clinic = await loadTenantClinic(tenant);
   return clinicThemeColorViewport(aftercareThemeFromProfile(clinic.profile));
 }
 
@@ -48,7 +67,7 @@ export default async function TenantLayout({
   params,
 }: TenantLayoutProps) {
   const { tenant } = await params;
-  const clinic = await requireTenantClinic(tenant);
+  const clinic = await loadTenantClinic(tenant);
   const theme = resolveAftercareTheme(clinic.profile);
   const font = clinicFontPresentation(clinic.profile?.typeface);
   const allowPatientThemeToggle =

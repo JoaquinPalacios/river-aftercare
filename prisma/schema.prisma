@@ -300,6 +300,8 @@ model ClinicSite {
   locations                ClinicLocation[]
   keptByAccountSplits      ClinicAccountSplitPreparation[]  @relation("AccountSplitKeptSite")
   accountSplitDecisions    ClinicAccountSplitSiteDecision[]
+  locationRedirectsFrom    ClinicLocationRedirect[]         @relation("LocationRedirectSourceSite")
+  locationRedirectsTo      ClinicLocationRedirect[]         @relation("LocationRedirectDestinationSite")
 
   @@unique([id, clinicId])
   @@index([clinicId])
@@ -356,6 +358,34 @@ model ClinicLocation {
   @@unique([id, clinicId])
   @@index([clinicSiteId])
   @@index([clinicId])
+}
+
+/// Durable redirect for one retired non-root location slug on a source site.
+/// Infrastructure for a future Location → new Account move. No production
+/// flow inserts a row yet. The destination URL is derived from the
+/// destination ClinicSite at request time and is not stored.
+/// PostgreSQL rejects a row whose source and destination sites are the same
+/// and rejects a fromSlug that is not a location slug. Those checks are in
+/// the migration because Prisma cannot express them. `updatedAt` is omitted:
+/// application code does not edit the mapping. Clearing `preparationId` is a
+/// foreign-key action, not an application update.
+model ClinicLocationRedirect {
+  id                      String                         @id @default(cuid())
+  sourceClinicSiteId      String
+  /// Retired first path segment on the source site. Reserved on that site.
+  fromSlug                String
+  destinationClinicSiteId String
+  /// Provenance for the future cutover. Null if that preparation is removed.
+  /// The redirect remains.
+  preparationId           String?
+  createdAt               DateTime                       @default(now())
+  sourceClinicSite        ClinicSite                     @relation("LocationRedirectSourceSite", fields: [sourceClinicSiteId], references: [id], onDelete: Restrict)
+  destinationClinicSite   ClinicSite                     @relation("LocationRedirectDestinationSite", fields: [destinationClinicSiteId], references: [id], onDelete: Restrict)
+  preparation             ClinicAccountSplitPreparation? @relation(fields: [preparationId], references: [id], onDelete: SetNull)
+
+  @@unique([sourceClinicSiteId, fromSlug])
+  @@index([destinationClinicSiteId])
+  @@index([preparationId])
 }
 
 model GuideTemplate {
@@ -824,6 +854,7 @@ model ClinicAccountSplitPreparation {
   revisionMaps               ClinicAccountSplitRevisionMap[]
   brandingAssets             ClinicAccountSplitBrandingAsset[]
   events                     ClinicAccountSplitEvent[]
+  locationRedirects          ClinicLocationRedirect[]
 
   @@index([sourceClinicId])
   @@index([destinationClinicId])
