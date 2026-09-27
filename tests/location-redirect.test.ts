@@ -1,5 +1,7 @@
 import "dotenv/config";
 import { readFileSync } from "node:fs";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import {
   BillingStatus,
@@ -9,12 +11,19 @@ import {
 import { permanentRedirect } from "next/navigation";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import TenantLayout, {
+  generateMetadata as generateTenantMetadata,
+} from "@/app/(aftercare)/%5Fsites/[tenant]/layout";
 import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practice-guide";
 import { listPublishedLocationGuides } from "@/lib/aftercare/list-published-location-guides";
+import { listPublishedPracticeGuides } from "@/lib/aftercare/list-published-practice-guides";
 import {
   destinationPathForRetiredLocation,
+  resolveInactiveSourceLocationRedirect,
+  resolveRetiredLocationRedirectForTenant,
   resolveRetiredLocationRedirectHref,
   retiredLocationRedirectPathFromRest,
+  retiredLocationRequestFromPublicPath,
 } from "@/lib/aftercare/patient-location-redirect";
 import { createCustomPracticeGuide } from "@/lib/clinic-portal/create-practice-guide";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
@@ -33,11 +42,13 @@ import {
 } from "@/lib/clinics/location-redirect";
 import { RETIRED_LOCATION_SLUG_MESSAGE } from "@/lib/clinics/slug-collisions";
 import { getPrisma } from "@/lib/prisma";
+import { PUBLIC_PATIENT_PATH_HEADER } from "@/lib/tenancy/public-patient-path";
 
 const hostState = vi.hoisted(() => ({
   host: "lrd-src.localhost:3000",
   forwardedHost: null as string | null,
   proto: "http",
+  publicPath: null as string | null,
 }));
 
 vi.mock("next/headers", () => ({
@@ -48,6 +59,9 @@ vi.mock("next/headers", () => ({
     });
     if (hostState.forwardedHost) {
       headers.set("x-forwarded-host", hostState.forwardedHost);
+    }
+    if (hostState.publicPath) {
+      headers.set("x-care-guide-public-path", hostState.publicPath);
     }
     return headers;
   },
@@ -162,6 +176,33 @@ async function seedPreparation(
   });
 }
 
+async function expectRedirect(
+  run: () => Promise<unknown>,
+  href: string
+): Promise<void> {
+  try {
+    await run();
+  } catch (error) {
+    const digest = String((error as { digest?: string }).digest ?? "");
+    expect(digest).toContain(";308;");
+    expect(digest).toContain(href);
+    expect(digest).not.toContain("SECRET_SOURCE_BODY");
+    return;
+  }
+  throw new Error(`expected permanent redirect to ${href}`);
+}
+
+async function expectNotFound(run: () => Promise<unknown>): Promise<void> {
+  try {
+    await run();
+  } catch (error) {
+    const digest = String((error as { digest?: string }).digest ?? "");
+    expect(digest).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+    return;
+  }
+  throw new Error("expected not found");
+}
+
 async function retire(input: {
   preparationId: string;
   sourceClinicSiteId: string;
@@ -184,6 +225,7 @@ describe("clinic location redirects", () => {
     hostState.host = "lrd-src.localhost:3000";
     hostState.forwardedHost = null;
     hostState.proto = "http";
+    hostState.publicPath = null;
     process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
     await cleanup();
   });
@@ -879,6 +921,213 @@ describe("clinic location redirects", () => {
     ).rejects.toThrow(/already used by a location/);
   });
 
+  it("redirects an inactive source only for an exact retired location", async () => {
+    expect(PUBLIC_PATIENT_PATH_HEADER).toBe("x-care-guide-public-path");
+    expect(retiredLocationRequestFromPublicPath("/west-end")).toEqual({
+      fromSlug: "west-end",
+      path: { kind: "landing" },
+    });
+    expect(
+      retiredLocationRequestFromPublicPath("/west-end/extraction")
+    ).toEqual({
+      fromSlug: "west-end",
+      path: { kind: "guide", guideSlug: "extraction" },
+    });
+    expect(
+      retiredLocationRequestFromPublicPath("/west-end/extraction/print")
+    ).toEqual({
+      fromSlug: "west-end",
+      path: { kind: "guide-print", guideSlug: "extraction" },
+    });
+    expect(retiredLocationRequestFromPublicPath("/west-end/print")).toBeNull();
+    expect(retiredLocationRequestFromPublicPath("/")).toBeNull();
+    expect(
+      retiredLocationRequestFromPublicPath(
+        "/west-end?returnTo=https://evil.example"
+      )
+    ).toBeNull();
+    expect(
+      retiredLocationRequestFromPublicPath("https://evil.example/west-end")
+    ).toBeNull();
+
+    const source = await seedClinic("src", "lrd-src");
+    const destination = await seedClinic("dst", "lrd-dst");
+    const preparation = await seedPreparation(
+      source.clinicId,
+      source.siteId,
+      source.userId
+    );
+    await retire({
+      preparationId: preparation.id,
+      sourceClinicSiteId: source.siteId,
+      destinationClinicSiteId: destination.siteId,
+      fromSlug: "west-end",
+    });
+    const guide = await createCustomPracticeGuide({
+      clinicId: source.clinicId,
+      actorUserId: source.userId,
+      values: { title: "Root", publicSlug: "root-guide" },
+    });
+    await savePracticeGuideDraft({
+      clinicId: source.clinicId,
+      actorUserId: source.userId,
+      values: {
+        guideId: guide.id,
+        title: "Root",
+        publicSlug: "root-guide",
+        introduction: null,
+        sections: [
+          {
+            key: "introduction",
+            kind: "INTRODUCTION",
+            title: "About",
+            body: "Former root body.",
+            periodLabel: null,
+            startDay: null,
+            endDay: null,
+          },
+        ],
+      },
+    });
+    await publishPracticeGuide({
+      clinicId: source.clinicId,
+      actorUserId: source.userId,
+      guideId: guide.id,
+      reviewAttested: true,
+    });
+    await db().clinicSite.update({
+      where: { id: source.siteId },
+      data: { active: false },
+    });
+
+    await expect(
+      getPublishedPracticeGuide({
+        clinicSlug: "lrd-src",
+        publicSlug: "root-guide",
+      })
+    ).resolves.toBeNull();
+    await expect(listPublishedPracticeGuides("lrd-src")).resolves.toBeNull();
+    await expect(
+      listPublishedLocationGuides({
+        siteSlug: "lrd-src",
+        locationSlug: "west-end",
+      })
+    ).resolves.toBeNull();
+
+    const layout = (tenant: string) =>
+      TenantLayout({
+        params: Promise.resolve({ tenant }),
+        children: createElement("p", null, "SECRET_SOURCE_BODY"),
+      });
+
+    hostState.publicPath = "/west-end";
+    await expectRedirect(
+      () =>
+        generateTenantMetadata({
+          params: Promise.resolve({ tenant: "lrd-src" }),
+          children: null,
+        }),
+      "http://lrd-dst.localhost:3000/"
+    );
+    await expectRedirect(
+      () => layout("lrd-src"),
+      "http://lrd-dst.localhost:3000/"
+    );
+
+    hostState.publicPath = "/west-end/extraction";
+    await expect(
+      resolveInactiveSourceLocationRedirect("lrd-src")
+    ).resolves.toBe("http://lrd-dst.localhost:3000/extraction");
+    await expectRedirect(
+      () => layout("lrd-src"),
+      "http://lrd-dst.localhost:3000/extraction"
+    );
+
+    hostState.publicPath = "/west-end/extraction/print";
+    await expect(
+      resolveRetiredLocationRedirectForTenant({
+        tenantSlug: "lrd-src",
+        fromSlug: "west-end",
+        path: { kind: "guide-print", guideSlug: "extraction" },
+      })
+    ).resolves.toBe("http://lrd-dst.localhost:3000/extraction/print");
+    await expectRedirect(
+      () => layout("lrd-src"),
+      "http://lrd-dst.localhost:3000/extraction/print"
+    );
+
+    for (const publicPath of [
+      "/",
+      "/west-end/print",
+      "/root-guide",
+      "/root-guide/print",
+      "/other-path",
+      "/west-end/extraction/extra",
+    ]) {
+      hostState.publicPath = publicPath;
+      await expectNotFound(() => layout("lrd-src"));
+    }
+
+    hostState.publicPath = null;
+    await expectNotFound(() => layout("lrd-src"));
+
+    hostState.publicPath = "/west-end";
+    hostState.forwardedHost = "evil.example";
+    await expectNotFound(() => layout("lrd-src"));
+    hostState.forwardedHost = null;
+
+    await db().clinicSite.update({
+      where: { id: destination.siteId },
+      data: { active: false },
+    });
+    await expectNotFound(() => layout("lrd-src"));
+    await db().clinicSite.update({
+      where: { id: destination.siteId },
+      data: { active: true },
+    });
+
+    hostState.host = "lrd-dst.localhost:3000";
+    hostState.publicPath = "/west-end";
+    const destinationHtml = renderToStaticMarkup(
+      await TenantLayout({
+        params: Promise.resolve({ tenant: "lrd-dst" }),
+        children: createElement("p", null, "destination-child"),
+      })
+    );
+    expect(destinationHtml).toContain("destination-child");
+    expect(destinationHtml).not.toContain("lrd-src");
+
+    await db().clinicSite.update({
+      where: { id: source.siteId },
+      data: { active: true },
+    });
+    hostState.host = "lrd-src.localhost:3000";
+    hostState.publicPath = "/west-end";
+    const activeHtml = renderToStaticMarkup(
+      await TenantLayout({
+        params: Promise.resolve({ tenant: "lrd-src" }),
+        children: createElement("p", null, "active-child"),
+      })
+    );
+    expect(activeHtml).toContain("active-child");
+    expect(activeHtml).not.toContain("SECRET_SOURCE_BODY");
+    await expect(
+      resolveRetiredLocationRedirectHref({
+        sourceSiteSlug: "lrd-src",
+        fromSlug: "west-end",
+        path: { kind: "landing" },
+      })
+    ).resolves.toBe("http://lrd-dst.localhost:3000/");
+    hostState.publicPath = "/root-guide";
+    const rootHtml = renderToStaticMarkup(
+      await TenantLayout({
+        params: Promise.resolve({ tenant: "lrd-src" }),
+        children: createElement("p", null, "root-child"),
+      })
+    );
+    expect(rootHtml).toContain("root-child");
+  });
+
   it("uses a permanent framework redirect and does not create one from a site split", () => {
     const target = "http://lrd-dst.localhost:3000/extraction";
     try {
@@ -905,6 +1154,10 @@ describe("clinic location redirects", () => {
       "app/(aftercare)/%5Fsites/[tenant]/[guideSlug]/print/page.tsx",
       "utf8"
     );
+    const tenantLayout = readFileSync(
+      "app/(aftercare)/%5Fsites/[tenant]/layout.tsx",
+      "utf8"
+    );
     const guidePage = readFileSync(
       "app/(aftercare)/%5Fsites/[tenant]/[guideSlug]/page.tsx",
       "utf8"
@@ -924,6 +1177,23 @@ describe("clinic location redirects", () => {
     }
     expect(proxy).not.toContain("getPrisma");
     expect(proxy).not.toContain("ClinicLocationRedirect");
+    expect(proxy).toContain("PUBLIC_PATIENT_PATH_HEADER");
+    expect(tenantLayout).toContain("resolveInactiveSourceLocationRedirect");
+    expect(tenantLayout).toContain("getClinicBySlug");
+    expect(tenantLayout).not.toContain("requireTenantClinic");
+    const inactiveBranch = tenantLayout.slice(
+      tenantLayout.indexOf("async function loadTenantClinic"),
+      tenantLayout.indexOf("export async function generateMetadata")
+    );
+    expect(inactiveBranch.indexOf("getClinicBySlug")).toBeLessThan(
+      inactiveBranch.indexOf("resolveInactiveSourceLocationRedirect")
+    );
+    expect(
+      inactiveBranch.indexOf("resolveInactiveSourceLocationRedirect")
+    ).toBeLessThan(inactiveBranch.indexOf("permanentRedirect"));
+    expect(inactiveBranch.indexOf("permanentRedirect")).toBeLessThan(
+      inactiveBranch.indexOf("notFound()")
+    );
     expect(printPage).not.toContain("resolveRetiredLocationRedirectHref");
     expect(printPage).not.toContain("permanentRedirect");
     expect(printPage).toContain("root-guide print");

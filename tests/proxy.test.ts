@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { config, proxy } from "@/proxy";
+import { PUBLIC_PATIENT_PATH_HEADER } from "@/lib/tenancy/public-patient-path";
 import { proxyMatcherMatches } from "./helpers/proxy-matcher";
 
 function requestFor(
@@ -41,10 +42,18 @@ describe("proxy", () => {
 
   it("rewrites a tenant host to /_sites/<slug>/...", () => {
     const response = proxy(
-      requestFor("http://demodental.localhost:3000/extraction")
+      requestFor("http://demodental.localhost:3000/extraction", {
+        [PUBLIC_PATIENT_PATH_HEADER]: "https://evil.example/phish",
+      })
     );
     const rewritten = rewrittenUrl(response);
     expect(rewritten?.pathname).toBe("/_sites/demodental/extraction");
+    expect(
+      response.headers.get(`x-middleware-request-${PUBLIC_PATIENT_PATH_HEADER}`)
+    ).toBe("/extraction");
+    expect(
+      response.headers.get("x-middleware-request-x-care-guide-tenant")
+    ).toBeNull();
   });
 
   it("preserves the query string on tenant rewrites", () => {

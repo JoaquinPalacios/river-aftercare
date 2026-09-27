@@ -11,6 +11,7 @@ import {
   marketingRewritePath,
   normalizePathname,
 } from "@/lib/tenancy/paths";
+import { PUBLIC_PATIENT_PATH_HEADER } from "@/lib/tenancy/public-patient-path";
 import { getRootDomain } from "@/lib/tenancy/root-domain";
 
 const SPOOFABLE_TENANT_HEADERS = ["x-care-guide-tenant", "x-tenant"] as const;
@@ -33,6 +34,15 @@ function continueWithoutSpoofedHeaders(request: NextRequest): NextResponse {
       headers: stripSpoofableHeaders(request),
     },
   });
+}
+
+function tenantRewriteHeaders(request: NextRequest): Headers {
+  const headers = stripSpoofableHeaders(request);
+  headers.set(
+    PUBLIC_PATIENT_PATH_HEADER,
+    normalizePathname(request.nextUrl.pathname)
+  );
+  return headers;
 }
 
 export function proxy(request: NextRequest): NextResponse {
@@ -98,7 +108,7 @@ export function proxy(request: NextRequest): NextResponse {
 
   return NextResponse.rewrite(url, {
     request: {
-      headers: stripSpoofableHeaders(request),
+      headers: tenantRewriteHeaders(request),
     },
   });
 }
