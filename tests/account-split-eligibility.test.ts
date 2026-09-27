@@ -97,6 +97,16 @@ describe("account split eligibility", () => {
         purchasedAdditionalLocationQuantity: null,
         extraSiteAllowance: 0,
         extraLocationAllowance: 0,
+        billingStatus: "ACTIVE",
+        access: "ACTIVE",
+        cancelAtPeriodEnd: false,
+        subscriptionSchedulePresent: false,
+        scheduledCommercialPlan: null,
+        scheduledAdditionalSiteQuantity: null,
+        scheduledCapacityEffectiveAt: null,
+        offeredAdditionalSiteQuantity: null,
+        openDowngradePreparation: false,
+        conflictingOpenPreparation: false,
       })
     ).toEqual({ siteAllowance: 3, locationAllowance: 6 });
 
@@ -223,6 +233,7 @@ describe("account split eligibility", () => {
         preparationId: `${PREFIX}missing`,
         confirmation: "split missing",
         operatorUserId: adminId,
+        reviewedRevision: 0,
       })
     ).rejects.toThrow(/platform operator/);
 
@@ -231,6 +242,7 @@ describe("account split eligibility", () => {
         preparationId: `${PREFIX}missing`,
         confirmation: "split missing",
         operatorUserId: operatorId,
+        reviewedRevision: 0,
       })
     ).rejects.toBeInstanceOf(ClinicPortalError);
   });

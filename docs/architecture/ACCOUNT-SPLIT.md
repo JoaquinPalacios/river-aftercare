@@ -16,10 +16,16 @@ Operator-only preparation and execution for moving one ClinicSite off a Group Ac
 - Destination-only membership move and session revocation for those users
 - Operator execution UI on a `READY_TO_EXECUTE` preparation
 - Idempotent return of the persisted completed result
+- `operationKind` on the existing preparation. Only `SITE_TO_NEW_ACCOUNT` is enabled
+- `preparationRevision`, checked by execution and still followed by a live reload
+- Destination-owned branding copies prepared outside the structural transaction
+- Source commercial-conflict blockers for schedules, scheduled plan or capacity, an open downgrade preparation, and a plan that is no longer Group
+- Append-only `ClinicAccountSplitEvent` rows
+- Read-only audit `pnpm audit:account-split-branding` for completed splits that still store source-owned branding keys
 
 ## Approved later, not implemented
 
-These structural operations are approved product requirements. This foundation does not implement them, and the UI does not offer disabled placeholders for them.
+These structural operations are approved product requirements. `operationKind` can store them, and existing rows default to `SITE_TO_NEW_ACCOUNT`. This release does not implement them, and the UI does not offer them.
 
 - Split one physical Location out of a Practice Account into a new independent Account. That Location would become a Clinic Site on the destination Account.
 - Move an existing Clinic Site into another existing Group Account.
@@ -31,7 +37,8 @@ Today's only operation is the Group Clinic Site split described above. Essential
 
 - Multi-account login or session Account selection
 - Group → Practice Stripe conversion, source plan change, or guide deletion (PR C)
-- Copying or deleting R2 objects
+- Deleting source branding objects, or cleaning orphan destination copies
+- Location promotion, moving a Site into an existing Group, and moving a Site into a new Group
 - Moving outstanding source invitations
 - Merging into a populated Account
 
@@ -59,7 +66,7 @@ Practice capacity is one **active** Site. Inactive historical Sites may remain.
 
 Guides left on the source are not deleted. If they would exceed Practice guide limits, or if a guide would lose every placement, readiness says so. The operator fixes that with the existing guide tools.
 
-Public patient URLs are the Site slug, location slug, and guide slug. The preview states **PUBLIC URLS WILL NOT CHANGE** when those values are consistent. Branding objects stay at their current source-Account R2 keys.
+Public patient URLs are the Site slug, location slug, and guide slug. The preview states **PUBLIC URLS WILL NOT CHANGE** when those values are consistent. Colours, typeface, and other theme columns move with the Site row. Logo, dark logo, and favicon storage keys are copied onto destination-owned keys before cutover. Static values that are not storage keys stay as stored.
 
 The execution phrase is `split {siteSlug}`, using the SPLIT Site slug loaded from the preparation. The operator types it. Surrounding whitespace is ignored. Any other value, including the Account name or the Site display name, performs no writes.
 
@@ -79,7 +86,7 @@ Allowed projection, always from current data:
 
 `DRAFT` → `DESTINATION_READY` → `AWAITING_PAYMENT` → `BILLING_READY` → `READY_TO_EXECUTE`
 
-`CANCELLED` is available before execution. `COMPLETED` is reserved. A later read can move readiness backward when the source, destination, guides, staff, or billing no longer pass. Counts are not trusted from an old preview.
+`CANCELLED` is available before execution. `COMPLETED` is written only as the last step of a successful `SITE_TO_NEW_ACCOUNT` cutover. A later read can move readiness backward when the source, destination, guides, staff, billing, or prepared branding no longer pass. Counts are not trusted from an old preview. `preparationRevision` increments when site decisions, staff intent, the destination plan or interval, a new shell, or a new branding map changes the review. Execution refuses a stale revision, then reloads and reassesses even when the revision matches. A completed retry returns the stored result without copying branding again.
 
 `READY_TO_EXECUTE` requires split integrity and destination commercial readiness. It does not require the source to have only one active Site. The post-split structural check asks whether the source would stay consistent after this operation: a deterministic future primary, an active root location on every site that would stay active, placements that still belong to this Account, and valid memberships. A missing future primary blocks the split.
 
@@ -112,9 +119,9 @@ Ordinary account mutations and the future split execution share one PostgreSQL t
 
 `lockClinicAccountStructure(tx, clinicId)` derives that key. Callers pass a transaction client and a clinic id. They do not pass a lock name. `lockClinicAccountStructures(tx, clinicIds)` deduplicates ids, sorts them, and acquires each structure lock in that order. PostgreSQL transaction advisory locks are re-entrant, so a nested helper may request the same lock again inside the transaction that already holds it. There is no application mutex.
 
-The lock is acquired inside the same transaction as the write, before the first structural write and before any narrower advisory lock. It is released at commit or rollback. It is not held across Stripe API calls, Checkout, webhook delivery, email, R2 upload or download, operator review, or browser input.
+The lock is acquired inside the same transaction as the write, before the first structural write and before any narrower advisory lock. It is released at commit or rollback. It is not held across Stripe API calls, Checkout, webhook delivery, email, R2 or filesystem upload or download, operator review, or browser input. Branding copies run before `executeClinicAccountSplit` opens its structural transaction.
 
-An open preparation does not freeze the Account. Staff and Operators keep editing. The next dry run may revoke `READY_TO_EXECUTE`. That is intentional. The structure lock only stops those writes from running inside the future execution transaction.
+An open preparation does not freeze the Account. Staff and Operators keep editing. The next dry run may revoke `READY_TO_EXECUTE`. That is intentional. The structure lock stops those writes from running inside the execution transaction.
 
 ### Mutations that take the lock
 
@@ -225,8 +232,22 @@ Do not re-run that backfill SQL against a live database that contains split shel
 
 ## Security
 
-Every Server Action calls `requireAccountSplitOperator`. Clinic ADMIN, clinic STAFF, and operator-support-as-clinic are rejected. `executeSplitAction` also requires the acting user to be a platform operator before it opens the transaction. After creation, operations load the source, destination, and Sites from the preparation id. A posted Site or user that is not on that source Account is rejected. The execute form posts the preparation id, the typed phrase, and the source clinic id used only to revalidate the operator page. The source clinic id is not the split target.
+Every Server Action calls `requireAccountSplitOperator`. Clinic ADMIN, clinic STAFF, and operator-support-as-clinic are rejected. `executeSplitAction` also requires the acting user to be a platform operator before it opens the transaction. After creation, operations load the source, destination, and Sites from the preparation id. A posted Site or user that is not on that source Account is rejected. The execute form posts the preparation id, the reviewed `preparationRevision`, the typed phrase, and the source clinic id used only to revalidate the operator page. The source clinic id is not the split target. Events do not store the phrase, email addresses, or Stripe secrets.
+
+## Branding copy
+
+`prepareAccountSplitBranding` runs outside the structural transaction. For each distinct source-owned `logoUrl`, `darkLogoUrl`, or `faviconUrl` on the moving Site, it reads with the source Account id and writes with the destination Account id. The destination key is `clinics/{destinationClinicId}/branding/split-{preparationId}-{first16HexOfSha256(sourceKey)}.{ext}`. The branding map row is written only after that copy succeeds. A retry uses the same key and the same map row. `READY_TO_EXECUTE` requires every current storage key to have that mapping (`branding_assets_not_ready` otherwise). A later change to the Site's storage keys drops readiness. Cutover rewrites the three fields to the mapped keys and mirrors them onto the destination `ClinicProfile`. It does not delete source objects.
+
+The filesystem adapter rejects a key outside the acting clinic prefix. The R2 adapter does not. The split copy helper checks both source and destination ownership before it calls either adapter.
+
+## Source commercial conflicts
+
+These block `SITE_TO_NEW_ACCOUNT` even when destination billing is ready: source plan is not Group, `stripeSubscriptionScheduleId` is set, `scheduledCommercialPlan` is set, `scheduledAdditionalSiteQuantity` or `scheduledCapacityEffectiveAt` is set, an open `ClinicDowngradePreparation` exists, or another non-terminal structural preparation exists. `offeredAdditionalSiteQuantity` does not block. `PAST_DUE`, cancel-at-period-end, `RESTRICTED`, `UNPAID`, and `ENDED` are warnings on the split page and do not block.
+
+## Legacy branding audit
+
+`pnpm audit:account-split-branding` reads `DATABASE_URL` and prints completed splits whose moved Site still stores a source-owned logo, dark logo, or favicon key. It does not write and does not print credentials or URLs. Run it from a trusted machine. Do not run it against production from Cursor Cloud. An empty result means no legacy repair is required. Affected rows wait for a separate explicit repair.
 
 ## Migration
 
-`20260925190000_add_account_split_preparation` is additive. It does not drop, delete, or backfill. Do not apply it to production from Cursor. Production stays on the reviewed `prod:db:*` gate.
+`20260925190000_add_account_split_preparation` is additive. `20260927020000_add_account_structure_foundation` adds `operationKind` (existing rows `SITE_TO_NEW_ACCOUNT`), `preparationRevision`, nullable `sourceLocationId` and `destinationSiteSlug`, branding-asset and event tables, and replaces the lifetime destination unique index with a non-terminal one. It does not drop structural rows. Destination plan remains Essential or Practice. Do not apply migrations to production from Cursor. Production stays on the reviewed `prod:db:*` gate.

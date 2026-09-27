@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 
 import { requireAccountSplitOperator } from "@/lib/account-split/authorize";
 import { executeClinicAccountSplit } from "@/lib/account-split/execute";
+import { prepareAccountSplitBranding } from "@/lib/account-split/branding";
 import {
   cancelAccountSplitPreparation,
   createAccountSplitPreparation,
   createSplitDestinationAccount,
+  revalidateAccountSplitPreparation,
   saveAccountSplitSiteDecisions,
   saveAccountSplitStaffSelections,
   updateAccountSplitDestinationTarget,
@@ -187,6 +189,26 @@ export async function updateSplitTargetAction(
   }
 }
 
+export async function prepareSplitBrandingAction(
+  _previous: SplitActionState,
+  formData: FormData
+): Promise<SplitActionState> {
+  const { user } = await requireAccountSplitOperator();
+  const preparationId = String(formData.get("preparationId") ?? "");
+  const sourceClinicId = String(formData.get("sourceClinicId") ?? "");
+  try {
+    await prepareAccountSplitBranding({
+      preparationId,
+      operatorUserId: user.id,
+    });
+    await revalidateAccountSplitPreparation(preparationId);
+    revalidatePath(splitPath(sourceClinicId));
+    return {};
+  } catch (error) {
+    return failure(error);
+  }
+}
+
 export async function executeSplitAction(
   _previous: SplitActionState,
   formData: FormData
@@ -195,11 +217,18 @@ export async function executeSplitAction(
   const preparationId = String(formData.get("preparationId") ?? "");
   const sourceClinicId = String(formData.get("sourceClinicId") ?? "");
   const confirmation = String(formData.get("confirmation") ?? "");
+  const revisionText = String(formData.get("preparationRevision") ?? "");
+  if (!/^\d+$/.test(revisionText)) {
+    return {
+      error: "This preparation changed. Review it again before executing.",
+    };
+  }
   try {
     const result = await executeClinicAccountSplit({
       preparationId,
       confirmation,
       operatorUserId: user.id,
+      reviewedRevision: Number(revisionText),
     });
     revalidatePath(splitPath(sourceClinicId));
     revalidatePath(splitPath(result.source.id));

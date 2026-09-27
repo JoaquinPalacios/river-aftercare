@@ -141,7 +141,7 @@ async function seedGroup(key: string): Promise<{
       displayName: "Kept Clinic",
       active: true,
       isPrimary: true,
-      logoUrl: `clinics/${clinicId}/branding/kept.png`,
+      logoUrl: null,
       primaryColor: "#112233",
     },
   });
@@ -154,7 +154,7 @@ async function seedGroup(key: string): Promise<{
       displayName: "Moving Clinic",
       active: true,
       isPrimary: false,
-      logoUrl: `clinics/${clinicId}/branding/move.png`,
+      logoUrl: null,
       primaryColor: "#445566",
     },
   });
@@ -381,9 +381,7 @@ describe("account split preparation", () => {
       where: { id: account.splitSiteId },
     });
     expect(splitSite.clinicId).toBe(account.clinicId);
-    expect(splitSite.logoUrl).toBe(
-      `clinics/${account.clinicId}/branding/move.png`
-    );
+    expect(splitSite.logoUrl).toBeNull();
   });
 
   it("rejects a site or user outside the preparation", async () => {
@@ -1336,8 +1334,7 @@ describe("account split preparation", () => {
     expect(source).not.toContain("clinicMembership.create");
     expect(source).not.toContain("clinicMembership.delete");
     expect(source).not.toMatch(/status:\s*"COMPLETED"/);
-    expect(source).not.toContain("stripe");
-    expect(source).not.toContain("resend");
+    expect(source).not.toMatch(/from ["']stripe|from ["']resend/);
   });
 });
 

@@ -11,6 +11,7 @@ import {
   lockAccountSplitShellSlug,
 } from "@/lib/account-split/locks";
 import {
+  ACCOUNT_SPLIT_COMMERCIAL_CONFLICT_CODES,
   assessAccountSplit,
   isTerminalAccountSplitStatus,
   splitConfirmationPhrase,
@@ -22,6 +23,7 @@ import {
   generateSplitShellSlug,
 } from "@/lib/account-split/shell-slug";
 import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
+import { recordAccountSplitEvent } from "@/lib/account-split/events";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { getPrisma } from "@/lib/prisma";
 
@@ -120,6 +122,7 @@ export async function createAccountSplitPreparation(input: {
           destinationPlan: input.destinationPlan,
           destinationBillingInterval: input.destinationBillingInterval,
           targetSourcePlan: "PRACTICE",
+          operationKind: "SITE_TO_NEW_ACCOUNT",
           preparedByUserId: input.operatorUserId,
           staffSelections: {
             create: memberships.map((membership) => ({
@@ -131,6 +134,14 @@ export async function createAccountSplitPreparation(input: {
           },
         },
         select: { id: true },
+      });
+      await recordAccountSplitEvent(tx, {
+        preparationId: created.id,
+        kind: "PREPARATION_CREATED",
+        toStatus: "DRAFT",
+        actorUserId: input.operatorUserId,
+        sourceClinicId: clinic.id,
+        category: "preparation_created",
       });
       return created;
     });
@@ -153,11 +164,16 @@ export async function updateAccountSplitDestinationTarget(input: {
   await getPrisma().$transaction(async (tx) => {
     const preparation = await loadWritablePreparation(tx, input.preparationId);
     await lockAccountSplit(tx, preparation.sourceClinicId);
+    const changed =
+      preparation.destinationPlan !== input.destinationPlan ||
+      preparation.destinationBillingInterval !==
+        input.destinationBillingInterval;
     await tx.clinicAccountSplitPreparation.update({
       where: { id: preparation.id },
       data: {
         destinationPlan: input.destinationPlan,
         destinationBillingInterval: input.destinationBillingInterval,
+        ...(changed ? { preparationRevision: { increment: 1 } } : {}),
       },
     });
   });
@@ -216,6 +232,14 @@ export async function saveAccountSplitSiteDecisions(input: {
         "invalid"
       );
     }
+    const previousDecisions = await tx.clinicAccountSplitSiteDecision.findMany({
+      where: { preparationId: fresh.id },
+      select: { clinicSiteId: true, decision: true },
+    });
+    const decisionsChanged = decisionsDiffer(
+      previousDecisions,
+      input.decisions
+    );
     await tx.clinicAccountSplitSiteDecision.deleteMany({
       where: { preparationId: fresh.id },
     });
@@ -228,7 +252,10 @@ export async function saveAccountSplitSiteDecisions(input: {
     });
     await tx.clinicAccountSplitPreparation.update({
       where: { id: fresh.id },
-      data: { expectedConfirmation: splitConfirmationPhrase(splitSite.slug) },
+      data: {
+        expectedConfirmation: splitConfirmationPhrase(splitSite.slug),
+        ...(decisionsChanged ? { preparationRevision: { increment: 1 } } : {}),
+      },
     });
     if (fresh.destinationClinicId) {
       const display = await tx.clinicSite.findFirst({
@@ -288,6 +315,20 @@ export async function saveAccountSplitStaffSelections(input: {
         "invalid"
       );
     }
+    const previousSelections =
+      await tx.clinicAccountSplitStaffSelection.findMany({
+        where: { preparationId: fresh.id },
+        select: {
+          userId: true,
+          keepOnSource: true,
+          grantOnDestination: true,
+          destinationRole: true,
+        },
+      });
+    const selectionsChanged = selectionsDiffer(
+      previousSelections,
+      input.selections
+    );
     await tx.clinicAccountSplitStaffSelection.deleteMany({
       where: { preparationId: fresh.id },
     });
@@ -303,6 +344,12 @@ export async function saveAccountSplitStaffSelections(input: {
         };
       }),
     });
+    if (selectionsChanged) {
+      await tx.clinicAccountSplitPreparation.update({
+        where: { id: fresh.id },
+        data: { preparationRevision: { increment: 1 } },
+      });
+    }
   });
   await revalidateAccountSplitPreparation(input.preparationId);
 }
@@ -385,6 +432,7 @@ export async function createSplitDestinationAccount(
         data: {
           destinationClinicId: clinic.id,
           expectedConfirmation: splitConfirmationPhrase(site.slug),
+          preparationRevision: { increment: 1 },
         },
       });
       return clinic;
@@ -411,7 +459,12 @@ export async function cancelAccountSplitPreparation(
     await lockAccountSplit(tx, preparation.sourceClinicId);
     const fresh = await tx.clinicAccountSplitPreparation.findUnique({
       where: { id: preparation.id },
-      select: { id: true, status: true },
+      select: {
+        id: true,
+        status: true,
+        sourceClinicId: true,
+        destinationClinicId: true,
+      },
     });
     if (!fresh) {
       throw new ClinicPortalError(
@@ -431,6 +484,24 @@ export async function cancelAccountSplitPreparation(
     await tx.clinicAccountSplitPreparation.update({
       where: { id: fresh.id },
       data: { status: "CANCELLED", cancelledAt: new Date() },
+    });
+    await recordAccountSplitEvent(tx, {
+      preparationId: fresh.id,
+      kind: "STATUS_TRANSITION",
+      fromStatus: fresh.status,
+      toStatus: "CANCELLED",
+      sourceClinicId: fresh.sourceClinicId,
+      destinationClinicId: fresh.destinationClinicId,
+      category: "cancelled",
+    });
+    await recordAccountSplitEvent(tx, {
+      preparationId: fresh.id,
+      kind: "CANCELLED",
+      fromStatus: fresh.status,
+      toStatus: "CANCELLED",
+      sourceClinicId: fresh.sourceClinicId,
+      destinationClinicId: fresh.destinationClinicId,
+      category: "cancelled",
     });
   });
 }
@@ -479,6 +550,30 @@ export async function revalidateAccountSplitPreparation(
         expectedConfirmation: assessment.confirmationPhrase,
       },
     });
+    await recordAccountSplitEvent(tx, {
+      preparationId: snapshot.preparation.id,
+      kind: "STATUS_TRANSITION",
+      fromStatus: snapshot.preparation.status,
+      toStatus: assessment.status,
+      sourceClinicId: snapshot.source.id,
+      destinationClinicId: snapshot.preparation.destinationClinicId,
+      siteId: assessment.splitSite?.id ?? null,
+      category: "status_transition",
+    });
+    for (const code of ACCOUNT_SPLIT_COMMERCIAL_CONFLICT_CODES) {
+      if (assessment.blockers.some((blocker) => blocker.code === code)) {
+        await recordAccountSplitEvent(tx, {
+          preparationId: snapshot.preparation.id,
+          kind: "COMMERCIAL_CONFLICT",
+          fromStatus: snapshot.preparation.status,
+          toStatus: assessment.status,
+          sourceClinicId: snapshot.source.id,
+          destinationClinicId: snapshot.preparation.destinationClinicId,
+          siteId: assessment.splitSite?.id ?? null,
+          category: code,
+        });
+      }
+    }
   });
 }
 
@@ -502,15 +597,64 @@ async function loadWritablePreparation(
       destinationClinicId: true,
       keptClinicSiteId: true,
       status: true,
+      operationKind: true,
+      destinationPlan: true,
+      destinationBillingInterval: true,
     },
   });
   if (!preparation) {
     throw new ClinicPortalError("That preparation was not found.", "not_found");
   }
+  if (preparation.operationKind !== "SITE_TO_NEW_ACCOUNT") {
+    throw new ClinicPortalError(
+      "This structural operation is not available.",
+      "invalid"
+    );
+  }
   if (isTerminalAccountSplitStatus(preparation.status)) {
     throw new ClinicPortalError("This preparation is closed.", "conflict");
   }
   return preparation;
+}
+
+function decisionsDiffer(
+  previous: Array<{ clinicSiteId: string; decision: string }>,
+  next: Array<{ clinicSiteId: string; decision: string }>
+): boolean {
+  const left = previous
+    .map((row) => `${row.clinicSiteId}:${row.decision}`)
+    .sort()
+    .join("|");
+  const right = next
+    .map((row) => `${row.clinicSiteId}:${row.decision}`)
+    .sort()
+    .join("|");
+  return left !== right;
+}
+
+function selectionsDiffer(
+  previous: Array<{
+    userId: string;
+    keepOnSource: boolean;
+    grantOnDestination: boolean;
+    destinationRole: string;
+  }>,
+  next: Array<{
+    userId: string;
+    keepOnSource: boolean;
+    grantOnDestination: boolean;
+    destinationRole: string;
+  }>
+): boolean {
+  const shape = (rows: typeof previous) =>
+    rows
+      .map(
+        (row) =>
+          `${row.userId}:${row.keepOnSource}:${row.grantOnDestination}:${row.destinationRole}`
+      )
+      .sort()
+      .join("|");
+  return shape(previous) !== shape(next);
 }
 
 function mapKnownConflict(error: unknown): unknown {

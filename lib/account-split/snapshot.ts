@@ -4,7 +4,10 @@ import { AccountTokenType, type Prisma } from "@prisma/client";
 
 import type { AccountSplitSnapshot } from "@/lib/account-split/policy";
 import { readAccountCapacityFacts } from "@/lib/billing/group-capacity-gate";
-import { readSplitDestinationCommercialState } from "@/lib/billing/split-destination-access";
+import {
+  readSplitDestinationCommercialState,
+  readSplitSourceCommercialSignals,
+} from "@/lib/billing/split-destination-access";
 import { getPrisma } from "@/lib/prisma";
 
 type Db = Prisma.TransactionClient | ReturnType<typeof getPrisma>;
@@ -75,6 +78,10 @@ export async function loadAccountSplitSnapshot(
       targetSourcePlan: true,
       expectedConfirmation: true,
       cancelledAt: true,
+      operationKind: true,
+      preparationRevision: true,
+      sourceLocationId: true,
+      destinationSiteSlug: true,
     },
   });
   if (!preparation) {
@@ -96,6 +103,11 @@ export async function loadAccountSplitSnapshot(
     destinationClinic,
     destinationEntitlement,
     destinationMemberships,
+    sourceBillingProfile,
+    sourceCommercial,
+    openDowngrade,
+    conflictingPreparations,
+    brandingAssets,
   ] = await runAccountSplitReads([
     () =>
       db.clinic.findUnique({
@@ -115,6 +127,7 @@ export async function loadAccountSplitSnapshot(
           active: true,
           isPrimary: true,
           logoUrl: true,
+          darkLogoUrl: true,
           faviconUrl: true,
           primaryColor: true,
           accentColor: true,
@@ -179,6 +192,33 @@ export async function loadAccountSplitSnapshot(
       preparation.destinationClinicId
         ? loadMemberships(db, preparation.destinationClinicId)
         : Promise.resolve([]),
+    () =>
+      db.clinicBillingProfile.findUnique({
+        where: { clinicId: preparation.sourceClinicId },
+        select: { stripeSubscriptionScheduleId: true },
+      }),
+    () => readSplitSourceCommercialSignals(preparation.sourceClinicId, db),
+    () =>
+      db.clinicDowngradePreparation.findUnique({
+        where: { clinicId: preparation.sourceClinicId },
+        select: { id: true },
+      }),
+    () =>
+      db.clinicAccountSplitPreparation.count({
+        where: {
+          sourceClinicId: preparation.sourceClinicId,
+          id: { not: preparation.id },
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+        },
+      }),
+    () =>
+      db.clinicAccountSplitBrandingAsset.findMany({
+        where: { preparationId },
+        select: {
+          sourceStorageKey: true,
+          destinationStorageKey: true,
+        },
+      }),
   ]);
 
   if (!sourceClinic) {
@@ -208,6 +248,22 @@ export async function loadAccountSplitSnapshot(
         sourceEntitlement?.purchasedAdditionalLocationQuantity ?? null,
       extraSiteAllowance: sourceEntitlement?.extraSiteAllowance ?? 0,
       extraLocationAllowance: sourceEntitlement?.extraLocationAllowance ?? 0,
+      billingStatus: sourceCommercial?.billingStatus ?? null,
+      access: sourceCommercial?.access ?? null,
+      cancelAtPeriodEnd: sourceCommercial?.cancelAtPeriodEnd ?? false,
+      subscriptionSchedulePresent: Boolean(
+        sourceBillingProfile?.stripeSubscriptionScheduleId
+      ),
+      scheduledCommercialPlan:
+        sourceCommercial?.scheduledCommercialPlan ?? null,
+      scheduledAdditionalSiteQuantity:
+        sourceCommercial?.scheduledAdditionalSiteQuantity ?? null,
+      scheduledCapacityEffectiveAt:
+        sourceCommercial?.scheduledCapacityEffectiveAt ?? null,
+      offeredAdditionalSiteQuantity:
+        sourceCommercial?.offeredAdditionalSiteQuantity ?? null,
+      openDowngradePreparation: Boolean(openDowngrade),
+      conflictingOpenPreparation: conflictingPreparations > 0,
     },
     sites,
     locations,
@@ -227,6 +283,7 @@ export async function loadAccountSplitSnapshot(
         platformRole: membership.platformRole,
       })),
     },
+    brandingAssets,
   };
 }
 

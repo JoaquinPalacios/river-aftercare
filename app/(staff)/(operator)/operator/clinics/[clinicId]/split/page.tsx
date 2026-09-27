@@ -9,6 +9,7 @@ import {
   CreateSplitPreparationForm,
   CreateSplitShellForm,
   ExecuteSplitForm,
+  PrepareSplitBrandingForm,
   SplitSiteDecisionsForm,
   SplitStaffForm,
   SplitTargetForm,
@@ -84,6 +85,7 @@ export default async function AccountSplitPreparationPage({
           targetSourcePlan: true,
           expectedConfirmation: true,
           destinationClinicId: true,
+          preparationRevision: true,
         },
       })
     : null;
@@ -650,20 +652,32 @@ export default async function AccountSplitPreparationPage({
                 <ExecuteSplitForm
                   sourceClinicId={clinic.id}
                   preparationId={preparation.id}
+                  preparationRevision={preparation.preparationRevision}
                   confirmationPhrase={preview.confirmationPhrase}
                 />
               </div>
             ) : (
-              <p className="mt-4 text-sm text-staff-muted">
-                Execution stays closed until this preparation is ready. The
-                confirmation will be{" "}
-                <span className="font-mono">
-                  {preparation.expectedConfirmation ??
-                    preview?.confirmationPhrase ??
-                    "split {siteSlug}"}
-                </span>
-                .
-              </p>
+              <>
+                {preparation.destinationClinicId &&
+                preview?.blockers.some(
+                  (blocker) => blocker.code === "branding_assets_not_ready"
+                ) ? (
+                  <PrepareSplitBrandingForm
+                    sourceClinicId={clinic.id}
+                    preparationId={preparation.id}
+                  />
+                ) : null}
+                <p className="mt-4 text-sm text-staff-muted">
+                  Execution stays closed until this preparation is ready. The
+                  confirmation will be{" "}
+                  <span className="font-mono">
+                    {preparation.expectedConfirmation ??
+                      preview?.confirmationPhrase ??
+                      "split {siteSlug}"}
+                  </span>
+                  .
+                </p>
+              </>
             )}
             <CancelSplitPreparationForm
               sourceClinicId={clinic.id}

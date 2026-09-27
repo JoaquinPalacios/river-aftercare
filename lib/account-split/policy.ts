@@ -1,6 +1,7 @@
 import type {
   BillingInterval,
   BillingStatus,
+  ClinicAccountSplitOperationKind,
   ClinicAccountSplitSiteDecisionKind,
   ClinicAccountSplitStatus,
   ClinicMembershipRole,
@@ -25,6 +26,7 @@ import {
   effectiveSiteLocationAllowance,
   type SiteLocationAllowance,
 } from "@/lib/clinics/site-location-allowance";
+import { planSplitSiteBranding } from "@/lib/account-split/branding-plan";
 
 export const ACCOUNT_SPLIT_TARGET_SOURCE_PLAN = "PRACTICE" as const;
 
@@ -106,6 +108,14 @@ export const ACCOUNT_SPLIT_BLOCKER_CODES = [
   "destination_adapted_guide_allowance",
   "destination_combined_guide_allowance",
   "billing_not_ready",
+  "operation_not_enabled",
+  "branding_assets_not_ready",
+  "source_plan_mismatch",
+  "source_subscription_schedule",
+  "source_scheduled_plan",
+  "source_scheduled_capacity",
+  "source_downgrade_preparation",
+  "source_conflicting_preparation",
 ] as const;
 
 export type AccountSplitBlockerCode =
@@ -120,7 +130,17 @@ const STRUCTURAL_BLOCKERS = new Set<AccountSplitBlockerCode>([
   "kept_site_missing",
   "kept_site_inactive",
   "staff_selection_missing",
+  "operation_not_enabled",
 ]);
+
+export const ACCOUNT_SPLIT_COMMERCIAL_CONFLICT_CODES = [
+  "source_plan_mismatch",
+  "source_subscription_schedule",
+  "source_scheduled_plan",
+  "source_scheduled_capacity",
+  "source_downgrade_preparation",
+  "source_conflicting_preparation",
+] as const;
 
 /** Practice product limits after this operation. They do not block the split. */
 const PRACTICE_DOWNGRADE_BLOCKERS = new Set<AccountSplitBlockerCode>([
@@ -144,7 +164,12 @@ export type AccountSplitWarning = {
     | "guides_shared_with_kept_site"
     | "source_plan_conversion_deferred"
     | "inactive_sites_remain"
-    | "shell_remains_after_cancel";
+    | "shell_remains_after_cancel"
+    | "source_past_due"
+    | "source_cancel_at_period_end"
+    | "source_restricted"
+    | "source_unpaid"
+    | "source_ended";
   message: string;
 };
 
@@ -166,6 +191,10 @@ export type AccountSplitSnapshot = {
     targetSourcePlan: CommercialPlan;
     expectedConfirmation: string | null;
     cancelledAt: Date | null;
+    operationKind: ClinicAccountSplitOperationKind;
+    preparationRevision: number;
+    sourceLocationId: string | null;
+    destinationSiteSlug: string | null;
   };
   source: {
     id: string;
@@ -180,6 +209,16 @@ export type AccountSplitSnapshot = {
     purchasedAdditionalLocationQuantity: number | null;
     extraSiteAllowance: number;
     extraLocationAllowance: number;
+    billingStatus: BillingStatus | null;
+    access: EntitlementStatus | null;
+    cancelAtPeriodEnd: boolean;
+    subscriptionSchedulePresent: boolean;
+    scheduledCommercialPlan: CommercialPlan | null;
+    scheduledAdditionalSiteQuantity: number | null;
+    scheduledCapacityEffectiveAt: Date | null;
+    offeredAdditionalSiteQuantity: number | null;
+    openDowngradePreparation: boolean;
+    conflictingOpenPreparation: boolean;
   };
   sites: Array<{
     id: string;
@@ -189,6 +228,7 @@ export type AccountSplitSnapshot = {
     active: boolean;
     isPrimary: boolean;
     logoUrl: string | null;
+    darkLogoUrl: string | null;
     faviconUrl: string | null;
     primaryColor: string | null;
     accentColor: string | null;
@@ -294,6 +334,10 @@ export type AccountSplitSnapshot = {
       platformRole: PlatformRole;
     }>;
   };
+  brandingAssets: Array<{
+    sourceStorageKey: string;
+    destinationStorageKey: string;
+  }>;
 };
 
 export type AccountSplitAssessment = {
@@ -952,6 +996,110 @@ export function assessAccountSplit(
     blockers.push({
       code: "billing_not_ready",
       message: billingMessage(billing),
+    });
+  }
+
+  if (snapshot.preparation.operationKind !== "SITE_TO_NEW_ACCOUNT") {
+    blockers.push({
+      code: "operation_not_enabled",
+      message: "This structural operation is not available.",
+    });
+  }
+  const branding = planSplitSiteBranding({
+    sourceClinicId: snapshot.source.id,
+    destinationClinicId: snapshot.preparation.destinationClinicId,
+    site: splitSite,
+    preparationId: snapshot.preparation.id,
+    assets: snapshot.brandingAssets,
+  });
+  if (splitSite && !branding.ready) {
+    blockers.push({
+      code: "branding_assets_not_ready",
+      message:
+        "Prepare destination-owned branding for the moving Clinic Site before execution.",
+    });
+  }
+  if (snapshot.source.commercialPlan !== "GROUP") {
+    blockers.push({
+      code: "source_plan_mismatch",
+      message:
+        "This split moves one Clinic Site off a Group Account. The source Account is no longer Group.",
+    });
+  }
+  if (snapshot.source.subscriptionSchedulePresent) {
+    blockers.push({
+      code: "source_subscription_schedule",
+      message:
+        "The source Account has a subscription schedule. Clear it before this split.",
+    });
+  }
+  if (snapshot.source.scheduledCommercialPlan) {
+    blockers.push({
+      code: "source_scheduled_plan",
+      message:
+        "The source Account has a scheduled plan change. Clear it before this split.",
+    });
+  }
+  if (
+    snapshot.source.scheduledAdditionalSiteQuantity !== null ||
+    snapshot.source.scheduledCapacityEffectiveAt !== null
+  ) {
+    blockers.push({
+      code: "source_scheduled_capacity",
+      message:
+        "The source Account has a scheduled capacity change. Clear it before this split.",
+    });
+  }
+  if (snapshot.source.openDowngradePreparation) {
+    blockers.push({
+      code: "source_downgrade_preparation",
+      message:
+        "The source Account has an open downgrade preparation. Finish or cancel it before this split.",
+    });
+  }
+  if (snapshot.source.conflictingOpenPreparation) {
+    blockers.push({
+      code: "source_conflicting_preparation",
+      message: "This Account already has another open structural preparation.",
+    });
+  }
+  if (snapshot.source.billingStatus === "PAST_DUE") {
+    warnings.push({
+      code: "source_past_due",
+      message:
+        "Source billing is past due. This does not block the split. Destination billing still has to be active.",
+    });
+  }
+  if (
+    snapshot.source.cancelAtPeriodEnd ||
+    snapshot.source.billingStatus === "CANCEL_AT_PERIOD_END"
+  ) {
+    warnings.push({
+      code: "source_cancel_at_period_end",
+      message:
+        "Source billing is set to cancel at period end. This does not block the split.",
+    });
+  }
+  if (snapshot.source.access === "RESTRICTED") {
+    warnings.push({
+      code: "source_restricted",
+      message:
+        "Source product access is restricted. This does not block the split.",
+    });
+  }
+  if (snapshot.source.billingStatus === "UNPAID") {
+    warnings.push({
+      code: "source_unpaid",
+      message: "Source billing is unpaid. This does not block the split.",
+    });
+  }
+  if (
+    snapshot.source.billingStatus === "ENDED" ||
+    snapshot.source.access === "ENDED"
+  ) {
+    warnings.push({
+      code: "source_ended",
+      message: "Source billing has ended. This does not block the split.",
     });
   }
 
