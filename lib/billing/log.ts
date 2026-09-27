@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   GROUP_SUBSCRIPTION_SHAPE_LOG_EVENT,
+  PRACTICE_LOCATION_QUANTITY_LEGACY_PRESERVED_LOG_EVENT,
   PRACTICE_SUBSCRIPTION_SHAPE_LOG_EVENT,
 } from "@/lib/billing/group-billing-codes";
 
@@ -102,6 +103,12 @@ export type StripeBillingLogEvent =
       event: "billing_entitlement_activated";
       clinicId: string;
       eventType: string;
+    }
+  | {
+      event: typeof PRACTICE_LOCATION_QUANTITY_LEGACY_PRESERVED_LOG_EVENT;
+      stripeEventId: string;
+      eventType: string;
+      clinicId: string;
     }
   | {
       event: "customer_portal_session_created";
