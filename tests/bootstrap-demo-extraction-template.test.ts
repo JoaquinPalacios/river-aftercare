@@ -76,7 +76,8 @@ function matchingSnapshot(): DemoExtractionTemplateSnapshot {
         version: create.revision.version,
         status: create.revision.status,
         reviewedAt: null,
-        reviewedBy: null,
+        reviewerName: null,
+        reviewRecordedByUserId: null,
         sections: create.sections,
       },
     ],
@@ -102,7 +103,8 @@ describe("demo extraction bootstrap planner", () => {
       version: 1,
       status: "PUBLISHED",
       reviewedAt: null,
-      reviewedBy: null,
+      reviewerName: null,
+      reviewRecordedByUserId: null,
     });
     expect(plan.sections).toHaveLength(8);
     expect(plan.sections.map((section) => section.key)).toEqual(
@@ -118,7 +120,7 @@ describe("demo extraction bootstrap planner", () => {
       "- 1 GuideTemplate slug=extraction title=Tooth Extraction serviceCategory=DENTAL isActive=true isSample=true"
     );
     expect(formatted).toContain(
-      "- 1 GuideTemplateRevision version=1 status=PUBLISHED reviewedAt=null reviewedBy=null"
+      "- 1 GuideTemplateRevision version=1 status=PUBLISHED reviewedAt=null reviewerName=null"
     );
     expect(formatted).toContain("- 8 GuideTemplateSection rows");
     expect(formatted).toContain(
@@ -135,7 +137,8 @@ describe("demo extraction bootstrap planner", () => {
       version: 2,
       status: "PUBLISHED",
       reviewedAt: null,
-      reviewedBy: null,
+      reviewerName: null,
+      reviewRecordedByUserId: null,
       sections: extraRevision.revisions[0].sections,
     });
     const extra = planDemoExtractionBootstrap(extraRevision);
@@ -147,7 +150,7 @@ describe("demo extraction bootstrap planner", () => {
 
     const reviewed = matchingSnapshot();
     reviewed.revisions[0].reviewedAt = new Date("2026-09-01");
-    reviewed.revisions[0].reviewedBy = "Someone";
+    reviewed.revisions[0].reviewerName = "Someone";
     const refusedReview = planDemoExtractionBootstrap(reviewed);
     expect(refusedReview.action).toBe("refuse");
     if (refusedReview.action === "refuse") {
@@ -234,7 +237,7 @@ describe("demo extraction bootstrap writes", () => {
       expect(created.revisions).toHaveLength(1);
       expect(created.revisions[0]?.sections).toHaveLength(8);
       expect(created.revisions[0]?.reviewedAt).toBeNull();
-      expect(created.revisions[0]?.reviewedBy).toBeNull();
+      expect(created.revisions[0]?.reviewerName).toBeNull();
       expect(afterApply.templateCount).toBe(1);
       expect(afterApply.revisionCount).toBe(1);
       expect(afterApply.sectionCount).toBe(8);

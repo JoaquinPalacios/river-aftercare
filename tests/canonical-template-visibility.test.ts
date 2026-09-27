@@ -150,7 +150,7 @@ describe("canonical template visibility and enablement", () => {
             status: GuideRevisionStatus.PUBLISHED,
             publishedAt: new Date("2026-09-01"),
             reviewedAt: null,
-            reviewedBy: null,
+            reviewerName: null,
             sections: {
               create: {
                 key: "introduction",
@@ -178,7 +178,8 @@ describe("canonical template visibility and enablement", () => {
             status: GuideRevisionStatus.PUBLISHED,
             publishedAt: new Date("2026-09-01"),
             reviewedAt: new Date("2026-09-01"),
-            reviewedBy: "Named clinical reviewer",
+            reviewerName: "Named clinical reviewer",
+            reviewRecordedByUserId: USER_ID,
             sections: {
               create: {
                 key: "introduction",
@@ -206,7 +207,8 @@ describe("canonical template visibility and enablement", () => {
             status: GuideRevisionStatus.PUBLISHED,
             publishedAt: new Date("2026-09-01"),
             reviewedAt: new Date("2026-09-01"),
-            reviewedBy: "Named clinical reviewer",
+            reviewerName: "Named clinical reviewer",
+            reviewRecordedByUserId: USER_ID,
             sections: {
               create: {
                 key: "introduction",
@@ -233,7 +235,8 @@ describe("canonical template visibility and enablement", () => {
             version: 1,
             status: GuideRevisionStatus.DRAFT,
             reviewedAt: new Date("2026-09-01"),
-            reviewedBy: "Named clinical reviewer",
+            reviewerName: "Named clinical reviewer",
+            reviewRecordedByUserId: USER_ID,
             sections: {
               create: {
                 key: "introduction",
@@ -261,7 +264,7 @@ describe("canonical template visibility and enablement", () => {
             status: GuideRevisionStatus.PUBLISHED,
             publishedAt: new Date("2026-09-01"),
             reviewedAt: null,
-            reviewedBy: null,
+            reviewerName: null,
             sections: {
               create: {
                 key: "introduction",
@@ -333,7 +336,7 @@ describe("canonical template visibility and enablement", () => {
             status: GuideRevisionStatus.PUBLISHED,
             publishedAt: new Date("2026-09-01"),
             reviewedAt: null,
-            reviewedBy: null,
+            reviewerName: null,
             sections: {
               create: {
                 key: "introduction",

@@ -127,28 +127,32 @@ model Clinic {
 }
 
 model User {
-  id                             String                             @id @default(cuid())
-  name                           String?
-  email                          String                             @unique
-  emailVerified                  DateTime?
-  image                          String?
-  passwordHash                   String?
-  platformRole                   PlatformRole                       @default(NONE)
-  memberships                    ClinicMembership[]
-  accounts                       Account[]
-  sessions                       Session[]
-  authoredPracticeGuideRevisions PracticeGuideRevision[]            @relation("PracticeGuideRevisionAuthor")
-  attestedPracticeGuideRevisions PracticeGuideRevision[]            @relation("PracticeGuideRevisionAttestation")
-  accountTokens                  AccountToken[]                     @relation("AccountTokenSubject")
-  invitedAccountTokens           AccountToken[]                     @relation("AccountTokenInviter")
-  legalAcceptances               LegalAcceptance[]
-  confirmedDowngradePreparations ClinicDowngradePreparation[]       @relation("DowngradeSelectionConfirmedBy")
-  preparedAccountSplits          ClinicAccountSplitPreparation[]    @relation("AccountSplitPreparedBy")
-  executedAccountSplits          ClinicAccountSplitPreparation[]    @relation("AccountSplitExecutedBy")
-  accountSplitStaffSelections    ClinicAccountSplitStaffSelection[]
-  accountSplitEvents             ClinicAccountSplitEvent[]          @relation("AccountSplitEventActor")
-  createdAt                      DateTime                           @default(now())
-  updatedAt                      DateTime                           @updatedAt
+  id                              String                             @id @default(cuid())
+  name                            String?
+  email                           String                             @unique
+  emailVerified                   DateTime?
+  image                           String?
+  passwordHash                    String?
+  platformRole                    PlatformRole                       @default(NONE)
+  memberships                     ClinicMembership[]
+  accounts                        Account[]
+  sessions                        Session[]
+  authoredPracticeGuideRevisions  PracticeGuideRevision[]            @relation("PracticeGuideRevisionAuthor")
+  attestedPracticeGuideRevisions  PracticeGuideRevision[]            @relation("PracticeGuideRevisionAttestation")
+  accountTokens                   AccountToken[]                     @relation("AccountTokenSubject")
+  invitedAccountTokens            AccountToken[]                     @relation("AccountTokenInviter")
+  legalAcceptances                LegalAcceptance[]
+  confirmedDowngradePreparations  ClinicDowngradePreparation[]       @relation("DowngradeSelectionConfirmedBy")
+  preparedAccountSplits           ClinicAccountSplitPreparation[]    @relation("AccountSplitPreparedBy")
+  executedAccountSplits           ClinicAccountSplitPreparation[]    @relation("AccountSplitExecutedBy")
+  accountSplitStaffSelections     ClinicAccountSplitStaffSelection[]
+  accountSplitEvents              ClinicAccountSplitEvent[]          @relation("AccountSplitEventActor")
+  createdGuideTemplateRevisions   GuideTemplateRevision[]            @relation("GuideTemplateRevisionAuthor")
+  recordedGuideTemplateReviews    GuideTemplateRevision[]            @relation("GuideTemplateRevisionReviewRecorder")
+  publishedGuideTemplateRevisions GuideTemplateRevision[]            @relation("GuideTemplateRevisionPublisher")
+  deactivatedGuideTemplates       GuideTemplate[]                    @relation("GuideTemplateDeactivatedBy")
+  createdAt                       DateTime                           @default(now())
+  updatedAt                       DateTime                           @updatedAt
 }
 
 model ClinicMembership {
@@ -427,40 +431,68 @@ model ClinicLocationRedirect {
 model GuideTemplate {
   id                    String                  @id @default(cuid())
   /// One primary service category. Canonical templates are not multi-category.
+  /// Immutable after the first canonical revision is published, because clinic
+  /// guides copy this classification when they are enabled.
   serviceCategory       ServiceCategory
   slug                  String                  @unique
   title                 String
+  /// Discovery gate. Deactivation hides the template from new enablement.
+  /// Existing clinic pins and published patient guides stay in place.
   isActive              Boolean                 @default(true)
-  /// Sample/demo library content. Never eligible for ordinary real-clinic
-  /// enablement, even if revision review metadata is later populated.
+  deactivatedAt         DateTime?
+  deactivatedByUserId   String?
+  /// Sample/demo library content. Set only by the demo bootstrap. Ordinary
+  /// canonical lifecycle services cannot change this flag in either direction.
   /// Distinct from clinic publish attestation on PracticeGuideRevision.
   isSample              Boolean                 @default(false)
   revisions             GuideTemplateRevision[]
   practiceGuides        PracticeGuide[]
   sourcedPracticeGuides PracticeGuide[]         @relation("PracticeGuideSourceTemplate")
+  deactivatedBy         User?                   @relation("GuideTemplateDeactivatedBy", fields: [deactivatedByUserId], references: [id], onDelete: SetNull)
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
 
   @@index([serviceCategory, isActive])
+  @@index([deactivatedByUserId])
 }
 
+/// Canonical revision. At most one DRAFT per template is enforced by a
+/// PostgreSQL partial unique index in the lifecycle migration (Prisma cannot
+/// express that predicate) and by `lockCanonicalTemplate` in the lifecycle
+/// services. PUBLISHED rows are historical source records.
 model GuideTemplateRevision {
-  id              String                 @id @default(cuid())
-  guideTemplateId String
-  version         Int
-  status          GuideRevisionStatus    @default(DRAFT)
-  reviewedAt      DateTime?
-  reviewedBy      String?
-  publishedAt     DateTime?
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
-  guideTemplate   GuideTemplate          @relation(fields: [guideTemplateId], references: [id], onDelete: Cascade)
-  sections        GuideTemplateSection[]
-  practiceGuides  PracticeGuide[]
+  id                     String                 @id @default(cuid())
+  guideTemplateId        String
+  version                Int
+  status                 GuideRevisionStatus    @default(DRAFT)
+  createdByUserId        String?
+  /// Display name of the person whose clinical review is recorded. This may
+  /// be an external clinician with no River user account, so it is not a
+  /// user foreign key.
+  reviewerName           String?
+  reviewerCredential     String?
+  reviewNote             String?                @db.Text
+  reviewedAt             DateTime?
+  /// Authenticated Operator who entered the review evidence. Not necessarily
+  /// the clinical reviewer named in `reviewerName`.
+  reviewRecordedByUserId String?
+  publishedByUserId      String?
+  publishedAt            DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  guideTemplate          GuideTemplate          @relation(fields: [guideTemplateId], references: [id], onDelete: Cascade)
+  createdBy              User?                  @relation("GuideTemplateRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  reviewRecordedBy       User?                  @relation("GuideTemplateRevisionReviewRecorder", fields: [reviewRecordedByUserId], references: [id], onDelete: SetNull)
+  publishedBy            User?                  @relation("GuideTemplateRevisionPublisher", fields: [publishedByUserId], references: [id], onDelete: SetNull)
+  sections               GuideTemplateSection[]
+  practiceGuides         PracticeGuide[]
 
   @@unique([guideTemplateId, version])
   @@unique([id, guideTemplateId])
   @@index([guideTemplateId, status])
+  @@index([createdByUserId])
+  @@index([reviewRecordedByUserId])
+  @@index([publishedByUserId])
 }
 
 model GuideTemplateSection {

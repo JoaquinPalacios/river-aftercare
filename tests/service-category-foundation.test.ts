@@ -129,6 +129,16 @@ async function createReviewedTemplate(
   serviceCategory: "DENTAL" | "PHYSIOTHERAPY",
   instructions = false
 ) {
+  const reviewerId = `${PREFIX}reviewer`;
+  await db().user.upsert({
+    where: { id: reviewerId },
+    update: {},
+    create: {
+      id: reviewerId,
+      email: `${PREFIX}reviewer@example.test`,
+      name: "Fixture reviewer",
+    },
+  });
   return db().guideTemplate.create({
     data: {
       id: `${PREFIX}${key}`,
@@ -143,7 +153,8 @@ async function createReviewedTemplate(
           status: GuideRevisionStatus.PUBLISHED,
           publishedAt: new Date("2026-09-01T00:00:00.000Z"),
           reviewedAt: new Date("2026-09-01T00:00:00.000Z"),
-          reviewedBy: "Fixture reviewer",
+          reviewerName: "Fixture reviewer",
+          reviewRecordedByUserId: `${PREFIX}reviewer`,
           sections: {
             create: {
               key: instructions ? "plan" : "introduction",

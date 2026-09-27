@@ -209,7 +209,8 @@ describe("first-clinic clinical governance", () => {
             status: GuideRevisionStatus.PUBLISHED,
             publishedAt: new Date("2026-09-01"),
             reviewedAt: new Date("2026-09-01"),
-            reviewedBy: "Named clinical reviewer",
+            reviewerName: "Named clinical reviewer",
+            reviewRecordedByUserId: OPERATOR_ID,
             sections: {
               create: {
                 key: "introduction",
@@ -273,7 +274,8 @@ describe("first-clinic clinical governance", () => {
               status: GuideRevisionStatus.PUBLISHED,
               publishedAt: new Date("2026-09-01"),
               reviewedAt: new Date("2026-09-01"),
-              reviewedBy: "Named clinical reviewer",
+              reviewerName: "Named clinical reviewer",
+              reviewRecordedByUserId: OPERATOR_ID,
               sections: {
                 create: {
                   key: "introduction",
@@ -290,7 +292,7 @@ describe("first-clinic clinical governance", () => {
               status: GuideRevisionStatus.PUBLISHED,
               publishedAt: new Date("2026-09-11"),
               reviewedAt: null,
-              reviewedBy: null,
+              reviewerName: null,
               sections: {
                 create: {
                   key: "introduction",
@@ -337,7 +339,8 @@ describe("first-clinic clinical governance", () => {
               status: GuideRevisionStatus.PUBLISHED,
               publishedAt: new Date("2026-09-01"),
               reviewedAt: new Date("2026-09-01"),
-              reviewedBy: "Named clinical reviewer",
+              reviewerName: "Named clinical reviewer",
+              reviewRecordedByUserId: OPERATOR_ID,
               sections: {
                 create: {
                   key: "introduction",
@@ -354,7 +357,8 @@ describe("first-clinic clinical governance", () => {
               status: GuideRevisionStatus.PUBLISHED,
               publishedAt: new Date("2026-09-11"),
               reviewedAt: new Date("2026-09-11"),
-              reviewedBy: "Named clinical reviewer",
+              reviewerName: "Named clinical reviewer",
+              reviewRecordedByUserId: OPERATOR_ID,
               sections: {
                 create: {
                   key: "introduction",

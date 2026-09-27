@@ -25,7 +25,8 @@ export interface DemoExtractionRevisionSnapshot {
   version: number;
   status: string;
   reviewedAt: Date | null;
-  reviewedBy: string | null;
+  reviewerName: string | null;
+  reviewRecordedByUserId: string | null;
   sections: DemoExtractionSectionSnapshot[];
 }
 
@@ -54,7 +55,8 @@ export type DemoExtractionBootstrapPlan =
         version: number;
         status: "PUBLISHED";
         reviewedAt: null;
-        reviewedBy: null;
+        reviewerName: null;
+        reviewRecordedByUserId: null;
       };
       sections: DemoExtractionSectionSnapshot[];
     }

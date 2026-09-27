@@ -7,7 +7,7 @@
 
 ## Context
 
-The first real clinic will publish aftercare on River Aftercare before a clinically reviewed canonical library exists. Inferring “sample” from missing `GuideTemplateRevision.reviewedAt` / `reviewedBy` is not an explicit product designation. Classification that treated any reviewed published revision as making the template available, while enablement pinned the latest published revision, could pin an unreviewed v2 after a reviewed v1.
+The first real clinic will publish aftercare on River Aftercare before a clinically reviewed canonical library exists. Inferring “sample” from missing review evidence is not an explicit product designation. The free-string `reviewedBy` column has since been replaced; see [ADR 0028](0028-canonical-template-lifecycle.md). Classification that treated any reviewed published revision as making the template available, while enablement pinned the latest published revision, could pin an unreviewed v2 after a reviewed v1.
 
 Practice publication also had no clinic-accountability record on the immutable `PracticeGuideRevision` snapshot.
 
@@ -21,7 +21,7 @@ River Aftercare is the publishing and workflow platform. The clinic supplies aft
 - The Tooth Extraction library row (`slug = extraction`) is sample content for `demodental` only.
 - Canonical availability and enablement evaluate the **same** latest published revision. A newer unreviewed published revision does not inherit eligibility from an older reviewed revision.
 - Each new published `PracticeGuideRevision` (version 1+) for a **real clinic** requires a fresh practice attestation (`reviewAttestedAt`, `reviewAttestedByUserId`). The actor is the authenticated Clinic ADMIN confirming, on behalf of the practice, that the content has undergone the practice’s required clinical review. That user is not recorded as the clinical reviewer.
-- Canonical `reviewedAt` / `reviewedBy` never substitute for clinic attestation.
+- Canonical review provenance never substitutes for clinic attestation. See [ADR 0028](0028-canonical-template-lifecycle.md).
 - Custom guides (`guideTemplateId` and `pinnedRevisionId` null) remain the first-client path.
 - `demodental` remains a real tenant hostname. Operator clinic creation cannot claim that slug. It is not an infrastructure reserved label in `RESERVED_TENANT_SLUGS`, because those labels must not resolve as tenants.
 - Demo publication must not fabricate clinical attestation. Historical demo published rows stay unaugmented.

@@ -21,6 +21,11 @@ import type { Prisma } from "@prisma/client";
  * that already holds it.
  *
  * Do not hold these locks across Stripe, email, R2, or user input.
+ *
+ * Canonical template locks (`canonical-template:{templateId}` in
+ * `lib/canonical-templates/locks.ts`) are a separate family. Lifecycle
+ * services take only that lock. Do not combine it with a clinic lock in
+ * one transaction until an order is defined.
  */
 
 /**

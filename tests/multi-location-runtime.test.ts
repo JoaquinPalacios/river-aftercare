@@ -171,7 +171,8 @@ async function seedTemplate(): Promise<{
           status: GuideRevisionStatus.PUBLISHED,
           publishedAt: new Date("2026-09-01T00:00:00.000Z"),
           reviewedAt: new Date("2026-09-01T00:00:00.000Z"),
-          reviewedBy: "Runtime reviewer",
+          reviewerName: "Runtime reviewer",
+          reviewRecordedByUserId: `${PREFIX}user`,
           sections: {
             create: {
               key: "introduction",

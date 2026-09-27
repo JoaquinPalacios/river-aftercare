@@ -53,6 +53,7 @@ Do not create an ADR for a reversible UI detail. Create one when a later impleme
 | [0024](0024-account-lifecycle-tokens-and-shared-transactional-email.md)      | Account lifecycle tokens and shared transactional email      | Accepted                                                                                                           |
 | [0026](0026-first-client-clinic-supplied-governance.md)                      | First-client clinical governance is clinic-supplied/attested | Accepted                                                                                                           |
 | [0027](0027-service-categories-and-composable-guide-grammar.md)              | Service categories and a composable guide grammar            | Accepted                                                                                                           |
+| [0028](0028-canonical-template-lifecycle.md)                                 | Canonical template lifecycle                                 | Accepted                                                                                                           |
 
 Billing / Stripe is **proposed, not an ADR yet**. See [../architecture/BILLING.md](../architecture/BILLING.md). Do not implement until Joaquín approves that investigation.
 

@@ -187,7 +187,8 @@ describe("guide allowance pools", () => {
             status: GuideRevisionStatus.PUBLISHED,
             publishedAt: new Date("2026-09-01T00:00:00.000Z"),
             reviewedAt: new Date("2026-09-01T00:00:00.000Z"),
-            reviewedBy: "Guide entitlement reviewer",
+            reviewerName: "Guide entitlement reviewer",
+            reviewRecordedByUserId: USER_ID,
             sections: {
               create: {
                 key: "introduction",
@@ -214,7 +215,8 @@ describe("guide allowance pools", () => {
             status: GuideRevisionStatus.PUBLISHED,
             publishedAt: new Date("2026-09-01T00:00:00.000Z"),
             reviewedAt: new Date("2026-09-01T00:00:00.000Z"),
-            reviewedBy: "Guide entitlement reviewer",
+            reviewerName: "Guide entitlement reviewer",
+            reviewRecordedByUserId: USER_ID,
             sections: {
               create: {
                 key: "introduction",

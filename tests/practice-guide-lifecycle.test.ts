@@ -126,7 +126,8 @@ describe("practice guide lifecycle and isolation", () => {
             status: GuideRevisionStatus.PUBLISHED,
             publishedAt: new Date("2026-09-01"),
             reviewedAt: new Date("2026-09-01"),
-            reviewedBy: "Lifecycle test reviewer",
+            reviewerName: "Lifecycle test reviewer",
+            reviewRecordedByUserId: USER_ID,
             sections: {
               create: [
                 {
@@ -908,7 +909,8 @@ describe("draft delete and discard", () => {
             status: GuideRevisionStatus.PUBLISHED,
             publishedAt: new Date("2026-09-01"),
             reviewedAt: new Date("2026-09-01"),
-            reviewedBy: "Lifecycle test reviewer",
+            reviewerName: "Lifecycle test reviewer",
+            reviewRecordedByUserId: USER_ID,
             sections: {
               create: {
                 key: "introduction",

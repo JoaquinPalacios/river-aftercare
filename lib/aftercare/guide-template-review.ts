@@ -9,7 +9,8 @@ export const NON_CLINICAL_REVIEWER_LABELS = new Set(["Care Guide demo seed"]);
 export interface GuideRevisionReviewFields {
   status: GuideRevisionStatus | string;
   reviewedAt: Date | null;
-  reviewedBy: string | null;
+  reviewerName: string | null;
+  reviewRecordedByUserId: string | null;
 }
 
 export interface CanonicalRevisionCandidate extends GuideRevisionReviewFields {
@@ -22,8 +23,8 @@ export interface CanonicalTemplateClassification {
   eligibleRevisionId: string | null;
 }
 
-function namedClinicalReviewer(reviewedBy: string | null): string | null {
-  const reviewer = reviewedBy?.trim() ?? "";
+function namedClinicalReviewer(reviewerName: string | null): string | null {
+  const reviewer = reviewerName?.trim() ?? "";
   if (!reviewer || NON_CLINICAL_REVIEWER_LABELS.has(reviewer)) {
     return null;
   }
@@ -31,17 +32,34 @@ function namedClinicalReviewer(reviewedBy: string | null): string | null {
 }
 
 /**
- * Platform "reviewed template" policy: a published revision with both
- * `reviewedAt` and a named `reviewedBy` that is not a demo/seed label.
- * Active + PUBLISHED alone is not reviewed.
+ * Complete review evidence on a canonical revision, independent of status.
+ * The display reviewer, the time, and the Operator who recorded it are all
+ * required. A historical reviewerName copied from reviewedBy is not complete
+ * until a recording Operator is stored. Credential and note stay optional.
+ */
+export function hasCompleteCanonicalReviewEvidence(revision: {
+  reviewerName: string | null;
+  reviewedAt: Date | null;
+  reviewRecordedByUserId: string | null;
+}): boolean {
+  return (
+    revision.reviewedAt != null &&
+    namedClinicalReviewer(revision.reviewerName) != null &&
+    Boolean(revision.reviewRecordedByUserId)
+  );
+}
+
+/**
+ * Platform "reviewed template" policy: a published revision with complete
+ * review evidence. Active + PUBLISHED alone is not reviewed. The demo seed
+ * label is not a clinical reviewer.
  */
 export function isClinicallyReviewedRevision(
   revision: GuideRevisionReviewFields
 ): boolean {
   return (
     revision.status === GuideRevisionStatus.PUBLISHED &&
-    revision.reviewedAt != null &&
-    namedClinicalReviewer(revision.reviewedBy) != null
+    hasCompleteCanonicalReviewEvidence(revision)
   );
 }
 

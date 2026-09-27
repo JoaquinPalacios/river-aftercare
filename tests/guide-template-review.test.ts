@@ -17,14 +17,16 @@ describe("guide template review policy", () => {
       isClinicallyReviewedRevision({
         status: PUBLISHED,
         reviewedAt: null,
-        reviewedBy: null,
+        reviewerName: null,
+        reviewRecordedByUserId: null,
       })
     ).toBe(false);
     expect(
       isSamplePublishedRevision({
         status: PUBLISHED,
         reviewedAt: null,
-        reviewedBy: null,
+        reviewerName: null,
+        reviewRecordedByUserId: null,
       })
     ).toBe(true);
   });
@@ -34,7 +36,19 @@ describe("guide template review policy", () => {
       isClinicallyReviewedRevision({
         status: PUBLISHED,
         reviewedAt: new Date("2026-08-31"),
-        reviewedBy: "Care Guide demo seed",
+        reviewerName: "Care Guide demo seed",
+        reviewRecordedByUserId: "operator-1",
+      })
+    ).toBe(false);
+  });
+
+  it("does not treat a reviewer name without a recording operator as complete", () => {
+    expect(
+      isClinicallyReviewedRevision({
+        status: PUBLISHED,
+        reviewedAt: new Date("2026-09-01"),
+        reviewerName: "Named clinical reviewer",
+        reviewRecordedByUserId: null,
       })
     ).toBe(false);
   });
@@ -44,7 +58,8 @@ describe("guide template review policy", () => {
       isClinicallyReviewedRevision({
         status: PUBLISHED,
         reviewedAt: new Date("2026-09-01"),
-        reviewedBy: "Named clinical reviewer",
+        reviewerName: "Named clinical reviewer",
+        reviewRecordedByUserId: "operator-1",
       })
     ).toBe(true);
   });
@@ -59,7 +74,8 @@ describe("guide template review policy", () => {
             version: 1,
             status: DRAFT,
             reviewedAt: new Date("2026-09-01"),
-            reviewedBy: "Named clinical reviewer",
+            reviewerName: "Named clinical reviewer",
+            reviewRecordedByUserId: "operator-1",
           },
         ],
       })
@@ -75,7 +91,8 @@ describe("guide template review policy", () => {
           version: 1,
           status: PUBLISHED,
           reviewedAt: null,
-          reviewedBy: null,
+          reviewerName: null,
+          reviewRecordedByUserId: null,
         },
       ],
     });
@@ -104,7 +121,8 @@ describe("guide template review policy", () => {
           version: 1,
           status: PUBLISHED,
           reviewedAt: new Date("2026-09-01"),
-          reviewedBy: "Named clinical reviewer",
+          reviewerName: "Named clinical reviewer",
+          reviewRecordedByUserId: "operator-1",
         },
       ],
     });
@@ -135,14 +153,16 @@ describe("guide template review policy", () => {
           version: 1,
           status: PUBLISHED,
           reviewedAt: new Date("2026-09-01"),
-          reviewedBy: "Named clinical reviewer",
+          reviewerName: "Named clinical reviewer",
+          reviewRecordedByUserId: "operator-1",
         },
         {
           id: "v2",
           version: 2,
           status: PUBLISHED,
           reviewedAt: null,
-          reviewedBy: null,
+          reviewerName: null,
+          reviewRecordedByUserId: null,
         },
       ],
     });
@@ -157,14 +177,16 @@ describe("guide template review policy", () => {
           version: 1,
           status: PUBLISHED,
           reviewedAt: new Date("2026-09-01"),
-          reviewedBy: "Named clinical reviewer",
+          reviewerName: "Named clinical reviewer",
+          reviewRecordedByUserId: "operator-1",
         },
         {
           id: "v2",
           version: 2,
           status: PUBLISHED,
           reviewedAt: new Date("2026-09-11"),
-          reviewedBy: "Named clinical reviewer",
+          reviewerName: "Named clinical reviewer",
+          reviewRecordedByUserId: "operator-1",
         },
       ],
     });
@@ -184,14 +206,16 @@ describe("guide template review policy", () => {
             version: 2,
             status: DRAFT,
             reviewedAt: new Date("2026-09-01"),
-            reviewedBy: "Named clinical reviewer",
+            reviewerName: "Named clinical reviewer",
+            reviewRecordedByUserId: "operator-1",
           },
           {
             id: "v1",
             version: 1,
             status: PUBLISHED,
             reviewedAt: null,
-            reviewedBy: null,
+            reviewerName: null,
+            reviewRecordedByUserId: null,
           },
         ],
       }).availability

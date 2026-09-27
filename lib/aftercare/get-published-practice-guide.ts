@@ -22,7 +22,7 @@ import { getPrisma } from "@/lib/prisma";
  * Public patient document. Serve the placement's pinned clinic revision, or
  * the canonical template pin when that clinic revision is null.
  * Do not attach reviewAttestedBy, reviewAttestedAt, MedicalWebPage, or
- * canonical reviewedBy to this shape — ADR 0021.
+ * canonical review provenance to this shape — ADR 0021.
  */
 export interface PublishedPracticeGuideDocument {
   clinic: {

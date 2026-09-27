@@ -148,7 +148,8 @@ async function upsertAftercareDemo(clinicId) {
       status: "PUBLISHED",
       publishedAt: DEMO_EXTRACTION_GUIDE.publishedAt,
       reviewedAt: null,
-      reviewedBy: null,
+      reviewerName: null,
+      reviewRecordedByUserId: null,
     },
     create: {
       id: DEMO_EXTRACTION_GUIDE.revisionId,
@@ -157,7 +158,8 @@ async function upsertAftercareDemo(clinicId) {
       status: "PUBLISHED",
       publishedAt: DEMO_EXTRACTION_GUIDE.publishedAt,
       reviewedAt: null,
-      reviewedBy: null,
+      reviewerName: null,
+      reviewRecordedByUserId: null,
     },
   });
 
@@ -405,7 +407,7 @@ async function main() {
     `- Clinic profile: ${DEMO_CLINIC_PROFILE.displayName} (patient-facing)`
   );
   console.info(
-    `- Aftercare template: ${aftercareDemo.template.title} (${aftercareDemo.template.slug}) revision v${aftercareDemo.revision.version} SAMPLE/NON-CLINICAL demo-only (isSample=true, reviewedAt/reviewedBy null)`
+    `- Aftercare template: ${aftercareDemo.template.title} (${aftercareDemo.template.slug}) revision v${aftercareDemo.revision.version} SAMPLE/NON-CLINICAL demo-only (isSample=true, reviewedAt/reviewerName null)`
   );
   console.info(
     `- Practice guide: ${aftercareDemo.practiceGuide.publicSlug} pinned=${aftercareDemo.revision.id} published/enabled`
