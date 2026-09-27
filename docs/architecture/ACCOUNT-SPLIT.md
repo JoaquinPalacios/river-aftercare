@@ -16,7 +16,7 @@ Operator-only preparation and execution for moving one ClinicSite off a Group Ac
 - Destination-only membership move and session revocation for those users
 - Operator execution UI on a `READY_TO_EXECUTE` preparation
 - Idempotent return of the persisted completed result
-- `operationKind` on the existing preparation. Only `SITE_TO_NEW_ACCOUNT` is enabled
+- `operationKind` on the existing preparation. `SITE_TO_NEW_ACCOUNT` and `LOCATION_TO_NEW_ACCOUNT` are enabled
 - `preparationRevision`, checked by execution and still followed by a live reload
 - Destination-owned branding copies prepared outside the structural transaction
 - Source commercial-conflict blockers for schedules, scheduled plan or capacity, an open downgrade preparation, and a plan that is no longer Group
@@ -27,7 +27,6 @@ Operator-only preparation and execution for moving one ClinicSite off a Group Ac
 
 These structural operations are approved product requirements. `operationKind` can store them, and existing rows default to `SITE_TO_NEW_ACCOUNT`. This release does not implement them, and the UI does not offer them.
 
-- Split one physical Location out of a Practice Account into a new independent Account. That Location would become a Clinic Site on the destination Account. `ClinicLocationRedirect` can store the old location URL, and patient routing can resolve it. Nothing in this release inserts a row or runs that move. The root location is still not movable.
 - Move an existing Clinic Site into another existing Group Account.
 - Split or move a Clinic Site directly into a new Group Account.
 
@@ -38,7 +37,7 @@ Today's only operation is the Group Clinic Site split described above. Essential
 - Multi-account login or session Account selection
 - Group → Practice Stripe conversion, source plan change, or guide deletion (PR C)
 - Deleting source branding objects, or cleaning orphan destination copies
-- Location promotion, moving a Site into an existing Group, and moving a Site into a new Group
+- Moving a Site into an existing Group, and moving a Site into a new Group
 - Moving outstanding source invitations
 - Merging into a populated Account
 
@@ -242,7 +241,7 @@ The filesystem adapter rejects a key outside the acting clinic prefix. The R2 ad
 
 ## Source commercial conflicts
 
-These block `SITE_TO_NEW_ACCOUNT` even when destination billing is ready: source plan is not Group, `stripeSubscriptionScheduleId` is set, `scheduledCommercialPlan` is set, `scheduledAdditionalSiteQuantity` or `scheduledCapacityEffectiveAt` is set, an open `ClinicDowngradePreparation` exists, or another non-terminal structural preparation exists. `offeredAdditionalSiteQuantity` does not block. `PAST_DUE`, cancel-at-period-end, `RESTRICTED`, `UNPAID`, and `ENDED` are warnings on the split page and do not block.
+These block `SITE_TO_NEW_ACCOUNT` even when destination billing is ready: source plan is not Group, `stripeSubscriptionScheduleId` is set, `scheduledCommercialPlan` is set, `scheduledAdditionalSiteQuantity` or `scheduledCapacityEffectiveAt` is set, an open `ClinicDowngradePreparation` exists, or another non-terminal structural preparation exists. `LOCATION_TO_NEW_ACCOUNT` uses the same schedule, downgrade, and conflicting-preparation blockers, and it blocks when the source plan is not Practice. A Practice destination also blocks when `purchasedAdditionalLocationQuantity` is null. `offeredAdditionalSiteQuantity` does not block. `PAST_DUE`, cancel-at-period-end, `RESTRICTED`, `UNPAID`, and `ENDED` are warnings and do not block. Moving a location does not reduce source purchased or complimentary location capacity.
 
 ## Legacy branding audit
 
@@ -252,11 +251,23 @@ These block `SITE_TO_NEW_ACCOUNT` even when destination billing is ready: source
 
 Both commands are read-only. They print `Affected completed splits: N` only after the query succeeds, with preparation id, source clinic id, destination clinic id, site id, and field names. A Prisma or database failure exits non-zero and does not print a zero count. They do not print credentials or URLs. An empty production result means no legacy repair is required. Affected rows wait for a separate explicit repair.
 
+## Move location to new account
+
+`LOCATION_TO_NEW_ACCOUNT` moves one active non-root location from a Practice Account onto a new Essential or Practice Account. The source Clinic Site and its root location stay. Essential, Group, a root location, and an existing destination Account are rejected. Group structural moves are not implemented.
+
+The operator confirms `destinationSiteSlug` before billing can be ready. That confirmation does not create a Clinic Site. `createSplitDestinationAccount` still creates only `Clinic` and `ClinicProfile`. Cutover creates the destination Clinic Site inside the structural transaction, reuses the same `ClinicLocation` row, and promotes it to that site's root (`servesSiteRoot`, null slug, primary). If the departing location was primary, the source root becomes primary. The old public path is kept by one `ClinicLocationRedirect` from the source site and the old slug to the new site.
+
+Guides are copied only when they have a placement on the moving location, including disabled placements. A guide that is also placed elsewhere stays on the source. The destination receives its own `PracticeGuide` row. Placements are deleted and reinserted with the same ids and public slugs on the destination root, so `/{oldLocationSlug}/{guideSlug}` becomes `/{guideSlug}`.
+
+Branding is copied from the source Clinic Site with the existing destination-owned key map, outside the transaction. Source purchased location quantity and complimentary location allowance are not reduced. Staff remain source-only or destination-only. The confirmation phrase is `move {destinationSiteSlug}`. There is no reviewed-slug column: the live location slug under the locks is the slug that was selected, and changing the selected location increments `preparationRevision`.
+
+The structural transaction does not call Stripe, object storage, or email. `COMPLETED` is the last write. A retry returns the stored result and does not create a second site, guide copy, membership, or redirect. The root location move remains unsupported.
+
 ## Location redirect infrastructure
 
-`ClinicLocationRedirect` is storage for a future non-root Location promotion. It is not a general redirect table. One row is the source `ClinicSite`, the retired location slug, the destination `ClinicSite`, and the originating preparation. The destination hostname is not stored. Request time builds it from the destination site slug with the same tenant URL helper as other patient links.
+`ClinicLocationRedirect` stores the retired non-root location slug after `LOCATION_TO_NEW_ACCOUNT`. It is not a general redirect table. One row is the source `ClinicSite`, the retired location slug, the destination `ClinicSite`, and the originating preparation. The destination hostname is not stored. Request time builds it from the destination site slug with the same tenant URL helper as other patient links.
 
-No production path creates a row. `createClinicLocationRedirect` is a database-only helper for the future cutover transaction and for tests. The same source site, slug, and destination can be retried. A different destination conflicts. The source and destination sites cannot be the same site. `executeClinicAccountSplit` does not call it. A Group Site move keeps the site slug, so it does not need a redirect.
+`createClinicLocationRedirect` runs inside the location cutover transaction. The same source site, slug, and destination can be retried. A different destination conflicts. The source and destination sites cannot be the same site. `lib/account-split/execute.ts` does not call it. A Group Site move keeps the site slug, so it does not create a redirect.
 
 Patient lookup runs on the source tenant after an enabled root guide and an active location both fail. The response is Next.js `permanentRedirect` (308), not an HTML or script redirect. There is no expiry. `/{locationSlug}/print` is not a location URL and is not redirected. A retired slug is reserved only on that source site, through `assertLocationSlugAvailable` and `assertRootGuideSlugAvailable`. Location slug editing is not supported. `proxy.ts` stays database-free. It forwards the requested path so the tenant layout can see it. It does not look up a redirect.
 
@@ -266,4 +277,4 @@ Deleting a preparation sets `preparationId` null and keeps the redirect. Deletin
 
 ## Migration
 
-`20260925190000_add_account_split_preparation` is additive. `20260927020000_add_account_structure_foundation` adds `operationKind` (existing rows `SITE_TO_NEW_ACCOUNT`), `preparationRevision`, nullable `sourceLocationId` and `destinationSiteSlug`, branding-asset and event tables, and replaces the lifetime destination unique index with a non-terminal one. It does not drop structural rows. Destination plan remains Essential or Practice. `20260927043000_add_clinic_location_redirect` adds `ClinicLocationRedirect` only. It does not enable a Location move. Do not apply migrations to production from Cursor. Production stays on the reviewed `prod:db:*` gate.
+`20260925190000_add_account_split_preparation` is additive. `20260927020000_add_account_structure_foundation` adds `operationKind` (existing rows `SITE_TO_NEW_ACCOUNT`), `preparationRevision`, nullable `sourceLocationId` and `destinationSiteSlug`, branding-asset and event tables, and replaces the lifetime destination unique index with a non-terminal one. It does not drop structural rows. Destination plan remains Essential or Practice. `20260927043000_add_clinic_location_redirect` adds `ClinicLocationRedirect` only. Location move execution uses that table and does not add a migration. Schema comments that still describe location move as reserved are unchanged, because any `schema.prisma` edit fails the release gate unless a new migration is added. Do not apply migrations to production from Cursor. Production stays on the reviewed `prod:db:*` gate.

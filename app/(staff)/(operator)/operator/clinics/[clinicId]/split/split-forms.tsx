@@ -4,10 +4,13 @@ import { useActionState } from "react";
 
 import {
   cancelSplitPreparationAction,
+  confirmLocationDestinationSlugAction,
+  createLocationMovePreparationAction,
   createSplitPreparationAction,
   createSplitShellAction,
   executeSplitAction,
   prepareSplitBrandingAction,
+  saveLocationMoveSelectionAction,
   saveSplitSiteDecisionsAction,
   saveSplitStaffAction,
   updateSplitTargetAction,
@@ -322,10 +325,12 @@ export function CreateSplitShellForm({
   sourceClinicId,
   preparationId,
   disabled,
+  label = "Create destination shell",
 }: {
   sourceClinicId: string;
   preparationId: string;
   disabled: boolean;
+  label?: string;
 }) {
   const [state, action, pending] = useActionState(
     createSplitShellAction,
@@ -341,7 +346,7 @@ export function CreateSplitShellForm({
         disabled={pending || disabled}
         className="staffBtn staffBtnPrimary w-fit"
       >
-        {pending ? "Creating…" : "Create destination shell"}
+        {pending ? "Creating…" : label}
       </button>
     </form>
   );
@@ -350,9 +355,11 @@ export function CreateSplitShellForm({
 export function PrepareSplitBrandingForm({
   sourceClinicId,
   preparationId,
+  description = "Copy the moving Clinic Site logo, dark logo, and favicon onto the destination Account before execution. This does not move the Site.",
 }: {
   sourceClinicId: string;
   preparationId: string;
+  description?: string;
 }) {
   const [state, action, pending] = useActionState(
     prepareSplitBrandingAction,
@@ -362,10 +369,7 @@ export function PrepareSplitBrandingForm({
     <form action={action} className="mt-4 flex flex-col gap-3">
       <input type="hidden" name="sourceClinicId" value={sourceClinicId} />
       <input type="hidden" name="preparationId" value={preparationId} />
-      <p className="text-sm text-staff-muted">
-        Copy the moving Clinic Site logo, dark logo, and favicon onto the
-        destination Account before execution. This does not move the Site.
-      </p>
+      <p className="text-sm text-staff-muted">{description}</p>
       <FieldError message={state.error} />
       <button
         type="submit"
@@ -383,11 +387,13 @@ export function ExecuteSplitForm({
   preparationId,
   preparationRevision,
   confirmationPhrase,
+  submitLabel = "Execute split",
 }: {
   sourceClinicId: string;
   preparationId: string;
   preparationRevision: number;
   confirmationPhrase: string;
+  submitLabel?: string;
 }) {
   const [state, action, pending] = useActionState(executeSplitAction, initial);
   return (
@@ -418,7 +424,7 @@ export function ExecuteSplitForm({
         disabled={pending}
         className="staffBtn staffBtnPrimary w-fit"
       >
-        {pending ? "Executing…" : "Execute split"}
+        {pending ? "Executing…" : submitLabel}
       </button>
     </form>
   );
@@ -444,5 +450,238 @@ export function CancelSplitPreparationForm({
         {pending ? "Cancelling…" : "Cancel preparation"}
       </button>
     </form>
+  );
+}
+
+export type LocationMoveOption = {
+  id: string;
+  clinicSiteId: string;
+  siteName: string;
+  name: string;
+  slug: string;
+  address: string;
+  active: boolean;
+  servesSiteRoot: boolean;
+  isPrimary: boolean;
+  eligible: boolean;
+};
+
+export function CreateLocationMovePreparationForm({
+  sourceClinicId,
+  locations,
+}: {
+  sourceClinicId: string;
+  locations: LocationMoveOption[];
+}) {
+  const [state, action, pending] = useActionState(
+    createLocationMovePreparationAction,
+    initial
+  );
+  const eligible = locations.filter((location) => location.eligible);
+  return (
+    <form action={action} className="mt-4 flex flex-col gap-4">
+      <input type="hidden" name="sourceClinicId" value={sourceClinicId} />
+      <LocationChoiceTable locations={locations} />
+      <label className="flex flex-col gap-2 text-sm">
+        <span className="font-medium">Location to move</span>
+        <select
+          name="sourceLocationId"
+          required
+          defaultValue=""
+          className="h-11 rounded-md border border-staff-line bg-staff-panel px-3"
+        >
+          <option value="" disabled>
+            Choose one non-root location
+          </option>
+          {eligible.map((location) => (
+            <option
+              key={location.id}
+              value={`${location.clinicSiteId}:${location.id}`}
+            >
+              {location.siteName} · {location.name} · /{location.slug}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="font-medium">Destination plan</span>
+          <select
+            name="destinationPlan"
+            required
+            defaultValue="ESSENTIAL"
+            className="h-11 rounded-md border border-staff-line bg-staff-panel px-3"
+          >
+            <option value="ESSENTIAL">Essential</option>
+            <option value="PRACTICE">Practice</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="font-medium">Destination billing</span>
+          <select
+            name="destinationBillingInterval"
+            required
+            defaultValue="MONTHLY"
+            className="h-11 rounded-md border border-staff-line bg-staff-panel px-3"
+          >
+            <option value="MONTHLY">Monthly</option>
+            <option value="YEARLY">Yearly</option>
+          </select>
+        </label>
+      </div>
+      <p className="text-sm text-staff-muted">
+        The destination is a new Account. Group and an existing Account are not
+        available. This move is not reversed automatically.
+      </p>
+      <FieldError message={state.error} />
+      <button
+        type="submit"
+        disabled={pending || eligible.length === 0}
+        className="staffBtn staffBtnPrimary w-fit"
+      >
+        {pending ? "Starting…" : "Start preparation"}
+      </button>
+    </form>
+  );
+}
+
+export function SaveLocationMoveSelectionForm({
+  sourceClinicId,
+  preparationId,
+  locations,
+  selectedLocationId,
+}: {
+  sourceClinicId: string;
+  preparationId: string;
+  locations: LocationMoveOption[];
+  selectedLocationId: string | null;
+}) {
+  const [state, action, pending] = useActionState(
+    saveLocationMoveSelectionAction,
+    initial
+  );
+  const eligible = locations.filter((location) => location.eligible);
+  return (
+    <form action={action} className="mt-4 flex flex-col gap-4">
+      <input type="hidden" name="sourceClinicId" value={sourceClinicId} />
+      <input type="hidden" name="preparationId" value={preparationId} />
+      <label className="flex flex-col gap-2 text-sm">
+        <span className="font-medium">Location to move</span>
+        <select
+          name="sourceLocationId"
+          required
+          defaultValue={selectedLocationId ?? ""}
+          className="h-11 rounded-md border border-staff-line bg-staff-panel px-3"
+        >
+          {eligible.map((location) => (
+            <option key={location.id} value={location.id}>
+              {location.name} · /{location.slug}
+              {location.isPrimary ? " · primary" : ""}
+            </option>
+          ))}
+        </select>
+      </label>
+      <FieldError message={state.error} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="staffBtn staffBtnPrimary w-fit"
+      >
+        {pending ? "Saving…" : "Save location"}
+      </button>
+    </form>
+  );
+}
+
+export function ConfirmLocationDestinationSlugForm({
+  sourceClinicId,
+  preparationId,
+  confirmedSlug,
+  suggestion,
+}: {
+  sourceClinicId: string;
+  preparationId: string;
+  confirmedSlug: string | null;
+  suggestion: string;
+}) {
+  const [state, action, pending] = useActionState(
+    confirmLocationDestinationSlugAction,
+    initial
+  );
+  return (
+    <form action={action} className="mt-4 flex flex-col gap-3">
+      <input type="hidden" name="sourceClinicId" value={sourceClinicId} />
+      <input type="hidden" name="preparationId" value={preparationId} />
+      <label className="flex flex-col gap-2 text-sm">
+        <span className="font-medium">Destination Clinic Site address</span>
+        <input
+          name="destinationSiteSlug"
+          required
+          defaultValue={confirmedSlug ?? ""}
+          placeholder={suggestion}
+          autoComplete="off"
+          spellCheck={false}
+          className="h-11 rounded-md border border-staff-line bg-staff-panel px-3 font-mono"
+        />
+      </label>
+      <p className="text-sm text-staff-muted">
+        Suggested from the location name:{" "}
+        <span className="font-mono">{suggestion}</span>. Confirm the address
+        before billing can be ready. Saving the same address again does not
+        change the review.
+      </p>
+      <FieldError message={state.error} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="staffBtn staffBtnPrimary w-fit"
+      >
+        {pending ? "Saving…" : "Confirm destination address"}
+      </button>
+    </form>
+  );
+}
+
+function LocationChoiceTable({
+  locations,
+}: {
+  locations: LocationMoveOption[];
+}) {
+  if (locations.length === 0) {
+    return null;
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[40rem] text-left text-sm">
+        <thead className="text-staff-muted">
+          <tr>
+            <th className="py-2 pr-3 font-medium">Site</th>
+            <th className="py-2 pr-3 font-medium">Location</th>
+            <th className="py-2 pr-3 font-medium">Address</th>
+            <th className="py-2 pr-3 font-medium">Public path</th>
+            <th className="py-2 pr-3 font-medium">Root</th>
+            <th className="py-2 pr-3 font-medium">Active</th>
+            <th className="py-2 font-medium">Primary</th>
+          </tr>
+        </thead>
+        <tbody>
+          {locations.map((location) => (
+            <tr key={location.id} className="border-t border-staff-line">
+              <td className="py-2 pr-3">{location.siteName}</td>
+              <td className="py-2 pr-3">{location.name}</td>
+              <td className="py-2 pr-3">{location.address}</td>
+              <td className="py-2 pr-3 font-mono">
+                {location.slug ? `/${location.slug}` : "Site root"}
+              </td>
+              <td className="py-2 pr-3">
+                {location.servesSiteRoot ? "Yes" : "No"}
+              </td>
+              <td className="py-2 pr-3">{location.active ? "Yes" : "No"}</td>
+              <td className="py-2">{location.isPrimary ? "Yes" : "No"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

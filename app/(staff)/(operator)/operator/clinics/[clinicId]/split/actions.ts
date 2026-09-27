@@ -7,11 +7,14 @@ import { executeClinicAccountSplit } from "@/lib/account-split/execute";
 import { prepareAccountSplitBranding } from "@/lib/account-split/branding";
 import {
   cancelAccountSplitPreparation,
+  confirmLocationDestinationSiteSlug,
   createAccountSplitPreparation,
+  createLocationToNewAccountPreparation,
   createSplitDestinationAccount,
   revalidateAccountSplitPreparation,
   saveAccountSplitSiteDecisions,
   saveAccountSplitStaffSelections,
+  saveLocationToNewAccountSelection,
   updateAccountSplitDestinationTarget,
 } from "@/lib/account-split/preparation";
 import { isClinicPortalError } from "@/lib/clinic-portal/errors";
@@ -236,6 +239,83 @@ export async function executeSplitAction(
     return {};
   } catch (error) {
     revalidatePath(splitPath(sourceClinicId));
+    return failure(error);
+  }
+}
+
+export async function createLocationMovePreparationAction(
+  _previous: SplitActionState,
+  formData: FormData
+): Promise<SplitActionState> {
+  const { user } = await requireAccountSplitOperator();
+  const sourceClinicId = String(formData.get("sourceClinicId") ?? "");
+  const destinationPlan = formData.get("destinationPlan");
+  const destinationBillingInterval = formData.get("destinationBillingInterval");
+  if (destinationPlan !== "ESSENTIAL" && destinationPlan !== "PRACTICE") {
+    return {
+      error: "Choose Essential or Practice for the destination Account.",
+    };
+  }
+  if (
+    destinationBillingInterval !== "MONTHLY" &&
+    destinationBillingInterval !== "YEARLY"
+  ) {
+    return { error: "Choose monthly or yearly billing." };
+  }
+  const selected = String(formData.get("sourceLocationId") ?? "");
+  const separator = selected.indexOf(":");
+  const sourceClinicSiteId = separator > 0 ? selected.slice(0, separator) : "";
+  const sourceLocationId = separator > 0 ? selected.slice(separator + 1) : "";
+  try {
+    await createLocationToNewAccountPreparation({
+      sourceClinicId,
+      sourceClinicSiteId,
+      sourceLocationId,
+      destinationPlan,
+      destinationBillingInterval,
+      operatorUserId: user.id,
+    });
+    revalidatePath(splitPath(sourceClinicId));
+    return {};
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function saveLocationMoveSelectionAction(
+  _previous: SplitActionState,
+  formData: FormData
+): Promise<SplitActionState> {
+  await requireAccountSplitOperator();
+  const preparationId = String(formData.get("preparationId") ?? "");
+  const sourceClinicId = String(formData.get("sourceClinicId") ?? "");
+  try {
+    await saveLocationToNewAccountSelection({
+      preparationId,
+      sourceLocationId: String(formData.get("sourceLocationId") ?? ""),
+    });
+    revalidatePath(splitPath(sourceClinicId));
+    return {};
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function confirmLocationDestinationSlugAction(
+  _previous: SplitActionState,
+  formData: FormData
+): Promise<SplitActionState> {
+  await requireAccountSplitOperator();
+  const preparationId = String(formData.get("preparationId") ?? "");
+  const sourceClinicId = String(formData.get("sourceClinicId") ?? "");
+  try {
+    await confirmLocationDestinationSiteSlug({
+      preparationId,
+      destinationSiteSlug: String(formData.get("destinationSiteSlug") ?? ""),
+    });
+    revalidatePath(splitPath(sourceClinicId));
+    return {};
+  } catch (error) {
     return failure(error);
   }
 }
