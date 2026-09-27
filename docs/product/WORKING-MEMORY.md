@@ -79,6 +79,8 @@ Canonical detail: [../launch/NEON-RECOVERY.md](../launch/NEON-RECOVERY.md).
 
 ## Durable Cursor Cloud environment rule
 
+Package manager is pinned to `pnpm@12.6.0` (`packageManager`, `engines.pnpm` `^12.6.0`). `.cursor/Dockerfile` activates that exact version with Corepack because the image does not copy the repository. `scripts/cursor-cloud-install.sh` runs `corepack prepare --activate`, which reads `packageManager`. pnpm 12 records that pin as the leading env document in `pnpm-lock.yaml`. The project dependency document stays lockfileVersion 9.0. `pnpm-workspace.yaml` still has `allowBuilds` and `ignoredBuiltDependencies`; pnpm 12.6.0 accepts both.
+
 Cursor Cloud development uses an isolated local PostgreSQL 18 container (`care_guide`, Playwright on `care_guide_e2e`). It does not use production Neon, R2, Resend, Stripe, Vercel, Sentry, or Cloudflare credentials. Disposable Admin, Staff, and Operator accounts come from `CLOUD_*` Cursor variables when a complete pair is present, otherwise from `LOCAL_*`. `AUTH_SECRET` is a Cloud-only Runtime Secret and is never committed. Hostname tenancy stays `*.localhost` inside the VM. `pnpm test:e2e` builds `.next-e2e` with `CARE_GUIDE_METADATA_BASE=http://localhost:4173`. The Cloud dev server and `pnpm build` stay on `.next` and port 3000.
 
 Any change to development or runtime requirements reviews `.cursor/environment.json`, `.cursor/Dockerfile`, and this contract in the same branch. Canonical detail: [../development/CURSOR-CLOUD.md](../development/CURSOR-CLOUD.md).

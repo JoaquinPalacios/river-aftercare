@@ -36,14 +36,14 @@ Cursor checks out the repository itself. `.cursor/Dockerfile` does not `COPY` th
 
 ## Runtime requirements
 
-| Tool       | Requirement                                                                                          |
-| ---------- | ---------------------------------------------------------------------------------------------------- |
-| Node.js    | 24.x LTS. The image installs Node `24.21.0` (`.nvmrc` is `24`, `engines.node` is `^24.0.0`).         |
-| pnpm       | Exact `packageManager` pin, currently `pnpm@11.24.0`, activated with Corepack.                       |
-| PostgreSQL | 18, via Compose service `postgres` using `postgres:18-alpine`.                                       |
-| Prisma     | Stable 7.x (`PrismaPg` + `pg`). Generate during install. Deploy committed migrations during startup. |
-| Next.js    | `pnpm exec next dev --hostname 0.0.0.0 --port 3000` in the `next-dev` terminal.                      |
-| Playwright | Chromium, installed with OS dependencies during install.                                             |
+| Tool       | Requirement                                                                                                                                                                                                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Node.js    | 24.x LTS. The image installs Node `24.21.0` (`.nvmrc` is `24`, `engines.node` is `^24.0.0`).                                                                                                                                                                                                           |
+| pnpm       | Exact `packageManager` pin, currently `pnpm@12.6.0`. The image runs `corepack prepare pnpm@12.6.0 --activate` because the Dockerfile does not copy the repository. After checkout, `scripts/cursor-cloud-install.sh` runs `corepack prepare --activate`, which reads that same `packageManager` field. |
+| PostgreSQL | 18, via Compose service `postgres` using `postgres:18-alpine`.                                                                                                                                                                                                                                         |
+| Prisma     | Stable 7.x (`PrismaPg` + `pg`). Generate during install. Deploy committed migrations during startup.                                                                                                                                                                                                   |
+| Next.js    | `pnpm exec next dev --hostname 0.0.0.0 --port 3000` in the `next-dev` terminal.                                                                                                                                                                                                                        |
+| Playwright | Chromium, installed with OS dependencies during install.                                                                                                                                                                                                                                               |
 
 Docker Compose is the local PostgreSQL mechanism. The Cloud image follows Cursor's current nested-Docker pattern: Docker CE, the Compose plugin, `fuse-overlayfs`, and `iptables-legacy`, with the `ubuntu` user in the `docker` group. See [Cloud Environment Setup](https://cursor.com/docs/cloud-agent/setup). Do not invent a different daemon configuration.
 

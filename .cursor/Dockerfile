@@ -26,7 +26,7 @@ RUN curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-l
     && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
     && rm /tmp/node.tar.xz \
     && corepack enable \
-    && corepack prepare pnpm@11.24.0 --activate
+    && corepack prepare pnpm@12.6.0 --activate
 
 # Cursor's documented nested-Docker setup (fuse-overlayfs + iptables-legacy).
 # https://cursor.com/docs/cloud-agent/setup

@@ -15,6 +15,10 @@ const install = readFileSync("scripts/cursor-cloud-install.sh", "utf8");
 const start = readFileSync("scripts/cursor-cloud-start.sh", "utf8");
 const gitignore = readFileSync(".gitignore", "utf8");
 const agents = readFileSync("AGENTS.md", "utf8");
+const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+  packageManager?: string;
+  engines?: { pnpm?: string };
+};
 
 describe("Cursor Cloud environment contract", () => {
   it("tracks only the Cloud definition under .cursor", () => {
@@ -56,6 +60,23 @@ describe("Cursor Cloud environment contract", () => {
     expect(start).toContain("DIRECT_URL");
     expect(start).toContain("address=/localhost/127.0.0.1");
     expect(start).not.toContain("/etc/hosts");
+  });
+
+  it("pins the same exact pnpm version locally and in the Cloud image", () => {
+    const packageManager = packageJson.packageManager ?? "";
+    expect(packageManager).toMatch(/^pnpm@\d+\.\d+\.\d+$/);
+    const version = packageManager.slice("pnpm@".length);
+    expect(packageJson.engines?.pnpm).toBe(`^${version}`);
+    expect(dockerfile).toContain(
+      `corepack prepare ${packageManager} --activate`
+    );
+    expect(dockerfile).not.toMatch(/pnpm@11\b/);
+    expect(dockerfile).not.toMatch(/pnpm@(latest|12)(\s|--)/);
+    expect(install).toContain("corepack prepare --activate");
+    expect(install).not.toMatch(/pnpm@11\b/);
+    const guide = readFileSync("docs/development/CURSOR-CLOUD.md", "utf8");
+    expect(guide).toContain(packageManager);
+    expect(agents).toContain("Review is required for Node, pnpm,");
   });
 
   it("documents the Cloud maintenance contract for future agents", () => {
