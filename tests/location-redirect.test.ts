@@ -140,6 +140,9 @@ async function seedClinic(key: string, siteSlug: string) {
       displayName: key,
       active: true,
       isPrimary: true,
+      serviceCategories: {
+        create: { serviceCategory: "DENTAL" },
+      },
     },
   });
   await db().clinicLocation.create({
@@ -599,7 +602,11 @@ describe("clinic location redirects", () => {
     const guide = await createCustomPracticeGuide({
       clinicId: source.clinicId,
       actorUserId: source.userId,
-      values: { title: "West", publicSlug: "west-end" },
+      values: {
+        title: "West",
+        publicSlug: "west-end",
+        serviceCategory: "DENTAL",
+      },
     });
     await savePracticeGuideDraft({
       clinicId: source.clinicId,
@@ -723,7 +730,11 @@ describe("clinic location redirects", () => {
     const draft = await createCustomPracticeGuide({
       clinicId: source.clinicId,
       actorUserId: source.userId,
-      values: { title: "Safe", publicSlug: "safe-guide" },
+      values: {
+        title: "Safe",
+        publicSlug: "safe-guide",
+        serviceCategory: "DENTAL",
+      },
     });
     await expect(
       savePracticeGuideDraft({
@@ -757,14 +768,22 @@ describe("clinic location redirects", () => {
       createCustomPracticeGuide({
         clinicId: source.clinicId,
         actorUserId: source.userId,
-        values: { title: "Taken", publicSlug: "west-end" },
+        values: {
+          title: "Taken",
+          publicSlug: "west-end",
+          serviceCategory: "DENTAL",
+        },
       })
     ).rejects.toThrow(RETIRED_LOCATION_SLUG_MESSAGE);
 
     const movable = await createCustomPracticeGuide({
       clinicId: source.clinicId,
       actorUserId: source.userId,
-      values: { title: "Later", publicSlug: "later-guide" },
+      values: {
+        title: "Later",
+        publicSlug: "later-guide",
+        serviceCategory: "DENTAL",
+      },
     });
     await savePracticeGuideDraft({
       clinicId: source.clinicId,
@@ -876,7 +895,11 @@ describe("clinic location redirects", () => {
     const published = await createCustomPracticeGuide({
       clinicId: source.clinicId,
       actorUserId: source.userId,
-      values: { title: "Live", publicSlug: "live-guide" },
+      values: {
+        title: "Live",
+        publicSlug: "live-guide",
+        serviceCategory: "DENTAL",
+      },
     });
     await savePracticeGuideDraft({
       clinicId: source.clinicId,
@@ -916,7 +939,11 @@ describe("clinic location redirects", () => {
       createCustomPracticeGuide({
         clinicId: source.clinicId,
         actorUserId: source.userId,
-        values: { title: "Clash", publicSlug: "kept-slug" },
+        values: {
+          title: "Clash",
+          publicSlug: "kept-slug",
+          serviceCategory: "DENTAL",
+        },
       })
     ).rejects.toThrow(/already used by a location/);
   });
@@ -966,7 +993,11 @@ describe("clinic location redirects", () => {
     const guide = await createCustomPracticeGuide({
       clinicId: source.clinicId,
       actorUserId: source.userId,
-      values: { title: "Root", publicSlug: "root-guide" },
+      values: {
+        title: "Root",
+        publicSlug: "root-guide",
+        serviceCategory: "DENTAL",
+      },
     });
     await savePracticeGuideDraft({
       clinicId: source.clinicId,

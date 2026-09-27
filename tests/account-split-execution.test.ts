@@ -805,7 +805,7 @@ describe("account split execution", () => {
       data: {
         slug: "asx-template-hist",
         title: "Template",
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         revisions: {
           create: {
             id: `${PREFIX}tpl_hist`,
@@ -861,11 +861,21 @@ describe("account split execution", () => {
               sections: {
                 create: {
                   key: "later",
-                  kind: GuideSectionKind.SITE_CARE,
+                  kind: GuideSectionKind.HOME_CARE_PLAN,
                   title: "Later",
                   body: "Later body",
                   sortOrder: 0,
                   provenance: PracticeSectionProvenance.PRACTICE_CUSTOM,
+                  homeCareInstructions: {
+                    create: {
+                      key: "return-review",
+                      title: "Return for review",
+                      body: null,
+                      durationValue: 4,
+                      durationUnit: "WEEKS",
+                      sortOrder: 1,
+                    },
+                  },
                 },
               },
             },
@@ -890,6 +900,7 @@ describe("account split execution", () => {
         clinicId: account.clinicId,
         title: "Moving only",
         publicSlug: "moving-only",
+        serviceCategory: "PHYSIOTHERAPY",
         status: PracticeGuideStatus.DRAFT,
         isEnabled: false,
         sourceGuideTemplateId: template.id,
@@ -962,6 +973,20 @@ describe("account split execution", () => {
         additions: true,
       },
     });
+    await db().clinicSiteServiceCategory.createMany({
+      data: [
+        {
+          clinicSiteId: move.id,
+          clinicId: account.clinicId,
+          serviceCategory: "CHIROPRACTIC",
+        },
+        {
+          clinicSiteId: move.id,
+          clinicId: account.clinicId,
+          serviceCategory: "PHYSIOTHERAPY",
+        },
+      ],
+    });
     const ready = await prepareReady({ account });
     await executePrepared({
       preparationId: ready.preparationId,
@@ -1009,9 +1034,35 @@ describe("account split execution", () => {
     );
     expect(sharedCopy?.downgradeRetainedAt).toBeNull();
     expect(onlyCopy?.sourceGuideTemplateId).toBe(template.id);
+    expect(onlyCopy?.serviceCategory).toBe("PHYSIOTHERAPY");
     expect(onlyCopy?.adaptedAt).toEqual(new Date("2026-07-01T00:00:00.000Z"));
     expect(onlyCopy?.downgradeRetainedAt).toBeNull();
     expect(onlyCopy?.downgradeRetentionUntil).toBeNull();
+    const copiedPlan = await db().practiceGuideHomeCareInstruction.findFirst({
+      where: {
+        section: {
+          key: "later",
+          revision: { practiceGuideId: sharedCopy?.id, version: 2 },
+        },
+      },
+    });
+    expect(copiedPlan).toMatchObject({
+      key: "return-review",
+      title: "Return for review",
+      durationValue: 4,
+      durationUnit: "WEEKS",
+      frequencyCount: null,
+    });
+    const movedCategories = await db().clinicSiteServiceCategory.findMany({
+      where: { clinicSiteId: move.id },
+    });
+    expect(movedCategories.map((row) => row.serviceCategory).sort()).toEqual([
+      "CHIROPRACTIC",
+      "PHYSIOTHERAPY",
+    ]);
+    expect(
+      movedCategories.every((row) => row.clinicId === ready.destinationId)
+    ).toBe(true);
     const disabled = await db().practiceGuidePlacement.findUniqueOrThrow({
       where: { id: disabledId },
     });

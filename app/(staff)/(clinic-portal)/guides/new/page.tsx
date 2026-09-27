@@ -20,7 +20,16 @@ export const metadata: Metadata = {
 
 export default async function CreateGuidePage() {
   const { clinicMembership } = await requireClinicAdmin();
-  const [{ templates, isDemoTenant }, allowance, links] = await Promise.all([
+  const [
+    {
+      templates,
+      isDemoTenant,
+      templatesNeedServiceCategories,
+      serviceCategories,
+    },
+    allowance,
+    links,
+  ] = await Promise.all([
     listCanonicalGuideTemplates(clinicMembership.clinic.id),
     loadGuideAllowance(clinicMembership.clinic.id),
     marketingPublicLinks(),
@@ -48,6 +57,8 @@ export default async function CreateGuidePage() {
       <CreateGuideForm
         templates={templates}
         isDemoTenant={isDemoTenant}
+        templatesNeedServiceCategories={templatesNeedServiceCategories}
+        serviceCategories={serviceCategories}
         allowance={allowance}
         contactHref={marketingContactHref(links)}
       />

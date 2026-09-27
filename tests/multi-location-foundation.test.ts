@@ -804,7 +804,7 @@ describeDb("multi-location foundation database", () => {
     await prisma().guideTemplate.create({
       data: {
         id: `${PREFIX}template`,
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         slug: "mlfnd-canonical",
         title: "Canonical extraction",
       },

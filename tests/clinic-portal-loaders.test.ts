@@ -136,7 +136,7 @@ describe("clinic portal loaders", () => {
         guideTemplate: {
           title: "Tooth Extraction",
           slug: "extraction",
-          specialty: "DENTAL",
+          serviceCategory: "DENTAL",
         },
         pinnedRevision: { status: GuideRevisionStatus.PUBLISHED },
         placements: [{ publicSlug: "extraction" }],
@@ -160,7 +160,7 @@ describe("clinic portal loaders", () => {
         guideTemplate: {
           title: "Draft Guide",
           slug: "draft-guide",
-          specialty: "DENTAL",
+          serviceCategory: "DENTAL",
         },
         pinnedRevision: { status: GuideRevisionStatus.DRAFT },
         placements: [{ publicSlug: "draft-guide" }],

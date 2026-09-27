@@ -32,6 +32,7 @@ import { publishPracticeGuide } from "@/lib/clinic-portal/publish-practice-guide
 import { savePracticeGuideDraft } from "@/lib/clinic-portal/save-practice-guide-draft";
 import { unpublishPracticeGuide } from "@/lib/clinic-portal/unpublish-practice-guide";
 import { countActiveSiteLocationUsage } from "@/lib/clinics/site-location-capacity";
+import { assignPrimarySiteServiceCategories } from "@/lib/clinics/site-service-categories";
 import {
   createClinicLocation,
   createClinicSiteWithRootLocation,
@@ -101,6 +102,7 @@ function siteInput(siteName: string, siteSlug: string, locationName: string) {
     siteSlug,
     locationName,
     locationDisplayName: locationName,
+    serviceCategories: [],
     ...locationInput(locationName),
   };
 }
@@ -220,13 +222,16 @@ async function publishGuide(input: {
   guideId?: string;
 }): Promise<{ guideId: string; version: number; revisionId: string }> {
   const title = input.title ?? "Extraction";
+  if (!input.guideId) {
+    await assignPrimarySiteServiceCategories(db(), input.clinicId, ["DENTAL"]);
+  }
   const guideId =
     input.guideId ??
     (
       await createCustomPracticeGuide({
         clinicId: input.clinicId,
         actorUserId: input.userId,
-        values: { title, publicSlug: input.slug },
+        values: { title, publicSlug: input.slug, serviceCategory: "DENTAL" },
       })
     ).id;
   await savePracticeGuideDraft({
@@ -590,13 +595,21 @@ describe("multi-location product", () => {
       createCustomPracticeGuide({
         clinicId: account.clinicId,
         actorUserId: account.userId,
-        values: { title: "Clash", publicSlug: "broadbeach" },
+        values: {
+          title: "Clash",
+          publicSlug: "broadbeach",
+          serviceCategory: "DENTAL",
+        },
       })
     ).rejects.toThrow(/already used by a location/);
     const draft = await createCustomPracticeGuide({
       clinicId: account.clinicId,
       actorUserId: account.userId,
-      values: { title: "Draft", publicSlug: "draft-guide" },
+      values: {
+        title: "Draft",
+        publicSlug: "draft-guide",
+        serviceCategory: "DENTAL",
+      },
     });
     await expect(
       savePracticeGuideDraft({
@@ -808,13 +821,21 @@ describe("multi-location product", () => {
       createCustomPracticeGuide({
         clinicId: account.clinicId,
         actorUserId: account.userId,
-        values: { title: "Second", publicSlug: "robina" },
+        values: {
+          title: "Second",
+          publicSlug: "robina",
+          serviceCategory: "DENTAL",
+        },
       })
     ).rejects.toThrow(/already used by a location/);
     const other = await createCustomPracticeGuide({
       clinicId: account.clinicId,
       actorUserId: account.userId,
-      values: { title: "Other", publicSlug: "other-guide" },
+      values: {
+        title: "Other",
+        publicSlug: "other-guide",
+        serviceCategory: "DENTAL",
+      },
     });
     await savePracticeGuideDraft({
       clinicId: account.clinicId,

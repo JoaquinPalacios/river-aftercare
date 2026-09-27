@@ -12,6 +12,11 @@ import {
   practiceRevisionSectionsFromComposed,
   WORKING_DRAFT_VERSION,
 } from "@/lib/aftercare/practice-revision-document";
+import {
+  mapHomeCareInstructions,
+  practiceSectionCreateData,
+} from "@/lib/aftercare/revision-sections";
+import { guideServiceMismatchMessage } from "@/lib/aftercare/service-compatibility";
 import { PUBLIC_PRACTICE_GUIDE_WHERE } from "@/lib/aftercare/public-practice-guide-predicates";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import { placementPublicPath } from "@/lib/clinic-portal/placement-path";
@@ -42,6 +47,7 @@ async function requireGuide(clinicId: string, guideId: string) {
       isEnabled: true,
       downgradeRetainedAt: true,
       guideTemplateId: true,
+      serviceCategory: true,
       pinnedRevisionId: true,
       pinnedRevision: {
         select: { id: true, status: true },
@@ -100,11 +106,20 @@ export async function setGuideAvailableAtLocation(input: {
         select: {
           id: true,
           clinicId: true,
+          name: true,
           slug: true,
           active: true,
           servesSiteRoot: true,
           clinicSiteId: true,
-          clinicSite: { select: { active: true, clinicId: true, slug: true } },
+          clinicSite: {
+            select: {
+              name: true,
+              active: true,
+              clinicId: true,
+              slug: true,
+              serviceCategories: { select: { serviceCategory: true } },
+            },
+          },
         },
       });
       if (
@@ -147,6 +162,18 @@ export async function setGuideAvailableAtLocation(input: {
           "Choose an active location on an active clinic site.",
           "conflict"
         );
+      }
+
+      const mismatch = guideServiceMismatchMessage({
+        guideServiceCategory: guide.serviceCategory,
+        siteServiceCategories: location.clinicSite.serviceCategories.map(
+          (row) => row.serviceCategory
+        ),
+        locationName: location.name,
+        siteName: location.clinicSite.name,
+      });
+      if (mismatch) {
+        throw new ClinicPortalError(mismatch, "conflict");
       }
 
       const canBePublic = guideCanBePublic(guide);
@@ -227,7 +254,25 @@ export async function useLatestPlacementVersion(input: {
         clinicId: true,
         practiceGuideId: true,
         practiceGuide: {
-          select: { id: true, clinicId: true, downgradeRetainedAt: true },
+          select: {
+            id: true,
+            clinicId: true,
+            downgradeRetainedAt: true,
+            serviceCategory: true,
+          },
+        },
+        location: {
+          select: {
+            name: true,
+            clinicId: true,
+            clinicSite: {
+              select: {
+                name: true,
+                clinicId: true,
+                serviceCategories: { select: { serviceCategory: true } },
+              },
+            },
+          },
         },
       },
     });
@@ -235,11 +280,25 @@ export async function useLatestPlacementVersion(input: {
       !placement ||
       placement.clinicId !== input.clinicId ||
       placement.practiceGuide.clinicId !== input.clinicId ||
-      placement.practiceGuide.id !== placement.practiceGuideId
+      placement.practiceGuide.id !== placement.practiceGuideId ||
+      placement.location.clinicId !== input.clinicId ||
+      placement.location.clinicSite.clinicId !== input.clinicId
     ) {
       throw notFound("Placement not found.");
     }
     assertPracticeGuideWritable(placement.practiceGuide);
+    const mismatch = guideServiceMismatchMessage({
+      guideServiceCategory: placement.practiceGuide.serviceCategory,
+      siteServiceCategories:
+        placement.location.clinicSite.serviceCategories.map(
+          (row) => row.serviceCategory
+        ),
+      locationName: placement.location.name,
+      siteName: placement.location.clinicSite.name,
+    });
+    if (mismatch) {
+      throw new ClinicPortalError(mismatch, "conflict");
+    }
     const latest = await tx.practiceGuideRevision.findFirst({
       where: {
         practiceGuideId: placement.practiceGuideId,
@@ -286,17 +345,36 @@ export async function detachPlacementGuide(input: {
               name: true,
               slug: true,
               servesSiteRoot: true,
+              clinicSite: {
+                select: {
+                  name: true,
+                  clinicId: true,
+                  serviceCategories: { select: { serviceCategory: true } },
+                },
+              },
             },
           },
           publishedPracticeGuideRevision: {
             include: {
-              sections: { orderBy: { sortOrder: "asc" } },
+              sections: {
+                orderBy: { sortOrder: "asc" },
+                include: {
+                  homeCareInstructions: { orderBy: { sortOrder: "asc" } },
+                },
+              },
             },
           },
           practiceGuide: {
             include: {
               pinnedRevision: {
-                include: { sections: { orderBy: { sortOrder: "asc" } } },
+                include: {
+                  sections: {
+                    orderBy: { sortOrder: "asc" },
+                    include: {
+                      homeCareInstructions: { orderBy: { sortOrder: "asc" } },
+                    },
+                  },
+                },
               },
               overrides: true,
               additions: true,
@@ -308,11 +386,24 @@ export async function detachPlacementGuide(input: {
         !placement ||
         placement.clinicId !== input.clinicId ||
         placement.location.clinicId !== input.clinicId ||
+        placement.location.clinicSite.clinicId !== input.clinicId ||
         placement.practiceGuide.clinicId !== input.clinicId
       ) {
         throw notFound("Placement not found.");
       }
       assertPracticeGuideWritable(placement.practiceGuide);
+      const mismatch = guideServiceMismatchMessage({
+        guideServiceCategory: placement.practiceGuide.serviceCategory,
+        siteServiceCategories:
+          placement.location.clinicSite.serviceCategories.map(
+            (row) => row.serviceCategory
+          ),
+        locationName: placement.location.name,
+        siteName: placement.location.clinicSite.name,
+      });
+      if (mismatch) {
+        throw new ClinicPortalError(mismatch, "conflict");
+      }
 
       const reserved = await reserveCustomGuidePlace(tx, input.clinicId);
       if (!reserved.ok) {
@@ -341,12 +432,22 @@ export async function detachPlacementGuide(input: {
               endDay: section.endDay,
               sortOrder: section.sortOrder,
               provenance: PracticeSectionProvenance.PRACTICE_CUSTOM,
+              homeCareInstructions: mapHomeCareInstructions(
+                section.homeCareInstructions
+              ),
             }))
           : source.pinnedRevision &&
               source.pinnedRevision.status === GuideRevisionStatus.PUBLISHED
             ? practiceRevisionSectionsFromComposed(
                 composeGuideDocument({
-                  canonicalSections: source.pinnedRevision.sections,
+                  canonicalSections: source.pinnedRevision.sections.map(
+                    (section) => ({
+                      ...section,
+                      homeCareInstructions: mapHomeCareInstructions(
+                        section.homeCareInstructions
+                      ),
+                    })
+                  ),
                   overrides: source.overrides,
                   additions: source.additions,
                 }).sections
@@ -393,6 +494,7 @@ export async function detachPlacementGuide(input: {
           sortOrder: (last?.sortOrder ?? 0) + 1,
           publishedAt: placement.isEnabled ? new Date() : null,
           copiedFromPracticeGuideId: source.id,
+          serviceCategory: source.serviceCategory,
         },
       });
       const published = await tx.practiceGuideRevision.create({
@@ -403,7 +505,9 @@ export async function detachPlacementGuide(input: {
           title,
           publishedAt: new Date(),
           createdByUserId: input.actorUserId,
-          sections: { create: visibleSections },
+          sections: {
+            create: visibleSections.map(practiceSectionCreateData),
+          },
         },
       });
       await tx.practiceGuideRevision.create({
@@ -413,7 +517,9 @@ export async function detachPlacementGuide(input: {
           status: GuideRevisionStatus.DRAFT,
           title,
           createdByUserId: input.actorUserId,
-          sections: { create: visibleSections },
+          sections: {
+            create: visibleSections.map(practiceSectionCreateData),
+          },
         },
       });
       await tx.practiceGuidePlacement.update({

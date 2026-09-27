@@ -5,6 +5,7 @@ import { GuideRevisionStatus, type PrismaClient } from "@prisma/client";
 
 import { DEMO_AFTERCARE_TENANT_SLUG } from "@/lib/aftercare/demo-tenant";
 import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
+import { assignPrimarySiteServiceCategories } from "@/lib/clinics/site-service-categories";
 import { DEMO_EXTRACTION_TEMPLATE_SLUG } from "@/lib/aftercare/demo-extraction-template";
 import { createPracticeGuideFromTemplate } from "@/lib/clinic-portal/create-practice-guide";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
@@ -98,6 +99,9 @@ async function seedFixtures() {
     },
   });
   await ensurePrimarySiteForClinic(client, NORMAL_CLINIC_ID);
+  await assignPrimarySiteServiceCategories(client, NORMAL_CLINIC_ID, [
+    "DENTAL",
+  ]);
   return demoClinicId;
 }
 
@@ -137,7 +141,7 @@ describe("canonical template visibility and enablement", () => {
         id: SAMPLE_TEMPLATE_ID,
         slug: `${SLUG}sample`,
         title: "Sample crown",
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         isActive: true,
         isSample: true,
         revisions: {
@@ -166,7 +170,7 @@ describe("canonical template visibility and enablement", () => {
         id: REVIEWED_TEMPLATE_ID,
         slug: `${SLUG}reviewed`,
         title: "Reviewed filling",
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         isActive: true,
         revisions: {
           create: {
@@ -194,7 +198,7 @@ describe("canonical template visibility and enablement", () => {
         id: INACTIVE_TEMPLATE_ID,
         slug: `${SLUG}inactive`,
         title: "Inactive reviewed",
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         isActive: false,
         revisions: {
           create: {
@@ -222,7 +226,7 @@ describe("canonical template visibility and enablement", () => {
         id: DRAFT_TEMPLATE_ID,
         slug: `${SLUG}draft`,
         title: "Draft only",
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         isActive: true,
         revisions: {
           create: {
@@ -249,7 +253,7 @@ describe("canonical template visibility and enablement", () => {
         id: UNREVIEWED_GENERIC_ID,
         slug: `${SLUG}unreviewed`,
         title: "Unreviewed published",
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         isActive: true,
         revisions: {
           create: {
@@ -320,7 +324,7 @@ describe("canonical template visibility and enablement", () => {
         id: SAMPLE_TEMPLATE_ID,
         slug: `${SLUG}enable`,
         title: "Tooth Extraction sample",
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         isActive: true,
         isSample: true,
         revisions: {

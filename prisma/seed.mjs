@@ -62,7 +62,7 @@ const DEMO_EXTRACTION_SECTION_IDS = {
 
 const DEMO_EXTRACTION_GUIDE = {
   templateId: "guide_tmpl_demo_extraction",
-  specialty: "DENTAL",
+  serviceCategory: "DENTAL",
   slug: "extraction",
   title: "Tooth Extraction",
   revisionId: "guide_rev_demo_extraction_v1",
@@ -124,7 +124,7 @@ async function upsertAftercareDemo(clinicId) {
   const template = await prisma.guideTemplate.upsert({
     where: { id: DEMO_EXTRACTION_GUIDE.templateId },
     update: {
-      specialty: DEMO_EXTRACTION_GUIDE.specialty,
+      serviceCategory: DEMO_EXTRACTION_GUIDE.serviceCategory,
       slug: DEMO_EXTRACTION_GUIDE.slug,
       title: DEMO_EXTRACTION_GUIDE.title,
       isActive: true,
@@ -132,7 +132,7 @@ async function upsertAftercareDemo(clinicId) {
     },
     create: {
       id: DEMO_EXTRACTION_GUIDE.templateId,
-      specialty: DEMO_EXTRACTION_GUIDE.specialty,
+      serviceCategory: DEMO_EXTRACTION_GUIDE.serviceCategory,
       slug: DEMO_EXTRACTION_GUIDE.slug,
       title: DEMO_EXTRACTION_GUIDE.title,
       isActive: true,

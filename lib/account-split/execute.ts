@@ -36,7 +36,12 @@ import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
 import { readAccountCapacityFacts } from "@/lib/billing/group-capacity-gate";
 import { readSplitDestinationCommercialState } from "@/lib/billing/split-destination-access";
 import { effectiveSiteLocationAllowance } from "@/lib/clinics/site-location-allowance";
+import {
+  mapHomeCareInstructions,
+  practiceSectionCreateData,
+} from "@/lib/aftercare/revision-sections";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { assertEnabledPlacementsCompatible } from "@/lib/clinic-portal/placement-compatibility";
 import { countTeamUsage } from "@/lib/entitlements/team-usage";
 import {
   isAdaptedTemplateGuide,
@@ -706,7 +711,14 @@ export async function copySplitGuides(
             additions: true,
             contentRevisions: {
               orderBy: { version: "asc" },
-              include: { sections: { orderBy: { sortOrder: "asc" } } },
+              include: {
+                sections: {
+                  orderBy: { sortOrder: "asc" },
+                  include: {
+                    homeCareInstructions: { orderBy: { sortOrder: "asc" } },
+                  },
+                },
+              },
             },
           },
         });
@@ -737,6 +749,7 @@ export async function copySplitGuides(
         pinnedRevisionId: guide.pinnedRevisionId,
         sourceGuideTemplateId: guide.sourceGuideTemplateId,
         adaptedAt: guide.adaptedAt,
+        serviceCategory: guide.serviceCategory,
         copiedFromPracticeGuideId: null,
         downgradeRetainedAt: null,
         downgradeRetentionUntil: null,
@@ -766,17 +779,22 @@ export async function copySplitGuides(
           reviewAttestedByUserId: revision.reviewAttestedByUserId,
           createdAt: revision.createdAt,
           sections: {
-            create: revision.sections.map((section) => ({
-              key: section.key,
-              kind: section.kind,
-              title: section.title,
-              body: section.body,
-              periodLabel: section.periodLabel,
-              startDay: section.startDay,
-              endDay: section.endDay,
-              sortOrder: section.sortOrder,
-              provenance: section.provenance,
-            })),
+            create: revision.sections.map((section) =>
+              practiceSectionCreateData({
+                key: section.key,
+                kind: section.kind,
+                title: section.title,
+                body: section.body,
+                periodLabel: section.periodLabel,
+                startDay: section.startDay,
+                endDay: section.endDay,
+                sortOrder: section.sortOrder,
+                provenance: section.provenance,
+                homeCareInstructions: mapHomeCareInstructions(
+                  section.homeCareInstructions
+                ),
+              })
+            ),
           },
         },
         select: { id: true },
@@ -1013,6 +1031,7 @@ export async function reinsertPlacements(
       createdAt: placement.createdAt,
     };
   });
+  await assertEnabledPlacementsCompatible(tx, data);
   await tx.practiceGuidePlacement.createMany({ data });
   const restored = await tx.practiceGuidePlacement.findMany({
     where: { id: { in: data.map((row) => row.id) } },

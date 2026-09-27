@@ -1,3 +1,5 @@
+import type { HomeCareInstruction } from "@/lib/aftercare/home-care-instruction";
+
 export const GUIDE_SECTION_KINDS = [
   "INTRODUCTION",
   "IMMEDIATE_CARE",
@@ -13,6 +15,7 @@ export const GUIDE_SECTION_KINDS = [
   "CONTACT_PRACTICE",
   "EMERGENCY",
   "CUSTOM",
+  "HOME_CARE_PLAN",
 ] as const;
 
 export type GuideSectionKind = (typeof GUIDE_SECTION_KINDS)[number];
@@ -29,6 +32,7 @@ export interface CanonicalGuideSection {
   startDay?: number | null;
   endDay?: number | null;
   sortOrder: number;
+  homeCareInstructions?: HomeCareInstruction[];
 }
 
 export interface PracticeGuideOverrideInput {
@@ -47,6 +51,7 @@ export interface PracticeGuideAdditionInput {
   endDay?: number | null;
   sortOrder: number;
   insertAfterSectionKey: string | null;
+  homeCareInstructions?: HomeCareInstruction[];
 }
 
 export interface ComposeGuideDocumentInput {
@@ -64,6 +69,7 @@ export interface ComposedGuideSection {
   startDay?: number | null;
   endDay?: number | null;
   provenance: GuideSectionProvenance;
+  homeCareInstructions?: HomeCareInstruction[];
 }
 
 export interface ComposedGuideDocument {

@@ -21,6 +21,7 @@ import { GuideLifecycleActions } from "@/app/(staff)/(clinic-portal)/guides/guid
 import { GuideShareMenu } from "@/app/(staff)/(clinic-portal)/guides/guide-share-menu";
 import {
   TimelineAccordion,
+  type EditorHomeCareInstruction,
   type EditorSection,
 } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
@@ -39,6 +40,15 @@ import {
 } from "@/lib/clinic-portal/guide-status-view";
 import type { PracticeGuideEditorRecord } from "@/lib/clinic-portal/load-practice-guide-editor";
 import { PRACTICE_REVIEW_ATTESTATION_LABEL } from "@/lib/clinic-portal/practice-review-attestation";
+import type {
+  HomeCareDurationUnit,
+  HomeCareFrequencyPeriod,
+} from "@/lib/aftercare/home-care-instruction";
+import {
+  SERVICE_CATEGORY_LABELS,
+  serviceCategoryLabel,
+  type ServiceCategory,
+} from "@/lib/aftercare/service-category";
 import type { GuideSectionKind } from "@/lib/aftercare/types";
 
 const ADDITIONAL_KINDS: GuideSectionKind[] = [
@@ -74,7 +84,39 @@ function toEditorSections(
     startDay:
       typeof section.startDay === "number" ? String(section.startDay) : "",
     endDay: typeof section.endDay === "number" ? String(section.endDay) : "",
+    homeCareInstructions: (section.homeCareInstructions ?? []).map((item) => ({
+      key: item.key,
+      title: item.title,
+      body: item.body ?? "",
+      frequencyCount:
+        item.frequencyCount === null ? "" : String(item.frequencyCount),
+      frequencyPeriod: item.frequencyPeriod ?? "",
+      timingLabel: item.timingLabel ?? "",
+      durationValue:
+        item.durationValue === null ? "" : String(item.durationValue),
+      durationUnit: item.durationUnit ?? "",
+    })),
   }));
+}
+
+function blankHomeCareInstruction(): EditorHomeCareInstruction {
+  return {
+    key: newKey("item"),
+    title: "",
+    body: "",
+    frequencyCount: "",
+    frequencyPeriod: "",
+    timingLabel: "",
+    durationValue: "",
+    durationUnit: "",
+  };
+}
+
+function optionalCount(value: string): number | null {
+  if (value.trim() === "") {
+    return null;
+  }
+  return Number(value);
 }
 
 function newKey(prefix: string): string {
@@ -83,6 +125,7 @@ function newKey(prefix: string): string {
 
 export function GuideEditor({
   guide,
+  allowedServiceCategories = [],
   patientUrlExample,
   canEdit,
   retainedNotice = null,
@@ -92,6 +135,7 @@ export function GuideEditor({
   fontCssVariable,
 }: {
   guide: PracticeGuideEditorRecord;
+  allowedServiceCategories?: ServiceCategory[];
   patientUrlExample: string;
   canEdit: boolean;
   retainedNotice?: string | null;
@@ -105,6 +149,9 @@ export function GuideEditor({
   const pendingSnapshot = useRef<string>("");
   const previewId = useId().replace(/:/g, "");
   const [title, setTitle] = useState(guide.title);
+  const [serviceCategory, setServiceCategory] = useState<string>(
+    guide.serviceCategory ?? ""
+  );
   const [publicSlug, setPublicSlug] = useState(guide.publicSlug);
   const [introduction, setIntroduction] = useState(guide.introduction ?? "");
   const [sections, setSections] = useState(() =>
@@ -129,8 +176,16 @@ export function GuideEditor({
         publicSlug,
         introduction,
         sections,
+        ...(guide.categoryEditable ? { serviceCategory } : {}),
       }),
-    [title, publicSlug, introduction, sections]
+    [
+      title,
+      publicSlug,
+      introduction,
+      sections,
+      serviceCategory,
+      guide.categoryEditable,
+    ]
   );
   const serverSerialized = useMemo(
     () =>
@@ -139,6 +194,9 @@ export function GuideEditor({
         publicSlug: guide.publicSlug,
         introduction: guide.introduction ?? "",
         sections: toEditorSections(guide.sections),
+        ...(guide.categoryEditable
+          ? { serviceCategory: guide.serviceCategory ?? "" }
+          : {}),
       }),
     [guide]
   );
@@ -158,6 +216,9 @@ export function GuideEditor({
   );
   const additional = sections.filter((section) =>
     ADDITIONAL_KINDS.includes(section.kind)
+  );
+  const homeCare = sections.filter(
+    (section) => section.kind === "HOME_CARE_PLAN"
   );
   const warnings = sections.filter((section) =>
     WARNING_KINDS.includes(section.kind)
@@ -213,15 +274,30 @@ export function GuideEditor({
   }
 
   function payloadSections(): unknown[] {
-    return [...timeline, ...additional, ...warnings].map((section) => ({
-      key: section.key,
-      kind: section.kind,
-      title: section.title,
-      body: section.body,
-      periodLabel: section.periodLabel || null,
-      startDay: section.startDay === "" ? null : Number(section.startDay),
-      endDay: section.endDay === "" ? null : Number(section.endDay),
-    }));
+    return [...timeline, ...additional, ...homeCare, ...warnings].map(
+      (section) => ({
+        key: section.key,
+        kind: section.kind,
+        title: section.title,
+        body: section.body,
+        periodLabel: section.periodLabel || null,
+        startDay: section.startDay === "" ? null : Number(section.startDay),
+        endDay: section.endDay === "" ? null : Number(section.endDay),
+        homeCareInstructions:
+          section.kind === "HOME_CARE_PLAN"
+            ? section.homeCareInstructions.map((item) => ({
+                key: item.key,
+                title: item.title,
+                body: item.body.trim() ? item.body : null,
+                frequencyCount: optionalCount(item.frequencyCount),
+                frequencyPeriod: item.frequencyPeriod || null,
+                timingLabel: item.timingLabel.trim() ? item.timingLabel : null,
+                durationValue: optionalCount(item.durationValue),
+                durationUnit: item.durationUnit || null,
+              }))
+            : [],
+      })
+    );
   }
 
   function addStage() {
@@ -238,17 +314,24 @@ export function GuideEditor({
           periodLabel: "",
           startDay: "",
           endDay: "",
+          homeCareInstructions: [],
         },
       ]
     );
     setExpandedStageKey(key);
   }
 
-  const sourceLabel = guide.template
-    ? `Template · ${guide.template.title}`
-    : guide.adaptedFromTemplate
-      ? "Editable River template"
-      : "Custom guide";
+  const categoryLabel = serviceCategoryLabel(guide.serviceCategory);
+  const sourceLabel = [
+    guide.template
+      ? `Template · ${guide.template.title}`
+      : guide.adaptedFromTemplate
+        ? "Editable River template"
+        : "Custom guide",
+    categoryLabel,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const statusPills = clinicGuideStatusPills(guide.lifecycle);
   const slugLocked = !canEdit || guide.isPublished;
   const publicUrl = patientUrlExample.startsWith("http")
@@ -306,6 +389,7 @@ export function GuideEditor({
             onDiscarded={(restored) => {
               const restoredSections = toEditorSections(restored.sections);
               setTitle(restored.title);
+              setServiceCategory(guide.serviceCategory ?? "");
               setPublicSlug(restored.publicSlug);
               setIntroduction(restored.introduction);
               setSections(restoredSections);
@@ -315,6 +399,9 @@ export function GuideEditor({
                   publicSlug: restored.publicSlug,
                   introduction: restored.introduction,
                   sections: restoredSections,
+                  ...(guide.categoryEditable
+                    ? { serviceCategory: guide.serviceCategory ?? "" }
+                    : {}),
                 })
               );
               ignoreNextServerSnapshot.current = true;
@@ -443,6 +530,42 @@ export function GuideEditor({
               />
               <FieldError message={saveState.fieldErrors?.title} />
             </Field>
+            {guide.categoryEditable ? (
+              <Field label="Service" htmlFor="serviceCategory">
+                {allowedServiceCategories.length > 0 ? (
+                  <select
+                    id="serviceCategory"
+                    name="serviceCategory"
+                    value={serviceCategory}
+                    onChange={(event) => setServiceCategory(event.target.value)}
+                    disabled={!canEdit}
+                    className="staffField"
+                  >
+                    {guide.serviceCategory ? null : (
+                      <option value="">Not set</option>
+                    )}
+                    {[
+                      ...new Set([
+                        ...(guide.serviceCategory
+                          ? [guide.serviceCategory]
+                          : []),
+                        ...allowedServiceCategories,
+                      ]),
+                    ].map((category) => (
+                      <option key={category} value={category}>
+                        {SERVICE_CATEGORY_LABELS[category]}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p id="serviceCategory" className="text-sm text-staff-muted">
+                    Configure a site service before changing this guide&apos;s
+                    service.
+                  </p>
+                )}
+                <FieldError message={saveState.fieldErrors?.serviceCategory} />
+              </Field>
+            ) : null}
             <Field label="Public slug" htmlFor="publicSlug">
               {slugLocked ? (
                 <input type="hidden" name="publicSlug" value={publicSlug} />
@@ -522,6 +645,24 @@ export function GuideEditor({
               onChange={(next) =>
                 replaceGroup(
                   (section) => ADDITIONAL_KINDS.includes(section.kind),
+                  next
+                )
+              }
+            />
+          </EditorSectionHeading>
+
+          <EditorSectionHeading title="Home care plan">
+            <p className="text-sm text-staff-muted">
+              Recurring or milestone instructions. Leave frequency blank when an
+              instruction only needs a duration, such as a review in a set
+              number of weeks.
+            </p>
+            <HomeCarePlanEditor
+              sections={homeCare}
+              disabled={!canEdit}
+              onChange={(next) =>
+                replaceGroup(
+                  (section) => section.kind === "HOME_CARE_PLAN",
                   next
                 )
               }
@@ -814,12 +955,354 @@ function GenericSectionEditor({
                 periodLabel: "",
                 startDay: "",
                 endDay: "",
+                homeCareInstructions: [],
               },
             ])
           }
           className="staffBtn staffBtnSecondary self-start"
         >
           {addLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function HomeCarePlanEditor({
+  sections,
+  disabled,
+  onChange,
+}: {
+  sections: EditorSection[];
+  disabled: boolean;
+  onChange: (sections: EditorSection[]) => void;
+}) {
+  function updateSection(index: number, patch: Partial<EditorSection>) {
+    onChange(
+      sections.map((section, current) =>
+        current === index ? { ...section, ...patch } : section
+      )
+    );
+  }
+
+  function updateInstructions(
+    index: number,
+    instructions: EditorHomeCareInstruction[]
+  ) {
+    updateSection(index, { homeCareInstructions: instructions });
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {sections.map((section, index) => (
+        <article
+          key={section.key}
+          className="flex flex-col gap-3 rounded-lg border border-staff-line p-4"
+        >
+          <Field label="Plan title" htmlFor={`${section.key}-title`}>
+            <input
+              id={`${section.key}-title`}
+              value={section.title}
+              onChange={(event) =>
+                updateSection(index, { title: event.target.value })
+              }
+              disabled={disabled}
+              className="staffField"
+            />
+          </Field>
+          <Field label="Optional introduction" htmlFor={`${section.key}-body`}>
+            <textarea
+              id={`${section.key}-body`}
+              value={section.body}
+              onChange={(event) =>
+                updateSection(index, { body: event.target.value })
+              }
+              disabled={disabled}
+              rows={4}
+              className="staffField"
+            />
+          </Field>
+          <div className="flex flex-col gap-3">
+            {section.homeCareInstructions.map((item, itemIndex) => (
+              <fieldset
+                key={item.key}
+                className="grid gap-3 rounded-md border border-staff-line p-3"
+              >
+                <legend className="px-1 text-sm font-medium">
+                  Instruction {itemIndex + 1}
+                </legend>
+                <Field label="Instruction" htmlFor={`${item.key}-title`}>
+                  <input
+                    id={`${item.key}-title`}
+                    value={item.title}
+                    onChange={(event) =>
+                      updateInstructions(
+                        index,
+                        section.homeCareInstructions.map((current, position) =>
+                          position === itemIndex
+                            ? { ...current, title: event.target.value }
+                            : current
+                        )
+                      )
+                    }
+                    disabled={disabled}
+                    className="staffField"
+                  />
+                </Field>
+                <Field label="Details" htmlFor={`${item.key}-body`}>
+                  <textarea
+                    id={`${item.key}-body`}
+                    value={item.body}
+                    onChange={(event) =>
+                      updateInstructions(
+                        index,
+                        section.homeCareInstructions.map((current, position) =>
+                          position === itemIndex
+                            ? { ...current, body: event.target.value }
+                            : current
+                        )
+                      )
+                    }
+                    disabled={disabled}
+                    rows={4}
+                    className="staffField"
+                  />
+                </Field>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Times" htmlFor={`${item.key}-count`}>
+                    <input
+                      id={`${item.key}-count`}
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={99}
+                      step={1}
+                      value={item.frequencyCount}
+                      onChange={(event) =>
+                        updateInstructions(
+                          index,
+                          section.homeCareInstructions.map(
+                            (current, position) =>
+                              position === itemIndex
+                                ? {
+                                    ...current,
+                                    frequencyCount: event.target.value,
+                                  }
+                                : current
+                          )
+                        )
+                      }
+                      disabled={disabled}
+                      className="staffField"
+                    />
+                  </Field>
+                  <Field label="Per" htmlFor={`${item.key}-period`}>
+                    <select
+                      id={`${item.key}-period`}
+                      value={item.frequencyPeriod}
+                      onChange={(event) =>
+                        updateInstructions(
+                          index,
+                          section.homeCareInstructions.map(
+                            (current, position) =>
+                              position === itemIndex
+                                ? {
+                                    ...current,
+                                    frequencyPeriod: event.target.value as
+                                      HomeCareFrequencyPeriod | "",
+                                  }
+                                : current
+                          )
+                        )
+                      }
+                      disabled={disabled}
+                      className="staffSelect"
+                    >
+                      <option value="">Not specified</option>
+                      <option value="DAY">Day</option>
+                      <option value="WEEK">Week</option>
+                    </select>
+                  </Field>
+                  <Field label="Timing" htmlFor={`${item.key}-timing`}>
+                    <input
+                      id={`${item.key}-timing`}
+                      value={item.timingLabel}
+                      onChange={(event) =>
+                        updateInstructions(
+                          index,
+                          section.homeCareInstructions.map(
+                            (current, position) =>
+                              position === itemIndex
+                                ? {
+                                    ...current,
+                                    timingLabel: event.target.value,
+                                  }
+                                : current
+                          )
+                        )
+                      }
+                      disabled={disabled}
+                      placeholder="Evening"
+                      className="staffField"
+                    />
+                  </Field>
+                  <Field label="Duration" htmlFor={`${item.key}-duration`}>
+                    <input
+                      id={`${item.key}-duration`}
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={520}
+                      step={1}
+                      value={item.durationValue}
+                      onChange={(event) =>
+                        updateInstructions(
+                          index,
+                          section.homeCareInstructions.map(
+                            (current, position) =>
+                              position === itemIndex
+                                ? {
+                                    ...current,
+                                    durationValue: event.target.value,
+                                  }
+                                : current
+                          )
+                        )
+                      }
+                      disabled={disabled}
+                      className="staffField"
+                    />
+                  </Field>
+                  <Field label="Duration unit" htmlFor={`${item.key}-unit`}>
+                    <select
+                      id={`${item.key}-unit`}
+                      value={item.durationUnit}
+                      onChange={(event) =>
+                        updateInstructions(
+                          index,
+                          section.homeCareInstructions.map(
+                            (current, position) =>
+                              position === itemIndex
+                                ? {
+                                    ...current,
+                                    durationUnit: event.target.value as
+                                      HomeCareDurationUnit | "",
+                                  }
+                                : current
+                          )
+                        )
+                      }
+                      disabled={disabled}
+                      className="staffSelect"
+                    >
+                      <option value="">Not specified</option>
+                      <option value="DAYS">Days</option>
+                      <option value="WEEKS">Weeks</option>
+                    </select>
+                  </Field>
+                </div>
+                {disabled ? null : (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="staffBtn staffBtnSecondary"
+                      onClick={() => {
+                        if (itemIndex === 0) {
+                          return;
+                        }
+                        const next = [...section.homeCareInstructions];
+                        const [removed] = next.splice(itemIndex, 1);
+                        next.splice(itemIndex - 1, 0, removed);
+                        updateInstructions(index, next);
+                      }}
+                    >
+                      Move up
+                    </button>
+                    <button
+                      type="button"
+                      className="staffBtn staffBtnSecondary"
+                      onClick={() => {
+                        if (
+                          itemIndex >=
+                          section.homeCareInstructions.length - 1
+                        ) {
+                          return;
+                        }
+                        const next = [...section.homeCareInstructions];
+                        const [removed] = next.splice(itemIndex, 1);
+                        next.splice(itemIndex + 1, 0, removed);
+                        updateInstructions(index, next);
+                      }}
+                    >
+                      Move down
+                    </button>
+                    <button
+                      type="button"
+                      className="staffBtn staffBtnSecondary"
+                      onClick={() =>
+                        updateInstructions(
+                          index,
+                          section.homeCareInstructions.filter(
+                            (_, position) => position !== itemIndex
+                          )
+                        )
+                      }
+                    >
+                      Remove instruction
+                    </button>
+                  </div>
+                )}
+              </fieldset>
+            ))}
+          </div>
+          {disabled ? null : (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="staffBtn staffBtnSecondary"
+                onClick={() =>
+                  updateInstructions(index, [
+                    ...section.homeCareInstructions,
+                    blankHomeCareInstruction(),
+                  ])
+                }
+              >
+                Add instruction
+              </button>
+              <button
+                type="button"
+                className="staffBtn staffBtnSecondary"
+                onClick={() =>
+                  onChange(sections.filter((_, current) => current !== index))
+                }
+              >
+                Remove plan
+              </button>
+            </div>
+          )}
+        </article>
+      ))}
+      {disabled ? null : (
+        <button
+          type="button"
+          className="staffBtn staffBtnSecondary self-start"
+          onClick={() =>
+            onChange([
+              ...sections,
+              {
+                key: newKey("plan"),
+                kind: "HOME_CARE_PLAN",
+                title: "Home care plan",
+                body: "",
+                periodLabel: "",
+                startDay: "",
+                endDay: "",
+                homeCareInstructions: [blankHomeCareInstruction()],
+              },
+            ])
+          }
+        >
+          Add home-care plan
         </button>
       )}
     </div>

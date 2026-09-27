@@ -11,8 +11,13 @@ enum ClinicMembershipRole {
   STAFF
 }
 
-enum Specialty {
+/// Product service vertical. Owned by a ClinicSite, not by the Clinic account.
+/// One site may provide more than one category.
+enum ServiceCategory {
   DENTAL
+  PHYSIOTHERAPY
+  CHIROPRACTIC
+  COSMETIC_AESTHETIC
 }
 
 enum GuideRevisionStatus {
@@ -41,6 +46,18 @@ enum GuideSectionKind {
   CONTACT_PRACTICE
   EMERGENCY
   CUSTOM
+  /// Recurring or milestone home-care instructions. Not a patient tracker.
+  HOME_CARE_PLAN
+}
+
+enum HomeCareFrequencyPeriod {
+  DAY
+  WEEK
+}
+
+enum HomeCareDurationUnit {
+  DAYS
+  WEEKS
 }
 
 enum ClinicRadiusPreset {
@@ -302,9 +319,28 @@ model ClinicSite {
   accountSplitDecisions    ClinicAccountSplitSiteDecision[]
   locationRedirectsFrom    ClinicLocationRedirect[]         @relation("LocationRedirectSourceSite")
   locationRedirectsTo      ClinicLocationRedirect[]         @relation("LocationRedirectDestinationSite")
+  serviceCategories        ClinicSiteServiceCategory[]
 
   @@unique([id, clinicId])
   @@index([clinicId])
+}
+
+/// Services a ClinicSite provides. Zero rows means the site is unclassified.
+/// Membership is unique. Category values are not duplicated as free text.
+/// `clinicId` matches the parent site so a membership cannot point at another
+/// account. PostgreSQL updates it when the site moves during an account split.
+model ClinicSiteServiceCategory {
+  id              String          @id @default(cuid())
+  clinicSiteId    String
+  clinicId        String
+  serviceCategory ServiceCategory
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  clinicSite      ClinicSite      @relation(fields: [clinicSiteId, clinicId], references: [id, clinicId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([clinicSiteId, serviceCategory])
+  @@index([clinicId])
+  @@index([clinicSiteId])
 }
 
 /// Physical practice belonging to a ClinicSite.
@@ -317,41 +353,41 @@ model ClinicSite {
 /// primary and one site-root location per site. Those predicates are in the
 /// migration because Prisma cannot express them.
 model ClinicLocation {
-  id                    String                       @id @default(cuid())
-  clinicSiteId          String
-  clinicId              String
+  id                       String                          @id @default(cuid())
+  clinicSiteId             String
+  clinicId                 String
   /// Staff-facing place name.
-  name                  String
+  name                     String
   /// Path segment under the site hostname. Null means this location has no
   /// path segment and is served on the site hostname root.
-  slug                  String?
+  slug                     String?
   /// Patient-facing place name.
-  displayName           String
-  phone                 String?
-  addressLine1          String?
-  addressLine2          String?
-  city                  String?
-  region                String?
-  postalCode            String?
-  country               String?
-  contactUrl            String?
-  contactEmail          String?
-  bookingUrl            String?
-  emergencyInstructions String?
+  displayName              String
+  phone                    String?
+  addressLine1             String?
+  addressLine2             String?
+  city                     String?
+  region                   String?
+  postalCode               String?
+  country                  String?
+  contactUrl               String?
+  contactEmail             String?
+  bookingUrl               String?
+  emergencyInstructions    String?
   /// The site's primary/default physical location. Independent of
   /// `servesSiteRoot`, so a later default can change without moving historic
   /// unprefixed patient URLs.
-  isPrimary             Boolean                      @default(false)
+  isPrimary                Boolean                         @default(false)
   /// The location permanently associated with existing unprefixed patient URLs
   /// on this site's hostname.
-  servesSiteRoot        Boolean                      @default(false)
-  active                Boolean                      @default(true)
-  deactivatedAt         DateTime?
-  createdAt             DateTime                     @default(now())
-  updatedAt             DateTime                     @updatedAt
-  clinicSite            ClinicSite                   @relation(fields: [clinicSiteId, clinicId], references: [id, clinicId], onDelete: Cascade)
-  placements            PracticeGuidePlacement[]
-  downgradeSelections   DowngradeLocationSelection[]
+  servesSiteRoot           Boolean                         @default(false)
+  active                   Boolean                         @default(true)
+  deactivatedAt            DateTime?
+  createdAt                DateTime                        @default(now())
+  updatedAt                DateTime                        @updatedAt
+  clinicSite               ClinicSite                      @relation(fields: [clinicSiteId, clinicId], references: [id, clinicId], onDelete: Cascade)
+  placements               PracticeGuidePlacement[]
+  downgradeSelections      DowngradeLocationSelection[]
   accountSplitPreparations ClinicAccountSplitPreparation[]
 
   @@unique([clinicSiteId, slug])
@@ -390,7 +426,8 @@ model ClinicLocationRedirect {
 
 model GuideTemplate {
   id                    String                  @id @default(cuid())
-  specialty             Specialty
+  /// One primary service category. Canonical templates are not multi-category.
+  serviceCategory       ServiceCategory
   slug                  String                  @unique
   title                 String
   isActive              Boolean                 @default(true)
@@ -404,7 +441,7 @@ model GuideTemplate {
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
 
-  @@index([specialty, isActive])
+  @@index([serviceCategory, isActive])
 }
 
 model GuideTemplateRevision {
@@ -427,23 +464,47 @@ model GuideTemplateRevision {
 }
 
 model GuideTemplateSection {
-  id          String                @id @default(cuid())
-  revisionId  String
-  key         String
-  kind        GuideSectionKind
-  title       String
-  body        String                @db.Text
-  periodLabel String?
-  startDay    Int?
-  endDay      Int?
-  sortOrder   Int
-  revision    GuideTemplateRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+  id                   String                             @id @default(cuid())
+  revisionId           String
+  key                  String
+  kind                 GuideSectionKind
+  title                String
+  body                 String                             @db.Text
+  periodLabel          String?
+  startDay             Int?
+  endDay               Int?
+  sortOrder            Int
+  revision             GuideTemplateRevision              @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  homeCareInstructions GuideTemplateHomeCareInstruction[]
+  createdAt            DateTime                           @default(now())
+  updatedAt            DateTime                           @updatedAt
 
   @@unique([revisionId, key])
   @@unique([revisionId, sortOrder])
   @@index([revisionId])
+}
+
+/// Structured recurring or milestone instruction on one canonical section.
+/// Immutable with its template revision. Not patient adherence state.
+model GuideTemplateHomeCareInstruction {
+  id              String                   @id @default(cuid())
+  sectionId       String
+  key             String
+  title           String
+  body            String?                  @db.Text
+  frequencyCount  Int?
+  frequencyPeriod HomeCareFrequencyPeriod?
+  timingLabel     String?
+  durationValue   Int?
+  durationUnit    HomeCareDurationUnit?
+  sortOrder       Int
+  section         GuideTemplateSection     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@unique([sectionId, key])
+  @@unique([sectionId, sortOrder])
+  @@index([sectionId])
 }
 
 /// A practice-enabled canonical or custom guide. Template-backed guides keep
@@ -468,6 +529,10 @@ model PracticeGuide {
   /// account-owned guide. Provenance only. Existing rows stay null.
   /// Do not infer this from a template relationship.
   copiedFromPracticeGuideId        String?
+  /// Domain classification. Not ownership and not an entitlement.
+  /// Null when an existing guide could not be classified from a canonical
+  /// template or from a classified copy. New guides choose a category.
+  serviceCategory                  ServiceCategory?
   publicSlug                       String
   isEnabled                        Boolean                      @default(false)
   status                           PracticeGuideStatus          @default(DRAFT)
@@ -504,6 +569,7 @@ model PracticeGuide {
   @@index([pinnedRevisionId])
   @@index([sourceGuideTemplateId])
   @@index([copiedFromPracticeGuideId])
+  @@index([clinicId, serviceCategory])
 }
 
 /// Clinic-owned guide document. Version 0 is the mutable working draft.
@@ -541,24 +607,49 @@ model PracticeGuideRevision {
 }
 
 model PracticeGuideRevisionSection {
-  id          String                    @id @default(cuid())
-  revisionId  String
-  key         String
-  kind        GuideSectionKind
-  title       String
-  body        String                    @db.Text
-  periodLabel String?
-  startDay    Int?
-  endDay      Int?
-  sortOrder   Int
-  provenance  PracticeSectionProvenance
-  createdAt   DateTime                  @default(now())
-  updatedAt   DateTime                  @updatedAt
-  revision    PracticeGuideRevision     @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  id                   String                             @id @default(cuid())
+  revisionId           String
+  key                  String
+  kind                 GuideSectionKind
+  title                String
+  body                 String                             @db.Text
+  periodLabel          String?
+  startDay             Int?
+  endDay               Int?
+  sortOrder            Int
+  provenance           PracticeSectionProvenance
+  createdAt            DateTime                           @default(now())
+  updatedAt            DateTime                           @updatedAt
+  revision             PracticeGuideRevision              @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  homeCareInstructions PracticeGuideHomeCareInstruction[]
 
   @@unique([revisionId, key])
   @@unique([revisionId, sortOrder])
   @@index([revisionId])
+}
+
+/// Structured recurring or milestone instruction on one clinic revision section.
+/// Published revisions snapshot these rows. Draft edits do not rewrite them.
+/// This is published guidance, not completion or adherence tracking.
+model PracticeGuideHomeCareInstruction {
+  id              String                       @id @default(cuid())
+  sectionId       String
+  key             String
+  title           String
+  body            String?                      @db.Text
+  frequencyCount  Int?
+  frequencyPeriod HomeCareFrequencyPeriod?
+  timingLabel     String?
+  durationValue   Int?
+  durationUnit    HomeCareDurationUnit?
+  sortOrder       Int
+  section         PracticeGuideRevisionSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+
+  @@unique([sectionId, key])
+  @@unique([sectionId, sortOrder])
+  @@index([sectionId])
 }
 
 /// Account-owned guide offered at one physical location.
@@ -872,12 +963,12 @@ model ClinicAccountSplitPreparation {
 /// Prepared branding copies for one split. This is not the object store.
 /// A row is written only after the destination object copy succeeds.
 model ClinicAccountSplitBrandingAsset {
-  id                     String                        @id @default(cuid())
-  preparationId          String
-  sourceStorageKey       String
-  destinationStorageKey  String
-  copiedAt               DateTime                      @default(now())
-  preparation            ClinicAccountSplitPreparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+  id                    String                        @id @default(cuid())
+  preparationId         String
+  sourceStorageKey      String
+  destinationStorageKey String
+  copiedAt              DateTime                      @default(now())
+  preparation           ClinicAccountSplitPreparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
 
   @@unique([preparationId, sourceStorageKey])
   @@index([preparationId])
@@ -886,21 +977,21 @@ model ClinicAccountSplitBrandingAsset {
 /// Append-only operational history for one preparation.
 /// Application code does not update or delete these rows.
 model ClinicAccountSplitEvent {
-  id                   String                        @id @default(cuid())
-  preparationId        String
-  kind                 ClinicAccountSplitEventKind
-  fromStatus           ClinicAccountSplitStatus?
-  toStatus             ClinicAccountSplitStatus?
-  actorUserId          String?
-  sourceClinicId       String
-  destinationClinicId  String?
-  siteId               String?
-  locationId           String?
+  id                  String                        @id @default(cuid())
+  preparationId       String
+  kind                ClinicAccountSplitEventKind
+  fromStatus          ClinicAccountSplitStatus?
+  toStatus            ClinicAccountSplitStatus?
+  actorUserId         String?
+  sourceClinicId      String
+  destinationClinicId String?
+  siteId              String?
+  locationId          String?
   /// Stable blocker or outcome code. Not a request body or secret.
-  category             String?
-  createdAt            DateTime                      @default(now())
-  preparation          ClinicAccountSplitPreparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
-  actor                User?                         @relation("AccountSplitEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  category            String?
+  createdAt           DateTime                      @default(now())
+  preparation         ClinicAccountSplitPreparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+  actor               User?                         @relation("AccountSplitEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([preparationId, createdAt])
   @@index([actorUserId])
@@ -1031,44 +1122,44 @@ model ClinicBillingProfile {
 /// ACTIVE: product access is open.
 /// RESTRICTED / ENDED: preserved for a later enforcement phase. Not a lockout.
 model ClinicEntitlement {
-  id                               String            @id @default(cuid())
-  clinicId                         String            @unique
-  commercialPlan                   CommercialPlan?
-  billingInterval                  BillingInterval?
-  billingStatus                    BillingStatus
-  entitlementStatus                EntitlementStatus
-  stripePriceId                    String?
-  currentPeriodStart               DateTime?
-  currentPeriodEnd                 DateTime?
-  paidThrough                      DateTime?
-  cancelAtPeriodEnd                Boolean           @default(false)
-  subscriptionEndedAt              DateTime?
+  id                                  String            @id @default(cuid())
+  clinicId                            String            @unique
+  commercialPlan                      CommercialPlan?
+  billingInterval                     BillingInterval?
+  billingStatus                       BillingStatus
+  entitlementStatus                   EntitlementStatus
+  stripePriceId                       String?
+  currentPeriodStart                  DateTime?
+  currentPeriodEnd                    DateTime?
+  paidThrough                         DateTime?
+  cancelAtPeriodEnd                   Boolean           @default(false)
+  subscriptionEndedAt                 DateTime?
   /// Calculated only when a subscription actually ends. Not set on
   /// cancel-at-period-end while the period is still paid.
-  publicGuideRetentionUntil        DateTime?
-  lastStripeEventId                String?
-  lastProjectedAt                  DateTime?
+  publicGuideRetentionUntil           DateTime?
+  lastStripeEventId                   String?
+  lastProjectedAt                     DateTime?
   /// Persistent operator-granted additions. Effective allowance is the plan
   /// base plus these values. They do not change Stripe or commercialPlan.
-  extraTeamMemberAllowance         Int               @default(0)
-  extraCustomGuideAllowance        Int               @default(0)
-  extraTemplateAdaptationAllowance Int               @default(0)
+  extraTeamMemberAllowance            Int               @default(0)
+  extraCustomGuideAllowance           Int               @default(0)
+  extraTemplateAdaptationAllowance    Int               @default(0)
   /// Materialized ClinicSite capacity, including the included site.
   /// Existing rows default to 1 (Essential-compatible). For a configured
   /// ACTIVE Group account, group capacity persistence is the writer.
   /// A missing entitlement row does not grant unlimited sites.
-  siteAllowance                    Int               @default(1)
+  siteAllowance                       Int               @default(1)
   /// Total active ClinicLocation capacity for this account, across every site.
   /// Existing rows default to 1 (Essential-compatible). Not a per-site cap.
   /// For a configured ACTIVE Group or Practice account this is the materialized
   /// total written by capacity persistence. It is not typed as a raw total.
   /// A missing entitlement row does not grant unlimited locations.
-  locationAllowance                Int               @default(1)
+  locationAllowance                   Int               @default(1)
   /// Stripe-purchased Group Additional Site quantity.
   /// Null: this Group account still uses the stored site and location totals.
   /// Zero: configured with no paid Additional Site bundle.
   /// Operators do not type this value. It does not create Site rows.
-  purchasedAdditionalSiteQuantity  Int?
+  purchasedAdditionalSiteQuantity     Int?
   /// Stripe-purchased Practice Additional Location quantity.
   /// N is the number of physical Locations above the included first Location.
   /// Null: this Practice account still uses the stored locationAllowance.
@@ -1078,25 +1169,25 @@ model ClinicEntitlement {
   /// Complimentary Clinic Site capacity above the Group formula.
   /// Practice does not gain Clinic Sites from this value.
   /// Does not create a Stripe item and does not charge or refund.
-  extraSiteAllowance               Int               @default(0)
+  extraSiteAllowance                  Int               @default(0)
   /// Complimentary Location capacity for Practice and Group.
   /// One shared delta. It does not create a Stripe item and does not charge or refund.
-  extraLocationAllowance           Int               @default(0)
+  extraLocationAllowance              Int               @default(0)
   /// Additional Site quantity prepared on an offer. Not capacity.
-  offeredAdditionalSiteQuantity    Int?
+  offeredAdditionalSiteQuantity       Int?
   /// Additional Site quantity waiting for a later effective time. Not capacity yet.
-  scheduledAdditionalSiteQuantity  Int?
+  scheduledAdditionalSiteQuantity     Int?
   /// When scheduledAdditionalSiteQuantity becomes purchased capacity.
-  scheduledCapacityEffectiveAt     DateTime?
+  scheduledCapacityEffectiveAt        DateTime?
   /// Scheduled plan. Null when nothing is scheduled. commercialPlan stays
   /// the current plan until a trusted Stripe event shows the new Price.
-  scheduledCommercialPlan          CommercialPlan?
+  scheduledCommercialPlan             CommercialPlan?
   /// When scheduledCommercialPlan becomes effective. The current paid-period
   /// end. Not a cancellation date.
-  scheduledPlanEffectiveAt         DateTime?
-  clinic                           Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  createdAt                        DateTime          @default(now())
-  updatedAt                        DateTime          @updatedAt
+  scheduledPlanEffectiveAt            DateTime?
+  clinic                              Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  createdAt                           DateTime          @default(now())
+  updatedAt                           DateTime          @updatedAt
 
   @@index([billingStatus])
   @@index([entitlementStatus])

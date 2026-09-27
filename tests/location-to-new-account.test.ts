@@ -996,7 +996,7 @@ describe("move location to new account", () => {
     const account = await seedPractice("guides");
     const template = await db().guideTemplate.create({
       data: {
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         slug: "ltn-template-guides",
         title: "Cleaning",
         revisions: {
@@ -1019,7 +1019,7 @@ describe("move location to new account", () => {
     });
     const adaptedTemplate = await db().guideTemplate.create({
       data: {
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         slug: "ltn-adapted-guides",
         title: "Adapted source",
       },

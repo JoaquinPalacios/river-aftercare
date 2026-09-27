@@ -601,7 +601,7 @@ describe("downgrade guide selection persistence", () => {
     await prisma.guideTemplate.create({
       data: {
         id: TEMPLATE_ID,
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         slug: "test-dg-sel-template",
         title: "Source template",
       },

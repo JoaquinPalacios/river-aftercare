@@ -13,11 +13,13 @@ import {
   updateClinicLocation,
   updateClinicSiteBranding,
 } from "@/lib/clinics/site-location-mutations";
+import { replaceClinicSiteServiceCategories } from "@/lib/clinics/site-service-categories";
 import {
   createLocationSchema,
   createSiteSchema,
   locationDetailsSchema,
   siteBrandingSchema,
+  siteServiceCategoriesSchema,
 } from "@/lib/clinics/site-location-schemas";
 
 export interface SiteActionState {
@@ -57,6 +59,12 @@ function text(formData: FormData, name: string): string {
   return typeof value === "string" ? value : "";
 }
 
+function serviceCategories(formData: FormData): string[] {
+  return formData
+    .getAll("serviceCategories")
+    .filter((value): value is string => typeof value === "string");
+}
+
 export async function createSiteAction(
   _previous: SiteActionState,
   formData: FormData
@@ -78,6 +86,7 @@ export async function createSiteAction(
     contactEmail: text(formData, "contactEmail"),
     bookingUrl: text(formData, "bookingUrl"),
     emergencyInstructions: text(formData, "emergencyInstructions"),
+    serviceCategories: serviceCategories(formData),
   });
   if (!parsed.success) {
     return {
@@ -155,6 +164,39 @@ export async function saveSiteBrandingAction(
     return { saved: true };
   } catch (error) {
     return { error: actionError(error, "Could not save site branding.") };
+  }
+}
+
+export async function saveSiteServicesAction(
+  _previous: SiteActionState,
+  formData: FormData
+): Promise<SiteActionState> {
+  const clinicId = await adminClinicId();
+  const siteId = text(formData, "siteId");
+  if (!siteId) {
+    return { error: "Clinic site not found." };
+  }
+  const parsed = siteServiceCategoriesSchema.safeParse({
+    serviceCategories: serviceCategories(formData),
+  });
+  if (!parsed.success) {
+    return {
+      error: "Choose only supported service categories.",
+      fieldErrors: fieldErrorsFrom(parsed.error.issues),
+    };
+  }
+  try {
+    await replaceClinicSiteServiceCategories({
+      clinicId,
+      siteId,
+      serviceCategories: parsed.data.serviceCategories,
+    });
+    revalidatePath("/practice/sites");
+    revalidatePath(`/practice/sites/${siteId}`);
+    revalidatePath("/guides/new");
+    return { saved: true };
+  } catch (error) {
+    return { error: actionError(error, "Could not save site services.") };
   }
 }
 

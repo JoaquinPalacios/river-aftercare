@@ -6,6 +6,7 @@ import {
   createSiteAction,
   type SiteActionState,
 } from "@/app/(staff)/(clinic-portal)/practice/sites/actions";
+import { ServiceCategoryFields } from "@/app/(staff)/(clinic-portal)/practice/sites/service-category-fields";
 import {
   suggestLocationSlug,
   suggestSiteSlug,
@@ -63,6 +64,7 @@ export function CreateSiteForm() {
           spellCheck={false}
         />
       </label>
+      <ServiceCategoryFields selected={[]} />
       <label className="grid gap-1 text-sm" htmlFor="locationName">
         First location name
         <input

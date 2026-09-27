@@ -122,14 +122,14 @@ async function upsertUnpublishedGuide(input: {
     update: {
       slug: input.templateSlug,
       title: input.title,
-      specialty: "DENTAL",
+      serviceCategory: "DENTAL",
       isActive: false,
     },
     create: {
       id: input.templateId,
       slug: input.templateSlug,
       title: input.title,
-      specialty: "DENTAL",
+      serviceCategory: "DENTAL",
       isActive: false,
     },
   });

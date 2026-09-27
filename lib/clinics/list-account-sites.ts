@@ -30,6 +30,10 @@ const siteSelect = {
   themeMode: true,
   allowPatientThemeToggle: true,
   showCareGuideAttribution: true,
+  serviceCategories: {
+    orderBy: { serviceCategory: "asc" as const },
+    select: { serviceCategory: true },
+  },
   locations: {
     orderBy: [{ servesSiteRoot: "desc" as const }, { name: "asc" as const }],
     select: {

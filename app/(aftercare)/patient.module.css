@@ -300,6 +300,40 @@
   margin-bottom: 0;
 }
 
+.planList {
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.planItem {
+  margin: 0;
+  padding: 0.85rem 0 0;
+  border-top: 1px solid var(--cg-border);
+}
+
+.planItem:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.planTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.planMeta {
+  margin: 0.2rem 0 0.45rem;
+  color: var(--cg-text-muted);
+  font-size: 0.95rem;
+}
+
+.planItem .body:last-child {
+  margin-bottom: 0;
+}
+
 .timelineList {
   margin: 0.85rem 0 0;
   padding: 0;

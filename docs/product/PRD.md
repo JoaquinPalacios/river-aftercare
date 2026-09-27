@@ -593,7 +593,7 @@ Only enabled **and** published guides are visible. Unpublished or disabled guide
 | Care Guide        | The platform / product                                             |
 | Practice / Clinic | Customer tenant                                                    |
 | Tenant            | Architectural term for a practice account                          |
-| Specialty         | Dental, Physiotherapy, etc.                                        |
+| Service category  | Dental, Physiotherapy, Chiropractic, or Cosmetic & Aesthetic       |
 | Guide Template    | Care Guide canonical aftercare content                             |
 | Practice Guide    | A template enabled / configured for one practice                   |
 | Guide             | Patient-facing published aftercare resource, when context is clear |
@@ -611,7 +611,7 @@ These are product-domain objects, not a Prisma schema.
 
 - Owned by Care Guide, not by a single practice.
 - Identified by a stable public slug (example: `extraction`).
-- Associated with a specialty (initially Dental).
+- Associated with one service category. A practice guide keeps that classification after it leaves the template pin.
 - Contains structured canonical sections.
 - Has version / revision identity.
 - May have last-reviewed metadata.

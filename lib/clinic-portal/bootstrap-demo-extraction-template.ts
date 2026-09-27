@@ -32,7 +32,7 @@ export interface DemoExtractionRevisionSnapshot {
 export interface DemoExtractionTemplateSnapshot {
   slug: string;
   title: string;
-  specialty: string;
+  serviceCategory: string;
   isActive: boolean;
   isSample: boolean;
   revisions: DemoExtractionRevisionSnapshot[];
@@ -46,7 +46,7 @@ export type DemoExtractionBootstrapPlan =
       template: {
         slug: string;
         title: string;
-        specialty: string;
+        serviceCategory: string;
         isActive: true;
         isSample: true;
       };

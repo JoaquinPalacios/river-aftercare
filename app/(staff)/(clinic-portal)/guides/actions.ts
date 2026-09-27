@@ -121,6 +121,7 @@ export async function createCustomGuideAction(
   const parsed = createCustomGuideSchema.safeParse({
     title: formData.get("title") ?? "",
     publicSlug: formData.get("publicSlug") ?? "",
+    serviceCategory: formData.get("serviceCategory") ?? "",
   });
 
   if (!parsed.success) {
@@ -164,12 +165,16 @@ export async function saveGuideDraftAction(
     }
   }
 
+  const rawServiceCategory = formData.get("serviceCategory");
   const parsed = saveGuideDraftSchema.safeParse({
     guideId: formData.get("guideId") ?? "",
     title: formData.get("title") ?? "",
     publicSlug: formData.get("publicSlug") ?? "",
     introduction: formData.get("introduction") ?? "",
     sections,
+    ...(typeof rawServiceCategory === "string" && rawServiceCategory
+      ? { serviceCategory: rawServiceCategory }
+      : {}),
   });
 
   if (!parsed.success) {

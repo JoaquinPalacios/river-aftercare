@@ -419,7 +419,7 @@ async function publishTemplate(slug: string) {
     data: {
       slug: `stg-${slug}`.slice(0, 48),
       title: slug,
-      specialty: "DENTAL",
+      serviceCategory: "DENTAL",
       revisions: {
         create: {
           id: revisionId,

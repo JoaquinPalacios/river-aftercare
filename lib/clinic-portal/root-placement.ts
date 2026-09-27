@@ -1,10 +1,85 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, ServiceCategory } from "@prisma/client";
 
+import {
+  guideServiceCompatibleWithSite,
+  guideServiceMismatchMessage,
+} from "@/lib/aftercare/service-compatibility";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { assertRootGuideSlugAvailable } from "@/lib/clinics/slug-collisions";
 import { lockClinicSiteLocationCapacity } from "@/lib/entitlements/locks";
 
 export type RootPlacementDb = Prisma.TransactionClient;
+
+type PlacementSite = {
+  locationName: string;
+  siteName: string;
+  siteServiceCategories: ServiceCategory[];
+};
+
+async function requireGuideServiceCategory(
+  db: RootPlacementDb,
+  clinicId: string,
+  practiceGuideId: string
+): Promise<ServiceCategory | null> {
+  const guide = await db.practiceGuide.findFirst({
+    where: { id: practiceGuideId, clinicId },
+    select: { clinicId: true, serviceCategory: true },
+  });
+  if (!guide || guide.clinicId !== clinicId) {
+    throw new ClinicPortalError("Guide not found.", "not_found");
+  }
+  return guide.serviceCategory;
+}
+
+async function describeLocation(
+  db: RootPlacementDb,
+  clinicId: string,
+  locationId: string
+): Promise<PlacementSite> {
+  const location = await db.clinicLocation.findFirst({
+    where: { id: locationId, clinicId },
+    select: {
+      name: true,
+      clinicId: true,
+      clinicSite: {
+        select: {
+          name: true,
+          clinicId: true,
+          serviceCategories: { select: { serviceCategory: true } },
+        },
+      },
+    },
+  });
+  if (
+    !location ||
+    location.clinicId !== clinicId ||
+    location.clinicSite.clinicId !== clinicId
+  ) {
+    throw new ClinicPortalError("Practice not found.", "not_found");
+  }
+  return {
+    locationName: location.name,
+    siteName: location.clinicSite.name,
+    siteServiceCategories: location.clinicSite.serviceCategories.map(
+      (row) => row.serviceCategory
+    ),
+  };
+}
+
+function rejectIncompatiblePlacement(
+  guideServiceCategory: ServiceCategory | null,
+  site: PlacementSite
+): void {
+  const message = guideServiceMismatchMessage({
+    guideServiceCategory,
+    siteServiceCategories: site.siteServiceCategories,
+    locationName: site.locationName,
+    siteName: site.siteName,
+  });
+  if (message) {
+    throw new ClinicPortalError(message, "conflict");
+  }
+}
 
 async function requireRootLocation(
   db: RootPlacementDb,
@@ -74,8 +149,31 @@ export async function upsertRootPlacement(
     publicSlug: string;
     isEnabled: boolean;
     publishedPracticeGuideRevisionId: string | null;
+    /**
+     * Initial guide creation skips an incompatible root instead of failing
+     * the guide. Publishing and other activations reject it.
+     */
+    whenIncompatible?: "reject" | "skip";
   }
 ): Promise<void> {
+  const guideServiceCategory = await requireGuideServiceCategory(
+    db,
+    input.clinicId,
+    input.practiceGuideId
+  );
+  const root = await requireRootLocation(db, input.clinicId);
+  const site = await describeLocation(db, input.clinicId, root.locationId);
+  if (
+    !guideServiceCompatibleWithSite({
+      guideServiceCategory,
+      siteServiceCategories: site.siteServiceCategories,
+    })
+  ) {
+    if (input.whenIncompatible === "skip") {
+      return;
+    }
+    rejectIncompatiblePlacement(guideServiceCategory, site);
+  }
   const { locationId } = await guardRootSlug(
     db,
     input.clinicId,
@@ -118,20 +216,67 @@ export async function advancePublishedPlacement(
     publishedPracticeGuideRevisionId: string;
   }
 ): Promise<void> {
+  const guideServiceCategory = await requireGuideServiceCategory(
+    db,
+    input.clinicId,
+    input.practiceGuideId
+  );
   const root = await requireRootLocation(db, input.clinicId);
-  const rootPlacement = await db.practiceGuidePlacement.findUnique({
+  const placements = await db.practiceGuidePlacement.findMany({
     where: {
-      locationId_practiceGuideId: {
-        locationId: root.locationId,
-        practiceGuideId: input.practiceGuideId,
+      practiceGuideId: input.practiceGuideId,
+      clinicId: input.clinicId,
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      clinicId: true,
+      locationId: true,
+      isEnabled: true,
+      location: {
+        select: {
+          name: true,
+          clinicId: true,
+          clinicSite: {
+            select: {
+              name: true,
+              clinicId: true,
+              serviceCategories: { select: { serviceCategory: true } },
+            },
+          },
+        },
       },
     },
-    select: { id: true, clinicId: true },
   });
-  if (rootPlacement) {
-    if (rootPlacement.clinicId !== input.clinicId) {
+  for (const placement of placements) {
+    if (
+      placement.clinicId !== input.clinicId ||
+      placement.location.clinicId !== input.clinicId ||
+      placement.location.clinicSite.clinicId !== input.clinicId
+    ) {
       throw new ClinicPortalError("Guide not found.", "not_found");
     }
+  }
+
+  const rootPlacement =
+    placements.find((placement) => placement.locationId === root.locationId) ??
+    null;
+  const target = rootPlacement ?? placements[0] ?? null;
+  for (const placement of placements) {
+    if (!placement.isEnabled && placement.id !== target?.id) {
+      continue;
+    }
+    rejectIncompatiblePlacement(guideServiceCategory, {
+      locationName: placement.location.name,
+      siteName: placement.location.clinicSite.name,
+      siteServiceCategories:
+        placement.location.clinicSite.serviceCategories.map(
+          (row) => row.serviceCategory
+        ),
+    });
+  }
+
+  if (rootPlacement) {
     await upsertRootPlacement(db, {
       clinicId: input.clinicId,
       practiceGuideId: input.practiceGuideId,
@@ -142,33 +287,34 @@ export async function advancePublishedPlacement(
     return;
   }
 
-  const oldest = await db.practiceGuidePlacement.findFirst({
-    where: {
-      practiceGuideId: input.practiceGuideId,
-      clinicId: input.clinicId,
-    },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    select: { id: true, clinicId: true },
-  });
-  if (!oldest) {
-    await upsertRootPlacement(db, {
-      clinicId: input.clinicId,
-      practiceGuideId: input.practiceGuideId,
-      publicSlug: input.publicSlug,
-      isEnabled: true,
-      publishedPracticeGuideRevisionId: input.publishedPracticeGuideRevisionId,
+  if (target) {
+    await db.practiceGuidePlacement.update({
+      where: { id: target.id },
+      data: {
+        isEnabled: true,
+        publishedPracticeGuideRevisionId:
+          input.publishedPracticeGuideRevisionId,
+      },
     });
     return;
   }
-  if (oldest.clinicId !== input.clinicId) {
-    throw new ClinicPortalError("Guide not found.", "not_found");
+
+  const rootSite = await describeLocation(db, input.clinicId, root.locationId);
+  if (
+    !guideServiceCompatibleWithSite({
+      guideServiceCategory,
+      siteServiceCategories: rootSite.siteServiceCategories,
+    })
+  ) {
+    return;
   }
-  await db.practiceGuidePlacement.update({
-    where: { id: oldest.id },
-    data: {
-      isEnabled: true,
-      publishedPracticeGuideRevisionId: input.publishedPracticeGuideRevisionId,
-    },
+
+  await upsertRootPlacement(db, {
+    clinicId: input.clinicId,
+    practiceGuideId: input.practiceGuideId,
+    publicSlug: input.publicSlug,
+    isEnabled: true,
+    publishedPracticeGuideRevisionId: input.publishedPracticeGuideRevisionId,
   });
 }
 
@@ -219,6 +365,20 @@ export async function alignRootPlacementSlug(
   });
 
   if (!existing) {
+    const guideServiceCategory = await requireGuideServiceCategory(
+      db,
+      input.clinicId,
+      input.practiceGuideId
+    );
+    const site = await describeLocation(db, input.clinicId, locationId);
+    if (
+      !guideServiceCompatibleWithSite({
+        guideServiceCategory,
+        siteServiceCategories: site.siteServiceCategories,
+      })
+    ) {
+      return;
+    }
     await db.practiceGuidePlacement.create({
       data: {
         locationId,
@@ -260,6 +420,20 @@ export async function disableRootPlacement(
   });
 
   if (!existing) {
+    const guideServiceCategory = await requireGuideServiceCategory(
+      db,
+      input.clinicId,
+      input.practiceGuideId
+    );
+    const site = await describeLocation(db, input.clinicId, locationId);
+    if (
+      !guideServiceCompatibleWithSite({
+        guideServiceCategory,
+        siteServiceCategories: site.siteServiceCategories,
+      })
+    ) {
+      return;
+    }
     await db.practiceGuidePlacement.create({
       data: {
         locationId,
@@ -307,6 +481,21 @@ export async function ensureRootPlacement(
     select: { id: true },
   });
   if (existing) {
+    return;
+  }
+
+  const guideServiceCategory = await requireGuideServiceCategory(
+    db,
+    input.clinicId,
+    input.practiceGuideId
+  );
+  const site = await describeLocation(db, input.clinicId, locationId);
+  if (
+    !guideServiceCompatibleWithSite({
+      guideServiceCategory,
+      siteServiceCategories: site.siteServiceCategories,
+    })
+  ) {
     return;
   }
 

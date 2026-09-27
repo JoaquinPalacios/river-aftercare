@@ -130,4 +130,76 @@ describe("GuideDocument timeline rendering", () => {
     expect(html).not.toContain("<article");
     expect(html.match(/<section\b/g)).toHaveLength(2);
   });
+
+  it("renders a structured home-care plan without tracking controls", () => {
+    const html = renderToStaticMarkup(
+      <GuideDocument
+        sections={[
+          section({
+            key: "hours",
+            kind: "RECOVERY_TIMELINE",
+            title: "Today",
+            periodLabel: "Today",
+            body: "Reduce load.",
+          }),
+          section({
+            key: "plan",
+            kind: "HOME_CARE_PLAN",
+            title: "Home care plan",
+            body: "Follow the items below.",
+            homeCareInstructions: [
+              {
+                key: "repeat",
+                title: "Repeated movement",
+                body: "Use the movement shown in clinic.",
+                frequencyCount: 3,
+                frequencyPeriod: "WEEK",
+                timingLabel: null,
+                durationValue: 4,
+                durationUnit: "WEEKS",
+                sortOrder: 1,
+              },
+              {
+                key: "cool",
+                title: "Cool the area",
+                body: null,
+                frequencyCount: 1,
+                frequencyPeriod: "DAY",
+                timingLabel: "Evening",
+                durationValue: 7,
+                durationUnit: "DAYS",
+                sortOrder: 2,
+              },
+              {
+                key: "avoid",
+                title: "Avoid running",
+                body: null,
+                frequencyCount: null,
+                frequencyPeriod: null,
+                timingLabel: null,
+                durationValue: 2,
+                durationUnit: "WEEKS",
+                sortOrder: 3,
+              },
+            ],
+          }),
+        ]}
+      />
+    );
+
+    expect(html).toContain("Today");
+    expect(html).toContain("Home care plan");
+    expect(html).toContain("Repeated movement");
+    expect(html).toContain("3 times per week");
+    expect(html).toContain("4 weeks");
+    expect(html).toContain("Once daily");
+    expect(html).toContain("Evening");
+    expect(html).toContain("7 days");
+    expect(html).toContain("Avoid running");
+    expect(html).toContain("For 2 weeks");
+    expect(html).not.toContain("checkbox");
+    expect(html).not.toContain("Mark done");
+    expect(html).not.toContain("progress");
+    expect(html).not.toContain('type="checkbox"');
+  });
 });

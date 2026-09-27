@@ -11,6 +11,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
+import { assignPrimarySiteServiceCategories } from "@/lib/clinics/site-service-categories";
 import { adaptPracticeGuideFromTemplate } from "@/lib/clinic-portal/adapt-practice-guide";
 import {
   createCustomPracticeGuide,
@@ -172,10 +173,11 @@ describe("guide allowance pools", () => {
       },
     });
     await ensurePrimarySiteForClinic(prisma, CLINIC_ID);
+    await assignPrimarySiteServiceCategories(prisma, CLINIC_ID, ["DENTAL"]);
     await prisma.guideTemplate.create({
       data: {
         id: TEMPLATE_ID,
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         slug: "ent-extract",
         title: "Tooth Extraction",
         revisions: {
@@ -202,7 +204,7 @@ describe("guide allowance pools", () => {
     await prisma.guideTemplate.create({
       data: {
         id: TEMPLATE_B_ID,
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         slug: "ent-implant",
         title: "Dental Implant",
         revisions: {
@@ -287,7 +289,11 @@ describe("guide allowance pools", () => {
     const custom = await createCustomPracticeGuide({
       clinicId: CLINIC_ID,
       actorUserId: USER_ID,
-      values: { title: "Custom one", publicSlug: "custom-one" },
+      values: {
+        title: "Custom one",
+        publicSlug: "custom-one",
+        serviceCategory: "DENTAL",
+      },
     });
     expect(await countOriginalCustomGuides(prisma, CLINIC_ID)).toBe(1);
 
@@ -341,18 +347,30 @@ describe("guide allowance pools", () => {
     await createCustomPracticeGuide({
       clinicId: CLINIC_ID,
       actorUserId: USER_ID,
-      values: { title: "Custom one", publicSlug: "custom-one" },
+      values: {
+        title: "Custom one",
+        publicSlug: "custom-one",
+        serviceCategory: "DENTAL",
+      },
     });
     await createCustomPracticeGuide({
       clinicId: CLINIC_ID,
       actorUserId: USER_ID,
-      values: { title: "Custom two", publicSlug: "custom-two" },
+      values: {
+        title: "Custom two",
+        publicSlug: "custom-two",
+        serviceCategory: "DENTAL",
+      },
     });
     await expect(
       createCustomPracticeGuide({
         clinicId: CLINIC_ID,
         actorUserId: USER_ID,
-        values: { title: "Custom three", publicSlug: "custom-three" },
+        values: {
+          title: "Custom three",
+          publicSlug: "custom-three",
+          serviceCategory: "DENTAL",
+        },
       })
     ).rejects.toMatchObject({ code: "custom_guide_limit" });
 
@@ -506,7 +524,11 @@ describe("guide allowance pools", () => {
     await createCustomPracticeGuide({
       clinicId: CLINIC_ID,
       actorUserId: USER_ID,
-      values: { title: "Extra custom", publicSlug: "extra-custom" },
+      values: {
+        title: "Extra custom",
+        publicSlug: "extra-custom",
+        serviceCategory: "DENTAL",
+      },
     });
     expect(await countOriginalCustomGuides(prisma, CLINIC_ID)).toBe(3);
     expect(await countAdaptedTemplateGuides(prisma, CLINIC_ID)).toBe(2);
@@ -514,7 +536,11 @@ describe("guide allowance pools", () => {
       createCustomPracticeGuide({
         clinicId: CLINIC_ID,
         actorUserId: USER_ID,
-        values: { title: "Fourth custom", publicSlug: "fourth-custom" },
+        values: {
+          title: "Fourth custom",
+          publicSlug: "fourth-custom",
+          serviceCategory: "DENTAL",
+        },
       })
     ).rejects.toMatchObject({ code: "custom_guide_limit" });
 
@@ -541,7 +567,11 @@ describe("guide allowance pools", () => {
     await createCustomPracticeGuide({
       clinicId: CLINIC_ID,
       actorUserId: USER_ID,
-      values: { title: "Both custom", publicSlug: "both-custom" },
+      values: {
+        title: "Both custom",
+        publicSlug: "both-custom",
+        serviceCategory: "DENTAL",
+      },
     });
     const bothPin = await createPracticeGuideFromTemplate({
       clinicId: CLINIC_ID,
@@ -577,7 +607,7 @@ describe("guide allowance pools", () => {
       return createCustomPracticeGuide({
         clinicId: CLINIC_ID,
         actorUserId: USER_ID,
-        values: { title: slug, publicSlug: slug },
+        values: { title: slug, publicSlug: slug, serviceCategory: "DENTAL" },
       });
     }
 
@@ -656,7 +686,11 @@ describe("guide allowance pools", () => {
     await createCustomPracticeGuide({
       clinicId: CLINIC_ID,
       actorUserId: USER_ID,
-      values: { title: "Extra custom", publicSlug: "practice-extra-custom" },
+      values: {
+        title: "Extra custom",
+        publicSlug: "practice-extra-custom",
+        serviceCategory: "DENTAL",
+      },
     });
     expect(await countOriginalCustomGuides(prisma, CLINIC_ID)).toBe(31);
     expect(await countAdaptedTemplateGuides(prisma, CLINIC_ID)).toBe(10);
@@ -678,7 +712,11 @@ describe("guide allowance pools", () => {
     await createCustomPracticeGuide({
       clinicId: CLINIC_ID,
       actorUserId: USER_ID,
-      values: { title: "Both custom", publicSlug: "practice-both-custom" },
+      values: {
+        title: "Both custom",
+        publicSlug: "practice-both-custom",
+        serviceCategory: "DENTAL",
+      },
     });
     const bothPin = await createPracticeGuideFromTemplate({
       clinicId: CLINIC_ID,
@@ -717,7 +755,11 @@ describe("guide allowance pools", () => {
       createCustomPracticeGuide({
         clinicId: CLINIC_ID,
         actorUserId: USER_ID,
-        values: { title: "Still blocked", publicSlug: "still-blocked" },
+        values: {
+          title: "Still blocked",
+          publicSlug: "still-blocked",
+          serviceCategory: "DENTAL",
+        },
       })
     ).rejects.toMatchObject({ code: "custom_guide_limit" });
   });
@@ -731,12 +773,20 @@ describe("guide allowance pools", () => {
       createCustomPracticeGuide({
         clinicId: CLINIC_ID,
         actorUserId: USER_ID,
-        values: { title: "Race A", publicSlug: "race-a" },
+        values: {
+          title: "Race A",
+          publicSlug: "race-a",
+          serviceCategory: "DENTAL",
+        },
       }),
       createCustomPracticeGuide({
         clinicId: CLINIC_ID,
         actorUserId: USER_ID,
-        values: { title: "Race B", publicSlug: "race-b" },
+        values: {
+          title: "Race B",
+          publicSlug: "race-b",
+          serviceCategory: "DENTAL",
+        },
       }),
     ]);
     expect(
@@ -795,7 +845,11 @@ describe("guide allowance pools", () => {
       createCustomPracticeGuide({
         clinicId: CLINIC_ID,
         actorUserId: USER_ID,
-        values: { title: "Last combined", publicSlug: "last-combined" },
+        values: {
+          title: "Last combined",
+          publicSlug: "last-combined",
+          serviceCategory: "DENTAL",
+        },
       }),
       adaptPracticeGuideFromTemplate({
         clinicId: CLINIC_ID,
@@ -818,7 +872,11 @@ describe("guide allowance pools", () => {
     await createCustomPracticeGuide({
       clinicId: CLINIC_ID,
       actorUserId: USER_ID,
-      values: { title: "Legacy extra", publicSlug: "legacy-extra" },
+      values: {
+        title: "Legacy extra",
+        publicSlug: "legacy-extra",
+        serviceCategory: "DENTAL",
+      },
     });
     expect(await countOriginalCustomGuides(prisma, CLINIC_ID)).toBe(
       essentialCustom + 1
@@ -839,7 +897,11 @@ describe("guide allowance pools", () => {
     await createCustomPracticeGuide({
       clinicId: CLINIC_ID,
       actorUserId: USER_ID,
-      values: { title: "Group extra", publicSlug: "group-extra" },
+      values: {
+        title: "Group extra",
+        publicSlug: "group-extra",
+        serviceCategory: "DENTAL",
+      },
     });
     expect(await countOriginalCustomGuides(prisma, CLINIC_ID)).toBe(
       essentialCustom + 2

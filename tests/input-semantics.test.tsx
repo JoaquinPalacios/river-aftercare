@@ -44,6 +44,7 @@ const stage: EditorSection = {
   periodLabel: "Today",
   startDay: "",
   endDay: "",
+  homeCareInstructions: [],
 };
 
 function DayHarness({ initial }: { initial: EditorSection }) {

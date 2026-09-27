@@ -12,6 +12,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { getClinicBySlug } from "@/lib/aftercare/get-clinic-by-slug";
 import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practice-guide";
 import { listPublishedPracticeGuides } from "@/lib/aftercare/list-published-practice-guides";
+import { assignPrimarySiteServiceCategories } from "@/lib/clinics/site-service-categories";
 import { adaptPracticeGuideFromTemplate } from "@/lib/clinic-portal/adapt-practice-guide";
 import {
   createCustomPracticeGuide,
@@ -160,7 +161,7 @@ async function seedTemplate(): Promise<{
   await db().guideTemplate.create({
     data: {
       id: templateId,
-      specialty: "DENTAL",
+      serviceCategory: "DENTAL",
       slug: "mlrt-template",
       title: "Template Guide",
       revisions: {
@@ -633,6 +634,9 @@ describe("multi-location runtime switch", () => {
       userId: `${PREFIX}user`,
     });
     const template = await seedTemplate();
+    await assignPrimarySiteServiceCategories(db(), `${PREFIX}clinic`, [
+      "DENTAL",
+    ]);
     await db().clinicEntitlement.create({
       data: {
         clinicId: `${PREFIX}clinic`,
@@ -669,7 +673,11 @@ describe("multi-location runtime switch", () => {
     const custom = await createCustomPracticeGuide({
       clinicId: `${PREFIX}clinic`,
       actorUserId: `${PREFIX}user`,
-      values: { title: "Custom", publicSlug: "custom-guide" },
+      values: {
+        title: "Custom",
+        publicSlug: "custom-guide",
+        serviceCategory: "DENTAL",
+      },
     });
     await savePracticeGuideDraft({
       clinicId: `${PREFIX}clinic`,

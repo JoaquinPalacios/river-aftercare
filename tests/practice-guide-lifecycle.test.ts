@@ -22,6 +22,7 @@ import { listCanonicalGuideTemplates } from "@/lib/clinic-portal/list-canonical-
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { getClinicBySlug } from "@/lib/aftercare/get-clinic-by-slug";
 import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
+import { assignPrimarySiteServiceCategories } from "@/lib/clinics/site-service-categories";
 import { getPrisma } from "@/lib/prisma";
 
 const prisma = getPrisma();
@@ -90,6 +91,7 @@ describe("practice guide lifecycle and isolation", () => {
       },
     });
     await ensurePrimarySiteForClinic(prisma, CLINIC_A_ID);
+    await assignPrimarySiteServiceCategories(prisma, CLINIC_A_ID, ["DENTAL"]);
     await prisma.clinic.create({
       data: {
         id: CLINIC_B_ID,
@@ -114,7 +116,7 @@ describe("practice guide lifecycle and isolation", () => {
     await prisma.guideTemplate.create({
       data: {
         id: TEMPLATE_ID,
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         slug: "testp2a-extraction",
         title: "Tooth Extraction",
         revisions: {
@@ -358,6 +360,7 @@ describe("practice guide lifecycle and isolation", () => {
       values: {
         title: "Custom socket care",
         publicSlug: "socket-care",
+        serviceCategory: "DENTAL",
       },
     });
 
@@ -549,6 +552,7 @@ describe("draft delete and discard", () => {
       },
     });
     await ensurePrimarySiteForClinic(prisma, CLINIC_A_ID);
+    await assignPrimarySiteServiceCategories(prisma, CLINIC_A_ID, ["DENTAL"]);
     await ensurePrimarySiteForClinic(prisma, CLINIC_B_ID);
     await prisma.clinicMembership.create({
       data: {
@@ -568,7 +572,11 @@ describe("draft delete and discard", () => {
     const draft = await createCustomPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      values: { title: "Unpublished socket care", publicSlug: "socket-draft" },
+      values: {
+        title: "Unpublished socket care",
+        publicSlug: "socket-draft",
+        serviceCategory: "DENTAL",
+      },
     });
 
     await deletePracticeGuide({
@@ -584,7 +592,11 @@ describe("draft delete and discard", () => {
     const published = await createCustomPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      values: { title: "Published socket care", publicSlug: "socket-live" },
+      values: {
+        title: "Published socket care",
+        publicSlug: "socket-live",
+        serviceCategory: "DENTAL",
+      },
     });
     await publishPracticeGuide({
       clinicId: CLINIC_A_ID,
@@ -613,7 +625,11 @@ describe("draft delete and discard", () => {
     const guide = await createCustomPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      values: { title: "Public pin", publicSlug: "public-pin" },
+      values: {
+        title: "Public pin",
+        publicSlug: "public-pin",
+        serviceCategory: "DENTAL",
+      },
     });
     await savePracticeGuideDraft({
       clinicId: CLINIC_A_ID,
@@ -705,7 +721,11 @@ describe("draft delete and discard", () => {
     const guide = await createCustomPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      values: { title: "Public pin", publicSlug: "public-unpublish" },
+      values: {
+        title: "Public pin",
+        publicSlug: "public-unpublish",
+        serviceCategory: "DENTAL",
+      },
     });
     await savePracticeGuideDraft({
       clinicId: CLINIC_A_ID,
@@ -805,7 +825,11 @@ describe("draft delete and discard", () => {
     const guide = await createCustomPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      values: { title: "Soon deleted", publicSlug: "soon-deleted" },
+      values: {
+        title: "Soon deleted",
+        publicSlug: "soon-deleted",
+        serviceCategory: "DENTAL",
+      },
     });
     await savePracticeGuideDraft({
       clinicId: CLINIC_A_ID,
@@ -875,7 +899,7 @@ describe("draft delete and discard", () => {
         id: TEMPLATE_ID,
         slug: "testp2a2-extraction",
         title: "Canonical extraction",
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         isActive: true,
         revisions: {
           create: {

@@ -68,7 +68,7 @@ function matchingSnapshot(): DemoExtractionTemplateSnapshot {
   return {
     slug: create.template.slug,
     title: create.template.title,
-    specialty: create.template.specialty,
+    serviceCategory: create.template.serviceCategory,
     isActive: true,
     isSample: true,
     revisions: [
@@ -94,7 +94,7 @@ describe("demo extraction bootstrap planner", () => {
     expect(plan.template).toEqual({
       slug: "extraction",
       title: "Tooth Extraction",
-      specialty: "DENTAL",
+      serviceCategory: "DENTAL",
       isActive: true,
       isSample: true,
     });
@@ -115,7 +115,7 @@ describe("demo extraction bootstrap planner", () => {
     const formatted = formatDemoExtractionBootstrapPlan(plan);
     expect(formatted).toContain("Action: create");
     expect(formatted).toContain(
-      "- 1 GuideTemplate slug=extraction title=Tooth Extraction specialty=DENTAL isActive=true isSample=true"
+      "- 1 GuideTemplate slug=extraction title=Tooth Extraction serviceCategory=DENTAL isActive=true isSample=true"
     );
     expect(formatted).toContain(
       "- 1 GuideTemplateRevision version=1 status=PUBLISHED reviewedAt=null reviewedBy=null"

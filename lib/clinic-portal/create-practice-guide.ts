@@ -10,11 +10,14 @@ import {
   classifyCanonicalTemplate,
   clinicCanUseCanonicalTemplate,
 } from "@/lib/aftercare/guide-template-review";
+import { mapHomeCareInstructions } from "@/lib/aftercare/revision-sections";
+import { practiceSectionCreateData } from "@/lib/aftercare/revision-sections";
 import { isValidCareGuideSlug } from "@/lib/aftercare/slug";
 import {
   practiceRevisionSectionsFromComposed,
   WORKING_DRAFT_VERSION,
 } from "@/lib/aftercare/practice-revision-document";
+import { listAccountServiceCategories } from "@/lib/clinics/site-service-categories";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { upsertRootPlacement } from "@/lib/clinic-portal/root-placement";
 import { reserveCustomGuidePlace } from "@/lib/entitlements/guide-usage";
@@ -69,6 +72,19 @@ export async function createCustomPracticeGuide(input: {
   actorUserId: string;
   values: CreateCustomGuideInput;
 }): Promise<{ id: string }> {
+  const allowedCategories = await listAccountServiceCategories(
+    getPrisma(),
+    input.clinicId
+  );
+  if (!allowedCategories.includes(input.values.serviceCategory)) {
+    throw new ClinicPortalError(
+      allowedCategories.length === 0
+        ? "Configure a site service before creating a custom guide."
+        : "Choose a service this account's sites provide.",
+      "invalid"
+    );
+  }
+
   const publicSlug = await nextUnusedSlug(
     input.clinicId,
     input.values.publicSlug
@@ -92,6 +108,7 @@ export async function createCustomPracticeGuide(input: {
         clinicId: input.clinicId,
         title: input.values.title,
         publicSlug,
+        serviceCategory: input.values.serviceCategory,
         status: PracticeGuideStatus.DRAFT,
         isEnabled: false,
         sortOrder,
@@ -124,6 +141,7 @@ export async function createCustomPracticeGuide(input: {
       publicSlug,
       isEnabled: false,
       publishedPracticeGuideRevisionId: null,
+      whenIncompatible: "skip",
     });
 
     return { id: guide.id };
@@ -153,6 +171,7 @@ export async function createPracticeGuideFromTemplate(input: {
       id: true,
       slug: true,
       title: true,
+      serviceCategory: true,
       isSample: true,
       revisions: {
         where: { status: GuideRevisionStatus.PUBLISHED },
@@ -165,11 +184,22 @@ export async function createPracticeGuideFromTemplate(input: {
           reviewedBy: true,
           sections: {
             orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+            include: {
+              homeCareInstructions: { orderBy: { sortOrder: "asc" } },
+            },
           },
         },
       },
     },
   });
+
+  const accountCategories = await listAccountServiceCategories(
+    getPrisma(),
+    input.clinicId
+  );
+  if (!template || !accountCategories.includes(template.serviceCategory)) {
+    throw new ClinicPortalError("That template is not available.", "not_found");
+  }
 
   const classified = classifyCanonicalTemplate({
     isSample: template?.isSample ?? false,
@@ -213,6 +243,9 @@ export async function createPracticeGuideFromTemplate(input: {
       startDay: section.startDay,
       endDay: section.endDay,
       sortOrder: section.sortOrder,
+      homeCareInstructions: mapHomeCareInstructions(
+        section.homeCareInstructions
+      ),
     })),
     overrides: [],
     additions: [],
@@ -227,6 +260,7 @@ export async function createPracticeGuideFromTemplate(input: {
         title: template.title,
         guideTemplateId: template.id,
         pinnedRevisionId: publishedRevision.id,
+        serviceCategory: template.serviceCategory,
         publicSlug,
         status: PracticeGuideStatus.DRAFT,
         isEnabled: false,
@@ -242,7 +276,7 @@ export async function createPracticeGuideFromTemplate(input: {
         title: template.title,
         createdByUserId: input.actorUserId,
         sections: {
-          create: draftSections,
+          create: draftSections.map(practiceSectionCreateData),
         },
       },
     });
@@ -253,6 +287,7 @@ export async function createPracticeGuideFromTemplate(input: {
       publicSlug,
       isEnabled: false,
       publishedPracticeGuideRevisionId: null,
+      whenIncompatible: "skip",
     });
 
     return { id: guide.id };

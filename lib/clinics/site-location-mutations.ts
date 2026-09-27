@@ -98,6 +98,15 @@ export async function createClinicSiteWithRootLocation(input: {
           ...brandingFromProfile(null),
         },
       });
+      if (input.values.serviceCategories.length > 0) {
+        await tx.clinicSiteServiceCategory.createMany({
+          data: input.values.serviceCategories.map((serviceCategory) => ({
+            clinicSiteId: site.id,
+            clinicId: input.clinicId,
+            serviceCategory,
+          })),
+        });
+      }
       const location = await tx.clinicLocation.create({
         data: {
           clinicSiteId: site.id,

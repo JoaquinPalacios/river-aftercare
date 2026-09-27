@@ -9,6 +9,8 @@ import {
 } from "@/lib/aftercare/get-clinic-by-slug";
 import { getPatientLocation } from "@/lib/aftercare/get-patient-location";
 import { composedSectionsFromPracticeRevision } from "@/lib/aftercare/practice-revision-document";
+import { mapHomeCareInstructions } from "@/lib/aftercare/revision-sections";
+import type { ServiceCategory } from "@/lib/aftercare/service-category";
 import { PUBLIC_PRACTICE_GUIDE_WHERE } from "@/lib/aftercare/public-practice-guide-predicates";
 import { downgradeRetainedDirectUrlVisible } from "@/lib/entitlements/downgrade-retention";
 import { publishedPatientGuidesRemainPublic } from "@/lib/billing/public-guide-access";
@@ -34,7 +36,7 @@ export interface PublishedPracticeGuideDocument {
     id: string;
     slug: string;
     title: string;
-    specialty: string;
+    serviceCategory: ServiceCategory;
   } | null;
   practiceGuide: {
     id: string;
@@ -90,6 +92,20 @@ const placementSelect = Prisma.validator<Prisma.PracticeGuidePlacementSelect>()(
             endDay: true,
             sortOrder: true,
             provenance: true,
+            homeCareInstructions: {
+              orderBy: { sortOrder: "asc" },
+              select: {
+                key: true,
+                title: true,
+                body: true,
+                frequencyCount: true,
+                frequencyPeriod: true,
+                timingLabel: true,
+                durationValue: true,
+                durationUnit: true,
+                sortOrder: true,
+              },
+            },
           },
         },
       },
@@ -108,7 +124,7 @@ const placementSelect = Prisma.validator<Prisma.PracticeGuidePlacementSelect>()(
             id: true,
             slug: true,
             title: true,
-            specialty: true,
+            serviceCategory: true,
           },
         },
         pinnedRevision: {
@@ -128,6 +144,20 @@ const placementSelect = Prisma.validator<Prisma.PracticeGuidePlacementSelect>()(
                 startDay: true,
                 endDay: true,
                 sortOrder: true,
+                homeCareInstructions: {
+                  orderBy: { sortOrder: "asc" },
+                  select: {
+                    key: true,
+                    title: true,
+                    body: true,
+                    frequencyCount: true,
+                    frequencyPeriod: true,
+                    timingLabel: true,
+                    durationValue: true,
+                    durationUnit: true,
+                    sortOrder: true,
+                  },
+                },
               },
             },
           },
@@ -407,7 +437,12 @@ function resolvePlacementContent(placement: PlacementRow): {
   return {
     title: fallbackTitle,
     sections: composeGuideDocument({
-      canonicalSections: guide.pinnedRevision.sections,
+      canonicalSections: guide.pinnedRevision.sections.map((section) => ({
+        ...section,
+        homeCareInstructions: mapHomeCareInstructions(
+          section.homeCareInstructions
+        ),
+      })),
       overrides: guide.overrides,
       additions: guide.additions,
     }).sections,

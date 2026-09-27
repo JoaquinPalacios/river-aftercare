@@ -1,6 +1,11 @@
 import { GuideRevisionStatus, PracticeGuideStatus } from "@prisma/client";
 
 import { WORKING_DRAFT_VERSION } from "@/lib/aftercare/practice-revision-document";
+import {
+  createPracticeRevisionSections,
+  mapHomeCareInstructions,
+  practiceRevisionSectionInclude,
+} from "@/lib/aftercare/revision-sections";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
@@ -19,7 +24,7 @@ export async function discardPracticeGuideDraftChanges(input: {
     include: {
       contentRevisions: {
         include: {
-          sections: { orderBy: { sortOrder: "asc" } },
+          sections: practiceRevisionSectionInclude,
         },
       },
     },
@@ -64,22 +69,24 @@ export async function discardPracticeGuideDraftChanges(input: {
       where: { revisionId: draft.id },
     });
 
-    if (published.sections.length > 0) {
-      await tx.practiceGuideRevisionSection.createMany({
-        data: published.sections.map((section, index) => ({
-          revisionId: draft.id,
-          key: section.key,
-          kind: section.kind,
-          title: section.title,
-          body: section.body,
-          periodLabel: section.periodLabel,
-          startDay: section.startDay,
-          endDay: section.endDay,
-          sortOrder: index + 1,
-          provenance: section.provenance,
-        })),
-      });
-    }
+    await createPracticeRevisionSections(
+      tx,
+      draft.id,
+      published.sections.map((section, index) => ({
+        key: section.key,
+        kind: section.kind,
+        title: section.title,
+        body: section.body,
+        periodLabel: section.periodLabel,
+        startDay: section.startDay,
+        endDay: section.endDay,
+        sortOrder: index + 1,
+        provenance: section.provenance,
+        homeCareInstructions: mapHomeCareInstructions(
+          section.homeCareInstructions
+        ),
+      }))
+    );
 
     await tx.practiceGuideRevision.update({
       where: { id: draft.id },

@@ -11,10 +11,16 @@ import {
 import {
   createLocationAction,
   saveSiteBrandingAction,
+  saveSiteServicesAction,
   setLocationActiveAction,
   updateLocationAction,
   type SiteActionState,
 } from "@/app/(staff)/(clinic-portal)/practice/sites/actions";
+import { ServiceCategoryFields } from "@/app/(staff)/(clinic-portal)/practice/sites/service-category-fields";
+import {
+  serviceCategoryLabel,
+  type ServiceCategory,
+} from "@/lib/aftercare/service-category";
 import { LocationFields } from "@/app/(staff)/(clinic-portal)/practice/sites/create-site-form";
 import { CLINIC_TYPEFACE_OPTIONS } from "@/lib/branding/clinic-typeface";
 import { INSTRUCTION_TERMINOLOGY } from "@/lib/aftercare/instruction-terminology";
@@ -61,6 +67,7 @@ type SiteRow = {
   themeMode: string;
   allowPatientThemeToggle: boolean;
   showCareGuideAttribution: boolean;
+  serviceCategories: Array<{ serviceCategory: ServiceCategory }>;
   locations: LocationRow[];
 };
 
@@ -87,6 +94,7 @@ export function SiteManager({
 }) {
   return (
     <>
+      <ServicesForm site={site} canManage={canManage} />
       <BrandingForm
         site={site}
         canManage={canManage}
@@ -114,6 +122,51 @@ export function SiteManager({
         {canAddLocation ? <AddLocationForm siteId={site.id} /> : null}
       </section>
     </>
+  );
+}
+
+function ServicesForm({
+  site,
+  canManage,
+}: {
+  site: SiteRow;
+  canManage: boolean;
+}) {
+  const [state, action, pending] = useActionState(
+    saveSiteServicesAction,
+    initial
+  );
+  const selected = site.serviceCategories.map((row) => row.serviceCategory);
+
+  return (
+    <form
+      key={selected.join(",")}
+      action={action}
+      className="grid gap-4 rounded-xl border border-staff-line bg-staff-panel p-5"
+    >
+      <h2 className="text-base font-semibold">Services</h2>
+      <input type="hidden" name="siteId" value={site.id} />
+      <ServiceCategoryFields selected={selected} disabled={!canManage} />
+      {state.error ? (
+        <p className="text-sm text-red-700" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+      {state.saved ? (
+        <p className="text-sm text-staff-muted" role="status">
+          Services saved.
+        </p>
+      ) : null}
+      {canManage ? (
+        <button
+          type="submit"
+          className="staffBtn staffBtnPrimary w-fit"
+          disabled={pending}
+        >
+          {pending ? "Saving…" : "Save services"}
+        </button>
+      ) : null}
+    </form>
   );
 }
 

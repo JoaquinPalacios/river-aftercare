@@ -10,6 +10,7 @@ import {
 
 import { DEMO_AFTERCARE_TENANT_SLUG } from "@/lib/aftercare/demo-tenant";
 import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
+import { assignPrimarySiteServiceCategories } from "@/lib/clinics/site-service-categories";
 import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practice-guide";
 import {
   createCustomPracticeGuide,
@@ -147,6 +148,7 @@ async function seedActors() {
     },
   });
   await ensurePrimarySiteForClinic(db(), CLINIC_ID);
+  await assignPrimarySiteServiceCategories(db(), CLINIC_ID, ["DENTAL"]);
   await db().clinicMembership.create({
     data: {
       clinicId: CLINIC_ID,
@@ -198,7 +200,7 @@ describe("first-clinic clinical governance", () => {
         id: SAMPLE_ID,
         slug: `${SLUG}sample-reviewed`,
         title: "Sample with review fields",
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         isActive: true,
         isSample: true,
         revisions: {
@@ -260,7 +262,7 @@ describe("first-clinic clinical governance", () => {
         id: MIXED_ID,
         slug: `${SLUG}mixed`,
         title: "Mixed revision template",
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         isActive: true,
         isSample: false,
         revisions: {
@@ -324,7 +326,7 @@ describe("first-clinic clinical governance", () => {
         id: REVIEWED_ID,
         slug: `${SLUG}reviewed`,
         title: "Reviewed latest",
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         isActive: true,
         isSample: false,
         revisions: {
@@ -393,7 +395,11 @@ describe("first-clinic clinical governance", () => {
     const created = await createCustomPracticeGuide({
       clinicId: CLINIC_ID,
       actorUserId: ADMIN_ID,
-      values: { title: "Custom socket care", publicSlug: `${SLUG}custom` },
+      values: {
+        title: "Custom socket care",
+        publicSlug: `${SLUG}custom`,
+        serviceCategory: "DENTAL",
+      },
     });
     const custom = await db().practiceGuide.findUniqueOrThrow({
       where: { id: created.id },
@@ -561,7 +567,11 @@ describe("first-clinic clinical governance", () => {
     const created = await createCustomPracticeGuide({
       clinicId: CLINIC_ID,
       actorUserId: ADMIN_ID,
-      values: { title: "Auth guide", publicSlug: `${SLUG}auth` },
+      values: {
+        title: "Auth guide",
+        publicSlug: `${SLUG}auth`,
+        serviceCategory: "DENTAL",
+      },
     });
     await savePracticeGuideDraft({
       clinicId: CLINIC_ID,
@@ -629,7 +639,11 @@ describe("first-clinic clinical governance", () => {
     const created = await createCustomPracticeGuide({
       clinicId: demoClinicId,
       actorUserId: ADMIN_ID,
-      values: { title: "Demo custom", publicSlug: `${SLUG}demo` },
+      values: {
+        title: "Demo custom",
+        publicSlug: `${SLUG}demo`,
+        serviceCategory: "DENTAL",
+      },
     });
     await savePracticeGuideDraft({
       clinicId: demoClinicId,

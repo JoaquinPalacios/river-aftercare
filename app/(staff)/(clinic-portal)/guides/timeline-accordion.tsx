@@ -3,7 +3,22 @@
 import { firstSectionParagraph } from "@/lib/aftercare/section-body";
 import { relativeStageWhenLabel } from "@/lib/aftercare/recovery-day-label";
 import { validateTimelineRanges } from "@/lib/aftercare/timeline-range";
+import type {
+  HomeCareDurationUnit,
+  HomeCareFrequencyPeriod,
+} from "@/lib/aftercare/home-care-instruction";
 import type { GuideSectionKind } from "@/lib/aftercare/types";
+
+export interface EditorHomeCareInstruction {
+  key: string;
+  title: string;
+  body: string;
+  frequencyCount: string;
+  frequencyPeriod: HomeCareFrequencyPeriod | "";
+  timingLabel: string;
+  durationValue: string;
+  durationUnit: HomeCareDurationUnit | "";
+}
 
 export interface EditorSection {
   key: string;
@@ -13,6 +28,7 @@ export interface EditorSection {
   periodLabel: string;
   startDay: string;
   endDay: string;
+  homeCareInstructions: EditorHomeCareInstruction[];
 }
 
 function optionalDay(value: string): number | null {

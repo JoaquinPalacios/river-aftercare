@@ -2,16 +2,26 @@ import {
   GuideRevisionStatus,
   PracticeGuideStatus,
   PracticeSectionProvenance,
+  type Prisma,
 } from "@prisma/client";
 
+import { homeCareInstructionSignature } from "@/lib/aftercare/home-care-instruction";
+import type { ServiceCategory } from "@/lib/aftercare/service-category";
+import { guideServiceMismatchMessage } from "@/lib/aftercare/service-compatibility";
+import { mapHomeCareInstructions } from "@/lib/aftercare/revision-sections";
 import { normalizePeriodLabel } from "@/lib/aftercare/period-label";
 import { WORKING_DRAFT_VERSION } from "@/lib/aftercare/practice-revision-document";
+import {
+  createPracticeRevisionSections,
+  practiceRevisionSectionInclude,
+} from "@/lib/aftercare/revision-sections";
 import {
   normalizeDayRange,
   validateTimelineRanges,
 } from "@/lib/aftercare/timeline-range";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { alignRootPlacementSlug } from "@/lib/clinic-portal/root-placement";
+import { listAccountServiceCategories } from "@/lib/clinics/site-service-categories";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
 import type { SaveGuideDraftInput } from "@/lib/clinic-portal/guide-schemas";
@@ -43,6 +53,81 @@ function provenanceForSection(input: {
   return input.previous;
 }
 
+async function changedOriginalCustomCategory(
+  tx: Prisma.TransactionClient,
+  guide: {
+    id: string;
+    clinicId: string;
+    serviceCategory: ServiceCategory | null;
+    guideTemplateId: string | null;
+    sourceGuideTemplateId: string | null;
+    copiedFromPracticeGuideId: string | null;
+  },
+  nextCategory: ServiceCategory | undefined
+): Promise<ServiceCategory | undefined> {
+  if (!nextCategory || nextCategory === guide.serviceCategory) {
+    return undefined;
+  }
+  const originalCustom =
+    guide.guideTemplateId === null &&
+    guide.sourceGuideTemplateId === null &&
+    guide.copiedFromPracticeGuideId === null;
+  if (!originalCustom) {
+    throw new ClinicPortalError(
+      "This guide's service is fixed by its River template or location copy.",
+      "conflict"
+    );
+  }
+  const allowed = await listAccountServiceCategories(tx, guide.clinicId);
+  if (!allowed.includes(nextCategory)) {
+    throw new ClinicPortalError(
+      allowed.length === 0
+        ? "Configure a site service before changing this guide's service."
+        : "Choose a service this account's sites provide.",
+      "invalid"
+    );
+  }
+  const placements = await tx.practiceGuidePlacement.findMany({
+    where: { practiceGuideId: guide.id, clinicId: guide.clinicId },
+    select: {
+      location: {
+        select: {
+          name: true,
+          clinicId: true,
+          clinicSite: {
+            select: {
+              name: true,
+              clinicId: true,
+              serviceCategories: { select: { serviceCategory: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  for (const placement of placements) {
+    if (
+      placement.location.clinicId !== guide.clinicId ||
+      placement.location.clinicSite.clinicId !== guide.clinicId
+    ) {
+      throw new ClinicPortalError("Guide not found.", "not_found");
+    }
+    const message = guideServiceMismatchMessage({
+      guideServiceCategory: nextCategory,
+      siteServiceCategories:
+        placement.location.clinicSite.serviceCategories.map(
+          (row) => row.serviceCategory
+        ),
+      locationName: placement.location.name,
+      siteName: placement.location.clinicSite.name,
+    });
+    if (message) {
+      throw new ClinicPortalError(message, "conflict");
+    }
+  }
+  return nextCategory;
+}
+
 export async function savePracticeGuideDraft(input: {
   clinicId: string;
   actorUserId: string;
@@ -58,7 +143,7 @@ export async function savePracticeGuideDraft(input: {
         where: { version: WORKING_DRAFT_VERSION },
         take: 1,
         include: {
-          sections: true,
+          sections: practiceRevisionSectionInclude,
         },
       },
     },
@@ -127,6 +212,9 @@ export async function savePracticeGuideDraft(input: {
         startDay: section.startDay,
         endDay: section.endDay,
         sortOrder: section.sortOrder,
+        homeCareInstructions: mapHomeCareInstructions(
+          section.homeCareInstructions
+        ),
       }));
     const block = governedTemplateEditBlock({
       governance,
@@ -146,6 +234,12 @@ export async function savePracticeGuideDraft(input: {
           startDay: section.startDay ?? null,
           endDay: section.endDay ?? null,
           sortOrder: index + 1,
+          homeCareInstructions: (section.homeCareInstructions ?? []).map(
+            (item, itemIndex) => ({
+              ...item,
+              sortOrder: itemIndex + 1,
+            })
+          ),
         })),
       }),
     });
@@ -175,7 +269,13 @@ export async function savePracticeGuideDraft(input: {
           introduction: input.values.introduction,
           createdByUserId: input.actorUserId,
         },
-        include: { sections: true },
+        include: {
+          sections: {
+            include: {
+              homeCareInstructions: { orderBy: { sortOrder: "asc" } },
+            },
+          },
+        },
       });
     } else if (draft.status !== GuideRevisionStatus.DRAFT) {
       throw new ClinicPortalError(
@@ -197,46 +297,62 @@ export async function savePracticeGuideDraft(input: {
       where: { revisionId: draft.id },
     });
 
-    if (input.values.sections.length > 0) {
-      await tx.practiceGuideRevisionSection.createMany({
-        data: input.values.sections.map((section, index) => {
-          const range = normalizeDayRange(section.startDay, section.endDay);
-          const previous = previousByKey.get(section.key);
-          const contentChanged =
-            !previous ||
-            previous.title !== section.title ||
-            previous.body !== section.body ||
-            previous.kind !== section.kind ||
-            previous.periodLabel !== (section.periodLabel ?? null) ||
-            previous.startDay !== range.startDay ||
-            previous.endDay !== range.endDay;
+    await createPracticeRevisionSections(
+      tx,
+      draft.id,
+      input.values.sections.map((section, index) => {
+        const range = normalizeDayRange(section.startDay, section.endDay);
+        const previous = previousByKey.get(section.key);
+        const contentChanged =
+          !previous ||
+          previous.title !== section.title ||
+          previous.body !== section.body ||
+          previous.kind !== section.kind ||
+          previous.periodLabel !== (section.periodLabel ?? null) ||
+          previous.startDay !== range.startDay ||
+          previous.endDay !== range.endDay ||
+          homeCareInstructionSignature(
+            mapHomeCareInstructions(previous.homeCareInstructions)
+          ) !==
+            homeCareInstructionSignature(section.homeCareInstructions ?? []);
 
-          return {
-            revisionId: draft.id,
-            key: section.key,
-            kind: section.kind,
-            title: section.title,
-            body: section.body,
-            periodLabel: normalizePeriodLabel(section.periodLabel),
-            startDay: range.startDay,
-            endDay: range.endDay,
-            sortOrder: index + 1,
-            provenance: provenanceForSection({
-              previous: previous?.provenance,
-              kindChanged: previous ? previous.kind !== section.kind : true,
-              contentChanged,
-              isCustomGuide: !guide.guideTemplateId,
-            }),
-          };
-        }),
-      });
-    }
+        return {
+          key: section.key,
+          kind: section.kind,
+          title: section.title,
+          body: section.body,
+          periodLabel: normalizePeriodLabel(section.periodLabel),
+          startDay: range.startDay,
+          endDay: range.endDay,
+          sortOrder: index + 1,
+          provenance: provenanceForSection({
+            previous: previous?.provenance,
+            kindChanged: previous ? previous.kind !== section.kind : true,
+            contentChanged,
+            isCustomGuide: !guide.guideTemplateId,
+          }),
+          homeCareInstructions: (section.homeCareInstructions ?? []).map(
+            (item, itemIndex) => ({
+              ...item,
+              sortOrder: itemIndex + 1,
+            })
+          ),
+        };
+      })
+    );
+
+    const serviceCategory = await changedOriginalCustomCategory(
+      tx,
+      guide,
+      input.values.serviceCategory
+    );
 
     await tx.practiceGuide.update({
       where: { id: guide.id },
       data: {
         title: input.values.title,
         publicSlug: input.values.publicSlug,
+        ...(serviceCategory ? { serviceCategory } : {}),
       },
     });
 

@@ -19,6 +19,7 @@ import type {
   CopiedRevision,
 } from "@/lib/account-split/execute";
 import { createClinicLocationRedirect } from "@/lib/clinics/location-redirect";
+import { copyClinicSiteServiceCategories } from "@/lib/clinics/site-service-categories";
 import {
   PRIVACY_ACKNOWLEDGEMENT_VERSION,
   TERMS_ACCEPTANCE_VERSION,
@@ -420,6 +421,12 @@ export async function executeLocationToNewAccountCutover(
       ...theme,
     },
     select: { id: true, slug: true },
+  });
+  await copyClinicSiteServiceCategories(tx, {
+    sourceClinicId: snapshot.source.id,
+    sourceClinicSiteId: sourceSite.id,
+    destinationClinicId: destinationId,
+    destinationClinicSiteId: destinationSite.id,
   });
   await input.steps.interrupt(input.hooks, "after_destination_site_creation");
 

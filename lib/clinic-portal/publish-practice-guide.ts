@@ -2,6 +2,11 @@ import { GuideRevisionStatus, PracticeGuideStatus } from "@prisma/client";
 
 import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import { WORKING_DRAFT_VERSION } from "@/lib/aftercare/practice-revision-document";
+import {
+  mapHomeCareInstructions,
+  practiceRevisionSectionInclude,
+  practiceSectionCreateData,
+} from "@/lib/aftercare/revision-sections";
 import { actorCanManageClinic } from "@/lib/auth/clinic-authorization";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
@@ -28,7 +33,7 @@ export async function publishPracticeGuide(input: {
       },
       include: {
         contentRevisions: {
-          include: { sections: { orderBy: { sortOrder: "asc" } } },
+          include: { sections: practiceRevisionSectionInclude },
         },
       },
     }),
@@ -100,17 +105,22 @@ export async function publishPracticeGuide(input: {
         reviewAttestedAt,
         reviewAttestedByUserId,
         sections: {
-          create: draft.sections.map((section) => ({
-            key: section.key,
-            kind: section.kind,
-            title: section.title,
-            body: section.body,
-            periodLabel: section.periodLabel,
-            startDay: section.startDay,
-            endDay: section.endDay,
-            sortOrder: section.sortOrder,
-            provenance: section.provenance,
-          })),
+          create: draft.sections.map((section) =>
+            practiceSectionCreateData({
+              key: section.key,
+              kind: section.kind,
+              title: section.title,
+              body: section.body,
+              periodLabel: section.periodLabel,
+              startDay: section.startDay,
+              endDay: section.endDay,
+              sortOrder: section.sortOrder,
+              provenance: section.provenance,
+              homeCareInstructions: mapHomeCareInstructions(
+                section.homeCareInstructions
+              ),
+            })
+          ),
         },
       },
     });

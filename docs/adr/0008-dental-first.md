@@ -1,6 +1,6 @@
 # ADR 0008 — Dental first
 
-- **Status:** Accepted
+- **Status:** Accepted. Historical sequencing record. The data model now uses `ServiceCategory` on Clinic Site, templates, and guides ([0027](0027-service-categories-and-composable-guide-grammar.md)).
 - **Date:** 2026-08-31
 - **PRD:** [../product/PRD.md](../product/PRD.md) §8, §20
 

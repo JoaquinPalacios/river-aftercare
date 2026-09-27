@@ -21,6 +21,8 @@ import {
 import { clinicFontPresentation } from "@/lib/branding/clinic-fonts";
 import { formatBillingDate } from "@/lib/billing/billing-presentation";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { listAccountServiceCategories } from "@/lib/clinics/site-service-categories";
+import { getPrisma } from "@/lib/prisma";
 import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
 import {
   marketingContactHref,
@@ -48,7 +50,14 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
     const protocol =
       requestHeaders.get("x-forwarded-proto") ??
       (host.includes("localhost") ? "http" : "https");
-    const [guide, clinic, allowance, links, placements] = await Promise.all([
+    const [
+      guide,
+      clinic,
+      allowance,
+      links,
+      placements,
+      allowedServiceCategories,
+    ] = await Promise.all([
       loadPracticeGuideEditor({
         clinicId: clinicMembership.clinic.id,
         guideId,
@@ -62,6 +71,7 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
         requestHost: host,
         protocol,
       }),
+      listAccountServiceCategories(getPrisma(), clinicMembership.clinic.id),
     ]);
     const theme = resolveAftercareTheme(clinic?.profile);
     const font = clinicFontPresentation(clinic?.profile?.typeface);
@@ -107,6 +117,7 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
         ) : null}
         <GuideEditor
           guide={guide}
+          allowedServiceCategories={allowedServiceCategories}
           patientUrlExample={patientUrlExample}
           canEdit={
             (clinicMembership.source === "operator_support" ||

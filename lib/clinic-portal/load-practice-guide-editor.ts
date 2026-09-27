@@ -6,6 +6,11 @@ import {
   practiceRevisionSectionsFromComposed,
   WORKING_DRAFT_VERSION,
 } from "@/lib/aftercare/practice-revision-document";
+import {
+  mapHomeCareInstructions,
+  practiceRevisionSectionInclude,
+  practiceSectionCreateData,
+} from "@/lib/aftercare/revision-sections";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import {
@@ -14,6 +19,7 @@ import {
   type ClinicGuideLifecycleStatus,
 } from "@/lib/clinic-portal/guide-status";
 import { clinicActorLabel } from "@/lib/clinic-portal/practice-review-attestation";
+import type { ServiceCategory } from "@/lib/aftercare/service-category";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
 import { getPrisma } from "@/lib/prisma";
 
@@ -34,6 +40,9 @@ export interface PracticeGuideEditorRecord {
     slug: string;
     title: string;
   } | null;
+  serviceCategory: ServiceCategory | null;
+  /** Original clinic-authored guide. Pinned, adapted, and detached copies stay fixed. */
+  categoryEditable: boolean;
   /** Clinic-owned copy of a River template. Not an original custom guide. */
   adaptedFromTemplate: boolean;
   downgradeRetainedAt: Date | null;
@@ -54,6 +63,9 @@ async function snapshotLegacyComposition(guideId: string) {
         include: {
           sections: {
             orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+            include: {
+              homeCareInstructions: { orderBy: { sortOrder: "asc" } },
+            },
           },
         },
       },
@@ -77,6 +89,9 @@ async function snapshotLegacyComposition(guideId: string) {
         startDay: section.startDay,
         endDay: section.endDay,
         sortOrder: section.sortOrder,
+        homeCareInstructions: mapHomeCareInstructions(
+          section.homeCareInstructions
+        ),
       })
     ),
     overrides: guide.overrides,
@@ -110,7 +125,9 @@ async function snapshotLegacyComposition(guideId: string) {
         version: WORKING_DRAFT_VERSION,
         status: GuideRevisionStatus.DRAFT,
         title: guide.title,
-        sections: { create: sections },
+        sections: {
+          create: sections.map(practiceSectionCreateData),
+        },
       },
     });
 
@@ -122,7 +139,9 @@ async function snapshotLegacyComposition(guideId: string) {
           status: GuideRevisionStatus.PUBLISHED,
           title: guide.title,
           publishedAt: guide.publishedAt ?? guide.updatedAt,
-          sections: { create: sections },
+          sections: {
+            create: sections.map(practiceSectionCreateData),
+          },
         },
       });
     }
@@ -144,7 +163,7 @@ export async function loadPracticeGuideEditor(input: {
       },
       contentRevisions: {
         include: {
-          sections: { orderBy: { sortOrder: "asc" } },
+          sections: practiceRevisionSectionInclude,
           reviewAttestedBy: { select: { name: true } },
         },
       },
@@ -165,7 +184,7 @@ export async function loadPracticeGuideEditor(input: {
         },
         contentRevisions: {
           include: {
-            sections: { orderBy: { sortOrder: "asc" } },
+            sections: practiceRevisionSectionInclude,
             reviewAttestedBy: { select: { name: true } },
           },
         },
@@ -213,6 +232,11 @@ export async function loadPracticeGuideEditor(input: {
     lifecycle,
     statusLabel: clinicGuideStatusLabel(lifecycle),
     template: guide.guideTemplate,
+    serviceCategory: guide.serviceCategory,
+    categoryEditable:
+      guide.guideTemplateId === null &&
+      guide.sourceGuideTemplateId === null &&
+      guide.copiedFromPracticeGuideId === null,
     adaptedFromTemplate: guide.sourceGuideTemplateId !== null,
     downgradeRetainedAt: guide.downgradeRetainedAt,
     downgradeRetentionUntil: guide.downgradeRetentionUntil,

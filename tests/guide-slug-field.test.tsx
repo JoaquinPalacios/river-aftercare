@@ -92,6 +92,8 @@ describe("guide slug fields", () => {
         <CreateGuideForm
           templates={[]}
           isDemoTenant={false}
+          templatesNeedServiceCategories={false}
+          serviceCategories={["DENTAL"]}
           allowance={allowance}
           contactHref="/contact"
         />
@@ -210,6 +212,8 @@ describe("guide slug fields", () => {
       downgradeRetainedAt: null,
       downgradeRetentionUntil: null,
       reviewAttestation: null,
+      serviceCategory: null,
+      categoryEditable: false,
       sections: [],
       updatedAt: new Date("2026-10-01T00:00:00.000Z"),
     };

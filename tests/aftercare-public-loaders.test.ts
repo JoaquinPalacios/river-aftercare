@@ -73,7 +73,7 @@ function publishedGuideRecord(clinic = CLINIC_A) {
       id: "tmpl_extraction",
       slug: "extraction",
       title: "Tooth Extraction",
-      specialty: "DENTAL",
+      serviceCategory: "DENTAL",
     },
     pinnedRevision: {
       id: "rev_extraction_v1",

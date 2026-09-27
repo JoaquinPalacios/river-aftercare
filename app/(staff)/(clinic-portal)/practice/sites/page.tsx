@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CreateSiteForm } from "@/app/(staff)/(clinic-portal)/practice/sites/create-site-form";
+import { serviceCategoryLabel } from "@/lib/aftercare/service-category";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import { listAccountSites } from "@/lib/clinics/list-account-sites";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -65,6 +66,14 @@ export default async function SitesPage() {
                   {site.displayName !== site.name
                     ? ` · ${site.displayName}`
                     : ""}
+                </p>
+                <p className="mt-1 text-sm text-staff-muted">
+                  {site.serviceCategories.length > 0
+                    ? site.serviceCategories
+                        .map((row) => serviceCategoryLabel(row.serviceCategory))
+                        .filter(Boolean)
+                        .join(", ")
+                    : "Services not classified"}
                 </p>
               </div>
               <Link

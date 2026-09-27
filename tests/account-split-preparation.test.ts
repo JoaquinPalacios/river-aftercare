@@ -569,7 +569,7 @@ describe("account split preparation", () => {
       data: {
         slug: `${PREFIX}template_preview`,
         title: "Template",
-        specialty: "DENTAL",
+        serviceCategory: "DENTAL",
         revisions: {
           create: { version: 1, status: "PUBLISHED" },
         },

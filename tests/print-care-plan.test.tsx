@@ -120,7 +120,7 @@ const DOCUMENT = {
     id: "guide_tmpl_demo_extraction",
     slug: "extraction",
     title: "Tooth Extraction",
-    specialty: "DENTAL",
+    serviceCategory: "DENTAL",
   },
   practiceGuide: {
     id: "practice_guide_demo_rivers_extraction",

@@ -1,3 +1,6 @@
+import { homeCareInstructionSignature } from "@/lib/aftercare/home-care-instruction";
+import type { HomeCareInstruction } from "@/lib/aftercare/home-care-instruction";
+
 export type ComparableGuideSection = {
   key: string;
   kind: string;
@@ -7,6 +10,7 @@ export type ComparableGuideSection = {
   startDay: number | null;
   endDay: number | null;
   sortOrder: number;
+  homeCareInstructions?: readonly HomeCareInstruction[];
 };
 
 function blankToNull(value: string | null | undefined): string | null {
@@ -24,6 +28,9 @@ function sectionSignature(section: ComparableGuideSection): string {
     startDay: section.startDay,
     endDay: section.endDay,
     sortOrder: section.sortOrder,
+    homeCareInstructions: homeCareInstructionSignature(
+      section.homeCareInstructions
+    ),
   });
 }
 

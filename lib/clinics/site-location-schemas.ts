@@ -2,6 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
+import { SERVICE_CATEGORIES } from "@/lib/aftercare/service-category";
 import { isValidCareGuideSlug } from "@/lib/aftercare/slug";
 import { toSafeHttpHref, toTelHref } from "@/lib/aftercare/safe-href";
 import { INSTRUCTION_TERMINOLOGY } from "@/lib/aftercare/instruction-terminology";
@@ -115,9 +116,23 @@ export const createSiteSchema = z.object({
   contactEmail: locationDetailsSchema.shape.contactEmail,
   bookingUrl: httpUrl("Booking URL must use http or https."),
   emergencyInstructions: optionalText(2000),
+  serviceCategories: z
+    .array(z.enum(SERVICE_CATEGORIES))
+    .optional()
+    .transform((value) => [...new Set(value ?? [])]),
 });
 
 export type CreateSiteInput = z.infer<typeof createSiteSchema>;
+
+export const siteServiceCategoriesSchema = z.object({
+  serviceCategories: z
+    .array(z.enum(SERVICE_CATEGORIES))
+    .transform((value) => [...new Set(value)]),
+});
+
+export type SiteServiceCategoriesInput = z.infer<
+  typeof siteServiceCategoriesSchema
+>;
 
 export const createLocationSchema = locationDetailsSchema.extend({
   slug: locationSlugSchema,

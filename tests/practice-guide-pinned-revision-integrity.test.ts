@@ -52,13 +52,13 @@ describe("PracticeGuide pinned revision integrity", () => {
       data: [
         {
           id: TEMPLATE_A_ID,
-          specialty: "DENTAL",
+          serviceCategory: "DENTAL",
           slug: "testp1a-template-a",
           title: "Template A",
         },
         {
           id: TEMPLATE_B_ID,
-          specialty: "DENTAL",
+          serviceCategory: "DENTAL",
           slug: "testp1a-template-b",
           title: "Template B",
         },

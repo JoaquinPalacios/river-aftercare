@@ -4,6 +4,7 @@ import { GuideRevisionStatus, PracticeGuideStatus } from "@prisma/client";
 import { headers } from "next/headers";
 
 import { WORKING_DRAFT_VERSION } from "@/lib/aftercare/practice-revision-document";
+import type { ServiceCategory } from "@/lib/aftercare/service-category";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import {
   clinicGuideCanUnpublish,
@@ -26,7 +27,7 @@ export interface ClinicPortalGuide {
   isEnabled: boolean;
   sourceLabel: string;
   templateSlug: string | null;
-  specialty: string | null;
+  serviceCategory: ServiceCategory | null;
   updatedAt: Date;
   previewHref: string | null;
   destructiveAction: GuideDestructiveAction | null;
@@ -70,13 +71,13 @@ export async function listClinicPortalGuides(
       publishedAt: true,
       updatedAt: true,
       sourceGuideTemplateId: true,
+      serviceCategory: true,
       downgradeRetainedAt: true,
       downgradeRetentionUntil: true,
       guideTemplate: {
         select: {
           title: true,
           slug: true,
-          specialty: true,
         },
       },
       pinnedRevision: {
@@ -195,7 +196,7 @@ export async function listClinicPortalGuides(
           ? "Editable River template"
           : "Custom guide",
       templateSlug: guide.guideTemplate?.slug ?? null,
-      specialty: guide.guideTemplate?.specialty ?? null,
+      serviceCategory: guide.serviceCategory,
       updatedAt: draft?.updatedAt ?? guide.updatedAt,
       previewHref,
       destructiveAction: downgradeRetention

@@ -32,6 +32,7 @@ function toAdditionSection(
     startDay: range.startDay,
     endDay: range.endDay,
     provenance: "practice_addition",
+    homeCareInstructions: addition.homeCareInstructions ?? [],
   };
 }
 
@@ -125,6 +126,7 @@ function composeCanonicalSection(
       startDay: range.startDay,
       endDay: range.endDay,
       provenance: "canonical",
+      homeCareInstructions: canonicalSection.homeCareInstructions ?? [],
     };
   }
 
@@ -137,5 +139,6 @@ function composeCanonicalSection(
     startDay: range.startDay,
     endDay: range.endDay,
     provenance: "practice_override",
+    homeCareInstructions: canonicalSection.homeCareInstructions ?? [],
   };
 }

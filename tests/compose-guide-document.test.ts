@@ -92,6 +92,7 @@ describe("composeGuideDocument", () => {
         startDay: null,
         endDay: null,
         provenance: "canonical",
+        homeCareInstructions: [],
       },
       {
         key: "immediate-care",
@@ -102,6 +103,7 @@ describe("composeGuideDocument", () => {
         startDay: null,
         endDay: null,
         provenance: "practice_override",
+        homeCareInstructions: [],
       },
     ]);
   });
@@ -123,6 +125,7 @@ describe("composeGuideDocument", () => {
     ]);
     expect(document.sections[1]).toMatchObject({
       provenance: "practice_addition",
+      homeCareInstructions: [],
       kind: "CUSTOM",
     });
   });
@@ -178,6 +181,7 @@ describe("composeGuideDocument", () => {
         startDay: null,
         endDay: null,
         provenance: "canonical",
+        homeCareInstructions: [],
       },
     ]);
   });
@@ -260,6 +264,7 @@ describe("composeGuideDocument", () => {
         startDay: null,
         endDay: null,
         provenance: "practice_override",
+        homeCareInstructions: [],
       },
     ]);
   });
@@ -298,6 +303,7 @@ describe("composeGuideDocument", () => {
         startDay: null,
         endDay: null,
         provenance: "practice_override",
+        homeCareInstructions: [],
       },
       {
         key: "empty-addition",
@@ -308,6 +314,7 @@ describe("composeGuideDocument", () => {
         startDay: null,
         endDay: null,
         provenance: "practice_addition",
+        homeCareInstructions: [],
       },
     ]);
   });
@@ -362,6 +369,7 @@ describe("composeGuideDocument", () => {
       startDay: null,
       endDay: null,
       provenance: "practice_override",
+      homeCareInstructions: [],
     });
     expect(document.sections.every((item) => !("patientName" in item))).toBe(
       true

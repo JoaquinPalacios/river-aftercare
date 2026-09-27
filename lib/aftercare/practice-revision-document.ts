@@ -1,5 +1,7 @@
 import { PracticeSectionProvenance } from "@prisma/client";
 
+import type { HomeCareInstruction } from "@/lib/aftercare/home-care-instruction";
+import { mapHomeCareInstructions } from "@/lib/aftercare/revision-sections";
 import { normalizePeriodLabel } from "@/lib/aftercare/period-label";
 import { normalizeDayRange } from "@/lib/aftercare/timeline-range";
 import type {
@@ -40,6 +42,7 @@ export interface PracticeRevisionSectionRecord {
   endDay: number | null;
   sortOrder: number;
   provenance: PracticeSectionProvenance;
+  homeCareInstructions?: HomeCareInstruction[];
 }
 
 export function composedSectionsFromPracticeRevision(
@@ -58,6 +61,9 @@ export function composedSectionsFromPracticeRevision(
         startDay: range.startDay,
         endDay: range.endDay,
         provenance: PRACTICE_PROVENANCE_TO_COMPOSED[section.provenance],
+        homeCareInstructions: mapHomeCareInstructions(
+          section.homeCareInstructions
+        ),
       };
     });
 }
@@ -77,6 +83,9 @@ export function practiceRevisionSectionsFromComposed(
       endDay: range.endDay,
       sortOrder: index + 1,
       provenance: COMPOSED_PROVENANCE_TO_PRACTICE[section.provenance],
+      homeCareInstructions: mapHomeCareInstructions(
+        section.homeCareInstructions
+      ),
     };
   });
 }
