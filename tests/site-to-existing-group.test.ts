@@ -951,8 +951,12 @@ describe("move site to existing group", () => {
         where: { clinicId: destination.clinicId },
       })
     ).toBe(legalBefore);
+    expect(result.guideCopyCount).toBe(1);
+    expect(result.canonicalGuideReuseCount).toBe(0);
     const retry = await executeMove(preparationId, source.operatorId);
     expect(retry.alreadyCompleted).toBe(true);
+    expect(retry.guideCopyCount).toBe(1);
+    expect(retry.canonicalGuideReuseCount).toBe(0);
     expect(await db().clinicSite.count({ where: { id: moving.id } })).toBe(1);
     expect(
       await db().practiceGuide.count({
@@ -1187,7 +1191,9 @@ describe("move site to existing group", () => {
     const fingerprint = await db().practiceGuide.findUniqueOrThrow({
       where: { id: destinationGuide.id },
     });
-    await executeMove(preparationId, source.operatorId);
+    const result = await executeMove(preparationId, source.operatorId);
+    expect(result.guideCopyCount).toBe(0);
+    expect(result.canonicalGuideReuseCount).toBe(1);
     const placement = await db().practiceGuidePlacement.findUniqueOrThrow({
       where: { id: sourceGuide.placementId },
     });
@@ -1209,6 +1215,72 @@ describe("move site to existing group", () => {
         },
       })
     ).toBe(1);
+  });
+
+  it("counts one copied guide and one reused canonical guide, including a completed retry", async () => {
+    const source = await seedGroup("sum");
+    const destination = await seedGroup("sumd", {
+      sites: [{ key: "home", primary: true }],
+    });
+    const template = await publishTemplate("sum");
+    const movingLocation = `${siteOf(source, "move").id}_loc_0`;
+    const sourceGuide = await placeGuide({
+      clinicId: source.clinicId,
+      locationId: movingLocation,
+      slug: "sum-river",
+      title: "River guide",
+      guideTemplateId: template.templateId,
+      pinnedRevisionId: template.revisionId,
+    });
+    await placeGuide({
+      clinicId: source.clinicId,
+      locationId: movingLocation,
+      slug: "sum-note",
+      title: "Harbour note",
+    });
+    const destinationGuide = await db().practiceGuide.create({
+      data: {
+        clinicId: destination.clinicId,
+        title: "Destination river",
+        publicSlug: "destination-river",
+        status: PracticeGuideStatus.PUBLISHED,
+        isEnabled: true,
+        guideTemplateId: template.templateId,
+        pinnedRevisionId: template.revisionId,
+      },
+    });
+    const preparationId = await openMove({ source, destination });
+    await saveCanonicalRetargetConfirmations({
+      preparationId,
+      sourcePracticeGuideIds: [sourceGuide.guideId],
+    });
+    await revalidateAccountSplitPreparation(preparationId);
+    const result = await executeMove(preparationId, source.operatorId);
+    expect(result.guideCopyCount).toBe(1);
+    expect(result.canonicalGuideReuseCount).toBe(1);
+    const retry = await executeMove(preparationId, source.operatorId);
+    expect(retry.alreadyCompleted).toBe(true);
+    expect(retry.guideCopyCount).toBe(result.guideCopyCount);
+    expect(retry.canonicalGuideReuseCount).toBe(
+      result.canonicalGuideReuseCount
+    );
+    expect(
+      await db().practiceGuide.count({
+        where: {
+          clinicId: destination.clinicId,
+          guideTemplateId: template.templateId,
+        },
+      })
+    ).toBe(1);
+    expect(
+      await db().practiceGuide.count({
+        where: { clinicId: destination.clinicId, publicSlug: "sum-note" },
+      })
+    ).toBe(1);
+    const placement = await db().practiceGuidePlacement.findUniqueOrThrow({
+      where: { id: sourceGuide.placementId },
+    });
+    expect(placement.practiceGuideId).toBe(destinationGuide.id);
   });
 
   it("blocks incompatible canonical guides and allows a disabled placement onto a non-public exact match", async () => {
@@ -2071,5 +2143,18 @@ describe("move site to existing group", () => {
     expect(readFileSync("lib/account-split/assess.ts", "utf8")).toContain(
       "SITE_TO_EXISTING_GROUP"
     );
+    const completedPage = readFileSync(
+      "app/(staff)/(operator)/operator/clinics/[clinicId]/split/page.tsx",
+      "utf8"
+    );
+    expect(completedPage).toContain("Guides copied");
+    expect(completedPage).toContain("Canonical guides reused");
+    expect(completedPage).toContain("Guide copies");
+    const locationPage = readFileSync(
+      "app/(staff)/(operator)/operator/clinics/[clinicId]/split/location-move-page.tsx",
+      "utf8"
+    );
+    expect(locationPage).toContain("Guide copies");
+    expect(locationPage).not.toContain("Canonical guides reused");
   });
 });

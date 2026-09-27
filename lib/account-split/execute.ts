@@ -120,6 +120,11 @@ export type AccountSplitExecutionResult = {
     displayName: string;
   };
   guideCopyCount: number;
+  /**
+   * Confirmed canonical guides that already existed on the destination.
+   * Zero for operations that only create destination guides.
+   */
+  canonicalGuideReuseCount: number;
   revisionCopyCount: number;
   staffMovedCount: number;
   deactivatedSiteCount: number;
@@ -1711,6 +1716,38 @@ async function readPracticeDowngradeReady(
   }).ready;
 }
 
+/**
+ * A copied guide is inserted in the cutover transaction, so its timestamp is
+ * not earlier than `CUTOVER_STARTED`. A confirmed canonical reuse points at a
+ * destination guide that already existed before that event. Titles and slugs
+ * are not used. `copiedFromPracticeGuideId` stays null on split copies, so it
+ * is not the signal.
+ */
+export function countCompletedGuideOutcomes(
+  maps: Array<{
+    destinationPracticeGuide: { createdAt: Date } | null;
+  }>,
+  cutoverStartedAt: Date | null
+): { guideCopyCount: number; canonicalGuideReuseCount: number } {
+  let guideCopyCount = 0;
+  let canonicalGuideReuseCount = 0;
+  for (const map of maps) {
+    const destination = map.destinationPracticeGuide;
+    if (!destination) {
+      continue;
+    }
+    if (
+      cutoverStartedAt &&
+      destination.createdAt.getTime() < cutoverStartedAt.getTime()
+    ) {
+      canonicalGuideReuseCount += 1;
+    } else {
+      guideCopyCount += 1;
+    }
+  }
+  return { guideCopyCount, canonicalGuideReuseCount };
+}
+
 export async function readExecutionSummary(
   db: Tx | ReturnType<typeof getPrisma>,
   preparationId: string
@@ -1752,7 +1789,8 @@ export async function readExecutionSummary(
     movedDecision,
     destinationPrimary,
     sourcePrimary,
-    guideCopyCount,
+    guideMaps,
+    cutoverStarted,
     revisionCopyCount,
     staffMovedCount,
     deactivatedSiteCount,
@@ -1787,7 +1825,17 @@ export async function readExecutionSummary(
       where: { clinicId: preparation.sourceClinicId, isPrimary: true },
       select: { id: true, slug: true, displayName: true },
     }),
-    db.clinicAccountSplitGuideMap.count({ where: { preparationId } }),
+    db.clinicAccountSplitGuideMap.findMany({
+      where: { preparationId },
+      select: {
+        destinationPracticeGuide: { select: { createdAt: true } },
+      },
+    }),
+    db.clinicAccountSplitEvent.findFirst({
+      where: { preparationId, kind: "CUTOVER_STARTED" },
+      orderBy: { createdAt: "asc" },
+      select: { createdAt: true },
+    }),
     db.clinicAccountSplitRevisionMap.count({ where: { preparationId } }),
     db.clinicAccountSplitStaffSelection.count({
       where: {
@@ -1832,7 +1880,10 @@ export async function readExecutionSummary(
       displayName: movedSite.displayName,
     },
     sourcePrimarySite: sourcePrimary,
-    guideCopyCount,
+    ...countCompletedGuideOutcomes(
+      guideMaps,
+      cutoverStarted?.createdAt ?? null
+    ),
     revisionCopyCount,
     staffMovedCount,
     deactivatedSiteCount,

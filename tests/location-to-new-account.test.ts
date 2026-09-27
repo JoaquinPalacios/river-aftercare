@@ -1055,11 +1055,13 @@ describe("move location to new account", () => {
       plan: "PRACTICE",
       purchased: 0,
     });
-    await executePrepared({
+    const result = await executePrepared({
       preparationId: ready.preparationId,
       confirmation: `move ${account.destinationSlug}`,
       operatorUserId: account.operatorId,
     });
+    expect(result.guideCopyCount).toBe(4);
+    expect(result.canonicalGuideReuseCount).toBe(0);
     const copies = await db().practiceGuide.findMany({
       where: { clinicId: ready.destinationId },
       orderBy: { publicSlug: "asc" },

@@ -791,8 +791,16 @@ describe("account split preparation", () => {
     });
     expect(after).toEqual(before);
     expect(afterStatus).toEqual(beforeStatus);
-    expect(await db().clinicAccountSplitGuideMap.count()).toBe(0);
-    expect(await db().clinicAccountSplitRevisionMap.count()).toBe(0);
+    expect(
+      await db().clinicAccountSplitGuideMap.count({
+        where: { preparationId: preparation.id },
+      })
+    ).toBe(0);
+    expect(
+      await db().clinicAccountSplitRevisionMap.count({
+        where: { preparationId: preparation.id },
+      })
+    ).toBe(0);
     expect(preview?.splitSite?.slug).toBe(account.splitSlug);
     expect(preview?.destinationPreview.guideCount).toBe(3);
     expect(preview?.destinationPreview.draftRevisionCount).toBe(3);

@@ -252,15 +252,28 @@ export default async function AccountSplitPreparationPage({
               <dt className="text-staff-muted">Public hostname</dt>
               <dd>{completedSummary.movedSite.slug}</dd>
             </div>
-            <div>
-              <dt className="text-staff-muted">Guide copies</dt>
-              <dd>
-                {completedSummary.guideCopyCount} guide
-                {completedSummary.guideCopyCount === 1 ? "" : "s"},{" "}
-                {completedSummary.revisionCopyCount} revision
-                {completedSummary.revisionCopyCount === 1 ? "" : "s"}
-              </dd>
-            </div>
+            {completed?.operationKind === "SITE_TO_EXISTING_GROUP" ? (
+              <>
+                <div>
+                  <dt className="text-staff-muted">Guides copied</dt>
+                  <dd>{completedSummary.guideCopyCount}</dd>
+                </div>
+                <div>
+                  <dt className="text-staff-muted">Canonical guides reused</dt>
+                  <dd>{completedSummary.canonicalGuideReuseCount}</dd>
+                </div>
+              </>
+            ) : (
+              <div>
+                <dt className="text-staff-muted">Guide copies</dt>
+                <dd>
+                  {completedSummary.guideCopyCount} guide
+                  {completedSummary.guideCopyCount === 1 ? "" : "s"},{" "}
+                  {completedSummary.revisionCopyCount} revision
+                  {completedSummary.revisionCopyCount === 1 ? "" : "s"}
+                </dd>
+              </div>
+            )}
             <div>
               <dt className="text-staff-muted">Staff moved</dt>
               <dd>
