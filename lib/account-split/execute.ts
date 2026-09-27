@@ -31,6 +31,7 @@ import {
 import { planSplitSiteBranding } from "@/lib/account-split/branding-plan";
 import { recordAccountSplitEvent } from "@/lib/account-split/events";
 import { executeLocationToNewAccountCutover } from "@/lib/account-split/location-execute";
+import { executeSiteToExistingGroupCutover } from "@/lib/account-split/site-to-existing-group-execute";
 import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
 import { readAccountCapacityFacts } from "@/lib/billing/group-capacity-gate";
 import { readSplitDestinationCommercialState } from "@/lib/billing/split-destination-access";
@@ -77,7 +78,8 @@ export type AccountSplitExecutionInterrupt =
   | "after_membership_changes"
   | "after_destination_site_creation"
   | "after_location_promotion"
-  | "after_location_redirect";
+  | "after_location_redirect"
+  | "after_primary_switch";
 
 export type AccountSplitExecutionHooks = {
   /** Test seam. Runs after the structure and preparation locks, before writes. */
@@ -181,7 +183,10 @@ export async function executeClinicAccountSplit(input: {
         head.sourceClinicId,
         head.destinationClinicId!,
       ]);
-      if (head.operationKind === "LOCATION_TO_NEW_ACCOUNT") {
+      if (
+        head.operationKind === "LOCATION_TO_NEW_ACCOUNT" ||
+        head.operationKind === "SITE_TO_EXISTING_GROUP"
+      ) {
         const splitIds = [
           head.sourceClinicId,
           head.destinationClinicId!,
@@ -246,6 +251,29 @@ export async function executeClinicAccountSplit(input: {
           message:
             "This preparation changed. Review it again before executing.",
         };
+      }
+      if (snapshot.preparation.operationKind === "SITE_TO_EXISTING_GROUP") {
+        return executeSiteToExistingGroupCutover(tx, {
+          snapshot,
+          operatorUserId: input.operatorUserId,
+          confirmation: input.confirmation,
+          hooks: input.hooks,
+          destinationClinicId: head.destinationClinicId!,
+          steps: {
+            interrupt,
+            assertExclusiveStaffSelections,
+            copySplitGuides,
+            captureMovingPlacements,
+            assertPlacementPins,
+            reinsertPlacements,
+            assertCompatibilitySlugTargets,
+            writeCompatibilitySlugs,
+            mirrorClinicProfile,
+            applyMembershipDecisions,
+            assertSourceStructure,
+            readExecutionSummary,
+          },
+        });
       }
       if (snapshot.preparation.operationKind === "LOCATION_TO_NEW_ACCOUNT") {
         return executeLocationToNewAccountCutover(tx, {
@@ -637,11 +665,18 @@ export async function copySplitGuides(
     sourceClinicId: string;
     destinationClinicId: string;
     movingLocationIds: Set<string>;
+    /** Confirmed canonical retargets. Those guides are not copied. */
+    excludeSourceGuideIds?: ReadonlySet<string>;
+    /** Destination account slug chosen before insert. Defaults to the source slug. */
+    publicSlugFor?: (guide: { id: string; publicSlug: string }) => string;
   }
 ): Promise<{
   guideIds: Map<string, string>;
   revisionsBySource: Map<string, CopiedRevision>;
 }> {
+  if (input.movingLocationIds.size === 0) {
+    return { guideIds: new Map(), revisionsBySource: new Map() };
+  }
   const placements = await tx.practiceGuidePlacement.findMany({
     where: {
       clinicId: input.sourceClinicId,
@@ -649,9 +684,10 @@ export async function copySplitGuides(
     },
     select: { practiceGuideId: true },
   });
+  const excluded = input.excludeSourceGuideIds ?? new Set<string>();
   const sourceGuideIds = [
     ...new Set(placements.map((row) => row.practiceGuideId)),
-  ];
+  ].filter((id) => !excluded.has(id));
   const guides =
     sourceGuideIds.length === 0
       ? []
@@ -683,7 +719,11 @@ export async function copySplitGuides(
       data: {
         clinicId: input.destinationClinicId,
         title: guide.title,
-        publicSlug: guide.publicSlug,
+        publicSlug:
+          input.publicSlugFor?.({
+            id: guide.id,
+            publicSlug: guide.publicSlug,
+          }) ?? guide.publicSlug,
         status: guide.status,
         isEnabled: guide.isEnabled,
         publishedAt: guide.publishedAt,
@@ -1718,7 +1758,8 @@ export async function readExecutionSummary(
     deactivatedSiteCount,
     practiceDowngradeReady,
   ] = await Promise.all([
-    preparation.operationKind === "SITE_TO_NEW_ACCOUNT"
+    preparation.operationKind === "SITE_TO_NEW_ACCOUNT" ||
+    preparation.operationKind === "SITE_TO_EXISTING_GROUP"
       ? db.clinicAccountSplitSiteDecision.findFirst({
           where: { preparationId, decision: "SPLIT" },
           select: {

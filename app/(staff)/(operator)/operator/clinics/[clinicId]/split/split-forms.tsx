@@ -5,8 +5,12 @@ import { useActionState } from "react";
 import {
   cancelSplitPreparationAction,
   confirmLocationDestinationSlugAction,
+  createExistingGroupMoveAction,
   createLocationMovePreparationAction,
   createSplitPreparationAction,
+  saveCanonicalRetargetAction,
+  saveExistingGroupSelectionAction,
+  selectExistingGroupDestinationAction,
   createSplitShellAction,
   executeSplitAction,
   prepareSplitBrandingAction,
@@ -683,5 +687,276 @@ function LocationChoiceTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+export function CreateExistingGroupMoveForm({
+  sourceClinicId,
+  sites,
+}: {
+  sourceClinicId: string;
+  sites: Array<{
+    id: string;
+    displayName: string;
+    slug: string;
+    active: boolean;
+    isPrimary: boolean;
+    locationCount: number;
+  }>;
+}) {
+  const [state, action, pending] = useActionState(
+    createExistingGroupMoveAction,
+    initial
+  );
+  const activeSites = sites.filter((site) => site.active);
+  return (
+    <form action={action} className="mt-4 flex flex-col gap-4">
+      <input type="hidden" name="sourceClinicId" value={sourceClinicId} />
+      <label className="flex flex-col gap-2 text-sm">
+        <span className="font-medium">Clinic Site to move</span>
+        <select
+          name="movingClinicSiteId"
+          required
+          defaultValue=""
+          className="h-11 rounded-md border border-staff-line bg-staff-panel px-3"
+        >
+          <option value="" disabled>
+            Choose a Clinic Site
+          </option>
+          {activeSites.map((site) => (
+            <option key={site.id} value={site.id}>
+              {site.displayName} · {site.slug}
+              {site.isPrimary ? " · primary" : ""} · {site.locationCount}{" "}
+              location{site.locationCount === 1 ? "" : "s"}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-2 text-sm">
+        <span className="font-medium">
+          Clinic Site that becomes the source primary, when the moving Site is
+          primary
+        </span>
+        <select
+          name="keptClinicSiteId"
+          defaultValue=""
+          className="h-11 rounded-md border border-staff-line bg-staff-panel px-3"
+        >
+          <option value="">
+            Not required unless the moving Site is primary
+          </option>
+          {activeSites.map((site) => (
+            <option key={site.id} value={site.id}>
+              {site.displayName} · {site.slug}
+              {site.isPrimary ? " · current primary" : ""}
+            </option>
+          ))}
+        </select>
+      </label>
+      <FieldError message={state.error} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="staffBtn staffBtnPrimary w-fit"
+      >
+        {pending ? "Starting…" : "Start site move"}
+      </button>
+    </form>
+  );
+}
+
+export function ExistingGroupSelectionForm({
+  sourceClinicId,
+  preparationId,
+  sites,
+  movingSiteId,
+  keptSiteId,
+}: {
+  sourceClinicId: string;
+  preparationId: string;
+  sites: Array<{
+    id: string;
+    displayName: string;
+    slug: string;
+    active: boolean;
+    isPrimary: boolean;
+  }>;
+  movingSiteId: string | null;
+  keptSiteId: string | null;
+}) {
+  const [state, action, pending] = useActionState(
+    saveExistingGroupSelectionAction,
+    initial
+  );
+  return (
+    <form action={action} className="mt-4 flex flex-col gap-4">
+      <input type="hidden" name="sourceClinicId" value={sourceClinicId} />
+      <input type="hidden" name="preparationId" value={preparationId} />
+      <label className="flex flex-col gap-2 text-sm">
+        <span className="font-medium">Clinic Site to move</span>
+        <select
+          name="movingClinicSiteId"
+          required
+          defaultValue={movingSiteId ?? ""}
+          className="h-11 rounded-md border border-staff-line bg-staff-panel px-3"
+        >
+          {sites
+            .filter((site) => site.active)
+            .map((site) => (
+              <option key={site.id} value={site.id}>
+                {site.displayName} · {site.slug}
+                {site.isPrimary ? " · primary" : ""}
+              </option>
+            ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-2 text-sm">
+        <span className="font-medium">
+          Source primary after the move, when the moving Site is primary
+        </span>
+        <select
+          name="keptClinicSiteId"
+          defaultValue={keptSiteId ?? ""}
+          className="h-11 rounded-md border border-staff-line bg-staff-panel px-3"
+        >
+          <option value="">Use the current primary when it stays</option>
+          {sites
+            .filter((site) => site.active)
+            .map((site) => (
+              <option key={site.id} value={site.id}>
+                {site.displayName} · {site.slug}
+              </option>
+            ))}
+        </select>
+      </label>
+      <FieldError message={state.error} />
+      <button type="submit" disabled={pending} className="staffBtn w-fit">
+        {pending ? "Saving…" : "Save Clinic Site choice"}
+      </button>
+    </form>
+  );
+}
+
+export function ExistingGroupDestinationForm({
+  sourceClinicId,
+  preparationId,
+  destinationClinicId,
+  destinations,
+}: {
+  sourceClinicId: string;
+  preparationId: string;
+  destinationClinicId: string | null;
+  destinations: Array<{ id: string; name: string; slug: string }>;
+}) {
+  const [state, action, pending] = useActionState(
+    selectExistingGroupDestinationAction,
+    initial
+  );
+  return (
+    <form action={action} className="mt-4 flex flex-col gap-4">
+      <input type="hidden" name="sourceClinicId" value={sourceClinicId} />
+      <input type="hidden" name="preparationId" value={preparationId} />
+      <label className="flex flex-col gap-2 text-sm">
+        <span className="font-medium">Existing Group Account</span>
+        <select
+          name="destinationClinicId"
+          required
+          defaultValue={destinationClinicId ?? ""}
+          className="h-11 rounded-md border border-staff-line bg-staff-panel px-3"
+        >
+          <option value="" disabled>
+            Choose a Group Account
+          </option>
+          {destinations.map((clinic) => (
+            <option key={clinic.id} value={clinic.id}>
+              {clinic.name} · {clinic.slug}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="text-sm text-staff-muted">
+        This does not create an Account, a Checkout Session, or a subscription.
+        Neither Account’s paid capacity changes.
+      </p>
+      <FieldError message={state.error} />
+      <button type="submit" disabled={pending} className="staffBtn w-fit">
+        {pending ? "Saving…" : "Use this Group"}
+      </button>
+    </form>
+  );
+}
+
+export function CanonicalRetargetForm({
+  sourceClinicId,
+  preparationId,
+  decisions,
+}: {
+  sourceClinicId: string;
+  preparationId: string;
+  decisions: Array<{
+    sourceGuideId: string;
+    sourceTitle: string;
+    guideTemplateId: string;
+    pinnedRevisionId: string | null;
+    pinnedRevisionStatus: string | null;
+    destinationGuideId: string | null;
+    destinationTitle: string | null;
+    enabledOnMovingSite: boolean;
+    disabledOnMovingSite: boolean;
+    compatible: boolean;
+    confirmed: boolean;
+    reason: string | null;
+  }>;
+}) {
+  const [state, action, pending] = useActionState(
+    saveCanonicalRetargetAction,
+    initial
+  );
+  return (
+    <form action={action} className="mt-4 flex flex-col gap-4">
+      <input type="hidden" name="sourceClinicId" value={sourceClinicId} />
+      <input type="hidden" name="preparationId" value={preparationId} />
+      <ul className="divide-y divide-staff-line text-sm">
+        {decisions.map((decision) => (
+          <li key={decision.sourceGuideId} className="py-3">
+            <p className="font-medium">{decision.sourceTitle}</p>
+            <p className="mt-1 text-staff-muted">
+              River template {decision.guideTemplateId}. Pinned revision{" "}
+              {decision.pinnedRevisionId ?? "none"}
+              {decision.pinnedRevisionStatus
+                ? ` · ${decision.pinnedRevisionStatus}`
+                : ""}
+              .
+            </p>
+            <p className="mt-1 text-staff-muted">
+              Destination guide: {decision.destinationTitle ?? "None"}.
+              Placements:{" "}
+              {decision.enabledOnMovingSite ? "enabled" : "not enabled"}
+              {decision.disabledOnMovingSite ? ", includes disabled" : ""}.
+            </p>
+            {decision.compatible ? (
+              <label className="mt-2 inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="retargetSourceGuideId"
+                  value={decision.sourceGuideId}
+                  defaultChecked={decision.confirmed}
+                />
+                Use existing destination guide
+              </label>
+            ) : (
+              <p className="mt-2">
+                Cannot use the existing destination guide
+                {decision.reason ? `: ${decision.reason}` : ""}.
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+      <FieldError message={state.error} />
+      <button type="submit" disabled={pending} className="staffBtn w-fit">
+        {pending ? "Saving…" : "Save canonical guide choices"}
+      </button>
+    </form>
   );
 }

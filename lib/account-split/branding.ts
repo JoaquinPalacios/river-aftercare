@@ -60,7 +60,8 @@ export async function prepareAccountSplitBranding(input: {
     }
     if (
       preparation.operationKind !== "SITE_TO_NEW_ACCOUNT" &&
-      preparation.operationKind !== "LOCATION_TO_NEW_ACCOUNT"
+      preparation.operationKind !== "LOCATION_TO_NEW_ACCOUNT" &&
+      preparation.operationKind !== "SITE_TO_EXISTING_GROUP"
     ) {
       throw new ClinicPortalError(
         "This structural operation is not available.",

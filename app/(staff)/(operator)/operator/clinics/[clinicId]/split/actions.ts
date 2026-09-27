@@ -15,6 +15,10 @@ import {
   saveAccountSplitSiteDecisions,
   saveAccountSplitStaffSelections,
   saveLocationToNewAccountSelection,
+  createSiteToExistingGroupPreparation,
+  saveCanonicalRetargetConfirmations,
+  saveSiteToExistingGroupSelection,
+  selectExistingGroupDestination,
   updateAccountSplitDestinationTarget,
 } from "@/lib/account-split/preparation";
 import { isClinicPortalError } from "@/lib/clinic-portal/errors";
@@ -312,6 +316,89 @@ export async function confirmLocationDestinationSlugAction(
     await confirmLocationDestinationSiteSlug({
       preparationId,
       destinationSiteSlug: String(formData.get("destinationSiteSlug") ?? ""),
+    });
+    revalidatePath(splitPath(sourceClinicId));
+    return {};
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function createExistingGroupMoveAction(
+  _previous: SplitActionState,
+  formData: FormData
+): Promise<SplitActionState> {
+  const { user } = await requireAccountSplitOperator();
+  const sourceClinicId = String(formData.get("sourceClinicId") ?? "");
+  const movingClinicSiteId = String(formData.get("movingClinicSiteId") ?? "");
+  const kept = String(formData.get("keptClinicSiteId") ?? "");
+  try {
+    await createSiteToExistingGroupPreparation({
+      sourceClinicId,
+      movingClinicSiteId,
+      keptClinicSiteId: kept || null,
+      operatorUserId: user.id,
+    });
+    revalidatePath(splitPath(sourceClinicId));
+    return {};
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function saveExistingGroupSelectionAction(
+  _previous: SplitActionState,
+  formData: FormData
+): Promise<SplitActionState> {
+  await requireAccountSplitOperator();
+  const preparationId = String(formData.get("preparationId") ?? "");
+  const sourceClinicId = String(formData.get("sourceClinicId") ?? "");
+  const kept = String(formData.get("keptClinicSiteId") ?? "");
+  try {
+    await saveSiteToExistingGroupSelection({
+      preparationId,
+      movingClinicSiteId: String(formData.get("movingClinicSiteId") ?? ""),
+      keptClinicSiteId: kept || null,
+    });
+    revalidatePath(splitPath(sourceClinicId));
+    return {};
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function selectExistingGroupDestinationAction(
+  _previous: SplitActionState,
+  formData: FormData
+): Promise<SplitActionState> {
+  await requireAccountSplitOperator();
+  const preparationId = String(formData.get("preparationId") ?? "");
+  const sourceClinicId = String(formData.get("sourceClinicId") ?? "");
+  try {
+    await selectExistingGroupDestination({
+      preparationId,
+      destinationClinicId: String(formData.get("destinationClinicId") ?? ""),
+    });
+    revalidatePath(splitPath(sourceClinicId));
+    return {};
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function saveCanonicalRetargetAction(
+  _previous: SplitActionState,
+  formData: FormData
+): Promise<SplitActionState> {
+  await requireAccountSplitOperator();
+  const preparationId = String(formData.get("preparationId") ?? "");
+  const sourceClinicId = String(formData.get("sourceClinicId") ?? "");
+  try {
+    await saveCanonicalRetargetConfirmations({
+      preparationId,
+      sourcePracticeGuideIds: formData
+        .getAll("retargetSourceGuideId")
+        .map((value) => String(value)),
     });
     revalidatePath(splitPath(sourceClinicId));
     return {};

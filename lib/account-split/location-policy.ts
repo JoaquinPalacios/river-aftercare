@@ -813,6 +813,7 @@ export function assessLocationToNewAccount(
       departingLocationWasPrimary: departingWasPrimary,
       sourceRootBecomesPrimary: departingWasPrimary,
     },
+    existingGroup: null,
     destinationPreview: {
       accountName:
         snapshot.destination.clinic?.name ??

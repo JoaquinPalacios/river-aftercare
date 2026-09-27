@@ -20,6 +20,7 @@ import { SiteLocationCapacityForm } from "@/app/(staff)/(operator)/operator/clin
 import { getOperatorClinic } from "@/lib/operator/get-operator-clinic";
 import { supportedLocationToNewAccountAction } from "@/lib/account-split/location-policy";
 import { supportedAccountSplitAction } from "@/lib/account-split/policy";
+import { supportedSiteToExistingGroupAction } from "@/lib/account-split/site-to-existing-group-policy";
 import { findOpenAccountSplitPreparation } from "@/lib/account-split/snapshot";
 import { getPrisma } from "@/lib/prisma";
 import { loadOperatorSiteLocationCapacity } from "@/lib/operator/update-site-location-allowance";
@@ -70,6 +71,11 @@ export default async function OperatorClinicDetailPage({
     commercialPlan: siteCapacity.allowance.commercialPlan,
     activeClinicSiteCount: siteCapacity.usage.activeSites,
     hasOpenPreparation: openSplit?.operationKind === "SITE_TO_NEW_ACCOUNT",
+  });
+  const existingGroupMoveAction = supportedSiteToExistingGroupAction({
+    commercialPlan: siteCapacity.allowance.commercialPlan,
+    activeClinicSiteCount: siteCapacity.usage.activeSites,
+    hasOpenPreparation: openSplit?.operationKind === "SITE_TO_EXISTING_GROUP",
   });
   const locationMoveAction = supportedLocationToNewAccountAction({
     commercialPlan: siteCapacity.allowance.commercialPlan,
@@ -296,6 +302,25 @@ export default async function OperatorClinicDetailPage({
             className="mt-3 inline-flex text-sm font-medium text-staff-brand"
           >
             Prepare Clinic Site split
+          </Link>
+        </section>
+      ) : null}
+
+      {existingGroupMoveAction.available ? (
+        <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+          <h2 className="text-base font-semibold">
+            Move site to existing Group
+          </h2>
+          <p className="mt-2 text-sm text-staff-muted">
+            Move one whole Clinic Site into a different Group Account that
+            already exists. The source Group keeps at least one Clinic Site.
+            Public addresses stay the same, and neither subscription changes.
+          </p>
+          <Link
+            href={`/operator/clinics/${clinic.id}/split#move-site`}
+            className="mt-3 inline-flex text-sm font-medium text-staff-brand"
+          >
+            Prepare site move
           </Link>
         </section>
       ) : null}

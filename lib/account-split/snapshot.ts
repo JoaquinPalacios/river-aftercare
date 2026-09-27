@@ -317,6 +317,103 @@ export async function loadAccountSplitSnapshot(
     destinationSlugSiteId: destinationSlugHolders.siteId,
     destinationSlugClinicId: destinationSlugHolders.clinicId,
     destinationTermsAcceptedUserIds,
+    guideMaps: await loadGuideMaps(db, preparation.id),
+    destinationDetail: preparation.destinationClinicId
+      ? await loadDestinationDetail(
+          db,
+          preparation.destinationClinicId,
+          preparation.id
+        )
+      : emptyDestinationDetail(),
+  };
+}
+
+function emptyDestinationDetail(): AccountSplitSnapshot["destinationDetail"] {
+  return {
+    sites: [],
+    locations: [],
+    guides: [],
+    subscriptionSchedulePresent: false,
+    scheduledAdditionalSiteQuantity: null,
+    scheduledCapacityEffectiveAt: null,
+    offeredAdditionalSiteQuantity: null,
+    openDowngradePreparation: false,
+    conflictingOpenPreparation: false,
+  };
+}
+
+async function loadGuideMaps(db: Db, preparationId: string) {
+  return db.clinicAccountSplitGuideMap.findMany({
+    where: { preparationId },
+    select: {
+      sourcePracticeGuideId: true,
+      destinationPracticeGuideId: true,
+    },
+  });
+}
+
+async function loadDestinationDetail(
+  db: Db,
+  clinicId: string,
+  preparationId: string
+): Promise<AccountSplitSnapshot["destinationDetail"]> {
+  const [
+    sites,
+    locations,
+    guides,
+    billingProfile,
+    commercial,
+    downgrade,
+    conflicts,
+  ] = await Promise.all([
+    db.clinicSite.findMany({
+      where: { clinicId },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        slug: true,
+        displayName: true,
+        active: true,
+        isPrimary: true,
+      },
+    }),
+    db.clinicLocation.findMany({
+      where: { clinicId },
+      select: { id: true, clinicSiteId: true, active: true },
+    }),
+    loadGuides(db, clinicId),
+    db.clinicBillingProfile.findUnique({
+      where: { clinicId },
+      select: { stripeSubscriptionScheduleId: true },
+    }),
+    readSplitSourceCommercialSignals(clinicId, db),
+    db.clinicDowngradePreparation.findUnique({
+      where: { clinicId },
+      select: { id: true },
+    }),
+    db.clinicAccountSplitPreparation.count({
+      where: {
+        id: { not: preparationId },
+        status: { notIn: ["COMPLETED", "CANCELLED"] },
+        OR: [{ sourceClinicId: clinicId }, { destinationClinicId: clinicId }],
+      },
+    }),
+  ]);
+  return {
+    sites,
+    locations,
+    guides,
+    subscriptionSchedulePresent: Boolean(
+      billingProfile?.stripeSubscriptionScheduleId
+    ),
+    scheduledAdditionalSiteQuantity:
+      commercial?.scheduledAdditionalSiteQuantity ?? null,
+    scheduledCapacityEffectiveAt:
+      commercial?.scheduledCapacityEffectiveAt ?? null,
+    offeredAdditionalSiteQuantity:
+      commercial?.offeredAdditionalSiteQuantity ?? null,
+    openDowngradePreparation: Boolean(downgrade),
+    conflictingOpenPreparation: conflicts > 0,
   };
 }
 
@@ -400,6 +497,7 @@ async function loadGuides(db: Db, clinicId: string) {
       adaptedAt: true,
       copiedFromPracticeGuideId: true,
       downgradeRetainedAt: true,
+      isEnabled: true,
     },
   });
   const guideIds = guides.map((guide) => guide.id);
@@ -446,6 +544,17 @@ async function loadGuides(db: Db, clinicId: string) {
   const additionsByGuide = new Map(
     additionCounts.map((row) => [row.practiceGuideId, row._count._all])
   );
+  const pinIds = guides.flatMap((guide) =>
+    guide.pinnedRevisionId ? [guide.pinnedRevisionId] : []
+  );
+  const pins =
+    pinIds.length === 0
+      ? []
+      : await db.guideTemplateRevision.findMany({
+          where: { id: { in: pinIds } },
+          select: { id: true, status: true },
+        });
+  const pinStatus = new Map(pins.map((pin) => [pin.id, pin.status]));
   const revisionsByGuide = new Map<string, typeof revisions>();
   for (const revision of revisions) {
     const current = revisionsByGuide.get(revision.practiceGuideId) ?? [];
@@ -463,6 +572,10 @@ async function loadGuides(db: Db, clinicId: string) {
     adaptedAt: guide.adaptedAt,
     copiedFromPracticeGuideId: guide.copiedFromPracticeGuideId,
     downgradeRetainedAt: guide.downgradeRetainedAt,
+    isEnabled: guide.isEnabled,
+    pinnedRevisionStatus: guide.pinnedRevisionId
+      ? (pinStatus.get(guide.pinnedRevisionId) ?? null)
+      : null,
     overrideCount: overridesByGuide.get(guide.id) ?? 0,
     additionCount: additionsByGuide.get(guide.id) ?? 0,
     revisions: (revisionsByGuide.get(guide.id) ?? []).map((revision) => ({
