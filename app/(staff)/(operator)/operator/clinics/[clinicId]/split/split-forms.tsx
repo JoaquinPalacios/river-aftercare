@@ -7,6 +7,7 @@ import {
   createSplitPreparationAction,
   createSplitShellAction,
   executeSplitAction,
+  prepareSplitBrandingAction,
   saveSplitSiteDecisionsAction,
   saveSplitStaffAction,
   updateSplitTargetAction,
@@ -346,13 +347,46 @@ export function CreateSplitShellForm({
   );
 }
 
+export function PrepareSplitBrandingForm({
+  sourceClinicId,
+  preparationId,
+}: {
+  sourceClinicId: string;
+  preparationId: string;
+}) {
+  const [state, action, pending] = useActionState(
+    prepareSplitBrandingAction,
+    initial
+  );
+  return (
+    <form action={action} className="mt-4 flex flex-col gap-3">
+      <input type="hidden" name="sourceClinicId" value={sourceClinicId} />
+      <input type="hidden" name="preparationId" value={preparationId} />
+      <p className="text-sm text-staff-muted">
+        Copy the moving Clinic Site logo, dark logo, and favicon onto the
+        destination Account before execution. This does not move the Site.
+      </p>
+      <FieldError message={state.error} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="staffBtn staffBtnPrimary w-fit"
+      >
+        {pending ? "Preparing…" : "Prepare branding"}
+      </button>
+    </form>
+  );
+}
+
 export function ExecuteSplitForm({
   sourceClinicId,
   preparationId,
+  preparationRevision,
   confirmationPhrase,
 }: {
   sourceClinicId: string;
   preparationId: string;
+  preparationRevision: number;
   confirmationPhrase: string;
 }) {
   const [state, action, pending] = useActionState(executeSplitAction, initial);
@@ -360,6 +394,11 @@ export function ExecuteSplitForm({
     <form action={action} className="mt-4 flex flex-col gap-3">
       <input type="hidden" name="sourceClinicId" value={sourceClinicId} />
       <input type="hidden" name="preparationId" value={preparationId} />
+      <input
+        type="hidden"
+        name="preparationRevision"
+        value={preparationRevision}
+      />
       <label className="flex flex-col gap-2 text-sm">
         <span className="font-medium">
           Type <span className="font-mono">{confirmationPhrase}</span> to

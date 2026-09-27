@@ -13,6 +13,7 @@ import {
   lockAccountSplitShellSlug,
 } from "@/lib/account-split/locks";
 import {
+  ACCOUNT_SPLIT_COMMERCIAL_CONFLICT_CODES,
   assessAccountSplit,
   assessExecutedPracticeDowngrade,
   classifyDestinationBilling,
@@ -26,6 +27,8 @@ import {
   generateSplitShellSlug,
   isSplitShellCompatibilitySlug,
 } from "@/lib/account-split/shell-slug";
+import { planSplitSiteBranding } from "@/lib/account-split/branding-plan";
+import { recordAccountSplitEvent } from "@/lib/account-split/events";
 import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
 import { readAccountCapacityFacts } from "@/lib/billing/group-capacity-gate";
 import { readSplitDestinationCommercialState } from "@/lib/billing/split-destination-access";
@@ -137,6 +140,7 @@ export async function executeClinicAccountSplit(input: {
   preparationId: string;
   confirmation: string;
   operatorUserId: string;
+  reviewedRevision: number;
   hooks?: AccountSplitExecutionHooks;
 }): Promise<AccountSplitExecutionResult> {
   await assertPlatformOperator(input.operatorUserId);
@@ -179,6 +183,16 @@ export async function executeClinicAccountSplit(input: {
         );
       }
       if (snapshot.preparation.status === "COMPLETED") {
+        await recordAccountSplitEvent(tx, {
+          preparationId: snapshot.preparation.id,
+          kind: "COMPLETED_RETRY",
+          fromStatus: "COMPLETED",
+          toStatus: "COMPLETED",
+          actorUserId: input.operatorUserId,
+          sourceClinicId: snapshot.source.id,
+          destinationClinicId: snapshot.preparation.destinationClinicId,
+          category: "completed_retry",
+        });
         const summary = await readExecutionSummary(tx, snapshot.preparation.id);
         return {
           kind: "completed" as const,
@@ -195,15 +209,32 @@ export async function executeClinicAccountSplit(input: {
           "conflict"
         );
       }
+      if (input.reviewedRevision !== snapshot.preparation.preparationRevision) {
+        await recordAccountSplitEvent(tx, {
+          preparationId: snapshot.preparation.id,
+          kind: "STALE_REVISION_REFUSED",
+          fromStatus: snapshot.preparation.status,
+          toStatus: snapshot.preparation.status,
+          actorUserId: input.operatorUserId,
+          sourceClinicId: snapshot.source.id,
+          destinationClinicId: snapshot.preparation.destinationClinicId,
+          category: "stale_revision",
+        });
+        return {
+          kind: "refused" as const,
+          message:
+            "This preparation changed. Review it again before executing.",
+        };
+      }
+      if (snapshot.preparation.operationKind !== "SITE_TO_NEW_ACCOUNT") {
+        throw new ClinicPortalError(
+          "This structural operation is not available.",
+          "invalid"
+        );
+      }
       if (snapshot.preparation.status !== "READY_TO_EXECUTE") {
         throw new ClinicPortalError(
           "This preparation is not ready to execute.",
-          "conflict"
-        );
-      }
-      if (snapshot.source.commercialPlan !== "GROUP") {
-        throw new ClinicPortalError(
-          "This split moves one Clinic Site off a Group Account. The source Account is no longer Group.",
           "conflict"
         );
       }
@@ -251,6 +282,23 @@ export async function executeClinicAccountSplit(input: {
             },
           });
         }
+        if (!shellPopulated) {
+          for (const code of ACCOUNT_SPLIT_COMMERCIAL_CONFLICT_CODES) {
+            if (assessment.blockers.some((blocker) => blocker.code === code)) {
+              await recordAccountSplitEvent(tx, {
+                preparationId: snapshot.preparation.id,
+                kind: "COMMERCIAL_CONFLICT",
+                fromStatus: "READY_TO_EXECUTE",
+                toStatus: assessment.status,
+                actorUserId: input.operatorUserId,
+                sourceClinicId: snapshot.source.id,
+                destinationClinicId: destinationId,
+                siteId: splitSite?.id ?? null,
+                category: code,
+              });
+            }
+          }
+        }
         return {
           kind: "refused" as const,
           message: shellPopulated
@@ -258,6 +306,31 @@ export async function executeClinicAccountSplit(input: {
             : refusalMessage(assessment),
         };
       }
+
+      const branding = planSplitSiteBranding({
+        sourceClinicId: snapshot.source.id,
+        destinationClinicId: destinationId,
+        site: splitSite,
+        preparationId: snapshot.preparation.id,
+        assets: snapshot.brandingAssets,
+      });
+      if (!branding.ready || !branding.values) {
+        throw new ClinicPortalError(
+          "Prepare destination-owned branding for the moving Clinic Site before execution.",
+          "conflict"
+        );
+      }
+
+      await recordAccountSplitEvent(tx, {
+        preparationId: snapshot.preparation.id,
+        kind: "CUTOVER_STARTED",
+        fromStatus: "READY_TO_EXECUTE",
+        actorUserId: input.operatorUserId,
+        sourceClinicId: snapshot.source.id,
+        destinationClinicId: destinationId,
+        siteId: splitSite.id,
+        category: "cutover_started",
+      });
 
       assertExclusiveStaffSelections(snapshot);
       const sourceTarget = assessment.primaryPromotion.futurePrimarySite;
@@ -322,7 +395,13 @@ export async function executeClinicAccountSplit(input: {
       });
       await tx.clinicSite.update({
         where: { id: splitSite.id },
-        data: { clinicId: destinationId, isPrimary: true },
+        data: {
+          clinicId: destinationId,
+          isPrimary: true,
+          logoUrl: branding.values.logoUrl,
+          darkLogoUrl: branding.values.darkLogoUrl,
+          faviconUrl: branding.values.faviconUrl,
+        },
       });
       await assertMovedLocations(tx, {
         siteId: splitSite.id,
@@ -401,6 +480,17 @@ export async function executeClinicAccountSplit(input: {
           "conflict"
         );
       }
+      await recordAccountSplitEvent(tx, {
+        preparationId: snapshot.preparation.id,
+        kind: "CUTOVER_COMPLETED",
+        fromStatus: "READY_TO_EXECUTE",
+        toStatus: "COMPLETED",
+        actorUserId: input.operatorUserId,
+        sourceClinicId: snapshot.source.id,
+        destinationClinicId: destinationId,
+        siteId: splitSite.id,
+        category: "cutover_completed",
+      });
 
       const summary = await readExecutionSummary(tx, snapshot.preparation.id);
       return {

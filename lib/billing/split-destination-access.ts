@@ -83,3 +83,43 @@ export async function readSplitDestinationCommercialState(
     extraTemplateAdaptationAllowance: row.extraTemplateAdaptationAllowance,
   };
 }
+
+export type SplitSourceCommercialSignals = {
+  billingStatus: BillingStatus | null;
+  access: EntitlementStatus | null;
+  cancelAtPeriodEnd: boolean;
+  scheduledCommercialPlan: CommercialPlan | null;
+  scheduledAdditionalSiteQuantity: number | null;
+  scheduledCapacityEffectiveAt: Date | null;
+  offeredAdditionalSiteQuantity: number | null;
+};
+
+export async function readSplitSourceCommercialSignals(
+  clinicId: string,
+  db: Db = getPrisma()
+): Promise<SplitSourceCommercialSignals | null> {
+  const row = await db.clinicEntitlement.findUnique({
+    where: { clinicId },
+    select: {
+      billingStatus: true,
+      entitlementStatus: true,
+      cancelAtPeriodEnd: true,
+      scheduledCommercialPlan: true,
+      scheduledAdditionalSiteQuantity: true,
+      scheduledCapacityEffectiveAt: true,
+      offeredAdditionalSiteQuantity: true,
+    },
+  });
+  if (!row) {
+    return null;
+  }
+  return {
+    billingStatus: row.billingStatus,
+    access: row.entitlementStatus,
+    cancelAtPeriodEnd: row.cancelAtPeriodEnd,
+    scheduledCommercialPlan: row.scheduledCommercialPlan,
+    scheduledAdditionalSiteQuantity: row.scheduledAdditionalSiteQuantity,
+    scheduledCapacityEffectiveAt: row.scheduledCapacityEffectiveAt,
+    offeredAdditionalSiteQuantity: row.offeredAdditionalSiteQuantity,
+  };
+}

@@ -54,10 +54,10 @@ pnpm prod:db:verify
 
 This failed-build-then-migrate-then-redeploy behaviour is **intentional**.
 
-| Release contents                                           | Production action                                                                                                                                            |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| No `prisma/schema.prisma` or `prisma/migrations/**` change | Merge to `main`. Automatic Production deploy proceeds after the schema gate confirms no pending migrations.                                                  |
-| Prisma schema and/or migration present                     | Merge to `main`. The Production schema gate is **expected** to fail the build. Review SQL → preflight → apply → verify → **Redeploy the same SHA**.          |
+| Release contents                                           | Production action                                                                                                                                   |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No `prisma/schema.prisma` or `prisma/migrations/**` change | Merge to `main`. Automatic Production deploy proceeds after the schema gate confirms no pending migrations.                                         |
+| Prisma schema and/or migration present                     | Merge to `main`. The Production schema gate is **expected** to fail the build. Review SQL → preflight → apply → verify → **Redeploy the same SHA**. |
 
 Migrations are not all the same:
 
@@ -138,6 +138,7 @@ pnpm prod:db:status
 pnpm prod:db:migrate              # prints the plan; does not apply
 pnpm prod:db:migrate --apply      # prisma migrate deploy via DIRECT_URL
 pnpm prod:db:verify
+pnpm prod:audit:account-split-branding   # read-only; same env file; no migrate
 ```
 
 Pass `--apply` directly to the pnpm script. Do **not** insert a standalone `--` between the script name and `--apply`; pnpm forwards that `--` and `scripts/prod-db.mjs` rejects it (`Unknown argument: --`).

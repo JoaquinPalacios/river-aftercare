@@ -129,6 +129,7 @@ model User {
   preparedAccountSplits          ClinicAccountSplitPreparation[]    @relation("AccountSplitPreparedBy")
   executedAccountSplits          ClinicAccountSplitPreparation[]    @relation("AccountSplitExecutedBy")
   accountSplitStaffSelections    ClinicAccountSplitStaffSelection[]
+  accountSplitEvents             ClinicAccountSplitEvent[]          @relation("AccountSplitEventActor")
   createdAt                      DateTime                           @default(now())
   updatedAt                      DateTime                           @updatedAt
 }
@@ -349,6 +350,7 @@ model ClinicLocation {
   clinicSite            ClinicSite                   @relation(fields: [clinicSiteId, clinicId], references: [id, clinicId], onDelete: Cascade)
   placements            PracticeGuidePlacement[]
   downgradeSelections   DowngradeLocationSelection[]
+  accountSplitPreparations ClinicAccountSplitPreparation[]
 
   @@unique([clinicSiteId, slug])
   @@unique([id, clinicId])
@@ -676,7 +678,7 @@ enum DowngradePreparationStatus {
 }
 
 /// Operator preparation for splitting one ClinicSite onto a new Account.
-/// COMPLETED is reserved for execution. Preparation never sets it.
+/// Execution of SITE_TO_NEW_ACCOUNT sets COMPLETED as its last write.
 /// At most one non-terminal row per source Account. That predicate is a
 /// partial unique index in the migration because Prisma cannot express it.
 enum ClinicAccountSplitStatus {
@@ -697,6 +699,31 @@ enum ClinicAccountSplitSiteDecisionKind {
   /// Stays on the source Account and stays active when it is active now.
   /// A later preparation can split it. This does not deactivate it.
   RETAIN_ON_SOURCE
+}
+
+/// Discriminator for account-structure preparations stored on
+/// ClinicAccountSplitPreparation. Only SITE_TO_NEW_ACCOUNT is enabled.
+/// The other values are reserved and must not be offered in the UI.
+enum ClinicAccountSplitOperationKind {
+  SITE_TO_NEW_ACCOUNT
+  LOCATION_TO_NEW_ACCOUNT
+  SITE_TO_EXISTING_GROUP
+  SITE_TO_NEW_GROUP
+}
+
+/// Append-only structural history. Rows are not updated to record secrets,
+/// confirmation phrases, or payment credentials.
+enum ClinicAccountSplitEventKind {
+  PREPARATION_CREATED
+  STATUS_TRANSITION
+  BRANDING_PREPARED
+  BRANDING_PREPARATION_FAILED
+  STALE_REVISION_REFUSED
+  CUTOVER_STARTED
+  CUTOVER_COMPLETED
+  COMPLETED_RETRY
+  CANCELLED
+  COMMERCIAL_CONFLICT
 }
 
 /// Local preparation for a Practice → Essential downgrade.
@@ -749,9 +776,10 @@ model DowngradeLocationSelection {
 }
 
 /// Operator preparation for moving one Site onto a new shell Account.
-/// Does not move the Site, copy guides, change memberships, or convert
-/// source billing. Execution fields stay null until a later release.
-/// Open-preparation uniqueness is a partial index in the migration.
+/// SITE_TO_NEW_ACCOUNT execution is implemented. Other operation kinds are
+/// stored for later and are not enabled. Open-preparation uniqueness, the
+/// non-terminal destination uniqueness, and the nullable source-location
+/// uniqueness are partial indexes in the migration.
 model ClinicAccountSplitPreparation {
   id                         String                             @id @default(cuid())
   sourceClinicId             String
@@ -759,6 +787,15 @@ model ClinicAccountSplitPreparation {
   destinationClinicId        String?
   keptClinicSiteId           String
   status                     ClinicAccountSplitStatus           @default(DRAFT)
+  /// Existing rows are SITE_TO_NEW_ACCOUNT. Other kinds stay disabled.
+  operationKind              ClinicAccountSplitOperationKind    @default(SITE_TO_NEW_ACCOUNT)
+  /// Incremented when a structural preparation edit changes the review.
+  /// Execution must receive the revision the operator reviewed.
+  preparationRevision        Int                                @default(0)
+  /// Reserved for LOCATION_TO_NEW_ACCOUNT. Null for today's Site split.
+  sourceLocationId           String?
+  /// Reserved for a location promotion's destination site slug. Unused today.
+  destinationSiteSlug        String?
   /// Destination commercial target. Group is not offered.
   destinationPlan            CommercialPlan
   destinationBillingInterval BillingInterval
@@ -766,11 +803,11 @@ model ClinicAccountSplitPreparation {
   /// This row does not change the source subscription or commercial plan.
   targetSourcePlan           CommercialPlan                     @default(PRACTICE)
   preparedByUserId           String
-  /// Reserved for execution. Preparation does not set this.
+  /// Set when SITE_TO_NEW_ACCOUNT execution completes.
   executingOperatorUserId    String?
-  /// Reserved for execution. Preparation does not set this.
+  /// Set when SITE_TO_NEW_ACCOUNT execution completes.
   executedAt                 DateTime?
-  /// Future execution phrase `split {siteSlug}`. Display only.
+  /// Execution phrase `split {siteSlug}`. Display only. Not written to events.
   expectedConfirmation       String?
   cancelledAt                DateTime?
   createdAt                  DateTime                           @default(now())
@@ -778,19 +815,62 @@ model ClinicAccountSplitPreparation {
   sourceClinic               Clinic                             @relation("AccountSplitSource", fields: [sourceClinicId], references: [id], onDelete: Cascade)
   destinationClinic          Clinic?                            @relation("AccountSplitDestination", fields: [destinationClinicId], references: [id], onDelete: SetNull)
   keptClinicSite             ClinicSite                         @relation("AccountSplitKeptSite", fields: [keptClinicSiteId], references: [id], onDelete: Cascade)
+  sourceLocation             ClinicLocation?                    @relation(fields: [sourceLocationId], references: [id], onDelete: SetNull)
   preparedBy                 User                               @relation("AccountSplitPreparedBy", fields: [preparedByUserId], references: [id], onDelete: Restrict)
   executingOperator          User?                              @relation("AccountSplitExecutedBy", fields: [executingOperatorUserId], references: [id], onDelete: SetNull)
   siteDecisions              ClinicAccountSplitSiteDecision[]
   staffSelections            ClinicAccountSplitStaffSelection[]
   guideMaps                  ClinicAccountSplitGuideMap[]
   revisionMaps               ClinicAccountSplitRevisionMap[]
+  brandingAssets             ClinicAccountSplitBrandingAsset[]
+  events                     ClinicAccountSplitEvent[]
 
   @@index([sourceClinicId])
   @@index([destinationClinicId])
   @@index([keptClinicSiteId])
+  @@index([sourceLocationId])
   @@index([preparedByUserId])
   @@index([executingOperatorUserId])
   @@index([status])
+  @@index([operationKind])
+}
+
+/// Prepared branding copies for one split. This is not the object store.
+/// A row is written only after the destination object copy succeeds.
+model ClinicAccountSplitBrandingAsset {
+  id                     String                        @id @default(cuid())
+  preparationId          String
+  sourceStorageKey       String
+  destinationStorageKey  String
+  copiedAt               DateTime                      @default(now())
+  preparation            ClinicAccountSplitPreparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+
+  @@unique([preparationId, sourceStorageKey])
+  @@index([preparationId])
+}
+
+/// Append-only operational history for one preparation.
+/// Application code does not update or delete these rows.
+model ClinicAccountSplitEvent {
+  id                   String                        @id @default(cuid())
+  preparationId        String
+  kind                 ClinicAccountSplitEventKind
+  fromStatus           ClinicAccountSplitStatus?
+  toStatus             ClinicAccountSplitStatus?
+  actorUserId          String?
+  sourceClinicId       String
+  destinationClinicId  String?
+  siteId               String?
+  locationId           String?
+  /// Stable blocker or outcome code. Not a request body or secret.
+  category             String?
+  createdAt            DateTime                      @default(now())
+  preparation          ClinicAccountSplitPreparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+  actor                User?                         @relation("AccountSplitEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([preparationId, createdAt])
+  @@index([actorUserId])
+  @@index([sourceClinicId])
 }
 
 /// Explicit fate of every source Site other than the kept Site.

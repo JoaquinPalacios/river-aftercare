@@ -26,10 +26,20 @@ import {
   PracticeSectionProvenance,
 } from "@prisma/client";
 
+import { prepareAccountSplitBranding } from "@/lib/account-split/branding";
 import {
   AccountSplitExecutionInterrupted,
   executeClinicAccountSplit,
 } from "@/lib/account-split/execute";
+import { isOwnedClinicBrandingKey } from "@/lib/clinic-assets/clinic-logo";
+import {
+  resetClinicAssetStorageCache,
+  getClinicAssetStorage,
+} from "@/lib/clinic-assets/get-clinic-asset-storage";
+import {
+  memoryClinicAssetKeys,
+  resetMemoryClinicAssetStorage,
+} from "@/lib/clinic-assets/memory-clinic-asset-storage";
 import {
   confirmationMatchesSplitSite,
   normalizeSplitConfirmation,
@@ -289,8 +299,45 @@ async function prepareReady(input: {
       scheduledCommercialPlan: null,
     },
   });
+  process.env.CLINIC_ASSET_STORAGE_DRIVER = "memory";
+  resetClinicAssetStorageCache();
+  const storage = getClinicAssetStorage();
+  if (!storage) {
+    throw new Error("Memory branding storage is required for split execution.");
+  }
+  const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  for (const site of input.account.sites) {
+    await storage.uploadLogo({
+      clinicId: input.account.clinicId,
+      storageKey: `clinics/${input.account.clinicId}/branding/${site.key}.png`,
+      bytes: png,
+      mimeType: "image/png",
+    });
+  }
+  await prepareAccountSplitBranding({
+    preparationId: preparation.id,
+    operatorUserId: input.account.operatorId,
+    storage,
+  });
   await revalidateAccountSplitPreparation(preparation.id);
   return { preparationId: preparation.id, destinationId: shell.id };
+}
+
+async function executePrepared(
+  input: Omit<
+    Parameters<typeof executeClinicAccountSplit>[0],
+    "reviewedRevision"
+  > & { reviewedRevision?: number }
+) {
+  const reviewedRevision =
+    input.reviewedRevision ??
+    (
+      await db().clinicAccountSplitPreparation.findUniqueOrThrow({
+        where: { id: input.preparationId },
+        select: { preparationRevision: true },
+      })
+    ).preparationRevision;
+  return executeClinicAccountSplit({ ...input, reviewedRevision });
 }
 
 async function structuralSnapshot(clinicId: string) {
@@ -364,6 +411,9 @@ describe("split confirmation", () => {
 
 describe("account split execution", () => {
   beforeEach(async () => {
+    process.env.CLINIC_ASSET_STORAGE_DRIVER = "memory";
+    resetMemoryClinicAssetStorage();
+    resetClinicAssetStorageCache();
     await cleanup();
   });
 
@@ -380,7 +430,7 @@ describe("account split execution", () => {
     const ready = await prepareReady({ account });
     const before = await structuralSnapshot(account.clinicId);
     await expect(
-      executeClinicAccountSplit({
+      executePrepared({
         preparationId: ready.preparationId,
         confirmation: `split ${account.sites[1]!.slug}`,
         operatorUserId: account.adminId,
@@ -402,7 +452,7 @@ describe("account split execution", () => {
     const ready = await prepareReady({ account });
     const before = await structuralSnapshot(account.clinicId);
     await expect(
-      executeClinicAccountSplit({
+      executePrepared({
         preparationId: ready.preparationId,
         confirmation: `Group ${account.clinicId}`,
         operatorUserId: account.operatorId,
@@ -470,7 +520,7 @@ describe("account split execution", () => {
       },
     });
     const ready = await prepareReady({ account });
-    const first = await executeClinicAccountSplit({
+    const first = await executePrepared({
       preparationId: ready.preparationId,
       confirmation: `split ${move.slug}`,
       operatorUserId: account.operatorId,
@@ -509,7 +559,7 @@ describe("account split execution", () => {
     });
     expect(sourcePlan?.commercialPlan).toBe("GROUP");
 
-    const second = await executeClinicAccountSplit({
+    const second = await executePrepared({
       preparationId: ready.preparationId,
       confirmation: "ignored because it is already complete",
       operatorUserId: account.operatorId,
@@ -569,7 +619,7 @@ describe("account split execution", () => {
     const ready = await prepareReady({ account });
     const before = await structuralSnapshot(account.clinicId);
     await expect(
-      executeClinicAccountSplit({
+      executePrepared({
         preparationId: ready.preparationId,
         confirmation: `split ${move.slug}`,
         operatorUserId: account.operatorId,
@@ -606,7 +656,7 @@ describe("account split execution", () => {
       data: { cancelAtPeriodEnd: true },
     });
     await expect(
-      executeClinicAccountSplit({
+      executePrepared({
         preparationId: ready.preparationId,
         confirmation: `split ${move.slug}`,
         operatorUserId: account.operatorId,
@@ -641,7 +691,7 @@ describe("account split execution", () => {
     });
     const before = await structuralSnapshot(account.clinicId);
     await expect(
-      executeClinicAccountSplit({
+      executePrepared({
         preparationId: ready.preparationId,
         confirmation: `split ${move.slug}`,
         operatorUserId: account.operatorId,
@@ -670,7 +720,7 @@ describe("account split execution", () => {
       where: { id: account.clinicId },
       data: { slug: move.slug },
     });
-    const result = await executeClinicAccountSplit({
+    const result = await executePrepared({
       preparationId: ready.preparationId,
       confirmation: `split ${move.slug}`,
       operatorUserId: account.operatorId,
@@ -703,7 +753,7 @@ describe("account split execution", () => {
     const extra = account.sites.find((site) => site.key === "extra")!;
     const kept = account.sites.find((site) => site.key === "kept")!;
     const ready = await prepareReady({ account });
-    const result = await executeClinicAccountSplit({
+    const result = await executePrepared({
       preparationId: ready.preparationId,
       confirmation: `split ${move.slug}`,
       operatorUserId: account.operatorId,
@@ -890,7 +940,7 @@ describe("account split execution", () => {
       },
     });
     const ready = await prepareReady({ account });
-    await executeClinicAccountSplit({
+    await executePrepared({
       preparationId: ready.preparationId,
       confirmation: `split ${move.slug}`,
       operatorUserId: account.operatorId,
@@ -1058,7 +1108,7 @@ describe("account split execution", () => {
     expect(beforeLocationGuide?.practiceGuide.publicSlug).toBe("extraction");
 
     const ready = await prepareReady({ account, locationAllowance: 2 });
-    await executeClinicAccountSplit({
+    await executePrepared({
       preparationId: ready.preparationId,
       confirmation: `split ${move.slug}`,
       operatorUserId: account.operatorId,
@@ -1191,7 +1241,7 @@ describe("account split execution", () => {
         },
       });
     }
-    await executeClinicAccountSplit({
+    await executePrepared({
       preparationId: ready.preparationId,
       confirmation: `split ${move.slug}`,
       operatorUserId: account.operatorId,
@@ -1271,7 +1321,7 @@ describe("account split execution", () => {
       },
     });
     const ready = await prepareReady({ account });
-    const result = await executeClinicAccountSplit({
+    const result = await executePrepared({
       preparationId: ready.preparationId,
       confirmation: `split ${move.slug}`,
       operatorUserId: account.operatorId,
@@ -1297,7 +1347,7 @@ describe("account split execution", () => {
     ).toBe(1);
   });
 
-  it("mirrors profiles onto the post-execution primary sites without calling storage", async () => {
+  it("mirrors destination-owned branding onto the post-execution primary sites", async () => {
     const account = await seedAccount("logo", [
       { key: "kept", name: "Kept", primary: false },
       { key: "move", name: "Moving", decision: "SPLIT", primary: true },
@@ -1309,11 +1359,13 @@ describe("account split execution", () => {
       data: { logoUrl: `clinics/${account.clinicId}/branding/move.png` },
     });
     const ready = await prepareReady({ account });
-    await executeClinicAccountSplit({
+    const keysBeforeCutover = memoryClinicAssetKeys();
+    await executePrepared({
       preparationId: ready.preparationId,
       confirmation: `split ${move.slug}`,
       operatorUserId: account.operatorId,
     });
+    expect(memoryClinicAssetKeys().sort()).toEqual(keysBeforeCutover.sort());
     const sourceProfile = await db().clinicProfile.findUniqueOrThrow({
       where: { clinicId: account.clinicId },
     });
@@ -1330,9 +1382,19 @@ describe("account split execution", () => {
     expect(sourceProfile.logoUrl).not.toBe(movedSite.logoUrl);
     expect(destinationProfile.logoUrl).toBe(movedSite.logoUrl);
     expect(destinationProfile.displayName).toBe("Moving");
-    expect(movedSite.logoUrl).toBe(
-      `clinics/${account.clinicId}/branding/move.png`
+    expect(movedSite.logoUrl).toMatch(
+      new RegExp(
+        `^clinics/${ready.destinationId}/branding/split-${ready.preparationId}-[a-f0-9]{16}\\.png$`
+      )
     );
+    expect(
+      isOwnedClinicBrandingKey(ready.destinationId, movedSite.logoUrl)
+    ).toBe(true);
+    expect(
+      memoryClinicAssetKeys().includes(
+        `clinics/${account.clinicId}/branding/move.png`
+      )
+    ).toBe(true);
     expect(kept.id).not.toBe(move.id);
   });
 
@@ -1356,7 +1418,7 @@ describe("account split execution", () => {
     );
     await readyLock.promise;
     let settled = false;
-    const execution = executeClinicAccountSplit({
+    const execution = executePrepared({
       preparationId: ready.preparationId,
       confirmation: `split ${move.slug}`,
       operatorUserId: account.operatorId,
@@ -1446,7 +1508,7 @@ describe("account split execution", () => {
     });
     const release = deferred();
     const holding = deferred();
-    const execution = executeClinicAccountSplit({
+    const execution = executePrepared({
       preparationId: ready.preparationId,
       confirmation: `split ${move.slug}`,
       operatorUserId: account.operatorId,
