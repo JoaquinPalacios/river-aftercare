@@ -289,7 +289,7 @@ describe("account structure foundation", () => {
     expect(row.destinationSiteSlug).toBeNull();
   });
 
-  it("rejects a future operation kind through the current preparation actions", async () => {
+  it("rejects a forged location operation on a Group site split", async () => {
     const { account, preparationId } = await openReady("future");
     await db().clinicAccountSplitPreparation.update({
       where: { id: preparationId },
@@ -311,7 +311,24 @@ describe("account structure foundation", () => {
         operatorUserId: account.operatorId,
         reviewedRevision: await revisionOf(preparationId),
       })
-    ).rejects.toThrow(/not available/);
+    ).rejects.toThrow();
+    for (const operationKind of [
+      "SITE_TO_EXISTING_GROUP",
+      "SITE_TO_NEW_GROUP",
+    ] as const) {
+      await db().clinicAccountSplitPreparation.update({
+        where: { id: preparationId },
+        data: { operationKind, status: "READY_TO_EXECUTE" },
+      });
+      await expect(
+        executeClinicAccountSplit({
+          preparationId,
+          confirmation: `split ${account.moving.slug}`,
+          operatorUserId: account.operatorId,
+          reviewedRevision: await revisionOf(preparationId),
+        })
+      ).rejects.toThrow(/not available/);
+    }
     const actions = readFileSync(
       "app/(staff)/(operator)/operator/clinics/[clinicId]/split/actions.ts",
       "utf8"

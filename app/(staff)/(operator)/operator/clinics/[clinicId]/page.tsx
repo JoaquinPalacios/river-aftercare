@@ -18,8 +18,10 @@ import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import { SiteLocationCapacityForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/site-location-capacity-form";
 import { getOperatorClinic } from "@/lib/operator/get-operator-clinic";
+import { supportedLocationToNewAccountAction } from "@/lib/account-split/location-policy";
 import { supportedAccountSplitAction } from "@/lib/account-split/policy";
 import { findOpenAccountSplitPreparation } from "@/lib/account-split/snapshot";
+import { getPrisma } from "@/lib/prisma";
 import { loadOperatorSiteLocationCapacity } from "@/lib/operator/update-site-location-allowance";
 import { clinicTypefaceLabel } from "@/lib/branding/clinic-typeface";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -41,18 +43,38 @@ export default async function OperatorClinicDetailPage({
   if (!clinic) {
     notFound();
   }
-  const [billing, teamAllowance, guideAllowance, siteCapacity, openSplit] =
-    await Promise.all([
-      loadOperatorBillingPanel(clinic.id),
-      loadTeamAllowance(clinic.id),
-      loadGuideAllowance(clinic.id),
-      loadOperatorSiteLocationCapacity(clinic.id),
-      findOpenAccountSplitPreparation(clinic.id),
-    ]);
+  const [
+    billing,
+    teamAllowance,
+    guideAllowance,
+    siteCapacity,
+    openSplit,
+    eligibleLocations,
+  ] = await Promise.all([
+    loadOperatorBillingPanel(clinic.id),
+    loadTeamAllowance(clinic.id),
+    loadGuideAllowance(clinic.id),
+    loadOperatorSiteLocationCapacity(clinic.id),
+    findOpenAccountSplitPreparation(clinic.id),
+    getPrisma().clinicLocation.count({
+      where: {
+        clinicId: clinic.id,
+        active: true,
+        servesSiteRoot: false,
+        slug: { not: null },
+        clinicSite: { active: true, clinicId: clinic.id },
+      },
+    }),
+  ]);
   const splitAction = supportedAccountSplitAction({
     commercialPlan: siteCapacity.allowance.commercialPlan,
     activeClinicSiteCount: siteCapacity.usage.activeSites,
-    hasOpenPreparation: openSplit !== null,
+    hasOpenPreparation: openSplit?.operationKind === "SITE_TO_NEW_ACCOUNT",
+  });
+  const locationMoveAction = supportedLocationToNewAccountAction({
+    commercialPlan: siteCapacity.allowance.commercialPlan,
+    eligibleLocationCount: eligibleLocations,
+    hasOpenPreparation: openSplit?.operationKind === "LOCATION_TO_NEW_ACCOUNT",
   });
 
   const requestHeaders = await headers();
@@ -274,6 +296,25 @@ export default async function OperatorClinicDetailPage({
             className="mt-3 inline-flex text-sm font-medium text-staff-brand"
           >
             Prepare Clinic Site split
+          </Link>
+        </section>
+      ) : null}
+
+      {locationMoveAction.available ? (
+        <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+          <h2 className="text-base font-semibold">
+            Move location to new account
+          </h2>
+          <p className="mt-2 text-sm text-staff-muted">
+            Move one non-root location from this Practice Account onto a new
+            Essential or Practice Account. The root location stays. Purchased
+            location capacity is not reduced.
+          </p>
+          <Link
+            href={`/operator/clinics/${clinic.id}/split`}
+            className="mt-3 inline-flex text-sm font-medium text-staff-brand"
+          >
+            Prepare location move
           </Link>
         </section>
       ) : null}

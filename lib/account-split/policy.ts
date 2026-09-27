@@ -80,6 +80,46 @@ export function unsupportedAccountSplitMessage(
 export const DESTINATION_ADMIN_BLOCKER_MESSAGE =
   "Destination Account requires an administrator who will not remain an active member of the source Account.";
 
+export const DESTINATION_ROLE_CONFLICT_MESSAGE =
+  "An existing destination membership keeps its role. Match that role, or change it on the destination Account, before this move.";
+
+/**
+ * An existing destination membership is destination-owned. A reviewed move
+ * decision must not replace its role. There is no acknowledgement that
+ * authorises an overwrite.
+ */
+export function destinationMembershipRoleConflict(
+  snapshot: AccountSplitSnapshot
+): AccountSplitBlocker | null {
+  const destinationByUser = new Map(
+    snapshot.destination.memberships.map((membership) => [
+      membership.userId,
+      membership,
+    ])
+  );
+  const selectionByUser = new Map(
+    snapshot.selections.map((selection) => [selection.userId, selection])
+  );
+  const conflict = snapshot.memberships.some((membership) => {
+    if (!membership.active || membership.platformRole === "OPERATOR") {
+      return false;
+    }
+    const selection = selectionByUser.get(membership.userId);
+    if (!selection?.grantOnDestination || selection.keepOnSource) {
+      return false;
+    }
+    const existing = destinationByUser.get(membership.userId);
+    return Boolean(existing && existing.role !== selection.destinationRole);
+  });
+  if (!conflict) {
+    return null;
+  }
+  return {
+    code: "destination_role_conflict",
+    message: DESTINATION_ROLE_CONFLICT_MESSAGE,
+  };
+}
+
 export const PUBLIC_URLS_UNCHANGED_STATEMENT = "PUBLIC URLS WILL NOT CHANGE";
 
 export const ACCOUNT_SPLIT_BLOCKER_CODES = [
@@ -102,6 +142,8 @@ export const ACCOUNT_SPLIT_BLOCKER_CODES = [
   "staff_selection_missing",
   "dual_membership",
   "destination_admin_required",
+  "destination_role_conflict",
+  "destination_terms_required",
   "destination_location_allowance",
   "destination_team_count",
   "destination_custom_guide_allowance",
@@ -116,6 +158,19 @@ export const ACCOUNT_SPLIT_BLOCKER_CODES = [
   "source_scheduled_capacity",
   "source_downgrade_preparation",
   "source_conflicting_preparation",
+  "location_not_selected",
+  "location_inactive",
+  "location_is_root",
+  "location_missing_slug",
+  "location_wrong_site",
+  "source_site_inactive",
+  "source_root_missing",
+  "destination_site_slug_unconfirmed",
+  "destination_site_slug_invalid",
+  "destination_site_slug_taken",
+  "destination_location_quantity_unprojected",
+  "destination_plan_rejected",
+  "destination_not_new_account",
 ] as const;
 
 export type AccountSplitBlockerCode =
@@ -169,7 +224,9 @@ export type AccountSplitWarning = {
     | "source_cancel_at_period_end"
     | "source_restricted"
     | "source_unpaid"
-    | "source_ended";
+    | "source_ended"
+    | "source_capacity_not_reduced"
+    | "guides_left_without_placements";
   message: string;
 };
 
@@ -308,6 +365,7 @@ export type AccountSplitSnapshot = {
       name: string;
       slug: string;
       siteCount: number;
+      locationCount: number;
     } | null;
     entitlement: {
       commercialPlan: CommercialPlan | null;
@@ -338,6 +396,15 @@ export type AccountSplitSnapshot = {
     sourceStorageKey: string;
     destinationStorageKey: string;
   }>;
+  /** ClinicSite currently using destinationSiteSlug, if any. */
+  destinationSlugSiteId: string | null;
+  /** Clinic.slug currently using destinationSiteSlug, if any. */
+  destinationSlugClinicId: string | null;
+  /**
+   * Destination Account users with the current billing Terms acceptance.
+   * The same clinic, user, version, and source that Checkout requires.
+   */
+  destinationTermsAcceptedUserIds: string[];
 };
 
 export type AccountSplitAssessment = {
@@ -374,7 +441,7 @@ export type AccountSplitAssessment = {
     deactivatedSiteIds: string[];
     retainedSiteIds: string[];
     activeSites: Array<{ id: string; displayName: string; slug: string }>;
-    planRemains: "GROUP";
+    planRemains: "GROUP" | "PRACTICE";
   };
   destinationPreview: {
     accountName: string;
@@ -440,6 +507,19 @@ export type AccountSplitAssessment = {
     teamUsed: number;
     teamLimit: number;
   };
+  /**
+   * Set for LOCATION_TO_NEW_ACCOUNT. Site splits leave this null so they do
+   * not pass through location-promotion assumptions.
+   */
+  locationMove: {
+    sourceSiteId: string;
+    location: AccountSplitSnapshot["locations"][number] | null;
+    oldSlug: string | null;
+    destinationSiteSlug: string | null;
+    rootRetained: boolean;
+    departingLocationWasPrimary: boolean;
+    sourceRootBecomesPrimary: boolean;
+  } | null;
 };
 
 export function splitConfirmationPhrase(siteSlug: string): string {
@@ -861,12 +941,20 @@ export function assessAccountSplit(
   const sourceActiveIds = new Set(
     activeMembers.map((membership) => membership.userId)
   );
+  const destinationMembershipByUser = new Map(
+    snapshot.destination.memberships.map((membership) => [
+      membership.userId,
+      membership,
+    ])
+  );
   const selectedDestinationAdmin = activeMembers.some((membership) => {
     const selection = selectionByUser.get(membership.userId);
+    const existing = destinationMembershipByUser.get(membership.userId);
     return (
       selection?.grantOnDestination === true &&
       selection.keepOnSource === false &&
-      selection.destinationRole === "ADMIN"
+      selection.destinationRole === "ADMIN" &&
+      (!existing || existing.role === "ADMIN")
     );
   });
   const establishedDestinationAdmin = snapshot.destination.memberships.some(
@@ -891,6 +979,10 @@ export function assessAccountSplit(
       code: "destination_admin_required",
       message: DESTINATION_ADMIN_BLOCKER_MESSAGE,
     });
+  }
+  const roleConflict = destinationMembershipRoleConflict(snapshot);
+  if (roleConflict) {
+    blockers.push(roleConflict);
   }
 
   const movingLocations = splitSite
@@ -1223,6 +1315,7 @@ export function assessAccountSplit(
       })),
       planRemains: "GROUP",
     },
+    locationMove: null,
     destinationPreview: {
       accountName:
         snapshot.destination.clinic?.name ??

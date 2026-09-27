@@ -1141,6 +1141,10 @@ describe("clinic location redirects", () => {
     }
 
     const execute = readFileSync("lib/account-split/execute.ts", "utf8");
+    const locationExecute = readFileSync(
+      "lib/account-split/location-execute.ts",
+      "utf8"
+    );
     const preparation = readFileSync(
       "lib/account-split/preparation.ts",
       "utf8"
@@ -1175,6 +1179,7 @@ describe("clinic location redirects", () => {
       expect(source).not.toContain("createClinicLocationRedirect");
       expect(source).not.toContain("clinicLocationRedirect");
     }
+    expect(locationExecute).toContain("createClinicLocationRedirect");
     expect(proxy).not.toContain("getPrisma");
     expect(proxy).not.toContain("ClinicLocationRedirect");
     expect(proxy).toContain("PUBLIC_PATIENT_PATH_HEADER");

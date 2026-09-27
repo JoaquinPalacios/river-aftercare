@@ -10,9 +10,10 @@ import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
 import { getPrisma } from "@/lib/prisma";
 
 /**
- * Low-level insert for a future Location cutover transaction.
- * No production flow calls this. Tests and that future transaction may.
- * Database only. No network. The caller owns the PostgreSQL transaction.
+ * Low-level insert for a Location cutover transaction.
+ * LOCATION_TO_NEW_ACCOUNT calls this inside the structural transaction.
+ * A Clinic Site split does not. Database only. No network.
+ * The caller owns the PostgreSQL transaction.
  */
 
 export class ClinicLocationRedirectError extends Error {

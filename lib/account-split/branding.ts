@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Prisma } from "@prisma/client";
+
 import type { ClinicAssetStorage } from "@/lib/clinic-assets/clinic-asset-storage";
 import { mimeTypeForClinicLogoExtension } from "@/lib/clinic-assets/clinic-logo";
 import { isOwnedClinicBrandingKey } from "@/lib/clinic-assets/clinic-logo";
@@ -14,8 +16,6 @@ import {
 import { recordAccountSplitEvent } from "@/lib/account-split/events";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { getPrisma } from "@/lib/prisma";
-
-const ENABLED_OPERATION = "SITE_TO_NEW_ACCOUNT" as const;
 
 export async function prepareAccountSplitBranding(input: {
   preparationId: string;
@@ -42,6 +42,8 @@ export async function prepareAccountSplitBranding(input: {
         operationKind: true,
         sourceClinicId: true,
         destinationClinicId: true,
+        keptClinicSiteId: true,
+        sourceLocationId: true,
       },
     });
     if (!preparation) {
@@ -56,7 +58,10 @@ export async function prepareAccountSplitBranding(input: {
     ) {
       return { kind: "closed" as const };
     }
-    if (preparation.operationKind !== ENABLED_OPERATION) {
+    if (
+      preparation.operationKind !== "SITE_TO_NEW_ACCOUNT" &&
+      preparation.operationKind !== "LOCATION_TO_NEW_ACCOUNT"
+    ) {
       throw new ClinicPortalError(
         "This structural operation is not available.",
         "invalid"
@@ -68,19 +73,10 @@ export async function prepareAccountSplitBranding(input: {
         "conflict"
       );
     }
-    const decision = await tx.clinicAccountSplitSiteDecision.findFirst({
-      where: { preparationId: preparation.id, decision: "SPLIT" },
-      select: { clinicSiteId: true },
-    });
-    if (!decision) {
-      throw new ClinicPortalError(
-        "Choose the Clinic Site to move before preparing branding.",
-        "conflict"
-      );
-    }
+    const sourceSiteId = await brandingSourceSiteId(tx, preparation);
     const site = await tx.clinicSite.findFirst({
       where: {
-        id: decision.clinicSiteId,
+        id: sourceSiteId,
         clinicId: preparation.sourceClinicId,
       },
       select: {
@@ -369,6 +365,54 @@ function assertCopyableBranding(input: {
     }
   }
   return keys;
+}
+
+async function brandingSourceSiteId(
+  tx: Prisma.TransactionClient,
+  preparation: {
+    id: string;
+    operationKind: string;
+    sourceClinicId: string;
+    keptClinicSiteId: string;
+    sourceLocationId: string | null;
+  }
+): Promise<string> {
+  if (preparation.operationKind === "LOCATION_TO_NEW_ACCOUNT") {
+    if (!preparation.sourceLocationId) {
+      throw new ClinicPortalError(
+        "Choose the location to move before preparing branding.",
+        "conflict"
+      );
+    }
+    const location = await tx.clinicLocation.findFirst({
+      where: {
+        id: preparation.sourceLocationId,
+        clinicId: preparation.sourceClinicId,
+        clinicSiteId: preparation.keptClinicSiteId,
+        active: true,
+        servesSiteRoot: false,
+      },
+      select: { id: true, slug: true },
+    });
+    if (!location || location.slug === null) {
+      throw new ClinicPortalError(
+        "The location to move is no longer eligible.",
+        "conflict"
+      );
+    }
+    return preparation.keptClinicSiteId;
+  }
+  const decision = await tx.clinicAccountSplitSiteDecision.findFirst({
+    where: { preparationId: preparation.id, decision: "SPLIT" },
+    select: { clinicSiteId: true },
+  });
+  if (!decision) {
+    throw new ClinicPortalError(
+      "Choose the Clinic Site to move before preparing branding.",
+      "conflict"
+    );
+  }
+  return decision.clinicSiteId;
 }
 
 async function recordBrandingFailure(

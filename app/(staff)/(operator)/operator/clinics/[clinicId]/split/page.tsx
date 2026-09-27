@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
+import { LocationMovePreparationPage } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/split/location-move-page";
 import {
   CancelSplitPreparationForm,
   CreateSplitPreparationForm,
@@ -69,7 +70,16 @@ export default async function AccountSplitPreparationPage({
     notFound();
   }
 
-  const open = await findOpenAccountSplitPreparation(clinic.id);
+  const openHead = await findOpenAccountSplitPreparation(clinic.id);
+  const sourcePlan = clinic.entitlement?.commercialPlan ?? null;
+  if (
+    openHead?.operationKind === "LOCATION_TO_NEW_ACCOUNT" ||
+    (!openHead && sourcePlan === "PRACTICE")
+  ) {
+    return <LocationMovePreparationPage clinic={clinic} />;
+  }
+
+  const open = openHead;
   if (open) {
     await revalidateAccountSplitPreparation(open.id);
   }

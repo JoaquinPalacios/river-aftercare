@@ -213,7 +213,10 @@ async function openPreparation(
 
 function readSplitSources(): string {
   const files = readdirSync("lib/account-split").filter(
-    (file) => file.endsWith(".ts") && file !== "execute.ts"
+    (file) =>
+      file.endsWith(".ts") &&
+      file !== "execute.ts" &&
+      file !== "location-execute.ts"
   );
   return files
     .map((file) => readFileSync(join("lib/account-split", file), "utf8"))
@@ -1322,6 +1325,14 @@ describe("account split preparation", () => {
 
   it("does not contain execution writes", () => {
     const source = readSplitSources();
+    const locationExecute = readFileSync(
+      "lib/account-split/location-execute.ts",
+      "utf8"
+    );
+    const execute = readFileSync("lib/account-split/execute.ts", "utf8");
+    expect(execute).toContain('from "@/lib/account-split/location-execute"');
+    expect(locationExecute).toContain("clinicSite.create");
+    expect(source).not.toContain("location-execute");
     expect(source).not.toContain("clinicSite.update");
     expect(source).not.toContain("clinicSite.create");
     expect(source).not.toContain("clinicLocation.update");

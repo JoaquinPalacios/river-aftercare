@@ -1,6 +1,10 @@
 import "server-only";
 
-import { AccountTokenType, type Prisma } from "@prisma/client";
+import {
+  AccountTokenType,
+  LegalAcceptanceSource,
+  type Prisma,
+} from "@prisma/client";
 
 import type { AccountSplitSnapshot } from "@/lib/account-split/policy";
 import { readAccountCapacityFacts } from "@/lib/billing/group-capacity-gate";
@@ -8,6 +12,10 @@ import {
   readSplitDestinationCommercialState,
   readSplitSourceCommercialSignals,
 } from "@/lib/billing/split-destination-access";
+import {
+  PRIVACY_ACKNOWLEDGEMENT_VERSION,
+  TERMS_ACCEPTANCE_VERSION,
+} from "@/lib/legal/status";
 import { getPrisma } from "@/lib/prisma";
 
 type Db = Prisma.TransactionClient | ReturnType<typeof getPrisma>;
@@ -29,7 +37,12 @@ export async function findOpenAccountSplitPreparation(
       sourceClinicId,
       status: { in: [...OPEN_STATUSES] },
     },
-    select: { id: true, status: true, destinationClinicId: true },
+    select: {
+      id: true,
+      status: true,
+      destinationClinicId: true,
+      operationKind: true,
+    },
   });
 }
 
@@ -40,7 +53,12 @@ export async function findLatestCompletedAccountSplit(
   return db.clinicAccountSplitPreparation.findFirst({
     where: { sourceClinicId, status: { equals: "COMPLETED" } },
     orderBy: { executedAt: "desc" },
-    select: { id: true, executedAt: true, destinationClinicId: true },
+    select: {
+      id: true,
+      executedAt: true,
+      destinationClinicId: true,
+      operationKind: true,
+    },
   });
 }
 
@@ -108,6 +126,7 @@ export async function loadAccountSplitSnapshot(
     openDowngrade,
     conflictingPreparations,
     brandingAssets,
+    destinationTermsAcceptedUserIds,
   ] = await runAccountSplitReads([
     () =>
       db.clinic.findUnique({
@@ -219,11 +238,22 @@ export async function loadAccountSplitSnapshot(
           destinationStorageKey: true,
         },
       }),
+    () =>
+      preparation.destinationClinicId
+        ? loadDestinationTermsAcceptedUserIds(
+            db,
+            preparation.destinationClinicId
+          )
+        : Promise.resolve([]),
   ]);
 
   if (!sourceClinic) {
     return null;
   }
+
+  const destinationSlugHolders = preparation.destinationSiteSlug
+    ? await loadDestinationSlugHolders(db, preparation.destinationSiteSlug)
+    : { siteId: null, clinicId: null };
 
   return {
     preparation,
@@ -284,7 +314,43 @@ export async function loadAccountSplitSnapshot(
       })),
     },
     brandingAssets,
+    destinationSlugSiteId: destinationSlugHolders.siteId,
+    destinationSlugClinicId: destinationSlugHolders.clinicId,
+    destinationTermsAcceptedUserIds,
   };
+}
+
+async function loadDestinationTermsAcceptedUserIds(
+  db: Db,
+  clinicId: string
+): Promise<string[]> {
+  const rows = await db.legalAcceptance.findMany({
+    where: {
+      clinicId,
+      termsVersion: TERMS_ACCEPTANCE_VERSION,
+      privacyVersionAcknowledged: PRIVACY_ACKNOWLEDGEMENT_VERSION,
+      source: LegalAcceptanceSource.BILLING_CHECKOUT,
+    },
+    select: { userId: true },
+  });
+  return [...new Set(rows.map((row) => row.userId))].sort();
+}
+
+async function loadDestinationSlugHolders(
+  db: Db,
+  slug: string
+): Promise<{ siteId: string | null; clinicId: string | null }> {
+  const [site, clinic] = await Promise.all([
+    db.clinicSite.findUnique({
+      where: { slug },
+      select: { id: true },
+    }),
+    db.clinic.findUnique({
+      where: { slug },
+      select: { id: true },
+    }),
+  ]);
+  return { siteId: site?.id ?? null, clinicId: clinic?.id ?? null };
 }
 
 async function loadMemberships(db: Db, clinicId: string) {
@@ -495,8 +561,11 @@ async function loadDestinationClinic(db: Db, clinicId: string) {
   if (!clinic) {
     return null;
   }
-  const siteCount = await db.clinicSite.count({ where: { clinicId } });
-  return { ...clinic, siteCount };
+  const [siteCount, locationCount] = await Promise.all([
+    db.clinicSite.count({ where: { clinicId } }),
+    db.clinicLocation.count({ where: { clinicId } }),
+  ]);
+  return { ...clinic, siteCount, locationCount };
 }
 
 async function runAccountSplitReads<T extends readonly unknown[]>(reads: {
