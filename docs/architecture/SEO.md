@@ -125,6 +125,8 @@ Launch default is **private from search** (`PRIVATE_FROM_SEARCH`). Patient pages
 
 because patients share links.
 
+A retired location URL, once a `ClinicLocationRedirect` row exists, returns a permanent redirect and does not render a second patient page, canonical, or JSON-LD. The destination page keeps its normal canonical. No production flow creates those rows yet. Patient `noindex` is unchanged.
+
 Future `searchVisibility: PRIVATE_FROM_SEARCH | INDEXABLE` must not be added to Prisma until a clinic can opt a **published** guide in from a reviewed UI, after content and governance bars are met.
 
 ## Future organic content

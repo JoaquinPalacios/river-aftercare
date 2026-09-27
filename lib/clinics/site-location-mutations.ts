@@ -193,7 +193,11 @@ export async function createClinicLocation(input: {
   }
 }
 
-/** Updates physical details. Location and site slugs are not writable here. */
+/**
+ * Updates physical details. Location and site slugs are not writable here.
+ * A future location-slug edit must call assertLocationSlugAvailable, which
+ * reserves retired location redirects on this site.
+ */
 export async function updateClinicLocation(input: {
   clinicId: string;
   locationId: string;

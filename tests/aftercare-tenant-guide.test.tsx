@@ -20,6 +20,13 @@ vi.mock("@/lib/aftercare/list-published-location-guides", () => ({
 
 vi.mock("next/navigation", () => ({
   notFound,
+  permanentRedirect: vi.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT;${url}`);
+  }),
+}));
+
+vi.mock("@/lib/aftercare/patient-location-redirect", () => ({
+  resolveRetiredLocationRedirectHref: vi.fn(async () => null),
 }));
 
 vi.mock("next/headers", () => ({

@@ -14,6 +14,7 @@ import {
 } from "@/lib/aftercare/demo-recovery-state";
 import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practice-guide";
 import { listPublishedLocationGuides } from "@/lib/aftercare/list-published-location-guides";
+import { resolveRetiredLocationRedirectHref } from "@/lib/aftercare/patient-location-redirect";
 import { GuideList } from "@/app/(aftercare)/components/guide-list";
 import { instructionLabel } from "@/lib/aftercare/instruction-terminology";
 import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
@@ -25,12 +26,26 @@ import {
   tenantGuideDocumentTitle,
 } from "@/lib/aftercare/tenant-metadata";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import styles from "../../../patient.module.css";
 
 interface TenantGuidePageProps {
   params: Promise<{ tenant: string; guideSlug: string }>;
+}
+
+async function redirectRetiredLocationLanding(
+  tenant: string,
+  fromSlug: string
+): Promise<void> {
+  const href = await resolveRetiredLocationRedirectHref({
+    sourceSiteSlug: tenant,
+    fromSlug,
+    path: { kind: "landing" },
+  });
+  if (href) {
+    permanentRedirect(href);
+  }
 }
 
 export async function generateMetadata({
@@ -48,6 +63,7 @@ export async function generateMetadata({
       locationSlug: guideSlug,
     });
     if (!locationHome) {
+      await redirectRetiredLocationLanding(tenant, guideSlug);
       return aftercarePageMetadata({
         title: instructionLabel(null),
         description: "Patient aftercare instructions.",
@@ -104,6 +120,7 @@ export default async function TenantGuidePage({
       locationSlug: guideSlug,
     });
     if (!locationHome) {
+      await redirectRetiredLocationLanding(tenant, guideSlug);
       notFound();
     }
     const chrome = resolvePracticeChrome({

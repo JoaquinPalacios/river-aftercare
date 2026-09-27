@@ -577,6 +577,17 @@ describe("account split execution", () => {
       })
     ).toBe(1);
     expect(
+      await db().clinicLocationRedirect.count({
+        where: {
+          OR: [
+            { sourceClinicSiteId: move.id },
+            { destinationClinicSiteId: move.id },
+            { preparationId: ready.preparationId },
+          ],
+        },
+      })
+    ).toBe(0);
+    expect(
       await db().clinicMembership.count({
         where: { clinicId: ready.destinationId, userId: account.adminId },
       })
