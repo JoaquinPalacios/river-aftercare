@@ -26,7 +26,8 @@
     "prod:db:status": "node scripts/prod-db.mjs status",
     "prod:db:migrate": "node scripts/prod-db.mjs migrate",
     "prod:db:verify": "node scripts/prod-db.mjs verify",
-    "audit:account-split-branding": "node scripts/audit-account-split-branding-ownership.mjs",
+    "audit:account-split-branding": "prisma generate --config prisma.config.ts && node scripts/audit-account-split-branding-ownership.mjs",
+    "prod:audit:account-split-branding": "node scripts/prod-audit-account-split-branding.mjs",
     "bootstrap:demo-template": "node scripts/bootstrap-demo-template.mjs",
     "db:studio": "prisma studio --config prisma.config.ts",
     "prepare": "husky"

@@ -3,72 +3,93 @@
  * Read-only audit of completed Site splits whose destination ClinicSite
  * branding still uses a source-owned storage key.
  *
- * Uses DATABASE_URL only. Does not read DIRECT_URL, does not print the
- * connection string, and does not write to the database or object storage.
+ * Local / configured database:
+ *   pnpm audit:account-split-branding
+ * Uses DATABASE_URL. When that variable is unset, dotenv loads .env.
+ * It does not load .env.neon-production.
  *
- * Run from a trusted machine after choosing the database:
+ * Production (trusted machine only):
+ *   pnpm prod:audit:account-split-branding
  *
- *   DATABASE_URL="postgresql://..." node scripts/audit-account-split-branding-ownership.mjs
- *
- * Do not point this command at production from Cursor Cloud.
+ * Do not point the local command at production from Cursor Cloud.
  */
-import "dotenv/config";
-
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@prisma/client";
-
-import { listCrossOwnedCompletedSplits } from "../lib/account-split/branding-ownership-audit.mjs";
+import {
+  formatBrandingAuditReport,
+  listCrossOwnedCompletedSplits,
+} from "../lib/account-split/branding-ownership-audit.mjs";
+import {
+  AUDIT_SKIP_DOTENV_ENV,
+  AUDIT_TARGET_ENV,
+  PRODUCTION_AUDIT_TARGET,
+  PRODUCTION_AUDIT_TARGET_LABEL,
+  localAuditTargetLabel,
+  redactAuditOutput,
+} from "../lib/release/production-branding-audit.mjs";
 
 function printHelp() {
   console.log(`Read-only completed-split branding ownership audit.
 
-Prints preparation, source clinic, destination clinic, site, and field names
-when a completed destination Site still stores a source-owned branding key.
-Prints an empty list when none are affected. Does not mutate data.
+Prints preparation id, source clinic id, destination clinic id, site id, and
+field names when a completed destination Site still stores a source-owned
+branding key. Prints "Affected completed splits: 0" only after a successful
+query. Does not mutate the database or object storage.
 
-Usage:
-  node scripts/audit-account-split-branding-ownership.mjs
+Local:
+  pnpm audit:account-split-branding
+  Uses the configured DATABASE_URL (.env when DATABASE_URL is unset).
 
-Requires DATABASE_URL. Does not use DIRECT_URL.
+Production:
+  pnpm prod:audit:account-split-branding
+  Loads .env.neon-production the same way as pnpm prod:db:status.
 `);
 }
 
+function targetLabel(connectionString) {
+  if (process.env[AUDIT_TARGET_ENV] === PRODUCTION_AUDIT_TARGET) {
+    return PRODUCTION_AUDIT_TARGET_LABEL;
+  }
+  return localAuditTargetLabel(connectionString);
+}
+
 async function main() {
-  if (process.argv.includes("--help")) {
+  if (process.argv.includes("--help") || process.argv.includes("-h")) {
     printHelp();
     return;
   }
-  const unknown = process.argv.slice(2).filter((arg) => arg !== "--help");
+  const unknown = process.argv
+    .slice(2)
+    .filter((arg) => arg !== "--help" && arg !== "-h");
   if (unknown.length > 0) {
     throw new Error(`Unknown arguments: ${unknown.join(", ")}`);
   }
+  if (process.env[AUDIT_SKIP_DOTENV_ENV] !== "1") {
+    await import("dotenv/config");
+  }
   const connectionString = process.env.DATABASE_URL?.trim();
   if (!connectionString) {
-    throw new Error("DATABASE_URL is required.");
+    throw new Error(
+      "DATABASE_URL is required. pnpm audit:account-split-branding uses the configured DATABASE_URL (.env when it is unset). Production is pnpm prod:audit:account-split-branding."
+    );
   }
+
+  const { PrismaPg } = await import("@prisma/adapter-pg");
+  const { PrismaClient } = await import("@prisma/client");
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString }),
   });
   try {
     const findings = await listCrossOwnedCompletedSplits(prisma);
-    console.log(
-      JSON.stringify(
-        {
-          readOnly: true,
-          affectedCount: findings.length,
-          findings,
-        },
-        null,
-        2
-      )
+    process.stdout.write(
+      formatBrandingAuditReport(findings, targetLabel(connectionString))
     );
   } finally {
-    await prisma.$disconnect();
+    await prisma.$disconnect().catch(() => {});
   }
 }
 
 main().catch((error) => {
   const message = error instanceof Error ? error.message : "Audit failed.";
-  console.error(message);
+  console.error(redactAuditOutput(message));
+  console.error("Audit failed. Affected count was not established.");
   process.exitCode = 1;
 });

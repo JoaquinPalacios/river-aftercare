@@ -21,7 +21,7 @@ Operator-only preparation and execution for moving one ClinicSite off a Group Ac
 - Destination-owned branding copies prepared outside the structural transaction
 - Source commercial-conflict blockers for schedules, scheduled plan or capacity, an open downgrade preparation, and a plan that is no longer Group
 - Append-only `ClinicAccountSplitEvent` rows
-- Read-only audit `pnpm audit:account-split-branding` for completed splits that still store source-owned branding keys
+- Read-only audit for completed splits that still store source-owned branding keys. `pnpm audit:account-split-branding` uses the configured `DATABASE_URL`. `pnpm prod:audit:account-split-branding` is the production command.
 
 ## Approved later, not implemented
 
@@ -246,7 +246,11 @@ These block `SITE_TO_NEW_ACCOUNT` even when destination billing is ready: source
 
 ## Legacy branding audit
 
-`pnpm audit:account-split-branding` reads `DATABASE_URL` and prints completed splits whose moved Site still stores a source-owned logo, dark logo, or favicon key. It does not write and does not print credentials or URLs. Run it from a trusted machine. Do not run it against production from Cursor Cloud. An empty result means no legacy repair is required. Affected rows wait for a separate explicit repair.
+`pnpm audit:account-split-branding` regenerates the Prisma client, then reads the configured `DATABASE_URL` (`.env` when that variable is unset). It does not load `.env.neon-production`.
+
+`pnpm prod:audit:account-split-branding` is the production command. Run it from the repository root on a trusted machine. It loads gitignored `.env.neon-production` with the same checks as `pnpm prod:db:status`, queries the unpooled `DIRECT_URL`, and does not migrate. Do not run it from Cursor Cloud.
+
+Both commands are read-only. They print `Affected completed splits: N` only after the query succeeds, with preparation id, source clinic id, destination clinic id, site id, and field names. A Prisma or database failure exits non-zero and does not print a zero count. They do not print credentials or URLs. An empty production result means no legacy repair is required. Affected rows wait for a separate explicit repair.
 
 ## Migration
 
