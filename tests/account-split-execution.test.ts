@@ -384,7 +384,16 @@ async function structuralSnapshot(clinicId: string) {
         orderBy: { userId: "asc" },
         select: { userId: true, role: true, active: true },
       }),
-      prisma.clinicAccountSplitGuideMap.count(),
+      prisma.clinicAccountSplitGuideMap.count({
+        where: {
+          preparation: {
+            OR: [
+              { sourceClinicId: clinicId },
+              { destinationClinicId: clinicId },
+            ],
+          },
+        },
+      }),
     ]);
   return { clinic, sites, locations, guides, placements, memberships, maps };
 }

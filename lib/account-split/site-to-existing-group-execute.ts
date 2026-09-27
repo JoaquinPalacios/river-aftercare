@@ -18,6 +18,7 @@ import type {
   AccountSplitExecutionResult,
   CopiedRevision,
 } from "@/lib/account-split/execute";
+import { readSplitDestinationCommercialState } from "@/lib/billing/split-destination-access";
 import { effectiveSiteLocationAllowance } from "@/lib/clinics/site-location-allowance";
 import { countActiveSiteLocationUsage } from "@/lib/clinics/site-location-capacity";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
@@ -125,7 +126,6 @@ type Steps = {
 
 const COMMERCIAL_SELECT = {
   commercialPlan: true,
-  entitlementStatus: true,
   purchasedAdditionalSiteQuantity: true,
   purchasedAdditionalLocationQuantity: true,
   extraSiteAllowance: true,
@@ -413,6 +413,13 @@ export async function executeSiteToExistingGroupCutover(
     }
   }
 
+  const redirectScope = {
+    OR: [
+      { sourceClinicSiteId: movingSite.id },
+      { destinationClinicSiteId: movingSite.id },
+      { preparationId: snapshot.preparation.id },
+    ],
+  };
   const [
     sourceCommercial,
     destinationCommercial,
@@ -436,7 +443,7 @@ export async function executeSiteToExistingGroupCutover(
         faviconUrl: true,
       },
     }),
-    tx.clinicLocationRedirect.count(),
+    tx.clinicLocationRedirect.count({ where: redirectScope }),
   ]);
   const destinationGuidesBefore = await tx.practiceGuide.findMany({
     where: { clinicId: destinationId },
@@ -684,7 +691,7 @@ export async function executeSiteToExistingGroupCutover(
         faviconUrl: true,
       },
     }),
-    tx.clinicLocationRedirect.count(),
+    tx.clinicLocationRedirect.count({ where: redirectScope }),
     destinationGuidesBefore.length === 0
       ? Promise.resolve([])
       : tx.practiceGuide.findMany({
@@ -733,6 +740,10 @@ export async function executeSiteToExistingGroupCutover(
       "conflict"
     );
   }
+  const destinationAccess = await readSplitDestinationCommercialState(
+    destinationId,
+    tx
+  );
   const usage = await countActiveSiteLocationUsage(tx, destinationId);
   const allowance = effectiveSiteLocationAllowance({
     entitlement: destinationAfter
@@ -741,7 +752,7 @@ export async function executeSiteToExistingGroupCutover(
           siteAllowance: destinationAfter.siteAllowance,
           locationAllowance: destinationAfter.locationAllowance,
           capacityEntitlementActive:
-            destinationAfter.entitlementStatus === "ACTIVE",
+            destinationAccess?.capacityEntitlementActive ?? false,
           purchasedAdditionalSiteQuantity:
             destinationAfter.purchasedAdditionalSiteQuantity,
           extraSiteAllowance: destinationAfter.extraSiteAllowance,

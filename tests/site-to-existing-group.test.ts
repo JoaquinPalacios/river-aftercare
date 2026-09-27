@@ -871,7 +871,15 @@ describe("move site to existing group", () => {
       slug: "aftercare",
       title: "Aftercare",
     });
-    const redirectsBefore = await db().clinicLocationRedirect.count();
+    const redirectWhere = {
+      OR: [
+        { sourceClinicSiteId: moving.id },
+        { destinationClinicSiteId: moving.id },
+      ],
+    };
+    const redirectsBefore = await db().clinicLocationRedirect.count({
+      where: redirectWhere,
+    });
     const preparationId = await openMove({ source, destination });
     const sourceCommercial = await db().clinicEntitlement.findUniqueOrThrow({
       where: { clinicId: source.clinicId },
@@ -905,7 +913,10 @@ describe("move site to existing group", () => {
     });
     expect(placement.publicSlug).toBe("aftercare");
     expect(placement.clinicId).toBe(destination.clinicId);
-    expect(await db().clinicLocationRedirect.count()).toBe(redirectsBefore);
+    expect(
+      await db().clinicLocationRedirect.count({ where: redirectWhere })
+    ).toBe(redirectsBefore);
+    expect(redirectsBefore).toBe(0);
     const sourceAfter = await db().clinicEntitlement.findUniqueOrThrow({
       where: { clinicId: source.clinicId },
     });

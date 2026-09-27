@@ -216,7 +216,8 @@ function readSplitSources(): string {
     (file) =>
       file.endsWith(".ts") &&
       file !== "execute.ts" &&
-      file !== "location-execute.ts"
+      file !== "location-execute.ts" &&
+      file !== "site-to-existing-group-execute.ts"
   );
   return files
     .map((file) => readFileSync(join("lib/account-split", file), "utf8"))
