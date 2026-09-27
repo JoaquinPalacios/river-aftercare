@@ -384,7 +384,16 @@ async function structuralSnapshot(clinicId: string) {
         orderBy: { userId: "asc" },
         select: { userId: true, role: true, active: true },
       }),
-      prisma.clinicAccountSplitGuideMap.count(),
+      prisma.clinicAccountSplitGuideMap.count({
+        where: {
+          preparation: {
+            OR: [
+              { sourceClinicId: clinicId },
+              { destinationClinicId: clinicId },
+            ],
+          },
+        },
+      }),
     ]);
   return { clinic, sites, locations, guides, placements, memberships, maps };
 }
@@ -531,6 +540,7 @@ describe("account split execution", () => {
     expect(first.destination.slug).toBe(move.slug);
     expect(first.source.slug).toBe(kept.slug);
     expect(first.guideCopyCount).toBe(1);
+    expect(first.canonicalGuideReuseCount).toBe(0);
     expect(isSplitShellCompatibilitySlug(first.destination.slug)).toBe(false);
 
     const moved = await db().clinicSite.findUniqueOrThrow({
@@ -566,6 +576,8 @@ describe("account split execution", () => {
     });
     expect(second.alreadyCompleted).toBe(true);
     expect(second.executedAt).toEqual(first.executedAt);
+    expect(second.guideCopyCount).toBe(1);
+    expect(second.canonicalGuideReuseCount).toBe(0);
     expect(
       await db().practiceGuide.count({
         where: { clinicId: ready.destinationId },

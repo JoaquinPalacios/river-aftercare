@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
+import { ExistingGroupMovePage } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/split/existing-group-move-page";
 import { LocationMovePreparationPage } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/split/location-move-page";
 import {
   CancelSplitPreparationForm,
+  CreateExistingGroupMoveForm,
   CreateSplitPreparationForm,
   CreateSplitShellForm,
   ExecuteSplitForm,
@@ -22,6 +24,7 @@ import {
   supportedAccountSplitAction,
   unsupportedAccountSplitMessage,
 } from "@/lib/account-split/policy";
+import { supportedSiteToExistingGroupAction } from "@/lib/account-split/site-to-existing-group-policy";
 import {
   previewAccountSplit,
   revalidateAccountSplitPreparation,
@@ -78,6 +81,11 @@ export default async function AccountSplitPreparationPage({
   ) {
     return <LocationMovePreparationPage clinic={clinic} />;
   }
+  if (openHead?.operationKind === "SITE_TO_EXISTING_GROUP") {
+    return (
+      <ExistingGroupMovePage clinic={clinic} preparationId={openHead.id} />
+    );
+  }
 
   const open = openHead;
   if (open) {
@@ -119,6 +127,20 @@ export default async function AccountSplitPreparationPage({
     commercialPlan: plan,
     activeClinicSiteCount: activeSiteCount,
   }).available;
+  const canMoveToExistingGroup = supportedSiteToExistingGroupAction({
+    commercialPlan: plan,
+    activeClinicSiteCount: activeSiteCount,
+  }).available;
+  const locationCounts = canMoveToExistingGroup
+    ? await getPrisma().clinicLocation.groupBy({
+        by: ["clinicSiteId"],
+        where: { clinicId: clinic.id },
+        _count: { _all: true },
+      })
+    : [];
+  const locationCountBySite = new Map(
+    locationCounts.map((row) => [row.clinicSiteId, row._count._all])
+  );
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
@@ -230,15 +252,28 @@ export default async function AccountSplitPreparationPage({
               <dt className="text-staff-muted">Public hostname</dt>
               <dd>{completedSummary.movedSite.slug}</dd>
             </div>
-            <div>
-              <dt className="text-staff-muted">Guide copies</dt>
-              <dd>
-                {completedSummary.guideCopyCount} guide
-                {completedSummary.guideCopyCount === 1 ? "" : "s"},{" "}
-                {completedSummary.revisionCopyCount} revision
-                {completedSummary.revisionCopyCount === 1 ? "" : "s"}
-              </dd>
-            </div>
+            {completed?.operationKind === "SITE_TO_EXISTING_GROUP" ? (
+              <>
+                <div>
+                  <dt className="text-staff-muted">Guides copied</dt>
+                  <dd>{completedSummary.guideCopyCount}</dd>
+                </div>
+                <div>
+                  <dt className="text-staff-muted">Canonical guides reused</dt>
+                  <dd>{completedSummary.canonicalGuideReuseCount}</dd>
+                </div>
+              </>
+            ) : (
+              <div>
+                <dt className="text-staff-muted">Guide copies</dt>
+                <dd>
+                  {completedSummary.guideCopyCount} guide
+                  {completedSummary.guideCopyCount === 1 ? "" : "s"},{" "}
+                  {completedSummary.revisionCopyCount} revision
+                  {completedSummary.revisionCopyCount === 1 ? "" : "s"}
+                </dd>
+              </div>
+            )}
             <div>
               <dt className="text-staff-muted">Staff moved</dt>
               <dd>
@@ -305,7 +340,33 @@ export default async function AccountSplitPreparationPage({
             </p>
           ) : null}
         </section>
-      ) : (
+      ) : null}
+
+      {!preparation && canMoveToExistingGroup ? (
+        <section
+          id="move-site"
+          className="rounded-xl border border-staff-line bg-staff-panel p-5"
+        >
+          <h2 className="text-base font-semibold">
+            Move site to existing Group
+          </h2>
+          <p className="mt-2 text-sm text-staff-muted">
+            Move one whole Clinic Site into a different Group Account that
+            already exists. The source Group keeps at least one Clinic Site.
+            Public addresses stay the same. This does not change either
+            subscription.
+          </p>
+          <CreateExistingGroupMoveForm
+            sourceClinicId={clinic.id}
+            sites={clinic.sites.map((site) => ({
+              ...site,
+              locationCount: locationCountBySite.get(site.id) ?? 0,
+            }))}
+          />
+        </section>
+      ) : null}
+
+      {preparation ? (
         <>
           <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
             <h2 className="text-base font-semibold">Destination</h2>
@@ -695,7 +756,7 @@ export default async function AccountSplitPreparationPage({
             />
           </section>
         </>
-      )}
+      ) : null}
 
       <p>
         <Link

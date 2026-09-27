@@ -171,6 +171,26 @@ export const ACCOUNT_SPLIT_BLOCKER_CODES = [
   "destination_location_quantity_unprojected",
   "destination_plan_rejected",
   "destination_not_new_account",
+  "destination_same_account",
+  "destination_not_group",
+  "destination_shell_rejected",
+  "moving_site_missing",
+  "moving_site_inactive",
+  "moving_site_foreign",
+  "source_last_active_site",
+  "kept_site_is_moving_site",
+  "kept_site_not_current_primary",
+  "destination_primary_missing",
+  "destination_primary_conflict",
+  "destination_site_allowance",
+  "destination_subscription_schedule",
+  "destination_scheduled_plan",
+  "destination_scheduled_capacity",
+  "destination_cancel_at_period_end",
+  "destination_conflicting_preparation",
+  "destination_downgrade_preparation",
+  "canonical_retarget_unconfirmed",
+  "canonical_retarget_incompatible",
 ] as const;
 
 export type AccountSplitBlockerCode =
@@ -195,6 +215,13 @@ export const ACCOUNT_SPLIT_COMMERCIAL_CONFLICT_CODES = [
   "source_scheduled_capacity",
   "source_downgrade_preparation",
   "source_conflicting_preparation",
+  "destination_not_group",
+  "destination_subscription_schedule",
+  "destination_scheduled_plan",
+  "destination_scheduled_capacity",
+  "destination_cancel_at_period_end",
+  "destination_conflicting_preparation",
+  "destination_downgrade_preparation",
 ] as const;
 
 /** Practice product limits after this operation. They do not block the split. */
@@ -335,6 +362,8 @@ export type AccountSplitSnapshot = {
     adaptedAt: Date | null;
     copiedFromPracticeGuideId: string | null;
     downgradeRetainedAt: Date | null;
+    isEnabled: boolean;
+    pinnedRevisionStatus: "DRAFT" | "PUBLISHED" | null;
     overrideCount: number;
     additionCount: number;
     revisions: Array<{
@@ -405,6 +434,66 @@ export type AccountSplitSnapshot = {
    * The same clinic, user, version, and source that Checkout requires.
    */
   destinationTermsAcceptedUserIds: string[];
+  guideMaps: Array<{
+    sourcePracticeGuideId: string;
+    destinationPracticeGuideId: string | null;
+  }>;
+  /**
+   * Populated for every preparation. Empty sites and guides when no
+   * destination Account is selected. SITE_TO_EXISTING_GROUP reads this.
+   * Other operations ignore it.
+   */
+  destinationDetail: {
+    sites: Array<{
+      id: string;
+      slug: string;
+      displayName: string;
+      active: boolean;
+      isPrimary: boolean;
+    }>;
+    locations: Array<{
+      id: string;
+      clinicSiteId: string;
+      active: boolean;
+    }>;
+    guides: AccountSplitSnapshot["guides"];
+    subscriptionSchedulePresent: boolean;
+    scheduledAdditionalSiteQuantity: number | null;
+    scheduledCapacityEffectiveAt: Date | null;
+    offeredAdditionalSiteQuantity: number | null;
+    openDowngradePreparation: boolean;
+    conflictingOpenPreparation: boolean;
+  };
+};
+
+export type CanonicalRetargetDecision = {
+  sourceGuideId: string;
+  sourceTitle: string;
+  guideTemplateId: string;
+  pinnedRevisionId: string | null;
+  pinnedRevisionStatus: "DRAFT" | "PUBLISHED" | null;
+  destinationGuideId: string | null;
+  destinationTitle: string | null;
+  enabledOnMovingSite: boolean;
+  disabledOnMovingSite: boolean;
+  compatible: boolean;
+  confirmed: boolean;
+  reason: string | null;
+};
+
+export type ExistingGroupMove = {
+  movingSiteId: string | null;
+  movingSiteIsPrimary: boolean;
+  destinationPrimarySiteId: string | null;
+  destinationActiveSites: number;
+  destinationActiveLocations: number;
+  postMoveActiveSites: number;
+  postMoveActiveLocations: number;
+  siteAllowance: number;
+  locationAllowance: number;
+  guidesToCopy: number;
+  guidesToRetarget: number;
+  canonicalDecisions: CanonicalRetargetDecision[];
 };
 
 export type AccountSplitAssessment = {
@@ -520,6 +609,10 @@ export type AccountSplitAssessment = {
     departingLocationWasPrimary: boolean;
     sourceRootBecomesPrimary: boolean;
   } | null;
+  /**
+   * Set for SITE_TO_EXISTING_GROUP. Other operations leave this null.
+   */
+  existingGroup: ExistingGroupMove | null;
 };
 
 export function splitConfirmationPhrase(siteSlug: string): string {
@@ -1316,6 +1409,7 @@ export function assessAccountSplit(
       planRemains: "GROUP",
     },
     locationMove: null,
+    existingGroup: null,
     destinationPreview: {
       accountName:
         snapshot.destination.clinic?.name ??

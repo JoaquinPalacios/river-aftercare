@@ -312,23 +312,36 @@ describe("account structure foundation", () => {
         reviewedRevision: await revisionOf(preparationId),
       })
     ).rejects.toThrow();
-    for (const operationKind of [
-      "SITE_TO_EXISTING_GROUP",
-      "SITE_TO_NEW_GROUP",
-    ] as const) {
-      await db().clinicAccountSplitPreparation.update({
-        where: { id: preparationId },
-        data: { operationKind, status: "READY_TO_EXECUTE" },
-      });
-      await expect(
-        executeClinicAccountSplit({
-          preparationId,
-          confirmation: `split ${account.moving.slug}`,
-          operatorUserId: account.operatorId,
-          reviewedRevision: await revisionOf(preparationId),
-        })
-      ).rejects.toThrow(/not available/);
-    }
+    await db().clinicAccountSplitPreparation.update({
+      where: { id: preparationId },
+      data: {
+        operationKind: "SITE_TO_NEW_GROUP",
+        status: "READY_TO_EXECUTE",
+      },
+    });
+    await expect(
+      executeClinicAccountSplit({
+        preparationId,
+        confirmation: `split ${account.moving.slug}`,
+        operatorUserId: account.operatorId,
+        reviewedRevision: await revisionOf(preparationId),
+      })
+    ).rejects.toThrow(/not available/);
+    await db().clinicAccountSplitPreparation.update({
+      where: { id: preparationId },
+      data: {
+        operationKind: "SITE_TO_EXISTING_GROUP",
+        status: "READY_TO_EXECUTE",
+      },
+    });
+    await expect(
+      executeClinicAccountSplit({
+        preparationId,
+        confirmation: `split ${account.moving.slug}`,
+        operatorUserId: account.operatorId,
+        reviewedRevision: await revisionOf(preparationId),
+      })
+    ).rejects.toThrow();
     const actions = readFileSync(
       "app/(staff)/(operator)/operator/clinics/[clinicId]/split/actions.ts",
       "utf8"

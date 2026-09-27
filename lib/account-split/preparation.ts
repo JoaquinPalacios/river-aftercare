@@ -26,7 +26,9 @@ import {
 import {
   allocateSplitShellSlug,
   generateSplitShellSlug,
+  isSplitShellCompatibilitySlug,
 } from "@/lib/account-split/shell-slug";
+import { existingGroupMoveConfirmationPhrase } from "@/lib/account-split/site-to-existing-group-policy";
 import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
 import { recordAccountSplitEvent } from "@/lib/account-split/events";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
@@ -168,6 +170,12 @@ export async function updateAccountSplitDestinationTarget(input: {
   }
   await getPrisma().$transaction(async (tx) => {
     const preparation = await loadWritablePreparation(tx, input.preparationId);
+    if (preparation.operationKind === "SITE_TO_EXISTING_GROUP") {
+      throw new ClinicPortalError(
+        "This move uses the destination Group that already exists.",
+        "invalid"
+      );
+    }
     await lockAccountSplit(tx, preparation.sourceClinicId);
     const changed =
       preparation.destinationPlan !== input.destinationPlan ||
@@ -378,6 +386,12 @@ export async function createSplitDestinationAccount(
       const preparation = await loadWritablePreparation(tx, preparationId);
       await lockAccountSplit(tx, preparation.sourceClinicId);
       const fresh = await loadWritablePreparation(tx, preparation.id);
+      if (fresh.operationKind === "SITE_TO_EXISTING_GROUP") {
+        throw new ClinicPortalError(
+          "This move uses an existing Group Account. It does not create a destination Account.",
+          "invalid"
+        );
+      }
       if (fresh.operationKind === "LOCATION_TO_NEW_ACCOUNT") {
         return createLocationDestinationShell(tx, fresh);
       }
@@ -1026,6 +1040,419 @@ async function assertConfirmedDestinationSlugAvailable(
   );
 }
 
+export async function createSiteToExistingGroupPreparation(input: {
+  sourceClinicId: string;
+  movingClinicSiteId: string;
+  keptClinicSiteId?: string | null;
+  operatorUserId: string;
+}): Promise<{ id: string }> {
+  try {
+    return await getPrisma().$transaction(async (tx) => {
+      await lockAccountSplit(tx, input.sourceClinicId);
+      await assertOperator(tx, input.operatorUserId);
+      const clinic = await tx.clinic.findUnique({
+        where: { id: input.sourceClinicId },
+        select: {
+          id: true,
+          entitlement: {
+            select: { commercialPlan: true, billingInterval: true },
+          },
+          sites: {
+            select: { id: true, active: true, isPrimary: true, slug: true },
+          },
+        },
+      });
+      if (!clinic) {
+        throw new ClinicPortalError("That account was not found.", "not_found");
+      }
+      if (clinic.entitlement?.commercialPlan !== "GROUP") {
+        throw new ClinicPortalError(
+          clinic.entitlement?.commercialPlan === "ESSENTIAL"
+            ? "Essential cannot move a Clinic Site into an existing Group."
+            : clinic.entitlement?.commercialPlan === "PRACTICE"
+              ? "Practice cannot move a Clinic Site into an existing Group."
+              : "This move starts from a Group Account.",
+          "invalid"
+        );
+      }
+      const moving = clinic.sites.find(
+        (site) => site.id === input.movingClinicSiteId
+      );
+      if (!moving) {
+        throw new ClinicPortalError(
+          "Choose a Clinic Site that belongs to this Account.",
+          "invalid"
+        );
+      }
+      if (!moving.active) {
+        throw new ClinicPortalError(
+          "The Clinic Site to move must be active.",
+          "invalid"
+        );
+      }
+      const otherActive = clinic.sites.filter(
+        (site) => site.active && site.id !== moving.id
+      );
+      if (otherActive.length < 1) {
+        throw new ClinicPortalError(
+          "The source Group must keep at least one other active Clinic Site.",
+          "invalid"
+        );
+      }
+      const currentPrimary =
+        clinic.sites.find((site) => site.isPrimary) ?? null;
+      const kept = moving.isPrimary
+        ? clinic.sites.find((site) => site.id === input.keptClinicSiteId)
+        : currentPrimary;
+      if (!kept || !kept.active || kept.id === moving.id) {
+        throw new ClinicPortalError(
+          moving.isPrimary
+            ? "Choose the active Clinic Site that will become the source primary."
+            : "The source primary Clinic Site must stay in place.",
+          "invalid"
+        );
+      }
+      const open = await tx.clinicAccountSplitPreparation.findFirst({
+        where: {
+          sourceClinicId: clinic.id,
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+        },
+        select: { id: true },
+      });
+      if (open) {
+        throw new ClinicPortalError(
+          "This account already has an open split preparation.",
+          "conflict"
+        );
+      }
+      const memberships = await tx.clinicMembership.findMany({
+        where: { clinicId: clinic.id, active: true },
+        select: { userId: true, role: true },
+      });
+      const created = await tx.clinicAccountSplitPreparation.create({
+        data: {
+          sourceClinicId: clinic.id,
+          keptClinicSiteId: kept.id,
+          status: "DRAFT",
+          destinationPlan: "GROUP",
+          destinationBillingInterval:
+            clinic.entitlement.billingInterval ?? "MONTHLY",
+          targetSourcePlan: "GROUP",
+          operationKind: "SITE_TO_EXISTING_GROUP",
+          preparedByUserId: input.operatorUserId,
+          expectedConfirmation: existingGroupMoveConfirmationPhrase(
+            moving.slug
+          ),
+          siteDecisions: {
+            create: { clinicSiteId: moving.id, decision: "SPLIT" },
+          },
+          staffSelections: {
+            create: memberships.map((membership) => ({
+              userId: membership.userId,
+              keepOnSource: true,
+              grantOnDestination: false,
+              destinationRole: membership.role,
+            })),
+          },
+        },
+        select: { id: true },
+      });
+      await recordAccountSplitEvent(tx, {
+        preparationId: created.id,
+        kind: "PREPARATION_CREATED",
+        toStatus: "DRAFT",
+        actorUserId: input.operatorUserId,
+        sourceClinicId: clinic.id,
+        siteId: moving.id,
+        category: "preparation_created",
+      });
+      return created;
+    });
+  } catch (error) {
+    throw mapKnownConflict(error);
+  }
+}
+
+export async function selectExistingGroupDestination(input: {
+  preparationId: string;
+  destinationClinicId: string;
+}): Promise<void> {
+  try {
+    await getPrisma().$transaction(async (tx) => {
+      const preparation = await loadExistingGroupPreparation(
+        tx,
+        input.preparationId
+      );
+      await lockAccountSplit(tx, preparation.sourceClinicId);
+      const fresh = await loadExistingGroupPreparation(tx, preparation.id);
+      if (input.destinationClinicId === fresh.sourceClinicId) {
+        throw new ClinicPortalError(
+          "Choose a different Group Account.",
+          "invalid"
+        );
+      }
+      const destination = await tx.clinic.findUnique({
+        where: { id: input.destinationClinicId },
+        select: {
+          id: true,
+          slug: true,
+          entitlement: {
+            select: { commercialPlan: true, billingInterval: true },
+          },
+        },
+      });
+      if (!destination) {
+        throw new ClinicPortalError("That account was not found.", "not_found");
+      }
+      if (isSplitShellCompatibilitySlug(destination.slug)) {
+        throw new ClinicPortalError(
+          "This move does not create a destination Account. Choose a Group that already exists.",
+          "invalid"
+        );
+      }
+      if (destination.entitlement?.commercialPlan !== "GROUP") {
+        throw new ClinicPortalError(
+          destination.entitlement?.commercialPlan === "ESSENTIAL"
+            ? "Essential cannot receive a Clinic Site from another Group."
+            : destination.entitlement?.commercialPlan === "PRACTICE"
+              ? "Practice cannot receive a Clinic Site from another Group."
+              : "Choose an existing Group Account.",
+          "invalid"
+        );
+      }
+      const changed = fresh.destinationClinicId !== destination.id;
+      await tx.clinicAccountSplitPreparation.update({
+        where: { id: fresh.id },
+        data: {
+          destinationClinicId: destination.id,
+          destinationPlan: "GROUP",
+          destinationBillingInterval:
+            destination.entitlement.billingInterval ??
+            fresh.destinationBillingInterval,
+          ...(changed ? { preparationRevision: { increment: 1 } } : {}),
+        },
+      });
+    });
+  } catch (error) {
+    throw mapKnownConflict(error);
+  }
+  await revalidateAccountSplitPreparation(input.preparationId);
+}
+
+export async function saveSiteToExistingGroupSelection(input: {
+  preparationId: string;
+  movingClinicSiteId: string;
+  keptClinicSiteId?: string | null;
+}): Promise<void> {
+  await getPrisma().$transaction(async (tx) => {
+    const preparation = await loadExistingGroupPreparation(
+      tx,
+      input.preparationId
+    );
+    await lockAccountSplit(tx, preparation.sourceClinicId);
+    const fresh = await loadExistingGroupPreparation(tx, preparation.id);
+    const sites = await tx.clinicSite.findMany({
+      where: { clinicId: fresh.sourceClinicId },
+      select: { id: true, active: true, isPrimary: true },
+    });
+    const moving = sites.find((site) => site.id === input.movingClinicSiteId);
+    if (!moving) {
+      throw new ClinicPortalError(
+        "Choose a Clinic Site that belongs to this Account.",
+        "invalid"
+      );
+    }
+    if (!moving.active) {
+      throw new ClinicPortalError(
+        "The Clinic Site to move must be active.",
+        "invalid"
+      );
+    }
+    if (
+      sites.filter((site) => site.active && site.id !== moving.id).length < 1
+    ) {
+      throw new ClinicPortalError(
+        "The source Group must keep at least one other active Clinic Site.",
+        "invalid"
+      );
+    }
+    const currentPrimary = sites.find((site) => site.isPrimary) ?? null;
+    const kept = moving.isPrimary
+      ? sites.find((site) => site.id === input.keptClinicSiteId)
+      : currentPrimary;
+    if (!kept || !kept.active || kept.id === moving.id) {
+      throw new ClinicPortalError(
+        moving.isPrimary
+          ? "Choose the active Clinic Site that will become the source primary."
+          : "The source primary Clinic Site must stay in place.",
+        "invalid"
+      );
+    }
+    const previous = await tx.clinicAccountSplitSiteDecision.findMany({
+      where: { preparationId: fresh.id },
+      select: { clinicSiteId: true, decision: true },
+    });
+    const changed =
+      fresh.keptClinicSiteId !== kept.id ||
+      previous.length !== 1 ||
+      previous[0]?.clinicSiteId !== moving.id ||
+      previous[0]?.decision !== "SPLIT";
+    await tx.clinicAccountSplitSiteDecision.deleteMany({
+      where: { preparationId: fresh.id },
+    });
+    await tx.clinicAccountSplitSiteDecision.create({
+      data: {
+        preparationId: fresh.id,
+        clinicSiteId: moving.id,
+        decision: "SPLIT",
+      },
+    });
+    await tx.clinicAccountSplitPreparation.update({
+      where: { id: fresh.id },
+      data: {
+        keptClinicSiteId: kept.id,
+        ...(changed ? { preparationRevision: { increment: 1 } } : {}),
+      },
+    });
+  });
+  await revalidateAccountSplitPreparation(input.preparationId);
+}
+
+export async function saveCanonicalRetargetConfirmations(input: {
+  preparationId: string;
+  sourcePracticeGuideIds: string[];
+}): Promise<void> {
+  await getPrisma().$transaction(async (tx) => {
+    const preparation = await loadExistingGroupPreparation(
+      tx,
+      input.preparationId
+    );
+    await lockAccountSplit(tx, preparation.sourceClinicId);
+    const fresh = await loadExistingGroupPreparation(tx, preparation.id);
+    const snapshot = await loadAccountSplitSnapshot(fresh.id, tx);
+    if (!snapshot) {
+      throw new ClinicPortalError(
+        "That preparation was not found.",
+        "not_found"
+      );
+    }
+    const { assessSiteToExistingGroup } =
+      await import("@/lib/account-split/site-to-existing-group-policy");
+    const assessment = assessSiteToExistingGroup(snapshot);
+    const decisions = assessment.existingGroup?.canonicalDecisions ?? [];
+    const requested = [...new Set(input.sourcePracticeGuideIds)];
+    const desired = new Map<string, string>();
+    for (const sourceGuideId of requested) {
+      const decision = decisions.find(
+        (row) => row.sourceGuideId === sourceGuideId
+      );
+      if (!decision?.compatible || !decision.destinationGuideId) {
+        throw new ClinicPortalError(
+          "Confirm only a destination guide that is an exact canonical match.",
+          "invalid"
+        );
+      }
+      desired.set(sourceGuideId, decision.destinationGuideId);
+    }
+    const existing = await tx.clinicAccountSplitGuideMap.findMany({
+      where: { preparationId: fresh.id },
+      select: {
+        sourcePracticeGuideId: true,
+        destinationPracticeGuideId: true,
+      },
+    });
+    const same =
+      existing.length === desired.size &&
+      existing.every(
+        (row) =>
+          desired.get(row.sourcePracticeGuideId) ===
+          row.destinationPracticeGuideId
+      );
+    if (same) {
+      return;
+    }
+    await tx.clinicAccountSplitGuideMap.deleteMany({
+      where: { preparationId: fresh.id },
+    });
+    if (desired.size > 0) {
+      await tx.clinicAccountSplitGuideMap.createMany({
+        data: [...desired.entries()].map(
+          ([sourcePracticeGuideId, destinationPracticeGuideId]) => ({
+            preparationId: fresh.id,
+            sourcePracticeGuideId,
+            destinationPracticeGuideId,
+          })
+        ),
+      });
+    }
+    await tx.clinicAccountSplitPreparation.update({
+      where: { id: fresh.id },
+      data: { preparationRevision: { increment: 1 } },
+    });
+    await recordAccountSplitEvent(tx, {
+      preparationId: fresh.id,
+      kind: "STATUS_TRANSITION",
+      fromStatus: fresh.status,
+      toStatus: fresh.status,
+      sourceClinicId: fresh.sourceClinicId,
+      destinationClinicId: fresh.destinationClinicId,
+      siteId: assessment.splitSite?.id ?? null,
+      category:
+        desired.size > 0
+          ? "canonical_retarget_confirmed"
+          : "canonical_retarget_cleared",
+    });
+  });
+  await revalidateAccountSplitPreparation(input.preparationId);
+}
+
+async function assertOperator(
+  tx: Prisma.TransactionClient,
+  operatorUserId: string
+): Promise<void> {
+  const operator = await tx.user.findUnique({
+    where: { id: operatorUserId },
+    select: { platformRole: true },
+  });
+  if (operator?.platformRole !== "OPERATOR") {
+    throw new ClinicPortalError(
+      "Only a platform operator can prepare an account split.",
+      "forbidden"
+    );
+  }
+}
+
+async function loadExistingGroupPreparation(
+  tx: Prisma.TransactionClient,
+  preparationId: string
+) {
+  const preparation = await tx.clinicAccountSplitPreparation.findUnique({
+    where: { id: preparationId },
+    select: {
+      id: true,
+      sourceClinicId: true,
+      destinationClinicId: true,
+      keptClinicSiteId: true,
+      status: true,
+      operationKind: true,
+      destinationBillingInterval: true,
+    },
+  });
+  if (!preparation) {
+    throw new ClinicPortalError("That preparation was not found.", "not_found");
+  }
+  if (preparation.operationKind !== "SITE_TO_EXISTING_GROUP") {
+    throw new ClinicPortalError(
+      "This structural operation is not available.",
+      "invalid"
+    );
+  }
+  if (isTerminalAccountSplitStatus(preparation.status)) {
+    throw new ClinicPortalError("This preparation is closed.", "conflict");
+  }
+  return preparation;
+}
+
 async function loadWritablePreparation(
   tx: Prisma.TransactionClient,
   preparationId: string
@@ -1050,7 +1477,8 @@ async function loadWritablePreparation(
   }
   if (
     preparation.operationKind !== "SITE_TO_NEW_ACCOUNT" &&
-    preparation.operationKind !== "LOCATION_TO_NEW_ACCOUNT"
+    preparation.operationKind !== "LOCATION_TO_NEW_ACCOUNT" &&
+    preparation.operationKind !== "SITE_TO_EXISTING_GROUP"
   ) {
     throw new ClinicPortalError(
       "This structural operation is not available.",

@@ -16,7 +16,7 @@ Operator-only preparation and execution for moving one ClinicSite off a Group Ac
 - Destination-only membership move and session revocation for those users
 - Operator execution UI on a `READY_TO_EXECUTE` preparation
 - Idempotent return of the persisted completed result
-- `operationKind` on the existing preparation. `SITE_TO_NEW_ACCOUNT` and `LOCATION_TO_NEW_ACCOUNT` are enabled
+- `operationKind` on the existing preparation. `SITE_TO_NEW_ACCOUNT`, `LOCATION_TO_NEW_ACCOUNT`, and `SITE_TO_EXISTING_GROUP` are enabled
 - `preparationRevision`, checked by execution and still followed by a live reload
 - Destination-owned branding copies prepared outside the structural transaction
 - Source commercial-conflict blockers for schedules, scheduled plan or capacity, an open downgrade preparation, and a plan that is no longer Group
@@ -25,19 +25,16 @@ Operator-only preparation and execution for moving one ClinicSite off a Group Ac
 
 ## Approved later, not implemented
 
-These structural operations are approved product requirements. `operationKind` can store them, and existing rows default to `SITE_TO_NEW_ACCOUNT`. This release does not implement them, and the UI does not offer them.
+`SITE_TO_NEW_GROUP` can be stored and is not enabled. The UI does not offer it. It would split or move a Clinic Site directly into a new Group Account. Group Checkout and paid Additional Site quantity changes are not part of any current structural operation.
 
-- Move an existing Clinic Site into another existing Group Account.
-- Split or move a Clinic Site directly into a new Group Account.
-
-Today's only operation is the Group Clinic Site split described above. Essential has nothing to split. Clinic ADMIN and STAFF cannot prepare or execute a split.
+Today's Group operations are the Clinic Site split onto a new Essential or Practice Account, and moving one whole Clinic Site into a different existing Group Account. Essential has nothing to split. Clinic ADMIN and STAFF cannot prepare or execute a structural move.
 
 ## Still not implemented
 
 - Multi-account login or session Account selection
 - Group → Practice Stripe conversion, source plan change, or guide deletion (PR C)
 - Deleting source branding objects, or cleaning orphan destination copies
-- Moving a Site into an existing Group, and moving a Site into a new Group
+- Moving a Site into a new Group Account (`SITE_TO_NEW_GROUP`)
 - Moving outstanding source invitations
 - Merging into a populated Account
 
@@ -49,7 +46,7 @@ One user cannot be active in both the source and destination Accounts. A prepara
 
 The destination needs an administrator who will not remain an active source member. There is no operator impersonation path for legal acceptance or Checkout. If the customer cannot name that person, the split stays not ready.
 
-A preparation splits one Site onto a **new** shell Account. It does not split into an existing populated Account, merge Accounts, or enter another customer's Account. Only one non-terminal preparation may be open for a source Account. A second split is created after execution marks the first `COMPLETED`.
+A Clinic Site split preparation moves one Site onto a **new** shell Account. It does not move into an existing populated Account. `SITE_TO_EXISTING_GROUP` is the separate operation for an existing Group, and it does not merge the two Accounts. Only one non-terminal preparation may be open for a source Account. A second split is created after execution marks the first `COMPLETED`.
 
 Every Site other than the kept Site has an explicit decision:
 
@@ -250,6 +247,30 @@ These block `SITE_TO_NEW_ACCOUNT` even when destination billing is ready: source
 `pnpm prod:audit:account-split-branding` is the production command. Run it from the repository root on a trusted machine. It loads gitignored `.env.neon-production` with the same checks as `pnpm prod:db:status`, queries the unpooled `DIRECT_URL`, and does not migrate. Do not run it from Cursor Cloud.
 
 Both commands are read-only. They print `Affected completed splits: N` only after the query succeeds, with preparation id, source clinic id, destination clinic id, site id, and field names. A Prisma or database failure exits non-zero and does not print a zero count. They do not print credentials or URLs. An empty production result means no legacy repair is required. Affected rows wait for a separate explicit repair.
+
+## Move site to existing Group
+
+`SITE_TO_EXISTING_GROUP` moves one active Clinic Site, and every Clinic Location on it, from a Group Account into a different Group Account that already exists. The operator selects that destination. This operation does not create a Clinic, Clinic Profile, placeholder Site, Stripe Customer, Checkout Session, or subscription.
+
+The source Group must keep at least one other active Clinic Site. Essential and Practice cannot start or receive this move. The same Account cannot be both sides. An inactive Site, a Site owned by another Account, and a split-shell slug are rejected.
+
+If the moving Site is not primary, the current source primary stays primary. If it is primary, the operator chooses the active Site that becomes the source primary. The destination must already have exactly one active primary Clinic Site. The incoming Site is stored with `isPrimary` false. The destination Account and Clinic Profile continue to represent that existing primary Site.
+
+The same `ClinicSite` row moves. Its slug, Location ids, Location slugs, and placement public slugs stay the same, so patient URLs do not change. No `ClinicLocationRedirect` is inserted.
+
+Destination capacity is the post-move active Site count and active Location count against `effectiveSiteLocationAllowance`. That helper includes Group base capacity, an already stored `purchasedAdditionalSiteQuantity`, and complimentary extras. A null purchased quantity keeps the stored Group totals. Offered and not-yet-effective scheduled quantities do not add capacity. If the destination does not fit, readiness is blocked. Neither Account’s purchased quantity, extras, or Stripe subscription is changed.
+
+Source commercial conflicts match the existing structural policy: a subscription schedule, scheduled plan, scheduled capacity, an open downgrade preparation, and another open structural preparation block. Past due, cancel-at-period-end, restricted, unpaid, and ended stay warnings on the source. The destination also blocks cancel-at-period-end, a subscription schedule, a scheduled plan, scheduled capacity, an open downgrade preparation, and another open structural preparation. Billing must already be an active Group. There is no `AWAITING_PAYMENT` step and no new Terms acceptance. A platform operator does not accept Terms for a clinic user.
+
+Branding storage keys owned by the source are copied to destination-owned keys before cutover, using the same preparation as a Clinic Site split. Cutover rewrites the moved Site’s logo, dark logo, and favicon. Null and static paths stay as stored. Source objects are retained. A source branding change after preparation blocks execution. The transaction does not call object storage.
+
+Guides with a placement on the moving Site are copied onto the destination Account. A guide that also remains on a source Site stays on the source and receives a separate copy. Guides with no moving-Site placement stay source-only. A custom or adapted slug that already exists on the destination gets a deterministic `-2`, `-3`, … suffix. Titles are not rewritten to imply the guides are the same, and the existing destination guide is not overwritten.
+
+The completed summary counts a destination `PracticeGuide` created during cutover as copied. A map whose destination guide already existed before `CUTOVER_STARTED` is a canonical reuse, not another copy. A pinned River template that already exists on the destination is not copied and is not reused silently. The operator confirms reuse on `ClinicAccountSplitGuideMap` before execution: `sourcePracticeGuideId` points at the moving guide and `destinationPracticeGuideId` points at the existing destination guide. That confirmation is the reviewed decision. Changing it increments `preparationRevision`. Reuse is allowed only when both guides share the published pin and neither has an adaptation, override, addition, clinic revision, or downgrade retention. An enabled moving placement also requires the destination guide to be publicly servable. A disabled moving placement may use an otherwise exact destination guide that is not public. Any mismatch blocks. Execution does not change the destination guide.
+
+Staff decisions stay source-only or destination-only. An inactive destination membership is reactivated with its existing role. A different reviewed role is `destination_role_conflict`. An active membership on both Accounts is `dual_membership`. Pending invitations stay on the source. Platform operators are ignored.
+
+Cutover uses the same two-Account lock order as a location move: sorted `clinic-account-structure` locks, then sorted `clinic-account-split` locks, then team, guide, and site-location locks. The structural writes are one transaction. `COMPLETED` is the last structural write. A retry returns the stored result. The confirmation phrase is `move site {siteSlug}`.
 
 ## Move location to new account
 

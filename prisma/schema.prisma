@@ -732,8 +732,9 @@ enum ClinicAccountSplitSiteDecisionKind {
 }
 
 /// Discriminator for account-structure preparations stored on
-/// ClinicAccountSplitPreparation. Only SITE_TO_NEW_ACCOUNT is enabled.
-/// The other values are reserved and must not be offered in the UI.
+/// ClinicAccountSplitPreparation. SITE_TO_NEW_ACCOUNT,
+/// LOCATION_TO_NEW_ACCOUNT, and SITE_TO_EXISTING_GROUP are enabled.
+/// SITE_TO_NEW_GROUP stays reserved and must not be offered in the UI.
 enum ClinicAccountSplitOperationKind {
   SITE_TO_NEW_ACCOUNT
   LOCATION_TO_NEW_ACCOUNT
@@ -805,11 +806,11 @@ model DowngradeLocationSelection {
   @@index([locationId])
 }
 
-/// Operator preparation for moving one Site onto a new shell Account.
-/// SITE_TO_NEW_ACCOUNT execution is implemented. Other operation kinds are
-/// stored for later and are not enabled. Open-preparation uniqueness, the
-/// non-terminal destination uniqueness, and the nullable source-location
-/// uniqueness are partial indexes in the migration.
+/// Operator preparation for one account-structure move.
+/// SITE_TO_NEW_ACCOUNT, LOCATION_TO_NEW_ACCOUNT, and SITE_TO_EXISTING_GROUP
+/// execution are implemented. SITE_TO_NEW_GROUP is stored and not enabled.
+/// Open-preparation uniqueness, the non-terminal destination uniqueness, and
+/// the nullable source-location uniqueness are partial indexes in the migration.
 model ClinicAccountSplitPreparation {
   id                         String                             @id @default(cuid())
   sourceClinicId             String
@@ -817,7 +818,7 @@ model ClinicAccountSplitPreparation {
   destinationClinicId        String?
   keptClinicSiteId           String
   status                     ClinicAccountSplitStatus           @default(DRAFT)
-  /// Existing rows are SITE_TO_NEW_ACCOUNT. Other kinds stay disabled.
+  /// Existing rows are SITE_TO_NEW_ACCOUNT. SITE_TO_NEW_GROUP stays disabled.
   operationKind              ClinicAccountSplitOperationKind    @default(SITE_TO_NEW_ACCOUNT)
   /// Incremented when a structural preparation edit changes the review.
   /// Execution must receive the revision the operator reviewed.
@@ -826,11 +827,13 @@ model ClinicAccountSplitPreparation {
   sourceLocationId           String?
   /// Reserved for a location promotion's destination site slug. Unused today.
   destinationSiteSlug        String?
-  /// Destination commercial target. Group is not offered.
+  /// Destination commercial target. GROUP is used only when the destination
+  /// Account already exists. New-account shells stay Essential or Practice.
   destinationPlan            CommercialPlan
   destinationBillingInterval BillingInterval
-  /// Preview target for the source Account after the split. Always Practice.
-  /// This row does not change the source subscription or commercial plan.
+  /// Preview target for the source Account after the split. Practice for a
+  /// new-account split. GROUP when a site moves into an existing Group and
+  /// the source plan stays Group. This row does not change the subscription.
   targetSourcePlan           CommercialPlan                     @default(PRACTICE)
   preparedByUserId           String
   /// Set when SITE_TO_NEW_ACCOUNT execution completes.
@@ -938,13 +941,17 @@ model ClinicAccountSplitStaffSelection {
   @@index([userId])
 }
 
-/// Cross-account guide provenance. Empty until execution copies guides.
-/// Do not point PracticeGuide.copiedFromPracticeGuideId at another Account.
+/// Cross-account guide provenance. Copy rows are written at execution.
+/// SITE_TO_EXISTING_GROUP also writes a row before execution when the
+/// operator confirms retarget onto an existing destination canonical guide.
+/// destinationPracticeGuideId is that confirmed guide. Do not point
+/// PracticeGuide.copiedFromPracticeGuideId at another Account.
 model ClinicAccountSplitGuideMap {
   id                         String                          @id @default(cuid())
   preparationId              String
   sourcePracticeGuideId      String
-  /// Null until execution creates the destination guide.
+  /// Null until execution creates a copied destination guide, or until the
+  /// operator confirms retarget onto a destination guide that already exists.
   destinationPracticeGuideId String?
   createdAt                  DateTime                        @default(now())
   preparation                ClinicAccountSplitPreparation   @relation(fields: [preparationId], references: [id], onDelete: Cascade)
