@@ -666,7 +666,25 @@ export async function processVerifiedStripeEvent(
               }
             : null,
         })
-      : { action: "omit" as const };
+      : { action: "omit" as const, mode: "outside_practice_quantity" as const };
+
+  if (locationProjection.action === "require_subscription") {
+    const diagnostic =
+      "Practice subscription could not be retrieved. The entitlement was left unchanged.";
+    await mark(
+      StripeEventProcessingStatus.FAILED,
+      diagnostic,
+      identity.clinicId
+    );
+    logStripeBilling({
+      event: "stripe_webhook_failed",
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+      reason: "practice_subscription_unavailable",
+    });
+    throw new Error("Practice subscription could not be retrieved.");
+  }
 
   const profile = identity.clinicId
     ? await db.clinicBillingProfile.findUnique({

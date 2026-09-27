@@ -16,10 +16,32 @@ import {
   type BillingIntervalCode,
 } from "@/lib/billing/price-map";
 
+export type PracticeCapacityMode =
+  | "new_or_transitioning_into_practice"
+  | "established_legacy_practice"
+  | "established_converted_practice"
+  | "outside_practice_quantity";
+
 export type PracticeLocationProjection =
-  | { action: "project"; quantity: number }
-  | { action: "preserve_legacy" }
-  | { action: "omit" };
+  | {
+      action: "project";
+      mode:
+        "new_or_transitioning_into_practice" | "established_converted_practice";
+      quantity: number;
+    }
+  | {
+      action: "preserve_legacy";
+      mode: "established_legacy_practice";
+    }
+  | {
+      action: "require_subscription";
+      mode:
+        "new_or_transitioning_into_practice" | "established_converted_practice";
+    }
+  | {
+      action: "omit";
+      mode: PracticeCapacityMode;
+    };
 
 type CapacityPrevious = {
   commercialPlan: CommercialPlan | null;
@@ -28,20 +50,49 @@ type CapacityPrevious = {
 };
 
 /**
- * Writes `purchasedAdditionalLocationQuantity` only for an ACTIVE Practice
- * projection whose retrieved subscription is a valid Practice shape.
+ * Classifies the previous persisted row. The current event must not be
+ * written before this runs, or a partial Practice update could be read back
+ * as legacy.
  *
- * Already converted: the stored quantity is a number, including 0. Project
- * the classified quantity.
+ * Established Practice means commercial plan Practice and an entitlement that
+ * has already left PENDING: ACTIVE, RESTRICTED, or ENDED.
+ * Converted means that row stores a number, including 0.
+ * Legacy means that row still stores null.
+ * Every other previous row is outside Practice until the projected plan is
+ * Practice, which is a new activation or a transition into Practice.
+ */
+export function practiceCapacityMode(input: {
+  previous: CapacityPrevious | null;
+  projectedPlan: CommercialPlan | null;
+}): PracticeCapacityMode {
+  if (isConvertedPractice(input.previous)) {
+    return input.projectedPlan === "PRACTICE"
+      ? "established_converted_practice"
+      : "outside_practice_quantity";
+  }
+  if (isLegacyUnconvertedPractice(input.previous)) {
+    return input.projectedPlan === "PRACTICE"
+      ? "established_legacy_practice"
+      : "outside_practice_quantity";
+  }
+  if (input.projectedPlan === "PRACTICE") {
+    return "new_or_transitioning_into_practice";
+  }
+  return "outside_practice_quantity";
+}
+
+/**
+ * An ACTIVE Practice projection can store N only from a retrieved valid
+ * Practice shape.
  *
- * New activation: there is no stored entitlement, the stored entitlement is
- * still PENDING, or the stored plan is not an established Practice row.
- * Store the classified quantity, including 0 when the add-on item is absent.
+ * A new activation or a transition into Practice, and an already converted
+ * Practice row, require that shape. Without it the caller must not apply
+ * the projection: doing so would save ACTIVE Practice with a null quantity
+ * and make the next event treat the row as legacy.
  *
- * Legacy: commercial plan is Practice, the purchased quantity is null, and
- * the entitlement is already ACTIVE, RESTRICTED, or ENDED. Leave null.
- * PENDING is the only entitlement status that has not yet been a paid
- * Practice lifecycle.
+ * An established legacy Practice keeps operating without the shape and does
+ * not gain N. Leaving Practice, including the Essential invoice that completes
+ * a scheduled downgrade, does not require a Practice quantity.
  */
 export function decidePracticeLocationProjection(input: {
   projectedPlan: CommercialPlan | null;
@@ -49,27 +100,34 @@ export function decidePracticeLocationProjection(input: {
   classifiedQuantity: number | null;
   previous: CapacityPrevious | null;
 }): PracticeLocationProjection {
+  const mode = practiceCapacityMode({
+    previous: input.previous,
+    projectedPlan: input.projectedPlan,
+  });
+  const activePractice =
+    input.projectedPlan === "PRACTICE" &&
+    input.projectedEntitlementStatus === EntitlementStatus.ACTIVE;
+
   if (
-    input.classifiedQuantity === null ||
-    input.projectedPlan !== "PRACTICE" ||
-    input.projectedEntitlementStatus !== EntitlementStatus.ACTIVE
+    activePractice &&
+    (mode === "new_or_transitioning_into_practice" ||
+      mode === "established_converted_practice")
   ) {
-    return { action: "omit" };
+    if (input.classifiedQuantity === null) {
+      return { action: "require_subscription", mode };
+    }
+    return { action: "project", mode, quantity: input.classifiedQuantity };
   }
 
-  const previous = input.previous;
   if (
-    previous &&
-    typeof previous.purchasedAdditionalLocationQuantity === "number"
+    mode === "established_legacy_practice" &&
+    activePractice &&
+    input.classifiedQuantity !== null
   ) {
-    return { action: "project", quantity: input.classifiedQuantity };
+    return { action: "preserve_legacy", mode };
   }
 
-  if (isLegacyUnconvertedPractice(previous)) {
-    return { action: "preserve_legacy" };
-  }
-
-  return { action: "project", quantity: input.classifiedQuantity };
+  return { action: "omit", mode };
 }
 
 export function isEstablishedPractice(
@@ -84,6 +142,15 @@ export function isEstablishedPractice(
   return (
     previous.commercialPlan === "PRACTICE" &&
     previous.entitlementStatus !== EntitlementStatus.PENDING
+  );
+}
+
+export function isConvertedPractice(
+  previous: CapacityPrevious | null
+): boolean {
+  return (
+    isEstablishedPractice(previous) &&
+    typeof previous?.purchasedAdditionalLocationQuantity === "number"
   );
 }
 

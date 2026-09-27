@@ -40,7 +40,7 @@ Copy the ten resulting `price_...` identifiers into server-only environment vari
 - `STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID`
 
-The ten Price IDs must be unique. If any Group Price ID is missing, Group billing stays unavailable and Essential and Practice continue to work. If the Practice Additional Location Price IDs are missing, base-only Practice billing continues to work and a new activation stores quantity 0. An unrecognised extra subscription item still fails closed. An Additional Site Price and an Additional Location Price are not plans.
+The ten Price IDs must be unique. If any Group Price ID is missing, Group billing stays unavailable and Essential and Practice continue to work. If the Practice Additional Location Price IDs are missing, base-only Practice billing continues to work and a retrieved base-only activation stores quantity 0. A new Practice activation still requires that retrieved subscription. An unrecognised extra subscription item still fails closed. An Additional Site Price and an Additional Location Price are not plans.
 
 Never commit secrets or Price IDs. Never prefix these with `NEXT_PUBLIC_`.
 

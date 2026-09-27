@@ -46,7 +46,11 @@ describe("Practice location projection predicate", () => {
           purchasedAdditionalLocationQuantity: null,
         },
       })
-    ).toEqual({ action: "project", quantity: 0 });
+    ).toEqual({
+      action: "project",
+      mode: "new_or_transitioning_into_practice",
+      quantity: 0,
+    });
     expect(
       decidePracticeLocationProjection({
         projectedPlan: "PRACTICE",
@@ -54,7 +58,11 @@ describe("Practice location projection predicate", () => {
         classifiedQuantity: 2,
         previous: null,
       })
-    ).toEqual({ action: "project", quantity: 2 });
+    ).toEqual({
+      action: "project",
+      mode: "new_or_transitioning_into_practice",
+      quantity: 2,
+    });
   });
 
   it("projects a new quantity for an already converted Practice", () => {
@@ -69,7 +77,11 @@ describe("Practice location projection predicate", () => {
           purchasedAdditionalLocationQuantity: 0,
         },
       })
-    ).toEqual({ action: "project", quantity: 1 });
+    ).toEqual({
+      action: "project",
+      mode: "established_converted_practice",
+      quantity: 1,
+    });
   });
 
   it("preserves null for an established Practice that was never converted", () => {
@@ -89,7 +101,10 @@ describe("Practice location projection predicate", () => {
             purchasedAdditionalLocationQuantity: null,
           },
         })
-      ).toEqual({ action: "preserve_legacy" });
+      ).toEqual({
+        action: "preserve_legacy",
+        mode: "established_legacy_practice",
+      });
     }
   });
 
@@ -101,7 +116,70 @@ describe("Practice location projection predicate", () => {
         classifiedQuantity: 1,
         previous: null,
       })
-    ).toEqual({ action: "omit" });
+    ).toEqual({
+      action: "omit",
+      mode: "new_or_transitioning_into_practice",
+    });
+    expect(
+      decidePracticeLocationProjection({
+        projectedPlan: "PRACTICE",
+        projectedEntitlementStatus: EntitlementStatus.ACTIVE,
+        classifiedQuantity: null,
+        previous: {
+          commercialPlan: "ESSENTIAL",
+          entitlementStatus: EntitlementStatus.ACTIVE,
+          purchasedAdditionalLocationQuantity: null,
+        },
+      })
+    ).toEqual({
+      action: "require_subscription",
+      mode: "new_or_transitioning_into_practice",
+    });
+    expect(
+      decidePracticeLocationProjection({
+        projectedPlan: "PRACTICE",
+        projectedEntitlementStatus: EntitlementStatus.ACTIVE,
+        classifiedQuantity: null,
+        previous: {
+          commercialPlan: "PRACTICE",
+          entitlementStatus: EntitlementStatus.ACTIVE,
+          purchasedAdditionalLocationQuantity: 0,
+        },
+      })
+    ).toEqual({
+      action: "require_subscription",
+      mode: "established_converted_practice",
+    });
+    expect(
+      decidePracticeLocationProjection({
+        projectedPlan: "PRACTICE",
+        projectedEntitlementStatus: EntitlementStatus.ACTIVE,
+        classifiedQuantity: null,
+        previous: {
+          commercialPlan: "PRACTICE",
+          entitlementStatus: EntitlementStatus.ACTIVE,
+          purchasedAdditionalLocationQuantity: null,
+        },
+      })
+    ).toEqual({
+      action: "omit",
+      mode: "established_legacy_practice",
+    });
+    expect(
+      decidePracticeLocationProjection({
+        projectedPlan: "ESSENTIAL",
+        projectedEntitlementStatus: EntitlementStatus.ACTIVE,
+        classifiedQuantity: null,
+        previous: {
+          commercialPlan: "PRACTICE",
+          entitlementStatus: EntitlementStatus.ACTIVE,
+          purchasedAdditionalLocationQuantity: 2,
+        },
+      })
+    ).toEqual({
+      action: "omit",
+      mode: "outside_practice_quantity",
+    });
   });
 });
 
@@ -632,21 +710,165 @@ describe("Practice additional location webhook projection", () => {
     ).toBeUndefined();
   });
 
-  it("does not invent N from the invoice when the subscription was not retrieved", async () => {
+  it("does not activate Practice when the subscription cannot be retrieved", async () => {
+    const fresh = createDb();
+    await expect(
+      projectInvoice({
+        db: fresh,
+        id: "evt_new_missing",
+        priceId: PRACTICE_MONTHLY,
+        subscription: null,
+        env: BILLING_TEST_ENV,
+      })
+    ).rejects.toThrow("Practice subscription could not be retrieved.");
+    expect(fresh.entitlements.size).toBe(0);
+    expect(fresh.receipts.get("evt_new_missing")?.processingStatus).toBe(
+      StripeEventProcessingStatus.FAILED
+    );
+
+    const pending = createDb();
+    seedEntitlement(pending, {
+      billingStatus: BillingStatus.PAYMENT_PENDING,
+      entitlementStatus: EntitlementStatus.PENDING,
+      locationAllowance: 3,
+    });
+    await expect(
+      projectInvoice({
+        db: pending,
+        id: "evt_pending_missing",
+        priceId: PRACTICE_MONTHLY,
+        subscription: null,
+        env: BILLING_TEST_ENV,
+      })
+    ).rejects.toThrow("Practice subscription could not be retrieved.");
+    expect(pending.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "PRACTICE",
+      billingStatus: BillingStatus.PAYMENT_PENDING,
+      entitlementStatus: EntitlementStatus.PENDING,
+      purchasedAdditionalLocationQuantity: null,
+      locationAllowance: 3,
+    });
+  });
+
+  it("keeps an invalid new Practice shape from becoming ACTIVE", async () => {
     const db = createDb();
-    await projectInvoice({
+    seedEntitlement(db, {
+      billingStatus: BillingStatus.OFFER_PREPARED,
+      entitlementStatus: EntitlementStatus.PENDING,
+      locationAllowance: 1,
+    });
+    const result = await projectInvoice({
       db,
+      id: "evt_pending_invalid",
       priceId: PRACTICE_MONTHLY,
-      subscription: null,
+      subscription: subscriptionOf({
+        items: [{ price: PRACTICE_MONTHLY, quantity: 2 }],
+      }),
+    });
+    expect(result.outcome).toBe("invalid_practice_shape");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      entitlementStatus: EntitlementStatus.PENDING,
+      billingStatus: BillingStatus.OFFER_PREPARED,
+      purchasedAdditionalLocationQuantity: null,
+    });
+
+    const fresh = createDb();
+    const freshResult = await projectInvoice({
+      db: fresh,
+      id: "evt_new_invalid",
+      priceId: PRACTICE_MONTHLY,
+      subscription: subscriptionOf({
+        items: [{ price: PRACTICE_MONTHLY, quantity: 2 }],
+      }),
+    });
+    expect(freshResult.outcome).toBe("invalid_practice_shape");
+    expect(fresh.entitlements.size).toBe(0);
+    expect(fresh.receipts.get("evt_new_invalid")?.processingStatus).toBe(
+      StripeEventProcessingStatus.FAILED
+    );
+  });
+
+  it("lets a later delivery activate Practice after a missing subscription", async () => {
+    const db = createDb();
+    const event = paidInvoice({
+      id: "evt_retry_activation",
+      priceId: PRACTICE_MONTHLY,
+    });
+    const missing = {
+      prisma: db as never,
+      reader: { retrieveSubscription: async () => null },
+      env: BILLING_TEST_ENV,
+    };
+    await expect(processVerifiedStripeEvent(event, missing)).rejects.toThrow(
+      "Practice subscription could not be retrieved."
+    );
+    expect(db.entitlements.size).toBe(0);
+    expect(db.receipts.get("evt_retry_activation")?.processingStatus).toBe(
+      StripeEventProcessingStatus.FAILED
+    );
+
+    const second = await processVerifiedStripeEvent(event, {
+      prisma: db as never,
+      reader: {
+        retrieveSubscription: async () =>
+          subscriptionOf({ items: [{ price: PRACTICE_MONTHLY }] }),
+      },
       env: BILLING_TEST_ENV,
     });
+    expect(second.outcome).toBe("processed");
     expect(db.entitlements.get("clinic_1")).toMatchObject({
       commercialPlan: "PRACTICE",
       entitlementStatus: EntitlementStatus.ACTIVE,
+      purchasedAdditionalLocationQuantity: 0,
+      siteAllowance: 1,
+      locationAllowance: 1,
     });
-    expect(
-      db.entitlements.get("clinic_1")?.purchasedAdditionalLocationQuantity
-    ).toBeUndefined();
+    expect(db.receipts.get("evt_retry_activation")?.processingStatus).toBe(
+      StripeEventProcessingStatus.PROCESSED
+    );
+  });
+
+  it("lets a later event activate Practice after an invalid shape", async () => {
+    const db = createDb();
+    seedEntitlement(db, {
+      billingStatus: BillingStatus.PAYMENT_PENDING,
+      entitlementStatus: EntitlementStatus.PENDING,
+      locationAllowance: 9,
+    });
+    const invalid = await projectInvoice({
+      db,
+      id: "evt_shape_then_ok_bad",
+      priceId: PRACTICE_MONTHLY,
+      subscription: subscriptionOf({
+        items: [{ price: PRACTICE_MONTHLY, quantity: 2 }],
+      }),
+    });
+    expect(invalid.outcome).toBe("invalid_practice_shape");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      entitlementStatus: EntitlementStatus.PENDING,
+      purchasedAdditionalLocationQuantity: null,
+      locationAllowance: 9,
+    });
+
+    const activated = await projectInvoice({
+      db,
+      id: "evt_shape_then_ok_good",
+      priceId: LOCATION_MONTHLY,
+      subscription: subscriptionOf({
+        items: [
+          { price: PRACTICE_MONTHLY, quantity: 1 },
+          { price: LOCATION_MONTHLY, quantity: 2 },
+        ],
+      }),
+    });
+    expect(activated.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "PRACTICE",
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      purchasedAdditionalLocationQuantity: 2,
+      siteAllowance: 1,
+      locationAllowance: 3,
+    });
   });
 
   it("projects quantity changes for an already converted Practice", async () => {
@@ -732,6 +954,59 @@ describe("Practice additional location webhook projection", () => {
     expect(down.locationCalls).toEqual([]);
   });
 
+  it("keeps a converted Practice quantity when the subscription is unavailable or malformed", async () => {
+    const missing = createDb();
+    seedEntitlement(missing, {
+      purchasedAdditionalLocationQuantity: 0,
+      locationAllowance: 5,
+      extraLocationAllowance: 0,
+      billingStatus: BillingStatus.PAST_DUE,
+    });
+    await expect(
+      projectInvoice({
+        db: missing,
+        id: "evt_converted_missing",
+        priceId: PRACTICE_MONTHLY,
+        subscription: null,
+        env: BILLING_TEST_ENV,
+      })
+    ).rejects.toThrow("Practice subscription could not be retrieved.");
+    expect(missing.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "PRACTICE",
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.PAST_DUE,
+      purchasedAdditionalLocationQuantity: 0,
+      locationAllowance: 5,
+    });
+    expect(
+      missing.receipts.get("evt_converted_missing")?.processingStatus
+    ).toBe(StripeEventProcessingStatus.FAILED);
+
+    const malformed = createDb();
+    seedEntitlement(malformed, {
+      purchasedAdditionalLocationQuantity: 2,
+      extraLocationAllowance: 4,
+      locationAllowance: 7,
+    });
+    const result = await projectInvoice({
+      db: malformed,
+      id: "evt_converted_malformed",
+      priceId: PRACTICE_MONTHLY,
+      subscription: subscriptionOf({
+        items: [{ price: PRACTICE_MONTHLY, quantity: 2 }],
+      }),
+    });
+    expect(result.outcome).toBe("invalid_practice_shape");
+    expect(malformed.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "PRACTICE",
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      purchasedAdditionalLocationQuantity: 2,
+      extraLocationAllowance: 4,
+      locationAllowance: 7,
+    });
+    expect(malformed.locationCalls).toEqual([]);
+  });
+
   it("does not convert legacy active Practice rows from null", async () => {
     for (const allowance of [1, 2, 3]) {
       const db = createDb();
@@ -778,6 +1053,30 @@ describe("Practice additional location webhook projection", () => {
         extraLocationAllowance: 0,
       });
     }
+  });
+
+  it("keeps an established legacy Practice when the subscription cannot be retrieved", async () => {
+    const db = createDb();
+    seedEntitlement(db, { locationAllowance: 3 });
+    const result = await projectInvoice({
+      db,
+      id: "evt_legacy_missing",
+      priceId: PRACTICE_MONTHLY,
+      subscription: null,
+      env: BILLING_TEST_ENV,
+    });
+    expect(result.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "PRACTICE",
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      purchasedAdditionalLocationQuantity: null,
+      locationAllowance: 3,
+      siteAllowance: 1,
+    });
+    expect(db.receipts.get("evt_legacy_missing")?.processingStatus).toBe(
+      StripeEventProcessingStatus.PROCESSED
+    );
+    expect(db.locationCalls).toEqual([]);
   });
 
   it.each([
@@ -953,25 +1252,125 @@ describe("Practice additional location webhook projection", () => {
         db.entitlements.get("clinic_1")?.purchasedAdditionalLocationQuantity
       ).toBeUndefined();
     }
+
+    const invoiceOnly = createDb();
+    const result = await projectInvoice({
+      db: invoiceOnly,
+      id: "evt_essential_invoice_only",
+      priceId: ESSENTIAL_MONTHLY,
+      subscription: null,
+      env: BILLING_TEST_ENV,
+    });
+    expect(result.outcome).toBe("processed");
+    expect(invoiceOnly.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "ESSENTIAL",
+      entitlementStatus: EntitlementStatus.ACTIVE,
+    });
+    expect(
+      invoiceOnly.entitlements.get("clinic_1")
+        ?.purchasedAdditionalLocationQuantity
+    ).toBeUndefined();
   });
 
-  it("projects N=0 when Essential becomes Practice on the retrieved subscription", async () => {
-    const db = createDb();
-    seedEntitlement(db, {
+  it("projects Practice quantity when Essential is paid on a retrieved subscription", async () => {
+    const base = createDb();
+    seedEntitlement(base, {
       commercialPlan: "ESSENTIAL",
       stripePriceId: ESSENTIAL_MONTHLY,
       locationAllowance: 1,
+      extraLocationAllowance: 0,
     });
     await projectInvoice({
-      db,
+      db: base,
+      id: "evt_essential_base",
       priceId: PRACTICE_MONTHLY,
       subscription: subscriptionOf({ items: [{ price: PRACTICE_MONTHLY }] }),
       env: BILLING_TEST_ENV,
     });
-    expect(db.entitlements.get("clinic_1")).toMatchObject({
+    expect(base.entitlements.get("clinic_1")).toMatchObject({
       commercialPlan: "PRACTICE",
+      entitlementStatus: EntitlementStatus.ACTIVE,
       purchasedAdditionalLocationQuantity: 0,
       siteAllowance: 1,
+      locationAllowance: 1,
+    });
+
+    const withAddon = createDb();
+    seedEntitlement(withAddon, {
+      commercialPlan: "ESSENTIAL",
+      stripePriceId: ESSENTIAL_MONTHLY,
+      locationAllowance: 1,
+      extraLocationAllowance: 1,
+    });
+    await projectInvoice({
+      db: withAddon,
+      id: "evt_essential_addon",
+      priceId: PRACTICE_MONTHLY,
+      subscription: subscriptionOf({
+        items: [
+          { price: LOCATION_MONTHLY, quantity: 2 },
+          { price: PRACTICE_MONTHLY, quantity: 1 },
+        ],
+      }),
+    });
+    expect(withAddon.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "PRACTICE",
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      purchasedAdditionalLocationQuantity: 2,
+      extraLocationAllowance: 1,
+      siteAllowance: 1,
+      locationAllowance: 4,
+    });
+  });
+
+  it("does not turn Essential into Practice when the subscription is missing or invalid", async () => {
+    const missing = createDb();
+    seedEntitlement(missing, {
+      commercialPlan: "ESSENTIAL",
+      stripePriceId: ESSENTIAL_MONTHLY,
+      locationAllowance: 1,
+    });
+    await expect(
+      projectInvoice({
+        db: missing,
+        id: "evt_essential_missing",
+        priceId: PRACTICE_MONTHLY,
+        subscription: null,
+        env: BILLING_TEST_ENV,
+      })
+    ).rejects.toThrow("Practice subscription could not be retrieved.");
+    expect(missing.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "ESSENTIAL",
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: ESSENTIAL_MONTHLY,
+      locationAllowance: 1,
+    });
+    expect(
+      missing.entitlements.get("clinic_1")?.purchasedAdditionalLocationQuantity
+    ).toBeNull();
+
+    const invalid = createDb();
+    seedEntitlement(invalid, {
+      commercialPlan: "ESSENTIAL",
+      stripePriceId: ESSENTIAL_MONTHLY,
+      locationAllowance: 1,
+    });
+    const result = await projectInvoice({
+      db: invalid,
+      id: "evt_essential_invalid",
+      priceId: PRACTICE_MONTHLY,
+      subscription: subscriptionOf({
+        items: [
+          { price: PRACTICE_MONTHLY, quantity: 1 },
+          { price: ESSENTIAL_MONTHLY, quantity: 1 },
+        ],
+      }),
+    });
+    expect(result.outcome).toBe("invalid_practice_shape");
+    expect(invalid.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "ESSENTIAL",
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: ESSENTIAL_MONTHLY,
       locationAllowance: 1,
     });
   });
@@ -988,6 +1387,26 @@ describe("Practice additional location webhook projection", () => {
     expect(db.entitlements.get("clinic_1")).toMatchObject({
       commercialPlan: "ESSENTIAL",
       purchasedAdditionalLocationQuantity: null,
+      locationAllowance: 3,
+    });
+
+    const converted = createDb();
+    seedEntitlement(converted, {
+      purchasedAdditionalLocationQuantity: 2,
+      locationAllowance: 3,
+    });
+    const convertedResult = await projectInvoice({
+      db: converted,
+      id: "evt_converted_downgrade",
+      priceId: ESSENTIAL_MONTHLY,
+      subscription: subscriptionOf({ items: [{ price: PRACTICE_MONTHLY }] }),
+      env: BILLING_TEST_ENV,
+    });
+    expect(convertedResult.outcome).toBe("processed");
+    expect(converted.entitlements.get("clinic_1")).toMatchObject({
+      commercialPlan: "ESSENTIAL",
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      purchasedAdditionalLocationQuantity: 2,
       locationAllowance: 3,
     });
   });
@@ -1085,6 +1504,37 @@ describe("Practice additional location webhook projection", () => {
       locationAllowance: 3,
     });
     expect(ended.locationCalls).toEqual([]);
+  });
+
+  it("keeps historical Practice quantity null when a restricted or ended row is paid again", async () => {
+    for (const entitlementStatus of [
+      EntitlementStatus.RESTRICTED,
+      EntitlementStatus.ENDED,
+    ]) {
+      const db = createDb();
+      seedEntitlement(db, {
+        entitlementStatus,
+        billingStatus:
+          entitlementStatus === EntitlementStatus.ENDED
+            ? BillingStatus.ENDED
+            : BillingStatus.UNPAID,
+        locationAllowance: 3,
+      });
+      await projectInvoice({
+        db,
+        id: `evt_restore_${entitlementStatus}`,
+        priceId: PRACTICE_MONTHLY,
+        subscription: subscriptionOf({ items: [{ price: PRACTICE_MONTHLY }] }),
+        env: BILLING_TEST_ENV,
+      });
+      expect(db.entitlements.get("clinic_1")).toMatchObject({
+        commercialPlan: "PRACTICE",
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        billingStatus: BillingStatus.ACTIVE,
+        purchasedAdditionalLocationQuantity: null,
+        locationAllowance: 3,
+      });
+    }
   });
 
   it("is idempotent after a new Practice activation", async () => {
