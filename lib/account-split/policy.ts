@@ -116,6 +116,19 @@ export const ACCOUNT_SPLIT_BLOCKER_CODES = [
   "source_scheduled_capacity",
   "source_downgrade_preparation",
   "source_conflicting_preparation",
+  "location_not_selected",
+  "location_inactive",
+  "location_is_root",
+  "location_missing_slug",
+  "location_wrong_site",
+  "source_site_inactive",
+  "source_root_missing",
+  "destination_site_slug_unconfirmed",
+  "destination_site_slug_invalid",
+  "destination_site_slug_taken",
+  "destination_location_quantity_unprojected",
+  "destination_plan_rejected",
+  "destination_not_new_account",
 ] as const;
 
 export type AccountSplitBlockerCode =
@@ -169,7 +182,9 @@ export type AccountSplitWarning = {
     | "source_cancel_at_period_end"
     | "source_restricted"
     | "source_unpaid"
-    | "source_ended";
+    | "source_ended"
+    | "source_capacity_not_reduced"
+    | "guides_left_without_placements";
   message: string;
 };
 
@@ -308,6 +323,7 @@ export type AccountSplitSnapshot = {
       name: string;
       slug: string;
       siteCount: number;
+      locationCount: number;
     } | null;
     entitlement: {
       commercialPlan: CommercialPlan | null;
@@ -338,6 +354,10 @@ export type AccountSplitSnapshot = {
     sourceStorageKey: string;
     destinationStorageKey: string;
   }>;
+  /** ClinicSite currently using destinationSiteSlug, if any. */
+  destinationSlugSiteId: string | null;
+  /** Clinic.slug currently using destinationSiteSlug, if any. */
+  destinationSlugClinicId: string | null;
 };
 
 export type AccountSplitAssessment = {
@@ -374,7 +394,7 @@ export type AccountSplitAssessment = {
     deactivatedSiteIds: string[];
     retainedSiteIds: string[];
     activeSites: Array<{ id: string; displayName: string; slug: string }>;
-    planRemains: "GROUP";
+    planRemains: "GROUP" | "PRACTICE";
   };
   destinationPreview: {
     accountName: string;
@@ -440,6 +460,19 @@ export type AccountSplitAssessment = {
     teamUsed: number;
     teamLimit: number;
   };
+  /**
+   * Set for LOCATION_TO_NEW_ACCOUNT. Site splits leave this null so they do
+   * not pass through location-promotion assumptions.
+   */
+  locationMove: {
+    sourceSiteId: string;
+    location: AccountSplitSnapshot["locations"][number] | null;
+    oldSlug: string | null;
+    destinationSiteSlug: string | null;
+    rootRetained: boolean;
+    departingLocationWasPrimary: boolean;
+    sourceRootBecomesPrimary: boolean;
+  } | null;
 };
 
 export function splitConfirmationPhrase(siteSlug: string): string {
@@ -1223,6 +1256,7 @@ export function assessAccountSplit(
       })),
       planRemains: "GROUP",
     },
+    locationMove: null,
     destinationPreview: {
       accountName:
         snapshot.destination.clinic?.name ??

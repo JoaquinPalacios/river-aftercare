@@ -29,7 +29,12 @@ export async function findOpenAccountSplitPreparation(
       sourceClinicId,
       status: { in: [...OPEN_STATUSES] },
     },
-    select: { id: true, status: true, destinationClinicId: true },
+    select: {
+      id: true,
+      status: true,
+      destinationClinicId: true,
+      operationKind: true,
+    },
   });
 }
 
@@ -40,7 +45,12 @@ export async function findLatestCompletedAccountSplit(
   return db.clinicAccountSplitPreparation.findFirst({
     where: { sourceClinicId, status: { equals: "COMPLETED" } },
     orderBy: { executedAt: "desc" },
-    select: { id: true, executedAt: true, destinationClinicId: true },
+    select: {
+      id: true,
+      executedAt: true,
+      destinationClinicId: true,
+      operationKind: true,
+    },
   });
 }
 
@@ -225,6 +235,10 @@ export async function loadAccountSplitSnapshot(
     return null;
   }
 
+  const destinationSlugHolders = preparation.destinationSiteSlug
+    ? await loadDestinationSlugHolders(db, preparation.destinationSiteSlug)
+    : { siteId: null, clinicId: null };
+
   return {
     preparation,
     source: {
@@ -284,7 +298,26 @@ export async function loadAccountSplitSnapshot(
       })),
     },
     brandingAssets,
+    destinationSlugSiteId: destinationSlugHolders.siteId,
+    destinationSlugClinicId: destinationSlugHolders.clinicId,
   };
+}
+
+async function loadDestinationSlugHolders(
+  db: Db,
+  slug: string
+): Promise<{ siteId: string | null; clinicId: string | null }> {
+  const [site, clinic] = await Promise.all([
+    db.clinicSite.findUnique({
+      where: { slug },
+      select: { id: true },
+    }),
+    db.clinic.findUnique({
+      where: { slug },
+      select: { id: true },
+    }),
+  ]);
+  return { siteId: site?.id ?? null, clinicId: clinic?.id ?? null };
 }
 
 async function loadMemberships(db: Db, clinicId: string) {
@@ -495,8 +528,11 @@ async function loadDestinationClinic(db: Db, clinicId: string) {
   if (!clinic) {
     return null;
   }
-  const siteCount = await db.clinicSite.count({ where: { clinicId } });
-  return { ...clinic, siteCount };
+  const [siteCount, locationCount] = await Promise.all([
+    db.clinicSite.count({ where: { clinicId } }),
+    db.clinicLocation.count({ where: { clinicId } }),
+  ]);
+  return { ...clinic, siteCount, locationCount };
 }
 
 async function runAccountSplitReads<T extends readonly unknown[]>(reads: {

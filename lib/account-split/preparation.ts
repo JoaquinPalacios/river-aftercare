@@ -10,9 +10,14 @@ import {
   lockAccountSplit,
   lockAccountSplitShellSlug,
 } from "@/lib/account-split/locks";
+import { assessPreparedAccountStructure } from "@/lib/account-split/assess";
+import {
+  locationDestinationSlugIssue,
+  locationMoveConfirmationPhrase,
+  locationMoveEligibility,
+} from "@/lib/account-split/location-policy";
 import {
   ACCOUNT_SPLIT_COMMERCIAL_CONFLICT_CODES,
-  assessAccountSplit,
   isTerminalAccountSplitStatus,
   splitConfirmationPhrase,
   supportedAccountSplitAction,
@@ -189,6 +194,12 @@ export async function saveAccountSplitSiteDecisions(input: {
 }): Promise<void> {
   await getPrisma().$transaction(async (tx) => {
     const preparation = await loadWritablePreparation(tx, input.preparationId);
+    if (preparation.operationKind !== "SITE_TO_NEW_ACCOUNT") {
+      throw new ClinicPortalError(
+        "This structural operation is not available.",
+        "invalid"
+      );
+    }
     await lockAccountSplit(tx, preparation.sourceClinicId);
     const fresh = await loadWritablePreparation(tx, preparation.id);
     const sites = await tx.clinicSite.findMany({
@@ -367,6 +378,15 @@ export async function createSplitDestinationAccount(
       const preparation = await loadWritablePreparation(tx, preparationId);
       await lockAccountSplit(tx, preparation.sourceClinicId);
       const fresh = await loadWritablePreparation(tx, preparation.id);
+      if (fresh.operationKind === "LOCATION_TO_NEW_ACCOUNT") {
+        return createLocationDestinationShell(tx, fresh);
+      }
+      if (fresh.operationKind !== "SITE_TO_NEW_ACCOUNT") {
+        throw new ClinicPortalError(
+          "This structural operation is not available.",
+          "invalid"
+        );
+      }
       if (fresh.destinationClinicId) {
         const existing = await tx.clinic.findUnique({
           where: { id: fresh.destinationClinicId },
@@ -529,7 +549,7 @@ export async function revalidateAccountSplitPreparation(
     ) {
       return;
     }
-    const assessment = assessAccountSplit(snapshot);
+    const assessment = assessPreparedAccountStructure(snapshot);
     if (assessment.status === "COMPLETED") {
       throw new ClinicPortalError(
         "Preparation cannot be marked completed.",
@@ -557,7 +577,11 @@ export async function revalidateAccountSplitPreparation(
       toStatus: assessment.status,
       sourceClinicId: snapshot.source.id,
       destinationClinicId: snapshot.preparation.destinationClinicId,
-      siteId: assessment.splitSite?.id ?? null,
+      siteId:
+        assessment.splitSite?.id ??
+        assessment.locationMove?.sourceSiteId ??
+        null,
+      locationId: assessment.locationMove?.location?.id ?? null,
       category: "status_transition",
     });
     for (const code of ACCOUNT_SPLIT_COMMERCIAL_CONFLICT_CODES) {
@@ -569,7 +593,11 @@ export async function revalidateAccountSplitPreparation(
           toStatus: assessment.status,
           sourceClinicId: snapshot.source.id,
           destinationClinicId: snapshot.preparation.destinationClinicId,
-          siteId: assessment.splitSite?.id ?? null,
+          siteId:
+            assessment.splitSite?.id ??
+            assessment.locationMove?.sourceSiteId ??
+            null,
+          locationId: assessment.locationMove?.location?.id ?? null,
           category: code,
         });
       }
@@ -582,7 +610,420 @@ export async function previewAccountSplit(preparationId: string) {
   if (!snapshot) {
     return null;
   }
-  return assessAccountSplit(snapshot);
+  return assessPreparedAccountStructure(snapshot);
+}
+
+export async function createLocationToNewAccountPreparation(input: {
+  sourceClinicId: string;
+  sourceClinicSiteId: string;
+  sourceLocationId: string;
+  destinationPlan: CommercialPlan;
+  destinationBillingInterval: BillingInterval;
+  operatorUserId: string;
+}): Promise<{ id: string }> {
+  if (!DESTINATION_PLANS.has(input.destinationPlan)) {
+    throw new ClinicPortalError(
+      "Choose Essential or Practice for the destination Account.",
+      "invalid"
+    );
+  }
+  try {
+    return await getPrisma().$transaction(async (tx) => {
+      await lockAccountSplit(tx, input.sourceClinicId);
+      const operator = await tx.user.findUnique({
+        where: { id: input.operatorUserId },
+        select: { platformRole: true },
+      });
+      if (operator?.platformRole !== "OPERATOR") {
+        throw new ClinicPortalError(
+          "Only a platform operator can prepare an account split.",
+          "forbidden"
+        );
+      }
+      const clinic = await tx.clinic.findUnique({
+        where: { id: input.sourceClinicId },
+        select: {
+          id: true,
+          entitlement: { select: { commercialPlan: true } },
+        },
+      });
+      if (!clinic) {
+        throw new ClinicPortalError("That account was not found.", "not_found");
+      }
+      const site = await tx.clinicSite.findFirst({
+        where: { id: input.sourceClinicSiteId },
+        select: { id: true, clinicId: true, active: true },
+      });
+      const location = await tx.clinicLocation.findUnique({
+        where: { id: input.sourceLocationId },
+        select: {
+          id: true,
+          clinicId: true,
+          clinicSiteId: true,
+          active: true,
+          servesSiteRoot: true,
+          slug: true,
+        },
+      });
+      const root = site
+        ? await tx.clinicLocation.findFirst({
+            where: {
+              clinicSiteId: site.id,
+              clinicId: site.clinicId,
+              servesSiteRoot: true,
+            },
+            select: { id: true, active: true, servesSiteRoot: true },
+          })
+        : null;
+      const rejection = locationMoveEligibility({
+        commercialPlan: clinic.entitlement?.commercialPlan ?? null,
+        sourceSite:
+          site && site.clinicId === clinic.id
+            ? { id: site.id, clinicId: site.clinicId, active: site.active }
+            : null,
+        location,
+        rootLocation: root,
+      });
+      if (rejection) {
+        throw new ClinicPortalError(rejection.message, "invalid");
+      }
+      const open = await tx.clinicAccountSplitPreparation.findFirst({
+        where: {
+          sourceClinicId: clinic.id,
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+        },
+        select: { id: true },
+      });
+      if (open) {
+        throw new ClinicPortalError(
+          "This account already has an open split preparation.",
+          "conflict"
+        );
+      }
+      const memberships = await tx.clinicMembership.findMany({
+        where: { clinicId: clinic.id, active: true },
+        select: { userId: true, role: true },
+      });
+      const created = await tx.clinicAccountSplitPreparation.create({
+        data: {
+          sourceClinicId: clinic.id,
+          keptClinicSiteId: input.sourceClinicSiteId,
+          sourceLocationId: input.sourceLocationId,
+          status: "DRAFT",
+          destinationPlan: input.destinationPlan,
+          destinationBillingInterval: input.destinationBillingInterval,
+          targetSourcePlan: "PRACTICE",
+          operationKind: "LOCATION_TO_NEW_ACCOUNT",
+          preparedByUserId: input.operatorUserId,
+          staffSelections: {
+            create: memberships.map((membership) => ({
+              userId: membership.userId,
+              keepOnSource: true,
+              grantOnDestination: false,
+              destinationRole: membership.role,
+            })),
+          },
+        },
+        select: { id: true },
+      });
+      await recordAccountSplitEvent(tx, {
+        preparationId: created.id,
+        kind: "PREPARATION_CREATED",
+        toStatus: "DRAFT",
+        actorUserId: input.operatorUserId,
+        sourceClinicId: clinic.id,
+        siteId: input.sourceClinicSiteId,
+        locationId: input.sourceLocationId,
+        category: "preparation_created",
+      });
+      return created;
+    });
+  } catch (error) {
+    throw mapKnownConflict(error);
+  }
+}
+
+export async function saveLocationToNewAccountSelection(input: {
+  preparationId: string;
+  sourceLocationId: string;
+}): Promise<void> {
+  await getPrisma().$transaction(async (tx) => {
+    const preparation = await loadWritablePreparation(tx, input.preparationId);
+    if (preparation.operationKind !== "LOCATION_TO_NEW_ACCOUNT") {
+      throw new ClinicPortalError(
+        "This structural operation is not available.",
+        "invalid"
+      );
+    }
+    await lockAccountSplit(tx, preparation.sourceClinicId);
+    const fresh = await loadWritablePreparation(tx, preparation.id);
+    const selected = await loadEligibleLocation(tx, {
+      sourceClinicId: fresh.sourceClinicId,
+      sourceClinicSiteId: fresh.keptClinicSiteId,
+      sourceLocationId: input.sourceLocationId,
+    });
+    if (fresh.sourceLocationId === selected.id) {
+      return;
+    }
+    await tx.clinicAccountSplitPreparation.update({
+      where: { id: fresh.id },
+      data: {
+        sourceLocationId: selected.id,
+        preparationRevision: { increment: 1 },
+      },
+    });
+    if (fresh.destinationClinicId) {
+      await tx.clinic.update({
+        where: { id: fresh.destinationClinicId },
+        data: { name: selected.displayName },
+      });
+      await tx.clinicProfile.update({
+        where: { clinicId: fresh.destinationClinicId },
+        data: { displayName: selected.displayName },
+      });
+    }
+  });
+  await revalidateAccountSplitPreparation(input.preparationId);
+}
+
+export async function confirmLocationDestinationSiteSlug(input: {
+  preparationId: string;
+  destinationSiteSlug: string;
+}): Promise<void> {
+  const slug = input.destinationSiteSlug.trim();
+  const issue = locationDestinationSlugIssue(slug);
+  if (issue) {
+    throw new ClinicPortalError(issue.message, "invalid");
+  }
+  await getPrisma().$transaction(async (tx) => {
+    const preparation = await loadWritablePreparation(tx, input.preparationId);
+    if (preparation.operationKind !== "LOCATION_TO_NEW_ACCOUNT") {
+      throw new ClinicPortalError(
+        "This structural operation is not available.",
+        "invalid"
+      );
+    }
+    await lockAccountSplit(tx, preparation.sourceClinicId);
+    await lockAccountSplitShellSlug(tx);
+    const fresh = await tx.clinicAccountSplitPreparation.findUnique({
+      where: { id: preparation.id },
+      select: {
+        id: true,
+        sourceClinicId: true,
+        destinationClinicId: true,
+        destinationSiteSlug: true,
+        status: true,
+        operationKind: true,
+      },
+    });
+    if (!fresh || fresh.operationKind !== "LOCATION_TO_NEW_ACCOUNT") {
+      throw new ClinicPortalError(
+        "This structural operation is not available.",
+        "invalid"
+      );
+    }
+    if (isTerminalAccountSplitStatus(fresh.status)) {
+      throw new ClinicPortalError("This preparation is closed.", "conflict");
+    }
+    await assertConfirmedDestinationSlugAvailable(tx, {
+      slug,
+      sourceClinicId: fresh.sourceClinicId,
+      destinationClinicId: fresh.destinationClinicId,
+    });
+    if (fresh.destinationSiteSlug === slug) {
+      return;
+    }
+    await tx.clinicAccountSplitPreparation.update({
+      where: { id: fresh.id },
+      data: {
+        destinationSiteSlug: slug,
+        expectedConfirmation: locationMoveConfirmationPhrase(slug),
+        preparationRevision: { increment: 1 },
+      },
+    });
+  });
+  await revalidateAccountSplitPreparation(input.preparationId);
+}
+
+async function createLocationDestinationShell(
+  tx: Prisma.TransactionClient,
+  preparation: {
+    id: string;
+    sourceClinicId: string;
+    destinationClinicId: string | null;
+    keptClinicSiteId: string;
+    destinationSiteSlug: string | null;
+  }
+): Promise<{ id: string; slug: string }> {
+  if (preparation.destinationClinicId) {
+    const existing = await tx.clinic.findUnique({
+      where: { id: preparation.destinationClinicId },
+      select: { id: true, slug: true },
+    });
+    if (!existing) {
+      throw new ClinicPortalError(
+        "The destination shell could not be found.",
+        "not_found"
+      );
+    }
+    return existing;
+  }
+  const location = await loadEligibleLocation(tx, {
+    sourceClinicId: preparation.sourceClinicId,
+    sourceClinicSiteId: preparation.keptClinicSiteId,
+    sourceLocationId: (
+      await tx.clinicAccountSplitPreparation.findUniqueOrThrow({
+        where: { id: preparation.id },
+        select: { sourceLocationId: true },
+      })
+    ).sourceLocationId,
+  });
+  await lockAccountSplitShellSlug(tx);
+  const slug = await allocateSplitShellSlug(tx, [
+    generateSplitShellSlug(),
+    generateSplitShellSlug(),
+    generateSplitShellSlug(),
+    generateSplitShellSlug(),
+    generateSplitShellSlug(),
+    generateSplitShellSlug(),
+    generateSplitShellSlug(),
+    generateSplitShellSlug(),
+  ]);
+  const clinic = await tx.clinic.create({
+    data: {
+      name: location.displayName,
+      slug,
+    },
+    select: { id: true, slug: true },
+  });
+  await tx.clinicProfile.create({
+    data: {
+      clinicId: clinic.id,
+      displayName: location.displayName,
+    },
+  });
+  await tx.clinicAccountSplitPreparation.update({
+    where: { id: preparation.id },
+    data: {
+      destinationClinicId: clinic.id,
+      expectedConfirmation: preparation.destinationSiteSlug
+        ? locationMoveConfirmationPhrase(preparation.destinationSiteSlug)
+        : null,
+      preparationRevision: { increment: 1 },
+    },
+  });
+  const sites = await tx.clinicSite.count({ where: { clinicId: clinic.id } });
+  if (sites !== 0) {
+    throw new ClinicPortalError(
+      "The destination shell must not contain a Site.",
+      "conflict"
+    );
+  }
+  return clinic;
+}
+
+async function loadEligibleLocation(
+  tx: Prisma.TransactionClient,
+  input: {
+    sourceClinicId: string;
+    sourceClinicSiteId: string;
+    sourceLocationId: string | null;
+  }
+) {
+  if (!input.sourceLocationId) {
+    throw new ClinicPortalError(
+      "Choose the location to move onto the new account.",
+      "invalid"
+    );
+  }
+  const clinic = await tx.clinic.findUnique({
+    where: { id: input.sourceClinicId },
+    select: { entitlement: { select: { commercialPlan: true } } },
+  });
+  const site = await tx.clinicSite.findFirst({
+    where: { id: input.sourceClinicSiteId },
+    select: { id: true, clinicId: true, active: true },
+  });
+  const location = await tx.clinicLocation.findUnique({
+    where: { id: input.sourceLocationId },
+    select: {
+      id: true,
+      clinicId: true,
+      clinicSiteId: true,
+      active: true,
+      servesSiteRoot: true,
+      slug: true,
+      displayName: true,
+    },
+  });
+  const root = site
+    ? await tx.clinicLocation.findFirst({
+        where: {
+          clinicSiteId: site.id,
+          servesSiteRoot: true,
+        },
+        select: { id: true, active: true, servesSiteRoot: true },
+      })
+    : null;
+  const rejection = locationMoveEligibility({
+    commercialPlan: clinic?.entitlement?.commercialPlan ?? null,
+    sourceSite:
+      site && site.clinicId === input.sourceClinicId
+        ? { id: site.id, clinicId: site.clinicId, active: site.active }
+        : null,
+    location,
+    rootLocation: root,
+  });
+  if (rejection || !location) {
+    throw new ClinicPortalError(
+      rejection?.message ?? "Choose the location to move onto the new account.",
+      "invalid"
+    );
+  }
+  return location;
+}
+
+async function assertConfirmedDestinationSlugAvailable(
+  tx: Prisma.TransactionClient,
+  input: {
+    slug: string;
+    sourceClinicId: string;
+    destinationClinicId: string | null;
+  }
+): Promise<void> {
+  const site = await tx.clinicSite.findUnique({
+    where: { slug: input.slug },
+    select: { id: true },
+  });
+  if (site) {
+    throw new ClinicPortalError(
+      "That destination Clinic Site address is already in use. Confirm a different one.",
+      "conflict"
+    );
+  }
+  const holder = await tx.clinic.findUnique({
+    where: { slug: input.slug },
+    select: { id: true },
+  });
+  if (!holder) {
+    return;
+  }
+  if (input.destinationClinicId && holder.id === input.destinationClinicId) {
+    return;
+  }
+  if (holder.id === input.sourceClinicId) {
+    const primary = await tx.clinicSite.findFirst({
+      where: { clinicId: input.sourceClinicId, isPrimary: true },
+      select: { slug: true },
+    });
+    if (primary && primary.slug !== input.slug) {
+      return;
+    }
+  }
+  throw new ClinicPortalError(
+    "That destination Clinic Site address is already in use. Confirm a different one.",
+    "conflict"
+  );
 }
 
 async function loadWritablePreparation(
@@ -600,12 +1041,17 @@ async function loadWritablePreparation(
       operationKind: true,
       destinationPlan: true,
       destinationBillingInterval: true,
+      sourceLocationId: true,
+      destinationSiteSlug: true,
     },
   });
   if (!preparation) {
     throw new ClinicPortalError("That preparation was not found.", "not_found");
   }
-  if (preparation.operationKind !== "SITE_TO_NEW_ACCOUNT") {
+  if (
+    preparation.operationKind !== "SITE_TO_NEW_ACCOUNT" &&
+    preparation.operationKind !== "LOCATION_TO_NEW_ACCOUNT"
+  ) {
     throw new ClinicPortalError(
       "This structural operation is not available.",
       "invalid"

@@ -29,6 +29,7 @@ import {
 } from "@/lib/account-split/shell-slug";
 import { planSplitSiteBranding } from "@/lib/account-split/branding-plan";
 import { recordAccountSplitEvent } from "@/lib/account-split/events";
+import { executeLocationToNewAccountCutover } from "@/lib/account-split/location-execute";
 import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
 import { readAccountCapacityFacts } from "@/lib/billing/group-capacity-gate";
 import { readSplitDestinationCommercialState } from "@/lib/billing/split-destination-access";
@@ -72,11 +73,19 @@ export type AccountSplitExecutionInterrupt =
   | "after_placement_deletion"
   | "after_site_move"
   | "after_placement_reinsertion"
-  | "after_membership_changes";
+  | "after_membership_changes"
+  | "after_destination_site_creation"
+  | "after_location_promotion"
+  | "after_location_redirect";
 
 export type AccountSplitExecutionHooks = {
   /** Test seam. Runs after the structure and preparation locks, before writes. */
   afterLocks?: () => Promise<void> | void;
+  /**
+   * Test seam. Runs when a named cutover point is reached, before an
+   * interrupt throw. Production execution does not set this.
+   */
+  observe?: (point: AccountSplitExecutionInterrupt) => Promise<void> | void;
   /** Test seam. Throws inside the transaction so PostgreSQL rolls it back. */
   interruptAfter?: AccountSplitExecutionInterrupt;
 };
@@ -116,7 +125,7 @@ export type AccountSplitExecutionResult = {
   compatibilitySlugParked: boolean | null;
 };
 
-type Tx = Prisma.TransactionClient;
+export type Tx = Prisma.TransactionClient;
 
 type CapturedPlacement = {
   id: string;
@@ -128,7 +137,7 @@ type CapturedPlacement = {
   createdAt: Date;
 };
 
-type CopiedRevision = {
+export type CopiedRevision = {
   sourceId: string;
   destinationId: string;
   destinationGuideId: string;
@@ -152,6 +161,7 @@ export async function executeClinicAccountSplit(input: {
       sourceClinicId: true,
       destinationClinicId: true,
       status: true,
+      operationKind: true,
     },
   });
   if (!head) {
@@ -170,7 +180,17 @@ export async function executeClinicAccountSplit(input: {
         head.sourceClinicId,
         head.destinationClinicId!,
       ]);
-      await lockAccountSplit(tx, head.sourceClinicId);
+      if (head.operationKind === "LOCATION_TO_NEW_ACCOUNT") {
+        const splitIds = [
+          head.sourceClinicId,
+          head.destinationClinicId!,
+        ].sort();
+        for (const clinicId of splitIds) {
+          await lockAccountSplit(tx, clinicId);
+        }
+      } else {
+        await lockAccountSplit(tx, head.sourceClinicId);
+      }
       if (input.hooks?.afterLocks) {
         await input.hooks.afterLocks();
       }
@@ -225,6 +245,29 @@ export async function executeClinicAccountSplit(input: {
           message:
             "This preparation changed. Review it again before executing.",
         };
+      }
+      if (snapshot.preparation.operationKind === "LOCATION_TO_NEW_ACCOUNT") {
+        return executeLocationToNewAccountCutover(tx, {
+          snapshot,
+          operatorUserId: input.operatorUserId,
+          confirmation: input.confirmation,
+          hooks: input.hooks,
+          destinationClinicId: head.destinationClinicId!,
+          steps: {
+            interrupt,
+            assertExclusiveStaffSelections,
+            copySplitGuides,
+            captureMovingPlacements,
+            assertPlacementPins,
+            reinsertPlacements,
+            assertCompatibilitySlugTargets,
+            writeCompatibilitySlugs,
+            mirrorClinicProfile,
+            applyMembershipDecisions,
+            assertSourceStructure,
+            readExecutionSummary,
+          },
+        });
       }
       if (snapshot.preparation.operationKind !== "SITE_TO_NEW_ACCOUNT") {
         throw new ClinicPortalError(
@@ -550,7 +593,9 @@ function refusalMessage(assessment: AccountSplitAssessment): string {
   return assessment.blockers.map((blocker) => blocker.message).join(" ");
 }
 
-function assertExclusiveStaffSelections(snapshot: AccountSplitSnapshot): void {
+export function assertExclusiveStaffSelections(
+  snapshot: AccountSplitSnapshot
+): void {
   const activeMembers = snapshot.memberships.filter(
     (membership) => membership.active && membership.platformRole !== "OPERATOR"
   );
@@ -572,16 +617,19 @@ function assertExclusiveStaffSelections(snapshot: AccountSplitSnapshot): void {
   }
 }
 
-async function interrupt(
+export async function interrupt(
   hooks: AccountSplitExecutionHooks | undefined,
   point: AccountSplitExecutionInterrupt
 ): Promise<void> {
+  if (hooks?.observe) {
+    await hooks.observe(point);
+  }
   if (hooks?.interruptAfter === point) {
     throw new AccountSplitExecutionInterrupted(point);
   }
 }
 
-async function copySplitGuides(
+export async function copySplitGuides(
   tx: Tx,
   input: {
     preparationId: string;
@@ -748,7 +796,7 @@ async function copySplitGuides(
   return { guideIds, revisionsBySource };
 }
 
-async function captureMovingPlacements(
+export async function captureMovingPlacements(
   tx: Tx,
   input: { sourceClinicId: string; locationIds: string[] }
 ): Promise<CapturedPlacement[]> {
@@ -773,7 +821,7 @@ async function captureMovingPlacements(
   return rows;
 }
 
-function assertPlacementPins(
+export function assertPlacementPins(
   placements: CapturedPlacement[],
   revisionsBySource: Map<string, CopiedRevision>
 ): void {
@@ -875,7 +923,7 @@ async function assertMovedLocations(
   }
 }
 
-async function reinsertPlacements(
+export async function reinsertPlacements(
   tx: Tx,
   input: {
     destinationClinicId: string;
@@ -949,7 +997,7 @@ async function reinsertPlacements(
   }
 }
 
-async function assertCompatibilitySlugTargets(
+export async function assertCompatibilitySlugTargets(
   tx: Tx,
   input: {
     sourceClinicId: string;
@@ -1017,7 +1065,7 @@ async function assertSlugHolder(
   }
 }
 
-async function writeCompatibilitySlugs(
+export async function writeCompatibilitySlugs(
   tx: Tx,
   input: {
     sourceClinicId: string;
@@ -1128,7 +1176,7 @@ async function loadSlugRows(
   return [source, destination];
 }
 
-async function mirrorClinicProfile(
+export async function mirrorClinicProfile(
   tx: Tx,
   clinicId: string,
   siteId: string
@@ -1220,7 +1268,7 @@ async function mirrorClinicProfile(
   });
 }
 
-async function applyMembershipDecisions(
+export async function applyMembershipDecisions(
   tx: Tx,
   input: {
     sourceClinicId: string;
@@ -1336,7 +1384,7 @@ async function applyMembershipDecisions(
   return movers.map((membership) => membership.userId);
 }
 
-async function assertSourceStructure(
+export async function assertSourceStructure(
   tx: Tx,
   sourceClinicId: string
 ): Promise<void> {
@@ -1610,7 +1658,7 @@ async function readPracticeDowngradeReady(
   }).ready;
 }
 
-async function readExecutionSummary(
+export async function readExecutionSummary(
   db: Tx | ReturnType<typeof getPrisma>,
   preparationId: string
 ): Promise<
@@ -1624,6 +1672,7 @@ async function readExecutionSummary(
     select: {
       id: true,
       status: true,
+      operationKind: true,
       sourceClinicId: true,
       destinationClinicId: true,
       executedAt: true,
@@ -1648,6 +1697,7 @@ async function readExecutionSummary(
   }
   const [
     movedDecision,
+    destinationPrimary,
     sourcePrimary,
     guideCopyCount,
     revisionCopyCount,
@@ -1655,14 +1705,30 @@ async function readExecutionSummary(
     deactivatedSiteCount,
     practiceDowngradeReady,
   ] = await Promise.all([
-    db.clinicAccountSplitSiteDecision.findFirst({
-      where: { preparationId, decision: "SPLIT" },
-      select: {
-        clinicSite: {
+    preparation.operationKind === "SITE_TO_NEW_ACCOUNT"
+      ? db.clinicAccountSplitSiteDecision.findFirst({
+          where: { preparationId, decision: "SPLIT" },
+          select: {
+            clinicSite: {
+              select: {
+                id: true,
+                slug: true,
+                displayName: true,
+                clinicId: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve(null),
+    preparation.operationKind === "LOCATION_TO_NEW_ACCOUNT"
+      ? db.clinicSite.findFirst({
+          where: {
+            clinicId: preparation.destinationClinicId,
+            isPrimary: true,
+          },
           select: { id: true, slug: true, displayName: true, clinicId: true },
-        },
-      },
-    }),
+        })
+      : Promise.resolve(null),
     db.clinicSite.findFirst({
       where: { clinicId: preparation.sourceClinicId, isPrimary: true },
       select: { id: true, slug: true, displayName: true },
@@ -1684,9 +1750,13 @@ async function readExecutionSummary(
       preparationId,
     }),
   ]);
+  const movedSite =
+    preparation.operationKind === "LOCATION_TO_NEW_ACCOUNT"
+      ? destinationPrimary
+      : (movedDecision?.clinicSite ?? null);
   if (
-    !movedDecision?.clinicSite ||
-    movedDecision.clinicSite.clinicId !== preparation.destinationClinicId ||
+    !movedSite ||
+    movedSite.clinicId !== preparation.destinationClinicId ||
     !sourcePrimary
   ) {
     throw new ClinicPortalError(
@@ -1703,9 +1773,9 @@ async function readExecutionSummary(
     source: preparation.sourceClinic,
     destination: preparation.destinationClinic,
     movedSite: {
-      id: movedDecision.clinicSite.id,
-      slug: movedDecision.clinicSite.slug,
-      displayName: movedDecision.clinicSite.displayName,
+      id: movedSite.id,
+      slug: movedSite.slug,
+      displayName: movedSite.displayName,
     },
     sourcePrimarySite: sourcePrimary,
     guideCopyCount,
