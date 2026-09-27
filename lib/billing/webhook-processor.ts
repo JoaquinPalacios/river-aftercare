@@ -11,6 +11,15 @@ import {
 import type Stripe from "stripe";
 
 import { logStripeBilling } from "@/lib/billing/log";
+import { PRACTICE_LOCATION_QUANTITY_LEGACY_PRESERVED_LOG_EVENT } from "@/lib/billing/group-billing-codes";
+import { practiceCapacityPersistence } from "@/lib/clinics/practice-capacity";
+import {
+  decidePracticeLocationProjection,
+  normalizeSubscriptionItemQuantity,
+  resolveWebhookSubscriptionCatalog,
+} from "@/lib/billing/practice-location-projection";
+import { reportPracticeSubscriptionShapeFailure } from "@/lib/observability/report-server-exception";
+import { stripeObjectId } from "@/lib/billing/identity";
 import {
   decideSubscriptionScheduleEvent,
   downgradeStripePort,
@@ -23,7 +32,6 @@ import {
   type PlanDowngradeStripePort,
 } from "@/lib/billing/plan-downgrade";
 import {
-  lookupStripePriceId,
   stripePriceIdForPlan,
   StripePriceMappingError,
 } from "@/lib/billing/price-map";
@@ -43,7 +51,12 @@ import {
 import { getStripeClient } from "@/lib/billing/stripe-client";
 
 export type StripeEventProcessOutcome =
-  "processed" | "duplicate" | "ignored" | "unmapped_clinic" | "unknown_price";
+  | "processed"
+  | "duplicate"
+  | "ignored"
+  | "unmapped_clinic"
+  | "unknown_price"
+  | "invalid_practice_shape";
 
 export type ProcessStripeEventResult = {
   outcome: StripeEventProcessOutcome;
@@ -225,6 +238,24 @@ async function resolveClinicId(options: {
   return { clinicId: fromHint?.id ?? null, conflict: false };
 }
 
+function subscriptionItemShapes(
+  subscription: Stripe.Subscription
+): { priceId: string; quantity: number }[] {
+  return (subscription.items?.data ?? []).map((item) => {
+    const legacyPlan = "plan" in item ? item.plan : null;
+    return {
+      priceId: stripeObjectId(item.price) ?? stripeObjectId(legacyPlan) ?? "",
+      quantity: normalizeSubscriptionItemQuantity(item.quantity),
+    };
+  });
+}
+
+function storedAllowance(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isInteger(value)
+    ? value
+    : fallback;
+}
+
 async function applyProjection(options: {
   db: BillingDb;
   clinicId: string;
@@ -235,9 +266,40 @@ async function applyProjection(options: {
   scheduledPlanEffectiveAt: Date | null;
   clearScheduleId: boolean;
   retireDowngradeAttempt: boolean;
+  practiceAdditionalLocationQuantity?: number;
 }): Promise<void> {
   const { db, clinicId, snapshot, entitlement, stripeEventId } = options;
   const now = new Date();
+  const storedEntitlement = await db.clinicEntitlement.findUnique({
+    where: { clinicId },
+  });
+  const practiceCapacity =
+    options.practiceAdditionalLocationQuantity !== undefined &&
+    entitlement.commercialPlan === "PRACTICE" &&
+    entitlement.entitlementStatus === EntitlementStatus.ACTIVE
+      ? practiceCapacityPersistence({
+          capacityEntitlementActive: true,
+          purchasedAdditionalLocationQuantity:
+            options.practiceAdditionalLocationQuantity,
+          extraLocationAllowance: storedAllowance(
+            storedEntitlement?.extraLocationAllowance,
+            0
+          ),
+          siteAllowance: storedAllowance(storedEntitlement?.siteAllowance, 1),
+          locationAllowance: storedAllowance(
+            storedEntitlement?.locationAllowance,
+            1
+          ),
+        })
+      : null;
+  const practiceCapacityWrite = practiceCapacity
+    ? {
+        purchasedAdditionalLocationQuantity:
+          practiceCapacity.purchasedAdditionalLocationQuantity,
+        siteAllowance: practiceCapacity.siteAllowance,
+        locationAllowance: practiceCapacity.locationAllowance,
+      }
+    : {};
 
   await db.clinicBillingProfile.upsert({
     where: { clinicId },
@@ -281,6 +343,7 @@ async function applyProjection(options: {
       lastProjectedAt: now,
       scheduledCommercialPlan: options.scheduledCommercialPlan,
       scheduledPlanEffectiveAt: options.scheduledPlanEffectiveAt,
+      ...practiceCapacityWrite,
     },
     update: {
       commercialPlan: entitlement.commercialPlan,
@@ -298,6 +361,7 @@ async function applyProjection(options: {
       lastProjectedAt: now,
       scheduledCommercialPlan: options.scheduledCommercialPlan,
       scheduledPlanEffectiveAt: options.scheduledPlanEffectiveAt,
+      ...practiceCapacityWrite,
     },
   });
 }
@@ -423,11 +487,13 @@ export async function processVerifiedStripeEvent(
       ? createStripeSubscriptionReader()
       : options.reader;
 
+  let authoritativeSubscription: Stripe.Subscription | null = null;
   if (reader && snapshot.stripeSubscriptionId) {
     const subscription = await reader.retrieveSubscription(
       snapshot.stripeSubscriptionId
     );
     if (subscription) {
+      authoritativeSubscription = subscription;
       snapshot = mergeSubscriptionIntoSnapshot(snapshot, subscription);
     }
   }
@@ -456,12 +522,73 @@ export async function processVerifiedStripeEvent(
     };
   }
 
-  const priceLookup = lookupStripePriceId(snapshot.stripePriceId, env);
   const previousRow = identity.clinicId
     ? await db.clinicEntitlement.findUnique({
         where: { clinicId: identity.clinicId },
       })
     : null;
+
+  const catalog = identity.clinicId
+    ? resolveWebhookSubscriptionCatalog({
+        subscriptionItems: authoritativeSubscription
+          ? subscriptionItemShapes(authoritativeSubscription)
+          : null,
+        snapshotPriceId: snapshot.stripePriceId,
+        previous: previousRow
+          ? {
+              commercialPlan: previousRow.commercialPlan,
+              entitlementStatus: previousRow.entitlementStatus,
+            }
+          : null,
+        env,
+      })
+    : null;
+
+  if (catalog?.kind === "practice_shape") {
+    const diagnostic = `Practice subscription shape is invalid (${catalog.reason}).`;
+    await mark(
+      StripeEventProcessingStatus.FAILED,
+      diagnostic,
+      identity.clinicId
+    );
+    logStripeBilling({
+      event: "stripe_webhook_practice_subscription_shape_invalid",
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+      reason: catalog.reason,
+    });
+    reportPracticeSubscriptionShapeFailure();
+    return {
+      outcome: "invalid_practice_shape",
+      clinicId: identity.clinicId,
+      stripeEventId,
+      eventType,
+    };
+  }
+
+  if (catalog?.kind === "group_unsupported") {
+    const diagnostic =
+      "Group subscription projection is not supported. The last entitlement was left unchanged.";
+    await mark(
+      StripeEventProcessingStatus.FAILED,
+      diagnostic,
+      identity.clinicId
+    );
+    logStripeBilling({
+      event: "stripe_webhook_unknown_price",
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+      stripePriceId: snapshot.stripePriceId ?? "",
+    });
+    return {
+      outcome: "unknown_price",
+      clinicId: identity.clinicId,
+      stripeEventId,
+      eventType,
+    };
+  }
 
   const projection = projectEntitlement({
     eventType,
@@ -469,12 +596,12 @@ export async function processVerifiedStripeEvent(
     clinicId: identity.clinicId,
     stripeCustomerId: snapshot.stripeCustomerId,
     stripeSubscriptionId: snapshot.stripeSubscriptionId,
-    stripePriceId: snapshot.stripePriceId,
-    mappedPrice:
-      priceLookup.kind === "mapped"
-        ? { plan: priceLookup.plan, interval: priceLookup.interval }
-        : null,
-    unknownPrice: priceLookup.kind === "unknown",
+    stripePriceId:
+      catalog?.kind === "project"
+        ? catalog.stripePriceId
+        : snapshot.stripePriceId,
+    mappedPrice: catalog?.kind === "project" ? catalog.mappedPrice : null,
+    unknownPrice: catalog?.kind === "unknown_price",
     subscriptionStatus: snapshot.subscriptionStatus,
     cancelAtPeriodEnd: snapshot.cancelAtPeriodEnd,
     currentPeriodStart: snapshot.currentPeriodStart,
@@ -516,6 +643,47 @@ export async function processVerifiedStripeEvent(
       stripeEventId,
       eventType,
     };
+  }
+
+  const locationProjection =
+    projection.kind === "apply"
+      ? decidePracticeLocationProjection({
+          projectedPlan: projection.entitlement.commercialPlan,
+          projectedEntitlementStatus: projection.entitlement.entitlementStatus,
+          classifiedQuantity:
+            catalog?.kind === "project"
+              ? catalog.practiceAdditionalLocationQuantity
+              : null,
+          previous: previousRow
+            ? {
+                commercialPlan: previousRow.commercialPlan,
+                entitlementStatus: previousRow.entitlementStatus,
+                purchasedAdditionalLocationQuantity:
+                  typeof previousRow.purchasedAdditionalLocationQuantity ===
+                  "number"
+                    ? previousRow.purchasedAdditionalLocationQuantity
+                    : null,
+              }
+            : null,
+        })
+      : { action: "omit" as const, mode: "outside_practice_quantity" as const };
+
+  if (locationProjection.action === "require_subscription") {
+    const diagnostic =
+      "Practice subscription could not be retrieved. The entitlement was left unchanged.";
+    await mark(
+      StripeEventProcessingStatus.FAILED,
+      diagnostic,
+      identity.clinicId
+    );
+    logStripeBilling({
+      event: "stripe_webhook_failed",
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+      reason: "practice_subscription_unavailable",
+    });
+    throw new Error("Practice subscription could not be retrieved.");
   }
 
   const profile = identity.clinicId
@@ -601,6 +769,11 @@ export async function processVerifiedStripeEvent(
         scheduledPlanEffectiveAt: scheduledFields.scheduledPlanEffectiveAt,
         clearScheduleId,
         retireDowngradeAttempt,
+        ...(locationProjection.action === "project"
+          ? {
+              practiceAdditionalLocationQuantity: locationProjection.quantity,
+            }
+          : {}),
       });
       await applyDowngradeGuideTransition({
         db: tx,
@@ -653,6 +826,15 @@ export async function processVerifiedStripeEvent(
       };
     }
     throw error;
+  }
+
+  if (identity.clinicId && locationProjection.action === "preserve_legacy") {
+    logStripeBilling({
+      event: PRACTICE_LOCATION_QUANTITY_LEGACY_PRESERVED_LOG_EVENT,
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+    });
   }
 
   if (

@@ -28,6 +28,55 @@ export function practiceEffectiveAllowances(input: {
   };
 }
 
+export type PracticeCapacityFacts = {
+  purchasedAdditionalLocationQuantity: number;
+  extraLocationAllowance: number;
+  siteAllowance: number;
+  locationAllowance: number;
+};
+
+/**
+ * One Practice capacity decision for a write.
+ *
+ * `purchasedAdditionalLocationQuantity` must already be an explicit
+ * non-negative integer. This helper does not turn null into 0 and does not
+ * infer N or complimentary extras from a stored location total.
+ *
+ * While the entitlement is not ACTIVE, stored site and location totals stay
+ * as they are. While it is ACTIVE, the derived totals are the only ones to
+ * persist: 1 site and `1 + N + extraLocationAllowance`.
+ */
+export function practiceCapacityPersistence(input: {
+  capacityEntitlementActive: boolean;
+  purchasedAdditionalLocationQuantity: number;
+  extraLocationAllowance: number;
+  siteAllowance: number;
+  locationAllowance: number;
+}): PracticeCapacityFacts {
+  const extra = isNonNegativeInteger(input.extraLocationAllowance)
+    ? input.extraLocationAllowance
+    : 0;
+  const purchased = input.purchasedAdditionalLocationQuantity;
+  if (!input.capacityEntitlementActive) {
+    return {
+      purchasedAdditionalLocationQuantity: purchased,
+      extraLocationAllowance: extra,
+      siteAllowance: input.siteAllowance,
+      locationAllowance: input.locationAllowance,
+    };
+  }
+  const derived = practiceEffectiveAllowances({
+    purchasedAdditionalLocationQuantity: purchased,
+    extraLocationAllowance: extra,
+  });
+  return {
+    purchasedAdditionalLocationQuantity: purchased,
+    extraLocationAllowance: extra,
+    siteAllowance: derived.siteAllowance,
+    locationAllowance: derived.locationAllowance,
+  };
+}
+
 export function practiceCapacityIsDerived(input: {
   commercialPlan: string | null;
   capacityEntitlementActive?: boolean;

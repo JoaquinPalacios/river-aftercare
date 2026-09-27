@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { effectiveSiteLocationAllowance } from "@/lib/clinics/site-location-allowance";
-import { practiceEffectiveAllowances } from "@/lib/clinics/practice-capacity";
+import {
+  practiceCapacityPersistence,
+  practiceEffectiveAllowances,
+} from "@/lib/clinics/practice-capacity";
 
 describe("Practice additional location capacity", () => {
   it("derives 1 site and 1 + N + complimentary locations", () => {
@@ -51,6 +54,37 @@ describe("Practice additional location capacity", () => {
         },
       })
     ).toEqual({ siteAllowance: 1, locationAllowance: 3 });
+  });
+
+  it("persists derived allowances only while the entitlement is active", () => {
+    expect(
+      practiceCapacityPersistence({
+        capacityEntitlementActive: true,
+        purchasedAdditionalLocationQuantity: 2,
+        extraLocationAllowance: 1,
+        siteAllowance: 4,
+        locationAllowance: 9,
+      })
+    ).toEqual({
+      purchasedAdditionalLocationQuantity: 2,
+      extraLocationAllowance: 1,
+      siteAllowance: 1,
+      locationAllowance: 4,
+    });
+    expect(
+      practiceCapacityPersistence({
+        capacityEntitlementActive: false,
+        purchasedAdditionalLocationQuantity: 2,
+        extraLocationAllowance: 1,
+        siteAllowance: 1,
+        locationAllowance: 3,
+      })
+    ).toEqual({
+      purchasedAdditionalLocationQuantity: 2,
+      extraLocationAllowance: 1,
+      siteAllowance: 1,
+      locationAllowance: 3,
+    });
   });
 
   it("does not grant paid Practice capacity before the entitlement is active", () => {

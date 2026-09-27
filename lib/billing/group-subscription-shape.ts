@@ -100,7 +100,8 @@ type ClassifiedItem = {
  * Classifies subscription items without reading Stripe and without depending
  * on item order. Essential is one base item at quantity 1. Practice is one
  * base item at quantity 1 plus an optional Additional Location quantity.
- * Checkout and webhook projection do not call this yet.
+ * Webhook projection classifies the retrieved subscription items.
+ * Checkout does not call this.
  */
 export function classifySubscriptionShape(
   items: readonly SubscriptionItemShape[],

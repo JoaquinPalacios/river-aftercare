@@ -151,8 +151,8 @@ export function reportGroupSubscriptionShapeFailure(): void {
 }
 
 /**
- * Prepared for a later Practice subscription projector.
- * Not called from webhook processing in this foundation.
+ * Malformed Practice subscription items. The webhook records the receipt
+ * as failed and leaves the last projected entitlement unchanged.
  */
 export function reportPracticeSubscriptionShapeFailure(): void {
   reportOperationalFailure(

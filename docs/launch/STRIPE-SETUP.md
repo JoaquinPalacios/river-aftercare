@@ -25,7 +25,7 @@ Create four Products. Monthly and yearly are Prices on the same Product. Currenc
 | River Aftercare Group Additional Site          | A$50 / month      | +1 Clinic Site and +1 Location              |
 | River Aftercare Group Additional Site          | A$500 / year      | +1 Clinic Site and +1 Location              |
 
-Essential has no additional-location Price. Practice Additional Location is one quantity-based graduated Price per interval, not a second base plan. Group has no standalone Additional Location Price. Public Group marketing stays Custom pricing. The application does not start Group Checkout or Practice add-on Checkout yet.
+Essential has no additional-location Price. Practice Additional Location is one quantity-based graduated Price per interval, not a second base plan. Group has no standalone Additional Location Price. Public Group marketing stays Custom pricing. The application does not start Group Checkout or Practice add-on Checkout yet. A new paid Practice activation can store a purchased additional-location quantity from the current subscription, including zero. Buying or changing that quantity in the app is not implemented.
 
 Copy the ten resulting `price_...` identifiers into server-only environment variables:
 
@@ -40,7 +40,7 @@ Copy the ten resulting `price_...` identifiers into server-only environment vari
 - `STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID`
 
-The ten Price IDs must be unique. If any Group Price ID is missing, Group billing stays unavailable and Essential and Practice continue to work. If the Practice Additional Location Price IDs are missing, one-location Practice billing continues to work. An Additional Site Price and an Additional Location Price are not plans.
+The ten Price IDs must be unique. If any Group Price ID is missing, Group billing stays unavailable and Essential and Practice continue to work. If the Practice Additional Location Price IDs are missing, base-only Practice billing continues to work and a retrieved base-only activation stores quantity 0. A new Practice activation still requires that retrieved subscription. An unrecognised extra subscription item still fails closed. An Additional Site Price and an Additional Location Price are not plans.
 
 Never commit secrets or Price IDs. Never prefix these with `NEXT_PUBLIC_`.
 
