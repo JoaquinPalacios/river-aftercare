@@ -14,6 +14,7 @@ import {
 } from "@/lib/account-split/locks";
 import {
   ACCOUNT_SPLIT_COMMERCIAL_CONFLICT_CODES,
+  DESTINATION_ROLE_CONFLICT_MESSAGE,
   assessAccountSplit,
   assessExecutedPracticeDowngrade,
   classifyDestinationBilling,
@@ -1310,6 +1311,27 @@ export async function applyMembershipDecisions(
         "conflict"
       );
     }
+    const existing = await tx.clinicMembership.findUnique({
+      where: {
+        clinicId_userId: {
+          clinicId: input.destinationClinicId,
+          userId: membership.userId,
+        },
+      },
+      select: { id: true, role: true, active: true },
+    });
+    if (existing?.active) {
+      throw new ClinicPortalError(
+        "A person already has an active membership on the destination Account.",
+        "conflict"
+      );
+    }
+    if (existing && existing.role !== selection.destinationRole) {
+      throw new ClinicPortalError(
+        DESTINATION_ROLE_CONFLICT_MESSAGE,
+        "conflict"
+      );
+    }
     const removed = await tx.clinicMembership.deleteMany({
       where: {
         clinicId: input.sourceClinicId,
@@ -1323,19 +1345,10 @@ export async function applyMembershipDecisions(
         "conflict"
       );
     }
-    const existing = await tx.clinicMembership.findUnique({
-      where: {
-        clinicId_userId: {
-          clinicId: input.destinationClinicId,
-          userId: membership.userId,
-        },
-      },
-      select: { id: true },
-    });
     if (existing) {
       await tx.clinicMembership.update({
         where: { id: existing.id },
-        data: { active: true, role: selection.destinationRole },
+        data: { active: true },
       });
     } else {
       await tx.clinicMembership.create({

@@ -5,6 +5,7 @@ import {
   ACCOUNT_SPLIT_BLOCKER_CODES,
   accountSplitDestinationAllowance,
   classifyDestinationBilling,
+  destinationMembershipRoleConflict,
   projectAccountSplitStatus,
   type AccountSplitAssessment,
   type AccountSplitBlocker,
@@ -250,6 +251,62 @@ function orderBlockers(blockers: AccountSplitBlocker[]): AccountSplitBlocker[] {
 }
 
 /**
+ * People who will be active destination administrators after cutover.
+ * An existing destination role is kept, so a reviewed ADMIN decision does not
+ * count when that membership already has another role. Platform operators
+ * do not count. Their Terms acceptance does not either.
+ */
+function prospectiveDestinationAdminIds(
+  snapshot: AccountSplitSnapshot
+): string[] {
+  const destinationByUser = new Map(
+    snapshot.destination.memberships.map((membership) => [
+      membership.userId,
+      membership,
+    ])
+  );
+  const selectionByUser = new Map(
+    snapshot.selections.map((selection) => [selection.userId, selection])
+  );
+  const ids = new Set<string>();
+  for (const membership of snapshot.memberships) {
+    if (!membership.active || membership.platformRole === "OPERATOR") {
+      continue;
+    }
+    const selection = selectionByUser.get(membership.userId);
+    if (
+      !selection?.grantOnDestination ||
+      selection.keepOnSource ||
+      selection.destinationRole !== "ADMIN"
+    ) {
+      continue;
+    }
+    const existing = destinationByUser.get(membership.userId);
+    if (existing && existing.role !== "ADMIN") {
+      continue;
+    }
+    ids.add(membership.userId);
+  }
+  const sourceActiveIds = new Set(
+    snapshot.memberships
+      .filter((membership) => membership.active)
+      .map((membership) => membership.userId)
+  );
+  for (const membership of snapshot.destination.memberships) {
+    if (
+      !membership.active ||
+      membership.role !== "ADMIN" ||
+      membership.platformRole === "OPERATOR" ||
+      sourceActiveIds.has(membership.userId)
+    ) {
+      continue;
+    }
+    ids.add(membership.userId);
+  }
+  return [...ids];
+}
+
+/**
  * Readiness for moving one Practice non-root location onto a new Essential
  * or Practice account. This is not the Group Clinic Site split assessment.
  */
@@ -446,12 +503,20 @@ export function assessLocationToNewAccount(
   const sourceActiveIds = new Set(
     activeMembers.map((membership) => membership.userId)
   );
+  const destinationMembershipByUser = new Map(
+    snapshot.destination.memberships.map((membership) => [
+      membership.userId,
+      membership,
+    ])
+  );
   const selectedDestinationAdmin = activeMembers.some((membership) => {
     const selection = selectionByUser.get(membership.userId);
+    const existing = destinationMembershipByUser.get(membership.userId);
     return (
       selection?.grantOnDestination === true &&
       selection.keepOnSource === false &&
-      selection.destinationRole === "ADMIN"
+      selection.destinationRole === "ADMIN" &&
+      (!existing || existing.role === "ADMIN")
     );
   });
   const establishedDestinationAdmin = snapshot.destination.memberships.some(
@@ -476,6 +541,24 @@ export function assessLocationToNewAccount(
       code: "destination_admin_required",
       message:
         "Destination Account requires an administrator who will not remain an active member of the source Account.",
+    });
+  }
+  const roleConflict = destinationMembershipRoleConflict(snapshot);
+  if (roleConflict) {
+    blockers.push(roleConflict);
+  }
+  const termsAdminIds = prospectiveDestinationAdminIds(snapshot);
+  if (
+    snapshot.preparation.destinationClinicId &&
+    termsAdminIds.length > 0 &&
+    !termsAdminIds.some((userId) =>
+      snapshot.destinationTermsAcceptedUserIds.includes(userId)
+    )
+  ) {
+    blockers.push({
+      code: "destination_terms_required",
+      message:
+        "The destination administrator must accept the Terms on the destination Account before this move can run.",
     });
   }
 

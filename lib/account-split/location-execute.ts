@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import { LegalAcceptanceSource, type Prisma } from "@prisma/client";
 
 import { planSplitSiteBranding } from "@/lib/account-split/branding-plan";
 import { recordAccountSplitEvent } from "@/lib/account-split/events";
@@ -19,6 +19,10 @@ import type {
   CopiedRevision,
 } from "@/lib/account-split/execute";
 import { createClinicLocationRedirect } from "@/lib/clinics/location-redirect";
+import {
+  PRIVACY_ACKNOWLEDGEMENT_VERSION,
+  TERMS_ACCEPTANCE_VERSION,
+} from "@/lib/legal/status";
 import { readSplitDestinationCommercialState } from "@/lib/billing/split-destination-access";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import {
@@ -704,12 +708,24 @@ async function assertLocationBillingStillReady(
     destinationClinicId,
     tx
   );
+  const acceptances = await tx.legalAcceptance.findMany({
+    where: {
+      clinicId: destinationClinicId,
+      termsVersion: TERMS_ACCEPTANCE_VERSION,
+      privacyVersionAcknowledged: PRIVACY_ACKNOWLEDGEMENT_VERSION,
+      source: LegalAcceptanceSource.BILLING_CHECKOUT,
+    },
+    select: { userId: true },
+  });
   const fresh: AccountSplitSnapshot = {
     ...snapshot,
     destination: {
       ...snapshot.destination,
       entitlement,
     },
+    destinationTermsAcceptedUserIds: [
+      ...new Set(acceptances.map((row) => row.userId)),
+    ],
   };
   const assessment = assessLocationToNewAccount(fresh);
   if (
@@ -717,6 +733,26 @@ async function assertLocationBillingStillReady(
   ) {
     throw new ClinicPortalError(
       "Destination billing is no longer ready.",
+      "conflict"
+    );
+  }
+  if (
+    assessment.blockers.some(
+      (blocker) => blocker.code === "destination_terms_required"
+    )
+  ) {
+    throw new ClinicPortalError(
+      "The destination administrator must accept the Terms on the destination Account.",
+      "conflict"
+    );
+  }
+  if (
+    assessment.blockers.some(
+      (blocker) => blocker.code === "destination_role_conflict"
+    )
+  ) {
+    throw new ClinicPortalError(
+      "An existing destination membership keeps its role.",
       "conflict"
     );
   }

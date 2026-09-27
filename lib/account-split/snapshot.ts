@@ -1,6 +1,10 @@
 import "server-only";
 
-import { AccountTokenType, type Prisma } from "@prisma/client";
+import {
+  AccountTokenType,
+  LegalAcceptanceSource,
+  type Prisma,
+} from "@prisma/client";
 
 import type { AccountSplitSnapshot } from "@/lib/account-split/policy";
 import { readAccountCapacityFacts } from "@/lib/billing/group-capacity-gate";
@@ -8,6 +12,10 @@ import {
   readSplitDestinationCommercialState,
   readSplitSourceCommercialSignals,
 } from "@/lib/billing/split-destination-access";
+import {
+  PRIVACY_ACKNOWLEDGEMENT_VERSION,
+  TERMS_ACCEPTANCE_VERSION,
+} from "@/lib/legal/status";
 import { getPrisma } from "@/lib/prisma";
 
 type Db = Prisma.TransactionClient | ReturnType<typeof getPrisma>;
@@ -118,6 +126,7 @@ export async function loadAccountSplitSnapshot(
     openDowngrade,
     conflictingPreparations,
     brandingAssets,
+    destinationTermsAcceptedUserIds,
   ] = await runAccountSplitReads([
     () =>
       db.clinic.findUnique({
@@ -229,6 +238,13 @@ export async function loadAccountSplitSnapshot(
           destinationStorageKey: true,
         },
       }),
+    () =>
+      preparation.destinationClinicId
+        ? loadDestinationTermsAcceptedUserIds(
+            db,
+            preparation.destinationClinicId
+          )
+        : Promise.resolve([]),
   ]);
 
   if (!sourceClinic) {
@@ -300,7 +316,24 @@ export async function loadAccountSplitSnapshot(
     brandingAssets,
     destinationSlugSiteId: destinationSlugHolders.siteId,
     destinationSlugClinicId: destinationSlugHolders.clinicId,
+    destinationTermsAcceptedUserIds,
   };
+}
+
+async function loadDestinationTermsAcceptedUserIds(
+  db: Db,
+  clinicId: string
+): Promise<string[]> {
+  const rows = await db.legalAcceptance.findMany({
+    where: {
+      clinicId,
+      termsVersion: TERMS_ACCEPTANCE_VERSION,
+      privacyVersionAcknowledged: PRIVACY_ACKNOWLEDGEMENT_VERSION,
+      source: LegalAcceptanceSource.BILLING_CHECKOUT,
+    },
+    select: { userId: true },
+  });
+  return [...new Set(rows.map((row) => row.userId))].sort();
 }
 
 async function loadDestinationSlugHolders(

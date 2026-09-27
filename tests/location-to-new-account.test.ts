@@ -22,6 +22,7 @@ import {
   EntitlementStatus,
   GuideRevisionStatus,
   GuideSectionKind,
+  LegalAcceptanceSource,
   PracticeGuideStatus,
   PracticeSectionProvenance,
   type CommercialPlan,
@@ -43,6 +44,10 @@ import {
   saveLocationToNewAccountSelection,
 } from "@/lib/account-split/preparation";
 import { isOwnedClinicBrandingKey } from "@/lib/clinic-assets/clinic-logo";
+import {
+  PRIVACY_ACKNOWLEDGEMENT_VERSION,
+  TERMS_ACCEPTANCE_VERSION,
+} from "@/lib/legal/status";
 import {
   getClinicAssetStorage,
   resetClinicAssetStorageCache,
@@ -395,8 +400,28 @@ async function prepareReady(
     plan,
     purchased: options?.purchased,
   });
+  await acceptDestinationTerms({
+    clinicId: shell.id,
+    userId: account.adminId,
+  });
   await revalidateAccountSplitPreparation(preparation.id);
   return { preparationId: preparation.id, destinationId: shell.id };
+}
+
+async function acceptDestinationTerms(input: {
+  clinicId: string;
+  userId: string;
+}) {
+  await db().legalAcceptance.create({
+    data: {
+      clinicId: input.clinicId,
+      userId: input.userId,
+      termsVersion: TERMS_ACCEPTANCE_VERSION,
+      privacyVersionAcknowledged: PRIVACY_ACKNOWLEDGEMENT_VERSION,
+      source: LegalAcceptanceSource.BILLING_CHECKOUT,
+      acceptedAt: new Date("2026-09-21T00:00:00.000Z"),
+    },
+  });
 }
 
 async function executePrepared(
@@ -1319,7 +1344,7 @@ describe("move location to new account", () => {
       data: {
         clinicId: ready.destinationId,
         userId: account.adminId,
-        role: "STAFF",
+        role: "ADMIN",
         active: false,
       },
     });
@@ -1646,5 +1671,228 @@ describe("move location to new account", () => {
       "source_subscription_schedule"
     );
     expect(preview?.status).not.toBe("READY_TO_EXECUTE");
+  });
+
+  it("keeps an existing destination role and blocks a mismatch or a live dual membership", async () => {
+    const created = await seedPractice("role-new");
+    const createdReady = await prepareReady(created);
+    await executePrepared({
+      preparationId: createdReady.preparationId,
+      confirmation: `move ${created.destinationSlug}`,
+      operatorUserId: created.operatorId,
+    });
+    expect(
+      await db().clinicMembership.findUniqueOrThrow({
+        where: {
+          clinicId_userId: {
+            clinicId: createdReady.destinationId,
+            userId: created.adminId,
+          },
+        },
+      })
+    ).toMatchObject({ role: "ADMIN", active: true });
+    expect(
+      await db().clinicMembership.findUnique({
+        where: {
+          clinicId_userId: {
+            clinicId: created.clinicId,
+            userId: created.adminId,
+          },
+        },
+      })
+    ).toBeNull();
+
+    const same = await seedPractice("role-same");
+    const sameReady = await prepareReady(same);
+    await db().clinicMembership.create({
+      data: {
+        clinicId: sameReady.destinationId,
+        userId: same.adminId,
+        role: "ADMIN",
+        active: false,
+      },
+    });
+    await revalidateAccountSplitPreparation(sameReady.preparationId);
+    expect((await previewAccountSplit(sameReady.preparationId))?.status).toBe(
+      "READY_TO_EXECUTE"
+    );
+    await executePrepared({
+      preparationId: sameReady.preparationId,
+      confirmation: `move ${same.destinationSlug}`,
+      operatorUserId: same.operatorId,
+    });
+    expect(
+      await db().clinicMembership.findUniqueOrThrow({
+        where: {
+          clinicId_userId: {
+            clinicId: sameReady.destinationId,
+            userId: same.adminId,
+          },
+        },
+      })
+    ).toMatchObject({ role: "ADMIN", active: true });
+
+    const mismatch = await seedPractice("role-mismatch");
+    const mismatchReady = await prepareReady(mismatch);
+    await db().clinicMembership.create({
+      data: {
+        clinicId: mismatchReady.destinationId,
+        userId: mismatch.adminId,
+        role: "STAFF",
+        active: false,
+      },
+    });
+    await revalidateAccountSplitPreparation(mismatchReady.preparationId);
+    const mismatchPreview = await previewAccountSplit(
+      mismatchReady.preparationId
+    );
+    expect(mismatchPreview?.blockers.map((blocker) => blocker.code)).toContain(
+      "destination_role_conflict"
+    );
+    expect(mismatchPreview?.status).not.toBe("READY_TO_EXECUTE");
+    await expect(
+      executePrepared({
+        preparationId: mismatchReady.preparationId,
+        confirmation: `move ${mismatch.destinationSlug}`,
+        operatorUserId: mismatch.operatorId,
+      })
+    ).rejects.toThrow(/not ready to execute/);
+    expect(
+      await db().clinicMembership.findUniqueOrThrow({
+        where: {
+          clinicId_userId: {
+            clinicId: mismatch.clinicId,
+            userId: mismatch.adminId,
+          },
+        },
+      })
+    ).toMatchObject({ active: true, role: "ADMIN" });
+    expect(
+      await db().clinicMembership.findUniqueOrThrow({
+        where: {
+          clinicId_userId: {
+            clinicId: mismatchReady.destinationId,
+            userId: mismatch.adminId,
+          },
+        },
+      })
+    ).toMatchObject({ active: false, role: "STAFF" });
+
+    const dual = await seedPractice("role-dual");
+    const dualReady = await prepareReady(dual);
+    await db().clinicMembership.create({
+      data: {
+        clinicId: dualReady.destinationId,
+        userId: dual.adminId,
+        role: "ADMIN",
+        active: true,
+      },
+    });
+    await revalidateAccountSplitPreparation(dualReady.preparationId);
+    expect(
+      (await previewAccountSplit(dualReady.preparationId))?.blockers.map(
+        (blocker) => blocker.code
+      )
+    ).toContain("dual_membership");
+    await expect(
+      executePrepared({
+        preparationId: dualReady.preparationId,
+        confirmation: `move ${dual.destinationSlug}`,
+        operatorUserId: dual.operatorId,
+      })
+    ).rejects.toThrow(/not ready to execute/);
+    expect(
+      await db().clinicMembership.findUniqueOrThrow({
+        where: {
+          clinicId_userId: { clinicId: dual.clinicId, userId: dual.adminId },
+        },
+      })
+    ).toMatchObject({ active: true, role: "ADMIN" });
+    expect(
+      await db().clinicMembership.findUniqueOrThrow({
+        where: {
+          clinicId_userId: {
+            clinicId: dualReady.destinationId,
+            userId: dual.adminId,
+          },
+        },
+      })
+    ).toMatchObject({ active: true, role: "ADMIN" });
+  });
+
+  it("requires the destination administrator's Terms acceptance", async () => {
+    const account = await seedPractice("terms");
+    const preparation = await openMove(account);
+    await confirmLocationDestinationSiteSlug({
+      preparationId: preparation.id,
+      destinationSiteSlug: account.destinationSlug,
+    });
+    await saveAccountSplitStaffSelections({
+      preparationId: preparation.id,
+      selections: await staffChoices(account, "split"),
+    });
+    const shell = await createSplitDestinationAccount(preparation.id);
+    expect(
+      await db().legalAcceptance.count({ where: { clinicId: shell.id } })
+    ).toBe(0);
+    await activateDestination({ clinicId: shell.id, plan: "ESSENTIAL" });
+    await revalidateAccountSplitPreparation(preparation.id);
+    const missing = await previewAccountSplit(preparation.id);
+    expect(missing?.blockers.map((blocker) => blocker.code)).toContain(
+      "destination_terms_required"
+    );
+    expect(missing?.status).not.toBe("READY_TO_EXECUTE");
+
+    await acceptDestinationTerms({
+      clinicId: shell.id,
+      userId: account.operatorId,
+    });
+    await revalidateAccountSplitPreparation(preparation.id);
+    const operatorAcceptance = await previewAccountSplit(preparation.id);
+    expect(
+      operatorAcceptance?.blockers.map((blocker) => blocker.code)
+    ).toContain("destination_terms_required");
+    expect(operatorAcceptance?.status).not.toBe("READY_TO_EXECUTE");
+
+    await acceptDestinationTerms({
+      clinicId: shell.id,
+      userId: account.adminId,
+    });
+    await revalidateAccountSplitPreparation(preparation.id);
+    expect((await previewAccountSplit(preparation.id))?.status).toBe(
+      "READY_TO_EXECUTE"
+    );
+
+    const before = await db().legalAcceptance.findMany({
+      where: { clinicId: shell.id },
+      orderBy: { userId: "asc" },
+    });
+    await expect(
+      executePrepared({
+        preparationId: preparation.id,
+        confirmation: `move ${account.destinationSlug}`,
+        operatorUserId: account.operatorId,
+        hooks: { interruptAfter: "after_guide_copies" },
+      })
+    ).rejects.toBeInstanceOf(AccountSplitExecutionInterrupted);
+    const after = await db().legalAcceptance.findMany({
+      where: { clinicId: shell.id },
+      orderBy: { userId: "asc" },
+    });
+    expect(after.map((row) => row.id)).toEqual(before.map((row) => row.id));
+    expect(after.map((row) => row.userId)).toEqual(
+      before.map((row) => row.userId)
+    );
+
+    const preparationSource = readFileSync(
+      "lib/account-split/preparation.ts",
+      "utf8"
+    );
+    const cutover = readFileSync(
+      "lib/account-split/location-execute.ts",
+      "utf8"
+    );
+    expect(preparationSource).not.toContain("legalAcceptance.create");
+    expect(cutover).not.toContain("legalAcceptance.create");
   });
 });
