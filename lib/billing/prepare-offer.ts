@@ -8,6 +8,7 @@ import {
   type PrismaClient,
 } from "@prisma/client";
 
+import { isOfferedAdditionalSiteQuantity } from "@/lib/billing/group-commercial";
 import { logStripeBilling } from "@/lib/billing/log";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import type {
@@ -106,11 +107,25 @@ async function writePreparedOffer(
 export async function prepareClinicCommercialOffer(
   input: {
     clinicId: string;
-    commercialPlan: SelfServeCommercialPlan;
+    commercialPlan: SelfServeCommercialPlan | "GROUP";
     billingInterval: BillingIntervalCode;
+    offeredAdditionalSiteQuantity?: number | null;
   },
   db: OfferDb = getPrisma()
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<{ ok: true } | { ok: false; message: string; code?: string }> {
+  let offeredAdditionalSiteQuantity: number | null = null;
+  if (input.commercialPlan === "GROUP") {
+    if (!isOfferedAdditionalSiteQuantity(input.offeredAdditionalSiteQuantity)) {
+      return {
+        ok: false,
+        code: "group_offer_invalid",
+        message: "Enter a whole number of additional sites, zero or more.",
+      };
+    }
+    offeredAdditionalSiteQuantity = input.offeredAdditionalSiteQuantity;
+  }
+  const groupOffer = input.commercialPlan === "GROUP";
+
   const existing = await db.clinicEntitlement.findUnique({
     where: { clinicId: input.clinicId },
     select: {
@@ -118,6 +133,7 @@ export async function prepareClinicCommercialOffer(
       billingInterval: true,
       billingStatus: true,
       entitlementStatus: true,
+      offeredAdditionalSiteQuantity: true,
     },
   });
   const profile = await db.clinicBillingProfile.findUnique({
@@ -141,7 +157,11 @@ export async function prepareClinicCommercialOffer(
     clinicSite?: { count?: (args: unknown) => Promise<number> };
     clinicLocation?: { count?: (args: unknown) => Promise<number> };
   };
-  if (usageDb.clinicSite?.count && usageDb.clinicLocation?.count) {
+  if (
+    !groupOffer &&
+    usageDb.clinicSite?.count &&
+    usageDb.clinicLocation?.count
+  ) {
     const { countActiveSiteLocationUsage, readAccountSiteLocationAllowance } =
       await import("@/lib/clinics/site-location-capacity");
     const allowance = effectiveOfferAllowance(
@@ -164,10 +184,11 @@ export async function prepareClinicCommercialOffer(
     }
   }
 
-  const planChanged = Boolean(
+  const offerChanged = Boolean(
     existing &&
     (existing.commercialPlan !== input.commercialPlan ||
-      existing.billingInterval !== input.billingInterval)
+      existing.billingInterval !== input.billingInterval ||
+      existing.offeredAdditionalSiteQuantity !== offeredAdditionalSiteQuantity)
   );
 
   await writePreparedOffer(db, input.clinicId, (writer) =>
@@ -179,17 +200,19 @@ export async function prepareClinicCommercialOffer(
         billingInterval: input.billingInterval as BillingInterval,
         billingStatus: BillingStatus.OFFER_PREPARED,
         entitlementStatus: EntitlementStatus.PENDING,
+        offeredAdditionalSiteQuantity,
       },
       update: {
         commercialPlan: input.commercialPlan as CommercialPlan,
         billingInterval: input.billingInterval as BillingInterval,
         billingStatus: BillingStatus.OFFER_PREPARED,
         entitlementStatus: EntitlementStatus.PENDING,
+        offeredAdditionalSiteQuantity,
       },
     })
   );
 
-  if (planChanged && profile?.stripeCheckoutSessionId) {
+  if (offerChanged && profile?.stripeCheckoutSessionId) {
     await expireOpenCheckoutSession(
       profile.stripeCheckoutSessionId,
       input.clinicId

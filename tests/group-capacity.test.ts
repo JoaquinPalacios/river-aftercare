@@ -27,6 +27,10 @@ describe("Group effective capacity", () => {
       siteAllowance: 4,
       locationAllowance: 7,
     });
+    expect(allowance(2, 1, 3)).toEqual({
+      siteAllowance: 5,
+      locationAllowance: 10,
+    });
   });
 
   it("adds complimentary site and location extras independently", () => {

@@ -23,7 +23,7 @@ Request demo
 → onboarding
 ```
 
-GROUP stays assisted sales on the public site. The Group Stripe catalogue and derived capacity model exist in application code. Group Checkout, subscription mutations, and capacity-change APIs are not wired. Phase 3 adds Customer Portal for payment methods, invoices, and cancellation at period end. It does not add self-serve plan switching, downgrades, interval changes, or refunds. Phase 4 enforces product allowances. It does not add per-seat billing.
+GROUP stays assisted sales on the public site. An operator prepares the Group offer. The account administrator accepts Terms and pays through the existing hosted Checkout. That initial payment does not change an already active Group subscription. Post-activation quantity changes, subscription mutations, and capacity-change APIs are not wired. Phase 3 adds Customer Portal for payment methods, invoices, and cancellation at period end. It does not add self-serve plan switching, downgrades, interval changes, or refunds. Phase 4 enforces product allowances. It does not add per-seat billing.
 
 ### Phase 1 remains
 
@@ -35,11 +35,11 @@ GROUP stays assisted sales on the public site. The Group Stripe catalogue and de
 
 ### Phase 2 adds
 
-- Operator commercial offer on the clinic detail page: Essential or Practice, monthly or yearly. Stored as `ClinicEntitlement` `PENDING` + `BillingStatus.OFFER_PREPARED`. GROUP is not selectable. The offer can be corrected until a Stripe subscription exists; an active subscription is not overwritten here.
+- Operator commercial offer on the clinic detail page: Essential, Practice, or Group, monthly or yearly. Stored as `ClinicEntitlement` `PENDING` + `BillingStatus.OFFER_PREPARED`. A Group offer also stores `offeredAdditionalSiteQuantity`. The offer can be corrected until a Stripe subscription exists; an active subscription is not overwritten here.
 - Clinic ADMIN routes on the staff host: `/account/billing/setup`, `/account/billing/complete`, `/account/billing`. STAFF cannot start Checkout. Operators do not impersonate customer Checkout.
 - Billing identity on `ClinicBillingProfile` (legal name, contact, address, ABN or ACN). `ClinicProfile` stays patient-facing.
 - Append-only `LegalAcceptance` (`termsVersion` `2026-09-21`, `privacyVersionAcknowledged` `2026-09-21`, source `BILLING_CHECKOUT`). No IP address or device fingerprint.
-- One Stripe Customer per Clinic (`metadata.clinicId`), reused with a stable idempotency key. Hosted subscription Checkout uses the server Price ID, quantity 1, `client_reference_id` and subscription metadata `clinicId`, and `payment_method_types` `card` + `au_becs_debit`. Automatic tax is off.
+- One Stripe Customer per Clinic (`metadata.clinicId`), reused with a stable idempotency key. Hosted subscription Checkout uses the server Price ID. Essential and Practice stay quantity 1. A prepared Group offer uses Group base quantity 1, plus the matching Additional Site Price at the offered quantity when that quantity is greater than zero. `client_reference_id` and subscription metadata carry `clinicId`. Group metadata may also carry the plan, interval, and offered quantity as a non-authoritative diagnostic. `payment_method_types` stay `card` + `au_becs_debit`. Automatic tax is off. An Account that already has a River subscription does not receive a second one.
 - Success and cancel URLs do not activate entitlement. The complete page reads the local projection: active, payment processing, or a recovery/support state. Processing polls `GET /api/billing/status` (local state only).
 - Activation gate: no `ClinicEntitlement` row means legacy access and is not blocked. A billing-onboarding clinic opens product routes only while entitlement is `ACTIVE`. `PENDING`, `RESTRICTED`, `ENDED`, and any later non-active state stay on billing recovery (`/account/billing`, setup, or payment status). Billing status does not grant product access. Operator support stays exempt. Phase 3 can later distinguish paid-customer restriction from this initial fail-closed gate.
 
@@ -145,7 +145,7 @@ Migration `20260923200000_add_scheduled_plan_downgrade` is additive and must not
 - Monthly ↔ annual interval changes
 - Per-seat billing, extra-seat prices, or subscription quantities other than the Group Additional Site quantity model below
 - Self-service Essential → Practice upgrade, refunds, coupons, trials
-- Group Checkout, Group subscription mutation, and Group capacity increase or decrease APIs
+- Post-activation Group quantity changes, Group subscription mutation, and Group capacity increase or decrease APIs
 - Practice → Group and Group → Practice billing mutation
 - Production / live Stripe configuration
 - Live payments
@@ -153,9 +153,9 @@ Migration `20260923200000_add_scheduled_plan_downgrade` is additive and must not
 
 ### Group billing foundation
 
-Public marketing for Group stays **Custom pricing**. There is no GST label and no Stripe Tax. Annual billing is 12 months for the price of 10. Checkout still sells only Essential and Practice.
+Public marketing for Group stays **Custom pricing**. There is no public Group Checkout button and no published Group rate. There is no GST label and no Stripe Tax. Annual billing is 12 months for the price of 10. Operator-prepared Group Checkout uses the catalogue below. Essential and Practice Checkout are unchanged.
 
-Approved Group catalogue, not yet used by Checkout:
+Approved Group catalogue:
 
 | Item                   | Monthly | Yearly  | Included capacity                           |
 | ---------------------- | ------- | ------- | ------------------------------------------- |
@@ -169,9 +169,19 @@ Group has no standalone paid Additional Location product. Practice Additional Lo
 - `STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID`
 
-All eight configured Price IDs must be unique. A missing Group Price makes Group billing unavailable and leaves Essential and Practice operational. Unknown Prices stay fail-closed. `planFromStripePriceId` still resolves only Essential and Practice, so the current webhook does not treat a Group Price as a self-serve plan. An Additional Site Price is never a `CommercialPlan`.
+All ten configured Price IDs must be unique. A missing Group base Price for the selected interval blocks that Group Checkout and leaves Essential and Practice operational. A base-only Group offer (N=0) does not require the Additional Site Price. N greater than 0 requires the matching-interval Additional Site Price and does not substitute another interval or plan. Unknown Prices stay fail-closed. `planFromStripePriceId` still resolves only Essential and Practice. An Additional Site Price is never a `CommercialPlan` and never a Practice location quantity.
 
-A valid Group subscription shape, not yet applied by the webhook, is exactly one Group base item at quantity 1, plus zero or one Additional Site item whose interval matches the base. N=0 means the add-on item is absent. When present, its quantity is an integer greater than or equal to 1. Mixed Essential or Practice items, duplicate Group items, unknown items, and zero, negative, or fractional quantities fail closed with `group_subscription_shape_invalid`. That code is prepared for Sentry. The webhook does not emit it yet. The later policy is to keep the last-known-good entitlement, fail the event, and block further Group commercial mutation until the shape is reconciled.
+A valid Group subscription shape is exactly one Group base item at quantity 1, plus zero or one Additional Site item whose interval matches the base. N=0 means the add-on item is absent. When present, its quantity is an integer greater than or equal to 1. Item order does not matter. Mixed Essential, Practice, or Practice Additional Location items, duplicate Group items, unknown items, and zero, negative, or fractional add-on quantities fail closed with `group_subscription_shape_invalid`. The webhook reports that to Sentry, marks the receipt `FAILED`, and does not throw. The last projected entitlement stays unchanged. `FAILED` is not a completed duplicate, so a later delivery can still project. The classifier is `classifySubscriptionShape`. The webhook does not build a second one.
+
+Only a platform `OPERATOR` can prepare the offer, through the existing clinic billing form. Clinic administrators and staff cannot. The persisted offer is `commercialPlan` GROUP, `billingInterval` MONTHLY or YEARLY, `billingStatus` `OFFER_PREPARED`, `entitlementStatus` `PENDING`, and `offeredAdditionalSiteQuantity` N, an integer greater than or equal to 0. N=0 is the base Group offer. The offer does not write `purchasedAdditionalSiteQuantity`, `scheduledAdditionalSiteQuantity`, or `scheduledCapacityEffectiveAt`, and it does not change effective paid capacity. An already active paid Group subscription cannot be revised here. Changing an unpaid offer replaces the persisted offer and expires an open Checkout session.
+
+The account administrator completes `/account/billing/setup`. The operator does not accept Terms or pay. Legal acceptance stays the existing Terms and privacy versions and source `BILLING_CHECKOUT`. Checkout reads the persisted offer. A client plan, quantity, Price ID, or amount is ignored. Without a valid offer the Checkout fails closed with `group_offer_missing` or `group_offer_invalid`. Creating Checkout, `checkout.session.completed`, and AU BECS or other pending payment do not grant capacity.
+
+`invoice.paid` is the initial activation. It uses the retrieved subscription items, not invoice line quantity and not Checkout metadata. A transition into ACTIVE Group — no row, a `PENDING` Group offer, or another plan that this event is moving to Group — requires that retrieved valid shape, then stores `purchasedAdditionalSiteQuantity` as that N, including 0. It never stores ACTIVE Group with a null purchased quantity. Retrieval failure marks the receipt `FAILED`, logs `group_subscription_unavailable`, and throws so Stripe retries the same event. The row does not become ACTIVE Group.
+
+An established Group row is `commercialPlan` GROUP and entitlement status other than `PENDING` (`ACTIVE`, `RESTRICTED`, or `ENDED`). When its purchased quantity is still null, ordinary webhooks preserve null and the stored allowances. That path logs `group_site_quantity_legacy_preserved` and is not sent to Sentry. A retrieved base-only or add-on subscription does not convert that null into 0 or into N. When the purchased quantity is already a number, including 0, a valid ACTIVE Group shape replaces it with the current N and `groupCapacityPersistence` rewrites the materialized allowances. Retrieval failure or an invalid shape keeps the last N and the last allowances.
+
+A successful ACTIVE Group projection that writes N clears `offeredAdditionalSiteQuantity`. Checkout creation and Checkout completion do not. Scheduled capacity fields stay unused. Projection does not create or delete Clinic Site or Clinic Location rows. Usage above a lower allowance stays in place, and later creates stay blocked by the existing capacity gates. Cancellation, past due, unpaid, and retention follow the existing rules. A new Group that has never completed paid activation does not gain purchased capacity from a failed or pending payment.
 
 Capacity is three separate facts:
 
@@ -190,7 +200,7 @@ effectiveLocationAllowance = 5 + N + extraLocationAllowance
 
 Existing Group rows keep their stored totals until an operator saves complimentary extras. That save records purchased quantity 0 when none is stored, stores the typed extras, and does not copy the old totals into extras. A later Stripe projection must replace N and must not infer extras from the old total, or a raw 4/7 plus N=2 would become 6/9. Repeated saves with the same extras keep the recorded N. Lowering extras below current usage does not delete or deactivate sites or locations.
 
-`offeredAdditionalSiteQuantity`, `scheduledAdditionalSiteQuantity`, and `scheduledCapacityEffectiveAt` are reserved for later offer and schedule work. They are not capacity. The Customer Portal contract is unchanged: invoice history, payment method changes, and cancel at period end. Price, quantity, interval, and plan changes stay off.
+`offeredAdditionalSiteQuantity` is the unpaid Group proposal. It is not capacity and is not added to purchased N. `scheduledAdditionalSiteQuantity` and `scheduledCapacityEffectiveAt` stay reserved for a later paid quantity change. A new Checkout offer is not that schedule. The Customer Portal contract is unchanged: invoice history, payment method changes, and cancel at period end. Price, quantity, interval, and plan changes stay off. Customers cannot change Group quantity in the app. `SITE_TO_NEW_GROUP` remains unimplemented. No production migration is required for Group Checkout.
 
 Migration `20260926140000_add_group_capacity_foundation` is additive. Migration `20260926203000_add_practice_additional_location_quantity` adds nullable `purchasedAdditionalLocationQuantity`. Do not apply either to production from this change.
 
@@ -218,7 +228,7 @@ Environment variables, blank in `.env.example`:
 - `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID`
 - `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID`
 
-A Practice Additional Location Price is never a `CommercialPlan`. Missing those variables leaves base-only Practice billing operational, including a retrieved base-only activation that stores N=0. A new activation whose subscription cannot be retrieved does not become ACTIVE Practice. A second subscription item whose Price is not configured fails closed. The webhook classifies the retrieved subscription items, not the first invoice line and not item order. A malformed Practice shape fails closed with `practice_subscription_shape_invalid`, leaves the last projected entitlement unchanged, and does not rewrite `locationAllowance`. An established legacy Practice left at null is logged as `practice_location_quantity_legacy_preserved` and is not sent to Sentry. Group subscription projection stays unsupported: a Group shape still fails closed and does not write `purchasedAdditionalSiteQuantity`. An Essential price on invoice.paid still selects Essential when the local row is already an established Practice, which is the scheduled downgrade path. `practiceCapacityPersistence` is the only writer of the materialized Practice site and location totals. It does not create, deactivate, or delete Clinic Location rows. Usage above the new allowance stays in place.
+A Practice Additional Location Price is never a `CommercialPlan`. Missing those variables leaves base-only Practice billing operational, including a retrieved base-only activation that stores N=0. A new activation whose subscription cannot be retrieved does not become ACTIVE Practice. A second subscription item whose Price is not configured fails closed. The webhook classifies the retrieved subscription items, not the first invoice line and not item order. A malformed Practice shape fails closed with `practice_subscription_shape_invalid`, leaves the last projected entitlement unchanged, and does not rewrite `locationAllowance`. An established legacy Practice left at null is logged as `practice_location_quantity_legacy_preserved` and is not sent to Sentry. A Group add-on Price never writes `purchasedAdditionalLocationQuantity`. A Practice add-on Price never writes `purchasedAdditionalSiteQuantity`. An Essential price on invoice.paid still selects Essential when the local row is already an established Practice, which is the scheduled downgrade path. `practiceCapacityPersistence` is the only writer of the materialized Practice site and location totals. It does not create, deactivate, or delete Clinic Location rows. Usage above the new allowance stays in place.
 
 ### Superseded investigation recommendations
 

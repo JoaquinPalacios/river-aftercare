@@ -68,6 +68,8 @@ export default async function BillingSetupPage({
           planName={view.summary.planName}
           priceLabel={view.summary.priceLabel}
           annualNote={view.summary.annualNote}
+          detailLines={view.summary.detailLines}
+          capacityNote={view.summary.capacityNote}
           contactHref={context.contactHref}
           termsHref={context.termsHref}
           privacyHref={context.privacyHref}
@@ -116,6 +118,16 @@ function PlanSummary({
       {view.summary?.annualNote ? (
         <p className="mt-1 text-sm text-staff-muted">
           {view.summary.annualNote}
+        </p>
+      ) : null}
+      {view.summary?.detailLines?.map((line) => (
+        <p key={line} className="mt-1 text-sm">
+          {line}
+        </p>
+      ))}
+      {view.summary?.capacityNote ? (
+        <p className="mt-2 text-sm text-staff-muted">
+          {view.summary.capacityNote}
         </p>
       ) : null}
     </>

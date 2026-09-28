@@ -9,7 +9,6 @@ import {
 } from "@/lib/billing/group-billing-codes";
 import {
   classifyConfiguredStripePrice,
-  groupBillingAvailable,
   UnknownStripePriceError,
 } from "@/lib/billing/price-map";
 
@@ -34,8 +33,7 @@ export type GroupShapeRejection =
   | "duplicate_addon"
   | "base_quantity"
   | "addon_quantity"
-  | "interval_mismatch"
-  | "group_billing_unavailable";
+  | "interval_mismatch";
 
 export type PracticeShapeRejection =
   | "invalid_quantity"
@@ -137,7 +135,7 @@ export function classifySubscriptionShape(
   }
 
   if (groupItems.length > 0) {
-    return classifyGroupShape(classified, env);
+    return classifyGroupShape(classified);
   }
 
   if (practiceItems.length > 0) {
@@ -148,8 +146,7 @@ export function classifySubscriptionShape(
 }
 
 function classifyGroupShape(
-  items: readonly ClassifiedItem[],
-  env: Env
+  items: readonly ClassifiedItem[]
 ): ClassifiedSubscriptionShape {
   const groupBases = items.filter(
     (item) => item.price?.role === "BASE_PLAN" && item.price.plan === "GROUP"
@@ -157,11 +154,13 @@ function classifyGroupShape(
   const addons = items.filter(
     (item) => item.price?.role === "GROUP_SITE_ADDON"
   );
-  const otherBases = items.filter(
-    (item) => item.price?.role === "BASE_PLAN" && item.price.plan !== "GROUP"
+  const foreign = items.filter(
+    (item) =>
+      !(item.price?.role === "BASE_PLAN" && item.price.plan === "GROUP") &&
+      item.price?.role !== "GROUP_SITE_ADDON"
   );
 
-  if (otherBases.length > 0) {
+  if (foreign.length > 0) {
     return groupFailure("mixed_plan");
   }
   if (groupBases.length === 0) {
@@ -191,10 +190,6 @@ function classifyGroupShape(
     addon.price.interval !== base.price.interval
   ) {
     return groupFailure("interval_mismatch");
-  }
-
-  if (!groupBillingAvailable(env)) {
-    return groupFailure("group_billing_unavailable");
   }
 
   return {

@@ -285,6 +285,42 @@ export function stripePriceIdForPlan(
   return priceId;
 }
 
+export function stripeGroupBasePriceId(
+  interval: BillingIntervalCode,
+  env: Record<string, string | undefined> = process.env
+): string {
+  return configuredCataloguePriceId(
+    (slot) =>
+      slot.role === "BASE_PLAN" &&
+      slot.plan === "GROUP" &&
+      slot.interval === interval,
+    env
+  );
+}
+
+export function stripeGroupSiteAddonPriceId(
+  interval: BillingIntervalCode,
+  env: Record<string, string | undefined> = process.env
+): string {
+  return configuredCataloguePriceId(
+    (slot) => slot.role === "GROUP_SITE_ADDON" && slot.interval === interval,
+    env
+  );
+}
+
+function configuredCataloguePriceId(
+  match: (slot: ConfiguredCatalogueSlot) => boolean,
+  env: Record<string, string | undefined>
+): string {
+  const priceId = readConfiguredCatalogue(env).find(match)?.priceId;
+  if (!priceId) {
+    throw new StripePriceMappingError(
+      "Stripe Price ID is not configured for that plan and interval."
+    );
+  }
+  return priceId;
+}
+
 export function planFromStripePriceId(
   stripePriceId: string,
   env: Record<string, string | undefined> = process.env

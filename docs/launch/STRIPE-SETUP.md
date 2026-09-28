@@ -25,7 +25,7 @@ Create four Products. Monthly and yearly are Prices on the same Product. Currenc
 | River Aftercare Group Additional Site          | A$50 / month      | +1 Clinic Site and +1 Location              |
 | River Aftercare Group Additional Site          | A$500 / year      | +1 Clinic Site and +1 Location              |
 
-Essential has no additional-location Price. Practice Additional Location is one quantity-based graduated Price per interval, not a second base plan. Group has no standalone Additional Location Price. Public Group marketing stays Custom pricing. The application does not start Group Checkout or Practice add-on Checkout yet. A new paid Practice activation can store a purchased additional-location quantity from the current subscription, including zero. Buying or changing that quantity in the app is not implemented.
+Essential has no additional-location Price. Practice Additional Location is one quantity-based graduated Price per interval, not a second base plan. Group has no standalone Additional Location Price. Public Group marketing stays Custom pricing. Group Checkout starts only after an operator prepares the Group plan, interval, and additional-site quantity for that Account. The account administrator accepts Terms and pays. A base-only offer sends Group base quantity 1 and does not require the Additional Site Price. A quantity above zero also sends the matching-interval Additional Site Price at that quantity. `invoice.paid` stores that purchased quantity, including zero. Checkout completion and pending BECS do not. An existing Group whose purchased quantity is still null stays null. Practice add-on Checkout is not implemented. Buying or changing a Group or Practice quantity after activation is not implemented. A new paid Practice activation can store a purchased additional-location quantity from the current subscription, including zero.
 
 Copy the ten resulting `price_...` identifiers into server-only environment variables:
 
@@ -40,7 +40,7 @@ Copy the ten resulting `price_...` identifiers into server-only environment vari
 - `STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID`
 
-The ten Price IDs must be unique. If any Group Price ID is missing, Group billing stays unavailable and Essential and Practice continue to work. If the Practice Additional Location Price IDs are missing, base-only Practice billing continues to work and a retrieved base-only activation stores quantity 0. A new Practice activation still requires that retrieved subscription. An unrecognised extra subscription item still fails closed. An Additional Site Price and an Additional Location Price are not plans.
+The ten Price IDs must be unique. A missing Group base Price for the prepared interval blocks that Group Checkout. A missing Additional Site Price blocks only an offer whose quantity is above zero. Essential and Practice continue to work. If the Practice Additional Location Price IDs are missing, base-only Practice billing continues to work and a retrieved base-only activation stores quantity 0. A new Practice activation still requires that retrieved subscription. An unrecognised extra subscription item still fails closed. An Additional Site Price and an Additional Location Price are not plans.
 
 Never commit secrets or Price IDs. Never prefix these with `NEXT_PUBLIC_`.
 
@@ -175,16 +175,16 @@ Also check cancellation: schedule a downgrade, then cancel at period end in the 
 ## Local Checkout test path
 
 1. Use the local PostgreSQL 18 database (or another non-production database). Apply `prisma/migrations/20260921180000_add_billing_checkout_onboarding` there. Do not apply it to production from this note.
-2. Put test-mode `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and the test Price IDs in local env. The app refuses `sk_live_` and `rk_live_`. Group Checkout is not available on this path.
+2. Put test-mode `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and the test Price IDs in local env. The app refuses `sk_live_` and `rk_live_`. Group Checkout on this path requires an operator-prepared offer and the Group Price for that interval.
 3. Forward webhooks with Stripe CLI to `http://app.localhost:3000/api/stripe/webhook`.
-4. As OPERATOR, open the clinic and choose Essential or Practice plus monthly or yearly, then Prepare billing.
+4. As OPERATOR, open the clinic and choose Essential or Practice plus monthly or yearly, or Group plus monthly or yearly and an additional-site quantity of zero or more, then Prepare billing. A Group offer does not grant capacity.
 5. Sign in as that clinic's ADMIN, complete billing identity and Terms acceptance, and continue to Stripe Checkout.
 6. Pay with a [Stripe test card](https://docs.stripe.com/testing) or the AU BECS test debit. Card payment can become active after `invoice.paid`. BECS can stay on Payment processing until settlement.
 7. The browser return to `/account/billing/complete` must not be treated as activation. Only the local projection after `invoice.paid` opens product access.
 
 ## What Joaquín still does in TEST MODE
 
-1. Create the Essential, Practice, Group, and Group Additional Site Products and the eight AUD Prices above. Do not enable Group Checkout from the Dashboard.
+1. Create the Essential, Practice, Group, and Group Additional Site Products and the eight AUD Prices above. Do not add a public Group Checkout button. Group payment stays the operator-prepared offer plus the account administrator's hosted Checkout.
 2. Store the Price IDs and a test restricted key + webhook secret in local env (and Preview only if that environment is not production data).
 3. Enable card + AU BECS in the TEST MODE Payment Method Configuration. Leave Stripe Tax off.
 4. Register the staff-host webhook (or local CLI forwarding) and the events listed above. Pin API version `2026-08-26.dahlia`.

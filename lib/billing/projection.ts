@@ -34,7 +34,7 @@ export type LocalEntitlementSnapshot = {
 };
 
 export type MappedCatalogPrice = {
-  plan: Exclude<CommercialPlan, "GROUP">;
+  plan: CommercialPlan;
   interval: BillingInterval;
 };
 

@@ -8,8 +8,11 @@ import {
 } from "@prisma/client";
 
 import { RIVER_CLINIC_ID_METADATA_KEY } from "@/lib/billing/identity";
+import { isOfferedAdditionalSiteQuantity } from "@/lib/billing/group-commercial";
 import { logStripeBilling } from "@/lib/billing/log";
 import {
+  stripeGroupBasePriceId,
+  stripeGroupSiteAddonPriceId,
   stripePriceIdForPlan,
   StripePriceMappingError,
   type BillingIntervalCode,
@@ -45,7 +48,8 @@ const PAID_BILLING = new Set<BillingStatus>([
 
 export type CheckoutFailureCode =
   | "not_prepared"
-  | "group_unavailable"
+  | "group_offer_missing"
+  | "group_offer_invalid"
   | "price_not_configured"
   | "already_active"
   | "subscription_exists"
@@ -83,8 +87,10 @@ export function checkoutFailureMessage(code: CheckoutFailureCode): string {
   switch (code) {
     case "not_prepared":
       return "River Aftercare hasn't prepared billing for this clinic yet.";
-    case "group_unavailable":
-      return "Group plans are arranged directly with River Aftercare.";
+    case "group_offer_missing":
+      return "River Aftercare hasn't prepared a Group offer for this clinic yet.";
+    case "group_offer_invalid":
+      return "The prepared Group offer needs to be updated before payment.";
     case "price_not_configured":
     case "checkout_unavailable":
       return "Secure payment isn't available right now. Contact River Aftercare if this continues.";
@@ -153,7 +159,10 @@ export type CheckoutStripePort = {
         url: string | null;
         status: string | null;
         line_items?: {
-          data: Array<{ price?: { id?: string } | string | null }>;
+          data: Array<{
+            price?: { id?: string } | string | null;
+            quantity?: number | null;
+          }>;
         } | null;
       }>;
       expire(id: string): Promise<unknown>;
@@ -165,7 +174,7 @@ export type CheckoutSessionCreateShape = {
   mode: "subscription";
   customer: string;
   client_reference_id: string;
-  line_items: Array<{ price: string; quantity: 1 }>;
+  line_items: Array<{ price: string; quantity: number }>;
   success_url: string;
   cancel_url: string;
   metadata: Record<string, string>;
@@ -185,6 +194,7 @@ export type LockedCheckoutState = {
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   stripeCheckoutSessionId: string | null;
+  offeredAdditionalSiteQuantity: number | null;
   termsAccepted: boolean;
   identity: {
     legalEntityName: string;
@@ -218,19 +228,106 @@ function isStripeHostedCheckoutUrl(url: string): boolean {
   }
 }
 
-function sessionPriceId(session: {
+function sessionLineItems(session: {
   line_items?: {
-    data: Array<{ price?: { id?: string } | string | null }>;
+    data: Array<{
+      price?: { id?: string } | string | null;
+      quantity?: number | null;
+    }>;
   } | null;
-}): string | null {
-  const price = session.line_items?.data?.[0]?.price;
-  if (!price) {
-    return null;
+}): Array<{ price: string; quantity: number }> {
+  return (session.line_items?.data ?? []).flatMap((item) => {
+    const price = item.price;
+    const priceId = typeof price === "string" ? price : (price?.id ?? "");
+    if (!priceId) {
+      return [];
+    }
+    const quantity =
+      item.quantity === null || item.quantity === undefined ? 1 : item.quantity;
+    return [{ price: priceId, quantity }];
+  });
+}
+
+function sameLineItems(
+  actual: ReadonlyArray<{ price: string; quantity: number }>,
+  expected: ReadonlyArray<{ price: string; quantity: number }>
+): boolean {
+  if (actual.length !== expected.length) {
+    return false;
   }
-  if (typeof price === "string") {
-    return price;
+  const remaining = [...actual];
+  for (const item of expected) {
+    const index = remaining.findIndex(
+      (candidate) =>
+        candidate.price === item.price && candidate.quantity === item.quantity
+    );
+    if (index < 0) {
+      return false;
+    }
+    remaining.splice(index, 1);
   }
-  return price.id ?? null;
+  return remaining.length === 0;
+}
+
+function checkoutLineItems(
+  state: LockedCheckoutState,
+  env: Env | undefined
+): Array<{ price: string; quantity: number }> {
+  const plan = state.commercialPlan;
+  const interval = state.billingInterval;
+  if (!plan || !interval) {
+    throw new StripePriceMappingError(
+      "Stripe Price ID is not configured for that plan and interval."
+    );
+  }
+  if (plan === "GROUP") {
+    const quantity = state.offeredAdditionalSiteQuantity ?? 0;
+    const basePriceId = stripeGroupBasePriceId(interval, env);
+    if (quantity === 0) {
+      return [{ price: basePriceId, quantity: 1 }];
+    }
+    return [
+      { price: basePriceId, quantity: 1 },
+      {
+        price: stripeGroupSiteAddonPriceId(interval, env),
+        quantity,
+      },
+    ];
+  }
+  return [{ price: stripePriceIdForPlan(plan, interval, env), quantity: 1 }];
+}
+
+function checkoutMetadata(state: LockedCheckoutState): Record<string, string> {
+  const metadata: Record<string, string> = {
+    [RIVER_CLINIC_ID_METADATA_KEY]: state.clinicId,
+  };
+  if (
+    state.commercialPlan === "GROUP" &&
+    state.billingInterval &&
+    typeof state.offeredAdditionalSiteQuantity === "number"
+  ) {
+    metadata.commercialPlan = "GROUP";
+    metadata.billingInterval = state.billingInterval;
+    metadata.offeredAdditionalSiteQuantity = String(
+      state.offeredAdditionalSiteQuantity
+    );
+  }
+  return metadata;
+}
+
+function checkoutIdempotencyKey(
+  clinicId: string,
+  lineItems: ReadonlyArray<{ price: string; quantity: number }>,
+  sessionId: string | null
+): string {
+  const suffix = sessionId ?? "initial";
+  if (lineItems.length === 1 && lineItems[0]?.quantity === 1) {
+    return `river-checkout-${clinicId}-${lineItems[0].price}-${suffix}`;
+  }
+  const signature = lineItems
+    .map((item) => `${item.price}x${item.quantity}`)
+    .join("+");
+  return `river-checkout-${clinicId}-${signature}-${suffix}`;
 }
 
 function customerAddress(
@@ -302,7 +399,15 @@ export async function executeClinicCheckout(input: {
   }
 
   if (plan === "GROUP") {
-    return failure("group_unavailable", "group_unavailable");
+    if (
+      state.offeredAdditionalSiteQuantity === null ||
+      state.offeredAdditionalSiteQuantity === undefined
+    ) {
+      return failure("group_offer_missing", "group_offer_missing");
+    }
+    if (!isOfferedAdditionalSiteQuantity(state.offeredAdditionalSiteQuantity)) {
+      return failure("group_offer_invalid", "group_offer_invalid");
+    }
   }
 
   if (!state.termsAccepted) {
@@ -323,9 +428,9 @@ export async function executeClinicCheckout(input: {
     return failure("identity_incomplete", "identity_incomplete");
   }
 
-  let priceId: string;
+  let lineItems: Array<{ price: string; quantity: number }>;
   try {
-    priceId = stripePriceIdForPlan(plan, interval, input.env);
+    lineItems = checkoutLineItems(state, input.env);
   } catch (error) {
     if (error instanceof StripePriceMappingError) {
       return failure("price_not_configured", "price_not_configured");
@@ -378,7 +483,7 @@ export async function executeClinicCheckout(input: {
         );
       }
       if (existing.status === "open" && existing.url) {
-        if (sessionPriceId(existing) === priceId) {
+        if (sameLineItems(sessionLineItems(existing), lineItems)) {
           if (!isStripeHostedCheckoutUrl(existing.url)) {
             return failure("checkout_unavailable", "unexpected_checkout_url");
           }
@@ -406,19 +511,23 @@ export async function executeClinicCheckout(input: {
         mode: "subscription",
         customer: customerId,
         client_reference_id: state.clinicId,
-        line_items: [{ price: priceId, quantity: 1 }],
+        line_items: lineItems,
         success_url: input.successUrl,
         cancel_url: input.cancelUrl,
-        metadata: { [RIVER_CLINIC_ID_METADATA_KEY]: state.clinicId },
+        metadata: checkoutMetadata(state),
         subscription_data: {
-          metadata: { [RIVER_CLINIC_ID_METADATA_KEY]: state.clinicId },
+          metadata: checkoutMetadata(state),
         },
         payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
         wallet_options: { link: { display: "never" } },
         allow_promotion_codes: false,
       },
       {
-        idempotencyKey: `river-checkout-${state.clinicId}-${priceId}-${state.stripeCheckoutSessionId ?? "initial"}`,
+        idempotencyKey: checkoutIdempotencyKey(
+          state.clinicId,
+          lineItems,
+          state.stripeCheckoutSessionId
+        ),
       }
     );
 
@@ -542,6 +651,8 @@ export async function createClinicCheckout(input: {
             stripeCustomerId: profile?.stripeCustomerId ?? null,
             stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
             stripeCheckoutSessionId: profile?.stripeCheckoutSessionId ?? null,
+            offeredAdditionalSiteQuantity:
+              entitlement?.offeredAdditionalSiteQuantity ?? null,
             termsAccepted: Boolean(acceptance),
             identity,
           },

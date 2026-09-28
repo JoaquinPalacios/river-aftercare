@@ -171,7 +171,7 @@ describe("checkout session creation", () => {
         ...base,
         state: readyState({ commercialPlan: "GROUP" }),
       })
-    ).resolves.toMatchObject({ ok: false, code: "group_unavailable" });
+    ).resolves.toMatchObject({ ok: false, code: "group_offer_missing" });
 
     await expect(
       executeClinicCheckout({
@@ -224,6 +224,7 @@ function readyState(
     stripeCustomerId: null,
     stripeSubscriptionId: null,
     stripeCheckoutSessionId: null,
+    offeredAdditionalSiteQuantity: null,
     termsAccepted: true,
     identity: {
       legalEntityName: "Harbour Dental Pty Ltd",
