@@ -76,7 +76,7 @@ Operator authorization stays at the future action boundary. Lifecycle services r
 
 ## Consequences
 
-- Production templates can be drafted, reviewed, and published without an Operator UI in this phase.
+- Production templates can be drafted, reviewed, and published through the lifecycle services. The Operator UI that calls those services is `/operator/templates`.
 - The extraction sample stays unreviewed demo content.
 - A content edit after review cannot be published on the strength of the old review.
 - Clinics already on v1 stay on v1 when v2 is published.
@@ -84,6 +84,6 @@ Operator authorization stays at the future action boundary. Lifecycle services r
 ## Notes for later implementation
 
 - Do not add `READY_FOR_REVIEW` or `REVIEWED` statuses.
-- Do not build the Operator template UI, bulk import, or production clinical copy in this phase.
+- The Operator template UI is `/operator/templates` (list, create, draft, review, publish, next revision, deactivate). Bulk import and production clinical copy are still out of scope. Do not create `tooth-extraction` until that content is deliberately authored.
 - Do not notify clinics or move pins when a newer canonical revision is published.
 - `tooth-extraction` is the production slug to use later. Do not reuse `extraction`.

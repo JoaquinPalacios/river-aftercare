@@ -52,8 +52,19 @@ describe("guide editor UX", () => {
       "app/(staff)/(clinic-portal)/guides/timeline-accordion.tsx",
       "utf8"
     );
+    const sharedEditors = readFileSync(
+      "app/(staff)/components/guide-section-editors.tsx",
+      "utf8"
+    );
+    const instructionFields = readFileSync(
+      "app/(staff)/components/home-care-instruction-fields.tsx",
+      "utf8"
+    );
     const staffCss = readFileSync("app/(staff)/staff.css", "utf8");
-    const chunks = `${editor}\n${accordion}`.split("<textarea").slice(1);
+    const chunks =
+      `${editor}\n${accordion}\n${sharedEditors}\n${instructionFields}`
+        .split("<textarea")
+        .slice(1);
 
     expect(chunks.length).toBeGreaterThanOrEqual(3);
     for (const chunk of chunks) {

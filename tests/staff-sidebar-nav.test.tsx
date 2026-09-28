@@ -126,6 +126,7 @@ describe("staff sidebar navigation", () => {
     const links = [...platform.querySelectorAll("a.staffNavRow")];
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
       "/operator/clinics",
+      "/operator/templates",
       "/operator/seo",
     ]);
     expect(currentHrefs(platform)).toEqual(["/operator/clinics"]);
@@ -140,6 +141,16 @@ describe("staff sidebar navigation", () => {
         container.querySelector('nav[aria-label="Platform"]') as HTMLElement
       )
     ).toEqual(["/operator/seo"]);
+
+    nav.pathname = "/operator/templates/template_1/draft";
+    await act(async () => {
+      root.render(<OperatorPlatformNav />);
+    });
+    expect(
+      currentHrefs(
+        container.querySelector('nav[aria-label="Platform"]') as HTMLElement
+      )
+    ).toEqual(["/operator/templates"]);
   });
 
   it("keeps Account and Billing from both being current", async () => {

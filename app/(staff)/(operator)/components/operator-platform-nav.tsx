@@ -7,6 +7,7 @@ import { isNestedStaffNavCurrent } from "@/app/(staff)/components/staff-nav-curr
 
 const LINKS = [
   { href: "/operator/clinics", label: "Clinics" },
+  { href: "/operator/templates", label: "Templates" },
   { href: "/operator/seo", label: "SEO & Discovery" },
 ] as const;
 
