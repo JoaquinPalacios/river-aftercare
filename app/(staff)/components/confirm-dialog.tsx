@@ -9,6 +9,8 @@ export function ConfirmDialog({
   cancelLabel,
   confirmLabel,
   confirmTone = "danger",
+  cancelTone = "quiet",
+  actionLayout = "end",
   pending = false,
   pendingLabel,
   pendingStatus,
@@ -23,6 +25,8 @@ export function ConfirmDialog({
   cancelLabel: string;
   confirmLabel: string;
   confirmTone?: "danger" | "primary";
+  cancelTone?: "quiet" | "secondary";
+  actionLayout?: "end" | "balanced";
   pending?: boolean;
   pendingLabel?: string;
   pendingStatus?: string;
@@ -126,10 +130,18 @@ export function ConfirmDialog({
       <div className="sr-only" role="status" aria-live="polite">
         {busy ? (pendingStatus ?? "") : ""}
       </div>
-      <div className="staffDialogActions">
+      <div
+        className={
+          actionLayout === "balanced"
+            ? "staffDialogActions staffDialogActionsBalanced"
+            : "staffDialogActions"
+        }
+      >
         <button
           type="button"
-          className="staffBtn staffBtnQuiet"
+          className={`staffBtn ${
+            cancelTone === "secondary" ? "staffBtnSecondary" : "staffBtnQuiet"
+          }`}
           autoFocus={confirmTone === "danger" && !busy}
           disabled={busy}
           onClick={requestClose}

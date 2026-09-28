@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { guideSectionKindLabel } from "@/lib/aftercare/guide-section-kind-label";
 import type { GuideSectionKind } from "@/lib/aftercare/types";
+import { AutosizeTextarea } from "@/app/(staff)/components/autosize-textarea";
 import { HomeCareInstructionFields } from "@/app/(staff)/components/home-care-instruction-fields";
 import type {
   EditorHomeCareInstruction,
@@ -147,13 +148,11 @@ export function GenericSectionEditor({
             </Field>
           </div>
           <Field label="Guidance" htmlFor={`${section.key}-body`}>
-            <textarea
+            <AutosizeTextarea
               id={`${section.key}-body`}
               value={section.body}
               onChange={(event) => update(index, { body: event.target.value })}
               disabled={disabled}
-              rows={4}
-              className="staffField"
             />
           </Field>
           {disabled ? null : (
@@ -260,15 +259,13 @@ export function HomeCarePlanEditor({
             />
           </Field>
           <Field label="Optional introduction" htmlFor={`${section.key}-body`}>
-            <textarea
+            <AutosizeTextarea
               id={`${section.key}-body`}
               value={section.body}
               onChange={(event) =>
                 updateSection(index, { body: event.target.value })
               }
               disabled={disabled}
-              rows={4}
-              className="staffField"
             />
           </Field>
           <div className="flex flex-col gap-3">

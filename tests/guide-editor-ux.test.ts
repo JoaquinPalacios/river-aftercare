@@ -43,7 +43,7 @@ describe("guide editor UX", () => {
     expect(editor).toContain("ignoreNextServerSnapshot");
   });
 
-  it("gives guide-content textareas at least four rows", () => {
+  it("autosizes guide-content textareas between three and six rows", () => {
     const editor = readFileSync(
       "app/(staff)/(clinic-portal)/guides/guide-editor.tsx",
       "utf8"
@@ -60,22 +60,35 @@ describe("guide editor UX", () => {
       "app/(staff)/components/home-care-instruction-fields.tsx",
       "utf8"
     );
+    const ordered = readFileSync(
+      "app/(staff)/components/ordered-guide-sections-editor.tsx",
+      "utf8"
+    );
     const staffCss = readFileSync("app/(staff)/staff.css", "utf8");
-    const chunks =
-      `${editor}\n${accordion}\n${sharedEditors}\n${instructionFields}`
-        .split("<textarea")
-        .slice(1);
+    const sources = [
+      editor,
+      accordion,
+      sharedEditors,
+      instructionFields,
+      ordered,
+    ];
 
-    expect(chunks.length).toBeGreaterThanOrEqual(3);
-    for (const chunk of chunks) {
-      const rows = chunk.match(/rows=\{(\d+)\}/);
-      expect(Number(rows?.[1] ?? 0)).toBeGreaterThanOrEqual(4);
-      expect(chunk).toContain('className="staffField"');
+    for (const source of sources) {
+      expect(source).toContain("AutosizeTextarea");
+      expect(source).not.toContain("<textarea");
     }
 
-    expect(staffCss).toContain("textarea.staffField");
+    expect(staffCss).toContain("textarea.staffField {");
     expect(staffCss).toContain("min-height: calc(1.5em * 4 + 1rem)");
     expect(staffCss).toContain("resize: vertical");
+    const autosize = staffCss.slice(
+      staffCss.indexOf("textarea.staffField.staffAutosizeField {"),
+      staffCss.indexOf(".staffSelect {")
+    );
+    expect(autosize).toContain("min-height: calc(1.5em * 3 + 1rem)");
+    expect(autosize).toContain("max-height: calc(1.5em * 6 + 1rem)");
+    expect(autosize).toContain("overflow-y: auto");
+    expect(autosize).toContain("resize: none");
   });
 
   it("insets only the sticky editor header with the shared spacing step", () => {

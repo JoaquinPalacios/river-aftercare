@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -201,5 +203,162 @@ describe("GuideDocument timeline rendering", () => {
     expect(html).not.toContain("Mark done");
     expect(html).not.toContain("progress");
     expect(html).not.toContain('type="checkbox"');
+  });
+
+  it("renders author bullet lines as a semantic list without interpreting HTML", () => {
+    const html = renderToStaticMarkup(
+      <GuideDocument
+        sections={[
+          section({
+            key: "contact",
+            kind: "CONTACT_PRACTICE",
+            title: "Contact your clinic",
+            body: `Contact your clinic if you have:
+
+• severe or worsening pain
+• heavy bleeding
+• <img src=x onerror=alert(1)>`,
+          }),
+          section({
+            key: "plain",
+            kind: "INTRODUCTION",
+            title: "About this guide",
+            body: "First paragraph.\n\nSecond paragraph.\nStill the second paragraph.",
+          }),
+        ]}
+      />
+    );
+
+    expect(html).toContain("<ul");
+    expect(html).toContain("<li");
+    expect(html).toContain("severe or worsening pain");
+    expect(html).toContain("heavy bleeding");
+    expect(html).not.toContain("• severe");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;img");
+    expect(html).toContain("First paragraph.");
+    expect(html).toContain("Second paragraph.");
+    expect(html).toContain("Still the second paragraph.");
+    expect(html).toContain('data-guide-tone="contact"');
+    expect(html.match(/<p\b/g)?.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("gives warning, emergency, reassurance, and contact sections distinct tones", () => {
+    const html = renderToStaticMarkup(
+      <GuideDocument
+        sections={[
+          section({
+            key: "normal",
+            kind: "WHAT_IS_NORMAL",
+            title: "What is normal",
+            body: "Mild swelling can be expected.",
+          }),
+          section({
+            key: "warning",
+            kind: "WARNING_SIGNS",
+            title: "Warning signs",
+            body: "Call the clinic.",
+          }),
+          section({
+            key: "help",
+            kind: "CONTACT_PRACTICE",
+            title: "Contact the practice",
+            body: "Phone the clinic.",
+          }),
+          section({
+            key: "urgent",
+            kind: "EMERGENCY",
+            title: "Emergency",
+            body: "Call emergency services.",
+          }),
+        ]}
+      />
+    );
+    const styles = readFileSync("app/(aftercare)/patient.module.css", "utf8");
+
+    expect(html).toContain('data-guide-tone="reassurance"');
+    expect(html).toContain('data-guide-tone="warning"');
+    expect(html).toContain('data-guide-tone="contact"');
+    expect(html).toContain('data-guide-tone="emergency"');
+    expect(html).toContain("Important.");
+    expect(html).toContain("Urgent.");
+    expect(styles).toContain(".reassurance");
+    expect(styles).toContain("var(--cg-notice-surface)");
+    expect(styles).toContain(".contact");
+    expect(styles).toContain("var(--cg-brand)");
+    expect(styles).toContain("var(--cg-warning-surface)");
+    expect(styles).toContain("var(--cg-emergency-surface)");
+  });
+
+  it("keeps timeline order and grouping when a stage contains a list", () => {
+    const html = renderToStaticMarkup(
+      <GuideDocument
+        sections={[
+          section({
+            key: "hours",
+            kind: "RECOVERY_TIMELINE",
+            title: "Immediate care",
+            periodLabel: "First 4 hours",
+            body: "Keep the site still.\n\n• do not smoke or vape\n• avoid alcohol",
+          }),
+          section({
+            key: "week-two",
+            kind: "RECOVERY_TIMELINE",
+            title: "Later healing",
+            periodLabel: "Week 2+",
+            body: "Check in if unsure.",
+          }),
+        ]}
+      />
+    );
+
+    expect(html).toContain("Recovery guide");
+    expect(html).toContain("First 4 hours");
+    expect(html).toContain("Week 2+");
+    expect(html.indexOf("First 4 hours")).toBeLessThan(html.indexOf("Week 2+"));
+    expect(html.match(/<ol\b/g)).toHaveLength(1);
+    expect(html).toContain("<ul");
+    expect(html).toContain("do not smoke or vape");
+    expect(html).toContain("avoid alcohol");
+    expect(html).not.toContain("<article");
+  });
+
+  it("shares one guide document path for the operator preview and the patient page", () => {
+    const preview = readFileSync(
+      "app/(staff)/components/canonical-guide-preview.tsx",
+      "utf8"
+    );
+    const patient = readFileSync(
+      "app/(aftercare)/%5Fsites/[tenant]/[guideSlug]/page.tsx",
+      "utf8"
+    );
+    const printPlan = readFileSync(
+      "app/(aftercare)/components/print-care-plan.tsx",
+      "utf8"
+    );
+    const document = readFileSync(
+      "app/(aftercare)/components/guide-document.tsx",
+      "utf8"
+    );
+    const sectionSource = readFileSync(
+      "app/(aftercare)/components/guide-section.tsx",
+      "utf8"
+    );
+    const timeline = readFileSync(
+      "app/(aftercare)/components/recovery-timeline-list.tsx",
+      "utf8"
+    );
+    const plan = readFileSync(
+      "app/(aftercare)/components/home-care-plan.tsx",
+      "utf8"
+    );
+
+    expect(preview).toContain("GuideDocument");
+    expect(patient).toContain("GuideDocument");
+    expect(printPlan).toContain("GuideDocument");
+    expect(document).toContain("GuideSection");
+    expect(sectionSource).toContain("GuideContent");
+    expect(timeline).toContain("GuideContent");
+    expect(plan).toContain("GuideContent");
   });
 });

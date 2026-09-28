@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+import { AutosizeTextarea } from "@/app/(staff)/components/autosize-textarea";
 import {
   recordCanonicalTemplateReviewAction,
   type CanonicalTemplateActionState,
@@ -82,12 +83,10 @@ export function RecordReviewForm({
         <label className="text-sm font-medium" htmlFor="reviewNote">
           Review note
         </label>
-        <textarea
+        <AutosizeTextarea
           id="reviewNote"
           name="reviewNote"
           defaultValue={reviewNote}
-          rows={4}
-          className="staffField"
         />
         <p className="text-sm text-staff-muted">
           Optional internal context. The signed-in Operator is stored

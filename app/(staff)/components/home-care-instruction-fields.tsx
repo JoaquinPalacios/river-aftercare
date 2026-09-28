@@ -7,6 +7,7 @@ import type {
 import type { ReactNode } from "react";
 
 import type { EditorHomeCareInstruction } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
+import { AutosizeTextarea } from "@/app/(staff)/components/autosize-textarea";
 
 function Field({
   label,
@@ -58,17 +59,17 @@ export function HomeCareInstructionFields({
           value={item.title}
           onChange={(event) => onChange({ ...item, title: event.target.value })}
           disabled={disabled}
+          placeholder="Example instruction"
           className="staffField"
         />
       </Field>
       <Field label="Details" htmlFor={`${item.key}-body`}>
-        <textarea
+        <AutosizeTextarea
           id={`${item.key}-body`}
           value={item.body}
           onChange={(event) => onChange({ ...item, body: event.target.value })}
           disabled={disabled}
-          rows={4}
-          className="staffField"
+          placeholder="Enter details..."
         />
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
