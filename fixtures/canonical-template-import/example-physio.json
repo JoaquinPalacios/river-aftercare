@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "mode": "create",
+  "template": {
+    "title": "Example placeholder template",
+    "slug": "example-placeholder",
+    "serviceCategory": "PHYSIOTHERAPY"
+  },
+  "revision": {
+    "sections": [
+      {
+        "key": "introduction",
+        "kind": "INTRODUCTION",
+        "title": "Placeholder introduction",
+        "body": "Synthetic placeholder copy for import validation. This is not clinical guidance."
+      },
+      {
+        "key": "first-window",
+        "kind": "RECOVERY_TIMELINE",
+        "title": "Placeholder window",
+        "body": "Synthetic timeline stage. Not a treatment instruction.",
+        "periodLabel": "Placeholder window",
+        "startDay": 0,
+        "endDay": 2
+      },
+      {
+        "key": "home-plan",
+        "kind": "HOME_CARE_PLAN",
+        "title": "Placeholder home plan",
+        "body": "",
+        "homeCareInstructions": [
+          {
+            "key": "exercise-frequency",
+            "title": "Placeholder repeated action",
+            "body": "Synthetic instruction text.",
+            "frequencyCount": 2,
+            "frequencyPeriod": "WEEK",
+            "timingLabel": "Morning",
+            "durationValue": 2,
+            "durationUnit": "WEEKS"
+          }
+        ]
+      }
+    ]
+  }
+}

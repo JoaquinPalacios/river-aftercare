@@ -84,6 +84,10 @@ Operator authorization stays at the future action boundary. Lifecycle services r
 ## Notes for later implementation
 
 - Do not add `READY_FOR_REVIEW` or `REVIEWED` statuses.
-- The Operator template UI is `/operator/templates` (list, create, draft, review, publish, next revision, deactivate). Bulk import and production clinical copy are still out of scope. Do not create `tooth-extraction` until that content is deliberately authored.
+- The Operator template UI is `/operator/templates` (list, create, draft, review, publish, next revision, deactivate). Production clinical copy is still out of scope. Do not create `tooth-extraction` until that content is deliberately authored.
 - Do not notify clinics or move pins when a newer canonical revision is published.
 - `tooth-extraction` is the production slug to use later. Do not reuse `extraction`.
+
+## Subsequent implementation — draft import
+
+Phase 3 adds a draft importer, `pnpm canonical-template:import`. Each payload is one transaction over the same lifecycle operations the Operator services use. It cannot record review or publish, and it rejects those fields in the payload. Local apply needs `--apply` and an Operator. A remote or production database additionally needs `--allow-production` and `--confirm-draft-import`. `extraction` stays outside it. See [CANONICAL-TEMPLATE-IMPORT.md](../development/CANONICAL-TEMPLATE-IMPORT.md). Production clinical templates are still not authored.

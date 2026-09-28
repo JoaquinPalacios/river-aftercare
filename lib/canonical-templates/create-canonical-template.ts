@@ -1,6 +1,6 @@
 import "server-only";
 
-import { GuideRevisionStatus } from "@prisma/client";
+import { GuideRevisionStatus, type Prisma } from "@prisma/client";
 
 import {
   canonicalTemplateTransactionOptions,
@@ -12,6 +12,47 @@ import {
   parseCanonicalInput,
 } from "@/lib/canonical-templates/schemas";
 import { getPrisma } from "@/lib/prisma";
+
+export async function createCanonicalTemplateInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    actorUserId: string;
+    title: string;
+    slug: string;
+    serviceCategory: Prisma.GuideTemplateCreateInput["serviceCategory"];
+  }
+): Promise<{ templateId: string; revisionId: string; version: number }> {
+  await requireCanonicalActor(tx, input.actorUserId);
+  const template = await tx.guideTemplate.create({
+    data: {
+      title: input.title,
+      slug: input.slug,
+      serviceCategory: input.serviceCategory,
+      isActive: true,
+      isSample: false,
+      revisions: {
+        create: {
+          version: 1,
+          status: GuideRevisionStatus.DRAFT,
+          createdByUserId: input.actorUserId,
+        },
+      },
+    },
+    select: {
+      id: true,
+      revisions: { select: { id: true, version: true } },
+    },
+  });
+  const revision = template.revisions[0];
+  if (!revision) {
+    throw new Error("Canonical template draft v1 was not created.");
+  }
+  return {
+    templateId: template.id,
+    revisionId: revision.id,
+    version: revision.version,
+  };
+}
 
 /**
  * Creates a production canonical template and its first draft revision.
@@ -27,38 +68,10 @@ export async function createCanonicalTemplate(input: {
   const values = parseCanonicalInput(createCanonicalTemplateSchema, input);
 
   try {
-    return await getPrisma().$transaction(async (tx) => {
-      await requireCanonicalActor(tx, values.actorUserId);
-      const template = await tx.guideTemplate.create({
-        data: {
-          title: values.title,
-          slug: values.slug,
-          serviceCategory: values.serviceCategory,
-          isActive: true,
-          isSample: false,
-          revisions: {
-            create: {
-              version: 1,
-              status: GuideRevisionStatus.DRAFT,
-              createdByUserId: values.actorUserId,
-            },
-          },
-        },
-        select: {
-          id: true,
-          revisions: { select: { id: true, version: true } },
-        },
-      });
-      const revision = template.revisions[0];
-      if (!revision) {
-        throw new Error("Canonical template draft v1 was not created.");
-      }
-      return {
-        templateId: template.id,
-        revisionId: revision.id,
-        version: revision.version,
-      };
-    }, canonicalTemplateTransactionOptions);
+    return await getPrisma().$transaction(
+      (tx) => createCanonicalTemplateInTransaction(tx, values),
+      canonicalTemplateTransactionOptions
+    );
   } catch (error) {
     throwCanonicalUniqueConflict(error);
   }
