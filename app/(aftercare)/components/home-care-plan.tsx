@@ -1,5 +1,5 @@
+import { GuideContent } from "@/app/(aftercare)/components/guide-content";
 import { formatHomeCareInstructionSummary } from "@/lib/aftercare/home-care-instruction";
-import { sectionBodyParagraphs } from "@/lib/aftercare/section-body";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
 
 import styles from "../patient.module.css";
@@ -13,11 +13,7 @@ export function HomeCarePlan({ section }: { section: ComposedGuideSection }) {
       <h2 id={headingId} className={styles.sectionTitle}>
         {section.title}
       </h2>
-      {sectionBodyParagraphs(section.body).map((paragraph, index) => (
-        <p key={`${section.key}-intro-${index}`} className={styles.body}>
-          {paragraph}
-        </p>
-      ))}
+      <GuideContent text={section.body} idPrefix={`${section.key}-intro`} />
       <ul className={styles.planList}>
         {instructions.map((item) => {
           const summary = formatHomeCareInstructionSummary(item);
@@ -28,13 +24,10 @@ export function HomeCarePlan({ section }: { section: ComposedGuideSection }) {
                 {item.title}
               </h3>
               {summary ? <p className={styles.planMeta}>{summary}</p> : null}
-              {sectionBodyParagraphs(item.body ?? "").map(
-                (paragraph, index) => (
-                  <p key={`${item.key}-body-${index}`} className={styles.body}>
-                    {paragraph}
-                  </p>
-                )
-              )}
+              <GuideContent
+                text={item.body ?? ""}
+                idPrefix={`${section.key}-${item.key}`}
+              />
             </li>
           );
         })}

@@ -7,6 +7,7 @@ import { CanonicalGuidePreview } from "@/app/(staff)/components/canonical-guide-
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
 import { EditorSectionHeading } from "@/app/(staff)/components/guide-section-editors";
 import { OrderedGuideSectionsEditor } from "@/app/(staff)/components/ordered-guide-sections-editor";
+import { RecordReviewForm } from "@/app/(staff)/(operator)/operator/templates/record-review-form";
 import type { EditorSection } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
 import {
   publishCanonicalTemplateRevisionAction,
@@ -30,6 +31,9 @@ export function CanonicalDraftEditor({
   savedContentSignature,
   initialSections,
   isActive,
+  reviewerName,
+  reviewerCredential,
+  reviewNote,
 }: {
   templateId: string;
   revisionId: string;
@@ -45,6 +49,9 @@ export function CanonicalDraftEditor({
   savedContentSignature: string;
   initialSections: EditorSection[];
   isActive: boolean;
+  reviewerName: string;
+  reviewerCredential: string;
+  reviewNote: string;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -72,6 +79,8 @@ export function CanonicalDraftEditor({
     () => canonicalDraftContentChanged(savedContentSignature, sections),
     [savedContentSignature, sections]
   );
+  const invalidationWarningId =
+    reviewed && contentChanged ? "draft-review-invalidation" : undefined;
   const previewSections = useMemo(
     () => editorSectionsToComposedGuide(sections),
     [sections]
@@ -104,32 +113,17 @@ export function CanonicalDraftEditor({
           </span>
         )}
       </div>
-      {reviewed && reviewSummary ? (
-        <div className="rounded-xl border border-staff-line bg-staff-panel p-4 text-sm">
-          <p className="font-medium">Review recorded</p>
-          <p className="mt-2">
-            {reviewSummary.reviewerName}
-            {reviewSummary.reviewerCredential
-              ? ` · ${reviewSummary.reviewerCredential}`
-              : ""}
-          </p>
-          {reviewSummary.reviewNote ? (
-            <p className="mt-2 text-staff-muted">{reviewSummary.reviewNote}</p>
-          ) : null}
-          <p className="mt-2 text-staff-muted">
-            {reviewSummary.reviewedAtLabel ?? "Review time unavailable"}
-            {reviewSummary.recordedByLabel
-              ? ` · Recorded by ${reviewSummary.recordedByLabel}`
-              : ""}
-          </p>
-        </div>
-      ) : (
+      {reviewed ? null : (
         <p className="text-sm text-staff-muted">
           This draft is not reviewed. Record review before publication.
         </p>
       )}
       {reviewed && contentChanged ? (
-        <p className="text-sm text-red-700" role="status">
+        <p
+          id="draft-review-invalidation"
+          className="text-sm text-red-700"
+          role="status"
+        >
           {REVIEW_INVALIDATION_WARNING}
         </p>
       ) : null}
@@ -166,6 +160,15 @@ export function CanonicalDraftEditor({
           value={JSON.stringify(sectionsPayload(sections))}
         />
         <EditorSectionHeading title="Draft content">
+          <button
+            type="submit"
+            className="staffBtn staffBtnPrimary w-fit"
+            data-draft-save="top"
+            disabled={saving}
+            aria-describedby={invalidationWarningId}
+          >
+            {saving ? "Saving…" : "Save draft"}
+          </button>
           <OrderedGuideSectionsEditor
             sections={sections}
             disabled={false}
@@ -180,37 +183,78 @@ export function CanonicalDraftEditor({
         <button
           type="submit"
           className="staffBtn staffBtnPrimary w-fit"
+          data-draft-save="bottom"
           disabled={saving}
+          aria-describedby={invalidationWarningId}
         >
           {saving ? "Saving…" : "Save draft"}
         </button>
       </form>
       <CanonicalGuidePreview sections={previewSections} />
-      <div className="flex flex-col gap-3">
-        <button
-          type="button"
-          className="staffBtn staffBtnPrimary w-fit"
-          disabled={!reviewed || publishing}
-          onClick={() => setPublishOpen(true)}
-        >
-          Publish revision
-        </button>
-        {reviewed ? null : (
-          <p className="text-sm text-staff-muted">
-            Record a complete review before publishing this revision.
-          </p>
-        )}
-        {isActive ? null : (
-          <p className="text-sm text-staff-muted">
-            Activate this template before publishing.
-          </p>
-        )}
-        {publishState.error ? (
-          <p className="text-sm text-red-600" role="alert">
-            {publishState.error}
-          </p>
+      <EditorSectionHeading
+        title={reviewed ? "Review recorded" : "Record review"}
+      >
+        <p className="text-sm text-staff-muted">
+          Recording review does not publish the revision. Publishing makes a
+          reviewed revision available to eligible clinics.
+        </p>
+        {reviewed && reviewSummary ? (
+          <div className="rounded-xl border border-staff-line bg-staff-canvas p-4 text-sm">
+            <p>
+              {reviewSummary.reviewerName}
+              {reviewSummary.reviewerCredential
+                ? ` · ${reviewSummary.reviewerCredential}`
+                : ""}
+            </p>
+            {reviewSummary.reviewNote ? (
+              <p className="mt-2 text-staff-muted">
+                {reviewSummary.reviewNote}
+              </p>
+            ) : null}
+            <p className="mt-2 text-staff-muted">
+              {reviewSummary.reviewedAtLabel ?? "Review time unavailable"}
+              {reviewSummary.recordedByLabel
+                ? ` · Recorded by ${reviewSummary.recordedByLabel}`
+                : ""}
+            </p>
+          </div>
         ) : null}
-      </div>
+        <RecordReviewForm
+          templateId={templateId}
+          revisionId={revisionId}
+          reviewerName={reviewerName}
+          reviewerCredential={reviewerCredential}
+          reviewNote={reviewNote}
+          reviewed={reviewed}
+        />
+      </EditorSectionHeading>
+      <EditorSectionHeading title="Publish revision">
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            className="staffBtn staffBtnPrimary w-fit"
+            disabled={!reviewed || publishing}
+            onClick={() => setPublishOpen(true)}
+          >
+            Publish revision
+          </button>
+          {reviewed ? null : (
+            <p className="text-sm text-staff-muted">
+              Record a complete review before publishing this revision.
+            </p>
+          )}
+          {isActive ? null : (
+            <p className="text-sm text-staff-muted">
+              Activate this template before publishing.
+            </p>
+          )}
+          {publishState.error ? (
+            <p className="text-sm text-red-600" role="alert">
+              {publishState.error}
+            </p>
+          ) : null}
+        </div>
+      </EditorSectionHeading>
       <form
         id="publish-revision-form"
         action={publishAction}

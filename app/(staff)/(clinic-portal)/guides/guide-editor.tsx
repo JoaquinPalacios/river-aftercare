@@ -23,6 +23,8 @@ import {
   TimelineAccordion,
   type EditorSection,
 } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
+import { AutosizeTextarea } from "@/app/(staff)/components/autosize-textarea";
+import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
 import {
   EditorSectionHeading,
   Field,
@@ -31,7 +33,6 @@ import {
   HomeCarePlanEditor,
   newGuideContentKey,
 } from "@/app/(staff)/components/guide-section-editors";
-import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
 import { GuideStatusPills } from "@/app/(staff)/components/guide-status-pills";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { SaveStatus } from "@/app/(staff)/components/save-status";
@@ -585,18 +586,16 @@ export function GuideEditor({
               <FieldError message={saveState.fieldErrors?.publicSlug} />
             </Field>
             <Field label="Short introduction" htmlFor="introduction">
-              <textarea
+              <AutosizeTextarea
                 id="introduction"
                 name="introduction"
                 data-guide-field
                 value={introduction}
                 onChange={(event) => setIntroduction(event.target.value)}
                 disabled={!canEdit}
-                rows={4}
                 aria-invalid={
                   saveState.fieldErrors?.introduction ? "true" : "false"
                 }
-                className="staffField"
               />
               <FieldError message={saveState.fieldErrors?.introduction} />
             </Field>

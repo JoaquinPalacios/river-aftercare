@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { CanonicalDraftEditor } from "@/app/(staff)/(operator)/operator/templates/canonical-draft-editor";
 import { EditorSectionHeading } from "@/app/(staff)/components/guide-section-editors";
-import { RecordReviewForm } from "@/app/(staff)/(operator)/operator/templates/record-review-form";
 import { TemplateLifecycleActions } from "@/app/(staff)/(operator)/operator/templates/template-lifecycle-actions";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -104,21 +103,10 @@ export default async function OperatorTemplateDraftPage({
             savedContentSignature={draft.savedContentSignature}
             initialSections={draft.sections}
             isActive={template.isActive}
+            reviewerName={draft.reviewerName ?? ""}
+            reviewerCredential={draft.reviewerCredential ?? ""}
+            reviewNote={draft.reviewNote ?? ""}
           />
-          <EditorSectionHeading title="Record review">
-            <p className="text-sm text-staff-muted">
-              Recording review does not publish the revision. Publishing makes a
-              reviewed revision available to eligible clinics.
-            </p>
-            <RecordReviewForm
-              templateId={template.id}
-              revisionId={draft.id}
-              reviewerName={draft.reviewerName ?? ""}
-              reviewerCredential={draft.reviewerCredential ?? ""}
-              reviewNote={draft.reviewNote ?? ""}
-              reviewed={draft.reviewed}
-            />
-          </EditorSectionHeading>
           <EditorSectionHeading title="Draft actions">
             <TemplateLifecycleActions
               templateId={template.id}

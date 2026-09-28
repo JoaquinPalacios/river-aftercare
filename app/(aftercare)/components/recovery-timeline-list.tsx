@@ -1,5 +1,5 @@
+import { GuideContent } from "@/app/(aftercare)/components/guide-content";
 import type { TimelineStageStatus } from "@/lib/aftercare/demo-recovery-state";
-import { sectionBodyParagraphs } from "@/lib/aftercare/section-body";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
 
 const STATUS_LABEL: Record<TimelineStageStatus, string> = {
@@ -92,18 +92,9 @@ export function RecoveryTimelineList({
                     {STATUS_LABEL[status]}
                   </p>
                 ) : null}
-                {compact || !classes.body
-                  ? null
-                  : sectionBodyParagraphs(section.body).map(
-                      (paragraph, bodyIndex) => (
-                        <p
-                          key={`${section.key}-${bodyIndex}`}
-                          className={classes.body}
-                        >
-                          {paragraph}
-                        </p>
-                      )
-                    )}
+                {compact || !classes.body ? null : (
+                  <GuideContent text={section.body} idPrefix={section.key} />
+                )}
                 {isLast || !classes.timelineSeparator ? null : (
                   <div
                     className={classes.timelineSeparator}

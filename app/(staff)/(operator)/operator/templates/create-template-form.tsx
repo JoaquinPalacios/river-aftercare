@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import {
   createCanonicalTemplateAction,
@@ -10,6 +10,7 @@ import {
   SERVICE_CATEGORIES,
   SERVICE_CATEGORY_LABELS,
 } from "@/lib/aftercare/service-category";
+import { suggestGuideSlug } from "@/lib/clinics/slug-suggestion";
 
 const initial: CanonicalTemplateActionState = {};
 
@@ -18,6 +19,26 @@ export function CreateTemplateForm() {
     createCanonicalTemplateAction,
     initial
   );
+  const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugEdited, setSlugEdited] = useState(false);
+
+  function updateTitle(next: string) {
+    setTitle(next);
+    if (!slugEdited) {
+      setSlug(suggestGuideSlug(next));
+    }
+  }
+
+  function updateSlug(next: string) {
+    setSlugEdited(true);
+    setSlug(next);
+  }
+
+  function regenerateSlug() {
+    setSlugEdited(false);
+    setSlug(suggestGuideSlug(title));
+  }
 
   return (
     <form action={action} className="flex max-w-lg flex-col gap-4">
@@ -29,6 +50,8 @@ export function CreateTemplateForm() {
           id="title"
           name="title"
           required
+          value={title}
+          onChange={(event) => updateTitle(event.target.value)}
           className="staffField"
           aria-invalid={state.fieldErrors?.title ? true : undefined}
         />
@@ -44,12 +67,28 @@ export function CreateTemplateForm() {
           id="slug"
           name="slug"
           required
+          value={slug}
+          onChange={(event) => updateSlug(event.target.value)}
           className="staffField staffFieldNarrow"
+          autoCapitalize="none"
+          autoComplete="off"
+          spellCheck={false}
           aria-invalid={state.fieldErrors?.slug ? true : undefined}
+          aria-describedby="slug-hint"
         />
-        <p className="text-sm text-staff-muted">
-          Lowercase and url-safe. The slug extraction is reserved for the demo
-          sample.
+        {slugEdited ? (
+          <button
+            type="button"
+            className="staffBtn staffBtnQuiet w-fit"
+            onClick={regenerateSlug}
+          >
+            Regenerate from title
+          </button>
+        ) : null}
+        <p id="slug-hint" className="text-sm text-staff-muted">
+          Generated from the title until you edit it. The slug stays editable
+          until the first publication. The slug extraction is reserved for the
+          demo sample.
         </p>
         {state.fieldErrors?.slug ? (
           <p className="text-sm text-red-600">{state.fieldErrors.slug}</p>

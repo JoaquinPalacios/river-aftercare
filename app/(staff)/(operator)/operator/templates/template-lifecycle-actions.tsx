@@ -145,6 +145,8 @@ export function TemplateLifecycleActions({
         cancelLabel="Keep draft"
         confirmLabel="Abandon draft"
         confirmTone="danger"
+        cancelTone="secondary"
+        actionLayout="balanced"
         pending={abandoning}
         pendingLabel="Removing…"
         onCancel={() => setAbandonOpen(false)}

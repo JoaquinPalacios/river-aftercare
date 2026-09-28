@@ -1,5 +1,6 @@
 "use client";
 
+import { AutosizeTextarea } from "@/app/(staff)/components/autosize-textarea";
 import { firstSectionParagraph } from "@/lib/aftercare/section-body";
 import { relativeStageWhenLabel } from "@/lib/aftercare/recovery-day-label";
 import { validateTimelineRanges } from "@/lib/aftercare/timeline-range";
@@ -208,15 +209,13 @@ export function TimelineAccordion({
                     </Field>
                   </div>
                   <Field label="Instructions" htmlFor={`${stage.key}-body`}>
-                    <textarea
+                    <AutosizeTextarea
                       id={`${stage.key}-body`}
                       value={stage.body}
                       onChange={(event) =>
                         update(index, { body: event.target.value })
                       }
                       disabled={disabled}
-                      rows={4}
-                      className="staffField"
                     />
                   </Field>
                   {disabled ? null : (

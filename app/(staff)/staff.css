@@ -612,6 +612,36 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
   border-top: 1px solid var(--staff-line);
 }
 
+.staffDialogActionsBalanced {
+  justify-content: stretch;
+  gap: 0.75rem;
+}
+
+.staffDialogActionsBalanced > .staffBtn {
+  flex: 1 1 0;
+  min-height: 2.75rem;
+}
+
+@media (max-width: 40rem) {
+  .staffDialogActionsBalanced {
+    flex-direction: column;
+  }
+}
+
+.staffSectionOrder {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.staffSectionOrder .staffBtn {
+  min-height: 2rem;
+  padding-inline: 0.55rem;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+}
+
 .staffEditorChrome {
   position: sticky;
   top: 0;
@@ -1487,6 +1517,13 @@ textarea.staffField {
   padding-block: 0.5rem;
   line-height: 1.5;
   resize: vertical;
+}
+
+textarea.staffField.staffAutosizeField {
+  min-height: calc(1.5em * 3 + 1rem);
+  max-height: calc(1.5em * 6 + 1rem);
+  overflow-y: auto;
+  resize: none;
 }
 
 .staffSelect {

@@ -11,9 +11,11 @@ describe("guideSectionTone", () => {
     expect(guideSectionTone("IMMEDIATE_CARE")).toBe("lead");
     expect(guideSectionTone("FIRST_24_HOURS")).toBe("default");
     expect(guideSectionTone("CUSTOM")).toBe("default");
+    expect(guideSectionTone("WHAT_IS_NORMAL")).toBe("reassurance");
+    expect(guideSectionTone("CONTACT_PRACTICE")).toBe("contact");
   });
 
-  it("does not special-case dental section keys", () => {
+  it("derives tone from section kind", () => {
     const kinds: GuideSectionKind[] = [
       "RECOVERY_TIMELINE",
       "WHAT_IS_NORMAL",
@@ -21,8 +23,8 @@ describe("guideSectionTone", () => {
     ];
     expect(kinds.map(guideSectionTone)).toEqual([
       "default",
-      "default",
-      "default",
+      "reassurance",
+      "contact",
     ]);
   });
 });

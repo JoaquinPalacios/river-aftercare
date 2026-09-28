@@ -1,22 +1,27 @@
-import { guideSectionTone } from "@/lib/aftercare/guide-section-tone";
-import { sectionBodyParagraphs } from "@/lib/aftercare/section-body";
+import { GuideContent } from "@/app/(aftercare)/components/guide-content";
+import {
+  guideSectionTone,
+  type GuideSectionTone,
+} from "@/lib/aftercare/guide-section-tone";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
 
 import styles from "../patient.module.css";
 
-function sectionClassName(tone: ReturnType<typeof guideSectionTone>): string {
-  if (tone === "warning") {
-    return `${styles.section} ${styles.warning}`;
-  }
-  if (tone === "emergency") {
-    return `${styles.section} ${styles.emergency}`;
-  }
-  return styles.section;
+const TONE_CLASS: Record<GuideSectionTone, string | undefined> = {
+  lead: undefined,
+  default: undefined,
+  warning: styles.warning,
+  emergency: styles.emergency,
+  reassurance: styles.reassurance,
+  contact: styles.contact,
+};
+
+function sectionClassName(tone: GuideSectionTone): string {
+  const toneClass = TONE_CLASS[tone];
+  return toneClass ? `${styles.section} ${toneClass}` : styles.section;
 }
 
-function visuallyHiddenPrefix(
-  tone: ReturnType<typeof guideSectionTone>
-): string | null {
+function visuallyHiddenPrefix(tone: GuideSectionTone): string | null {
   if (tone === "warning") {
     return "Important. ";
   }
@@ -32,16 +37,16 @@ export function GuideSection({ section }: { section: ComposedGuideSection }) {
   const prefix = visuallyHiddenPrefix(tone);
 
   return (
-    <section className={sectionClassName(tone)} aria-labelledby={headingId}>
+    <section
+      className={sectionClassName(tone)}
+      data-guide-tone={tone}
+      aria-labelledby={headingId}
+    >
       <h2 id={headingId} className={styles.sectionTitle}>
         {prefix ? <span className={styles.vh}>{prefix}</span> : null}
         {section.title}
       </h2>
-      {sectionBodyParagraphs(section.body).map((paragraph, index) => (
-        <p key={`${section.key}-${index}`} className={styles.body}>
-          {paragraph}
-        </p>
-      ))}
+      <GuideContent text={section.body} idPrefix={section.key} />
     </section>
   );
 }

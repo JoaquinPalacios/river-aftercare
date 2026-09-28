@@ -300,6 +300,20 @@
   margin-bottom: 0;
 }
 
+.contentList {
+  margin: 0 0 0.7rem;
+  padding-left: 1.2rem;
+  max-width: 72ch;
+}
+
+.contentList:last-child {
+  margin-bottom: 0;
+}
+
+.contentList li + li {
+  margin-top: 0.28rem;
+}
+
 .planList {
   margin: 0.85rem 0 0;
   padding: 0;
@@ -411,6 +425,23 @@
 .urgent {
   background: var(--cg-emergency-surface);
   box-shadow: inset 3px 0 0 var(--cg-emergency);
+}
+
+.reassurance {
+  position: relative;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--cg-notice-border);
+  border-radius: var(--cg-radius);
+  background: var(--cg-notice-surface);
+  color: var(--cg-notice-text);
+}
+
+.contact {
+  position: relative;
+  padding: 0.85rem 1rem;
+  border: 0;
+  background: color-mix(in srgb, var(--cg-brand) 8%, var(--cg-surface));
+  box-shadow: inset 3px 0 0 var(--cg-brand);
 }
 
 .vh {
@@ -875,6 +906,8 @@
   .section,
   .warning,
   .emergency,
+  .reassurance,
+  .contact,
   .printUrgent,
   .disclaimer,
   .timelineItem {

@@ -68,6 +68,13 @@ describe("canonical draft editor", () => {
   let root: Root;
 
   beforeEach(() => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    HTMLDialogElement.prototype.showModal = function showModal() {
+      this.setAttribute("open", "");
+    };
+    HTMLDialogElement.prototype.close = function close() {
+      this.removeAttribute("open");
+    };
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -105,6 +112,9 @@ describe("canonical draft editor", () => {
           savedContentSignature={signature}
           initialSections={sections}
           isActive
+          reviewerName={reviewed ? "Example Reviewer" : ""}
+          reviewerCredential={reviewed ? "Example credential" : ""}
+          reviewNote={reviewed ? "Example note" : ""}
         />
       );
     });
@@ -144,5 +154,103 @@ describe("canonical draft editor", () => {
       "Record a complete review before publishing this revision."
     );
     expect(container.textContent).toContain("Not reviewed");
+  });
+
+  it("places record review before publish and warns from every save button", () => {
+    render(true);
+    const reviewField = container.querySelector(
+      "#reviewerName"
+    ) as HTMLInputElement;
+    const publish = [...container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Publish revision")
+    ) as HTMLButtonElement;
+    expect(
+      reviewField.compareDocumentPosition(publish) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(publish.disabled).toBe(false);
+
+    const title = container.querySelector("#intro-title") as HTMLInputElement;
+    const setValue = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    )?.set;
+    act(() => {
+      setValue?.call(title, "Example introduction revised");
+      title.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    const saves = [...container.querySelectorAll("button")].filter((button) =>
+      button.textContent?.includes("Save draft")
+    );
+    expect(saves).toHaveLength(2);
+    for (const save of saves) {
+      expect(save.getAttribute("aria-describedby")).toBe(
+        "draft-review-invalidation"
+      );
+      act(() => {
+        save.click();
+      });
+      expect(container.textContent).toContain(
+        "Save changes to reviewed content?"
+      );
+      expect(container.textContent).toContain(REVIEW_INVALIDATION_WARNING);
+      const keep = [...container.querySelectorAll("button")].find(
+        (button) => button.textContent === "Keep editing"
+      ) as HTMLButtonElement;
+      act(() => {
+        keep.click();
+      });
+      expect(container.textContent).not.toContain(
+        "Save changes to reviewed content?"
+      );
+    }
+  });
+
+  it("keeps new section placeholders out of the saved payload", () => {
+    render(false);
+    const add = [...container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Add section")
+    ) as HTMLButtonElement;
+    act(() => {
+      add.click();
+    });
+    const hidden = container.querySelector(
+      'input[name="sections"]'
+    ) as HTMLInputElement;
+    const payload = JSON.parse(hidden.value) as Array<{
+      title: string;
+      body: string;
+    }>;
+    const added = payload.at(-1);
+    expect(added?.title).toBe("");
+    expect(added?.body).toBe("");
+    expect(hidden.value).not.toContain("Example section title");
+    expect(hidden.value).not.toContain("Enter guidance...");
+    const title = container.querySelector(
+      "article:last-of-type input[id$='-title']"
+    ) as HTMLInputElement;
+    expect(title.value).toBe("");
+    expect(title.placeholder).toBe("Example section title");
+  });
+
+  it("asks for review before the publish control when the draft is unreviewed", () => {
+    render(false);
+    const reviewHeading = [...container.querySelectorAll("h2")].find(
+      (heading) => heading.textContent === "Record review"
+    );
+    const publishHeading = [...container.querySelectorAll("h2")].find(
+      (heading) => heading.textContent === "Publish revision"
+    );
+    expect(reviewHeading).toBeTruthy();
+    expect(publishHeading).toBeTruthy();
+    expect(
+      reviewHeading!.compareDocumentPosition(publishHeading!) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    const publish = [...container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Publish revision")
+    );
+    expect(publish?.hasAttribute("disabled")).toBe(true);
   });
 });
