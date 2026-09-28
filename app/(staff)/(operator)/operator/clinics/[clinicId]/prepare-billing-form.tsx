@@ -9,7 +9,7 @@ import {
 import {
   groupOfferQuote,
   parseOfferedAdditionalSiteQuantity,
-} from "@/lib/billing/group-commercial";
+} from "@/lib/clinics/group-commercial";
 
 const initial: PrepareBillingActionState = {};
 

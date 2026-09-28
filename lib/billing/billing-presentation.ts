@@ -7,7 +7,7 @@ import {
   type CommercialPlan,
 } from "@prisma/client";
 
-import { isOfferedAdditionalSiteQuantity } from "@/lib/billing/group-commercial";
+import { isOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import {
   billingIntervalLabel,
   commercialOfferSummary,

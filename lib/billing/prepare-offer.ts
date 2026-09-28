@@ -8,7 +8,7 @@ import {
   type PrismaClient,
 } from "@prisma/client";
 
-import { isOfferedAdditionalSiteQuantity } from "@/lib/billing/group-commercial";
+import { isOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import { logStripeBilling } from "@/lib/billing/log";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import type {
@@ -124,7 +124,6 @@ export async function prepareClinicCommercialOffer(
     }
     offeredAdditionalSiteQuantity = input.offeredAdditionalSiteQuantity;
   }
-  const groupOffer = input.commercialPlan === "GROUP";
 
   const existing = await db.clinicEntitlement.findUnique({
     where: { clinicId: input.clinicId },
@@ -158,7 +157,7 @@ export async function prepareClinicCommercialOffer(
     clinicLocation?: { count?: (args: unknown) => Promise<number> };
   };
   if (
-    !groupOffer &&
+    input.commercialPlan !== "GROUP" &&
     usageDb.clinicSite?.count &&
     usageDb.clinicLocation?.count
   ) {

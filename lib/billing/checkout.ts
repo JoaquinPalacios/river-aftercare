@@ -8,7 +8,7 @@ import {
 } from "@prisma/client";
 
 import { RIVER_CLINIC_ID_METADATA_KEY } from "@/lib/billing/identity";
-import { isOfferedAdditionalSiteQuantity } from "@/lib/billing/group-commercial";
+import { isOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import { logStripeBilling } from "@/lib/billing/log";
 import {
   stripeGroupBasePriceId,

@@ -8,7 +8,7 @@ import {
   formatAudCents,
   groupOfferQuote,
   parseOfferedAdditionalSiteQuantity,
-} from "@/lib/billing/group-commercial";
+} from "@/lib/clinics/group-commercial";
 import { prepareClinicCommercialOffer } from "@/lib/billing/prepare-offer";
 import { LAUNCH_PLANS } from "@/lib/marketing/plans";
 import { effectiveSiteLocationAllowance } from "@/lib/clinics/site-location-allowance";

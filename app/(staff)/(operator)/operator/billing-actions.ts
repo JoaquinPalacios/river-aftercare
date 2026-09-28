@@ -9,7 +9,7 @@ import {
   planChangeMessage,
   submitOperatorPlanUpgrade,
 } from "@/lib/billing/plan-change";
-import { parseOfferedAdditionalSiteQuantity } from "@/lib/billing/group-commercial";
+import { parseOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import { prepareClinicCommercialOffer } from "@/lib/billing/prepare-offer";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 

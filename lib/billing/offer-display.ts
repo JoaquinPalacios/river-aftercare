@@ -2,7 +2,7 @@ import "server-only";
 
 import type { BillingInterval, CommercialPlan } from "@prisma/client";
 
-import { groupOfferQuote } from "@/lib/billing/group-commercial";
+import { groupOfferQuote } from "@/lib/clinics/group-commercial";
 import {
   formatAudInclGst,
   LAUNCH_PLANS,

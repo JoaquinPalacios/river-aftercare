@@ -7,7 +7,10 @@ import { MAX_OPERATOR_EXTRA_ALLOWANCE } from "@/lib/entitlements/allowance-input
 
 /**
  * Operator-assisted Group commercial amounts in integer cents.
- * Public marketing does not import this module. Stripe remains the charge.
+ *
+ * This module is safe for the operator offer form. It must not import
+ * server-only billing, Stripe, or secrets. Public marketing does not import
+ * it. Stripe remains the charge.
  */
 
 export const GROUP_BASE_MONTHLY_CENTS = 44_900;
