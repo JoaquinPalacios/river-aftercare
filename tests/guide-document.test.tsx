@@ -353,6 +353,83 @@ Then rest.`,
     expect(html).not.toContain("1. First");
   });
 
+  it("keeps a timeline and the following section in one document without an extra spacer", () => {
+    const html = renderToStaticMarkup(
+      <GuideDocument
+        sections={[
+          section({
+            key: "intro",
+            kind: "INTRODUCTION",
+            title: "After your extraction",
+            body: "Read this first.",
+          }),
+          section({
+            key: "hours",
+            kind: "RECOVERY_TIMELINE",
+            title: "Immediate care",
+            periodLabel: "First few hours",
+            body: "Keep the site still.\n\n• do not rinse\n• avoid straws",
+          }),
+          section({
+            key: "later",
+            kind: "RECOVERY_TIMELINE",
+            title: "Healing check",
+            periodLabel: "Days 4–7",
+            body: "Discomfort should settle.",
+          }),
+          section({
+            key: "normal",
+            kind: "WHAT_IS_NORMAL",
+            title: "What you may normally notice",
+            body: "• mild swelling\n• a dull ache",
+          }),
+          section({
+            key: "care",
+            kind: "SITE_CARE",
+            title: "Site care",
+            body: "Keep the area clean.",
+          }),
+          section({
+            key: "avoid",
+            kind: "WHAT_TO_AVOID",
+            title: "What to avoid",
+            body: "1. Do not smoke\n2. Do not poke the site",
+          }),
+          section({
+            key: "warning",
+            kind: "WARNING_SIGNS",
+            title: "Warning signs",
+            body: "Call the clinic.",
+          }),
+          section({
+            key: "urgent",
+            kind: "EMERGENCY",
+            title: "Emergency",
+            body: "Call emergency services.",
+          }),
+        ]}
+      />
+    );
+
+    expect(html.match(/data-guide-document=/g)).toHaveLength(1);
+    const documentStart = html.indexOf("data-guide-document");
+    const recovery = html.indexOf("Recovery guide");
+    const normal = html.indexOf("What you may normally notice");
+    expect(documentStart).toBeGreaterThanOrEqual(0);
+    expect(documentStart).toBeLessThan(recovery);
+    expect(recovery).toBeLessThan(normal);
+    const between = html.slice(html.lastIndexOf("</section>", normal), normal);
+    expect(between).not.toMatch(/<(div|p|span)\b[^>]*>\s*<\/\1>/);
+    expect(html).toContain("<ul");
+    expect(html).toContain("<ol");
+    expect(html).toContain("do not rinse");
+    expect(html).toContain("mild swelling");
+    expect(html).toContain('data-guide-tone="reassurance"');
+    expect(html).toContain('data-guide-tone="warning"');
+    expect(html).toContain('data-guide-tone="emergency"');
+    expect(html.match(/data-timeline-separator=/g)).toHaveLength(1);
+  });
+
   it("shares one guide document path for the operator preview and the patient page", () => {
     const preview = readFileSync(
       "app/(staff)/components/canonical-guide-preview.tsx",

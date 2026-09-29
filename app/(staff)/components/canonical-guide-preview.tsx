@@ -1,5 +1,15 @@
 import { GuideDocument } from "@/app/(aftercare)/components/guide-document";
+import {
+  AFTERCARE_THEME_SCOPE,
+  DEFAULT_AFTERCARE_THEME,
+  serializeAftercareThemeCss,
+} from "@/lib/branding/aftercare-theme";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
+
+const NEUTRAL_PREVIEW_THEME = serializeAftercareThemeCss(
+  DEFAULT_AFTERCARE_THEME,
+  { colorSchemeSelector: "scope" }
+);
 
 export function CanonicalGuidePreview({
   sections,
@@ -27,7 +37,12 @@ export function CanonicalGuidePreview({
           Add a section to see the guide preview.
         </p>
       ) : (
-        <GuideDocument sections={sections} />
+        <>
+          <style dangerouslySetInnerHTML={{ __html: NEUTRAL_PREVIEW_THEME }} />
+          <div className={AFTERCARE_THEME_SCOPE} data-patient-theme="portal">
+            <GuideDocument sections={sections} />
+          </div>
+        </>
       )}
     </div>
   );

@@ -48,7 +48,7 @@ export default async function OperatorTemplatesPage({
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+        <div className="min-w-0 flex-1">
           <PortalBreadcrumb items={[{ label: "Templates" }]} />
           <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
             Platform
@@ -63,7 +63,7 @@ export default async function OperatorTemplatesPage({
         </div>
         <Link
           href="/operator/templates/new"
-          className="staffBtn staffBtnPrimary"
+          className="staffBtn staffBtnPrimary w-full whitespace-nowrap sm:w-auto sm:shrink-0"
         >
           Create template
         </Link>

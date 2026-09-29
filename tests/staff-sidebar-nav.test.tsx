@@ -132,6 +132,12 @@ describe("staff sidebar navigation", () => {
       "/operator/seo",
     ]);
     expect(currentHrefs(platform)).toEqual(["/operator/clinics"]);
+    const clinicsLink = platform.querySelector(
+      'a[href="/operator/clinics"]'
+    ) as HTMLAnchorElement;
+    expect(clinicsLink.getAttribute("aria-current")).toBe("page");
+    expect(clinicsLink.getAttribute("data-tooltip")).toBe("Clinics");
+    expect(clinicsLink.querySelector('[data-nav-icon="clinics"]')).toBeTruthy();
     expect(platform.querySelector(".staffBtnSpinner")).toBeNull();
 
     nav.pathname = "/operator/seo";
@@ -244,6 +250,20 @@ describe("staff sidebar navigation", () => {
     expect(
       operatorAside.querySelector('[data-nav-icon="templates"]')
     ).toBeTruthy();
+    const clinics = operatorAside.querySelector(
+      'a[href="/operator/clinics"]'
+    ) as HTMLAnchorElement;
+    expect(clinics.getAttribute("data-tooltip")).toBe("Clinics");
+    expect(clinics.querySelector(".staffNavLabel")?.textContent).toBe(
+      "Clinics"
+    );
+    const clinicsIcon = clinics.querySelector(
+      '[data-nav-icon="clinics"]'
+    ) as SVGElement;
+    expect(clinicsIcon).toBeTruthy();
+    expect(clinicsIcon.getAttribute("aria-hidden")).toBe("true");
+    expect(clinicsIcon.innerHTML).toContain("M9.33 14v-2");
+    expect(clinicsIcon.innerHTML).not.toContain("M2.8 13.2");
     const expand = operatorAside.querySelector(
       ".staffSidebarToggle"
     ) as HTMLButtonElement;
