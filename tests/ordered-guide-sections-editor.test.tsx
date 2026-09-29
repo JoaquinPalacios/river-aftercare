@@ -1,5 +1,7 @@
 /** @vitest-environment jsdom */
 
+import { readFileSync } from "node:fs";
+
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -80,15 +82,14 @@ describe("ordered guide sections editor", () => {
       expect(article.getAttribute("data-block-accent")).toBe(
         guideBlockAccent(kind)
       );
-      expect(
-        article.querySelector(".canonicalBlockSummary")?.textContent
-      ).toContain(
-        kind === "RECOVERY_TIMELINE"
-          ? "Timeline"
-          : kind === "HOME_CARE_PLAN"
-            ? "Home care"
-            : label
+      expect(article.querySelector(".canonicalBlockSummary")?.textContent).toBe(
+        kind === "RECOVERY_TIMELINE" || kind === "HOME_CARE_PLAN"
+          ? "Untitled"
+          : label
       );
+      expect(
+        article.querySelector('option[value="FIRST_24_HOURS"]')
+      ).toBeTruthy();
       const toggle = article.querySelector(
         "button[aria-expanded]"
       ) as HTMLButtonElement;
@@ -341,7 +342,7 @@ describe("ordered guide sections editor", () => {
       "Section"
     );
     expect(article.querySelector(".canonicalBlockSummary")?.textContent).toBe(
-      "Warning signs · When to call"
+      "Warning signs — When to call"
     );
     expect(article.getAttribute("data-block-accent")).toBe("warning");
     const toggle = article.querySelector(
@@ -434,6 +435,141 @@ describe("ordered guide sections editor", () => {
         )
         ?.getAttribute("aria-expanded")
     ).toBe("false");
+  });
+
+  it("pads expanded accordion content under the header", () => {
+    const css = readFileSync("app/(staff)/staff.css", "utf8");
+    expect(css).toMatch(/\.canonicalBlockFields\s*\{[\s\S]*?padding:\s*1rem;/);
+    render([
+      {
+        ...emptySection("INTRODUCTION"),
+        key: "intro",
+        title: "Welcome",
+      },
+      {
+        ...emptySection("FIRST_24_HOURS"),
+        key: "first-day",
+        title: "First 24 hours",
+      },
+      {
+        ...emptySection("RECOVERY_TIMELINE"),
+        key: "stage",
+        title: "First 24 hours",
+        periodLabel: "First 24 hours",
+        startDay: "0",
+        endDay: "1",
+      },
+      {
+        ...emptySection("HOME_CARE_PLAN"),
+        key: "plan",
+        title: "Your home plan",
+      },
+    ]);
+    for (const key of ["intro", "first-day", "stage", "plan"]) {
+      const article = container.querySelector(
+        `[data-section-key="${key}"]`
+      ) as HTMLElement;
+      const toggle = article.querySelector(
+        "button[aria-expanded]"
+      ) as HTMLButtonElement;
+      act(() => {
+        toggle.click();
+      });
+      const panel = article.querySelector(".staffAccordionPanel");
+      expect(panel?.getAttribute("data-open")).toBe("true");
+      const fields = panel?.querySelector(".canonicalBlockFields");
+      expect(fields).toBeTruthy();
+      expect(fields?.querySelector("select, input")).toBeTruthy();
+    }
+  });
+
+  it("shows a matching kind and title once, and keeps First 24 hours available", () => {
+    render([
+      {
+        ...emptySection("FIRST_24_HOURS"),
+        key: "standalone",
+        title: "First 24 hours",
+      },
+      {
+        ...emptySection("WARNING_SIGNS"),
+        key: "warn",
+        title: "When to contact your clinic",
+      },
+      {
+        ...emptySection("RECOVERY_TIMELINE"),
+        key: "first-stage",
+        title: "First 24 hours",
+        periodLabel: "First 24 hours",
+        startDay: "0",
+        endDay: "1",
+      },
+      {
+        ...emptySection("RECOVERY_TIMELINE"),
+        key: "early",
+        title: "Early recovery",
+        periodLabel: "Days 2–3",
+        startDay: "2",
+        endDay: "3",
+      },
+      {
+        ...emptySection("HOME_CARE_PLAN"),
+        key: "plan",
+        title: "Your home plan",
+      },
+    ]);
+
+    function summary(key: string) {
+      const article = container.querySelector(
+        `[data-section-key="${key}"]`
+      ) as HTMLElement;
+      return {
+        badge: article.querySelector(".canonicalBlockBadge")?.textContent,
+        summary: article.querySelector(".canonicalBlockSummary")?.textContent,
+        article,
+      };
+    }
+
+    expect(summary("standalone")).toMatchObject({
+      badge: "Section",
+      summary: "First 24 hours",
+    });
+    expect(summary("standalone").summary).not.toContain("·");
+    expect(summary("warn")).toMatchObject({
+      badge: "Section",
+      summary: "Warning signs — When to contact your clinic",
+    });
+    const firstStage = summary("first-stage");
+    expect(firstStage).toMatchObject({
+      badge: "Timeline",
+      summary: "First 24 hours",
+    });
+    expect(
+      (
+        firstStage.article.querySelector(
+          "#first-stage-start"
+        ) as HTMLInputElement
+      ).value
+    ).toBe("0");
+    expect(
+      (firstStage.article.querySelector("#first-stage-end") as HTMLInputElement)
+        .value
+    ).toBe("1");
+    expect(
+      firstStage.article.querySelector('option[value="FIRST_24_HOURS"]')
+        ?.textContent
+    ).toBe("First 24 hours");
+    expect(
+      firstStage.article.querySelector('option[value="RECOVERY_TIMELINE"]')
+        ?.textContent
+    ).toBe("Recovery timeline");
+    expect(summary("early")).toMatchObject({
+      badge: "Timeline",
+      summary: "Days 2–3 — Early recovery",
+    });
+    expect(summary("plan")).toMatchObject({
+      badge: "Home care",
+      summary: "Your home plan",
+    });
   });
 });
 

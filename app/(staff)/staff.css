@@ -2988,7 +2988,7 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 0 1rem 1rem;
+  padding: 1rem;
   border-top: 1px solid var(--staff-line);
   background: var(--staff-panel);
 }

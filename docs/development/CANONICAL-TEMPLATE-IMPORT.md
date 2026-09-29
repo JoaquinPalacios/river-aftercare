@@ -150,12 +150,21 @@ Save persists the editable draft. Publish is the release. Drafts stay hidden fro
 
 ### Procedure-recovery timeline
 
-For procedure-recovery templates such as Tooth Extraction, Wisdom Tooth Removal, and Dental Implant Placement, prefer this structure:
+`FIRST_24_HOURS` and `RECOVERY_TIMELINE` are different section kinds.
 
-- Standalone `Immediate care`
-- Recovery timeline stages, normally starting with `First 24 hours`, then Days 2–3, Days 4–7, and later stages as appropriate
+- `FIRST_24_HOURS` is standalone first-day guidance for a guide that does not use a staged recovery timeline.
+- `RECOVERY_TIMELINE` is staged recovery. When the guide has a multi-day progression, put First 24 hours in the first timeline stage (`startDay` 0, `endDay` 1).
 
-`First 24 hours` therefore normally belongs inside the Recovery timeline. This is an authoring convention. Do not delete the `FIRST_24_HOURS` section kind, and do not rewrite existing template rows to match it.
+For future procedure-recovery templates such as Tooth Extraction, Wisdom Tooth Removal, and Dental Implant Placement, prefer:
+
+- Standalone Immediate care
+- Recovery timeline
+  - First 24 hours (`startDay` 0, `endDay` 1)
+  - Days 2–3
+  - Days 4–7
+  - later stages as appropriate
+
+Do not delete the `FIRST_24_HOURS` section kind, and do not rewrite existing template or guide rows to match this convention.
 
 Import ends at step 4.
 

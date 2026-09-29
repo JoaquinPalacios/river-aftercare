@@ -30,9 +30,21 @@ Other publication invariants stay: draft status, active template, production/sam
 
 ### Procedure-recovery authoring
 
-For procedure-recovery templates, prefer a standalone Immediate care section, then a Recovery timeline whose first stage is First 24 hours, followed by Days 2–3, Days 4–7, and later stages as appropriate. That includes templates such as Tooth Extraction, Wisdom Tooth Removal, and Dental Implant Placement.
+`FIRST_24_HOURS` and `RECOVERY_TIMELINE` stay distinct section kinds.
 
-`FIRST_24_HOURS` remains a valid section kind for other guide structures. This convention does not rewrite existing template rows.
+- `FIRST_24_HOURS` is standalone first-day guidance for guides that do not use a staged recovery timeline.
+- `RECOVERY_TIMELINE` is staged recovery content. Where a guide has a multi-day recovery progression, First 24 hours is the first stage of that timeline (`startDay` 0, `endDay` 1), not a separate `FIRST_24_HOURS` section.
+
+For future procedure-recovery templates, prefer:
+
+1. Standalone Immediate care
+2. Recovery timeline
+   - First 24 hours (`startDay` 0, `endDay` 1)
+   - Days 2–3
+   - Days 4–7
+   - later stages as appropriate
+
+That includes templates such as Tooth Extraction, Wisdom Tooth Removal, and Dental Implant Placement. Do not remove `FIRST_24_HOURS`. This convention does not rewrite existing template or guide rows.
 
 ## Consequences
 
