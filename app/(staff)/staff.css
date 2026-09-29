@@ -2925,6 +2925,7 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   display: flex;
   width: 100%;
   min-height: 2.75rem;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 0.85rem;
@@ -2964,7 +2965,8 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
 
 .canonicalBlockSummary {
   min-width: 0;
-  overflow-wrap: anywhere;
+  flex: 1 1 12rem;
+  overflow-wrap: break-word;
   font-size: 0.875rem;
   font-weight: 650;
   line-height: 1.35;
