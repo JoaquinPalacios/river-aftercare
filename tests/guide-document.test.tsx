@@ -282,6 +282,8 @@ describe("GuideDocument timeline rendering", () => {
     expect(html).toContain('data-guide-tone="emergency"');
     expect(html).toContain("Important.");
     expect(html).toContain("Urgent.");
+    expect(styles).toContain("list-style-type: disc");
+    expect(styles).toContain("list-style-type: decimal");
     expect(styles).toContain(".reassurance");
     expect(styles).toContain("var(--cg-notice-surface)");
     expect(styles).toContain(".contact");
@@ -321,6 +323,34 @@ describe("GuideDocument timeline rendering", () => {
     expect(html).toContain("do not smoke or vape");
     expect(html).toContain("avoid alcohol");
     expect(html).not.toContain("<article");
+  });
+
+  it("renders numbered lines as a semantic ordered list and escapes HTML", () => {
+    const html = renderToStaticMarkup(
+      <GuideDocument
+        sections={[
+          section({
+            key: "steps",
+            kind: "IMMEDIATE_CARE",
+            title: "Steps",
+            body: `Do this:
+
+1. First instruction
+2. <img src=x onerror=alert(1)>
+
+Then rest.`,
+          }),
+        ]}
+      />
+    );
+
+    expect(html).toContain("<ol");
+    expect(html).toContain("contentOrderedList");
+    expect(html).toContain("First instruction");
+    expect(html).toContain("&lt;img");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("Then rest.");
+    expect(html).not.toContain("1. First");
   });
 
   it("shares one guide document path for the operator preview and the patient page", () => {

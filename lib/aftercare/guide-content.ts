@@ -1,26 +1,36 @@
 export type GuideContentBlock =
-  { type: "paragraph"; text: string } | { type: "list"; items: string[] };
+  | { type: "paragraph"; text: string }
+  | { type: "list"; ordered: boolean; items: string[] };
 
 const BULLET_LINE = /^(?:•|-)\s+(.*)$/;
+const ORDERED_LINE = /^(\d+)\.\s+(.*)$/;
 
-function bulletItem(line: string): string | null {
-  const match = BULLET_LINE.exec(line);
-  if (!match) {
-    return null;
+type ListStyle = "unordered" | "ordered";
+
+function listItem(line: string): { style: ListStyle; text: string } | null {
+  const bullet = BULLET_LINE.exec(line);
+  if (bullet) {
+    const text = bullet[1].trim();
+    return text.length > 0 ? { style: "unordered", text } : null;
   }
-  const item = match[1].trim();
-  return item.length > 0 ? item : null;
+  const ordered = ORDERED_LINE.exec(line);
+  if (ordered) {
+    const text = ordered[2].trim();
+    return text.length > 0 ? { style: "ordered", text } : null;
+  }
+  return null;
 }
 
 /**
- * Turns plain aftercare text into paragraphs and simple bullet lists.
- * Recognises lines that start with "• " or "- ". Does not interpret HTML
- * or Markdown.
+ * Turns plain aftercare text into paragraphs and simple lists.
+ * Recognises lines that start with "• ", "- ", or "1. " (any positive
+ * integer, a dot, then whitespace). Does not interpret HTML or Markdown.
  */
 export function guideContentBlocks(body: string): GuideContentBlock[] {
   const blocks: GuideContentBlock[] = [];
   let paragraph: string[] = [];
   let list: string[] = [];
+  let listStyle: ListStyle | null = null;
 
   function flushParagraph() {
     if (paragraph.length === 0) {
@@ -34,11 +44,18 @@ export function guideContentBlocks(body: string): GuideContentBlock[] {
   }
 
   function flushList() {
-    if (list.length === 0) {
+    if (list.length === 0 || !listStyle) {
+      list = [];
+      listStyle = null;
       return;
     }
-    blocks.push({ type: "list", items: list });
+    blocks.push({
+      type: "list",
+      ordered: listStyle === "ordered",
+      items: list,
+    });
     list = [];
+    listStyle = null;
   }
 
   for (const rawLine of body.replace(/\r\n/g, "\n").split("\n")) {
@@ -48,10 +65,14 @@ export function guideContentBlocks(body: string): GuideContentBlock[] {
       flushList();
       continue;
     }
-    const item = bulletItem(line);
-    if (item !== null) {
+    const item = listItem(line);
+    if (item) {
+      if (listStyle && listStyle !== item.style) {
+        flushList();
+      }
       flushParagraph();
-      list.push(item);
+      listStyle = item.style;
+      list.push(item.text);
       continue;
     }
     flushList();

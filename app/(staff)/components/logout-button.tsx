@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { StaffNavIcon } from "@/app/(staff)/components/staff-nav-icon";
+
 export function LogoutButton({ className }: { className?: string }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -37,8 +39,12 @@ export function LogoutButton({ className }: { className?: string }) {
         onClick={handleLogout}
         disabled={isPending}
         className="staffNavRow staffSignOut"
+        data-tooltip={isPending ? "Signing out" : "Sign out"}
       >
-        {isPending ? "Signing out..." : "Sign out"}
+        <StaffNavIcon name="sign-out" />
+        <span className="staffNavLabel">
+          {isPending ? "Signing out..." : "Sign out"}
+        </span>
       </button>
       {error ? (
         <p className="px-3 text-sm text-red-600" role="alert">

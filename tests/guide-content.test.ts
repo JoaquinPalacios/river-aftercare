@@ -14,6 +14,7 @@ describe("guideContentBlocks", () => {
       { type: "paragraph", text: "Contact your clinic if you have:" },
       {
         type: "list",
+        ordered: false,
         items: ["severe or worsening pain", "heavy bleeding", "fever"],
       },
     ]);
@@ -29,6 +30,7 @@ describe("guideContentBlocks", () => {
       { type: "paragraph", text: "Keep the area clean." },
       {
         type: "list",
+        ordered: false,
         items: ["avoid alcohol", "avoid strenuous exercise"],
       },
     ]);
@@ -54,6 +56,48 @@ describe("guideContentBlocks", () => {
     ]);
     expect(guideContentBlocks("•item\n-5 degrees overnight")).toEqual([
       { type: "paragraph", text: "•item\n-5 degrees overnight" },
+    ]);
+  });
+
+  it("turns simple numbered lines into an ordered list and keeps paragraphs", () => {
+    expect(
+      guideContentBlocks(`Follow these steps:
+
+1. First instruction
+2. Second instruction
+
+Then rest.`)
+    ).toEqual([
+      { type: "paragraph", text: "Follow these steps:" },
+      {
+        type: "list",
+        ordered: true,
+        items: ["First instruction", "Second instruction"],
+      },
+      { type: "paragraph", text: "Then rest." },
+    ]);
+    expect(
+      guideContentBlocks(
+        "1. Bite gently\n- avoid rinsing\n3. Call if bleeding continues"
+      )
+    ).toEqual([
+      { type: "list", ordered: true, items: ["Bite gently"] },
+      { type: "list", ordered: false, items: ["avoid rinsing"] },
+      {
+        type: "list",
+        ordered: true,
+        items: ["Call if bleeding continues"],
+      },
+    ]);
+    expect(
+      guideContentBlocks(
+        "1.First\n12.5 mg overnight\n<script>alert(1)</script>"
+      )
+    ).toEqual([
+      {
+        type: "paragraph",
+        text: "1.First\n12.5 mg overnight\n<script>alert(1)</script>",
+      },
     ]);
   });
 });

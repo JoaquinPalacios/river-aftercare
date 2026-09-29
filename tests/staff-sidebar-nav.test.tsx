@@ -22,6 +22,7 @@ vi.mock("@/app/(staff)/(operator)/operator/support-actions", () => ({
 }));
 
 import { OperatorPlatformNav } from "@/app/(staff)/(operator)/components/operator-platform-nav";
+import { OperatorAccountChrome } from "@/app/(staff)/components/operator-account-chrome";
 import { PortalChrome } from "@/app/(staff)/components/portal-chrome";
 import { StaffAccountPanel } from "@/app/(staff)/components/staff-account-panel";
 
@@ -41,6 +42,7 @@ describe("staff sidebar navigation", () => {
     document.body.appendChild(container);
     root = createRoot(container);
     nav.pathname = "/dashboard";
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -178,6 +180,80 @@ describe("staff sidebar navigation", () => {
       );
     });
     expect(currentHrefs(container)).toEqual(["/account"]);
+  });
+
+  it("collapses the desktop sidebar to icons and remembers the choice", async () => {
+    await renderClinic("/guides");
+    const aside = container.querySelector(
+      "aside.staffAppSidebar"
+    ) as HTMLElement;
+    const toggle = aside.querySelector(
+      ".staffSidebarToggle"
+    ) as HTMLButtonElement;
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(toggle.getAttribute("aria-controls")).toBe(aside.id);
+    expect(aside.getAttribute("data-collapsed")).toBe("false");
+    expect(aside.querySelector('[data-nav-icon="guides"]')).toBeTruthy();
+    const guides = aside.querySelector(
+      'a[href="/guides"]'
+    ) as HTMLAnchorElement;
+    expect(guides.getAttribute("aria-current")).toBe("page");
+    expect(guides.getAttribute("data-tooltip")).toBe("Guides");
+    expect(guides.querySelector(".staffNavLabel")?.textContent).toBe("Guides");
+
+    await act(async () => {
+      toggle.click();
+    });
+    expect(aside.getAttribute("data-collapsed")).toBe("true");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle.querySelector(".staffNavLabel")?.textContent).toBe(
+      "Expand sidebar"
+    );
+    expect(localStorage.getItem("river-aftercare-staff-sidebar")).toBe(
+      "collapsed"
+    );
+    expect(guides.getAttribute("aria-current")).toBe("page");
+
+    await act(async () => {
+      root.unmount();
+    });
+    root = createRoot(container);
+    await renderClinic("/guides");
+    const restored = container.querySelector(
+      "aside.staffAppSidebar"
+    ) as HTMLElement;
+    expect(restored.getAttribute("data-collapsed")).toBe("true");
+
+    nav.pathname = "/operator/templates";
+    await act(async () => {
+      root.render(
+        <OperatorAccountChrome userLabel="River Operator">
+          <p>Operator content</p>
+        </OperatorAccountChrome>
+      );
+    });
+    const operatorAside = container.querySelector(
+      "aside.staffAppSidebar"
+    ) as HTMLElement;
+    expect(operatorAside.getAttribute("data-collapsed")).toBe("true");
+    const templates = operatorAside.querySelector(
+      'a[href="/operator/templates"]'
+    ) as HTMLAnchorElement;
+    expect(templates.getAttribute("aria-current")).toBe("page");
+    expect(templates.getAttribute("data-tooltip")).toBe("Templates");
+    expect(
+      operatorAside.querySelector('[data-nav-icon="templates"]')
+    ).toBeTruthy();
+    const expand = operatorAside.querySelector(
+      ".staffSidebarToggle"
+    ) as HTMLButtonElement;
+    await act(async () => {
+      expand.click();
+    });
+    expect(operatorAside.getAttribute("data-collapsed")).toBe("false");
+    expect(localStorage.getItem("river-aftercare-staff-sidebar")).toBe(
+      "expanded"
+    );
   });
 
   it("does not add a navigation spinner to sidebar primitives", () => {
