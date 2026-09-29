@@ -132,6 +132,12 @@ describe("staff sidebar navigation", () => {
       "/operator/seo",
     ]);
     expect(currentHrefs(platform)).toEqual(["/operator/clinics"]);
+    const clinicsLink = platform.querySelector(
+      'a[href="/operator/clinics"]'
+    ) as HTMLAnchorElement;
+    expect(clinicsLink.getAttribute("aria-current")).toBe("page");
+    expect(clinicsLink.getAttribute("data-tooltip")).toBe("Clinics");
+    expect(clinicsLink.querySelector('[data-nav-icon="clinics"]')).toBeTruthy();
     expect(platform.querySelector(".staffBtnSpinner")).toBeNull();
 
     nav.pathname = "/operator/seo";
@@ -244,6 +250,20 @@ describe("staff sidebar navigation", () => {
     expect(
       operatorAside.querySelector('[data-nav-icon="templates"]')
     ).toBeTruthy();
+    const clinics = operatorAside.querySelector(
+      'a[href="/operator/clinics"]'
+    ) as HTMLAnchorElement;
+    expect(clinics.getAttribute("data-tooltip")).toBe("Clinics");
+    expect(clinics.querySelector(".staffNavLabel")?.textContent).toBe(
+      "Clinics"
+    );
+    const clinicsIcon = clinics.querySelector(
+      '[data-nav-icon="clinics"]'
+    ) as SVGElement;
+    expect(clinicsIcon).toBeTruthy();
+    expect(clinicsIcon.getAttribute("aria-hidden")).toBe("true");
+    expect(clinicsIcon.innerHTML).toContain("M9.33 14v-2");
+    expect(clinicsIcon.innerHTML).not.toContain("M2.8 13.2");
     const expand = operatorAside.querySelector(
       ".staffSidebarToggle"
     ) as HTMLButtonElement;
@@ -254,6 +274,120 @@ describe("staff sidebar navigation", () => {
     expect(localStorage.getItem("river-aftercare-staff-sidebar")).toBe(
       "expanded"
     );
+  });
+
+  it("shows collapsed sidebar tooltips outside the rail", async () => {
+    localStorage.setItem("river-aftercare-staff-sidebar", "collapsed");
+    nav.pathname = "/operator/templates";
+    await act(async () => {
+      root.render(
+        <OperatorAccountChrome userLabel="River Operator">
+          <p>Operator content</p>
+        </OperatorAccountChrome>
+      );
+    });
+
+    const aside = container.querySelector(
+      "aside.staffAppSidebar"
+    ) as HTMLElement;
+    expect(aside.getAttribute("data-collapsed")).toBe("true");
+    const clinics = aside.querySelector(
+      'a[href="/operator/clinics"]'
+    ) as HTMLAnchorElement;
+    const templates = aside.querySelector(
+      'a[href="/operator/templates"]'
+    ) as HTMLAnchorElement;
+    const seo = aside.querySelector(
+      'a[href="/operator/seo"]'
+    ) as HTMLAnchorElement;
+    expect(templates.getAttribute("aria-current")).toBe("page");
+    expect(clinics.querySelector(".staffNavLabel")?.textContent).toBe(
+      "Clinics"
+    );
+    expect(templates.querySelector(".staffNavLabel")?.textContent).toBe(
+      "Templates"
+    );
+    expect(seo.querySelector(".staffNavLabel")?.textContent).toBe(
+      "SEO & Discovery"
+    );
+
+    clinics.getBoundingClientRect = () =>
+      ({
+        top: 120,
+        right: 76,
+        bottom: 164,
+        left: 12,
+        width: 64,
+        height: 44,
+        x: 12,
+        y: 120,
+        toJSON() {
+          return {};
+        },
+      }) as DOMRect;
+
+    await act(async () => {
+      clinics.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    });
+    const hovered = document.body.querySelector(
+      ".staffSidebarTooltip"
+    ) as HTMLElement;
+    expect(hovered).not.toBeNull();
+    expect(hovered.textContent).toBe("Clinics");
+    expect(hovered.getAttribute("role")).toBe("tooltip");
+    expect(aside.contains(hovered)).toBe(false);
+    expect(hovered.parentElement).toBe(document.body);
+    expect(hovered.style.left).toBe("84px");
+    expect(hovered.style.top).toBe("142px");
+
+    await act(async () => {
+      clinics.dispatchEvent(
+        new MouseEvent("mouseout", {
+          bubbles: true,
+          relatedTarget: document.body,
+        })
+      );
+    });
+    expect(document.body.querySelector(".staffSidebarTooltip")).toBeNull();
+
+    await act(async () => {
+      seo.focus();
+    });
+    expect(
+      document.body.querySelector(".staffSidebarTooltip")?.textContent
+    ).toBe("SEO & Discovery");
+    expect(seo.getAttribute("aria-current")).toBeNull();
+
+    await act(async () => {
+      seo.blur();
+    });
+    expect(document.body.querySelector(".staffSidebarTooltip")).toBeNull();
+
+    const toggle = aside.querySelector(
+      ".staffSidebarToggle"
+    ) as HTMLButtonElement;
+    await act(async () => {
+      toggle.click();
+    });
+    expect(aside.getAttribute("data-collapsed")).toBe("false");
+    expect(templates.getAttribute("aria-current")).toBe("page");
+    await act(async () => {
+      templates.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      templates.focus();
+    });
+    expect(document.body.querySelector(".staffSidebarTooltip")).toBeNull();
+    expect(templates.querySelector(".staffNavLabel")?.textContent).toBe(
+      "Templates"
+    );
+
+    const css = readFileSync("app/(staff)/staff.css", "utf8");
+    expect(css).toContain(".staffSidebarTooltip");
+    expect(css).toContain("position: fixed");
+    expect(css).toContain("background: var(--staff-ink)");
+    expect(css).toContain("color: var(--staff-panel)");
+    expect(css).toContain("overflow-x: clip");
+    expect(css).toContain("width: 4.75rem");
+    expect(css).not.toContain("[data-tooltip]:hover::after");
   });
 
   it("does not add a navigation spinner to sidebar primitives", () => {

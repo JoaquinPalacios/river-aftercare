@@ -76,6 +76,9 @@ describe("operator template manager UI contract", () => {
     expect(editor).toContain("OrderedGuideSectionsEditor");
     expect(editor).toContain("CanonicalGuidePreview");
     expect(preview).toContain("GuideDocument");
+    expect(preview).toContain("AFTERCARE_THEME_SCOPE");
+    expect(preview).toContain("DEFAULT_AFTERCARE_THEME");
+    expect(preview).toContain('data-patient-theme="portal"');
     expect(preview).toContain("not a");
     expect(preview).toContain("clinic-branded");
     expect(editor).not.toContain("GuideEditor");
@@ -111,6 +114,11 @@ describe("operator template manager UI contract", () => {
       "utf8"
     );
     expect(list).toContain("TemplateOriginBadge");
+    expect(list).toContain("Create template");
+    expect(list).toContain(
+      "staffBtn staffBtnPrimary w-full whitespace-nowrap sm:w-auto sm:shrink-0"
+    );
+    expect(list).toContain("min-w-0 flex-1");
     expect(detail).toContain("Sample");
     expect(detail).toContain("isSample");
     expect(detail).not.toContain('name="isSample"');

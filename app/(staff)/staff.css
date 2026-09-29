@@ -3116,25 +3116,24 @@ html[data-theme-mode="dark"]
     border-radius: 0.5rem;
     background: var(--staff-panel);
   }
+}
 
-  .staffAppSidebar[data-collapsed="true"] [data-tooltip]:hover::after,
-  .staffAppSidebar[data-collapsed="true"] [data-tooltip]:focus-visible::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    top: 50%;
-    left: calc(100% + 0.5rem);
-    z-index: 50;
-    transform: translateY(-50%);
-    padding: 0.35rem 0.55rem;
-    border-radius: 0.375rem;
-    background: var(--staff-ink);
-    color: var(--staff-panel);
-    font-size: 0.75rem;
-    font-weight: 650;
-    line-height: 1.2;
-    white-space: nowrap;
-    pointer-events: none;
-  }
+/* Portaled to document.body so the collapsed rail can keep overflow-x: clip
+   without hiding the label. Expanded rows keep their text and do not use this. */
+.staffSidebarTooltip {
+  position: fixed;
+  z-index: 80;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.375rem;
+  background: var(--staff-ink);
+  color: var(--staff-panel);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 @media (min-width: 1100px) {

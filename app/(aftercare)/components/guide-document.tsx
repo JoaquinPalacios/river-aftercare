@@ -12,7 +12,7 @@ export function GuideDocument({
   const blocks = groupGuideSections(sections);
 
   return (
-    <>
+    <div data-guide-document="">
       {blocks.map((block) =>
         block.type === "timeline" ? (
           <GuideTimeline
@@ -25,6 +25,6 @@ export function GuideDocument({
           <GuideSection key={block.section.key} section={block.section} />
         )
       )}
-    </>
+    </div>
   );
 }
