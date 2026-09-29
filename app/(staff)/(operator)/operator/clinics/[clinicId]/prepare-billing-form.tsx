@@ -116,7 +116,11 @@ export function PrepareBillingForm({
       </dl>
 
       {canRevise ? (
-        <form action={action} className="mt-5 flex max-w-lg flex-col gap-4">
+        <form
+          key={`${plan ?? "none"}-${interval ?? "none"}-${offeredAdditionalSiteQuantity ?? "none"}`}
+          action={action}
+          className="mt-5 flex max-w-lg flex-col gap-4"
+        >
           <input type="hidden" name="clinicId" value={clinicId} />
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium" htmlFor="commercialPlan">
