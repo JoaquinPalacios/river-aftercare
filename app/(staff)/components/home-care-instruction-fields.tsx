@@ -34,31 +34,17 @@ function Field({
 export function HomeCareInstructionFields({
   item,
   index,
-  count,
   disabled,
   onChange,
-  onMove,
-  onRemove,
 }: {
   item: EditorHomeCareInstruction;
   index: number;
-  count: number;
   disabled: boolean;
   onChange: (item: EditorHomeCareInstruction) => void;
-  onMove: (direction: -1 | 1) => void;
-  onRemove: () => void;
 }) {
-  const onlyInstruction = count <= 1;
-  const removeHintId = `${item.key}-remove-hint`;
-
   return (
-    <fieldset
-      className="grid gap-3 rounded-md border border-staff-line p-3"
-      data-instruction-key={item.key}
-    >
-      <legend className="px-1 text-sm font-medium">
-        Instruction {index + 1}
-      </legend>
+    <fieldset className="homeCareInstructionFields">
+      <legend className="sr-only">Instruction {index + 1}</legend>
       <Field
         label="Instruction"
         htmlFor={`${item.key}-title`}
@@ -169,41 +155,6 @@ export function HomeCareInstructionFields({
           </select>
         </Field>
       </div>
-      {disabled ? null : (
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="staffBtn staffBtnSecondary"
-            onClick={() => onMove(-1)}
-            disabled={index === 0}
-          >
-            Move up
-          </button>
-          <button
-            type="button"
-            className="staffBtn staffBtnSecondary"
-            onClick={() => onMove(1)}
-            disabled={index >= count - 1}
-          >
-            Move down
-          </button>
-          <button
-            type="button"
-            className="staffBtn staffBtnSecondary"
-            onClick={onRemove}
-            disabled={onlyInstruction}
-            aria-describedby={onlyInstruction ? removeHintId : undefined}
-          >
-            Remove instruction
-          </button>
-        </div>
-      )}
-      {disabled || !onlyInstruction ? null : (
-        <p id={removeHintId} className="text-sm text-staff-muted">
-          A plan needs at least one instruction. Clear these fields to replace
-          it, or remove the whole plan.
-        </p>
-      )}
     </fieldset>
   );
 }

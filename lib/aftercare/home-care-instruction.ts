@@ -49,6 +49,56 @@ function formatDuration(value: number, unit: HomeCareDurationUnit): string {
   return value === 1 ? "1 week" : `${value} weeks`;
 }
 
+function optionalPositiveInt(
+  value: number | string | null | undefined
+): number | null {
+  if (typeof value === "number") {
+    return Number.isInteger(value) && value > 0 ? value : null;
+  }
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+/**
+ * Collapsed instruction label. Schedule wording matches the patient summary.
+ * The instruction number is omitted when it would repeat the title, and when
+ * a schedule already identifies the row.
+ */
+export function homeCareInstructionAccordionLabel(input: {
+  index: number;
+  title: string;
+  frequencyCount: number | string | null;
+  frequencyPeriod: HomeCareFrequencyPeriod | "" | null;
+  timingLabel: string | null;
+  durationValue: number | string | null;
+  durationUnit: HomeCareDurationUnit | "" | null;
+}): string {
+  const numberLabel = `Instruction ${input.index + 1}`;
+  const title = input.title.trim();
+  const schedule = formatHomeCareInstructionSummary({
+    frequencyCount: optionalPositiveInt(input.frequencyCount),
+    frequencyPeriod: input.frequencyPeriod || null,
+    timingLabel: input.timingLabel,
+    durationValue: optionalPositiveInt(input.durationValue),
+    durationUnit: input.durationUnit || null,
+  });
+  const titleRepeatsNumber = title.toLowerCase() === numberLabel.toLowerCase();
+  if (!title || titleRepeatsNumber) {
+    return schedule ? `${numberLabel} · ${schedule}` : numberLabel;
+  }
+  if (schedule) {
+    return `${title} · ${schedule}`;
+  }
+  return `${numberLabel} · ${title}`;
+}
+
 /**
  * Patient-facing scan line. Duration-only instructions use "For".
  * Omitted fields are left out. An item with no schedule returns null.

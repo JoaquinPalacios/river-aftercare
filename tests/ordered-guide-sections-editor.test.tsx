@@ -724,6 +724,242 @@ describe("ordered guide sections editor", () => {
       "INTRODUCTION",
     ]);
   });
+
+  it("collapses home-care instructions independently and keeps their values", () => {
+    const seen: EditorSection[][] = [];
+    function Harness() {
+      const [sections, setSections] = useState<EditorSection[]>([
+        {
+          ...emptySection("HOME_CARE_PLAN"),
+          key: "plan",
+          title: "Home plan",
+          homeCareInstructions: [
+            {
+              key: "one",
+              title: "Your prescribed exercises",
+              body: "Slow and steady",
+              frequencyCount: "3",
+              frequencyPeriod: "WEEK",
+              timingLabel: "",
+              durationValue: "4",
+              durationUnit: "WEEKS",
+            },
+            {
+              key: "two",
+              title: "Movement and activity",
+              body: "Easy pace",
+              frequencyCount: "",
+              frequencyPeriod: "",
+              timingLabel: "",
+              durationValue: "",
+              durationUnit: "",
+            },
+          ],
+        },
+      ]);
+      return (
+        <OrderedGuideSectionsEditor
+          sections={sections}
+          disabled={false}
+          onChange={(next) => {
+            seen.push(next);
+            setSections(next);
+          }}
+        />
+      );
+    }
+    act(() => {
+      root.render(<Harness />);
+    });
+
+    const plan = container.querySelector(
+      '[data-section-key="plan"]'
+    ) as HTMLElement;
+    const sectionToggle = plan.querySelector(
+      ".canonicalBlockToggle"
+    ) as HTMLButtonElement;
+    act(() => {
+      sectionToggle.click();
+    });
+    const first = plan.querySelector(
+      '[data-instruction-key="one"]'
+    ) as HTMLElement;
+    const second = plan.querySelector(
+      '[data-instruction-key="two"]'
+    ) as HTMLElement;
+    const firstToggle = first.querySelector(
+      "button[aria-expanded]"
+    ) as HTMLButtonElement;
+    const secondToggle = second.querySelector(
+      "button[aria-expanded]"
+    ) as HTMLButtonElement;
+    expect(firstToggle.getAttribute("aria-expanded")).toBe("false");
+    expect(firstToggle.getAttribute("aria-controls")).toBe(
+      "one-instruction-panel"
+    );
+    expect(
+      first.querySelector(".homeCareInstructionSummary")?.textContent
+    ).toBe("Your prescribed exercises · 3 times per week · 4 weeks");
+    expect(
+      second.querySelector(".homeCareInstructionSummary")?.textContent
+    ).toBe("Instruction 2 · Movement and activity");
+    expect(plan.textContent).toContain("Expand instructions");
+    expect(plan.textContent).toContain("Collapse instructions");
+
+    act(() => {
+      firstToggle.click();
+    });
+    expect(firstToggle.getAttribute("aria-expanded")).toBe("true");
+    expect(secondToggle.getAttribute("aria-expanded")).toBe("false");
+    const title = first.querySelector("#one-title") as HTMLInputElement;
+    const setValue = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    )?.set;
+    act(() => {
+      setValue?.call(title, "Updated exercises");
+      title.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    act(() => {
+      firstToggle.click();
+    });
+    expect(first.getAttribute("data-expanded")).toBe("false");
+    expect((first.querySelector("#one-title") as HTMLInputElement).value).toBe(
+      "Updated exercises"
+    );
+    expect(
+      seen.at(-1)?.find((section) => section.key === "plan")
+        ?.homeCareInstructions[0]?.title
+    ).toBe("Updated exercises");
+
+    const expandAll = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Expand all"
+    ) as HTMLButtonElement;
+    act(() => {
+      expandAll.click();
+    });
+    expect(firstToggle.getAttribute("aria-expanded")).toBe("false");
+    expect(secondToggle.getAttribute("aria-expanded")).toBe("false");
+    const expandInstructions = [...plan.querySelectorAll("button")].find(
+      (button) => button.textContent === "Expand instructions"
+    ) as HTMLButtonElement;
+    act(() => {
+      expandInstructions.click();
+    });
+    expect(firstToggle.getAttribute("aria-expanded")).toBe("true");
+    expect(secondToggle.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("opens a new instruction, reorders collapsed rows, and protects the last one", () => {
+    const scroll = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scroll;
+    function Harness() {
+      const [sections, setSections] = useState<EditorSection[]>([
+        {
+          ...emptySection("HOME_CARE_PLAN"),
+          key: "plan",
+          title: "Home plan",
+          homeCareInstructions: [
+            {
+              key: "one",
+              title: "Ice",
+              body: "Short periods",
+              frequencyCount: "",
+              frequencyPeriod: "",
+              timingLabel: "",
+              durationValue: "",
+              durationUnit: "",
+            },
+            {
+              key: "two",
+              title: "Walk",
+              body: "Easy pace",
+              frequencyCount: "",
+              frequencyPeriod: "",
+              timingLabel: "",
+              durationValue: "",
+              durationUnit: "",
+            },
+          ],
+        },
+      ]);
+      return (
+        <OrderedGuideSectionsEditor
+          sections={sections}
+          disabled={false}
+          onChange={setSections}
+        />
+      );
+    }
+    act(() => {
+      root.render(<Harness />);
+    });
+    const plan = container.querySelector(
+      '[data-section-key="plan"]'
+    ) as HTMLElement;
+    act(() => {
+      (
+        plan.querySelector(".canonicalBlockToggle") as HTMLButtonElement
+      ).click();
+    });
+
+    const moveDown = [
+      ...plan.querySelectorAll('[data-instruction-key="one"] button'),
+    ].find((button) => button.textContent === "Move down") as HTMLButtonElement;
+    expect(
+      plan
+        .querySelector('[data-instruction-key="one"]')
+        ?.getAttribute("data-expanded")
+    ).toBe("false");
+    act(() => {
+      moveDown.click();
+    });
+    const keys = [...plan.querySelectorAll("[data-instruction-key]")].map(
+      (node) => node.getAttribute("data-instruction-key")
+    );
+    expect(keys).toEqual(["two", "one"]);
+    expect(
+      plan
+        .querySelector('[data-instruction-key="one"]')
+        ?.getAttribute("data-expanded")
+    ).toBe("false");
+
+    const remove = [...plan.querySelectorAll("button")].find(
+      (button) => button.textContent === "Remove instruction"
+    ) as HTMLButtonElement;
+    act(() => {
+      remove.click();
+    });
+    expect(plan.querySelectorAll("[data-instruction-key]")).toHaveLength(1);
+    const lastRemove = [...plan.querySelectorAll("button")].find(
+      (button) => button.textContent === "Remove instruction"
+    ) as HTMLButtonElement;
+    expect(lastRemove.disabled).toBe(true);
+    expect(plan.textContent).toContain(
+      "A plan needs at least one instruction."
+    );
+    expect(plan.textContent).not.toContain("Expand instructions");
+
+    const add = [...plan.querySelectorAll("button")].find(
+      (button) => button.textContent === "Add instruction"
+    ) as HTMLButtonElement;
+    act(() => {
+      add.click();
+    });
+    const added = plan.querySelectorAll(
+      "[data-instruction-key]"
+    )[1] as HTMLElement;
+    expect(added.getAttribute("data-expanded")).toBe("true");
+    expect(scroll).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    expect(document.activeElement).toBe(
+      added.querySelector("input[id$='-title']")
+    );
+    expect(
+      plan
+        .querySelector("[data-instruction-key]")
+        ?.getAttribute("data-expanded")
+    ).toBe("false");
+  });
 });
 
 describe("guide section kind icons", () => {

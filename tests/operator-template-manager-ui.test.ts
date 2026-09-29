@@ -44,7 +44,7 @@ describe("operator template manager UI contract", () => {
       );
     }
     expect(actions).toContain("requirePlatformOperator");
-    expect(actions.match(/await requirePlatformOperator\(\)/g)?.length).toBe(8);
+    expect(actions.match(/await requirePlatformOperator\(\)/g)?.length).toBe(9);
   });
 
   it("calls lifecycle services instead of writing template rows itself", () => {
@@ -57,6 +57,11 @@ describe("operator template manager UI contract", () => {
     expect(actions).toContain("abandonCanonicalTemplateDraft");
     expect(actions).toContain("deactivateCanonicalTemplate");
     expect(actions).toContain("reactivateCanonicalTemplate");
+    expect(actions).toContain("publishCanonicalTemplates");
+    expect(actions).toContain("deactivateCanonicalTemplates");
+    expect(actions).toContain("reactivateCanonicalTemplates");
+    expect(actions).toContain("deleteNeverPublishedCanonicalTemplates");
+    expect(actions).not.toMatch(/Unpublish/);
     expect(actions).not.toContain("guideTemplate.create");
     expect(actions).not.toContain("guideTemplate.update");
     expect(actions).not.toContain("isSample");
@@ -119,7 +124,14 @@ describe("operator template manager UI contract", () => {
       "app/(staff)/(operator)/components/operator-platform-nav.tsx",
       "utf8"
     );
-    expect(list).toContain("TemplateOriginBadge");
+    expect(list).toContain("TemplateBulkTable");
+    const bulkTable = readFileSync(
+      "app/(staff)/(operator)/operator/templates/template-bulk-table.tsx",
+      "utf8"
+    );
+    expect(bulkTable).toContain("TemplateOriginBadge");
+    expect(bulkTable).toContain("Select all visible templates");
+    expect(bulkTable).not.toMatch(/Unpublish/);
     expect(list).toContain("Create template");
     expect(list).toContain(
       "staffBtn staffBtnPrimary w-full whitespace-nowrap sm:w-auto sm:shrink-0"
@@ -171,7 +183,7 @@ describe("operator template manager UI contract", () => {
         item({
           id: "drafting",
           title: "Open draft",
-          draft: { version: 1 },
+          draft: { id: "draft-1", version: 1 },
         })
       )
     ).toBe("/operator/templates/drafting/draft");
@@ -192,7 +204,7 @@ describe("operator template manager UI contract", () => {
           slug: "extraction",
           isSample: true,
           latestPublishedVersion: 1,
-          draft: { version: 2 },
+          draft: { id: "draft-2", version: 2 },
         })
       )
     ).toBe("/operator/templates/sample");
@@ -206,7 +218,7 @@ describe("operator template manager UI contract", () => {
         serviceCategory: "PHYSIOTHERAPY",
         serviceCategoryLabel: "Physiotherapy",
         latestPublishedVersion: 1,
-        draft: { version: 2 },
+        draft: { id: "draft-2", version: 2 },
       }),
       item({
         id: "sample",
@@ -242,6 +254,6 @@ describe("operator template manager UI contract", () => {
     expect(templates[0]?.serviceCategoryLabel).toBe("Physiotherapy");
     expect(templates[1]?.isSample).toBe(true);
     expect(templates[0]?.latestPublishedVersion).toBe(1);
-    expect(templates[0]?.draft).toEqual({ version: 2 });
+    expect(templates[0]?.draft).toEqual({ id: "draft-2", version: 2 });
   });
 });

@@ -2,11 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
-import {
-  TemplateActivityBadge,
-  TemplateDraftBadge,
-  TemplateOriginBadge,
-} from "@/app/(staff)/(operator)/operator/templates/template-badges";
+import { TemplateBulkTable } from "@/app/(staff)/(operator)/operator/templates/template-bulk-table";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import {
@@ -45,6 +41,11 @@ export default async function OperatorTemplatesPage({
     }
   );
   const notice = operatorTemplateNotice(params.notice);
+  const filterKey = [
+    params.category ?? "",
+    params.activity ?? "",
+    params.publication ?? "",
+  ].join("|");
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
@@ -137,63 +138,13 @@ export default async function OperatorTemplatesPage({
           No canonical templates match this view.
         </p>
       ) : (
-        <div className="staffOperatorTableWrap">
-          <table className="min-w-full text-left text-sm">
-            <caption className="sr-only">Canonical templates</caption>
-            <thead className="border-b border-staff-line text-staff-muted">
-              <tr>
-                <th className="px-4 py-3 font-medium">Template</th>
-                <th className="px-4 py-3 font-medium">Service</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Latest published</th>
-                <th className="px-4 py-3 font-medium">Draft</th>
-              </tr>
-            </thead>
-            <tbody>
-              {templates.map((template) => (
-                <tr
-                  key={template.id}
-                  className="staffOperatorRow border-b border-staff-line last:border-0"
-                  data-sample={template.isSample ? "true" : "false"}
-                  data-active={template.isActive ? "true" : "false"}
-                >
-                  <td className="px-4 py-3">
-                    <Link
-                      href={operatorTemplateHref(template)}
-                      className="staffOperatorRowLink"
-                    >
-                      {template.title}
-                    </Link>
-                    <p className="text-staff-muted">{template.slug}</p>
-                  </td>
-                  <td className="px-4 py-3">{template.serviceCategoryLabel}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <TemplateOriginBadge isSample={template.isSample} />
-                      <TemplateActivityBadge isActive={template.isActive} />
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {template.latestPublishedVersion === null ? (
-                      <span className="text-staff-muted">None</span>
-                    ) : (
-                      <span className="staffStatusPill" data-tone="published">
-                        v{template.latestPublishedVersion} Published
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {template.draft ? (
-                      <TemplateDraftBadge version={template.draft.version} />
-                    ) : (
-                      <span className="text-staff-muted">None</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TemplateBulkTable
+          filterKey={filterKey}
+          templates={templates.map((template) => ({
+            ...template,
+            href: operatorTemplateHref(template),
+          }))}
+        />
       )}
     </div>
   );

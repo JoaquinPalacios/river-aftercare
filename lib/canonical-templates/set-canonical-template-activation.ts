@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Prisma } from "@prisma/client";
+
 import {
   assertProductionCanonicalTemplate,
   loadCanonicalTemplate,
@@ -8,67 +10,92 @@ import {
 } from "@/lib/canonical-templates/context";
 import { CanonicalTemplateError } from "@/lib/canonical-templates/errors";
 
+export interface CanonicalActivationInput {
+  templateId: string;
+  actorUserId: string;
+}
+
+/**
+ * Stops new discovery and enablement inside the caller's transaction.
+ * Does not delete revisions or change clinic pins and published patient guides.
+ */
+export async function deactivateCanonicalTemplateInTransaction(
+  tx: Prisma.TransactionClient,
+  input: CanonicalActivationInput & { deactivatedAt?: Date }
+): Promise<{ templateId: string; deactivatedAt: Date }> {
+  const deactivatedAt = input.deactivatedAt ?? new Date();
+  await requireCanonicalActor(tx, input.actorUserId);
+  const template = await loadCanonicalTemplate(tx, input.templateId);
+  assertProductionCanonicalTemplate(template);
+  if (!template.isActive) {
+    throw new CanonicalTemplateError(
+      "This template is already inactive.",
+      "conflict"
+    );
+  }
+
+  await tx.guideTemplate.update({
+    where: { id: template.id },
+    data: {
+      isActive: false,
+      deactivatedAt,
+      deactivatedByUserId: input.actorUserId,
+    },
+  });
+
+  return { templateId: template.id, deactivatedAt };
+}
+
 /**
  * Stops new discovery and enablement. Does not delete revisions or change
  * clinic pins and published patient guides.
  */
-export async function deactivateCanonicalTemplate(input: {
-  templateId: string;
-  actorUserId: string;
-}): Promise<{ templateId: string; deactivatedAt: Date }> {
+export async function deactivateCanonicalTemplate(
+  input: CanonicalActivationInput
+): Promise<{ templateId: string; deactivatedAt: Date }> {
   const deactivatedAt = new Date();
-  return runLockedCanonicalTemplateTransaction(input.templateId, async (tx) => {
-    await requireCanonicalActor(tx, input.actorUserId);
-    const template = await loadCanonicalTemplate(tx, input.templateId);
-    assertProductionCanonicalTemplate(template);
-    if (!template.isActive) {
-      throw new CanonicalTemplateError(
-        "This template is already inactive.",
-        "conflict"
-      );
-    }
+  return runLockedCanonicalTemplateTransaction(input.templateId, (tx) =>
+    deactivateCanonicalTemplateInTransaction(tx, { ...input, deactivatedAt })
+  );
+}
 
-    await tx.guideTemplate.update({
-      where: { id: template.id },
-      data: {
-        isActive: false,
-        deactivatedAt,
-        deactivatedByUserId: input.actorUserId,
-      },
-    });
+/**
+ * Clears the current deactivation record inside the caller's transaction.
+ */
+export async function reactivateCanonicalTemplateInTransaction(
+  tx: Prisma.TransactionClient,
+  input: CanonicalActivationInput
+): Promise<{ templateId: string }> {
+  await requireCanonicalActor(tx, input.actorUserId);
+  const template = await loadCanonicalTemplate(tx, input.templateId);
+  assertProductionCanonicalTemplate(template);
+  if (template.isActive) {
+    throw new CanonicalTemplateError(
+      "This template is already active.",
+      "conflict"
+    );
+  }
 
-    return { templateId: template.id, deactivatedAt };
+  await tx.guideTemplate.update({
+    where: { id: template.id },
+    data: {
+      isActive: true,
+      deactivatedAt: null,
+      deactivatedByUserId: null,
+    },
   });
+
+  return { templateId: template.id };
 }
 
 /**
  * Clears the current deactivation record and makes an otherwise eligible
  * latest published revision discoverable again.
  */
-export async function reactivateCanonicalTemplate(input: {
-  templateId: string;
-  actorUserId: string;
-}): Promise<{ templateId: string }> {
-  return runLockedCanonicalTemplateTransaction(input.templateId, async (tx) => {
-    await requireCanonicalActor(tx, input.actorUserId);
-    const template = await loadCanonicalTemplate(tx, input.templateId);
-    assertProductionCanonicalTemplate(template);
-    if (template.isActive) {
-      throw new CanonicalTemplateError(
-        "This template is already active.",
-        "conflict"
-      );
-    }
-
-    await tx.guideTemplate.update({
-      where: { id: template.id },
-      data: {
-        isActive: true,
-        deactivatedAt: null,
-        deactivatedByUserId: null,
-      },
-    });
-
-    return { templateId: template.id };
-  });
+export async function reactivateCanonicalTemplate(
+  input: CanonicalActivationInput
+): Promise<{ templateId: string }> {
+  return runLockedCanonicalTemplateTransaction(input.templateId, (tx) =>
+    reactivateCanonicalTemplateInTransaction(tx, input)
+  );
 }
