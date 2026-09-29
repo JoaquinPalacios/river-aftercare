@@ -64,6 +64,8 @@ describe("POST /api/stripe/webhook", () => {
       stripeEventId: "evt_test_webhook_1",
       eventType: "invoice.paid",
     });
+    previous.VERCEL_ENV = process.env.VERCEL_ENV;
+    delete process.env.VERCEL_ENV;
     for (const [name, value] of Object.entries({
       CARE_GUIDE_ROOT_DOMAIN: "localhost",
       ...BILLING_TEST_ENV,
@@ -172,7 +174,7 @@ describe("POST /api/stripe/webhook", () => {
     expect(processMock).not.toHaveBeenCalled();
   });
 
-  it("refuses live Stripe secrets", async () => {
+  it("refuses live Stripe secrets outside production", async () => {
     process.env.STRIPE_SECRET_KEY = "sk_live_should_never_be_used";
     const payload = eventPayload("invoice.paid", {
       object: "invoice",
@@ -190,7 +192,34 @@ describe("POST /api/stripe/webhook", () => {
     );
     expect(response.status).toBe(500);
     expect(processMock).not.toHaveBeenCalled();
-    expect(await response.text()).not.toContain("sk_live_should_never_be_used");
+    const body = await response.text();
+    expect(body).toContain("Stripe webhook is not configured.");
+    expect(body).not.toContain("sk_live_should_never_be_used");
+  });
+
+  it("accepts a live secret in production and still verifies the signature", async () => {
+    process.env.VERCEL_ENV = "production";
+    process.env.STRIPE_SECRET_KEY = "sk_live_production_boundary_dummy";
+    const payload = eventPayload("invoice.paid", {
+      object: "invoice",
+      id: "in_1",
+    });
+    const response = await POST(
+      new Request("http://app.localhost:3000/api/stripe/webhook", {
+        method: "POST",
+        headers: {
+          host: "app.localhost:3000",
+          "stripe-signature": "t=1,v1=abc",
+        },
+        body: payload,
+      })
+    );
+    expect(response.status).toBe(400);
+    expect(processMock).not.toHaveBeenCalled();
+    const body = await response.text();
+    expect(body).toContain("Invalid Stripe signature.");
+    expect(body).not.toContain("sk_live_production_boundary_dummy");
+    expect(body).not.toContain("whsec_");
   });
 
   it("returns 500 without leaking internals when processing throws", async () => {
