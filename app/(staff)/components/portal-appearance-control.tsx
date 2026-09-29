@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 
+import { StaffNavIcon } from "@/app/(staff)/components/staff-nav-icon";
 import {
   applyThemePreference,
   parseThemePreference,
@@ -54,8 +55,10 @@ export function PortalAppearanceControl() {
         aria-expanded={expanded}
         aria-controls={`portal-theme-${chooserId}`}
         aria-label={`Appearance, colour theme currently ${currentLabel}`}
+        data-tooltip={`Appearance, ${currentLabel}`}
         onClick={() => setExpanded((open) => !open)}
       >
+        <StaffNavIcon name="appearance" />
         <span>Appearance</span>
         <span>{currentLabel}</span>
       </button>

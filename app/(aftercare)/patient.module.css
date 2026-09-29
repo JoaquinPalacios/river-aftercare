@@ -300,17 +300,29 @@
   margin-bottom: 0;
 }
 
-.contentList {
+.contentList,
+.contentOrderedList {
   margin: 0 0 0.7rem;
-  padding-left: 1.2rem;
   max-width: 72ch;
 }
 
-.contentList:last-child {
+.contentList {
+  list-style-type: disc;
+  padding-left: 1.35rem;
+}
+
+.contentOrderedList {
+  list-style-type: decimal;
+  padding-left: 1.6rem;
+}
+
+.contentList:last-child,
+.contentOrderedList:last-child {
   margin-bottom: 0;
 }
 
-.contentList li + li {
+.contentList li + li,
+.contentOrderedList li + li {
   margin-top: 0.28rem;
 }
 

@@ -3,11 +3,17 @@
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OrderedGuideSectionsEditor } from "@/app/(staff)/components/ordered-guide-sections-editor";
 import { GuideSectionKindIcon } from "@/app/(staff)/components/guide-section-kind-icon";
 import { guideSectionKindLabel } from "@/lib/aftercare/guide-section-kind-label";
+import {
+  guideBlockAccent,
+  guideBlockFamily,
+  guideBlockFamilyLabel,
+  guideSectionKindsByLabel,
+} from "@/lib/aftercare/guide-block-presentation";
 import {
   GUIDE_SECTION_KINDS,
   type GuideSectionKind,
@@ -33,6 +39,7 @@ describe("ordered guide sections editor", () => {
 
   beforeEach(() => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    HTMLElement.prototype.scrollIntoView = () => undefined;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -64,7 +71,31 @@ describe("ordered guide sections editor", () => {
         `[data-section-kind="${kind}"]`
       ) as HTMLElement;
       const label = guideSectionKindLabel(kind);
-      expect(article.querySelector("h3")?.textContent).toContain(label);
+      expect(article.querySelector(".canonicalBlockBadge")?.textContent).toBe(
+        guideBlockFamilyLabel(kind)
+      );
+      expect(article.getAttribute("data-block-family")).toBe(
+        guideBlockFamily(kind)
+      );
+      expect(article.getAttribute("data-block-accent")).toBe(
+        guideBlockAccent(kind)
+      );
+      expect(
+        article.querySelector(".canonicalBlockSummary")?.textContent
+      ).toContain(
+        kind === "RECOVERY_TIMELINE"
+          ? "Timeline"
+          : kind === "HOME_CARE_PLAN"
+            ? "Home care"
+            : label
+      );
+      const toggle = article.querySelector(
+        "button[aria-expanded]"
+      ) as HTMLButtonElement;
+      expect(toggle.getAttribute("aria-expanded")).toBe("false");
+      expect(toggle.getAttribute("aria-controls")).toBe(
+        `${kind.toLowerCase()}-panel`
+      );
       expect(
         article.querySelector("svg")?.getAttribute("data-section-icon")
       ).toBe(kind);
@@ -249,6 +280,160 @@ describe("ordered guide sections editor", () => {
     expect(
       (plan.querySelector("#item-body") as HTMLTextAreaElement).value
     ).toBe("");
+  });
+
+  it("orders section types by their human-readable labels", () => {
+    render([emptySection("WARNING_SIGNS")]);
+    const options = [...container.querySelectorAll("select option")].map(
+      (option) => option.textContent
+    );
+    expect(options).toEqual(
+      guideSectionKindsByLabel().map((kind) => guideSectionKindLabel(kind))
+    );
+    expect(options).toEqual([
+      "Contact practice",
+      "Custom",
+      "Emergency",
+      "First 24 hours",
+      "Home care plan",
+      "Immediate care",
+      "Introduction",
+      "Medications",
+      "Pain",
+      "Recovery timeline",
+      "Restrictions",
+      "Site care",
+      "Warning signs",
+      "What to avoid",
+      "What's normal",
+    ]);
+  });
+
+  it("expands and collapses without dropping typed guidance", () => {
+    const seen: EditorSection[][] = [];
+    function Harness() {
+      const [sections, setSections] = useState<EditorSection[]>([
+        {
+          ...emptySection("WARNING_SIGNS"),
+          key: "warn",
+          title: "When to call",
+        },
+      ]);
+      return (
+        <OrderedGuideSectionsEditor
+          sections={sections}
+          disabled={false}
+          onChange={(next) => {
+            seen.push(next);
+            setSections(next);
+          }}
+        />
+      );
+    }
+    act(() => {
+      root.render(<Harness />);
+    });
+
+    const article = container.querySelector(
+      '[data-section-kind="WARNING_SIGNS"]'
+    ) as HTMLElement;
+    expect(article.querySelector(".canonicalBlockBadge")?.textContent).toBe(
+      "Section"
+    );
+    expect(article.querySelector(".canonicalBlockSummary")?.textContent).toBe(
+      "Warning signs · When to call"
+    );
+    expect(article.getAttribute("data-block-accent")).toBe("warning");
+    const toggle = article.querySelector(
+      "button[aria-expanded]"
+    ) as HTMLButtonElement;
+    expect(toggle.type).toBe("button");
+    act(() => {
+      toggle.click();
+    });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    const title = article.querySelector("#warn-title") as HTMLInputElement;
+    const setValue = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    )?.set;
+    act(() => {
+      setValue?.call(title, "When to contact your clinic");
+      title.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    act(() => {
+      toggle.click();
+    });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(article.querySelector("#warn-title")).toBeTruthy();
+    act(() => {
+      toggle.click();
+    });
+    expect(
+      (article.querySelector("#warn-title") as HTMLInputElement).value
+    ).toBe("When to contact your clinic");
+    expect(seen.at(-1)?.[0]?.title).toBe("When to contact your clinic");
+
+    const collapseAll = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Collapse all"
+    ) as HTMLButtonElement;
+    const expandAll = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Expand all"
+    ) as HTMLButtonElement;
+    act(() => {
+      collapseAll.click();
+    });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    act(() => {
+      expandAll.click();
+    });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(
+      (article.querySelector("#warn-title") as HTMLInputElement).value
+    ).toBe("When to contact your clinic");
+  });
+
+  it("opens a new block, scrolls it into view, and focuses its title", () => {
+    const scroll = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scroll;
+    function Harness() {
+      const [sections, setSections] = useState<EditorSection[]>([
+        emptySection("INTRODUCTION"),
+      ]);
+      return (
+        <OrderedGuideSectionsEditor
+          sections={sections}
+          disabled={false}
+          onChange={setSections}
+        />
+      );
+    }
+    act(() => {
+      root.render(<Harness />);
+    });
+    const add = [...container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Add timeline stage")
+    ) as HTMLButtonElement;
+    act(() => {
+      add.click();
+    });
+    const added = container.querySelector(
+      '[data-section-kind="RECOVERY_TIMELINE"]'
+    ) as HTMLElement;
+    expect(added.getAttribute("data-expanded")).toBe("true");
+    expect(added.getAttribute("data-block-family")).toBe("timeline");
+    expect(added.id.startsWith("canonical-block-")).toBe(true);
+    expect(scroll).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    expect(document.activeElement).toBe(
+      added.querySelector("input[id$='-title']")
+    );
+    expect(
+      container
+        .querySelector(
+          '[data-section-kind="INTRODUCTION"] button[aria-expanded]'
+        )
+        ?.getAttribute("aria-expanded")
+    ).toBe("false");
   });
 });
 

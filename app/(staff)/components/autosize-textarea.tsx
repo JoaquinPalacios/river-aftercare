@@ -34,9 +34,25 @@ export function AutosizeTextarea({
   const controlled = value !== undefined;
 
   useLayoutEffect(() => {
-    if (ref.current) {
-      fitTextarea(ref.current);
+    const element = ref.current;
+    if (!element) {
+      return;
     }
+    fitTextarea(element);
+    const panel = element.closest("[data-open]");
+    if (!panel) {
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      if (panel.getAttribute("data-open") === "true") {
+        fitTextarea(element);
+      }
+    });
+    observer.observe(panel, {
+      attributes: true,
+      attributeFilter: ["data-open"],
+    });
+    return () => observer.disconnect();
   }, [value, defaultValue]);
 
   return (

@@ -3,11 +3,14 @@
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { CanonicalEditorToolbar } from "@/app/(staff)/components/canonical-editor-toolbar";
+import { CanonicalGuideOutline } from "@/app/(staff)/components/canonical-guide-outline";
 import { CanonicalGuidePreview } from "@/app/(staff)/components/canonical-guide-preview";
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
 import { EditorSectionHeading } from "@/app/(staff)/components/guide-section-editors";
 import { OrderedGuideSectionsEditor } from "@/app/(staff)/components/ordered-guide-sections-editor";
 import { RecordReviewForm } from "@/app/(staff)/(operator)/operator/templates/record-review-form";
+import { TemplateLifecycleActions } from "@/app/(staff)/(operator)/operator/templates/template-lifecycle-actions";
 import type { EditorSection } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
 import {
   publishCanonicalTemplateRevisionAction,
@@ -24,6 +27,7 @@ const initial: CanonicalTemplateActionState = {};
 
 export function CanonicalDraftEditor({
   templateId,
+  templateTitle,
   revisionId,
   version,
   reviewed,
@@ -31,11 +35,13 @@ export function CanonicalDraftEditor({
   savedContentSignature,
   initialSections,
   isActive,
+  neverPublished,
   reviewerName,
   reviewerCredential,
   reviewNote,
 }: {
   templateId: string;
+  templateTitle: string;
   revisionId: string;
   version: number;
   reviewed: boolean;
@@ -49,6 +55,7 @@ export function CanonicalDraftEditor({
   savedContentSignature: string;
   initialSections: EditorSection[];
   isActive: boolean;
+  neverPublished: boolean;
   reviewerName: string;
   reviewerCredential: string;
   reviewNote: string;
@@ -56,9 +63,14 @@ export function CanonicalDraftEditor({
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const allowReviewedSave = useRef(false);
+  const focusNonce = useRef(0);
   const [sections, setSections] = useState(initialSections);
   const [warnOpen, setWarnOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [focusRequest, setFocusRequest] = useState<{
+    key: string;
+    nonce: number;
+  } | null>(null);
   const loadedKey = `${revisionId}:${savedContentSignature}:${reviewed ? "reviewed" : "open"}`;
   const [seenKey, setSeenKey] = useState(loadedKey);
   if (seenKey !== loadedKey) {
@@ -92,27 +104,42 @@ export function CanonicalDraftEditor({
     }
   }, [saveState.ok, saveState.reviewCleared, router]);
 
+  function revealSection(key: string) {
+    focusNonce.current += 1;
+    setFocusRequest({ key, nonce: focusNonce.current });
+  }
+
+  function scrollToReview() {
+    const target = document.getElementById("canonical-record-review");
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("reviewerName")?.focus({ preventScroll: true });
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="staffStatusPill" data-tone="draft">
-          Draft v{version}
-        </span>
-        {reviewed ? (
-          <span className="staffStatusPill" data-tone="success">
-            Review recorded
-          </span>
-        ) : (
-          <span className="staffStatusPill" data-tone="warning">
-            Not reviewed
-          </span>
-        )}
-        {isActive ? null : (
-          <span className="staffStatusPill" data-tone="inactive">
-            Inactive
-          </span>
-        )}
-      </div>
+    <div className="canonicalDraftEditor flex flex-col gap-6">
+      <CanonicalEditorToolbar
+        templateId={templateId}
+        templateTitle={templateTitle}
+        version={version}
+        reviewed={reviewed}
+        contentChanged={contentChanged}
+        saving={saving}
+        publishing={publishing}
+        isActive={isActive}
+        invalidationWarningId={invalidationWarningId}
+        onRecordReview={scrollToReview}
+        onPublish={() => setPublishOpen(true)}
+        lifecycle={
+          <TemplateLifecycleActions
+            templateId={templateId}
+            draftId={revisionId}
+            neverPublished={neverPublished}
+            isActive={isActive}
+            canCreateRevision={false}
+            presentation="menu"
+          />
+        }
+      />
       {reviewed ? null : (
         <p className="text-sm text-staff-muted">
           This draft is not reviewed. Record review before publication.
@@ -138,107 +165,96 @@ export function CanonicalDraftEditor({
           Draft saved.
         </p>
       ) : null}
-      <form
-        ref={formRef}
-        id="canonical-draft-form"
-        action={saveAction}
-        className="flex flex-col gap-6"
-        onSubmit={(event) => {
-          if (reviewed && contentChanged && !allowReviewedSave.current) {
-            event.preventDefault();
-            setWarnOpen(true);
-            return;
-          }
-          allowReviewedSave.current = false;
-        }}
-      >
-        <input type="hidden" name="templateId" value={templateId} />
-        <input type="hidden" name="revisionId" value={revisionId} />
-        <input
-          type="hidden"
-          name="sections"
-          value={JSON.stringify(sectionsPayload(sections))}
-        />
-        <EditorSectionHeading title="Draft content">
-          <button
-            type="submit"
-            className="staffBtn staffBtnPrimary w-fit"
-            data-draft-save="top"
-            disabled={saving}
-            aria-describedby={invalidationWarningId}
+      <div className="canonicalEditorColumns">
+        <div className="canonicalEditorMain">
+          <form
+            ref={formRef}
+            id="canonical-draft-form"
+            action={saveAction}
+            className="flex flex-col gap-6"
+            onSubmit={(event) => {
+              if (reviewed && contentChanged && !allowReviewedSave.current) {
+                event.preventDefault();
+                setWarnOpen(true);
+                return;
+              }
+              allowReviewedSave.current = false;
+            }}
           >
-            {saving ? "Saving…" : "Save draft"}
-          </button>
-          <OrderedGuideSectionsEditor
-            sections={sections}
-            disabled={false}
-            onChange={setSections}
-          />
-        </EditorSectionHeading>
-        {saveState.error ? (
-          <p className="text-sm text-red-600" role="alert">
-            {saveState.error}
-          </p>
-        ) : null}
-        <button
-          type="submit"
-          className="staffBtn staffBtnPrimary w-fit"
-          data-draft-save="bottom"
-          disabled={saving}
-          aria-describedby={invalidationWarningId}
-        >
-          {saving ? "Saving…" : "Save draft"}
-        </button>
-      </form>
-      <CanonicalGuidePreview sections={previewSections} />
-      <EditorSectionHeading
-        title={reviewed ? "Review recorded" : "Record review"}
-      >
-        <p className="text-sm text-staff-muted">
-          Recording review does not publish the revision. Publishing makes a
-          reviewed revision available to eligible clinics.
-        </p>
-        {reviewed && reviewSummary ? (
-          <div className="rounded-xl border border-staff-line bg-staff-canvas p-4 text-sm">
-            <p>
-              {reviewSummary.reviewerName}
-              {reviewSummary.reviewerCredential
-                ? ` · ${reviewSummary.reviewerCredential}`
-                : ""}
-            </p>
-            {reviewSummary.reviewNote ? (
-              <p className="mt-2 text-staff-muted">
-                {reviewSummary.reviewNote}
+            <input type="hidden" name="templateId" value={templateId} />
+            <input type="hidden" name="revisionId" value={revisionId} />
+            <input
+              type="hidden"
+              name="sections"
+              value={JSON.stringify(sectionsPayload(sections))}
+            />
+            <EditorSectionHeading title="Draft content">
+              <OrderedGuideSectionsEditor
+                sections={sections}
+                disabled={false}
+                onChange={setSections}
+                focusRequest={focusRequest}
+              />
+            </EditorSectionHeading>
+            {saveState.error ? (
+              <p className="text-sm text-red-600" role="alert">
+                {saveState.error}
               </p>
             ) : null}
-            <p className="mt-2 text-staff-muted">
-              {reviewSummary.reviewedAtLabel ?? "Review time unavailable"}
-              {reviewSummary.recordedByLabel
-                ? ` · Recorded by ${reviewSummary.recordedByLabel}`
-                : ""}
-            </p>
-          </div>
-        ) : null}
-        <RecordReviewForm
-          templateId={templateId}
-          revisionId={revisionId}
-          reviewerName={reviewerName}
-          reviewerCredential={reviewerCredential}
-          reviewNote={reviewNote}
-          reviewed={reviewed}
-        />
-      </EditorSectionHeading>
+          </form>
+        </div>
+        <CanonicalGuideOutline sections={sections} onSelect={revealSection} />
+      </div>
+      <CanonicalGuidePreview sections={previewSections} />
+      <div id="canonical-record-review" className="canonicalEditorAnchor">
+        <EditorSectionHeading
+          title={reviewed ? "Review recorded" : "Record review"}
+        >
+          <p className="text-sm text-staff-muted">
+            Recording review does not publish the revision. Publishing makes a
+            reviewed revision available to eligible clinics.
+          </p>
+          {reviewed && reviewSummary ? (
+            <div className="rounded-xl border border-staff-line bg-staff-canvas p-4 text-sm">
+              <p>
+                {reviewSummary.reviewerName}
+                {reviewSummary.reviewerCredential
+                  ? ` · ${reviewSummary.reviewerCredential}`
+                  : ""}
+              </p>
+              {reviewSummary.reviewNote ? (
+                <p className="mt-2 text-staff-muted">
+                  {reviewSummary.reviewNote}
+                </p>
+              ) : null}
+              <p className="mt-2 text-staff-muted">
+                {reviewSummary.reviewedAtLabel ?? "Review time unavailable"}
+                {reviewSummary.recordedByLabel
+                  ? ` · Recorded by ${reviewSummary.recordedByLabel}`
+                  : ""}
+              </p>
+            </div>
+          ) : null}
+          <RecordReviewForm
+            templateId={templateId}
+            revisionId={revisionId}
+            reviewerName={reviewerName}
+            reviewerCredential={reviewerCredential}
+            reviewNote={reviewNote}
+            reviewed={reviewed}
+          />
+        </EditorSectionHeading>
+      </div>
       <EditorSectionHeading title="Publish revision">
         <div className="flex flex-col gap-3">
-          <button
-            type="button"
-            className="staffBtn staffBtnPrimary w-fit"
-            disabled={!reviewed || publishing}
-            onClick={() => setPublishOpen(true)}
-          >
-            Publish revision
-          </button>
-          {reviewed ? null : (
+          {reviewed ? (
+            <p className="text-sm text-staff-muted">
+              This revision has review evidence. Publish it from the toolbar
+              when you are ready. The revision becomes immutable. Eligible
+              clinics may discover this template. Clinics already pinned to an
+              earlier revision are not updated.
+            </p>
+          ) : (
             <p className="text-sm text-staff-muted">
               Record a complete review before publishing this revision.
             </p>

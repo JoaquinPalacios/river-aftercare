@@ -4,8 +4,6 @@ import { notFound } from "next/navigation";
 
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { CanonicalDraftEditor } from "@/app/(staff)/(operator)/operator/templates/canonical-draft-editor";
-import { EditorSectionHeading } from "@/app/(staff)/components/guide-section-editors";
-import { TemplateLifecycleActions } from "@/app/(staff)/(operator)/operator/templates/template-lifecycle-actions";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { loadOperatorCanonicalTemplate } from "@/lib/operator/canonical-templates/load-operator-canonical-template";
@@ -33,19 +31,21 @@ export default async function OperatorTemplateDraftPage({
   const draft = template.openDraft;
 
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-4xl flex-col gap-6">
+    <div className="canonicalDraftPage">
       <header>
-        <PortalBreadcrumb
-          items={[
-            { href: "/operator/templates", label: "Templates" },
-            {
-              href: `/operator/templates/${template.id}`,
-              label: template.title,
-            },
-            { label: "Draft" },
-          ]}
-        />
-        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
+        {draft && !template.isSample ? null : (
+          <PortalBreadcrumb
+            items={[
+              { href: "/operator/templates", label: "Templates" },
+              {
+                href: `/operator/templates/${template.id}`,
+                label: template.title,
+              },
+              { label: draft ? `Draft v${draft.version}` : "Draft" },
+            ]}
+          />
+        )}
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
           Platform
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
@@ -86,6 +86,7 @@ export default async function OperatorTemplateDraftPage({
         <>
           <CanonicalDraftEditor
             templateId={template.id}
+            templateTitle={template.title}
             revisionId={draft.id}
             version={draft.version}
             reviewed={draft.reviewed}
@@ -103,19 +104,11 @@ export default async function OperatorTemplateDraftPage({
             savedContentSignature={draft.savedContentSignature}
             initialSections={draft.sections}
             isActive={template.isActive}
+            neverPublished={template.latestPublishedVersion === null}
             reviewerName={draft.reviewerName ?? ""}
             reviewerCredential={draft.reviewerCredential ?? ""}
             reviewNote={draft.reviewNote ?? ""}
           />
-          <EditorSectionHeading title="Draft actions">
-            <TemplateLifecycleActions
-              templateId={template.id}
-              draftId={draft.id}
-              neverPublished={template.latestPublishedVersion === null}
-              isActive={template.isActive}
-              canCreateRevision={false}
-            />
-          </EditorSectionHeading>
         </>
       )}
     </div>

@@ -7,6 +7,9 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { PendingSubmitButton } from "@/app/(staff)/components/pending-submit-button";
 import { PortalAppearanceControl } from "@/app/(staff)/components/portal-appearance-control";
 import { StaffAccountPanel } from "@/app/(staff)/components/staff-account-panel";
+import { StaffNavIcon } from "@/app/(staff)/components/staff-nav-icon";
+import type { StaffNavIconName } from "@/app/(staff)/components/staff-nav-icon";
+import { StaffSidebarFrame } from "@/app/(staff)/components/staff-sidebar-frame";
 import { isClinicPortalNavCurrent } from "@/app/(staff)/components/staff-nav-current";
 import { stopOperatorClinicSupportAction } from "@/app/(staff)/(operator)/operator/support-actions";
 import { ProductMark } from "@/lib/branding/product-mark";
@@ -70,7 +73,7 @@ export function PortalChrome({
 
   return (
     <div className="staffAppShell">
-      <aside className="staffAppSidebar">
+      <StaffSidebarFrame>
         <PortalBrand
           displayName={displayName}
           assisting={Boolean(assistingClinicName)}
@@ -96,7 +99,7 @@ export function PortalChrome({
             />
           </div>
         </div>
-      </aside>
+      </StaffSidebarFrame>
 
       <div className="staffAppMain">
         <header className="flex items-center justify-between gap-3 border-b border-staff-line bg-staff-panel px-4 py-3 md:hidden">
@@ -186,22 +189,24 @@ function PortalBrand({
 }) {
   return (
     <div
-      className={compact ? "min-w-0" : "border-b border-staff-line px-5 py-5"}
+      className={
+        compact ? "min-w-0" : "staffBrand border-b border-staff-line px-5 py-5"
+      }
     >
       <p className="flex items-center gap-2 text-sm font-semibold tracking-tight">
         <ProductMark className="h-5 w-5 text-staff-brand" />
-        {PRODUCT_NAME}
+        <span className="staffBrandCopy">{PRODUCT_NAME}</span>
       </p>
       {assisting ? (
-        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
+        <p className="staffBrandCopy mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
           Assisting
         </p>
       ) : null}
       <p
         className={
           assisting
-            ? "mt-0.5 truncate text-sm font-medium text-staff-ink"
-            : "mt-1 truncate text-sm text-staff-muted"
+            ? "staffBrandCopy mt-0.5 truncate text-sm font-medium text-staff-ink"
+            : "staffBrandCopy mt-1 truncate text-sm text-staff-muted"
         }
       >
         {displayName}
@@ -223,16 +228,26 @@ function PortalNav({
   showProductNav: boolean;
   onNavigate: () => void;
 }) {
-  const items = showProductNav
+  const items: Array<{
+    href: string;
+    label: string;
+    icon: StaffNavIconName;
+  }> = showProductNav
     ? [
-        { href: "/dashboard", label: "Overview" },
-        { href: "/guides", label: "Guides" },
+        { href: "/dashboard", label: "Overview", icon: "overview" },
+        { href: "/guides", label: "Guides", icon: "guides" },
         ...(canManagePractice
-          ? [{ href: "/practice", label: "Practice" }]
+          ? [
+              {
+                href: "/practice",
+                label: "Practice",
+                icon: "practice" as const,
+              },
+            ]
           : []),
-        { href: "/practice/sites", label: "Sites & Locations" },
+        { href: "/practice/sites", label: "Sites & Locations", icon: "sites" },
       ]
-    : [{ href: "/account/billing", label: "Billing" }];
+    : [{ href: "/account/billing", label: "Billing", icon: "billing" }];
 
   return (
     <nav aria-label="Clinic portal">
@@ -246,8 +261,10 @@ function PortalNav({
               aria-current={current ? "page" : undefined}
               onClick={onNavigate}
               className="staffNavRow"
+              data-tooltip={item.label}
             >
-              {item.label}
+              <StaffNavIcon name={item.icon} />
+              <span className="staffNavLabel">{item.label}</span>
             </Link>
           );
         })}
@@ -261,10 +278,14 @@ function PortalNav({
               target="_blank"
               rel="noreferrer"
               className="staffNavRow staffNavRowMuted"
+              data-tooltip="View patient site"
             >
-              View patient site
-              <span className="sr-only"> (opens in a new tab)</span>
-              <ExternalLinkIcon className="ml-1" />
+              <StaffNavIcon name="patient" />
+              <span className="staffNavLabel">
+                View patient site
+                <span className="sr-only"> (opens in a new tab)</span>
+                <ExternalLinkIcon className="ml-1" />
+              </span>
             </a>
           </div>
         </>

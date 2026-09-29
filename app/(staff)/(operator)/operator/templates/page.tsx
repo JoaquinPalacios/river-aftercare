@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import {
   TemplateActivityBadge,
   TemplateDraftBadge,
@@ -48,7 +49,8 @@ export default async function OperatorTemplatesPage({
     <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
+          <PortalBreadcrumb items={[{ label: "Templates" }]} />
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
             Platform
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">

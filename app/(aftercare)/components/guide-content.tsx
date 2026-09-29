@@ -18,11 +18,25 @@ export function GuideContent({
     <>
       {blocks.map((block, index) =>
         block.type === "list" ? (
-          <ul key={`${idPrefix}-list-${index}`} className={styles.contentList}>
-            {block.items.map((item, itemIndex) => (
-              <li key={`${idPrefix}-item-${index}-${itemIndex}`}>{item}</li>
-            ))}
-          </ul>
+          block.ordered ? (
+            <ol
+              key={`${idPrefix}-list-${index}`}
+              className={styles.contentOrderedList}
+            >
+              {block.items.map((item, itemIndex) => (
+                <li key={`${idPrefix}-item-${index}-${itemIndex}`}>{item}</li>
+              ))}
+            </ol>
+          ) : (
+            <ul
+              key={`${idPrefix}-list-${index}`}
+              className={styles.contentList}
+            >
+              {block.items.map((item, itemIndex) => (
+                <li key={`${idPrefix}-item-${index}-${itemIndex}`}>{item}</li>
+              ))}
+            </ul>
+          )
         ) : (
           <p key={`${idPrefix}-p-${index}`} className={styles.body}>
             {block.text}

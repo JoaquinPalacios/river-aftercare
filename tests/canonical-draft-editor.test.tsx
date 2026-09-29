@@ -12,6 +12,10 @@ vi.mock("@/app/(staff)/(operator)/operator/templates/actions", () => ({
   saveCanonicalTemplateDraftAction: vi.fn(async () => ({})),
   publishCanonicalTemplateRevisionAction: vi.fn(async () => ({})),
   recordCanonicalTemplateReviewAction: vi.fn(async () => ({})),
+  abandonCanonicalTemplateDraftAction: vi.fn(async () => ({})),
+  createCanonicalTemplateDraftAction: vi.fn(async () => ({})),
+  deactivateCanonicalTemplateAction: vi.fn(async () => ({})),
+  reactivateCanonicalTemplateAction: vi.fn(async () => ({})),
 }));
 
 import { CanonicalDraftEditor } from "@/app/(staff)/(operator)/operator/templates/canonical-draft-editor";
@@ -69,6 +73,7 @@ describe("canonical draft editor", () => {
 
   beforeEach(() => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    HTMLElement.prototype.scrollIntoView = () => undefined;
     HTMLDialogElement.prototype.showModal = function showModal() {
       this.setAttribute("open", "");
     };
@@ -95,6 +100,7 @@ describe("canonical draft editor", () => {
       root.render(
         <CanonicalDraftEditor
           templateId="template"
+          templateTitle="Tooth Extraction"
           revisionId="revision"
           version={1}
           reviewed={reviewed}
@@ -112,6 +118,7 @@ describe("canonical draft editor", () => {
           savedContentSignature={signature}
           initialSections={sections}
           isActive
+          neverPublished={false}
           reviewerName={reviewed ? "Example Reviewer" : ""}
           reviewerCredential={reviewed ? "Example credential" : ""}
           reviewNote={reviewed ? "Example note" : ""}
@@ -124,12 +131,20 @@ describe("canonical draft editor", () => {
     render(true);
     expect(container.textContent).toContain("Example introduction");
     expect(container.textContent).toContain("Example timeline instruction");
-    expect(container.textContent).toContain("Example home-care item");
+    expect(
+      (container.querySelector("#item-title") as HTMLInputElement).value
+    ).toBe("Example home-care item");
     expect(container.textContent).toContain("Review recorded");
     expect(container.textContent).toContain("Example Reviewer");
     expect(container.textContent).toContain("Recorded by River Operator");
     expect(container.textContent).not.toContain(REVIEW_INVALIDATION_WARNING);
 
+    const intro = container.querySelector(
+      '[data-section-key="intro"] button[aria-expanded]'
+    ) as HTMLButtonElement;
+    act(() => {
+      intro.click();
+    });
     const title = container.querySelector("#intro-title") as HTMLInputElement;
     const setValue = Object.getOwnPropertyDescriptor(
       HTMLInputElement.prototype,
@@ -142,6 +157,7 @@ describe("canonical draft editor", () => {
 
     expect(container.textContent).toContain(REVIEW_INVALIDATION_WARNING);
     expect(container.textContent).toContain("Review recorded");
+    expect(container.textContent).toContain("Unsaved changes");
   });
 
   it("asks for review before publication when the draft is unreviewed", () => {
@@ -156,20 +172,38 @@ describe("canonical draft editor", () => {
     expect(container.textContent).toContain("Not reviewed");
   });
 
-  it("places record review before publish and warns from every save button", () => {
+  it("keeps save in the sticky toolbar and warns before clearing a review", () => {
     render(true);
+    const toolbar = container.querySelector(
+      "[data-canonical-toolbar]"
+    ) as HTMLElement;
     const reviewField = container.querySelector(
       "#reviewerName"
     ) as HTMLInputElement;
-    const publish = [...container.querySelectorAll("button")].find((button) =>
+    const publish = [...toolbar.querySelectorAll("button")].find((button) =>
       button.textContent?.includes("Publish revision")
     ) as HTMLButtonElement;
-    expect(
-      reviewField.compareDocumentPosition(publish) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
     expect(publish.disabled).toBe(false);
+    expect(toolbar.textContent).toContain("Templates");
+    expect(toolbar.textContent).toContain("Tooth Extraction");
+    expect(toolbar.textContent).toContain("Draft v1");
+    expect(toolbar.querySelector('a[href="/operator/templates"]')).toBeTruthy();
+    expect(
+      toolbar.querySelector('a[href="/operator/templates/template"]')
+    ).toBeTruthy();
+    expect(toolbar.querySelector('[aria-label="More actions"]')).toBeTruthy();
+    expect(toolbar.textContent).toContain("Abandon draft");
+    expect(toolbar.textContent).toContain("Deactivate");
+    expect(
+      container.querySelector("#canonical-record-review")!.contains(reviewField)
+    ).toBe(true);
 
+    const intro = container.querySelector(
+      '[data-section-key="intro"] button[aria-expanded]'
+    ) as HTMLButtonElement;
+    act(() => {
+      intro.click();
+    });
     const title = container.querySelector("#intro-title") as HTMLInputElement;
     const setValue = Object.getOwnPropertyDescriptor(
       HTMLInputElement.prototype,
@@ -180,10 +214,10 @@ describe("canonical draft editor", () => {
       title.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
-    const saves = [...container.querySelectorAll("button")].filter((button) =>
+    const saves = [...toolbar.querySelectorAll("button")].filter((button) =>
       button.textContent?.includes("Save draft")
     );
-    expect(saves).toHaveLength(2);
+    expect(saves).toHaveLength(1);
     for (const save of saves) {
       expect(save.getAttribute("aria-describedby")).toBe(
         "draft-review-invalidation"
@@ -252,5 +286,34 @@ describe("canonical draft editor", () => {
       button.textContent?.includes("Publish revision")
     );
     expect(publish?.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("represents every block in the outline and opens the selected stage", () => {
+    render(false);
+    const rail = container.querySelector(
+      ".canonicalOutlineRail"
+    ) as HTMLElement;
+    expect(rail.textContent).toContain("Example introduction");
+    expect(rail.textContent).toContain("Example period");
+    expect(rail.textContent).toContain("Example timeline instruction");
+    expect(rail.textContent).toContain("Home care plan");
+    const stage = rail.querySelector(
+      '[data-outline-key="stage"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      stage.click();
+    });
+    const article = container.querySelector(
+      '[data-section-key="stage"]'
+    ) as HTMLElement;
+    expect(article.getAttribute("data-expanded")).toBe("true");
+    expect(article.getAttribute("data-block-family")).toBe("timeline");
+    const plan = container.querySelector(
+      '[data-section-key="plan"]'
+    ) as HTMLElement;
+    expect(plan.getAttribute("data-block-family")).toBe("home-care");
+    expect(plan.querySelector(".canonicalBlockBadge")?.textContent).toBe(
+      "Home care"
+    );
   });
 });

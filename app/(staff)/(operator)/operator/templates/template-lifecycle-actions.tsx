@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, type MouseEvent } from "react";
 
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
+import { OverflowMenu } from "@/app/(staff)/components/overflow-menu";
 import {
   abandonCanonicalTemplateDraftAction,
   createCanonicalTemplateDraftAction,
@@ -19,12 +20,14 @@ export function TemplateLifecycleActions({
   neverPublished,
   isActive,
   canCreateRevision,
+  presentation = "buttons",
 }: {
   templateId: string;
   draftId: string | null;
   neverPublished: boolean;
   isActive: boolean;
   canCreateRevision: boolean;
+  presentation?: "buttons" | "menu";
 }) {
   const [createState, createAction, creating] = useActionState(
     createCanonicalTemplateDraftAction,
@@ -52,45 +55,112 @@ export function TemplateLifecycleActions({
     deactivateState.error ??
     reactivateState.error;
 
+  function closeMenu(event: MouseEvent<HTMLButtonElement>) {
+    const popover = event.currentTarget.closest("[popover]");
+    if (popover && "hidePopover" in popover) {
+      (popover as HTMLElement & { hidePopover: () => void }).hidePopover();
+    }
+  }
+
+  const menu = (
+    <OverflowMenu label="More actions">
+      {canCreateRevision ? (
+        <button
+          type="button"
+          role="menuitem"
+          className="staffOverflowItem"
+          onClick={(event) => {
+            closeMenu(event);
+            setCreateOpen(true);
+          }}
+        >
+          Create new revision
+        </button>
+      ) : null}
+      {draftId ? (
+        <button
+          type="button"
+          role="menuitem"
+          className="staffOverflowItem staffOverflowItemDanger"
+          onClick={(event) => {
+            closeMenu(event);
+            setAbandonOpen(true);
+          }}
+        >
+          Abandon draft
+        </button>
+      ) : null}
+      {isActive ? (
+        <button
+          type="button"
+          role="menuitem"
+          className="staffOverflowItem staffOverflowItemDanger"
+          onClick={(event) => {
+            closeMenu(event);
+            setDeactivateOpen(true);
+          }}
+        >
+          Deactivate
+        </button>
+      ) : (
+        <button
+          type="button"
+          role="menuitem"
+          className="staffOverflowItem"
+          onClick={(event) => {
+            closeMenu(event);
+            setReactivateOpen(true);
+          }}
+        >
+          Reactivate
+        </button>
+      )}
+    </OverflowMenu>
+  );
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-2">
-        {canCreateRevision ? (
-          <button
-            type="button"
-            className="staffBtn staffBtnPrimary"
-            onClick={() => setCreateOpen(true)}
-          >
-            Create new revision
-          </button>
-        ) : null}
-        {draftId ? (
-          <button
-            type="button"
-            className="staffBtn staffBtnSecondary"
-            onClick={() => setAbandonOpen(true)}
-          >
-            Abandon draft
-          </button>
-        ) : null}
-        {isActive ? (
-          <button
-            type="button"
-            className="staffBtn staffBtnSecondary"
-            onClick={() => setDeactivateOpen(true)}
-          >
-            Deactivate
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="staffBtn staffBtnPrimary"
-            onClick={() => setReactivateOpen(true)}
-          >
-            Reactivate
-          </button>
-        )}
-      </div>
+      {presentation === "menu" ? (
+        menu
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {canCreateRevision ? (
+            <button
+              type="button"
+              className="staffBtn staffBtnPrimary"
+              onClick={() => setCreateOpen(true)}
+            >
+              Create new revision
+            </button>
+          ) : null}
+          {draftId ? (
+            <button
+              type="button"
+              className="staffBtn staffBtnSecondary"
+              onClick={() => setAbandonOpen(true)}
+            >
+              Abandon draft
+            </button>
+          ) : null}
+          {isActive ? (
+            <button
+              type="button"
+              className="staffBtn staffBtnSecondary"
+              onClick={() => setDeactivateOpen(true)}
+            >
+              Deactivate
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="staffBtn staffBtnPrimary"
+              onClick={() => setReactivateOpen(true)}
+            >
+              Reactivate
+            </button>
+          )}
+        </div>
+      )}
       {error ? (
         <p className="text-sm text-red-600" role="alert">
           {error}

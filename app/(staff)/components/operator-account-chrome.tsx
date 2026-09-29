@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { PortalAppearanceControl } from "@/app/(staff)/components/portal-appearance-control";
 import { StaffAccountPanel } from "@/app/(staff)/components/staff-account-panel";
+import { StaffSidebarFrame } from "@/app/(staff)/components/staff-sidebar-frame";
 import { OperatorPlatformNav } from "@/app/(staff)/(operator)/components/operator-platform-nav";
 import { ProductMark } from "@/lib/branding/product-mark";
 import { PLATFORM_OPERATOR_ROLE_LABEL } from "@/lib/clinic-portal/role-labels";
@@ -16,13 +17,13 @@ export function OperatorAccountChrome({
 }) {
   return (
     <div className="staffAppShell">
-      <aside className="staffAppSidebar">
-        <div className="border-b border-staff-line px-5 py-5">
+      <StaffSidebarFrame>
+        <div className="staffBrand border-b border-staff-line px-5 py-5">
           <p className="flex items-center gap-2 text-sm font-semibold tracking-tight">
             <ProductMark className="h-5 w-5 text-staff-brand" />
-            {PRODUCT_NAME}
+            <span className="staffBrandCopy">{PRODUCT_NAME}</span>
           </p>
-          <p className="mt-1 text-sm text-staff-muted">
+          <p className="staffBrandCopy mt-1 text-sm text-staff-muted">
             {PLATFORM_OPERATOR_ROLE_LABEL}
           </p>
         </div>
@@ -40,7 +41,7 @@ export function OperatorAccountChrome({
             />
           </div>
         </div>
-      </aside>
+      </StaffSidebarFrame>
       <div className="staffAppMain">
         <main className="staffAppScroller">
           <div className="staffAppContent">{children}</div>

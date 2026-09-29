@@ -16,6 +16,10 @@ describe("clinic portal layout roles and shell", () => {
       "app/(staff)/components/portal-chrome.tsx",
       "utf8"
     );
+    const sidebar = readFileSync(
+      "app/(staff)/components/staff-sidebar-frame.tsx",
+      "utf8"
+    );
     const css = readFileSync("app/(staff)/staff.css", "utf8");
 
     expect(layout).toContain("clinicMembershipRoleLabel");
@@ -24,7 +28,8 @@ describe("clinic portal layout roles and shell", () => {
     expect(operator).toContain("PLATFORM_OPERATOR_ROLE_LABEL");
     expect(operator).not.toContain(">Operator<");
     expect(chrome).toContain("staffAppShell");
-    expect(chrome).toContain("staffAppSidebar");
+    expect(chrome).toContain("StaffSidebarFrame");
+    expect(sidebar).toContain('className="staffAppSidebar"');
     expect(chrome).toContain('<main className="staffAppScroller">');
     expect(chrome).toContain('<div className="staffAppContent">');
     expect(chrome).toContain("inert={!open || undefined}");
