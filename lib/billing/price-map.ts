@@ -190,28 +190,45 @@ function readPriceId(
   return value ? value : null;
 }
 
-function readConfiguredCatalogue(
+export const STRIPE_PRICE_IDS_MUST_BE_UNIQUE =
+  "Stripe Price IDs must be unique across every configured base plan and add-on price.";
+
+export type StripeCatalogueInspectionSlot = CatalogueSlot & {
+  priceId: string | null;
+};
+
+export function inspectStripeCatalogue(
   env: Record<string, string | undefined>
-): ConfiguredCatalogueSlot[] {
-  const configured: ConfiguredCatalogueSlot[] = [];
-  const seen = new Map<string, string>();
+): { slots: StripeCatalogueInspectionSlot[]; duplicate: boolean } {
+  const slots: StripeCatalogueInspectionSlot[] = [];
+  const seen = new Set<string>();
+  let duplicate = false;
 
   for (const slot of STRIPE_CATALOGUE_SLOTS) {
     const priceId = readPriceId(env, slot.envKey);
-    if (!priceId) {
-      continue;
+    if (priceId) {
+      if (seen.has(priceId)) {
+        duplicate = true;
+      } else {
+        seen.add(priceId);
+      }
     }
-    const previous = seen.get(priceId);
-    if (previous) {
-      throw new StripePriceMappingError(
-        "Stripe Price IDs must be unique across every configured base plan and add-on price."
-      );
-    }
-    seen.set(priceId, slot.envKey);
-    configured.push({ ...slot, priceId });
+    slots.push({ ...slot, priceId });
   }
 
-  return configured;
+  return { slots, duplicate };
+}
+
+function readConfiguredCatalogue(
+  env: Record<string, string | undefined>
+): ConfiguredCatalogueSlot[] {
+  const inspection = inspectStripeCatalogue(env);
+  if (inspection.duplicate) {
+    throw new StripePriceMappingError(STRIPE_PRICE_IDS_MUST_BE_UNIQUE);
+  }
+  return inspection.slots.filter(
+    (slot): slot is ConfiguredCatalogueSlot => slot.priceId !== null
+  );
 }
 
 export function groupBillingAvailable(

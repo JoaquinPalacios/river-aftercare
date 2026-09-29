@@ -16,6 +16,7 @@
     "test:e2e": "playwright test",
     "test:all": "vitest run && playwright test",
     "release:check": "node scripts/release-check.mjs",
+    "stripe:config:check": "node --experimental-transform-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning scripts/stripe-config-check.mjs",
     "observability:test-error": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/observability-test-error.mjs",
     "db:generate": "prisma generate --config prisma.config.ts",
     "db:validate": "prisma validate --config prisma.config.ts",

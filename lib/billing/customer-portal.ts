@@ -10,6 +10,7 @@ import {
 import { logStripeBilling } from "@/lib/billing/log";
 import { getPrisma } from "@/lib/prisma";
 import { getStripeClient } from "@/lib/billing/stripe-client";
+import { isStripePortalConfigurationId } from "@/lib/billing/stripe-mode";
 
 export const BILLING_PORTAL_RETURN_PATH = "/account/billing";
 
@@ -288,7 +289,7 @@ export async function executeCustomerPortalSession(input: {
     STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID_ENV,
     input.env
   );
-  if (!configurationId || !configurationId.startsWith("bpc_")) {
+  if (!configurationId || !isStripePortalConfigurationId(configurationId)) {
     return fail("portal_not_configured", "configuration_missing");
   }
 

@@ -151,11 +151,13 @@ Canonical detail: [ADR 0026](../adr/0026-first-client-clinic-supplied-governance
 
 ## Durable billing architecture rule (Phase 2 customer Checkout)
 
-River Aftercare remains assisted sales at launch. Public `/pricing` keeps Request a demo / Talk to us. Do not add Buy now. Anonymous visitors cannot start Checkout. GROUP is not a Checkout plan.
+River Aftercare remains assisted sales at launch. Public `/pricing` keeps Request a demo / Talk to us. Do not add Buy now. Anonymous visitors cannot start Checkout. Group Checkout is operator-prepared only. Public Group pricing stays Custom.
 
 Stripe is the financial source of truth (Customer, Subscription, Invoice, payment methods). River persists a local entitlement projection and must not call Stripe on patient or editor request paths. Canonical advertised amounts stay in `lib/marketing/plans.ts`. Essential and Practice custom-guide and team-member allowances are enforced from `lib/entitlements/plan-policy.ts` when a clinic has that commercial plan. Group and clinics with no entitlement row are not given those fixed caps. There is no per-seat billing. Past-due lockout beyond the current activation gate is unchanged. Published patient URLs must not disappear on the first failed payment.
 
-Phase 1 remains: test-mode Stripe SDK/config, plan↔Price mapping, `ClinicBillingProfile` / `ClinicEntitlement` / `StripeEventReceipt`, and verified idempotent `POST /api/stripe/webhook`. Paid activation is `invoice.paid`. Checkout completion cannot grant paid entitlement.
+Stripe credentials are environment-scoped in `lib/billing/stripe-mode.ts`. `VERCEL_ENV=production` accepts `sk_live_` or `rk_live_` and rejects test keys. Preview, local development, and test accept `sk_test_` or `rk_test_` and reject live keys. Missing Stripe configuration stays lazy and fails at Checkout, the Customer Portal, or `POST /api/stripe/webhook`. There is no publishable Stripe key. `pnpm stripe:config:check` reads the current process environment only and does not call Stripe or Vercel. Production and Preview require the full ten-price catalogue, webhook secret, and `STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID`. Local Stripe is optional until a billing variable is set. Price IDs stay `price_...` in both modes and must be unique across the catalogue. Live and test secrets, Price IDs, webhook signing secrets, and Portal configuration ids are never shared. Operator steps: [../launch/STRIPE-SETUP.md](../launch/STRIPE-SETUP.md).
+
+Phase 1 remains: Stripe SDK/config, plan↔Price mapping, `ClinicBillingProfile` / `ClinicEntitlement` / `StripeEventReceipt`, and verified idempotent `POST /api/stripe/webhook`. Paid activation is `invoice.paid`. Checkout completion cannot grant paid entitlement. The secret-key mode follows `VERCEL_ENV`.
 
 Phase 2 **is implemented** for new billing-onboarding clinics only:
 

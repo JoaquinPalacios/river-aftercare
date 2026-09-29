@@ -627,22 +627,29 @@ Follow Stripe’s catalogue rule: **one Product per plan the customer can choose
 
 All `tax_behavior: inclusive`. Currency `aud`. Nickname the Prices clearly (`essential_monthly`, etc.).
 
-Group is a Stripe Product in the approved catalogue above: base A$449/month or A$4,490/year, plus an Additional Site Price of A$50/month or A$500/year. Checkout does not sell it yet. Group has no standalone paid Additional Location Price. Practice Additional Location is a separate graduated Price, not quantity on the Practice base Price. Until an account is converted, an operator may still raise the stored Practice location allowance. Public Group copy stays custom. Site and location capacity is still enforced in the product. A missing entitlement is 1 site and 1 location, never unlimited. Essential is always 1/1. Practice is always one site.
+Group is a Stripe Product in the approved catalogue above: base A$449/month or A$4,490/year, plus an Additional Site Price of A$50/month or A$500/year. Group Checkout is operator-prepared. Public Group pricing stays custom. Group has no standalone paid Additional Location Price. Practice Additional Location is a separate graduated Price, not quantity on the Practice base Price. Until an account is converted, an operator may still raise the stored Practice location allowance. Public Group copy stays custom. Site and location capacity is still enforced in the product. A missing entitlement is 1 site and 1 location, never unlimited. Essential is always 1/1. Practice is always one site.
 
 ### E.2 Price ID mapping
 
-Store test and live Price IDs in **server-only environment variables**, not in the database and never `NEXT_PUBLIC_*`.
+Store test and live Price IDs in **server-only environment variables**, not in the database and never `NEXT_PUBLIC_*`. The names below are the current runtime contract. Operator setup, including the live catalogue, is [STRIPE-SETUP.md](../launch/STRIPE-SETUP.md). Do not configure GST or Stripe Tax.
 
 ```text
-STRIPE_SECRET_KEY                  # restricted key rk_test_ / rk_live_
-STRIPE_WEBHOOK_SECRET              # whsec_… per endpoint (test vs live)
-STRIPE_PRICE_ESSENTIAL_MONTHLY
-STRIPE_PRICE_ESSENTIAL_YEARLY
-STRIPE_PRICE_PRACTICE_MONTHLY
-STRIPE_PRICE_PRACTICE_YEARLY
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID
+STRIPE_ESSENTIAL_MONTHLY_PRICE_ID
+STRIPE_ESSENTIAL_YEARLY_PRICE_ID
+STRIPE_PRACTICE_MONTHLY_PRICE_ID
+STRIPE_PRACTICE_YEARLY_PRICE_ID
+STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID
+STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID
+STRIPE_GROUP_MONTHLY_PRICE_ID
+STRIPE_GROUP_YEARLY_PRICE_ID
+STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID
+STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID
 ```
 
-Vercel **Preview** = test-mode keys and test Price IDs. Vercel **Production** = live-mode keys and live Price IDs. Never mix.
+`VERCEL_ENV=production` accepts `sk_live_` or `rk_live_` and rejects test keys. Preview and local accept `sk_test_` or `rk_test_` and reject live keys. Vercel **Preview** uses test-mode keys and test Price IDs. Vercel **Production** uses live-mode keys and live Price IDs. Never mix. There is no publishable Stripe key.
 
 River mapping is a closed server table: env Price ID → `{ commercialPlan, billingInterval, expectedAmountCents }` checked against `PLAN_PRICES`. Checkout Sessions are created only from operator-selected plan+interval after that lookup. Incoming webhooks resolve `stripePriceId` through the **same** map; unknown Price IDs are a hard error (alert operator, do not grant entitlements).
 
