@@ -3,6 +3,7 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
 
 import { StaffNavIcon } from "@/app/(staff)/components/staff-nav-icon";
+import { StaffSidebarTooltip } from "@/app/(staff)/components/staff-sidebar-tooltip";
 
 const STORAGE_KEY = "river-aftercare-staff-sidebar";
 
@@ -45,6 +46,7 @@ export function StaffSidebarFrame({ children }: { children: ReactNode }) {
         </button>
       </div>
       {children}
+      <StaffSidebarTooltip enabled={collapsed} />
     </aside>
   );
 }

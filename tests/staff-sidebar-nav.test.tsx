@@ -276,6 +276,120 @@ describe("staff sidebar navigation", () => {
     );
   });
 
+  it("shows collapsed sidebar tooltips outside the rail", async () => {
+    localStorage.setItem("river-aftercare-staff-sidebar", "collapsed");
+    nav.pathname = "/operator/templates";
+    await act(async () => {
+      root.render(
+        <OperatorAccountChrome userLabel="River Operator">
+          <p>Operator content</p>
+        </OperatorAccountChrome>
+      );
+    });
+
+    const aside = container.querySelector(
+      "aside.staffAppSidebar"
+    ) as HTMLElement;
+    expect(aside.getAttribute("data-collapsed")).toBe("true");
+    const clinics = aside.querySelector(
+      'a[href="/operator/clinics"]'
+    ) as HTMLAnchorElement;
+    const templates = aside.querySelector(
+      'a[href="/operator/templates"]'
+    ) as HTMLAnchorElement;
+    const seo = aside.querySelector(
+      'a[href="/operator/seo"]'
+    ) as HTMLAnchorElement;
+    expect(templates.getAttribute("aria-current")).toBe("page");
+    expect(clinics.querySelector(".staffNavLabel")?.textContent).toBe(
+      "Clinics"
+    );
+    expect(templates.querySelector(".staffNavLabel")?.textContent).toBe(
+      "Templates"
+    );
+    expect(seo.querySelector(".staffNavLabel")?.textContent).toBe(
+      "SEO & Discovery"
+    );
+
+    clinics.getBoundingClientRect = () =>
+      ({
+        top: 120,
+        right: 76,
+        bottom: 164,
+        left: 12,
+        width: 64,
+        height: 44,
+        x: 12,
+        y: 120,
+        toJSON() {
+          return {};
+        },
+      }) as DOMRect;
+
+    await act(async () => {
+      clinics.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    });
+    const hovered = document.body.querySelector(
+      ".staffSidebarTooltip"
+    ) as HTMLElement;
+    expect(hovered).not.toBeNull();
+    expect(hovered.textContent).toBe("Clinics");
+    expect(hovered.getAttribute("role")).toBe("tooltip");
+    expect(aside.contains(hovered)).toBe(false);
+    expect(hovered.parentElement).toBe(document.body);
+    expect(hovered.style.left).toBe("84px");
+    expect(hovered.style.top).toBe("142px");
+
+    await act(async () => {
+      clinics.dispatchEvent(
+        new MouseEvent("mouseout", {
+          bubbles: true,
+          relatedTarget: document.body,
+        })
+      );
+    });
+    expect(document.body.querySelector(".staffSidebarTooltip")).toBeNull();
+
+    await act(async () => {
+      seo.focus();
+    });
+    expect(
+      document.body.querySelector(".staffSidebarTooltip")?.textContent
+    ).toBe("SEO & Discovery");
+    expect(seo.getAttribute("aria-current")).toBeNull();
+
+    await act(async () => {
+      seo.blur();
+    });
+    expect(document.body.querySelector(".staffSidebarTooltip")).toBeNull();
+
+    const toggle = aside.querySelector(
+      ".staffSidebarToggle"
+    ) as HTMLButtonElement;
+    await act(async () => {
+      toggle.click();
+    });
+    expect(aside.getAttribute("data-collapsed")).toBe("false");
+    expect(templates.getAttribute("aria-current")).toBe("page");
+    await act(async () => {
+      templates.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      templates.focus();
+    });
+    expect(document.body.querySelector(".staffSidebarTooltip")).toBeNull();
+    expect(templates.querySelector(".staffNavLabel")?.textContent).toBe(
+      "Templates"
+    );
+
+    const css = readFileSync("app/(staff)/staff.css", "utf8");
+    expect(css).toContain(".staffSidebarTooltip");
+    expect(css).toContain("position: fixed");
+    expect(css).toContain("background: var(--staff-ink)");
+    expect(css).toContain("color: var(--staff-panel)");
+    expect(css).toContain("overflow-x: clip");
+    expect(css).toContain("width: 4.75rem");
+    expect(css).not.toContain("[data-tooltip]:hover::after");
+  });
+
   it("does not add a navigation spinner to sidebar primitives", () => {
     const files = [
       "app/(staff)/components/portal-chrome.tsx",
