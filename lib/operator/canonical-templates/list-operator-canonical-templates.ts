@@ -72,6 +72,18 @@ export async function listOperatorCanonicalTemplates(): Promise<
   });
 }
 
+/** Draft editor while a production draft is open; otherwise the detail page. */
+export function operatorTemplateHref(template: {
+  id: string;
+  isSample: boolean;
+  draft: { version: number } | null;
+}): string {
+  if (!template.isSample && template.draft) {
+    return `/operator/templates/${template.id}/draft`;
+  }
+  return `/operator/templates/${template.id}`;
+}
+
 export function filterOperatorTemplates(
   templates: readonly OperatorTemplateListItem[],
   filters: OperatorTemplateListFilters

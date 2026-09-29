@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { filterOperatorTemplates } from "@/lib/operator/canonical-templates/list-operator-canonical-templates";
+import {
+  filterOperatorTemplates,
+  operatorTemplateHref,
+} from "@/lib/operator/canonical-templates/list-operator-canonical-templates";
 import type { OperatorTemplateListItem } from "@/lib/operator/canonical-templates/list-operator-canonical-templates";
 
 const pages = [
@@ -135,10 +138,64 @@ describe("operator template manager UI contract", () => {
     expect(detail).not.toContain("Record review");
     expect(detail).not.toContain("Not reviewed");
     expect(detail).not.toContain("Review recorded");
+    expect(list).toContain("operatorTemplateHref");
     expect(list.replace(/\s+/g, " ")).toContain(
       "Save keeps a draft. Publish releases it."
     );
+    const createPage = readFileSync(
+      "app/(staff)/(operator)/operator/templates/new/page.tsx",
+      "utf8"
+    );
+    const lifecycle = readFileSync(
+      "app/(staff)/(operator)/operator/templates/template-lifecycle-actions.tsx",
+      "utf8"
+    );
+    const notices = readFileSync(
+      "lib/operator/canonical-templates/notices.ts",
+      "utf8"
+    );
+    for (const source of [list, detail, createPage, lifecycle, notices]) {
+      expect(source).not.toContain("Not reviewed");
+      expect(source).not.toContain("Review evidence");
+      expect(source).not.toContain("review come later");
+    }
+    expect(notices).toContain(
+      "The template and its unpublished draft were permanently removed."
+    );
     expect(nav).toContain('href: "/operator/templates", label: "Templates"');
+  });
+
+  it("opens a production draft directly and keeps sample rows on the detail page", () => {
+    expect(
+      operatorTemplateHref(
+        item({
+          id: "drafting",
+          title: "Open draft",
+          draft: { version: 1 },
+        })
+      )
+    ).toBe("/operator/templates/drafting/draft");
+    expect(
+      operatorTemplateHref(
+        item({
+          id: "published",
+          title: "Published only",
+          latestPublishedVersion: 2,
+        })
+      )
+    ).toBe("/operator/templates/published");
+    expect(
+      operatorTemplateHref(
+        item({
+          id: "sample",
+          title: "Tooth Extraction",
+          slug: "extraction",
+          isSample: true,
+          latestPublishedVersion: 1,
+          draft: { version: 2 },
+        })
+      )
+    ).toBe("/operator/templates/sample");
   });
 
   it("filters production and sample rows without collapsing their states", () => {

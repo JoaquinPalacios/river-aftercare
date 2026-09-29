@@ -571,6 +571,159 @@ describe("ordered guide sections editor", () => {
       summary: "Your home plan",
     });
   });
+
+  it("hides expand controls until a block exists", () => {
+    function Harness() {
+      const [sections, setSections] = useState<EditorSection[]>([]);
+      return (
+        <OrderedGuideSectionsEditor
+          sections={sections}
+          disabled={false}
+          onChange={setSections}
+        />
+      );
+    }
+    act(() => {
+      root.render(<Harness />);
+    });
+    expect(container.textContent).not.toContain("Expand all");
+    expect(container.textContent).not.toContain("Collapse all");
+    const add = [...container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Add section")
+    ) as HTMLButtonElement;
+    act(() => {
+      add.click();
+    });
+    expect(container.textContent).toContain("Expand all");
+    expect(container.textContent).toContain("Collapse all");
+  });
+
+  it("removes one block or instruction without clearing the rest", () => {
+    const seen: EditorSection[][] = [];
+    function Harness() {
+      const [sections, setSections] = useState<EditorSection[]>([
+        { ...emptySection("INTRODUCTION"), key: "intro", title: "Welcome" },
+        {
+          ...emptySection("RECOVERY_TIMELINE"),
+          key: "stage",
+          title: "First 24 hours",
+          periodLabel: "First 24 hours",
+          startDay: "0",
+          endDay: "1",
+        },
+        {
+          ...emptySection("HOME_CARE_PLAN"),
+          key: "plan",
+          title: "Your home plan",
+          homeCareInstructions: [
+            {
+              key: "one",
+              title: "Ice",
+              body: "Short periods",
+              frequencyCount: "",
+              frequencyPeriod: "",
+              timingLabel: "",
+              durationValue: "",
+              durationUnit: "",
+            },
+            {
+              key: "two",
+              title: "Walk",
+              body: "Easy pace",
+              frequencyCount: "",
+              frequencyPeriod: "",
+              timingLabel: "",
+              durationValue: "",
+              durationUnit: "",
+            },
+          ],
+        },
+      ]);
+      return (
+        <OrderedGuideSectionsEditor
+          sections={sections}
+          disabled={false}
+          onChange={(next) => {
+            seen.push(next);
+            setSections(next);
+          }}
+        />
+      );
+    }
+    act(() => {
+      root.render(<Harness />);
+    });
+
+    const plan = container.querySelector(
+      '[data-section-key="plan"]'
+    ) as HTMLElement;
+    expect(plan.textContent).toContain(
+      "The action for this step, not the whole plan."
+    );
+    expect(plan.textContent).toContain(
+      "Optional schedule — leave blank when the clinic should set this when adapting the template."
+    );
+    expect(plan.textContent).toContain("Details");
+    const removeFirst = plan.querySelector(
+      '[data-instruction-key="one"] button'
+    );
+    const removeButtons = [...plan.querySelectorAll("button")].filter(
+      (button) => button.textContent === "Remove instruction"
+    ) as HTMLButtonElement[];
+    expect(removeButtons).toHaveLength(2);
+    expect(removeButtons.every((button) => !button.disabled)).toBe(true);
+    act(() => {
+      removeButtons[0]?.click();
+    });
+    expect(
+      seen
+        .at(-1)
+        ?.find((section) => section.key === "plan")
+        ?.homeCareInstructions.map((item) => item.key)
+    ).toEqual(["two"]);
+    expect(removeFirst).toBeTruthy();
+
+    const remainingRemove = [...container.querySelectorAll("button")].filter(
+      (button) => button.textContent === "Remove instruction"
+    )[0] as HTMLButtonElement;
+    expect(remainingRemove.disabled).toBe(true);
+    expect(container.textContent).toContain(
+      "A plan needs at least one instruction."
+    );
+
+    const moveDown = container.querySelector(
+      '[data-section-key="intro"] button[aria-label="Move Introduction down"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      moveDown.click();
+    });
+    expect(seen.at(-1)?.map((section) => section.key)).toEqual([
+      "stage",
+      "intro",
+      "plan",
+    ]);
+
+    const removeStage = container.querySelector(
+      'button[aria-label="Remove Recovery timeline"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      removeStage.click();
+    });
+    expect(seen.at(-1)?.map((section) => section.kind)).toEqual([
+      "INTRODUCTION",
+      "HOME_CARE_PLAN",
+    ]);
+
+    const removePlan = container.querySelector(
+      'button[aria-label="Remove Home care plan"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      removePlan.click();
+    });
+    expect(seen.at(-1)?.map((section) => section.kind)).toEqual([
+      "INTRODUCTION",
+    ]);
+  });
 });
 
 describe("guide section kind icons", () => {

@@ -12,10 +12,12 @@ import { AutosizeTextarea } from "@/app/(staff)/components/autosize-textarea";
 function Field({
   label,
   htmlFor,
+  hint,
   children,
 }: {
   label: string;
   htmlFor: string;
+  hint?: string;
   children: ReactNode;
 }) {
   return (
@@ -23,6 +25,7 @@ function Field({
       <label className="text-sm font-medium" htmlFor={htmlFor}>
         {label}
       </label>
+      {hint ? <p className="text-sm text-staff-muted">{hint}</p> : null}
       {children}
     </div>
   );
@@ -45,6 +48,9 @@ export function HomeCareInstructionFields({
   onMove: (direction: -1 | 1) => void;
   onRemove: () => void;
 }) {
+  const onlyInstruction = count <= 1;
+  const removeHintId = `${item.key}-remove-hint`;
+
   return (
     <fieldset
       className="grid gap-3 rounded-md border border-staff-line p-3"
@@ -53,7 +59,11 @@ export function HomeCareInstructionFields({
       <legend className="px-1 text-sm font-medium">
         Instruction {index + 1}
       </legend>
-      <Field label="Instruction" htmlFor={`${item.key}-title`}>
+      <Field
+        label="Instruction"
+        htmlFor={`${item.key}-title`}
+        hint="The action for this step, not the whole plan."
+      >
         <input
           id={`${item.key}-title`}
           value={item.title}
@@ -73,6 +83,10 @@ export function HomeCareInstructionFields({
         />
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
+        <p className="text-sm text-staff-muted sm:col-span-2">
+          Optional schedule — leave blank when the clinic should set this when
+          adapting the template.
+        </p>
         <Field label="Times" htmlFor={`${item.key}-count`}>
           <input
             id={`${item.key}-count`}
@@ -177,10 +191,18 @@ export function HomeCareInstructionFields({
             type="button"
             className="staffBtn staffBtnSecondary"
             onClick={onRemove}
+            disabled={onlyInstruction}
+            aria-describedby={onlyInstruction ? removeHintId : undefined}
           >
             Remove instruction
           </button>
         </div>
+      )}
+      {disabled || !onlyInstruction ? null : (
+        <p id={removeHintId} className="text-sm text-staff-muted">
+          A plan needs at least one instruction. Clear these fields to replace
+          it, or remove the whole plan.
+        </p>
       )}
     </fieldset>
   );

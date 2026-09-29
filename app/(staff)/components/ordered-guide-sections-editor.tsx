@@ -164,24 +164,26 @@ export function OrderedGuideSectionsEditor({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="staffBtn staffBtnQuiet"
-          onClick={() =>
-            setExpanded(new Set(sections.map((section) => section.key)))
-          }
-        >
-          Expand all
-        </button>
-        <button
-          type="button"
-          className="staffBtn staffBtnQuiet"
-          onClick={() => setExpanded(new Set())}
-        >
-          Collapse all
-        </button>
-      </div>
+      {sections.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="staffBtn staffBtnQuiet"
+            onClick={() =>
+              setExpanded(new Set(sections.map((section) => section.key)))
+            }
+          >
+            Expand all
+          </button>
+          <button
+            type="button"
+            className="staffBtn staffBtnQuiet"
+            onClick={() => setExpanded(new Set())}
+          >
+            Collapse all
+          </button>
+        </div>
+      ) : null}
       {sections.map((section, index) => {
         const label = guideSectionKindLabel(section.kind);
         const family = guideBlockFamily(section.kind);

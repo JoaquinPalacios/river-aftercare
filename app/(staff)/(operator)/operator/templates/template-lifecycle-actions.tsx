@@ -54,6 +54,8 @@ export function TemplateLifecycleActions({
     abandonState.error ??
     deactivateState.error ??
     reactivateState.error;
+  const deleteTemplate = neverPublished && Boolean(draftId);
+  const draftActionLabel = deleteTemplate ? "Delete template" : "Abandon draft";
 
   function closeMenu(event: MouseEvent<HTMLButtonElement>) {
     const popover = event.currentTarget.closest("[popover]");
@@ -87,7 +89,7 @@ export function TemplateLifecycleActions({
             setAbandonOpen(true);
           }}
         >
-          Abandon draft
+          {draftActionLabel}
         </button>
       ) : null}
       {isActive ? (
@@ -139,7 +141,7 @@ export function TemplateLifecycleActions({
               className="staffBtn staffBtnSecondary"
               onClick={() => setAbandonOpen(true)}
             >
-              Abandon draft
+              {draftActionLabel}
             </button>
           ) : null}
           {isActive ? (
@@ -190,7 +192,7 @@ export function TemplateLifecycleActions({
       <ConfirmDialog
         open={createOpen}
         title="Create a new revision?"
-        description="This opens one draft from the latest published revision. Review evidence is not copied. The published revision stays unchanged."
+        description="This opens one draft from the latest published revision. The published revision stays unchanged."
         cancelLabel="Cancel"
         confirmLabel="Create new revision"
         confirmTone="primary"
@@ -206,14 +208,14 @@ export function TemplateLifecycleActions({
       />
       <ConfirmDialog
         open={abandonOpen}
-        title="Abandon this draft?"
+        title={deleteTemplate ? "Delete this template?" : "Abandon this draft?"}
         description={
-          neverPublished
-            ? "This template has never been published. Abandoning the draft also removes the template. Published revisions are never deleted."
+          deleteTemplate
+            ? "This permanently removes the template and its unpublished draft."
             : "Only this draft is removed. Published revisions stay available to clinics that already use them."
         }
-        cancelLabel="Keep draft"
-        confirmLabel="Abandon draft"
+        cancelLabel={deleteTemplate ? "Cancel" : "Keep draft"}
+        confirmLabel={draftActionLabel}
         confirmTone="danger"
         cancelTone="secondary"
         actionLayout="balanced"

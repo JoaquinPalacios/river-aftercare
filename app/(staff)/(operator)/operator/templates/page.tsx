@@ -16,6 +16,7 @@ import {
 import {
   filterOperatorTemplates,
   listOperatorCanonicalTemplates,
+  operatorTemplateHref,
 } from "@/lib/operator/canonical-templates/list-operator-canonical-templates";
 import { operatorTemplateNotice } from "@/lib/operator/canonical-templates/notices";
 
@@ -158,7 +159,7 @@ export default async function OperatorTemplatesPage({
                 >
                   <td className="px-4 py-3">
                     <Link
-                      href={`/operator/templates/${template.id}`}
+                      href={operatorTemplateHref(template)}
                       className="staffOperatorRowLink"
                     >
                       {template.title}

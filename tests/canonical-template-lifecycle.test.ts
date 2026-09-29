@@ -658,6 +658,11 @@ describeDb("canonical template lifecycle", () => {
         where: { id: created.revisionId },
       })
     ).not.toBeNull();
+    expect(
+      await getPrisma().guideTemplate.findUnique({
+        where: { id: created.templateId },
+      })
+    ).not.toBeNull();
   });
 
   it("deletes an unpublished template with its only draft, and only the later draft after publication", async () => {
@@ -676,6 +681,11 @@ describeDb("canonical template lifecycle", () => {
     expect(
       await getPrisma().guideTemplate.findUnique({
         where: { id: fresh.templateId },
+      })
+    ).toBeNull();
+    expect(
+      await getPrisma().guideTemplateRevision.findUnique({
+        where: { id: fresh.revisionId },
       })
     ).toBeNull();
 
