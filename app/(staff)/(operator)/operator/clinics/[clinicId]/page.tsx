@@ -219,6 +219,7 @@ export default async function OperatorClinicDetailPage({
         clinicId={clinic.id}
         plan={billing.plan}
         interval={billing.interval}
+        offeredAdditionalSiteQuantity={billing.offeredAdditionalSiteQuantity}
         canRevise={billing.canRevise}
         blockedReason={billing.reviseBlockedReason}
         planLabel={billing.planLabel}
@@ -244,7 +245,7 @@ export default async function OperatorClinicDetailPage({
         guidePreparation={billing.guidePreparation}
       />
 
-      {billing.plan &&
+      {(billing.plan === "ESSENTIAL" || billing.plan === "PRACTICE") &&
       teamAllowance.baseLimit !== null &&
       teamAllowance.extraAllowance !== null &&
       guideAllowance.customGuides.baseLimit !== null &&

@@ -25,7 +25,7 @@ Operator-only preparation and execution for moving one ClinicSite off a Group Ac
 
 ## Approved later, not implemented
 
-`SITE_TO_NEW_GROUP` can be stored and is not enabled. The UI does not offer it. It would split or move a Clinic Site directly into a new Group Account. Group Checkout and paid Additional Site quantity changes are not part of any current structural operation.
+`SITE_TO_NEW_GROUP` can be stored and is not enabled. The UI does not offer it. It would split or move a Clinic Site directly into a new Group Account. Operator-prepared Group Checkout is the commercial path that later destination can use. This structural operation does not create that destination, start Checkout, or change a paid Additional Site quantity.
 
 Today's Group operations are the Clinic Site split onto a new Essential or Practice Account, and moving one whole Clinic Site into a different existing Group Account. Essential has nothing to split. Clinic ADMIN and STAFF cannot prepare or execute a structural move.
 

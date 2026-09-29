@@ -137,8 +137,8 @@ export function reportContactEmailFailure(
 }
 
 /**
- * Prepared for a later Group subscription projector.
- * Not called from webhook processing in this foundation.
+ * Malformed Group subscription items. The webhook records the receipt as
+ * failed and leaves the last projected entitlement unchanged.
  */
 export function reportGroupSubscriptionShapeFailure(): void {
   reportOperationalFailure(

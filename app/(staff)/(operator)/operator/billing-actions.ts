@@ -9,6 +9,7 @@ import {
   planChangeMessage,
   submitOperatorPlanUpgrade,
 } from "@/lib/billing/plan-change";
+import { parseOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import { prepareClinicCommercialOffer } from "@/lib/billing/prepare-offer";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 
@@ -41,10 +42,14 @@ export async function prepareClinicBillingAction(
   if (!clinicId) {
     notFound();
   }
-  if (commercialPlan !== "ESSENTIAL" && commercialPlan !== "PRACTICE") {
+  if (
+    commercialPlan !== "ESSENTIAL" &&
+    commercialPlan !== "PRACTICE" &&
+    commercialPlan !== "GROUP"
+  ) {
     return {
-      error: "Choose Essential or Practice.",
-      fieldErrors: { commercialPlan: "Choose Essential or Practice." },
+      error: "Choose Essential, Practice, or Group.",
+      fieldErrors: { commercialPlan: "Choose Essential, Practice, or Group." },
     };
   }
   if (billingInterval !== "MONTHLY" && billingInterval !== "YEARLY") {
@@ -54,10 +59,27 @@ export async function prepareClinicBillingAction(
     };
   }
 
+  const offeredAdditionalSiteQuantity =
+    commercialPlan === "GROUP"
+      ? parseOfferedAdditionalSiteQuantity(
+          formData.get("offeredAdditionalSiteQuantity")
+        )
+      : null;
+  if (commercialPlan === "GROUP" && offeredAdditionalSiteQuantity === null) {
+    return {
+      error: "Enter a whole number of additional sites, zero or more.",
+      fieldErrors: {
+        offeredAdditionalSiteQuantity:
+          "Enter a whole number of additional sites, zero or more.",
+      },
+    };
+  }
+
   const prepared = await prepareClinicCommercialOffer({
     clinicId,
     commercialPlan,
     billingInterval,
+    ...(commercialPlan === "GROUP" ? { offeredAdditionalSiteQuantity } : {}),
   });
   if (!prepared.ok) {
     return { error: prepared.message };

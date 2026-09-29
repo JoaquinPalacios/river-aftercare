@@ -7,10 +7,12 @@ import {
   type CommercialPlan,
 } from "@prisma/client";
 
+import { isOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import {
   billingIntervalLabel,
   commercialOfferSummary,
   commercialPlanLabel,
+  groupCommercialOfferSummary,
   type SelfServePlanCode,
 } from "@/lib/billing/offer-display";
 
@@ -202,8 +204,18 @@ export function presentBillingReturn(input: {
 
 export function offerSummaryForEntitlement(
   plan: CommercialPlan | null,
-  interval: BillingInterval | null
+  interval: BillingInterval | null,
+  offeredAdditionalSiteQuantity: number | null = null
 ): ReturnType<typeof commercialOfferSummary> | null {
+  if (plan === "GROUP") {
+    if (
+      !interval ||
+      !isOfferedAdditionalSiteQuantity(offeredAdditionalSiteQuantity)
+    ) {
+      return null;
+    }
+    return groupCommercialOfferSummary(interval, offeredAdditionalSiteQuantity);
+  }
   if ((plan !== "ESSENTIAL" && plan !== "PRACTICE") || !interval) {
     return null;
   }

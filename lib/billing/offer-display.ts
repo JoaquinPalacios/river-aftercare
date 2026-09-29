@@ -2,6 +2,7 @@ import "server-only";
 
 import type { BillingInterval, CommercialPlan } from "@prisma/client";
 
+import { groupOfferQuote } from "@/lib/clinics/group-commercial";
 import {
   formatAudInclGst,
   LAUNCH_PLANS,
@@ -15,6 +16,8 @@ export type CommercialOfferSummary = {
   priceLabel: string;
   annualNote: string | null;
   intervalLabel: string;
+  detailLines?: readonly string[];
+  capacityNote?: string | null;
 };
 
 export function commercialOfferSummary(
@@ -42,6 +45,24 @@ export function commercialOfferSummary(
     priceLabel: `${formatAudInclGst(prices.monthlyAudInclGst)} / month`,
     annualNote: null,
     intervalLabel: "Monthly",
+  };
+}
+
+export function groupCommercialOfferSummary(
+  interval: BillingInterval,
+  additionalSiteQuantity: number
+): CommercialOfferSummary {
+  const quote = groupOfferQuote({
+    interval,
+    additionalSiteQuantity,
+  });
+  return {
+    planName: quote.planName,
+    priceLabel: quote.priceLabel,
+    annualNote: quote.annualNote,
+    intervalLabel: quote.intervalLabel,
+    detailLines: quote.detailLines,
+    capacityNote: quote.capacityNote,
   };
 }
 

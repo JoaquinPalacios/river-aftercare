@@ -43,7 +43,8 @@ import {
 
 export type OperatorBillingPanel = {
   prepared: boolean;
-  plan: SelfServePlanCode | null;
+  plan: SelfServePlanCode | "GROUP" | null;
+  offeredAdditionalSiteQuantity: number | null;
   interval: "MONTHLY" | "YEARLY" | null;
   planLabel: string;
   intervalLabel: string;
@@ -164,7 +165,8 @@ export async function loadOperatorBillingPanel(
     entitlement?.paidThrough ?? entitlement?.currentPeriodEnd ?? null;
   const plan =
     entitlement?.commercialPlan === "ESSENTIAL" ||
-    entitlement?.commercialPlan === "PRACTICE"
+    entitlement?.commercialPlan === "PRACTICE" ||
+    entitlement?.commercialPlan === "GROUP"
       ? entitlement.commercialPlan
       : null;
   const interval =
@@ -176,6 +178,8 @@ export async function loadOperatorBillingPanel(
   return {
     prepared: Boolean(entitlement),
     plan,
+    offeredAdditionalSiteQuantity:
+      entitlement?.offeredAdditionalSiteQuantity ?? null,
     interval,
     planLabel: commercialPlanLabel(entitlement?.commercialPlan ?? null),
     intervalLabel: billingIntervalLabel(entitlement?.billingInterval ?? null),
@@ -337,7 +341,8 @@ export async function loadClinicBillingView(
     presentation,
     summary: offerSummaryForEntitlement(
       entitlement?.commercialPlan ?? null,
-      entitlement?.billingInterval ?? null
+      entitlement?.billingInterval ?? null,
+      entitlement?.offeredAdditionalSiteQuantity ?? null
     ),
     billingLabel: billingStateLabel(entitlement?.billingStatus ?? null),
     planLabel: commercialPlanLabel(entitlement?.commercialPlan ?? null),

@@ -8,12 +8,16 @@ import {
 } from "@/lib/billing/group-billing-codes";
 import {
   classifySubscriptionShape,
+  type GroupShapeRejection,
   type PracticeShapeRejection,
   type SubscriptionItemShape,
 } from "@/lib/billing/group-subscription-shape";
 import {
+  classifyConfiguredStripePrice,
   lookupStripePriceId,
+  UnknownStripePriceError,
   type BillingIntervalCode,
+  type ClassifiedStripePrice,
 } from "@/lib/billing/price-map";
 
 export type PracticeCapacityMode =
@@ -167,11 +171,12 @@ export type WebhookCatalogResolution =
   | {
       kind: "project";
       mappedPrice: {
-        plan: "ESSENTIAL" | "PRACTICE";
+        plan: "ESSENTIAL" | "PRACTICE" | "GROUP";
         interval: BillingIntervalCode;
       } | null;
       stripePriceId: string | null;
       practiceAdditionalLocationQuantity: number | null;
+      groupAdditionalSiteQuantity?: number | null;
     }
   | {
       kind: "unknown_price";
@@ -182,7 +187,8 @@ export type WebhookCatalogResolution =
       reason: PracticeShapeRejection;
     }
   | {
-      kind: "group_unsupported";
+      kind: "group_shape";
+      reason: GroupShapeRejection;
     };
 
 /**
@@ -208,15 +214,37 @@ export function resolveWebhookSubscriptionCatalog(input: {
       ? null
       : classifySubscriptionShape(input.subscriptionItems, input.env);
 
+  if (input.subscriptionItems === null) {
+    const invoicePrice = classifyInvoicePrice(input.snapshotPriceId, input.env);
+    if (isGroupCataloguePrice(invoicePrice)) {
+      return {
+        kind: "project",
+        mappedPrice: { plan: "GROUP", interval: invoicePrice.interval },
+        stripePriceId:
+          invoicePrice.role === "BASE_PLAN"
+            ? invoicePrice.priceId
+            : input.snapshotPriceId,
+        practiceAdditionalLocationQuantity: null,
+        groupAdditionalSiteQuantity: null,
+      };
+    }
+  }
+
   if (shape?.ok && shape.kind === "group") {
-    return { kind: "group_unsupported" };
+    return {
+      kind: "project",
+      mappedPrice: { plan: "GROUP", interval: shape.interval },
+      stripePriceId: shape.basePriceId,
+      practiceAdditionalLocationQuantity: null,
+      groupAdditionalSiteQuantity: shape.additionalSiteQuantity,
+    };
   }
   if (
     shape &&
     !shape.ok &&
     shape.code === GROUP_SUBSCRIPTION_SHAPE_FAILURE_CODE
   ) {
-    return { kind: "group_unsupported" };
+    return { kind: "group_shape", reason: shape.reason };
   }
   if (
     shape &&
@@ -300,6 +328,36 @@ export function resolveWebhookSubscriptionCatalog(input: {
     stripePriceId: input.snapshotPriceId,
     practiceAdditionalLocationQuantity: null,
   };
+}
+
+function classifyInvoicePrice(
+  stripePriceId: string | null,
+  env: Record<string, string | undefined>
+): ClassifiedStripePrice | null {
+  const trimmed = stripePriceId?.trim() ?? "";
+  if (!trimmed) {
+    return null;
+  }
+  try {
+    return classifyConfiguredStripePrice(trimmed, env);
+  } catch (error) {
+    if (error instanceof UnknownStripePriceError) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function isGroupCataloguePrice(
+  price: ClassifiedStripePrice | null
+): price is ClassifiedStripePrice {
+  if (!price) {
+    return false;
+  }
+  return (
+    (price.role === "BASE_PLAN" && price.plan === "GROUP") ||
+    price.role === "GROUP_SITE_ADDON"
+  );
 }
 
 /**

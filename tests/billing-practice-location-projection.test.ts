@@ -1209,7 +1209,7 @@ describe("Practice additional location webhook projection", () => {
         }),
         env: GROUP_BILLING_TEST_ENV,
       });
-      expect(result.outcome).toBe("unknown_price");
+      expect(result.outcome).toBe("invalid_group_shape");
       expect(db.entitlements.get("clinic_1")).toMatchObject({
         commercialPlan: "PRACTICE",
         purchasedAdditionalLocationQuantity: null,
@@ -1219,19 +1219,6 @@ describe("Practice additional location webhook projection", () => {
         db.entitlements.get("clinic_1")?.purchasedAdditionalSiteQuantity
       ).toBeUndefined();
     }
-
-    const groupOnly = createDb();
-    const result = await projectInvoice({
-      db: groupOnly,
-      id: "evt_group_only",
-      priceId: GROUP_MONTHLY,
-      subscription: subscriptionOf({
-        items: [{ price: GROUP_MONTHLY, quantity: 1 }],
-      }),
-      env: GROUP_BILLING_TEST_ENV,
-    });
-    expect(result.outcome).toBe("unknown_price");
-    expect(groupOnly.entitlements.size).toBe(0);
   });
 
   it("keeps Essential activation on one base item and does not record a location quantity", async () => {

@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  GROUP_SITE_QUANTITY_LEGACY_PRESERVED_LOG_EVENT,
   GROUP_SUBSCRIPTION_SHAPE_LOG_EVENT,
   PRACTICE_LOCATION_QUANTITY_LEGACY_PRESERVED_LOG_EVENT,
   PRACTICE_SUBSCRIPTION_SHAPE_LOG_EVENT,
@@ -106,6 +107,12 @@ export type StripeBillingLogEvent =
     }
   | {
       event: typeof PRACTICE_LOCATION_QUANTITY_LEGACY_PRESERVED_LOG_EVENT;
+      stripeEventId: string;
+      eventType: string;
+      clinicId: string;
+    }
+  | {
+      event: typeof GROUP_SITE_QUANTITY_LEGACY_PRESERVED_LOG_EVENT;
       stripeEventId: string;
       eventType: string;
       clinicId: string;

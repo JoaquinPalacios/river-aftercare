@@ -8,6 +8,7 @@ import {
   type PrismaClient,
 } from "@prisma/client";
 
+import { isOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import { logStripeBilling } from "@/lib/billing/log";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import type {
@@ -26,29 +27,42 @@ const ACTIVE_BILLING = new Set<BillingStatus>([
   BillingStatus.CANCEL_AT_PERIOD_END,
 ]);
 
-export type OfferRevision = { ok: true } | { ok: false; message: string };
+export type CommercialOfferBlockCode =
+  "already_active" | "subscription_exists" | "billing_underway";
 
+export type OfferRevision =
+  { ok: true } | { ok: false; message: string; code: CommercialOfferBlockCode };
+
+/**
+ * Initial onboarding only. This is the same current-subscription boundary as
+ * hosted Checkout: an ACTIVE, PAST_DUE, or cancel-at-period-end entitlement
+ * is already commercial, and any stored River subscription id blocks a second
+ * one. Restricted, unpaid, pending-payment, and ended rows stay closed too.
+ * A genuinely new resubscription policy is not decided here.
+ */
 export function assessCommercialOfferRevision(input: {
   entitlementStatus: EntitlementStatus | null;
   billingStatus: BillingStatus | null;
   stripeSubscriptionId: string | null;
 }): OfferRevision {
-  if (input.stripeSubscriptionId) {
-    return {
-      ok: false,
-      message:
-        "This clinic already has a Stripe subscription. Plan changes are a later workflow.",
-    };
-  }
-
   if (
     input.entitlementStatus === EntitlementStatus.ACTIVE ||
     (input.billingStatus && ACTIVE_BILLING.has(input.billingStatus))
   ) {
     return {
       ok: false,
+      code: "already_active",
       message:
         "This clinic already has an active subscription. Plan changes are a later workflow.",
+    };
+  }
+
+  if (input.stripeSubscriptionId) {
+    return {
+      ok: false,
+      code: "subscription_exists",
+      message:
+        "This clinic already has a Stripe subscription. Plan changes are a later workflow.",
     };
   }
 
@@ -61,6 +75,7 @@ export function assessCommercialOfferRevision(input: {
   ) {
     return {
       ok: false,
+      code: "billing_underway",
       message:
         "Billing is already underway for this clinic. The prepared offer can't be changed here.",
     };
@@ -76,41 +91,53 @@ type OfferDb = Pick<PrismaClient, "clinicEntitlement" | "clinicBillingProfile">;
  * is a real Prisma transaction host. Narrow test doubles write directly.
  * Stripe Checkout expiry stays outside this transaction.
  */
-async function writePreparedOffer(
+async function writePreparedOffer<T>(
   db: OfferDb,
   clinicId: string,
-  write: (writer: OfferDb) => Promise<unknown>
-): Promise<void> {
+  write: (writer: OfferDb) => Promise<T>
+): Promise<T> {
   const transactional = db as OfferDb & {
     $executeRaw?: unknown;
-    $transaction?: (
-      fn: (tx: OfferDb & { $executeRaw: unknown }) => Promise<void>
-    ) => Promise<void>;
+    $transaction?: <U>(
+      fn: (tx: OfferDb & { $executeRaw: unknown }) => Promise<U>
+    ) => Promise<U>;
   };
   if (
     typeof transactional.$transaction === "function" &&
     typeof transactional.$executeRaw === "function"
   ) {
-    await transactional.$transaction(async (tx) => {
+    return transactional.$transaction(async (tx) => {
       await lockClinicAccountStructure(
         tx as Parameters<typeof lockClinicAccountStructure>[0],
         clinicId
       );
-      await write(tx);
+      return write(tx);
     });
-    return;
   }
-  await write(db);
+  return write(db);
 }
 
 export async function prepareClinicCommercialOffer(
   input: {
     clinicId: string;
-    commercialPlan: SelfServeCommercialPlan;
+    commercialPlan: SelfServeCommercialPlan | "GROUP";
     billingInterval: BillingIntervalCode;
+    offeredAdditionalSiteQuantity?: number | null;
   },
   db: OfferDb = getPrisma()
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<{ ok: true } | { ok: false; message: string; code?: string }> {
+  let offeredAdditionalSiteQuantity: number | null = null;
+  if (input.commercialPlan === "GROUP") {
+    if (!isOfferedAdditionalSiteQuantity(input.offeredAdditionalSiteQuantity)) {
+      return {
+        ok: false,
+        code: "group_offer_invalid",
+        message: "Enter a whole number of additional sites, zero or more.",
+      };
+    }
+    offeredAdditionalSiteQuantity = input.offeredAdditionalSiteQuantity;
+  }
+
   const existing = await db.clinicEntitlement.findUnique({
     where: { clinicId: input.clinicId },
     select: {
@@ -118,6 +145,7 @@ export async function prepareClinicCommercialOffer(
       billingInterval: true,
       billingStatus: true,
       entitlementStatus: true,
+      offeredAdditionalSiteQuantity: true,
     },
   });
   const profile = await db.clinicBillingProfile.findUnique({
@@ -141,7 +169,11 @@ export async function prepareClinicCommercialOffer(
     clinicSite?: { count?: (args: unknown) => Promise<number> };
     clinicLocation?: { count?: (args: unknown) => Promise<number> };
   };
-  if (usageDb.clinicSite?.count && usageDb.clinicLocation?.count) {
+  if (
+    input.commercialPlan !== "GROUP" &&
+    usageDb.clinicSite?.count &&
+    usageDb.clinicLocation?.count
+  ) {
     const { countActiveSiteLocationUsage, readAccountSiteLocationAllowance } =
       await import("@/lib/clinics/site-location-capacity");
     const allowance = effectiveOfferAllowance(
@@ -164,32 +196,62 @@ export async function prepareClinicCommercialOffer(
     }
   }
 
-  const planChanged = Boolean(
+  const offerChanged = Boolean(
     existing &&
     (existing.commercialPlan !== input.commercialPlan ||
-      existing.billingInterval !== input.billingInterval)
+      existing.billingInterval !== input.billingInterval ||
+      existing.offeredAdditionalSiteQuantity !== offeredAdditionalSiteQuantity)
   );
 
-  await writePreparedOffer(db, input.clinicId, (writer) =>
-    writer.clinicEntitlement.upsert({
-      where: { clinicId: input.clinicId },
-      create: {
-        clinicId: input.clinicId,
-        commercialPlan: input.commercialPlan as CommercialPlan,
-        billingInterval: input.billingInterval as BillingInterval,
-        billingStatus: BillingStatus.OFFER_PREPARED,
-        entitlementStatus: EntitlementStatus.PENDING,
-      },
-      update: {
-        commercialPlan: input.commercialPlan as CommercialPlan,
-        billingInterval: input.billingInterval as BillingInterval,
-        billingStatus: BillingStatus.OFFER_PREPARED,
-        entitlementStatus: EntitlementStatus.PENDING,
-      },
-    })
+  const written = await writePreparedOffer(
+    db,
+    input.clinicId,
+    async (writer) => {
+      const currentEntitlement = await writer.clinicEntitlement.findUnique({
+        where: { clinicId: input.clinicId },
+        select: {
+          billingStatus: true,
+          entitlementStatus: true,
+        },
+      });
+      const currentProfile = await writer.clinicBillingProfile.findUnique({
+        where: { clinicId: input.clinicId },
+        select: { stripeSubscriptionId: true },
+      });
+      const currentRevision = assessCommercialOfferRevision({
+        entitlementStatus: currentEntitlement?.entitlementStatus ?? null,
+        billingStatus: currentEntitlement?.billingStatus ?? null,
+        stripeSubscriptionId: currentProfile?.stripeSubscriptionId ?? null,
+      });
+      if (!currentRevision.ok) {
+        return { ok: false as const, revision: currentRevision };
+      }
+      await writer.clinicEntitlement.upsert({
+        where: { clinicId: input.clinicId },
+        create: {
+          clinicId: input.clinicId,
+          commercialPlan: input.commercialPlan as CommercialPlan,
+          billingInterval: input.billingInterval as BillingInterval,
+          billingStatus: BillingStatus.OFFER_PREPARED,
+          entitlementStatus: EntitlementStatus.PENDING,
+          offeredAdditionalSiteQuantity,
+        },
+        update: {
+          commercialPlan: input.commercialPlan as CommercialPlan,
+          billingInterval: input.billingInterval as BillingInterval,
+          billingStatus: BillingStatus.OFFER_PREPARED,
+          entitlementStatus: EntitlementStatus.PENDING,
+          offeredAdditionalSiteQuantity,
+        },
+      });
+      return { ok: true as const };
+    }
   );
+  if (!written.ok) {
+    return written.revision;
+  }
 
-  if (planChanged && profile?.stripeCheckoutSessionId) {
+  if (offerChanged && profile?.stripeCheckoutSessionId) {
     await expireOpenCheckoutSession(
       profile.stripeCheckoutSessionId,
       input.clinicId

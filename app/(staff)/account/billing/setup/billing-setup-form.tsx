@@ -32,6 +32,8 @@ export function BillingSetupForm({
   planName,
   priceLabel,
   annualNote,
+  detailLines,
+  capacityNote,
   contactHref,
   termsHref,
   privacyHref,
@@ -43,6 +45,8 @@ export function BillingSetupForm({
   planName: string;
   priceLabel: string;
   annualNote: string | null;
+  detailLines?: readonly string[];
+  capacityNote?: string | null;
   contactHref: string;
   termsHref: string;
   privacyHref: string;
@@ -103,6 +107,16 @@ export function BillingSetupForm({
         <p className="mt-1 text-base text-staff-ink">{priceLabel}</p>
         {annualNote ? (
           <p className="mt-1 text-sm text-staff-muted">{annualNote}</p>
+        ) : null}
+        {detailLines && detailLines.length > 0 ? (
+          <ul className="mt-3 space-y-1 text-sm">
+            {detailLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : null}
+        {capacityNote ? (
+          <p className="mt-3 text-sm text-staff-muted">{capacityNote}</p>
         ) : null}
         <p className="mt-4 text-sm text-staff-muted">
           Need to change your plan?{" "}

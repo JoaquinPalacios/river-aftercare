@@ -1,11 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import {
   prepareClinicBillingAction,
   type PrepareBillingActionState,
 } from "@/app/(staff)/(operator)/operator/billing-actions";
+import {
+  groupOfferQuote,
+  parseOfferedAdditionalSiteQuantity,
+} from "@/lib/clinics/group-commercial";
 
 const initial: PrepareBillingActionState = {};
 
@@ -13,6 +17,7 @@ export function PrepareBillingForm({
   clinicId,
   plan,
   interval,
+  offeredAdditionalSiteQuantity,
   canRevise,
   blockedReason,
   planLabel,
@@ -26,8 +31,9 @@ export function PrepareBillingForm({
   cancellationDateLabel,
 }: {
   clinicId: string;
-  plan: "ESSENTIAL" | "PRACTICE" | null;
+  plan: "ESSENTIAL" | "PRACTICE" | "GROUP" | null;
   interval: "MONTHLY" | "YEARLY" | null;
+  offeredAdditionalSiteQuantity: number | null;
   canRevise: boolean;
   blockedReason: string | null;
   planLabel: string;
@@ -44,13 +50,31 @@ export function PrepareBillingForm({
     prepareClinicBillingAction,
     initial
   );
+  const [selectedPlan, setSelectedPlan] = useState(plan ?? "ESSENTIAL");
+  const [selectedInterval, setSelectedInterval] = useState(
+    interval ?? "MONTHLY"
+  );
+  const [additionalSites, setAdditionalSites] = useState(
+    offeredAdditionalSiteQuantity === null
+      ? "0"
+      : String(offeredAdditionalSiteQuantity)
+  );
+  const parsedSites = parseOfferedAdditionalSiteQuantity(additionalSites);
+  const groupQuote =
+    selectedPlan === "GROUP" && parsedSites !== null
+      ? groupOfferQuote({
+          interval: selectedInterval,
+          additionalSiteQuantity: parsedSites,
+        })
+      : null;
 
   return (
     <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
       <h2 className="text-base font-semibold">Billing setup</h2>
       <p className="mt-2 text-sm text-staff-muted">
-        Choose the plan agreed after the demo. The clinic administrator
-        completes payment. Group is arranged directly with River Aftercare.
+        Choose the plan agreed after the demo. The clinic administrator accepts
+        the Terms and completes payment. A Group offer does not grant capacity
+        until payment succeeds.
       </p>
 
       <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
@@ -92,7 +116,11 @@ export function PrepareBillingForm({
       </dl>
 
       {canRevise ? (
-        <form action={action} className="mt-5 flex max-w-lg flex-col gap-4">
+        <form
+          key={`${plan ?? "none"}-${interval ?? "none"}-${offeredAdditionalSiteQuantity ?? "none"}`}
+          action={action}
+          className="mt-5 flex max-w-lg flex-col gap-4"
+        >
           <input type="hidden" name="clinicId" value={clinicId} />
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium" htmlFor="commercialPlan">
@@ -101,7 +129,12 @@ export function PrepareBillingForm({
             <select
               id="commercialPlan"
               name="commercialPlan"
-              defaultValue={plan ?? "ESSENTIAL"}
+              value={selectedPlan}
+              onChange={(event) =>
+                setSelectedPlan(
+                  event.target.value as "ESSENTIAL" | "PRACTICE" | "GROUP"
+                )
+              }
               className="staffField staffSelect"
               aria-invalid={
                 state.fieldErrors?.commercialPlan ? "true" : "false"
@@ -109,6 +142,7 @@ export function PrepareBillingForm({
             >
               <option value="ESSENTIAL">Essential</option>
               <option value="PRACTICE">Practice</option>
+              <option value="GROUP">Group</option>
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
@@ -118,7 +152,10 @@ export function PrepareBillingForm({
             <select
               id="billingInterval"
               name="billingInterval"
-              defaultValue={interval ?? "MONTHLY"}
+              value={selectedInterval}
+              onChange={(event) =>
+                setSelectedInterval(event.target.value as "MONTHLY" | "YEARLY")
+              }
               className="staffField staffSelect"
               aria-invalid={
                 state.fieldErrors?.billingInterval ? "true" : "false"
@@ -128,6 +165,46 @@ export function PrepareBillingForm({
               <option value="YEARLY">Annual</option>
             </select>
           </div>
+          {selectedPlan === "GROUP" ? (
+            <div className="flex flex-col gap-1.5">
+              <label
+                className="text-sm font-medium"
+                htmlFor="offeredAdditionalSiteQuantity"
+              >
+                Additional Sites
+              </label>
+              <input
+                id="offeredAdditionalSiteQuantity"
+                name="offeredAdditionalSiteQuantity"
+                inputMode="numeric"
+                value={additionalSites}
+                onChange={(event) => setAdditionalSites(event.target.value)}
+                className="staffField"
+                aria-invalid={
+                  state.fieldErrors?.offeredAdditionalSiteQuantity
+                    ? "true"
+                    : "false"
+                }
+              />
+              <p className="text-sm text-staff-muted">
+                Zero is the base Group offer. This does not change purchased
+                capacity.
+              </p>
+            </div>
+          ) : null}
+          {groupQuote ? (
+            <div className="rounded-lg border border-staff-line bg-staff-canvas p-4 text-sm">
+              <p className="font-medium">
+                {groupQuote.planName} · {groupQuote.intervalLabel}
+              </p>
+              <ul className="mt-2 space-y-1">
+                {groupQuote.detailLines.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+              <p className="mt-2 text-staff-muted">{groupQuote.capacityNote}</p>
+            </div>
+          ) : null}
           {state.error ? (
             <p className="text-sm text-red-600" role="alert">
               {state.error}

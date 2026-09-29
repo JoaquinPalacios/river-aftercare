@@ -11,14 +11,22 @@ import {
 import type Stripe from "stripe";
 
 import { logStripeBilling } from "@/lib/billing/log";
-import { PRACTICE_LOCATION_QUANTITY_LEGACY_PRESERVED_LOG_EVENT } from "@/lib/billing/group-billing-codes";
+import {
+  GROUP_SITE_QUANTITY_LEGACY_PRESERVED_LOG_EVENT,
+  PRACTICE_LOCATION_QUANTITY_LEGACY_PRESERVED_LOG_EVENT,
+} from "@/lib/billing/group-billing-codes";
+import { decideGroupSiteProjection } from "@/lib/billing/group-site-projection";
+import { groupCapacityPersistence } from "@/lib/clinics/group-capacity";
 import { practiceCapacityPersistence } from "@/lib/clinics/practice-capacity";
 import {
   decidePracticeLocationProjection,
   normalizeSubscriptionItemQuantity,
   resolveWebhookSubscriptionCatalog,
 } from "@/lib/billing/practice-location-projection";
-import { reportPracticeSubscriptionShapeFailure } from "@/lib/observability/report-server-exception";
+import {
+  reportGroupSubscriptionShapeFailure,
+  reportPracticeSubscriptionShapeFailure,
+} from "@/lib/observability/report-server-exception";
 import { stripeObjectId } from "@/lib/billing/identity";
 import {
   decideSubscriptionScheduleEvent,
@@ -56,7 +64,8 @@ export type StripeEventProcessOutcome =
   | "ignored"
   | "unmapped_clinic"
   | "unknown_price"
-  | "invalid_practice_shape";
+  | "invalid_practice_shape"
+  | "invalid_group_shape";
 
 export type ProcessStripeEventResult = {
   outcome: StripeEventProcessOutcome;
@@ -267,6 +276,7 @@ async function applyProjection(options: {
   clearScheduleId: boolean;
   retireDowngradeAttempt: boolean;
   practiceAdditionalLocationQuantity?: number;
+  groupAdditionalSiteQuantity?: number;
 }): Promise<void> {
   const { db, clinicId, snapshot, entitlement, stripeEventId } = options;
   const now = new Date();
@@ -298,6 +308,39 @@ async function applyProjection(options: {
           practiceCapacity.purchasedAdditionalLocationQuantity,
         siteAllowance: practiceCapacity.siteAllowance,
         locationAllowance: practiceCapacity.locationAllowance,
+      }
+    : {};
+  const groupCapacity =
+    options.groupAdditionalSiteQuantity !== undefined &&
+    entitlement.commercialPlan === "GROUP" &&
+    entitlement.entitlementStatus === EntitlementStatus.ACTIVE
+      ? groupCapacityPersistence({
+          capacityEntitlementActive: true,
+          purchasedAdditionalSiteQuantity: options.groupAdditionalSiteQuantity,
+          extraSiteAllowance: storedAllowance(
+            storedEntitlement?.extraSiteAllowance,
+            0
+          ),
+          extraLocationAllowance: storedAllowance(
+            storedEntitlement?.extraLocationAllowance,
+            0
+          ),
+          siteAllowance: storedAllowance(storedEntitlement?.siteAllowance, 1),
+          locationAllowance: storedAllowance(
+            storedEntitlement?.locationAllowance,
+            1
+          ),
+        })
+      : null;
+  const groupCapacityWrite = groupCapacity
+    ? {
+        purchasedAdditionalSiteQuantity:
+          groupCapacity.purchasedAdditionalSiteQuantity,
+        extraSiteAllowance: groupCapacity.extraSiteAllowance,
+        extraLocationAllowance: groupCapacity.extraLocationAllowance,
+        siteAllowance: groupCapacity.siteAllowance,
+        locationAllowance: groupCapacity.locationAllowance,
+        offeredAdditionalSiteQuantity: null,
       }
     : {};
 
@@ -344,6 +387,7 @@ async function applyProjection(options: {
       scheduledCommercialPlan: options.scheduledCommercialPlan,
       scheduledPlanEffectiveAt: options.scheduledPlanEffectiveAt,
       ...practiceCapacityWrite,
+      ...groupCapacityWrite,
     },
     update: {
       commercialPlan: entitlement.commercialPlan,
@@ -362,6 +406,7 @@ async function applyProjection(options: {
       scheduledCommercialPlan: options.scheduledCommercialPlan,
       scheduledPlanEffectiveAt: options.scheduledPlanEffectiveAt,
       ...practiceCapacityWrite,
+      ...groupCapacityWrite,
     },
   });
 }
@@ -567,23 +612,23 @@ export async function processVerifiedStripeEvent(
     };
   }
 
-  if (catalog?.kind === "group_unsupported") {
-    const diagnostic =
-      "Group subscription projection is not supported. The last entitlement was left unchanged.";
+  if (catalog?.kind === "group_shape") {
+    const diagnostic = `Group subscription shape is invalid (${catalog.reason}).`;
     await mark(
       StripeEventProcessingStatus.FAILED,
       diagnostic,
       identity.clinicId
     );
     logStripeBilling({
-      event: "stripe_webhook_unknown_price",
+      event: "stripe_webhook_group_subscription_shape_invalid",
       stripeEventId,
       eventType,
       clinicId: identity.clinicId,
-      stripePriceId: snapshot.stripePriceId ?? "",
+      reason: catalog.reason,
     });
+    reportGroupSubscriptionShapeFailure();
     return {
-      outcome: "unknown_price",
+      outcome: "invalid_group_shape",
       clinicId: identity.clinicId,
       stripeEventId,
       eventType,
@@ -668,6 +713,29 @@ export async function processVerifiedStripeEvent(
         })
       : { action: "omit" as const, mode: "outside_practice_quantity" as const };
 
+  const siteProjection =
+    projection.kind === "apply"
+      ? decideGroupSiteProjection({
+          projectedPlan: projection.entitlement.commercialPlan,
+          projectedEntitlementStatus: projection.entitlement.entitlementStatus,
+          classifiedQuantity:
+            catalog?.kind === "project"
+              ? (catalog.groupAdditionalSiteQuantity ?? null)
+              : null,
+          previous: previousRow
+            ? {
+                commercialPlan: previousRow.commercialPlan,
+                entitlementStatus: previousRow.entitlementStatus,
+                purchasedAdditionalSiteQuantity:
+                  typeof previousRow.purchasedAdditionalSiteQuantity ===
+                  "number"
+                    ? previousRow.purchasedAdditionalSiteQuantity
+                    : null,
+              }
+            : null,
+        })
+      : { action: "omit" as const, mode: "outside_group_quantity" as const };
+
   if (locationProjection.action === "require_subscription") {
     const diagnostic =
       "Practice subscription could not be retrieved. The entitlement was left unchanged.";
@@ -684,6 +752,24 @@ export async function processVerifiedStripeEvent(
       reason: "practice_subscription_unavailable",
     });
     throw new Error("Practice subscription could not be retrieved.");
+  }
+
+  if (siteProjection.action === "require_subscription") {
+    const diagnostic =
+      "Group subscription could not be retrieved. The entitlement was left unchanged.";
+    await mark(
+      StripeEventProcessingStatus.FAILED,
+      diagnostic,
+      identity.clinicId
+    );
+    logStripeBilling({
+      event: "stripe_webhook_failed",
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+      reason: "group_subscription_unavailable",
+    });
+    throw new Error("Group subscription could not be retrieved.");
   }
 
   const profile = identity.clinicId
@@ -774,6 +860,9 @@ export async function processVerifiedStripeEvent(
               practiceAdditionalLocationQuantity: locationProjection.quantity,
             }
           : {}),
+        ...(siteProjection.action === "project"
+          ? { groupAdditionalSiteQuantity: siteProjection.quantity }
+          : {}),
       });
       await applyDowngradeGuideTransition({
         db: tx,
@@ -831,6 +920,15 @@ export async function processVerifiedStripeEvent(
   if (identity.clinicId && locationProjection.action === "preserve_legacy") {
     logStripeBilling({
       event: PRACTICE_LOCATION_QUANTITY_LEGACY_PRESERVED_LOG_EVENT,
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+    });
+  }
+
+  if (identity.clinicId && siteProjection.action === "preserve_legacy") {
+    logStripeBilling({
+      event: GROUP_SITE_QUANTITY_LEGACY_PRESERVED_LOG_EVENT,
       stripeEventId,
       eventType,
       clinicId: identity.clinicId,

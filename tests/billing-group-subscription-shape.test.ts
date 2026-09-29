@@ -13,6 +13,8 @@ const ADDON_YEARLY =
   GROUP_BILLING_TEST_ENV.STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID;
 const ESSENTIAL_MONTHLY = BILLING_TEST_ENV.STRIPE_ESSENTIAL_MONTHLY_PRICE_ID;
 const PRACTICE_YEARLY = BILLING_TEST_ENV.STRIPE_PRACTICE_YEARLY_PRICE_ID;
+const PRACTICE_LOCATION_MONTHLY =
+  GROUP_BILLING_TEST_ENV.STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID;
 
 function item(priceId: string, quantity: number) {
   return { priceId, quantity };
@@ -56,6 +58,28 @@ describe("Group subscription shape", () => {
     });
     expect(
       classifySubscriptionShape(
+        [item(GROUP_MONTHLY, 1), item(ADDON_MONTHLY, 3)],
+        GROUP_BILLING_TEST_ENV
+      )
+    ).toMatchObject({ ok: true, additionalSiteQuantity: 3 });
+    expect(
+      classifySubscriptionShape(
+        [item(GROUP_YEARLY, 1), item(ADDON_YEARLY, 1)],
+        GROUP_BILLING_TEST_ENV
+      )
+    ).toMatchObject({
+      ok: true,
+      interval: "YEARLY",
+      additionalSiteQuantity: 1,
+    });
+    expect(
+      classifySubscriptionShape(
+        [item(ADDON_YEARLY, 4), item(GROUP_YEARLY, 1)],
+        GROUP_BILLING_TEST_ENV
+      )
+    ).toMatchObject({ ok: true, additionalSiteQuantity: 4 });
+    expect(
+      classifySubscriptionShape(
         [item(ADDON_MONTHLY, 4), item(GROUP_MONTHLY, 1)],
         GROUP_BILLING_TEST_ENV
       )
@@ -96,6 +120,11 @@ describe("Group subscription shape", () => {
     [
       "Practice mixed in",
       [item(GROUP_YEARLY, 1), item(PRACTICE_YEARLY, 1)],
+      "mixed_plan",
+    ],
+    [
+      "Practice location add-on mixed in",
+      [item(GROUP_MONTHLY, 1), item(PRACTICE_LOCATION_MONTHLY, 1)],
       "mixed_plan",
     ],
     [
@@ -179,10 +208,24 @@ describe("Group subscription shape", () => {
         ...BILLING_TEST_ENV,
         STRIPE_GROUP_MONTHLY_PRICE_ID: GROUP_MONTHLY,
       })
+    ).toMatchObject({
+      ok: true,
+      kind: "group",
+      additionalSiteQuantity: 0,
+      basePriceId: GROUP_MONTHLY,
+    });
+    expect(
+      classifySubscriptionShape(
+        [item(GROUP_MONTHLY, 1), item(ADDON_MONTHLY, 2)],
+        {
+          ...BILLING_TEST_ENV,
+          STRIPE_GROUP_MONTHLY_PRICE_ID: GROUP_MONTHLY,
+        }
+      )
     ).toEqual({
       ok: false,
       code: GROUP_SUBSCRIPTION_SHAPE_FAILURE_CODE,
-      reason: "group_billing_unavailable",
+      reason: "unknown_item",
     });
   });
 });
