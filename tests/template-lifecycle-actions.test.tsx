@@ -54,30 +54,34 @@ describe("abandon draft dialog", () => {
     container.remove();
   });
 
-  function openAbandon() {
+  function openDelete() {
     const open = [...container.querySelectorAll("button")].find(
-      (button) => button.textContent === "Abandon draft"
+      (button) => button.textContent === "Delete template"
     ) as HTMLButtonElement;
     act(() => {
       open.click();
     });
   }
 
-  it("keeps the draft when the secondary action is chosen", () => {
-    openAbandon();
+  it("keeps the unpublished template when the secondary action is chosen", () => {
+    expect(container.textContent).not.toContain("Abandon draft");
+    openDelete();
     const dialog = [...container.querySelectorAll("dialog")].find((item) =>
-      item.textContent?.includes("Abandon this draft?")
+      item.textContent?.includes("Delete this template?")
     ) as HTMLDialogElement;
+    expect(dialog.textContent).toContain(
+      "permanently removes the template and its unpublished draft"
+    );
     const actions = dialog.querySelector(".staffDialogActionsBalanced");
     expect(actions).toBeTruthy();
     const keep = [...dialog.querySelectorAll("button")].find(
-      (button) => button.textContent === "Keep draft"
+      (button) => button.textContent === "Cancel"
     ) as HTMLButtonElement;
-    const abandon = [...dialog.querySelectorAll("button")].find(
-      (button) => button.textContent === "Abandon draft"
+    const remove = [...dialog.querySelectorAll("button")].find(
+      (button) => button.textContent === "Delete template"
     ) as HTMLButtonElement;
     expect(keep.className).toContain("staffBtnSecondary");
-    expect(abandon.className).toContain("staffBtnDanger");
+    expect(remove.className).toContain("staffBtnDanger");
     act(() => {
       keep.click();
     });
@@ -85,19 +89,54 @@ describe("abandon draft dialog", () => {
     expect(dialog.hasAttribute("open")).toBe(false);
   });
 
-  it("submits the existing abandon action", () => {
-    openAbandon();
+  it("submits the existing abandon action for a never-published template", () => {
+    openDelete();
+    const dialog = [...container.querySelectorAll("dialog")].find((item) =>
+      item.textContent?.includes("Delete this template?")
+    ) as HTMLDialogElement;
+    const remove = [...dialog.querySelectorAll("button")].find(
+      (button) => button.textContent === "Delete template"
+    ) as HTMLButtonElement;
+    act(() => {
+      remove.click();
+    });
+    expect(requestSubmit).toHaveBeenCalledTimes(1);
+    expect(requestSubmit.mock.instances[0]).toBe(
+      container.querySelector("#abandon-draft-form")
+    );
+  });
+
+  it("abandons only the later draft of a published template", () => {
+    act(() => {
+      root.render(
+        <TemplateLifecycleActions
+          templateId="template"
+          draftId="draft-v2"
+          neverPublished={false}
+          isActive
+          canCreateRevision={false}
+          presentation="menu"
+        />
+      );
+    });
+    expect(container.textContent).not.toContain("Delete template");
+    const open = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Abandon draft"
+    ) as HTMLButtonElement;
+    act(() => {
+      open.click();
+    });
     const dialog = [...container.querySelectorAll("dialog")].find((item) =>
       item.textContent?.includes("Abandon this draft?")
     ) as HTMLDialogElement;
+    expect(dialog.textContent).toContain("Only this draft is removed");
     const abandon = [...dialog.querySelectorAll("button")].find(
       (button) => button.textContent === "Abandon draft"
     ) as HTMLButtonElement;
     act(() => {
       abandon.click();
     });
-    expect(requestSubmit).toHaveBeenCalledTimes(1);
-    expect(requestSubmit.mock.instances[0]).toBe(
+    expect(requestSubmit.mock.instances.at(-1)).toBe(
       container.querySelector("#abandon-draft-form")
     );
   });

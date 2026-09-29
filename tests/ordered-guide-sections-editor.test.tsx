@@ -1,5 +1,7 @@
 /** @vitest-environment jsdom */
 
+import { readFileSync } from "node:fs";
+
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -80,15 +82,14 @@ describe("ordered guide sections editor", () => {
       expect(article.getAttribute("data-block-accent")).toBe(
         guideBlockAccent(kind)
       );
-      expect(
-        article.querySelector(".canonicalBlockSummary")?.textContent
-      ).toContain(
-        kind === "RECOVERY_TIMELINE"
-          ? "Timeline"
-          : kind === "HOME_CARE_PLAN"
-            ? "Home care"
-            : label
+      expect(article.querySelector(".canonicalBlockSummary")?.textContent).toBe(
+        kind === "RECOVERY_TIMELINE" || kind === "HOME_CARE_PLAN"
+          ? "Untitled"
+          : label
       );
+      expect(
+        article.querySelector('option[value="FIRST_24_HOURS"]')
+      ).toBeTruthy();
       const toggle = article.querySelector(
         "button[aria-expanded]"
       ) as HTMLButtonElement;
@@ -341,7 +342,7 @@ describe("ordered guide sections editor", () => {
       "Section"
     );
     expect(article.querySelector(".canonicalBlockSummary")?.textContent).toBe(
-      "Warning signs · When to call"
+      "Warning signs — When to call"
     );
     expect(article.getAttribute("data-block-accent")).toBe("warning");
     const toggle = article.querySelector(
@@ -434,6 +435,294 @@ describe("ordered guide sections editor", () => {
         )
         ?.getAttribute("aria-expanded")
     ).toBe("false");
+  });
+
+  it("pads expanded accordion content under the header", () => {
+    const css = readFileSync("app/(staff)/staff.css", "utf8");
+    expect(css).toMatch(/\.canonicalBlockFields\s*\{[\s\S]*?padding:\s*1rem;/);
+    render([
+      {
+        ...emptySection("INTRODUCTION"),
+        key: "intro",
+        title: "Welcome",
+      },
+      {
+        ...emptySection("FIRST_24_HOURS"),
+        key: "first-day",
+        title: "First 24 hours",
+      },
+      {
+        ...emptySection("RECOVERY_TIMELINE"),
+        key: "stage",
+        title: "First 24 hours",
+        periodLabel: "First 24 hours",
+        startDay: "0",
+        endDay: "1",
+      },
+      {
+        ...emptySection("HOME_CARE_PLAN"),
+        key: "plan",
+        title: "Your home plan",
+      },
+    ]);
+    for (const key of ["intro", "first-day", "stage", "plan"]) {
+      const article = container.querySelector(
+        `[data-section-key="${key}"]`
+      ) as HTMLElement;
+      const toggle = article.querySelector(
+        "button[aria-expanded]"
+      ) as HTMLButtonElement;
+      act(() => {
+        toggle.click();
+      });
+      const panel = article.querySelector(".staffAccordionPanel");
+      expect(panel?.getAttribute("data-open")).toBe("true");
+      const fields = panel?.querySelector(".canonicalBlockFields");
+      expect(fields).toBeTruthy();
+      expect(fields?.querySelector("select, input")).toBeTruthy();
+    }
+  });
+
+  it("shows a matching kind and title once, and keeps First 24 hours available", () => {
+    render([
+      {
+        ...emptySection("FIRST_24_HOURS"),
+        key: "standalone",
+        title: "First 24 hours",
+      },
+      {
+        ...emptySection("WARNING_SIGNS"),
+        key: "warn",
+        title: "When to contact your clinic",
+      },
+      {
+        ...emptySection("RECOVERY_TIMELINE"),
+        key: "first-stage",
+        title: "First 24 hours",
+        periodLabel: "First 24 hours",
+        startDay: "0",
+        endDay: "1",
+      },
+      {
+        ...emptySection("RECOVERY_TIMELINE"),
+        key: "early",
+        title: "Early recovery",
+        periodLabel: "Days 2–3",
+        startDay: "2",
+        endDay: "3",
+      },
+      {
+        ...emptySection("HOME_CARE_PLAN"),
+        key: "plan",
+        title: "Your home plan",
+      },
+    ]);
+
+    function summary(key: string) {
+      const article = container.querySelector(
+        `[data-section-key="${key}"]`
+      ) as HTMLElement;
+      return {
+        badge: article.querySelector(".canonicalBlockBadge")?.textContent,
+        summary: article.querySelector(".canonicalBlockSummary")?.textContent,
+        article,
+      };
+    }
+
+    expect(summary("standalone")).toMatchObject({
+      badge: "Section",
+      summary: "First 24 hours",
+    });
+    expect(summary("standalone").summary).not.toContain("·");
+    expect(summary("warn")).toMatchObject({
+      badge: "Section",
+      summary: "Warning signs — When to contact your clinic",
+    });
+    const firstStage = summary("first-stage");
+    expect(firstStage).toMatchObject({
+      badge: "Timeline",
+      summary: "First 24 hours",
+    });
+    expect(
+      (
+        firstStage.article.querySelector(
+          "#first-stage-start"
+        ) as HTMLInputElement
+      ).value
+    ).toBe("0");
+    expect(
+      (firstStage.article.querySelector("#first-stage-end") as HTMLInputElement)
+        .value
+    ).toBe("1");
+    expect(
+      firstStage.article.querySelector('option[value="FIRST_24_HOURS"]')
+        ?.textContent
+    ).toBe("First 24 hours");
+    expect(
+      firstStage.article.querySelector('option[value="RECOVERY_TIMELINE"]')
+        ?.textContent
+    ).toBe("Recovery timeline");
+    expect(summary("early")).toMatchObject({
+      badge: "Timeline",
+      summary: "Days 2–3 — Early recovery",
+    });
+    expect(summary("plan")).toMatchObject({
+      badge: "Home care",
+      summary: "Your home plan",
+    });
+  });
+
+  it("hides expand controls until a block exists", () => {
+    function Harness() {
+      const [sections, setSections] = useState<EditorSection[]>([]);
+      return (
+        <OrderedGuideSectionsEditor
+          sections={sections}
+          disabled={false}
+          onChange={setSections}
+        />
+      );
+    }
+    act(() => {
+      root.render(<Harness />);
+    });
+    expect(container.textContent).not.toContain("Expand all");
+    expect(container.textContent).not.toContain("Collapse all");
+    const add = [...container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Add section")
+    ) as HTMLButtonElement;
+    act(() => {
+      add.click();
+    });
+    expect(container.textContent).toContain("Expand all");
+    expect(container.textContent).toContain("Collapse all");
+  });
+
+  it("removes one block or instruction without clearing the rest", () => {
+    const seen: EditorSection[][] = [];
+    function Harness() {
+      const [sections, setSections] = useState<EditorSection[]>([
+        { ...emptySection("INTRODUCTION"), key: "intro", title: "Welcome" },
+        {
+          ...emptySection("RECOVERY_TIMELINE"),
+          key: "stage",
+          title: "First 24 hours",
+          periodLabel: "First 24 hours",
+          startDay: "0",
+          endDay: "1",
+        },
+        {
+          ...emptySection("HOME_CARE_PLAN"),
+          key: "plan",
+          title: "Your home plan",
+          homeCareInstructions: [
+            {
+              key: "one",
+              title: "Ice",
+              body: "Short periods",
+              frequencyCount: "",
+              frequencyPeriod: "",
+              timingLabel: "",
+              durationValue: "",
+              durationUnit: "",
+            },
+            {
+              key: "two",
+              title: "Walk",
+              body: "Easy pace",
+              frequencyCount: "",
+              frequencyPeriod: "",
+              timingLabel: "",
+              durationValue: "",
+              durationUnit: "",
+            },
+          ],
+        },
+      ]);
+      return (
+        <OrderedGuideSectionsEditor
+          sections={sections}
+          disabled={false}
+          onChange={(next) => {
+            seen.push(next);
+            setSections(next);
+          }}
+        />
+      );
+    }
+    act(() => {
+      root.render(<Harness />);
+    });
+
+    const plan = container.querySelector(
+      '[data-section-key="plan"]'
+    ) as HTMLElement;
+    expect(plan.textContent).toContain(
+      "The action for this step, not the whole plan."
+    );
+    expect(plan.textContent).toContain(
+      "Optional schedule — leave blank when the clinic should set this when adapting the template."
+    );
+    expect(plan.textContent).toContain("Details");
+    const removeFirst = plan.querySelector(
+      '[data-instruction-key="one"] button'
+    );
+    const removeButtons = [...plan.querySelectorAll("button")].filter(
+      (button) => button.textContent === "Remove instruction"
+    ) as HTMLButtonElement[];
+    expect(removeButtons).toHaveLength(2);
+    expect(removeButtons.every((button) => !button.disabled)).toBe(true);
+    act(() => {
+      removeButtons[0]?.click();
+    });
+    expect(
+      seen
+        .at(-1)
+        ?.find((section) => section.key === "plan")
+        ?.homeCareInstructions.map((item) => item.key)
+    ).toEqual(["two"]);
+    expect(removeFirst).toBeTruthy();
+
+    const remainingRemove = [...container.querySelectorAll("button")].filter(
+      (button) => button.textContent === "Remove instruction"
+    )[0] as HTMLButtonElement;
+    expect(remainingRemove.disabled).toBe(true);
+    expect(container.textContent).toContain(
+      "A plan needs at least one instruction."
+    );
+
+    const moveDown = container.querySelector(
+      '[data-section-key="intro"] button[aria-label="Move Introduction down"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      moveDown.click();
+    });
+    expect(seen.at(-1)?.map((section) => section.key)).toEqual([
+      "stage",
+      "intro",
+      "plan",
+    ]);
+
+    const removeStage = container.querySelector(
+      'button[aria-label="Remove Recovery timeline"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      removeStage.click();
+    });
+    expect(seen.at(-1)?.map((section) => section.kind)).toEqual([
+      "INTRODUCTION",
+      "HOME_CARE_PLAN",
+    ]);
+
+    const removePlan = container.querySelector(
+      'button[aria-label="Remove Home care plan"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      removePlan.click();
+    });
+    expect(seen.at(-1)?.map((section) => section.kind)).toEqual([
+      "INTRODUCTION",
+    ]);
   });
 });
 

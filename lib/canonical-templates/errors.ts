@@ -8,7 +8,6 @@ export class CanonicalTemplateError extends Error {
       | "sample"
       | "immutable"
       | "inactive"
-      | "unreviewed"
       | "pinned"
   ) {
     super(message);

@@ -54,20 +54,41 @@ export function guideSectionKindsByLabel(): GuideSectionKind[] {
   );
 }
 
+function sameVisibleLabel(left: string, right: string): boolean {
+  return (
+    left.trim().toLocaleLowerCase("en") === right.trim().toLocaleLowerCase("en")
+  );
+}
+
+/**
+ * Text beside the family badge. The badge already says Section, Timeline, or
+ * Home care, so this summary does not repeat that family. A kind label that
+ * matches the title is shown once.
+ */
 export function guideEditorBlockSummary(section: {
   kind: GuideSectionKind;
   title: string;
   periodLabel: string;
 }): string {
-  const title = section.title.trim() || "Untitled";
+  const title = section.title.trim();
+  const kindLabel = guideSectionKindLabel(section.kind);
+
   if (section.kind === "RECOVERY_TIMELINE") {
     const period = section.periodLabel.trim();
-    return period ? `Timeline · ${period} — ${title}` : `Timeline · ${title}`;
+    if (period && title && !sameVisibleLabel(period, title)) {
+      return `${period} — ${title}`;
+    }
+    return period || title || "Untitled";
   }
+
   if (section.kind === "HOME_CARE_PLAN") {
-    return `Home care · ${title}`;
+    return title || "Untitled";
   }
-  return `${guideSectionKindLabel(section.kind)} · ${title}`;
+
+  if (!title || sameVisibleLabel(title, kindLabel)) {
+    return kindLabel;
+  }
+  return `${kindLabel} — ${title}`;
 }
 
 export function guideOutlineEntry(section: {

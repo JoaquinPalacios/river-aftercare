@@ -351,7 +351,7 @@ describe("canonical template import schema", () => {
     expect(applied).toContain("Result: APPLIED");
     expect(applied).toContain("Template ID: template_1");
     expect(applied).toContain("Draft revision: v1");
-    expect(applied).toContain("Review: not recorded");
+    expect(applied).not.toContain("Review:");
     expect(applied).toContain("Publication: not published");
   });
 

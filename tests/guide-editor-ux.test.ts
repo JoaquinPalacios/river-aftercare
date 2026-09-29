@@ -3,23 +3,24 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("guide editor UX", () => {
-  it("exposes Cancel, Save draft, and Publish with discard and publish confirmation", () => {
+  it("exposes Cancel, Save, and Publish with discard and publish confirmation", () => {
     const editor = readFileSync(
       "app/(staff)/(clinic-portal)/guides/guide-editor.tsx",
       "utf8"
     );
 
     expect(editor).toContain("Cancel");
-    expect(editor).toContain("Save draft");
+    expect(editor).toContain('saving ? "Saving…" : "Save"');
+    expect(editor).not.toContain("Save draft");
     expect(editor).toContain("Publish guide");
     expect(editor).toContain("Discard unsaved changes?");
     expect(editor).toContain("Keep editing");
     expect(editor).toContain("Discard changes");
     expect(editor).toContain("Publish this guide?");
-    expect(editor).toContain("PRACTICE_REVIEW_ATTESTATION_LABEL");
-    expect(editor).toContain("requiresReviewAttestation");
-    expect(editor).toContain("reviewAttested");
-    expect(editor).toContain("Clinical review confirmed by");
+    expect(editor).not.toContain("PRACTICE_REVIEW_ATTESTATION_LABEL");
+    expect(editor).not.toContain("requiresReviewAttestation");
+    expect(editor).not.toContain("reviewAttested");
+    expect(editor).not.toContain("Clinical review confirmed by");
     expect(editor).not.toContain("clinically approved");
     expect(editor).not.toContain("I am a clinician");
     expect(editor).toContain("staffEditorToolbar");

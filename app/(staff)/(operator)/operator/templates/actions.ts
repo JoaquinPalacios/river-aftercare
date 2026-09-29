@@ -9,11 +9,9 @@ import { createCanonicalTemplateDraft } from "@/lib/canonical-templates/create-c
 import { createCanonicalTemplate } from "@/lib/canonical-templates/create-canonical-template";
 import { isCanonicalTemplateError } from "@/lib/canonical-templates/errors";
 import { publishCanonicalTemplateRevision } from "@/lib/canonical-templates/publish-canonical-template-revision";
-import { recordCanonicalTemplateReview } from "@/lib/canonical-templates/record-canonical-template-review";
 import { saveCanonicalTemplateDraft } from "@/lib/canonical-templates/save-canonical-template-draft";
 import {
   createCanonicalTemplateSchema,
-  recordCanonicalTemplateReviewSchema,
   updateCanonicalTemplateMetadataSchema,
 } from "@/lib/canonical-templates/schemas";
 import {
@@ -26,7 +24,6 @@ export interface CanonicalTemplateActionState {
   error?: string;
   fieldErrors?: Record<string, string>;
   ok?: boolean;
-  reviewCleared?: boolean;
 }
 
 function rethrowNavigation(error: unknown): void {
@@ -149,43 +146,13 @@ export async function saveCanonicalTemplateDraftAction(
   }
 
   try {
-    const saved = await saveCanonicalTemplateDraft({
+    await saveCanonicalTemplateDraft({
       templateId,
       revisionId,
       actorUserId: user.id,
       sections,
     });
     revalidateTemplate(templateId);
-    return { ok: true, reviewCleared: saved.reviewCleared };
-  } catch (error) {
-    rethrowNavigation(error);
-    return { error: actionError(error) };
-  }
-}
-
-export async function recordCanonicalTemplateReviewAction(
-  _previous: CanonicalTemplateActionState,
-  formData: FormData
-): Promise<CanonicalTemplateActionState> {
-  const { user } = await requirePlatformOperator();
-  const parsed = recordCanonicalTemplateReviewSchema.safeParse({
-    actorUserId: user.id,
-    templateId: templateIdFrom(formData),
-    revisionId: String(formData.get("revisionId") ?? ""),
-    reviewerName: formData.get("reviewerName") ?? "",
-    reviewerCredential: formData.get("reviewerCredential") ?? "",
-    reviewNote: formData.get("reviewNote") ?? "",
-  });
-  if (!parsed.success) {
-    return {
-      error: parsed.error.issues[0]?.message ?? "Check the review details.",
-      fieldErrors: fieldErrorsFrom(parsed.error.issues),
-    };
-  }
-
-  try {
-    await recordCanonicalTemplateReview(parsed.data);
-    revalidateTemplate(parsed.data.templateId);
     return { ok: true };
   } catch (error) {
     rethrowNavigation(error);

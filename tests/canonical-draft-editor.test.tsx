@@ -11,7 +11,6 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/app/(staff)/(operator)/operator/templates/actions", () => ({
   saveCanonicalTemplateDraftAction: vi.fn(async () => ({})),
   publishCanonicalTemplateRevisionAction: vi.fn(async () => ({})),
-  recordCanonicalTemplateReviewAction: vi.fn(async () => ({})),
   abandonCanonicalTemplateDraftAction: vi.fn(async () => ({})),
   createCanonicalTemplateDraftAction: vi.fn(async () => ({})),
   deactivateCanonicalTemplateAction: vi.fn(async () => ({})),
@@ -20,7 +19,6 @@ vi.mock("@/app/(staff)/(operator)/operator/templates/actions", () => ({
 
 import { CanonicalDraftEditor } from "@/app/(staff)/(operator)/operator/templates/canonical-draft-editor";
 import { canonicalEditorContentSignature } from "@/lib/aftercare/canonical-editor-content";
-import { REVIEW_INVALIDATION_WARNING } from "@/lib/aftercare/canonical-editor-content";
 import type { EditorSection } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
 
 const sections: EditorSection[] = [
@@ -92,10 +90,7 @@ describe("canonical draft editor", () => {
     container.remove();
   });
 
-  function render(
-    reviewed: boolean,
-    signature = canonicalEditorContentSignature(sections)
-  ) {
+  function render(signature = canonicalEditorContentSignature(sections)) {
     act(() => {
       root.render(
         <CanonicalDraftEditor
@@ -103,41 +98,25 @@ describe("canonical draft editor", () => {
           templateTitle="Tooth Extraction"
           revisionId="revision"
           version={1}
-          reviewed={reviewed}
-          reviewSummary={
-            reviewed
-              ? {
-                  reviewerName: "Example Reviewer",
-                  reviewerCredential: "Example credential",
-                  reviewNote: "Example note",
-                  reviewedAtLabel: "27 Sept 2026, 12:00",
-                  recordedByLabel: "River Operator",
-                }
-              : null
-          }
           savedContentSignature={signature}
           initialSections={sections}
           isActive
           neverPublished={false}
-          reviewerName={reviewed ? "Example Reviewer" : ""}
-          reviewerCredential={reviewed ? "Example credential" : ""}
-          reviewNote={reviewed ? "Example note" : ""}
         />
       );
     });
   }
 
-  it("loads ordinary, timeline, and home-care content and keeps a reviewed draft quiet until it changes", () => {
-    render(true);
+  it("loads ordinary, timeline, and home-care content and marks unsaved edits", () => {
+    render();
     expect(container.textContent).toContain("Example introduction");
     expect(container.textContent).toContain("Example timeline instruction");
     expect(
       (container.querySelector("#item-title") as HTMLInputElement).value
     ).toBe("Example home-care item");
-    expect(container.textContent).toContain("Review recorded");
-    expect(container.textContent).toContain("Example Reviewer");
-    expect(container.textContent).toContain("Recorded by River Operator");
-    expect(container.textContent).not.toContain(REVIEW_INVALIDATION_WARNING);
+    expect(container.textContent).not.toContain("Review recorded");
+    expect(container.textContent).not.toContain("Not reviewed");
+    expect(container.textContent).not.toContain("Record review");
 
     const intro = container.querySelector(
       '[data-section-key="intro"] button[aria-expanded]'
@@ -155,33 +134,36 @@ describe("canonical draft editor", () => {
       title.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
-    expect(container.textContent).toContain(REVIEW_INVALIDATION_WARNING);
-    expect(container.textContent).toContain("Review recorded");
     expect(container.textContent).toContain("Unsaved changes");
+    expect(container.textContent).not.toContain(
+      "invalidate the recorded review"
+    );
   });
 
-  it("asks for review before publication when the draft is unreviewed", () => {
-    render(false);
-    const publish = [...container.querySelectorAll("button")].find((button) =>
-      button.textContent?.includes("Publish revision")
+  it("offers Publish for a draft that has no review metadata", () => {
+    render();
+    const publish = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Publish"
     );
-    expect(publish?.hasAttribute("disabled")).toBe(true);
-    expect(container.textContent).toContain(
+    expect(publish?.hasAttribute("disabled")).toBe(false);
+    expect(container.textContent).not.toContain(
       "Record a complete review before publishing this revision."
     );
-    expect(container.textContent).toContain("Not reviewed");
+    expect(container.textContent).not.toContain("Not reviewed");
+    act(() => {
+      publish?.click();
+    });
+    expect(container.textContent).toContain("Publish this revision?");
+    expect(container.textContent).toContain("becomes immutable");
   });
 
-  it("keeps save in the sticky toolbar and warns before clearing a review", () => {
-    render(true);
+  it("keeps Save and Publish in the sticky toolbar", () => {
+    render();
     const toolbar = container.querySelector(
       "[data-canonical-toolbar]"
     ) as HTMLElement;
-    const reviewField = container.querySelector(
-      "#reviewerName"
-    ) as HTMLInputElement;
-    const publish = [...toolbar.querySelectorAll("button")].find((button) =>
-      button.textContent?.includes("Publish revision")
+    const publish = [...toolbar.querySelectorAll("button")].find(
+      (button) => button.textContent === "Publish"
     ) as HTMLButtonElement;
     expect(publish.disabled).toBe(false);
     expect(toolbar.textContent).toContain("Templates");
@@ -194,9 +176,8 @@ describe("canonical draft editor", () => {
     expect(toolbar.querySelector('[aria-label="More actions"]')).toBeTruthy();
     expect(toolbar.textContent).toContain("Abandon draft");
     expect(toolbar.textContent).toContain("Deactivate");
-    expect(
-      container.querySelector("#canonical-record-review")!.contains(reviewField)
-    ).toBe(true);
+    expect(container.querySelector("#reviewerName")).toBeNull();
+    expect(container.querySelector("#canonical-record-review")).toBeNull();
 
     const intro = container.querySelector(
       '[data-section-key="intro"] button[aria-expanded]'
@@ -214,35 +195,18 @@ describe("canonical draft editor", () => {
       title.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
-    const saves = [...toolbar.querySelectorAll("button")].filter((button) =>
-      button.textContent?.includes("Save draft")
+    const saves = [...toolbar.querySelectorAll("button")].filter(
+      (button) => button.textContent === "Save"
     );
     expect(saves).toHaveLength(1);
-    for (const save of saves) {
-      expect(save.getAttribute("aria-describedby")).toBe(
-        "draft-review-invalidation"
-      );
-      act(() => {
-        save.click();
-      });
-      expect(container.textContent).toContain(
-        "Save changes to reviewed content?"
-      );
-      expect(container.textContent).toContain(REVIEW_INVALIDATION_WARNING);
-      const keep = [...container.querySelectorAll("button")].find(
-        (button) => button.textContent === "Keep editing"
-      ) as HTMLButtonElement;
-      act(() => {
-        keep.click();
-      });
-      expect(container.textContent).not.toContain(
-        "Save changes to reviewed content?"
-      );
-    }
+    expect(saves[0]?.getAttribute("aria-describedby")).toBeNull();
+    expect(container.textContent).not.toContain(
+      "Save changes to reviewed content?"
+    );
   });
 
   it("keeps new section placeholders out of the saved payload", () => {
-    render(false);
+    render();
     const add = [...container.querySelectorAll("button")].find((button) =>
       button.textContent?.includes("Add section")
     ) as HTMLButtonElement;
@@ -268,28 +232,24 @@ describe("canonical draft editor", () => {
     expect(title.placeholder).toBe("Example section title");
   });
 
-  it("asks for review before the publish control when the draft is unreviewed", () => {
-    render(false);
-    const reviewHeading = [...container.querySelectorAll("h2")].find(
-      (heading) => heading.textContent === "Record review"
-    );
-    const publishHeading = [...container.querySelectorAll("h2")].find(
-      (heading) => heading.textContent === "Publish revision"
-    );
-    expect(reviewHeading).toBeTruthy();
-    expect(publishHeading).toBeTruthy();
+  it("keeps Publish in the toolbar without a review step", () => {
+    render();
     expect(
-      reviewHeading!.compareDocumentPosition(publishHeading!) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
-    const publish = [...container.querySelectorAll("button")].find((button) =>
-      button.textContent?.includes("Publish revision")
+      [...container.querySelectorAll("h2")].some(
+        (heading) => heading.textContent === "Record review"
+      )
+    ).toBe(false);
+    const toolbar = container.querySelector(
+      "[data-canonical-toolbar]"
+    ) as HTMLElement;
+    const publish = [...toolbar.querySelectorAll("button")].find(
+      (button) => button.textContent === "Publish"
     );
-    expect(publish?.hasAttribute("disabled")).toBe(true);
+    expect(publish?.hasAttribute("disabled")).toBe(false);
   });
 
   it("represents every block in the outline and opens the selected stage", () => {
-    render(false);
+    render();
     const rail = container.querySelector(
       ".canonicalOutlineRail"
     ) as HTMLElement;

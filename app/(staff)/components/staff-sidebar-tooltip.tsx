@@ -71,7 +71,10 @@ export function StaffSidebarTooltip({ enabled }: { enabled: boolean }) {
 
     function onMouseOver(event: MouseEvent) {
       const trigger = collapsedTooltipTrigger(event.target);
-      if (!trigger) {
+      if (!trigger || trigger.getAttribute("aria-expanded") === "true") {
+        if (trigger?.getAttribute("aria-expanded") === "true") {
+          setTooltip(null);
+        }
         return;
       }
       show(trigger);
@@ -105,10 +108,18 @@ export function StaffSidebarTooltip({ enabled }: { enabled: boolean }) {
       setTooltip(null);
     }
 
+    function onClick(event: MouseEvent) {
+      const trigger = collapsedTooltipTrigger(event.target);
+      if (trigger?.hasAttribute("aria-expanded")) {
+        setTooltip(null);
+      }
+    }
+
     document.addEventListener("mouseover", onMouseOver);
     document.addEventListener("mouseout", onMouseOut);
     document.addEventListener("focusin", onFocusIn);
     document.addEventListener("focusout", onFocusOut);
+    document.addEventListener("click", onClick);
     window.addEventListener("scroll", hide, true);
     window.addEventListener("resize", hide);
     return () => {
@@ -116,6 +127,7 @@ export function StaffSidebarTooltip({ enabled }: { enabled: boolean }) {
       document.removeEventListener("mouseout", onMouseOut);
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
+      document.removeEventListener("click", onClick);
       window.removeEventListener("scroll", hide, true);
       window.removeEventListener("resize", hide);
     };

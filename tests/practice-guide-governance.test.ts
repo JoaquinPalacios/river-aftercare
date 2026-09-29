@@ -18,7 +18,6 @@ import {
 } from "@/lib/clinic-portal/create-practice-guide";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { listCanonicalGuideTemplates } from "@/lib/clinic-portal/list-canonical-templates";
-import { PRACTICE_REVIEW_ATTESTATION_REQUIRED_MESSAGE } from "@/lib/clinic-portal/practice-review-attestation";
 import { publishPracticeGuide } from "@/lib/clinic-portal/publish-practice-guide";
 import { savePracticeGuideDraft } from "@/lib/clinic-portal/save-practice-guide-draft";
 
@@ -252,7 +251,7 @@ describe("first-clinic clinical governance", () => {
     ).toBe(0);
   });
 
-  it("pins the exact reviewed latest revision and refuses unreviewed v2", async (ctx) => {
+  it("pins the latest published revision even when older review metadata differs", async (ctx) => {
     if (!(await connectOrSkip(ctx))) {
       return;
     }
@@ -310,18 +309,25 @@ describe("first-clinic clinical governance", () => {
 
     const listed = await listCanonicalGuideTemplates(CLINIC_ID);
     expect(listed.templates.some((template) => template.id === MIXED_ID)).toBe(
-      false
+      true
     );
-    await expect(
-      createPracticeGuideFromTemplate({
-        clinicId: CLINIC_ID,
-        actorUserId: ADMIN_ID,
-        values: { templateId: MIXED_ID },
-      })
-    ).rejects.toSatisfy(
-      (error: unknown) =>
-        error instanceof ClinicPortalError && error.code === "not_found"
-    );
+    expect(
+      listed.templates.find((template) => template.id === MIXED_ID)
+        ?.availability
+    ).toBe("published");
+    const mixed = await createPracticeGuideFromTemplate({
+      clinicId: CLINIC_ID,
+      actorUserId: ADMIN_ID,
+      values: { templateId: MIXED_ID },
+    });
+    expect(
+      (
+        await db().practiceGuide.findUniqueOrThrow({
+          where: { id: mixed.id },
+          select: { pinnedRevisionId: true },
+        })
+      ).pinnedRevisionId
+    ).toBe(V2_ID);
 
     await db().guideTemplate.create({
       data: {
@@ -391,7 +397,7 @@ describe("first-clinic clinical governance", () => {
     expect(pinned.pinnedRevisionId).not.toBe(REVIEWED_V1_ID);
   });
 
-  it("requires a fresh clinic attestation on each real-clinic publication", async (ctx) => {
+  it("publishes a real-clinic guide without attestation and keeps prior snapshots immutable", async (ctx) => {
     if (!(await connectOrSkip(ctx))) {
       return;
     }
@@ -424,35 +430,6 @@ describe("first-clinic clinical governance", () => {
       },
     });
 
-    await expect(
-      publishPracticeGuide({
-        clinicId: CLINIC_ID,
-        actorUserId: ADMIN_ID,
-        guideId: created.id,
-      })
-    ).rejects.toSatisfy(
-      (error: unknown) =>
-        error instanceof ClinicPortalError &&
-        error.code === "invalid" &&
-        error.message === PRACTICE_REVIEW_ATTESTATION_REQUIRED_MESSAGE
-    );
-    await expect(
-      publishPracticeGuide({
-        clinicId: CLINIC_ID,
-        actorUserId: ADMIN_ID,
-        guideId: created.id,
-        reviewAttested: false,
-      })
-    ).rejects.toSatisfy(
-      (error: unknown) =>
-        error instanceof ClinicPortalError && error.code === "invalid"
-    );
-
-    expect(
-      await db().practiceGuideRevision.count({
-        where: { practiceGuideId: created.id, version: { gt: 0 } },
-      })
-    ).toBe(0);
     expect(
       await getPublishedPracticeGuide({
         clinicSlug: `${SLUG}clinic`,
@@ -464,7 +441,6 @@ describe("first-clinic clinical governance", () => {
       clinicId: CLINIC_ID,
       actorUserId: ADMIN_ID,
       guideId: created.id,
-      reviewAttested: true,
     });
     expect(first.version).toBe(1);
 
@@ -476,10 +452,9 @@ describe("first-clinic clinical governance", () => {
         },
       },
     });
-    expect(v1.reviewAttestedByUserId).toBe(ADMIN_ID);
-    expect(v1.reviewAttestedAt).not.toBeNull();
+    expect(v1.reviewAttestedByUserId).toBeNull();
+    expect(v1.reviewAttestedAt).toBeNull();
     expect(v1.createdByUserId).toBe(ADMIN_ID);
-    const v1AttestedAt = v1.reviewAttestedAt;
 
     const publicDoc = await getPublishedPracticeGuide({
       clinicSlug: `${SLUG}clinic`,
@@ -519,23 +494,10 @@ describe("first-clinic clinical governance", () => {
     expect(draft.reviewAttestedAt).toBeNull();
     expect(draft.reviewAttestedByUserId).toBeNull();
 
-    await expect(
-      publishPracticeGuide({
-        clinicId: CLINIC_ID,
-        actorUserId: ADMIN_ID,
-        guideId: created.id,
-      })
-    ).rejects.toSatisfy(
-      (error: unknown) =>
-        error instanceof ClinicPortalError && error.code === "invalid"
-    );
-
-    await new Promise((resolve) => setTimeout(resolve, 10));
     const second = await publishPracticeGuide({
       clinicId: CLINIC_ID,
       actorUserId: ADMIN_ID,
       guideId: created.id,
-      reviewAttested: true,
     });
     expect(second.version).toBe(2);
 
@@ -543,10 +505,8 @@ describe("first-clinic clinical governance", () => {
       where: { id: v1.id },
     });
     expect(unchangedV1.title).toBe(v1.title);
-    expect(unchangedV1.reviewAttestedAt?.toISOString()).toBe(
-      v1AttestedAt?.toISOString()
-    );
-    expect(unchangedV1.reviewAttestedByUserId).toBe(ADMIN_ID);
+    expect(unchangedV1.reviewAttestedAt).toBeNull();
+    expect(unchangedV1.reviewAttestedByUserId).toBeNull();
 
     const v2 = await db().practiceGuideRevision.findUniqueOrThrow({
       where: {
@@ -556,14 +516,12 @@ describe("first-clinic clinical governance", () => {
         },
       },
     });
-    expect(v2.reviewAttestedByUserId).toBe(ADMIN_ID);
-    expect(v2.reviewAttestedAt).not.toBeNull();
-    expect(v2.reviewAttestedAt?.getTime()).toBeGreaterThan(
-      v1AttestedAt?.getTime() ?? 0
-    );
+    expect(v2.reviewAttestedByUserId).toBeNull();
+    expect(v2.reviewAttestedAt).toBeNull();
+    expect(v2.title).not.toBe(unchangedV1.title);
   });
 
-  it("blocks STAFF and unknown actors from attesting, and lets operators publish for support", async (ctx) => {
+  it("blocks STAFF and unknown actors, and lets operators publish for support", async (ctx) => {
     if (!(await connectOrSkip(ctx))) {
       return;
     }
@@ -594,7 +552,6 @@ describe("first-clinic clinical governance", () => {
         clinicId: CLINIC_ID,
         actorUserId: STAFF_ID,
         guideId: created.id,
-        reviewAttested: true,
       })
     ).rejects.toSatisfy(
       (error: unknown) =>
@@ -605,7 +562,6 @@ describe("first-clinic clinical governance", () => {
         clinicId: CLINIC_ID,
         actorUserId: OPERATOR_ID,
         guideId: created.id,
-        reviewAttested: true,
       })
     ).resolves.toMatchObject({ version: 1 });
     await expect(
@@ -613,7 +569,6 @@ describe("first-clinic clinical governance", () => {
         clinicId: CLINIC_ID,
         actorUserId: "missing-user",
         guideId: created.id,
-        reviewAttested: true,
       })
     ).rejects.toSatisfy(
       (error: unknown) =>

@@ -1598,7 +1598,6 @@ describe("account split execution", () => {
       clinicId: account.clinicId,
       actorUserId: account.adminId,
       guideId: guide.id,
-      reviewAttested: true,
     });
     const branding = updateClinicSiteBranding({
       clinicId: account.clinicId,

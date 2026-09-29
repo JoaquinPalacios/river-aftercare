@@ -65,10 +65,7 @@ export default async function OperatorTemplateDetailPage({
             <TemplateOriginBadge isSample={template.isSample} />
             <TemplateActivityBadge isActive={template.isActive} />
             {template.openDraft ? (
-              <TemplateDraftBadge
-                version={template.openDraft.version}
-                reviewed={template.openDraft.reviewed}
-              />
+              <TemplateDraftBadge version={template.openDraft.version} />
             ) : null}
           </div>
         </div>
@@ -81,7 +78,7 @@ export default async function OperatorTemplateDetailPage({
       {template.isSample ? (
         <p className="rounded-xl border border-staff-line bg-staff-panel px-4 py-3 text-sm">
           Sample. This demo template is not a production canonical template. It
-          cannot be converted, reviewed, or published through this workflow.
+          cannot be converted or published through this workflow.
         </p>
       ) : null}
       {!template.isActive ? (
@@ -114,9 +111,7 @@ export default async function OperatorTemplateDetailPage({
               href={`/operator/templates/${template.id}/draft`}
               className="staffOperatorRowLink"
             >
-              {template.openDraft.reviewed
-                ? `v${template.openDraft.version} reviewed`
-                : `v${template.openDraft.version} not reviewed`}
+              {`Draft v${template.openDraft.version}`}
             </Link>
           ) : (
             <span className="text-staff-muted">None</span>
@@ -184,25 +179,6 @@ export default async function OperatorTemplateDetailPage({
                   {revision.isLatestPublished ? (
                     <span className="staffStatusPill">Latest</span>
                   ) : null}
-                  {revision.status === "DRAFT" ? (
-                    revision.reviewed ? (
-                      <span className="staffStatusPill" data-tone="success">
-                        Review recorded
-                      </span>
-                    ) : (
-                      <span className="staffStatusPill" data-tone="warning">
-                        Not reviewed
-                      </span>
-                    )
-                  ) : revision.reviewed ? (
-                    <span className="staffStatusPill" data-tone="success">
-                      Reviewed
-                    </span>
-                  ) : (
-                    <span className="staffStatusPill" data-tone="warning">
-                      Unreviewed
-                    </span>
-                  )}
                 </div>
                 <dl className="mt-3 grid gap-2 text-sm text-staff-muted sm:grid-cols-2">
                   <div>
@@ -218,20 +194,6 @@ export default async function OperatorTemplateDetailPage({
                     <dt className="font-medium text-staff-ink">Sections</dt>
                     <dd>{revision.sectionCount}</dd>
                   </div>
-                  {revision.reviewerName ? (
-                    <div>
-                      <dt className="font-medium text-staff-ink">Reviewer</dt>
-                      <dd>
-                        {revision.reviewerName}
-                        {revision.reviewerCredential
-                          ? ` · ${revision.reviewerCredential}`
-                          : ""}
-                        {revision.reviewedAtLabel
-                          ? ` · ${revision.reviewedAtLabel}`
-                          : ""}
-                      </dd>
-                    </div>
-                  ) : null}
                   {revision.publishedAtLabel ? (
                     <div>
                       <dt className="font-medium text-staff-ink">Published</dt>

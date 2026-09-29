@@ -34,4 +34,4 @@ An update to a canonical template must **never** silently mutate a clinic's alre
 
 Do not store the patient-visible guide as the only copy of content without provenance. Draft vs published is an MVP requirement.
 
-First-client governance (clinic-supplied / clinic-approved content, explicit `isSample`, practice attestation on published clinic revisions) is [ADR 0026](0026-first-client-clinic-supplied-governance.md). A River Aftercare reviewed canonical library remains deferred.
+Sample designation stays explicit (`isSample`). Publish is the release boundary ([ADR 0029](0029-publish-is-the-release-boundary.md)). [ADR 0026](0026-first-client-clinic-supplied-governance.md) is historical for the former practice-attestation gate.

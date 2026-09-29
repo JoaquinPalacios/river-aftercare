@@ -2,8 +2,10 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { REVIEW_INVALIDATION_WARNING } from "@/lib/aftercare/canonical-editor-content";
-import { filterOperatorTemplates } from "@/lib/operator/canonical-templates/list-operator-canonical-templates";
+import {
+  filterOperatorTemplates,
+  operatorTemplateHref,
+} from "@/lib/operator/canonical-templates/list-operator-canonical-templates";
 import type { OperatorTemplateListItem } from "@/lib/operator/canonical-templates/list-operator-canonical-templates";
 
 const pages = [
@@ -42,14 +44,14 @@ describe("operator template manager UI contract", () => {
       );
     }
     expect(actions).toContain("requirePlatformOperator");
-    expect(actions.match(/await requirePlatformOperator\(\)/g)?.length).toBe(9);
+    expect(actions.match(/await requirePlatformOperator\(\)/g)?.length).toBe(8);
   });
 
   it("calls lifecycle services instead of writing template rows itself", () => {
     expect(actions).toContain("createCanonicalTemplate");
     expect(actions).toContain("updateCanonicalTemplateMetadata");
     expect(actions).toContain("saveCanonicalTemplateDraft");
-    expect(actions).toContain("recordCanonicalTemplateReview");
+    expect(actions).not.toContain("recordCanonicalTemplateReview");
     expect(actions).toContain("publishCanonicalTemplateRevision");
     expect(actions).toContain("createCanonicalTemplateDraft");
     expect(actions).toContain("abandonCanonicalTemplateDraft");
@@ -69,6 +71,10 @@ describe("operator template manager UI contract", () => {
       "app/(staff)/(operator)/operator/templates/[templateId]/draft/page.tsx",
       "utf8"
     );
+    const toolbar = readFileSync(
+      "app/(staff)/components/canonical-editor-toolbar.tsx",
+      "utf8"
+    );
     const preview = readFileSync(
       "app/(staff)/components/canonical-guide-preview.tsx",
       "utf8"
@@ -83,13 +89,17 @@ describe("operator template manager UI contract", () => {
     expect(preview).toContain("clinic-branded");
     expect(editor).not.toContain("GuideEditor");
     expect(editor).not.toContain("PRACTICE_REVIEW_ATTESTATION_LABEL");
+    expect(editor).not.toContain("REVIEW_INVALIDATION_WARNING");
+    expect(editor).not.toContain("Record review");
+    expect(editor).not.toContain("Not reviewed");
+    expect(editor).not.toContain("Publish revision");
     expect(draft).not.toContain("GuideEditor");
-    expect(editor).toContain("REVIEW_INVALIDATION_WARNING");
-    expect(editor).toContain("Publish revision");
+    expect(toolbar).toContain('saving ? "Saving…" : "Save"');
+    expect(toolbar).toContain('publishing ? "Publishing…" : "Publish"');
+    expect(toolbar).not.toContain("Save draft");
+    expect(toolbar).not.toContain("Publish revision");
+    expect(editor).toContain('confirmLabel="Publish"');
     expect(editor).toContain("becomes immutable");
-    expect(REVIEW_INVALIDATION_WARNING).toBe(
-      "Changing reviewed content will invalidate the recorded review. The revision will need to be reviewed again before publication."
-    );
   });
 
   it("labels the sample and does not offer production conversion", () => {
@@ -103,10 +113,6 @@ describe("operator template manager UI contract", () => {
     );
     const create = readFileSync(
       "app/(staff)/(operator)/operator/templates/create-template-form.tsx",
-      "utf8"
-    );
-    const review = readFileSync(
-      "app/(staff)/(operator)/operator/templates/record-review-form.tsx",
       "utf8"
     );
     const nav = readFileSync(
@@ -129,11 +135,67 @@ describe("operator template manager UI contract", () => {
     expect(labels).toContain('PHYSIOTHERAPY: "Physiotherapy"');
     expect(labels).toContain('CHIROPRACTIC: "Chiropractic"');
     expect(labels).toContain('COSMETIC_AESTHETIC: "Cosmetic & Aesthetic"');
-    expect(review).toContain("Record review");
-    expect(review).toContain("Replace review evidence");
-    expect(review).not.toContain("reviewRecordedByUserId");
-    expect(review).not.toContain("Approve");
+    expect(detail).not.toContain("Record review");
+    expect(detail).not.toContain("Not reviewed");
+    expect(detail).not.toContain("Review recorded");
+    expect(list).toContain("operatorTemplateHref");
+    expect(list.replace(/\s+/g, " ")).toContain(
+      "Save keeps a draft. Publish releases it."
+    );
+    const createPage = readFileSync(
+      "app/(staff)/(operator)/operator/templates/new/page.tsx",
+      "utf8"
+    );
+    const lifecycle = readFileSync(
+      "app/(staff)/(operator)/operator/templates/template-lifecycle-actions.tsx",
+      "utf8"
+    );
+    const notices = readFileSync(
+      "lib/operator/canonical-templates/notices.ts",
+      "utf8"
+    );
+    for (const source of [list, detail, createPage, lifecycle, notices]) {
+      expect(source).not.toContain("Not reviewed");
+      expect(source).not.toContain("Review evidence");
+      expect(source).not.toContain("review come later");
+    }
+    expect(notices).toContain(
+      "The template and its unpublished draft were permanently removed."
+    );
     expect(nav).toContain('href: "/operator/templates", label: "Templates"');
+  });
+
+  it("opens a production draft directly and keeps sample rows on the detail page", () => {
+    expect(
+      operatorTemplateHref(
+        item({
+          id: "drafting",
+          title: "Open draft",
+          draft: { version: 1 },
+        })
+      )
+    ).toBe("/operator/templates/drafting/draft");
+    expect(
+      operatorTemplateHref(
+        item({
+          id: "published",
+          title: "Published only",
+          latestPublishedVersion: 2,
+        })
+      )
+    ).toBe("/operator/templates/published");
+    expect(
+      operatorTemplateHref(
+        item({
+          id: "sample",
+          title: "Tooth Extraction",
+          slug: "extraction",
+          isSample: true,
+          latestPublishedVersion: 1,
+          draft: { version: 2 },
+        })
+      )
+    ).toBe("/operator/templates/sample");
   });
 
   it("filters production and sample rows without collapsing their states", () => {
@@ -144,7 +206,7 @@ describe("operator template manager UI contract", () => {
         serviceCategory: "PHYSIOTHERAPY",
         serviceCategoryLabel: "Physiotherapy",
         latestPublishedVersion: 1,
-        draft: { version: 2, reviewed: true },
+        draft: { version: 2 },
       }),
       item({
         id: "sample",
@@ -180,6 +242,6 @@ describe("operator template manager UI contract", () => {
     expect(templates[0]?.serviceCategoryLabel).toBe("Physiotherapy");
     expect(templates[1]?.isSample).toBe(true);
     expect(templates[0]?.latestPublishedVersion).toBe(1);
-    expect(templates[0]?.draft).toEqual({ version: 2, reviewed: true });
+    expect(templates[0]?.draft).toEqual({ version: 2 });
   });
 });

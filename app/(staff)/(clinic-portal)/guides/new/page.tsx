@@ -51,7 +51,7 @@ export default async function CreateGuidePage() {
         <p className="mt-2 max-w-xl text-sm leading-6 text-staff-muted">
           {isDemoTenant
             ? "Start from a template, or create a custom guide for this demo."
-            : "Start from a reviewed template, or create a custom guide for this practice."}
+            : "Start from a published template, or create a custom guide for this practice."}
         </p>
       </header>
       <CreateGuideForm

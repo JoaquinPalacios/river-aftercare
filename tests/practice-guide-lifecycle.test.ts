@@ -253,7 +253,6 @@ describe("practice guide lifecycle and isolation", () => {
     const firstPublish = await publishPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      reviewAttested: true,
       guideId: fromTemplate.id,
     });
     expect(firstPublish.version).toBe(1);
@@ -309,7 +308,6 @@ describe("practice guide lifecycle and isolation", () => {
     const secondPublish = await publishPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      reviewAttested: true,
       guideId: fromTemplate.id,
     });
     expect(secondPublish.version).toBe(2);
@@ -375,7 +373,6 @@ describe("practice guide lifecycle and isolation", () => {
     await publishPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      reviewAttested: true,
       guideId: custom.id,
     });
 
@@ -602,7 +599,6 @@ describe("draft delete and discard", () => {
     await publishPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      reviewAttested: true,
       guideId: published.id,
     });
 
@@ -656,7 +652,6 @@ describe("draft delete and discard", () => {
     await publishPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      reviewAttested: true,
       guideId: guide.id,
     });
 
@@ -752,7 +747,6 @@ describe("draft delete and discard", () => {
     const published = await publishPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      reviewAttested: true,
       guideId: guide.id,
     });
     expect(published.version).toBe(1);
@@ -808,7 +802,6 @@ describe("draft delete and discard", () => {
     const republished = await publishPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      reviewAttested: true,
       guideId: guide.id,
     });
     expect(republished.version).toBe(2);
@@ -856,7 +849,6 @@ describe("draft delete and discard", () => {
     await publishPracticeGuide({
       clinicId: CLINIC_A_ID,
       actorUserId: USER_ID,
-      reviewAttested: true,
       guideId: guide.id,
     });
 

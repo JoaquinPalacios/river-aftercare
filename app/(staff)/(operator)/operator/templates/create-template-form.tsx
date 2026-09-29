@@ -6,10 +6,13 @@ import {
   createCanonicalTemplateAction,
   type CanonicalTemplateActionState,
 } from "@/app/(staff)/(operator)/operator/templates/actions";
+import { isValidCareGuideSlug } from "@/lib/aftercare/slug-rules";
 import {
+  isServiceCategory,
   SERVICE_CATEGORIES,
   SERVICE_CATEGORY_LABELS,
 } from "@/lib/aftercare/service-category";
+import { isReservedDemoCanonicalSlug } from "@/lib/canonical-templates/constants";
 import { suggestGuideSlug } from "@/lib/clinics/slug-suggestion";
 
 const initial: CanonicalTemplateActionState = {};
@@ -22,6 +25,12 @@ export function CreateTemplateForm() {
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
+  const [serviceCategory, setServiceCategory] = useState("");
+  const titleReady = title.trim().length > 0 && title.trim().length <= 120;
+  const slugReady =
+    isValidCareGuideSlug(slug) && !isReservedDemoCanonicalSlug(slug);
+  const categoryReady = isServiceCategory(serviceCategory);
+  const canCreate = titleReady && slugReady && categoryReady && !pending;
 
   function updateTitle(next: string) {
     setTitle(next);
@@ -102,9 +111,10 @@ export function CreateTemplateForm() {
           id="serviceCategory"
           name="serviceCategory"
           required
-          defaultValue=""
+          value={serviceCategory}
           className="staffSelect"
           aria-invalid={state.fieldErrors?.serviceCategory ? true : undefined}
+          onChange={(event) => setServiceCategory(event.target.value)}
         >
           <option value="" disabled>
             Choose a category
@@ -129,7 +139,7 @@ export function CreateTemplateForm() {
       <button
         type="submit"
         className="staffBtn staffBtnPrimary w-fit"
-        disabled={pending}
+        disabled={!canCreate}
       >
         {pending ? "Creating…" : "Create template"}
       </button>

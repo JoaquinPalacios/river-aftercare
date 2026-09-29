@@ -125,7 +125,7 @@ describe("clinic portal pages", () => {
     expect(logoActions).not.toContain('formData.get("clinicId")');
     expect(guideActions).toContain("requireClinicAdmin");
     expect(guideActions).toContain("unpublishGuideAction");
-    expect(guideActions).toContain("reviewAttested");
+    expect(guideActions).not.toContain("reviewAttested");
     expect(guideActions).not.toContain('formData.get("clinicId")');
     expect(operatorPage).toContain("requirePlatformOperator");
     expect(operatorActions).toContain("requirePlatformOperator");
@@ -148,7 +148,7 @@ describe("clinic portal pages", () => {
     expect(edit).not.toContain("overview.patientSiteHref");
   });
 
-  it("uses honest sample-template wording for the demo tenant and reviewed wording for other clinics", () => {
+  it("uses sample wording for the demo tenant and published-template wording for other clinics", () => {
     const createPage = readFileSync(
       "app/(staff)/(clinic-portal)/guides/new/page.tsx",
       "utf8"
@@ -171,14 +171,15 @@ describe("clinic portal pages", () => {
       "Start from a template, or create a custom guide for this demo."
     );
     expect(createPage).toContain(
-      "Start from a reviewed template, or create a custom guide for this practice."
+      "Start from a published template, or create a custom guide for this practice."
     );
-    expect(form).toContain('? "Start from a template"');
-    expect(form).toContain(': "Start from a reviewed template"}');
+    expect(form).toContain("Start from a template");
+    expect(form).not.toContain("Start from a reviewed template");
     expect(form).toContain("Sample template");
-    expect(form).toContain("Reviewed template");
+    expect(form).toContain("Published template");
+    expect(form).not.toContain("Reviewed template");
     expect(form).toContain("sample template, then adapt it for this demo.");
-    expect(form).toContain("No reviewed templates are available yet.");
+    expect(form).toContain("No published templates are available yet.");
     expect(form).toContain("No sample templates are available yet.");
     expect(form).not.toContain("clinically approved");
     expect(form).not.toContain("clinically reviewed");

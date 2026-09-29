@@ -29,28 +29,6 @@ export const canonicalServiceCategorySchema = z.enum(SERVICE_CATEGORIES, {
   error: "Choose a service category.",
 });
 
-export const reviewerNameSchema = z
-  .string()
-  .trim()
-  .min(1, "Enter the reviewer's name.")
-  .max(160);
-
-export const reviewerCredentialSchema = z
-  .string()
-  .trim()
-  .max(160)
-  .nullable()
-  .optional()
-  .transform((value) => (value ? value : null));
-
-export const reviewNoteSchema = z
-  .string()
-  .trim()
-  .max(4000)
-  .nullable()
-  .optional()
-  .transform((value) => (value ? value : null));
-
 const actorIdSchema = z.string().trim().min(1);
 
 export const createCanonicalTemplateSchema = z.object({
@@ -75,15 +53,6 @@ export const updateCanonicalTemplateMetadataSchema = z
       value.serviceCategory !== undefined,
     { message: "Choose a template detail to update." }
   );
-
-export const recordCanonicalTemplateReviewSchema = z.object({
-  actorUserId: actorIdSchema,
-  templateId: z.string().trim().min(1),
-  revisionId: z.string().trim().min(1),
-  reviewerName: reviewerNameSchema,
-  reviewerCredential: reviewerCredentialSchema,
-  reviewNote: reviewNoteSchema,
-});
 
 export function parseCanonicalInput<T>(
   schema: z.ZodType<T>,

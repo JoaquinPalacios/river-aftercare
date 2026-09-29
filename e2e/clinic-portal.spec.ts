@@ -305,7 +305,9 @@ test.describe("clinic portal", () => {
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
     await page.getByRole("link", { name: "Edit" }).first().click();
     await expect(
-      page.getByRole("button", { name: "Save draft" }).filter({ visible: true })
+      page
+        .getByRole("button", { name: "Save", exact: true })
+        .filter({ visible: true })
     ).toBeVisible();
     await expect(
       page
@@ -645,7 +647,7 @@ test.describe("clinic portal UX polish", () => {
     await page.getByLabel("Short introduction").fill("Draft only copy.");
     await expect(page.locator("[data-save-state=unsaved]")).toBeVisible();
     await page
-      .getByRole("button", { name: "Save draft" })
+      .getByRole("button", { name: "Save", exact: true })
       .filter({ visible: true })
       .click();
     await expect(page.locator("[data-save-state=saved]")).toBeVisible();
@@ -1047,7 +1049,7 @@ test.describe("clinic portal UX polish", () => {
     const publishedTitle = "Tooth Extraction";
     await title.fill(`${publishedTitle} draft change`);
     await page
-      .getByRole("button", { name: "Save draft" })
+      .getByRole("button", { name: "Save", exact: true })
       .filter({ visible: true })
       .click();
     await expect(page.getByText("Please review the form")).toHaveCount(0);

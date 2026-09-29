@@ -13,7 +13,7 @@ export function PracticeContact({ chrome }: { chrome: PracticeChrome }) {
 
   return (
     <section
-      className={styles.contact}
+      className={styles.practiceContact}
       aria-labelledby="practice-contact-heading"
     >
       <h2 id="practice-contact-heading" className={styles.contactTitle}>

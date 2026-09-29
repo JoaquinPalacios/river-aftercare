@@ -28,8 +28,9 @@ export default async function NewCanonicalTemplatePage() {
           Create template
         </h1>
         <p className="mt-2 text-sm text-staff-muted">
-          Creates a production template and draft version 1. Publication and
-          review come later. Sample templates cannot be created here.
+          Creates a production template and draft version 1. Save the draft,
+          then Publish when it is ready. Sample templates cannot be created
+          here.
         </p>
       </header>
       <CreateTemplateForm />

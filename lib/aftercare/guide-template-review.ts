@@ -1,21 +1,9 @@
 import { GuideRevisionStatus } from "@prisma/client";
 
-/**
- * Labels that were written as review metadata but are not clinical review.
- * Seed historically used this string; it must never satisfy the reviewed policy.
- */
-export const NON_CLINICAL_REVIEWER_LABELS = new Set(["Care Guide demo seed"]);
-
-export interface GuideRevisionReviewFields {
-  status: GuideRevisionStatus | string;
-  reviewedAt: Date | null;
-  reviewerName: string | null;
-  reviewRecordedByUserId: string | null;
-}
-
-export interface CanonicalRevisionCandidate extends GuideRevisionReviewFields {
+export interface CanonicalRevisionCandidate {
   id: string;
   version: number;
+  status: GuideRevisionStatus | string;
 }
 
 export interface CanonicalTemplateClassification {
@@ -23,56 +11,12 @@ export interface CanonicalTemplateClassification {
   eligibleRevisionId: string | null;
 }
 
-function namedClinicalReviewer(reviewerName: string | null): string | null {
-  const reviewer = reviewerName?.trim() ?? "";
-  if (!reviewer || NON_CLINICAL_REVIEWER_LABELS.has(reviewer)) {
-    return null;
-  }
-  return reviewer;
-}
-
 /**
- * Complete review evidence on a canonical revision, independent of status.
- * The display reviewer, the time, and the Operator who recorded it are all
- * required. A historical reviewerName copied from reviewedBy is not complete
- * until a recording Operator is stored. Credential and note stay optional.
+ * `published` is an active production template's latest published revision.
+ * `sample` is explicit demo content (`GuideTemplate.isSample`).
+ * Review metadata is not part of either classification.
  */
-export function hasCompleteCanonicalReviewEvidence(revision: {
-  reviewerName: string | null;
-  reviewedAt: Date | null;
-  reviewRecordedByUserId: string | null;
-}): boolean {
-  return (
-    revision.reviewedAt != null &&
-    namedClinicalReviewer(revision.reviewerName) != null &&
-    Boolean(revision.reviewRecordedByUserId)
-  );
-}
-
-/**
- * Platform "reviewed template" policy: a published revision with complete
- * review evidence. Active + PUBLISHED alone is not reviewed. The demo seed
- * label is not a clinical reviewer.
- */
-export function isClinicallyReviewedRevision(
-  revision: GuideRevisionReviewFields
-): boolean {
-  return (
-    revision.status === GuideRevisionStatus.PUBLISHED &&
-    hasCompleteCanonicalReviewEvidence(revision)
-  );
-}
-
-export function isSamplePublishedRevision(
-  revision: GuideRevisionReviewFields
-): boolean {
-  return (
-    revision.status === GuideRevisionStatus.PUBLISHED &&
-    !isClinicallyReviewedRevision(revision)
-  );
-}
-
-export type CanonicalTemplateAvailability = "reviewed" | "sample";
+export type CanonicalTemplateAvailability = "published" | "sample";
 
 export function latestPublishedRevision<
   T extends { status: GuideRevisionStatus | string; version: number },
@@ -91,13 +35,13 @@ export function latestPublishedRevision<
 
 /**
  * Classify a canonical template from its explicit sample designation plus the
- * exact latest published revision. Do not infer sample status from missing
- * review metadata, and do not classify on one revision while pinning another.
+ * exact latest published revision. Drafts are never eligible. Review metadata
+ * is ignored. Do not infer sample status from missing review fields, and do
+ * not classify on one revision while pinning another.
  *
- * - isSample=true → sample/demo only, even if review fields are populated.
- * - isSample=false → the latest published revision must itself be reviewed
- *   before a normal clinic may enable it. An older reviewed revision cannot
- *   make a newer unreviewed published revision eligible.
+ * - no published revision → not eligible
+ * - isSample=true → sample/demo only, even if historical review fields exist
+ * - isSample=false → the latest published revision is eligible
  */
 export function classifyCanonicalTemplate(input: {
   isSample: boolean;
@@ -115,21 +59,17 @@ export function classifyCanonicalTemplate(input: {
     };
   }
 
-  if (isClinicallyReviewedRevision(latest)) {
-    return {
-      availability: "reviewed",
-      eligibleRevisionId: latest.id,
-    };
-  }
-
-  return { availability: null, eligibleRevisionId: null };
+  return {
+    availability: "published",
+    eligibleRevisionId: latest.id,
+  };
 }
 
 export function clinicCanUseCanonicalTemplate(input: {
   isDemoTenant: boolean;
   availability: CanonicalTemplateAvailability | null;
 }): boolean {
-  if (input.availability === "reviewed") {
+  if (input.availability === "published") {
     return true;
   }
   return input.availability === "sample" && input.isDemoTenant;

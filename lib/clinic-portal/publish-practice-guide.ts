@@ -1,6 +1,5 @@
 import { GuideRevisionStatus, PracticeGuideStatus } from "@prisma/client";
 
-import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import { WORKING_DRAFT_VERSION } from "@/lib/aftercare/practice-revision-document";
 import {
   mapHomeCareInstructions,
@@ -10,10 +9,6 @@ import {
 import { actorCanManageClinic } from "@/lib/auth/clinic-authorization";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { assertPracticeGuideWritable } from "@/lib/clinic-portal/retained-guide-guard";
-import {
-  isPracticeReviewAttested,
-  PRACTICE_REVIEW_ATTESTATION_REQUIRED_MESSAGE,
-} from "@/lib/clinic-portal/practice-review-attestation";
 import { advancePublishedPlacement } from "@/lib/clinic-portal/root-placement";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
@@ -22,7 +17,6 @@ export async function publishPracticeGuide(input: {
   clinicId: string;
   actorUserId: string;
   guideId: string;
-  reviewAttested?: boolean | string | null;
 }): Promise<{ id: string; version: number }> {
   const prisma = getPrisma();
   const [guide, clinic, canManage] = await Promise.all([
@@ -39,9 +33,7 @@ export async function publishPracticeGuide(input: {
     }),
     prisma.clinic.findUnique({
       where: { id: input.clinicId },
-      select: {
-        slug: true,
-      },
+      select: { id: true },
     }),
     actorCanManageClinic({
       actorUserId: input.actorUserId,
@@ -69,15 +61,6 @@ export async function publishPracticeGuide(input: {
     );
   }
 
-  const demoTenant = isDemoTenant(clinic.slug);
-  const attested = isPracticeReviewAttested(input.reviewAttested);
-  if (!demoTenant && !attested) {
-    throw new ClinicPortalError(
-      PRACTICE_REVIEW_ATTESTATION_REQUIRED_MESSAGE,
-      "invalid"
-    );
-  }
-
   const latestPublishedVersion = guide.contentRevisions.reduce(
     (max, revision) =>
       revision.status === GuideRevisionStatus.PUBLISHED
@@ -87,9 +70,6 @@ export async function publishPracticeGuide(input: {
   );
   const nextVersion = latestPublishedVersion + 1;
   const publishedAt = new Date();
-  const reviewAttestedAt = demoTenant || !attested ? null : publishedAt;
-  const reviewAttestedByUserId =
-    demoTenant || !attested ? null : input.actorUserId;
 
   return prisma.$transaction(async (tx) => {
     await lockClinicAccountStructure(tx, input.clinicId);
@@ -102,8 +82,6 @@ export async function publishPracticeGuide(input: {
         introduction: draft.introduction,
         publishedAt,
         createdByUserId: input.actorUserId,
-        reviewAttestedAt,
-        reviewAttestedByUserId,
         sections: {
           create: draft.sections.map((section) =>
             practiceSectionCreateData({

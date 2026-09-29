@@ -29,7 +29,6 @@ import {
   deactivateCanonicalTemplateAction,
   publishCanonicalTemplateRevisionAction,
   reactivateCanonicalTemplateAction,
-  recordCanonicalTemplateReviewAction,
   saveCanonicalTemplateDraftAction,
   updateCanonicalTemplateMetadataAction,
 } from "@/app/(staff)/(operator)/operator/templates/actions";
@@ -246,16 +245,6 @@ describeDb("operator canonical template actions", () => {
       )
     ).rejects.toThrow(/NOT_FOUND/);
     await expect(
-      recordCanonicalTemplateReviewAction(
-        {},
-        form({
-          templateId: "missing",
-          revisionId: "missing",
-          reviewerName: "Example Reviewer",
-        })
-      )
-    ).rejects.toThrow(/NOT_FOUND/);
-    await expect(
       publishCanonicalTemplateRevisionAction(
         {},
         form({
@@ -276,7 +265,7 @@ describeDb("operator canonical template actions", () => {
     ).toBeNull();
   });
 
-  it("creates, edits, reviews, publishes, and revises a synthetic template", async () => {
+  it("creates, saves, publishes, and revises a synthetic template", async () => {
     await expect(
       createCanonicalTemplateAction(
         {},
@@ -340,7 +329,6 @@ describeDb("operator canonical template actions", () => {
     expect(draft?.isSample).toBe(false);
     expect(draft?.metadataLocked).toBe(false);
     expect(draft?.openDraft?.version).toBe(1);
-    expect(draft?.openDraft?.reviewed).toBe(false);
 
     const firstSave = await saveCanonicalTemplateDraftAction(
       {},
@@ -355,7 +343,7 @@ describeDb("operator canonical template actions", () => {
         ),
       })
     );
-    expect(firstSave).toMatchObject({ ok: true, reviewCleared: false });
+    expect(firstSave).toEqual({ ok: true });
 
     const saved = await loadOperatorCanonicalTemplate(templateId ?? "");
     expect(saved?.openDraft?.sections.map((section) => section.key)).toEqual([
@@ -386,7 +374,7 @@ describeDb("operator canonical template actions", () => {
         ),
       })
     );
-    expect(reordered.reviewCleared).toBe(false);
+    expect(reordered).toEqual({ ok: true });
     const ordered = await loadOperatorCanonicalTemplate(templateId ?? "");
     expect(
       ordered?.openDraft?.sections
@@ -399,38 +387,7 @@ describeDb("operator canonical template actions", () => {
         ?.homeCareInstructions.map((item) => item.key)
     ).toEqual(["weekly", "daily"]);
 
-    const missingReviewer = await recordCanonicalTemplateReviewAction(
-      {},
-      form({
-        templateId: templateId ?? "",
-        revisionId: ordered?.openDraft?.id ?? "",
-        reviewerName: " ",
-        reviewerCredential: "",
-        reviewNote: "",
-      })
-    );
-    expect(missingReviewer.fieldErrors?.reviewerName).toMatch(/name/i);
-
-    const reviewed = await recordCanonicalTemplateReviewAction(
-      {},
-      form({
-        templateId: templateId ?? "",
-        revisionId: ordered?.openDraft?.id ?? "",
-        reviewerName: "Example Reviewer",
-        reviewerCredential: "",
-        reviewNote: "",
-      })
-    );
-    expect(reviewed.ok).toBe(true);
-    const reviewedRow =
-      await getPrisma().guideTemplateRevision.findUniqueOrThrow({
-        where: { id: ordered?.openDraft?.id ?? "" },
-      });
-    expect(reviewedRow.reviewerName).toBe("Example Reviewer");
-    expect(reviewedRow.reviewerCredential).toBeNull();
-    expect(reviewedRow.reviewRecordedByUserId).toBe(OPERATOR_ID);
-
-    const cleared = await saveCanonicalTemplateDraftAction(
+    const revised = await saveCanonicalTemplateDraftAction(
       {},
       form({
         templateId: templateId ?? "",
@@ -444,36 +401,16 @@ describeDb("operator canonical template actions", () => {
         ),
       })
     );
-    expect(cleared.reviewCleared).toBe(true);
-    const unreviewed = await loadOperatorCanonicalTemplate(templateId ?? "");
-    expect(unreviewed?.openDraft?.reviewed).toBe(false);
+    expect(revised).toEqual({ ok: true });
+    const ready = await loadOperatorCanonicalTemplate(templateId ?? "");
+    expect(ready?.openDraft?.version).toBe(1);
 
-    const blockedPublish = await publishCanonicalTemplateRevisionAction(
-      {},
-      form({
-        templateId: templateId ?? "",
-        revisionId: unreviewed?.openDraft?.id ?? "",
-        expectedVersion: "1",
-      })
-    );
-    expect(blockedPublish.error).toMatch(/review/i);
-
-    await recordCanonicalTemplateReviewAction(
-      {},
-      form({
-        templateId: templateId ?? "",
-        revisionId: unreviewed?.openDraft?.id ?? "",
-        reviewerName: "Example Reviewer",
-        reviewerCredential: "Example credential",
-        reviewNote: "Example note",
-      })
-    );
     const publishedUrl = await redirectUrl(
       publishCanonicalTemplateRevisionAction(
         {},
         form({
           templateId: templateId ?? "",
-          revisionId: unreviewed?.openDraft?.id ?? "",
+          revisionId: ready?.openDraft?.id ?? "",
           expectedVersion: "1",
         })
       )
@@ -486,9 +423,19 @@ describeDb("operator canonical template actions", () => {
       version: 1,
       status: GuideRevisionStatus.PUBLISHED,
       publisherLabel: "River Operator",
-      reviewerName: "Example Reviewer",
-      reviewerCredential: "Example credential",
     });
+    expect(published?.revisions[0]?.publishedAtLabel).toBeTruthy();
+    const publishedRow =
+      await getPrisma().guideTemplateRevision.findFirstOrThrow({
+        where: {
+          guideTemplateId: templateId,
+          status: GuideRevisionStatus.PUBLISHED,
+          version: 1,
+        },
+      });
+    expect(publishedRow.publishedByUserId).toBe(OPERATOR_ID);
+    expect(publishedRow.publishedAt).not.toBeNull();
+    expect(publishedRow.reviewerName).toBeNull();
 
     const slugLocked = await updateCanonicalTemplateMetadataAction(
       {},
@@ -537,8 +484,6 @@ describeDb("operator canonical template actions", () => {
     expect(nextUrl).toContain("notice=revision-opened");
     const next = await loadOperatorCanonicalTemplate(templateId ?? "");
     expect(next?.openDraft?.version).toBe(2);
-    expect(next?.openDraft?.reviewed).toBe(false);
-    expect(next?.openDraft?.reviewerName).toBeNull();
     expect(next?.openDraft?.sections.map((section) => section.key)).toEqual(
       published?.revisions[0]?.sections.map((section) => section.key)
     );
@@ -559,14 +504,6 @@ describeDb("operator canonical template actions", () => {
       })
     ).toBe(1);
 
-    await recordCanonicalTemplateReviewAction(
-      {},
-      form({
-        templateId: templateId ?? "",
-        revisionId: next?.openDraft?.id ?? "",
-        reviewerName: "Example Reviewer",
-      })
-    );
     await redirectUrl(
       publishCanonicalTemplateRevisionAction(
         {},
@@ -627,7 +564,6 @@ describeDb("operator canonical template actions", () => {
     const sample = listed.find((template) => template.slug === "extraction");
     expect(sample?.isSample).toBe(true);
     expect(sample?.serviceCategoryLabel).toBe("Dental");
-    expect(sample?.draft?.reviewed ?? false).toBe(false);
     const sampleBefore = await getPrisma().guideTemplate.findUniqueOrThrow({
       where: { slug: "extraction" },
       include: { revisions: true },

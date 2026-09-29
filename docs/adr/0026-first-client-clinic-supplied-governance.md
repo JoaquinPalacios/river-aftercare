@@ -1,6 +1,6 @@
 # ADR 0026 — First-client clinical governance is clinic-supplied and clinic-attested
 
-- **Status:** Accepted
+- **Status:** Superseded in part by [ADR 0029](0029-publish-is-the-release-boundary.md). The sample designation and demo-tenant rules below remain. The practice-attestation publish gate does not.
 - **Date:** 2026-09-20
 - **PRD:** [../product/PRD.md](../product/PRD.md) §§10.3–10.5, 12, 13
 - **Related:** [0006](0006-canonical-guide-plus-practice-configuration.md), [0010](0010-practice-guides-explicitly-pin-canonical-revisions.md), [0017](0017-clinic-owned-practice-revisions-pin-public-documents.md), [0021](0021-clinic-patient-guides-stay-noindex-by-default.md)

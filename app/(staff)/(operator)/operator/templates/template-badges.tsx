@@ -22,18 +22,8 @@ export function TemplateActivityBadge({ isActive }: { isActive: boolean }) {
   );
 }
 
-export function TemplateDraftBadge({
-  version,
-  reviewed,
-}: {
-  version: number;
-  reviewed: boolean;
-}) {
-  return reviewed ? (
-    <span className="staffStatusPill" data-tone="success">
-      Draft v{version} reviewed
-    </span>
-  ) : (
+export function TemplateDraftBadge({ version }: { version: number }) {
+  return (
     <span className="staffStatusPill" data-tone="draft">
       Draft v{version}
     </span>

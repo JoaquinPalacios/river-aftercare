@@ -5,7 +5,6 @@ import { GuideRevisionStatus, type ServiceCategory } from "@prisma/client";
 import { canonicalContentSignature } from "@/lib/canonical-templates/content";
 import type { CanonicalContentSection } from "@/lib/canonical-templates/content";
 import type { CanonicalEditorSection } from "@/lib/aftercare/canonical-editor-content";
-import { hasCompleteCanonicalReviewEvidence } from "@/lib/aftercare/guide-template-review";
 import { serviceCategoryLabel } from "@/lib/aftercare/service-category";
 import type { GuideSectionKind } from "@/lib/aftercare/types";
 import { getPrisma } from "@/lib/prisma";
@@ -125,12 +124,6 @@ export interface OperatorTemplateRevisionView {
   status: "DRAFT" | "PUBLISHED";
   createdAtLabel: string;
   createdByLabel: string | null;
-  reviewed: boolean;
-  reviewerName: string | null;
-  reviewerCredential: string | null;
-  reviewNote: string | null;
-  reviewedAtLabel: string | null;
-  recordedByLabel: string | null;
   publishedAtLabel: string | null;
   publisherLabel: string | null;
   sectionCount: number;
@@ -153,12 +146,6 @@ export interface OperatorTemplateDetail {
   openDraft: {
     id: string;
     version: number;
-    reviewed: boolean;
-    reviewerName: string | null;
-    reviewerCredential: string | null;
-    reviewNote: string | null;
-    reviewedAtLabel: string | null;
-    recordedByLabel: string | null;
     savedContentSignature: string;
     sections: CanonicalEditorSection[];
   } | null;
@@ -187,12 +174,6 @@ export async function loadOperatorCanonicalTemplate(
           status: true,
           createdAt: true,
           createdBy: userSelect,
-          reviewerName: true,
-          reviewerCredential: true,
-          reviewNote: true,
-          reviewedAt: true,
-          reviewRecordedByUserId: true,
-          reviewRecordedBy: userSelect,
           publishedAt: true,
           publishedBy: userSelect,
           sections: sectionInclude,
@@ -229,12 +210,6 @@ export async function loadOperatorCanonicalTemplate(
       ? {
           id: draft.id,
           version: draft.version,
-          reviewed: hasCompleteCanonicalReviewEvidence(draft),
-          reviewerName: draft.reviewerName,
-          reviewerCredential: draft.reviewerCredential,
-          reviewNote: draft.reviewNote,
-          reviewedAtLabel: formatOperatorTimestamp(draft.reviewedAt),
-          recordedByLabel: personLabel(draft.reviewRecordedBy),
           savedContentSignature: contentSignature(draft.sections),
           sections: storedSectionsToEditor(draft.sections),
         }
@@ -245,12 +220,6 @@ export async function loadOperatorCanonicalTemplate(
       status: revision.status,
       createdAtLabel: formatOperatorTimestamp(revision.createdAt) ?? "",
       createdByLabel: personLabel(revision.createdBy),
-      reviewed: hasCompleteCanonicalReviewEvidence(revision),
-      reviewerName: revision.reviewerName,
-      reviewerCredential: revision.reviewerCredential,
-      reviewNote: revision.reviewNote,
-      reviewedAtLabel: formatOperatorTimestamp(revision.reviewedAt),
-      recordedByLabel: personLabel(revision.reviewRecordedBy),
       publishedAtLabel: formatOperatorTimestamp(revision.publishedAt),
       publisherLabel: personLabel(revision.publishedBy),
       sectionCount: revision.sections.length,
