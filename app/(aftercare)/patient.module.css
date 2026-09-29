@@ -422,7 +422,8 @@
 }
 
 .warning,
-.emergency {
+.emergency,
+.contact {
   position: relative;
   padding: 0.85rem 1rem;
   border: 0;
@@ -449,9 +450,6 @@
 }
 
 .contact {
-  position: relative;
-  padding: 0.85rem 1rem;
-  border: 0;
   background: color-mix(in srgb, var(--cg-brand) 8%, var(--cg-surface));
   box-shadow: inset 3px 0 0 var(--cg-brand);
 }
@@ -487,14 +485,14 @@
   color: var(--cg-text);
 }
 
-.disclaimer + .contact,
+.disclaimer + .practiceContact,
 .disclaimer + .printContact {
   margin-top: 1.35rem;
   padding-top: 0;
   border-top: 0;
 }
 
-.contact {
+.practiceContact {
   margin: 2rem 0 0;
   padding: 1.4rem 0 0;
   border-top: 1px solid var(--cg-border);
@@ -920,6 +918,7 @@
   .emergency,
   .reassurance,
   .contact,
+  .practiceContact,
   .printUrgent,
   .disclaimer,
   .timelineItem {

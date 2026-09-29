@@ -4,7 +4,29 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { GuideDocument } from "@/app/(aftercare)/components/guide-document";
+import { PracticeContact } from "@/app/(aftercare)/components/practice-contact";
+import patientStyles from "@/app/(aftercare)/patient.module.css";
+import type { PracticeChrome } from "@/lib/aftercare/practice-chrome";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
+
+const PRACTICE_CHROME: PracticeChrome = {
+  displayName: "Harbor Family Dental",
+  logoSrc: null,
+  darkLogoSrc: null,
+  faviconSrc: null,
+  phoneDisplay: "03 5550 0199",
+  phoneHref: "tel:0355500199",
+  addressText: null,
+  bookingHref: null,
+  contactHref: null,
+  emergencyInstructions: null,
+  showCareGuideAttribution: false,
+  showDemoNotice: false,
+  instructionTerminology: "AFTERCARE",
+  instructionsLabel: "Aftercare instructions",
+  themeMode: "SYSTEM",
+  allowPatientThemeToggle: true,
+};
 
 function section(
   overrides: Partial<ComposedGuideSection> &
@@ -290,6 +312,74 @@ describe("GuideDocument timeline rendering", () => {
     expect(styles).toContain("var(--cg-brand)");
     expect(styles).toContain("var(--cg-warning-surface)");
     expect(styles).toContain("var(--cg-emergency-surface)");
+  });
+
+  it("keeps contact practice callout padding and section separation off the practice footer", () => {
+    const html = renderToStaticMarkup(
+      <GuideDocument
+        sections={[
+          section({
+            key: "help",
+            kind: "CONTACT_PRACTICE",
+            title: "Contact the practice",
+            body: "Phone the clinic during opening hours.\n\n• Call the practice\n• Ask for the aftercare nurse",
+          }),
+          section({
+            key: "next",
+            kind: "RESTRICTIONS",
+            title: "Activity",
+            body: "Return to normal activity gradually.",
+          }),
+        ]}
+      />
+    );
+    const styles = readFileSync("app/(aftercare)/patient.module.css", "utf8");
+    const contactRules = [
+      ...styles.matchAll(/(?:^|\n)\.contact\s*\{([^}]*)\}/g),
+    ].filter((match) => !/,\s*$/.test(styles.slice(0, match.index ?? 0)));
+    const footer = renderToStaticMarkup(
+      <PracticeContact chrome={PRACTICE_CHROME} />
+    );
+
+    expect(html).toContain(
+      `class="${patientStyles.section} ${patientStyles.contact}"`
+    );
+    expect(html).toContain('data-guide-tone="contact"');
+    expect(html).toContain(patientStyles.contentList);
+    expect(html).toContain("Call the practice");
+    expect(html.indexOf("Contact the practice")).toBeLessThan(
+      html.indexOf("Activity")
+    );
+    expect(html).not.toContain(patientStyles.practiceContact);
+
+    expect(styles).toMatch(
+      /\.warning,\s*\.emergency,\s*\.contact\s*\{[^}]*padding:\s*0\.85rem 1rem;[^}]*border:\s*0;/
+    );
+    expect(contactRules).toHaveLength(1);
+    expect(contactRules[0]?.[1]).toContain(
+      "box-shadow: inset 3px 0 0 var(--cg-brand)"
+    );
+    expect(contactRules[0]?.[1]).toContain("var(--cg-surface)");
+    expect(contactRules[0]?.[1]).not.toMatch(/\bpadding\s*:/);
+    expect(contactRules[0]?.[1]).not.toMatch(/\bmargin\s*:/);
+    expect(contactRules[0]?.[1]).not.toContain("border-top");
+    expect(styles).toMatch(/\.section\s*\{[^}]*margin:\s*0 0 1\.35rem;/);
+    expect(styles).toMatch(
+      /\.contentList\s*\{[^}]*list-style-type:\s*disc;[^}]*padding-left:\s*1\.35rem;/
+    );
+    expect(styles).toMatch(
+      /\.contentList li \+ li,\s*\.contentOrderedList li \+ li\s*\{[^}]*margin-top:\s*0\.28rem;/
+    );
+    expect(styles).not.toMatch(/\.contact\s+\.contentList/);
+    expect(styles).not.toMatch(/\.contact\s+\.body/);
+    expect(styles).toMatch(
+      /\.practiceContact\s*\{[^}]*margin:\s*2rem 0 0;[^}]*padding:\s*1\.4rem 0 0;[^}]*border-top:\s*1px solid var\(--cg-border\);/
+    );
+    expect(styles).toContain(".disclaimer + .practiceContact");
+    expect(styles).not.toMatch(/\.disclaimer \+ \.contact\b/);
+
+    expect(footer).toContain(`class="${patientStyles.practiceContact}"`);
+    expect(footer).not.toContain(patientStyles.contact);
   });
 
   it("keeps timeline order and grouping when a stage contains a list", () => {
