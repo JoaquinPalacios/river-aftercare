@@ -259,7 +259,6 @@ async function publishGuide(input: {
     clinicId: input.clinicId,
     actorUserId: input.userId,
     guideId,
-    reviewAttested: true,
   });
   const revision = await db().practiceGuideRevision.findFirstOrThrow({
     where: {
@@ -756,7 +755,6 @@ describe("multi-location product", () => {
         clinicId: account.clinicId,
         actorUserId: account.userId,
         guideId: published.guideId,
-        reviewAttested: true,
       })
     ).rejects.toThrow(/already used by a location/);
     await expect(
@@ -885,7 +883,6 @@ describe("multi-location product", () => {
       clinicId: account.clinicId,
       actorUserId: account.userId,
       guideId: other.id,
-      reviewAttested: true,
     });
     await expect(
       getPublishedPracticeGuide({

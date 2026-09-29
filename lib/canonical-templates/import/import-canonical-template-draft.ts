@@ -2,8 +2,6 @@ import "server-only";
 
 import { GuideRevisionStatus, type Prisma } from "@prisma/client";
 
-import { canonicalContentSignature } from "@/lib/canonical-templates/content";
-import type { CanonicalContentSection } from "@/lib/canonical-templates/content";
 import { isReservedDemoCanonicalSlug } from "@/lib/canonical-templates/constants";
 import {
   canonicalTemplateTransactionOptions,
@@ -18,13 +16,7 @@ import {
 } from "@/lib/canonical-templates/import/files";
 import { CanonicalTemplateImportError } from "@/lib/canonical-templates/import/errors";
 import { lockCanonicalTemplate } from "@/lib/canonical-templates/locks";
-import {
-  IMPORT_REVIEW_CLEARED,
-  IMPORT_REVIEW_KEPT,
-  IMPORT_REVIEW_WILL_CLEAR,
-  IMPORT_REVIEW_WILL_KEEP,
-  IMPORT_SAMPLE_REFUSAL,
-} from "@/lib/canonical-templates/import/messages";
+import { IMPORT_SAMPLE_REFUSAL } from "@/lib/canonical-templates/import/messages";
 import {
   validateCanonicalTemplateImportPayload,
   type CanonicalTemplateImportValidation,
@@ -130,32 +122,6 @@ function emptyReport(
     failurePersisted: false,
     ...overrides,
   };
-}
-
-function toContentSections(
-  sections: readonly ContentSectionRow[]
-): CanonicalContentSection[] {
-  return sections.map((section) => ({
-    key: section.key,
-    kind: section.kind,
-    title: section.title,
-    body: section.body,
-    periodLabel: section.periodLabel,
-    startDay: section.startDay,
-    endDay: section.endDay,
-    sortOrder: section.sortOrder,
-    homeCareInstructions: section.homeCareInstructions.map((item) => ({
-      key: item.key,
-      title: item.title,
-      body: item.body,
-      frequencyCount: item.frequencyCount,
-      frequencyPeriod: item.frequencyPeriod,
-      timingLabel: item.timingLabel,
-      durationValue: item.durationValue,
-      durationUnit: item.durationUnit,
-      sortOrder: item.sortOrder,
-    })),
-  }));
 }
 
 async function loadImportTarget(slug: string): Promise<ImportTarget | null> {
@@ -283,23 +249,6 @@ function intendedDraftVersion(
   return target?.drafts.length === 1 ? target.drafts[0].version : null;
 }
 
-function dryRunReviewNotice(
-  parsed: ParsedCanonicalTemplateImport,
-  target: ImportTarget | null
-): string | null {
-  if (parsed.mode !== "update-draft" || target?.drafts.length !== 1) {
-    return null;
-  }
-  const draft = target.drafts[0];
-  if (!draft.reviewedAt) {
-    return null;
-  }
-  const same =
-    canonicalContentSignature(toContentSections(draft.sections)) ===
-    canonicalContentSignature(parsed.sections);
-  return same ? IMPORT_REVIEW_WILL_KEEP : IMPORT_REVIEW_WILL_CLEAR;
-}
-
 async function resolveImportOperator(email: string): Promise<{
   id: string;
   email: string;
@@ -418,7 +367,6 @@ async function applyParsedImport(input: {
           "conflict"
         );
       }
-      const hadReview = draft.reviewedAt != null;
       const saved = await saveCanonicalTemplateDraftInTransaction(tx, {
         templateId: existing.id,
         revisionId: draft.id,
@@ -429,8 +377,8 @@ async function applyParsedImport(input: {
         templateId: existing.id,
         revisionId: saved.revisionId,
         version: draft.version,
-        reviewCleared: saved.reviewCleared,
-        reviewKept: hadReview && !saved.reviewCleared,
+        reviewCleared: false,
+        reviewKept: false,
       };
     }, canonicalTemplateTransactionOptions);
   } catch (error) {
@@ -539,9 +487,7 @@ export async function importCanonicalTemplateDraft(input: {
   const conflicts = validation.parsed
     ? lifecycleConflicts(validation.parsed, target)
     : [];
-  const reviewNotice = validation.parsed
-    ? dryRunReviewNotice(validation.parsed, target)
-    : null;
+  const reviewNotice = null;
   const nextVersion = validation.parsed
     ? intendedDraftVersion(validation.parsed, target, conflicts)
     : null;
@@ -628,11 +574,7 @@ export async function importCanonicalTemplateDraft(input: {
   return {
     ...reportFromValidation({
       ...baseContext,
-      reviewNotice: applied.reviewCleared
-        ? IMPORT_REVIEW_CLEARED
-        : applied.reviewKept
-          ? IMPORT_REVIEW_KEPT
-          : null,
+      reviewNotice: null,
       intendedDraftVersion: applied.version,
     }),
     outcome: "applied",

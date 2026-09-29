@@ -163,7 +163,6 @@ function editorGuide(
     adaptedFromTemplate: false,
     downgradeRetainedAt: null,
     downgradeRetentionUntil: null,
-    reviewAttestation: null,
     serviceCategory: null,
     categoryEditable: false,
     sections: [],
@@ -232,7 +231,7 @@ describe("guide editor publication labels", () => {
     expect(button("Publish guide")).toBeTruthy();
     expect(button("Publish guide")?.disabled).toBe(false);
     expect(button("Unpublish")).toBeUndefined();
-    expect(button("Save draft")).toBeTruthy();
+    expect(button("Save")).toBeTruthy();
   });
 
   it("offers Unpublish for a published guide and hides Publish guide", async () => {

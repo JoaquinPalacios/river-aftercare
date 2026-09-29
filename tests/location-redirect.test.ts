@@ -633,7 +633,6 @@ describe("clinic location redirects", () => {
       clinicId: source.clinicId,
       actorUserId: source.userId,
       guideId: guide.id,
-      reviewAttested: true,
     });
     await retire({
       preparationId: preparation.id,
@@ -819,7 +818,6 @@ describe("clinic location redirects", () => {
         clinicId: source.clinicId,
         actorUserId: source.userId,
         guideId: movable.id,
-        reviewAttested: true,
       })
     ).rejects.toThrow(RETIRED_LOCATION_SLUG_MESSAGE);
     expect(
@@ -842,7 +840,6 @@ describe("clinic location redirects", () => {
       clinicId: source.clinicId,
       actorUserId: source.userId,
       guideId: movable.id,
-      reviewAttested: true,
     });
     await unpublishPracticeGuide({
       clinicId: source.clinicId,
@@ -870,7 +867,6 @@ describe("clinic location redirects", () => {
         clinicId: source.clinicId,
         actorUserId: source.userId,
         guideId: movable.id,
-        reviewAttested: true,
       })
     ).rejects.toThrow(RETIRED_LOCATION_SLUG_MESSAGE);
 
@@ -926,7 +922,6 @@ describe("clinic location redirects", () => {
       clinicId: source.clinicId,
       actorUserId: source.userId,
       guideId: published.id,
-      reviewAttested: true,
     });
     await expect(
       createClinicLocation({
@@ -1024,7 +1019,6 @@ describe("clinic location redirects", () => {
       clinicId: source.clinicId,
       actorUserId: source.userId,
       guideId: guide.id,
-      reviewAttested: true,
     });
     await db().clinicSite.update({
       where: { id: source.siteId },

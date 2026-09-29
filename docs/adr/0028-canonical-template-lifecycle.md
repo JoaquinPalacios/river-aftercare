@@ -1,6 +1,6 @@
 # ADR 0028 — Canonical template lifecycle
 
-- **Status:** Accepted
+- **Status:** Superseded in part by [ADR 0029](0029-publish-is-the-release-boundary.md). Draft, publish, immutability, and sample rules below remain. The record-review step and review-evidence publish gate do not.
 - **Date:** 2026-09-27
 - **PRD:** [../product/PRD.md](../product/PRD.md) §§12–13
 - **Related:** [0010](0010-practice-guides-explicitly-pin-canonical-revisions.md), [0026](0026-first-client-clinic-supplied-governance.md), [0027](0027-service-categories-and-composable-guide-grammar.md)

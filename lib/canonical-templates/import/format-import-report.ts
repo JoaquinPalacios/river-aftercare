@@ -65,15 +65,6 @@ export function formatCanonicalTemplateImportReport(
     lines.push(
       `Draft revision: ${report.draftVersion === null ? "unknown" : `v${report.draftVersion}`}`
     );
-    if (report.reviewCleared) {
-      lines.push(
-        "Review invalidated; the draft must be reviewed again before publication."
-      );
-    } else if (report.reviewKept) {
-      lines.push("Recorded review was not invalidated.");
-    } else {
-      lines.push("Review: not recorded");
-    }
     lines.push("Publication: not published");
   } else {
     lines.push(

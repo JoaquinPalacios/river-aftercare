@@ -139,6 +139,3 @@ export function canonicalDraftContentChanged(
 ): boolean {
   return canonicalEditorContentSignature(sections) !== savedSignature;
 }
-
-export const REVIEW_INVALIDATION_WARNING =
-  "Changing reviewed content will invalidate the recorded review. The revision will need to be reviewed again before publication.";

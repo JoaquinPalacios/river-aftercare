@@ -2,7 +2,6 @@ import "server-only";
 
 import { GuideRevisionStatus, type ServiceCategory } from "@prisma/client";
 
-import { hasCompleteCanonicalReviewEvidence } from "@/lib/aftercare/guide-template-review";
 import { serviceCategoryLabel } from "@/lib/aftercare/service-category";
 import { getPrisma } from "@/lib/prisma";
 
@@ -15,7 +14,7 @@ export interface OperatorTemplateListItem {
   isActive: boolean;
   isSample: boolean;
   latestPublishedVersion: number | null;
-  draft: { version: number; reviewed: boolean } | null;
+  draft: { version: number } | null;
 }
 
 export interface OperatorTemplateListFilters {
@@ -41,9 +40,6 @@ export async function listOperatorCanonicalTemplates(): Promise<
         select: {
           version: true,
           status: true,
-          reviewerName: true,
-          reviewedAt: true,
-          reviewRecordedByUserId: true,
         },
       },
     },
@@ -70,7 +66,6 @@ export async function listOperatorCanonicalTemplates(): Promise<
       draft: draft
         ? {
             version: draft.version,
-            reviewed: hasCompleteCanonicalReviewEvidence(draft),
           }
         : null,
     };

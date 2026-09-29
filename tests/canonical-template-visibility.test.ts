@@ -130,7 +130,7 @@ describe("canonical template visibility and enablement", () => {
     await prisma.$disconnect();
   });
 
-  it("shows sample templates only to demodental and reviewed templates to normal clinics", async (ctx) => {
+  it("shows published templates to clinics and sample templates only to demodental", async (ctx) => {
     if (!(await connectOrSkip(ctx))) {
       return;
     }
@@ -290,17 +290,23 @@ describe("canonical template visibility and enablement", () => {
 
     expect(demoIds.has(SAMPLE_TEMPLATE_ID)).toBe(true);
     expect(demoIds.has(REVIEWED_TEMPLATE_ID)).toBe(true);
-    expect(demoIds.has(UNREVIEWED_GENERIC_ID)).toBe(false);
+    expect(demoIds.has(UNREVIEWED_GENERIC_ID)).toBe(true);
     expect(demoIds.has(INACTIVE_TEMPLATE_ID)).toBe(false);
     expect(demoIds.has(DRAFT_TEMPLATE_ID)).toBe(false);
 
     expect(normalIds.has(REVIEWED_TEMPLATE_ID)).toBe(true);
     expect(normalIds.has(SAMPLE_TEMPLATE_ID)).toBe(false);
-    expect(normalIds.has(UNREVIEWED_GENERIC_ID)).toBe(false);
+    expect(normalIds.has(UNREVIEWED_GENERIC_ID)).toBe(true);
+    expect(normalIds.has(INACTIVE_TEMPLATE_ID)).toBe(false);
+    expect(normalIds.has(DRAFT_TEMPLATE_ID)).toBe(false);
     expect(
       normal.templates.find((template) => template.id === REVIEWED_TEMPLATE_ID)
         ?.availability
-    ).toBe("reviewed");
+    ).toBe("published");
+    expect(
+      normal.templates.find((template) => template.id === UNREVIEWED_GENERIC_ID)
+        ?.availability
+    ).toBe("published");
 
     const seededExtraction = demo.templates.find(
       (template) => template.slug === DEMO_EXTRACTION_TEMPLATE_SLUG

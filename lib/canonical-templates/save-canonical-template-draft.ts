@@ -17,14 +17,6 @@ import {
   type CanonicalDraftSection,
 } from "@/lib/canonical-templates/sections";
 
-const CLEARED_CANONICAL_REVIEW = {
-  reviewerName: null,
-  reviewerCredential: null,
-  reviewNote: null,
-  reviewedAt: null,
-  reviewRecordedByUserId: null,
-} as const;
-
 export const canonicalDraftSectionWriter = {
   async replace(
     tx: Prisma.TransactionClient,
@@ -48,7 +40,7 @@ export const canonicalDraftSectionWriter = {
 /**
  * Replaces one draft inside a transaction the caller already opened.
  * Existing-template callers must hold the template advisory lock.
- * A content change after review evidence was recorded clears that evidence.
+ * Historical review columns, if present, are left unchanged.
  */
 export async function saveCanonicalTemplateDraftInTransaction(
   tx: Prisma.TransactionClient,
@@ -58,7 +50,7 @@ export async function saveCanonicalTemplateDraftInTransaction(
     actorUserId: string;
     sections: readonly CanonicalDraftSection[];
   }
-): Promise<{ revisionId: string; reviewCleared: boolean }> {
+): Promise<{ revisionId: string }> {
   await requireCanonicalActor(tx, input.actorUserId);
   const template = await loadCanonicalTemplate(tx, input.templateId);
   assertProductionCanonicalTemplate(template);
@@ -78,35 +70,26 @@ export async function saveCanonicalTemplateDraftInTransaction(
   const contentChanged =
     canonicalContentSignature(existing) !==
     canonicalContentSignature(input.sections);
-  const reviewCleared = contentChanged && revision.reviewedAt != null;
 
   if (!contentChanged) {
-    return { revisionId: revision.id, reviewCleared: false };
-  }
-
-  if (reviewCleared) {
-    await tx.guideTemplateRevision.update({
-      where: { id: revision.id },
-      data: CLEARED_CANONICAL_REVIEW,
-    });
+    return { revisionId: revision.id };
   }
 
   await canonicalDraftSectionWriter.replace(tx, revision.id, input.sections);
-  return { revisionId: revision.id, reviewCleared };
+  return { revisionId: revision.id };
 }
 
 /**
  * Replaces the draft's sections and home-care instructions.
- * A content change after review evidence was recorded clears that evidence.
  * Template title, slug, and service category are not content and are not
- * written here.
+ * written here. Historical review columns are not cleared.
  */
 export async function saveCanonicalTemplateDraft(input: {
   templateId: string;
   revisionId: string;
   actorUserId: string;
   sections: unknown;
-}): Promise<{ revisionId: string; reviewCleared: boolean }> {
+}): Promise<{ revisionId: string }> {
   const sections = parseCanonicalDraftSections(input.sections);
 
   return runLockedCanonicalTemplateTransaction(input.templateId, (tx) =>

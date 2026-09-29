@@ -67,16 +67,14 @@ export function CreateGuideForm({
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5 shadow-sm">
         <h2 className="text-base font-semibold tracking-tight">
-          {isDemoTenant
-            ? "Start from a template"
-            : "Start from a reviewed template"}
+          Start from a template
         </h2>
         <p className="mt-2 text-sm leading-6 text-staff-muted">
           {isDemoTenant
             ? `Use a ${PRODUCT_NAME} sample template, then adapt it for this demo. Editing it creates your clinic’s own copy and uses one editable-template allowance.`
             : allowance.governed
               ? `Enable a ${PRODUCT_NAME} template as supplied. Using it unchanged does not use a custom-guide or editable-template place. Editing it later creates your clinic’s own copy and uses one editable-template allowance.`
-              : `Enable a reviewed ${PRODUCT_NAME} template for this practice.`}
+              : `Enable a published ${PRODUCT_NAME} template for this practice.`}
         </p>
         {templatesNeedServiceCategories ? (
           <p className="mt-4 text-sm leading-6 text-staff-muted">
@@ -87,7 +85,7 @@ export function CreateGuideForm({
           <p className="mt-4 text-sm text-staff-muted">
             {isDemoTenant
               ? "No sample templates are available yet."
-              : "No reviewed templates are available yet."}
+              : "No published templates are available yet."}
           </p>
         ) : (
           <>
@@ -346,7 +344,7 @@ function TemplateList({
               ? "Already in your guides"
               : template.availability === "sample"
                 ? "Sample template"
-                : "Reviewed template"}
+                : "Published template"}
           </p>
           {template.alreadyEnabled ? null : (
             <form action={action} className="mt-3">

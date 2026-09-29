@@ -180,9 +180,6 @@ export async function createPracticeGuideFromTemplate(input: {
           id: true,
           version: true,
           status: true,
-          reviewedAt: true,
-          reviewerName: true,
-          reviewRecordedByUserId: true,
           sections: {
             orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
             include: {

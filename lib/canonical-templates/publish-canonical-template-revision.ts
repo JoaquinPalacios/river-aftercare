@@ -2,7 +2,6 @@ import "server-only";
 
 import { GuideRevisionStatus } from "@prisma/client";
 
-import { hasCompleteCanonicalReviewEvidence } from "@/lib/aftercare/guide-template-review";
 import {
   assertCanonicalDraft,
   assertKnownServiceCategory,
@@ -17,7 +16,8 @@ import { assertPublishableCanonicalSections } from "@/lib/canonical-templates/se
 
 /**
  * Publishes one production draft. Section and home-care rows are validated
- * and left in place. Sample publication stays on the demo bootstrap.
+ * and left in place. Publication records the publisher and time. Review
+ * metadata is not required. Sample publication stays on the demo bootstrap.
  */
 export async function publishCanonicalTemplateRevision(input: {
   templateId: string;
@@ -57,13 +57,6 @@ export async function publishCanonicalTemplateRevision(input: {
       },
     });
     assertPublishableCanonicalSections(stored);
-
-    if (!hasCompleteCanonicalReviewEvidence(revision)) {
-      throw new CanonicalTemplateError(
-        "Record a complete clinical review before publishing.",
-        "unreviewed"
-      );
-    }
 
     const publishedAt = new Date();
     await tx.guideTemplateRevision.update({

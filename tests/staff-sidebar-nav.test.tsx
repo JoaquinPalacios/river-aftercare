@@ -387,7 +387,93 @@ describe("staff sidebar navigation", () => {
     expect(css).toContain("color: var(--staff-panel)");
     expect(css).toContain("overflow-x: clip");
     expect(css).toContain("width: 4.75rem");
+    expect(css).toContain(".staffSidebarToggle");
+    expect(css).toContain("width: 100%");
+    expect(css).toContain(".ptlChooserFlyout");
+    expect(css).toContain("position: fixed");
+    expect(css).toContain(
+      '.staffAppSidebar[data-collapsed="true"] .staffSidebarTools'
+    );
     expect(css).not.toContain("[data-tooltip]:hover::after");
+    expect(css).not.toContain(".ptlChooser {\n    position: absolute");
+  });
+
+  it("opens collapsed Appearance in a portaled menu and stores the theme", async () => {
+    localStorage.setItem("river-aftercare-staff-sidebar", "collapsed");
+    await act(async () => {
+      root.render(
+        <OperatorAccountChrome userLabel="River Operator">
+          <p>Operator content</p>
+        </OperatorAccountChrome>
+      );
+    });
+
+    const aside = container.querySelector(
+      "aside.staffAppSidebar"
+    ) as HTMLElement;
+    expect(aside.getAttribute("data-collapsed")).toBe("true");
+    const appearance = aside.querySelector(
+      'button[data-tooltip="Appearance"]'
+    ) as HTMLButtonElement;
+    expect(appearance).not.toBeNull();
+    expect(appearance.getAttribute("aria-label")).toContain("Appearance");
+    appearance.getBoundingClientRect = () =>
+      ({
+        top: 240,
+        right: 76,
+        bottom: 284,
+        left: 12,
+        width: 64,
+        height: 44,
+        x: 12,
+        y: 240,
+        toJSON() {
+          return {};
+        },
+      }) as DOMRect;
+
+    await act(async () => {
+      appearance.click();
+    });
+
+    const menu = document.body.querySelector(
+      '[role="radiogroup"]'
+    ) as HTMLElement;
+    expect(menu).not.toBeNull();
+    expect(menu.className).toContain("ptlChooserFlyout");
+    expect(aside.contains(menu)).toBe(false);
+    expect(menu.parentElement).toBe(document.body);
+    expect(menu.style.left).toBe("84px");
+    expect(menu.getAttribute("aria-label")).toBe("Colour theme");
+
+    const dark = [...menu.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Dark")
+    ) as HTMLButtonElement;
+    await act(async () => {
+      dark.click();
+    });
+    expect(localStorage.getItem("aftercare-guide-portal-theme")).toBe("dark");
+    expect(document.documentElement.getAttribute("data-theme-mode")).toBe(
+      "dark"
+    );
+    expect(document.body.querySelector('[role="radiogroup"]')).toBeNull();
+
+    await act(async () => {
+      appearance.click();
+    });
+    const reopened = document.body.querySelector(
+      '[role="radiogroup"]'
+    ) as HTMLElement;
+    const system = [...reopened.querySelectorAll('[role="radio"]')].find(
+      (button) => button.textContent?.includes("System")
+    ) as HTMLButtonElement;
+    await act(async () => {
+      system.click();
+    });
+    expect(localStorage.getItem("aftercare-guide-portal-theme")).toBe("system");
+    expect(document.documentElement.getAttribute("data-theme-mode")).toBe(
+      "system"
+    );
   });
 
   it("does not add a navigation spinner to sidebar primitives", () => {

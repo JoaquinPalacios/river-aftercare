@@ -371,7 +371,6 @@ describeDb("account structure lock participation", () => {
         clinicId: account.id,
         actorUserId: userId,
         guideId: guide.id,
-        reviewAttested: true,
       }).finally(() => {
         published = true;
       });

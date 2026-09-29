@@ -59,8 +59,8 @@ export default async function OperatorTemplateDraftPage({
       ) : null}
       {template.isSample ? (
         <p className="rounded-xl border border-staff-line bg-staff-panel px-4 py-3 text-sm">
-          Sample templates stay outside the production draft, review, and
-          publish workflow.
+          Sample templates stay outside the production draft and publish
+          workflow.
         </p>
       ) : null}
       {!draft ? (
@@ -89,25 +89,10 @@ export default async function OperatorTemplateDraftPage({
             templateTitle={template.title}
             revisionId={draft.id}
             version={draft.version}
-            reviewed={draft.reviewed}
-            reviewSummary={
-              draft.reviewed && draft.reviewerName
-                ? {
-                    reviewerName: draft.reviewerName,
-                    reviewerCredential: draft.reviewerCredential,
-                    reviewNote: draft.reviewNote,
-                    reviewedAtLabel: draft.reviewedAtLabel,
-                    recordedByLabel: draft.recordedByLabel,
-                  }
-                : null
-            }
             savedContentSignature={draft.savedContentSignature}
             initialSections={draft.sections}
             isActive={template.isActive}
             neverPublished={template.latestPublishedVersion === null}
-            reviewerName={draft.reviewerName ?? ""}
-            reviewerCredential={draft.reviewerCredential ?? ""}
-            reviewNote={draft.reviewNote ?? ""}
           />
         </>
       )}

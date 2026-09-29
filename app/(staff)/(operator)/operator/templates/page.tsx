@@ -57,8 +57,8 @@ export default async function OperatorTemplatesPage({
             Templates
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-staff-muted">
-            Production canonical templates for eligible clinics. Review and
-            publication are separate. The sample template stays demo-only.
+            Production canonical templates for eligible clinics. Save keeps a
+            draft. Publish releases it. The sample template stays demo-only.
           </p>
         </div>
         <Link
@@ -183,10 +183,7 @@ export default async function OperatorTemplatesPage({
                   </td>
                   <td className="px-4 py-3">
                     {template.draft ? (
-                      <TemplateDraftBadge
-                        version={template.draft.version}
-                        reviewed={template.draft.reviewed}
-                      />
+                      <TemplateDraftBadge version={template.draft.version} />
                     ) : (
                       <span className="text-staff-muted">None</span>
                     )}

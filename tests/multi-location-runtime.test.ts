@@ -710,7 +710,6 @@ describe("multi-location runtime switch", () => {
       clinicId: `${PREFIX}clinic`,
       actorUserId: `${PREFIX}user`,
       guideId: custom.id,
-      reviewAttested: true,
     });
     const otherLocation = await db().clinicLocation.create({
       data: {
@@ -763,7 +762,6 @@ describe("multi-location runtime switch", () => {
       clinicId: `${PREFIX}clinic`,
       actorUserId: `${PREFIX}user`,
       guideId: custom.id,
-      reviewAttested: true,
     });
     expect(second.version).toBe(first.version + 1);
 
@@ -828,7 +826,6 @@ describe("multi-location runtime switch", () => {
         clinicId: `${PREFIX}other`,
         actorUserId: `${PREFIX}user`,
         guideId: custom.id,
-        reviewAttested: true,
       })
     ).rejects.toBeInstanceOf(ClinicPortalError);
 

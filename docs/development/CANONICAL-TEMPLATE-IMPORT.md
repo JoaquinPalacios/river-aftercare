@@ -1,20 +1,20 @@
 # Canonical template draft import
 
-Import creates or fills ordinary **DRAFT** revisions so Operator review can start from structured JSON. It is a local authoring tool for the initial River template library and later controlled bulk updates.
+Import creates or fills ordinary **DRAFT** revisions from structured JSON. It is a local authoring tool for the initial River template library and later controlled bulk updates.
 
-Import is not a publisher, a clinical review, a replacement for `/operator/templates`, or a production data migration.
+Import is not a publisher, a replacement for `/operator/templates`, or a production data migration.
 
 ## Invariant
 
-Import may create or populate canonical drafts. Import can never record clinical review or publish a canonical revision.
+Import may create or populate canonical drafts. Import can never publish a canonical revision.
 
-An imported draft still goes through Operator Templates: inspect or edit, record review, then publish. The importer has no `reviewed`, `approved`, `publish`, `published`, `reviewerName`, `reviewedAt`, or `publishedAt` operation.
+An imported draft still goes through Operator Templates: inspect or edit, Save, then Publish. The importer has no `reviewed`, `approved`, `publish`, `published`, `reviewerName`, `reviewedAt`, or `publishedAt` operation.
 
 ## Command
 
 Dry-run is the default. Nothing is written unless `--apply` is present.
 
-Production import creates drafts only. Clinical review and publication still happen in Operator Templates.
+Production import creates drafts only. Publication still happens in Operator Templates with Save, then Publish.
 
 ```bash
 pnpm canonical-template:import -- fixtures/canonical-template-import/example-physio.json
@@ -86,7 +86,7 @@ Replaces the content of the one open draft.
 - A published revision with no open draft is refused. Use `create-revision`.
 - Identity rules match `create-revision`.
 
-In one transaction, locks the template and calls `saveCanonicalTemplateDraftInTransaction`. The public `saveCanonicalTemplateDraft` service uses that same operation. If that draft already has review evidence and the content changes, the lifecycle service clears the review in the same transaction. Dry-run says so before any write. Apply then reports: `Review invalidated; the draft must be reviewed again before publication.` Identical content leaves the review in place when the lifecycle service does.
+In one transaction, locks the template and calls `saveCanonicalTemplateDraftInTransaction`. The public `saveCanonicalTemplateDraft` service uses that same operation. A content change does not clear historical review columns, and the report does not mention review. Import still does not publish.
 
 ## Payload
 
@@ -130,7 +130,7 @@ Content is validated before the transaction starts. Each payload then commits in
 
 - `create` creates the production template, draft v1, and imported sections together.
 - `create-revision` opens the next draft and replaces its cloned sections together. The published revision is not updated.
-- `update-draft` replaces the open draft, and clears review evidence in that same transaction when the content changed.
+- `update-draft` replaces the open draft. It does not publish, and it does not clear historical review columns.
 
 A failure inside the transaction rolls back. The importer does not compensate with `abandonCanonicalTemplateDraft`. That operation remains the Operator action for discarding a draft on purpose.
 
@@ -143,9 +143,19 @@ One file does not roll back another file. Audit fields come from the lifecycle s
 3. Correct the reported validation and lifecycle errors.
 4. Apply with `--apply` and `--operator-email`.
 5. Open `/operator/templates`.
-6. Review and edit the draft preview.
-7. Record clinical review.
-8. Publish in Operator Templates.
+6. Edit the draft and Save.
+7. Publish in Operator Templates.
+
+Save persists the editable draft. Publish is the release. Drafts stay hidden from clinics until published.
+
+### Procedure-recovery timeline
+
+For procedure-recovery templates such as Tooth Extraction, Wisdom Tooth Removal, and Dental Implant Placement, prefer this structure:
+
+- Standalone `Immediate care`
+- Recovery timeline stages, normally starting with `First 24 hours`, then Days 2–3, Days 4–7, and later stages as appropriate
+
+`First 24 hours` therefore normally belongs inside the Recovery timeline. This is an authoring convention. Do not delete the `FIRST_24_HOURS` section kind, and do not rewrite existing template rows to match it.
 
 Import ends at step 4.
 

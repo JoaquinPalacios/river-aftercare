@@ -17,7 +17,6 @@ import {
 
 import { createCanonicalTemplate } from "@/lib/canonical-templates/create-canonical-template";
 import { publishCanonicalTemplateRevision } from "@/lib/canonical-templates/publish-canonical-template-revision";
-import { recordCanonicalTemplateReview } from "@/lib/canonical-templates/record-canonical-template-review";
 import {
   canonicalDraftSectionWriter,
   saveCanonicalTemplateDraft,
@@ -26,13 +25,7 @@ import {
   importCanonicalTemplateDraft,
   importCanonicalTemplateFiles,
 } from "@/lib/canonical-templates/import/import-canonical-template-draft";
-import {
-  IMPORT_REVIEW_CLEARED,
-  IMPORT_REVIEW_KEPT,
-  IMPORT_REVIEW_WILL_CLEAR,
-  IMPORT_REVIEW_WILL_KEEP,
-  IMPORT_SAMPLE_REFUSAL,
-} from "@/lib/canonical-templates/import/messages";
+import { IMPORT_SAMPLE_REFUSAL } from "@/lib/canonical-templates/import/messages";
 import { listCanonicalGuideTemplates } from "@/lib/clinic-portal/list-canonical-templates";
 import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
 import { assignPrimarySiteServiceCategories } from "@/lib/clinics/site-service-categories";
@@ -166,12 +159,6 @@ async function publishSynthetic(
     revisionId: created.revisionId,
     actorUserId: OPERATOR_ID,
     sections,
-  });
-  await recordCanonicalTemplateReview({
-    actorUserId: OPERATOR_ID,
-    templateId: created.templateId,
-    revisionId: created.revisionId,
-    reviewerName: "Dr Ada Example",
   });
   await publishCanonicalTemplateRevision({
     actorUserId: OPERATOR_ID,
@@ -448,7 +435,7 @@ describeDb("canonical template draft import", () => {
     expect(publishedOnly.outcome).toBe("invalid");
   });
 
-  it("invalidates a reviewed draft on change and keeps review when content matches", async () => {
+  it("updates draft content without publishing or clearing historical review", async () => {
     const created = await createCanonicalTemplate({
       actorUserId: OPERATOR_ID,
       title: "Example placeholder template",
@@ -461,13 +448,16 @@ describeDb("canonical template draft import", () => {
       actorUserId: OPERATOR_ID,
       sections: [section("Original placeholder copy.")],
     });
-    await recordCanonicalTemplateReview({
-      actorUserId: OPERATOR_ID,
-      templateId: created.templateId,
-      revisionId: created.revisionId,
-      reviewerName: "Dr Ada Example",
-      reviewerCredential: "Example credential",
-      reviewNote: "Synthetic review note.",
+    const historicalReviewedAt = new Date("2026-09-01T00:00:00.000Z");
+    await getPrisma().guideTemplateRevision.update({
+      where: { id: created.revisionId },
+      data: {
+        reviewerName: "Dr Ada Example",
+        reviewerCredential: "BDS",
+        reviewNote: "Historical note.",
+        reviewedAt: historicalReviewedAt,
+        reviewRecordedByUserId: OPERATOR_ID,
+      },
     });
 
     const dryRun = await importCanonicalTemplateDraft({
@@ -480,12 +470,14 @@ describeDb("canonical template draft import", () => {
       operatorEmail: OPERATOR_EMAIL,
     });
     expect(dryRun.outcome).toBe("valid");
-    expect(dryRun.reviewNotice).toBe(IMPORT_REVIEW_WILL_CLEAR);
-    const stillReviewed =
+    expect(dryRun.reviewNotice).toBeNull();
+    const stillHistorical =
       await getPrisma().guideTemplateRevision.findUniqueOrThrow({
         where: { id: created.revisionId },
       });
-    expect(stillReviewed.reviewedAt).not.toBeNull();
+    expect(stillHistorical.reviewedAt?.toISOString()).toBe(
+      historicalReviewedAt.toISOString()
+    );
 
     const applied = await importCanonicalTemplateDraft({
       payload: payload({
@@ -497,55 +489,25 @@ describeDb("canonical template draft import", () => {
       operatorEmail: OPERATOR_EMAIL,
     });
     expect(applied.outcome).toBe("applied");
-    expect(applied.reviewCleared).toBe(true);
-    expect(applied.reviewNotice).toBe(IMPORT_REVIEW_CLEARED);
-    const cleared = await getPrisma().guideTemplateRevision.findUniqueOrThrow({
-      where: { id: created.revisionId },
-    });
-    expect(cleared.status).toBe(GuideRevisionStatus.DRAFT);
-    expect(cleared.reviewerName).toBeNull();
-    expect(cleared.reviewerCredential).toBeNull();
-    expect(cleared.reviewNote).toBeNull();
-    expect(cleared.reviewedAt).toBeNull();
-    expect(cleared.reviewRecordedByUserId).toBeNull();
-    expect(cleared.publishedAt).toBeNull();
-    expect(cleared.publishedByUserId).toBeNull();
-    expect(cleared.createdByUserId).toBe(OPERATOR_ID);
-
-    await recordCanonicalTemplateReview({
-      actorUserId: OPERATOR_ID,
-      templateId: created.templateId,
-      revisionId: created.revisionId,
-      reviewerName: "Dr Ada Example",
-    });
-    const sameDryRun = await importCanonicalTemplateDraft({
-      payload: payload({
-        mode: "update-draft",
-        slug: "cti-review",
-        sections: [section("Changed placeholder copy.")],
-      }),
-      apply: false,
-    });
-    expect(sameDryRun.reviewNotice).toBe(IMPORT_REVIEW_WILL_KEEP);
-    const same = await importCanonicalTemplateDraft({
-      payload: payload({
-        mode: "update-draft",
-        slug: "cti-review",
-        sections: [section("Changed placeholder copy.")],
-      }),
-      apply: true,
-      operatorEmail: OPERATOR_EMAIL,
-    });
-    expect(same.outcome).toBe("applied");
-    expect(same.reviewCleared).toBe(false);
-    expect(same.reviewKept).toBe(true);
-    expect(same.reviewNotice).toBe(IMPORT_REVIEW_KEPT);
+    expect(applied.reviewCleared).toBe(false);
+    expect(applied.reviewKept).toBe(false);
+    expect(applied.reviewNotice).toBeNull();
     const kept = await getPrisma().guideTemplateRevision.findUniqueOrThrow({
       where: { id: created.revisionId },
+      include: { sections: true },
     });
+    expect(kept.status).toBe(GuideRevisionStatus.DRAFT);
     expect(kept.reviewerName).toBe("Dr Ada Example");
-    expect(kept.reviewedAt).not.toBeNull();
+    expect(kept.reviewerCredential).toBe("BDS");
+    expect(kept.reviewNote).toBe("Historical note.");
+    expect(kept.reviewedAt?.toISOString()).toBe(
+      historicalReviewedAt.toISOString()
+    );
+    expect(kept.reviewRecordedByUserId).toBe(OPERATOR_ID);
     expect(kept.publishedAt).toBeNull();
+    expect(kept.publishedByUserId).toBeNull();
+    expect(kept.createdByUserId).toBe(OPERATOR_ID);
+    expect(kept.sections[0]?.body).toContain("Changed placeholder copy.");
   });
 
   it("does not change title or service category for an existing template", async () => {
@@ -674,11 +636,13 @@ describeDb("canonical template draft import", () => {
     });
     const draftId = (await snapshotTemplate("cti-atomic-update"))?.revisions[0]
       ?.id;
-    await recordCanonicalTemplateReview({
-      actorUserId: OPERATOR_ID,
-      templateId: created.templateId ?? "",
-      revisionId: draftId ?? "",
-      reviewerName: "Dr Ada Example",
+    await getPrisma().guideTemplateRevision.update({
+      where: { id: draftId ?? "" },
+      data: {
+        reviewerName: "Dr Ada Example",
+        reviewedAt: new Date("2026-09-01T00:00:00.000Z"),
+        reviewRecordedByUserId: OPERATOR_ID,
+      },
     });
     const before = await snapshotTemplate("cti-atomic-update");
     vi.spyOn(canonicalDraftSectionWriter, "replace").mockRejectedValueOnce(

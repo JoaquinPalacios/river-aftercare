@@ -429,7 +429,6 @@ describe("service categories and guide classification", () => {
       clinicId: account.clinicId,
       actorUserId: account.userId,
       guideId: created.id,
-      reviewAttested: true,
     });
     const published = await db().practiceGuideRevision.findFirstOrThrow({
       where: { practiceGuideId: created.id, status: "PUBLISHED" },
@@ -726,7 +725,6 @@ describe("service categories and guide classification", () => {
       clinicId: physioRoot.clinicId,
       actorUserId: physioRoot.userId,
       guideId: unplaced.id,
-      reviewAttested: true,
     });
     expect(
       await db().practiceGuidePlacement.count({
@@ -755,7 +753,6 @@ describe("service categories and guide classification", () => {
         clinicId: dentalOnly.clinicId,
         actorUserId: dentalOnly.userId,
         guideId: blocked.id,
-        reviewAttested: true,
       })
     ).rejects.toBeInstanceOf(ClinicPortalError);
     const blockedGuide = await db().practiceGuide.findUniqueOrThrow({
@@ -885,7 +882,6 @@ describe("service categories and guide classification", () => {
       clinicId: templateAccount.clinicId,
       actorUserId: templateAccount.userId,
       guideId: pinned.id,
-      reviewAttested: true,
     });
     const pinnedPlacement = await db().practiceGuidePlacement.findFirstOrThrow({
       where: { practiceGuideId: pinned.id },

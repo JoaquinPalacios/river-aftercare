@@ -211,7 +211,6 @@ describe("guide slug fields", () => {
       adaptedFromTemplate: false,
       downgradeRetainedAt: null,
       downgradeRetentionUntil: null,
-      reviewAttestation: null,
       serviceCategory: null,
       categoryEditable: false,
       sections: [],

@@ -3,7 +3,6 @@ import { ClinicMembershipRole } from "@prisma/client";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
-import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import { getPrimaryPatientChrome } from "@/lib/aftercare/get-clinic-by-slug";
 import { GuideEditor } from "@/app/(staff)/(clinic-portal)/guides/guide-editor";
 import { GuidePlacementBoard } from "@/app/(staff)/(clinic-portal)/guides/guide-placement-board";
@@ -132,7 +131,6 @@ export default async function GuideEditPage({ params }: GuideEditPageProps) {
                 : "The 60-day recovery period for this guide has ended. This guide is read-only."
               : null
           }
-          requiresReviewAttestation={!isDemoTenant(overview?.slug ?? "")}
           clinicThemeMode={clinic?.profile?.themeMode}
           fontClassName={font.className}
           fontCssVariable={font.cssVariable}

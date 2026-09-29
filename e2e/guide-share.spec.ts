@@ -140,7 +140,7 @@ test.describe("published guide QR sharing", () => {
     await page.getByLabel("Short introduction").fill("Published copy for QR.");
     await expect(page.locator("[data-save-state=unsaved]")).toBeVisible();
     await page
-      .getByRole("button", { name: "Save draft" })
+      .getByRole("button", { name: "Save", exact: true })
       .filter({ visible: true })
       .click();
     await expect(page.locator("[data-save-state=saved]")).toBeVisible();

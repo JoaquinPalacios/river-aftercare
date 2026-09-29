@@ -5,7 +5,6 @@ import { readFileSync } from "node:fs";
 import { GuideRevisionStatus, PracticeGuideStatus } from "@prisma/client";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import { hasCompleteCanonicalReviewEvidence } from "@/lib/aftercare/guide-template-review";
 import { WORKING_DRAFT_VERSION } from "@/lib/aftercare/practice-revision-document";
 import { abandonCanonicalTemplateDraft } from "@/lib/canonical-templates/abandon-canonical-template-draft";
 import {
@@ -24,7 +23,6 @@ import {
   lockCanonicalTemplate,
 } from "@/lib/canonical-templates/locks";
 import { publishCanonicalTemplateRevision } from "@/lib/canonical-templates/publish-canonical-template-revision";
-import { recordCanonicalTemplateReview } from "@/lib/canonical-templates/record-canonical-template-review";
 import { saveCanonicalTemplateDraft } from "@/lib/canonical-templates/save-canonical-template-draft";
 import {
   createCanonicalTemplateSchema,
@@ -348,13 +346,6 @@ describeDb("canonical template lifecycle", () => {
       actorUserId: OPERATOR_ID,
       sections: [intro],
     });
-    await recordCanonicalTemplateReview({
-      templateId: created.templateId,
-      revisionId: created.revisionId,
-      actorUserId: OPERATOR_ID,
-      reviewerName: REVIEWER,
-      reviewerCredential: "BDS",
-    });
     await publishCanonicalTemplateRevision({
       templateId: created.templateId,
       revisionId: created.revisionId,
@@ -391,7 +382,7 @@ describeDb("canonical template lifecycle", () => {
     expect(published.slug).toBe("ctl-meta-fixed");
     expect(published.serviceCategory).toBe("CHIROPRACTIC");
     expect(published.isSample).toBe(false);
-    expect(published.revisions[0]?.reviewerName).toBe(REVIEWER);
+    expect(published.revisions[0]?.reviewerName).toBeNull();
   });
 
   it("clones the latest published revision into exactly one next draft", async () => {
@@ -406,12 +397,6 @@ describeDb("canonical template lifecycle", () => {
       revisionId: created.revisionId,
       actorUserId: OPERATOR_ID,
       sections: [intro, planSection()],
-    });
-    await recordCanonicalTemplateReview({
-      templateId: created.templateId,
-      revisionId: created.revisionId,
-      actorUserId: OPERATOR_ID,
-      reviewerName: REVIEWER,
     });
     await publishCanonicalTemplateRevision({
       templateId: created.templateId,
@@ -478,117 +463,75 @@ describeDb("canonical template lifecycle", () => {
     ]);
   });
 
-  it("records review, clears it when content changes, and allows it to be recorded again", async () => {
+  it("persists draft edits and leaves historical review columns unchanged", async () => {
     const created = await createCanonicalTemplate({
       actorUserId: OPERATOR_ID,
-      title: "Review target",
-      slug: "ctl-review",
+      title: "Save target",
+      slug: "ctl-save",
       serviceCategory: "DENTAL",
     });
-    await expectCanonicalCode(
-      recordCanonicalTemplateReview({
-        templateId: created.templateId,
-        revisionId: created.revisionId,
-        actorUserId: OPERATOR_ID,
-        reviewerName: "   ",
-      }),
-      "invalid"
-    );
-    await saveCanonicalTemplateDraft({
+    const saved = await saveCanonicalTemplateDraft({
       templateId: created.templateId,
       revisionId: created.revisionId,
       actorUserId: OPERATOR_ID,
       sections: [intro, planSection()],
     });
-    const recorded = await recordCanonicalTemplateReview({
-      templateId: created.templateId,
-      revisionId: created.revisionId,
-      actorUserId: OPERATOR_ID,
-      reviewerName: `  ${REVIEWER}  `,
-      reviewerCredential: "BDS",
-      reviewNote: "Checked the draft.",
-    });
-    const reviewed = await getPrisma().guideTemplateRevision.findUniqueOrThrow({
+    expect(saved).toEqual({ revisionId: created.revisionId });
+
+    const historicalReviewedAt = new Date("2026-09-01T00:00:00.000Z");
+    await getPrisma().guideTemplateRevision.update({
       where: { id: created.revisionId },
+      data: {
+        reviewerName: REVIEWER,
+        reviewerCredential: "BDS",
+        reviewNote: "Historical note.",
+        reviewedAt: historicalReviewedAt,
+        reviewRecordedByUserId: OPERATOR_ID,
+      },
     });
-    expect(reviewed).toMatchObject({
-      status: GuideRevisionStatus.DRAFT,
-      reviewerName: REVIEWER,
-      reviewerCredential: "BDS",
-      reviewNote: "Checked the draft.",
-      reviewRecordedByUserId: OPERATOR_ID,
-    });
-    expect(reviewed.reviewedAt?.toISOString()).toBe(
-      recorded.reviewedAt.toISOString()
-    );
-    expect(hasCompleteCanonicalReviewEvidence(reviewed)).toBe(true);
 
-    const same = await saveCanonicalTemplateDraft({
+    const unchanged = await saveCanonicalTemplateDraft({
       templateId: created.templateId,
       revisionId: created.revisionId,
       actorUserId: OPERATOR_ID,
       sections: [intro, planSection()],
     });
-    expect(same.reviewCleared).toBe(false);
-    expect(
-      (
-        await getPrisma().guideTemplateRevision.findUniqueOrThrow({
-          where: { id: created.revisionId },
-        })
-      ).reviewerName
-    ).toBe(REVIEWER);
+    expect(unchanged).toEqual({ revisionId: created.revisionId });
 
-    await updateCanonicalTemplateMetadata({
-      actorUserId: OPERATOR_ID,
-      templateId: created.templateId,
-      title: "Review target renamed",
-    });
-    expect(
-      (
-        await getPrisma().guideTemplateRevision.findUniqueOrThrow({
-          where: { id: created.revisionId },
-        })
-      ).reviewedAt
-    ).not.toBeNull();
-
-    const cleared = await saveCanonicalTemplateDraft({
+    const changed = await saveCanonicalTemplateDraft({
       templateId: created.templateId,
       revisionId: created.revisionId,
       actorUserId: OPERATOR_ID,
       sections: [intro, planSection(["rest", "rinse"])],
     });
-    expect(cleared.reviewCleared).toBe(true);
-    expect(
-      await getPrisma().guideTemplateRevision.findUniqueOrThrow({
-        where: { id: created.revisionId },
-      })
-    ).toMatchObject({
-      reviewerName: null,
-      reviewerCredential: null,
-      reviewNote: null,
-      reviewedAt: null,
-      reviewRecordedByUserId: null,
+    expect(changed).toEqual({ revisionId: created.revisionId });
+    const stored = await getPrisma().guideTemplateRevision.findUniqueOrThrow({
+      where: { id: created.revisionId },
+      include: {
+        sections: {
+          orderBy: { sortOrder: "asc" },
+          include: { homeCareInstructions: { orderBy: { sortOrder: "asc" } } },
+        },
+      },
     });
-
-    await recordCanonicalTemplateReview({
-      templateId: created.templateId,
-      revisionId: created.revisionId,
-      actorUserId: OPERATOR_ID,
+    expect(stored).toMatchObject({
+      status: GuideRevisionStatus.DRAFT,
       reviewerName: REVIEWER,
-      reviewNote: "Re-checked after the instruction order change.",
+      reviewerCredential: "BDS",
+      reviewNote: "Historical note.",
+      reviewRecordedByUserId: OPERATOR_ID,
+      publishedAt: null,
+      publishedByUserId: null,
     });
-    const rerecorded =
-      await getPrisma().guideTemplateRevision.findUniqueOrThrow({
-        where: { id: created.revisionId },
-      });
-    expect(rerecorded.reviewerCredential).toBeNull();
-    expect(rerecorded.reviewNote).toBe(
-      "Re-checked after the instruction order change."
+    expect(stored.reviewedAt?.toISOString()).toBe(
+      historicalReviewedAt.toISOString()
     );
-    expect(rerecorded.reviewRecordedByUserId).toBe(OPERATOR_ID);
+    expect(
+      stored.sections[1]?.homeCareInstructions.map((item) => item.key)
+    ).toEqual(["rest", "rinse"]);
   });
 
-  it("publishes only a reviewed active draft and rejects a second publish", async () => {
+  it("publishes a valid unreviewed active draft and rejects a second publish", async () => {
     const created = await createCanonicalTemplate({
       actorUserId: OPERATOR_ID,
       title: "Publish target",
@@ -609,21 +552,6 @@ describeDb("canonical template lifecycle", () => {
       revisionId: created.revisionId,
       actorUserId: OPERATOR_ID,
       sections: [intro],
-    });
-    await expectCanonicalCode(
-      publishCanonicalTemplateRevision({
-        templateId: created.templateId,
-        revisionId: created.revisionId,
-        actorUserId: OPERATOR_ID,
-        expectedVersion: 1,
-      }),
-      "unreviewed"
-    );
-    await recordCanonicalTemplateReview({
-      templateId: created.templateId,
-      revisionId: created.revisionId,
-      actorUserId: OPERATOR_ID,
-      reviewerName: REVIEWER,
     });
     await deactivateCanonicalTemplate({
       templateId: created.templateId,
@@ -689,12 +617,6 @@ describeDb("canonical template lifecycle", () => {
       actorUserId: OPERATOR_ID,
       sections: [intro, planSection()],
     });
-    await recordCanonicalTemplateReview({
-      templateId: created.templateId,
-      revisionId: created.revisionId,
-      actorUserId: OPERATOR_ID,
-      reviewerName: REVIEWER,
-    });
     await publishCanonicalTemplateRevision({
       templateId: created.templateId,
       revisionId: created.revisionId,
@@ -708,15 +630,6 @@ describeDb("canonical template lifecycle", () => {
         revisionId: created.revisionId,
         actorUserId: OPERATOR_ID,
         sections: [{ ...intro, body: "Changed after publication." }],
-      }),
-      "immutable"
-    );
-    await expectCanonicalCode(
-      recordCanonicalTemplateReview({
-        templateId: created.templateId,
-        revisionId: created.revisionId,
-        actorUserId: OPERATOR_ID,
-        reviewerName: "Someone else",
       }),
       "immutable"
     );
@@ -777,12 +690,6 @@ describeDb("canonical template lifecycle", () => {
       revisionId: published.revisionId,
       actorUserId: OPERATOR_ID,
       sections: [intro],
-    });
-    await recordCanonicalTemplateReview({
-      templateId: published.templateId,
-      revisionId: published.revisionId,
-      actorUserId: OPERATOR_ID,
-      reviewerName: REVIEWER,
     });
     await publishCanonicalTemplateRevision({
       templateId: published.templateId,
@@ -852,12 +759,6 @@ describeDb("canonical template lifecycle", () => {
       actorUserId: OPERATOR_ID,
       sections: [intro],
     });
-    await recordCanonicalTemplateReview({
-      templateId: created.templateId,
-      revisionId: created.revisionId,
-      actorUserId: OPERATOR_ID,
-      reviewerName: REVIEWER,
-    });
     await publishCanonicalTemplateRevision({
       templateId: created.templateId,
       revisionId: created.revisionId,
@@ -874,7 +775,6 @@ describeDb("canonical template lifecycle", () => {
       clinicId: CLINIC_ID,
       actorUserId: ADMIN_ID,
       guideId: practice.id,
-      reviewAttested: true,
     });
     const before = await getPrisma().practiceGuide.findUniqueOrThrow({
       where: { id: practice.id },
@@ -903,12 +803,6 @@ describeDb("canonical template lifecycle", () => {
       revisionId: next.revisionId,
       actorUserId: OPERATOR_ID,
       sections: [{ ...intro, body: "Canonical version 2 body." }],
-    });
-    await recordCanonicalTemplateReview({
-      templateId: created.templateId,
-      revisionId: next.revisionId,
-      actorUserId: OPERATOR_ID,
-      reviewerName: REVIEWER,
     });
     await publishCanonicalTemplateRevision({
       templateId: created.templateId,
@@ -952,12 +846,6 @@ describeDb("canonical template lifecycle", () => {
       revisionId: created.revisionId,
       actorUserId: OPERATOR_ID,
       sections: [intro],
-    });
-    await recordCanonicalTemplateReview({
-      templateId: created.templateId,
-      revisionId: created.revisionId,
-      actorUserId: OPERATOR_ID,
-      reviewerName: REVIEWER,
     });
     await publishCanonicalTemplateRevision({
       templateId: created.templateId,
@@ -1093,15 +981,6 @@ describeDb("canonical template lifecycle", () => {
       "sample"
     );
     await expectCanonicalCode(
-      recordCanonicalTemplateReview({
-        templateId: sample.id,
-        revisionId,
-        actorUserId: OPERATOR_ID,
-        reviewerName: REVIEWER,
-      }),
-      "sample"
-    );
-    await expectCanonicalCode(
       publishCanonicalTemplateRevision({
         templateId: sample.id,
         revisionId,
@@ -1218,12 +1097,6 @@ describeDb("canonical template lifecycle", () => {
       actorUserId: OPERATOR_ID,
       sections: [intro],
     });
-    await recordCanonicalTemplateReview({
-      templateId: drafted.templateId,
-      revisionId: drafted.revisionId,
-      actorUserId: OPERATOR_ID,
-      reviewerName: REVIEWER,
-    });
     await publishCanonicalTemplateRevision({
       templateId: drafted.templateId,
       revisionId: drafted.revisionId,
@@ -1268,12 +1141,6 @@ describeDb("canonical template lifecycle", () => {
       revisionId: published.revisionId,
       actorUserId: OPERATOR_ID,
       sections: [intro],
-    });
-    await recordCanonicalTemplateReview({
-      templateId: published.templateId,
-      revisionId: published.revisionId,
-      actorUserId: OPERATOR_ID,
-      reviewerName: REVIEWER,
     });
     const publishResults = await Promise.allSettled([
       publishCanonicalTemplateRevision({
@@ -1323,12 +1190,6 @@ describeDb("canonical template lifecycle", () => {
       revisionId: created.revisionId,
       actorUserId: OPERATOR_ID,
       sections: [intro],
-    });
-    await recordCanonicalTemplateReview({
-      templateId: created.templateId,
-      revisionId: created.revisionId,
-      actorUserId: OPERATOR_ID,
-      reviewerName: REVIEWER,
     });
     await publishCanonicalTemplateRevision({
       templateId: created.templateId,

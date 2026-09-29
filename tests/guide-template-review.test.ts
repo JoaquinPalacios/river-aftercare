@@ -1,134 +1,92 @@
 import { describe, expect, it } from "vitest";
-import { GuideRevisionStatus } from "@prisma/client";
 
 import {
   classifyCanonicalTemplate,
   clinicCanUseCanonicalTemplate,
-  isClinicallyReviewedRevision,
-  isSamplePublishedRevision,
+  latestPublishedRevision,
 } from "@/lib/aftercare/guide-template-review";
 
-const PUBLISHED = GuideRevisionStatus.PUBLISHED;
-const DRAFT = GuideRevisionStatus.DRAFT;
-
-describe("guide template review policy", () => {
-  it("does not treat active published revisions as reviewed without named review metadata", () => {
-    expect(
-      isClinicallyReviewedRevision({
-        status: PUBLISHED,
-        reviewedAt: null,
-        reviewerName: null,
-        reviewRecordedByUserId: null,
-      })
-    ).toBe(false);
-    expect(
-      isSamplePublishedRevision({
-        status: PUBLISHED,
-        reviewedAt: null,
-        reviewerName: null,
-        reviewRecordedByUserId: null,
-      })
-    ).toBe(true);
-  });
-
-  it("rejects the historical demo seed reviewer label", () => {
-    expect(
-      isClinicallyReviewedRevision({
-        status: PUBLISHED,
-        reviewedAt: new Date("2026-08-31"),
-        reviewerName: "Care Guide demo seed",
-        reviewRecordedByUserId: "operator-1",
-      })
-    ).toBe(false);
-  });
-
-  it("does not treat a reviewer name without a recording operator as complete", () => {
-    expect(
-      isClinicallyReviewedRevision({
-        status: PUBLISHED,
-        reviewedAt: new Date("2026-09-01"),
-        reviewerName: "Named clinical reviewer",
-        reviewRecordedByUserId: null,
-      })
-    ).toBe(false);
-  });
-
-  it("accepts a published revision with named review metadata", () => {
-    expect(
-      isClinicallyReviewedRevision({
-        status: PUBLISHED,
-        reviewedAt: new Date("2026-09-01"),
-        reviewerName: "Named clinical reviewer",
-        reviewRecordedByUserId: "operator-1",
-      })
-    ).toBe(true);
-  });
-
-  it("hides draft-only templates", () => {
+describe("canonical template eligibility", () => {
+  it("hides a template that has no published revision", () => {
     expect(
       classifyCanonicalTemplate({
         isSample: false,
-        revisions: [
-          {
-            id: "draft",
-            version: 1,
-            status: DRAFT,
-            reviewedAt: new Date("2026-09-01"),
-            reviewerName: "Named clinical reviewer",
-            reviewRecordedByUserId: "operator-1",
-          },
-        ],
+        revisions: [{ id: "draft", version: 1, status: "DRAFT" }],
       })
     ).toEqual({ availability: null, eligibleRevisionId: null });
   });
 
-  it("does not infer sample status from missing review metadata on a normal template", () => {
+  it("makes an active production template eligible from its latest published revision", () => {
     const classified = classifyCanonicalTemplate({
       isSample: false,
       revisions: [
         {
           id: "v1",
           version: 1,
-          status: PUBLISHED,
-          reviewedAt: null,
-          reviewerName: null,
-          reviewRecordedByUserId: null,
+          status: "PUBLISHED",
+        },
+        {
+          id: "v2",
+          version: 2,
+          status: "PUBLISHED",
+        },
+        {
+          id: "draft",
+          version: 3,
+          status: "DRAFT",
         },
       ],
     });
-    expect(classified.availability).toBeNull();
-    expect(classified.eligibleRevisionId).toBeNull();
-    expect(
-      clinicCanUseCanonicalTemplate({
-        isDemoTenant: true,
-        availability: classified.availability,
-      })
-    ).toBe(false);
+
+    expect(classified).toEqual({
+      availability: "published",
+      eligibleRevisionId: "v2",
+    });
     expect(
       clinicCanUseCanonicalTemplate({
         isDemoTenant: false,
         availability: classified.availability,
       })
-    ).toBe(false);
+    ).toBe(true);
+    expect(
+      clinicCanUseCanonicalTemplate({
+        isDemoTenant: true,
+        availability: classified.availability,
+      })
+    ).toBe(true);
   });
 
-  it("keeps explicit sample templates sample even when review fields are populated", () => {
+  it("does not require review metadata on a published production revision", () => {
+    const classified = classifyCanonicalTemplate({
+      isSample: false,
+      revisions: [
+        {
+          id: "published",
+          version: 1,
+          status: "PUBLISHED",
+        },
+      ],
+    });
+
+    expect(classified.availability).toBe("published");
+    expect(classified.eligibleRevisionId).toBe("published");
+  });
+
+  it("keeps explicit sample templates demo-only", () => {
     const classified = classifyCanonicalTemplate({
       isSample: true,
       revisions: [
         {
-          id: "v1",
+          id: "sample",
           version: 1,
-          status: PUBLISHED,
-          reviewedAt: new Date("2026-09-01"),
-          reviewerName: "Named clinical reviewer",
-          reviewRecordedByUserId: "operator-1",
+          status: "PUBLISHED",
         },
       ],
     });
+
     expect(classified).toEqual({
       availability: "sample",
-      eligibleRevisionId: "v1",
+      eligibleRevisionId: "sample",
     });
     expect(
       clinicCanUseCanonicalTemplate({
@@ -144,81 +102,30 @@ describe("guide template review policy", () => {
     ).toBe(false);
   });
 
-  it("classifies from the exact latest published revision, not an older reviewed one", () => {
-    const mixed = classifyCanonicalTemplate({
-      isSample: false,
-      revisions: [
-        {
-          id: "v1",
-          version: 1,
-          status: PUBLISHED,
-          reviewedAt: new Date("2026-09-01"),
-          reviewerName: "Named clinical reviewer",
-          reviewRecordedByUserId: "operator-1",
-        },
-        {
-          id: "v2",
-          version: 2,
-          status: PUBLISHED,
-          reviewedAt: null,
-          reviewerName: null,
-          reviewRecordedByUserId: null,
-        },
-      ],
-    });
-    expect(mixed.availability).toBeNull();
-    expect(mixed.eligibleRevisionId).toBeNull();
-
-    const bothReviewed = classifyCanonicalTemplate({
-      isSample: false,
-      revisions: [
-        {
-          id: "v1",
-          version: 1,
-          status: PUBLISHED,
-          reviewedAt: new Date("2026-09-01"),
-          reviewerName: "Named clinical reviewer",
-          reviewRecordedByUserId: "operator-1",
-        },
-        {
-          id: "v2",
-          version: 2,
-          status: PUBLISHED,
-          reviewedAt: new Date("2026-09-11"),
-          reviewerName: "Named clinical reviewer",
-          reviewRecordedByUserId: "operator-1",
-        },
-      ],
-    });
-    expect(bothReviewed).toEqual({
-      availability: "reviewed",
-      eligibleRevisionId: "v2",
-    });
+  it("pins the latest published revision and ignores an older one", () => {
+    const revisions = [
+      { id: "old", version: 1, status: "PUBLISHED" as const },
+      { id: "new", version: 2, status: "PUBLISHED" as const },
+    ];
+    expect(latestPublishedRevision(revisions)?.id).toBe("new");
+    expect(
+      classifyCanonicalTemplate({ isSample: false, revisions })
+        .eligibleRevisionId
+    ).toBe("new");
   });
 
-  it("does not let a draft plus published-unreviewed revision masquerade as reviewed", () => {
+  it("does not offer a null availability to any clinic", () => {
     expect(
-      classifyCanonicalTemplate({
-        isSample: false,
-        revisions: [
-          {
-            id: "draft",
-            version: 2,
-            status: DRAFT,
-            reviewedAt: new Date("2026-09-01"),
-            reviewerName: "Named clinical reviewer",
-            reviewRecordedByUserId: "operator-1",
-          },
-          {
-            id: "v1",
-            version: 1,
-            status: PUBLISHED,
-            reviewedAt: null,
-            reviewerName: null,
-            reviewRecordedByUserId: null,
-          },
-        ],
-      }).availability
-    ).toBeNull();
+      clinicCanUseCanonicalTemplate({
+        isDemoTenant: true,
+        availability: null,
+      })
+    ).toBe(false);
+    expect(
+      clinicCanUseCanonicalTemplate({
+        isDemoTenant: false,
+        availability: null,
+      })
+    ).toBe(false);
   });
 });

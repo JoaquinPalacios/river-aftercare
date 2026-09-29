@@ -2719,6 +2719,18 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   padding: 0.65rem 0.75rem 0;
 }
 
+/* Buttons do not stretch like the anchor rows beside them. A shrink-wrapped
+   toggle sits left of the centred collapsed icons. */
+.staffSidebarToggle {
+  box-sizing: border-box;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
 .canonicalDraftPage {
   display: flex;
   width: 100%;
@@ -3102,20 +3114,27 @@ html[data-theme-mode="dark"]
     padding-inline: 0.35rem;
   }
 
+  .staffAppSidebar[data-collapsed="true"] .staffSidebarTools {
+    padding-inline: 0.75rem;
+  }
+
   .staffAppSidebar[data-collapsed="true"] .ptl {
     position: relative;
   }
+}
 
-  .staffAppSidebar[data-collapsed="true"] .ptlChooser {
-    position: absolute;
-    top: 0;
-    left: calc(100% + 0.45rem);
-    z-index: 40;
-    min-width: 10rem;
-    border: 1px solid var(--staff-line);
-    border-radius: 0.5rem;
-    background: var(--staff-panel);
-  }
+/* Portaled beside the collapsed rail. The sidebar clips overflow, so this
+   menu cannot stay inside .staffAppSidebar. */
+.ptlChooserFlyout {
+  position: fixed;
+  z-index: 80;
+  min-width: 10rem;
+  margin-top: 0;
+  padding: 0.25rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.5rem;
+  background: var(--staff-panel);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--staff-ink) 16%, transparent);
 }
 
 /* Portaled to document.body so the collapsed rail can keep overflow-x: clip
