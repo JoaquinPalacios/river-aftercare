@@ -136,6 +136,241 @@ describe("operator Group offer persistence", () => {
     ).toEqual({ siteAllowance: 1, locationAllowance: 1 });
   });
 
+  it("prepares a new shell and revises an unpaid Group offer without capacity", async () => {
+    const created: Array<Record<string, unknown>> = [];
+    const shell = {
+      clinicEntitlement: {
+        findUnique: async () => null,
+        upsert: async ({ create }: { create: Record<string, unknown> }) => {
+          created.push(create);
+          return create;
+        },
+      },
+      clinicBillingProfile: {
+        findUnique: async () => null,
+      },
+    };
+    await expect(
+      prepareClinicCommercialOffer(
+        {
+          clinicId: "clinic_new",
+          commercialPlan: "GROUP",
+          billingInterval: "MONTHLY",
+          offeredAdditionalSiteQuantity: 0,
+        },
+        shell as never
+      )
+    ).resolves.toEqual({ ok: true });
+    expect(created[0]).toMatchObject({
+      commercialPlan: "GROUP",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.OFFER_PREPARED,
+      entitlementStatus: EntitlementStatus.PENDING,
+      offeredAdditionalSiteQuantity: 0,
+    });
+    expect(created[0]).not.toHaveProperty("purchasedAdditionalSiteQuantity");
+    expect(created[0]).not.toHaveProperty("siteAllowance");
+
+    const annualShell = {
+      clinicEntitlement: {
+        findUnique: async () => null,
+        upsert: async ({ create }: { create: Record<string, unknown> }) => {
+          created.push(create);
+          return create;
+        },
+      },
+      clinicBillingProfile: {
+        findUnique: async () => null,
+      },
+    };
+    await expect(
+      prepareClinicCommercialOffer(
+        {
+          clinicId: "clinic_new_annual",
+          commercialPlan: "GROUP",
+          billingInterval: "YEARLY",
+          offeredAdditionalSiteQuantity: 2,
+        },
+        annualShell as never
+      )
+    ).resolves.toEqual({ ok: true });
+    expect(created[1]).toMatchObject({
+      commercialPlan: "GROUP",
+      billingInterval: "YEARLY",
+      billingStatus: BillingStatus.OFFER_PREPARED,
+      entitlementStatus: EntitlementStatus.PENDING,
+      offeredAdditionalSiteQuantity: 2,
+    });
+
+    const row = {
+      commercialPlan: "GROUP" as const,
+      billingInterval: "MONTHLY" as const,
+      billingStatus: BillingStatus.OFFER_PREPARED,
+      entitlementStatus: EntitlementStatus.PENDING,
+      offeredAdditionalSiteQuantity: 3,
+      purchasedAdditionalSiteQuantity: null as number | null,
+      purchasedAdditionalLocationQuantity: null as number | null,
+      siteAllowance: 1,
+      locationAllowance: 1,
+      scheduledAdditionalSiteQuantity: null as number | null,
+    };
+    const unpaid = {
+      clinicEntitlement: {
+        findUnique: async () => row,
+        upsert: async ({ update }: { update: Record<string, unknown> }) => {
+          Object.assign(row, update);
+          return row;
+        },
+      },
+      clinicBillingProfile: {
+        findUnique: async () => ({ stripeSubscriptionId: null }),
+      },
+    };
+    await expect(
+      prepareClinicCommercialOffer(
+        {
+          clinicId: "clinic_a",
+          commercialPlan: "GROUP",
+          billingInterval: "YEARLY",
+          offeredAdditionalSiteQuantity: 1,
+        },
+        unpaid as never
+      )
+    ).resolves.toEqual({ ok: true });
+    expect(row).toMatchObject({
+      commercialPlan: "GROUP",
+      billingInterval: "YEARLY",
+      billingStatus: BillingStatus.OFFER_PREPARED,
+      entitlementStatus: EntitlementStatus.PENDING,
+      offeredAdditionalSiteQuantity: 1,
+      purchasedAdditionalSiteQuantity: null,
+      purchasedAdditionalLocationQuantity: null,
+      siteAllowance: 1,
+      locationAllowance: 1,
+      scheduledAdditionalSiteQuantity: null,
+    });
+  });
+
+  it("rejects an initial Group offer when a River subscription is current", async () => {
+    const cases: Array<{
+      code: "already_active" | "subscription_exists" | "billing_underway";
+      profile: { stripeSubscriptionId: string | null };
+      row: Record<string, unknown>;
+    }> = [
+      {
+        code: "already_active",
+        profile: { stripeSubscriptionId: "sub_essential" },
+        row: liveCommercialRow({
+          commercialPlan: "ESSENTIAL",
+          billingInterval: "MONTHLY",
+          billingStatus: BillingStatus.ACTIVE,
+          entitlementStatus: EntitlementStatus.ACTIVE,
+          siteAllowance: 1,
+          locationAllowance: 1,
+        }),
+      },
+      {
+        code: "already_active",
+        profile: { stripeSubscriptionId: "sub_practice" },
+        row: liveCommercialRow({
+          commercialPlan: "PRACTICE",
+          billingInterval: "YEARLY",
+          billingStatus: BillingStatus.ACTIVE,
+          entitlementStatus: EntitlementStatus.ACTIVE,
+          purchasedAdditionalLocationQuantity: 2,
+          siteAllowance: 1,
+          locationAllowance: 4,
+        }),
+      },
+      {
+        code: "already_active",
+        profile: { stripeSubscriptionId: "sub_group" },
+        row: liveCommercialRow({
+          commercialPlan: "GROUP",
+          billingInterval: "MONTHLY",
+          billingStatus: BillingStatus.ACTIVE,
+          entitlementStatus: EntitlementStatus.ACTIVE,
+          purchasedAdditionalSiteQuantity: 3,
+          siteAllowance: 5,
+          locationAllowance: 8,
+        }),
+      },
+      {
+        code: "already_active",
+        profile: { stripeSubscriptionId: "sub_past_due" },
+        row: liveCommercialRow({
+          commercialPlan: "PRACTICE",
+          billingStatus: BillingStatus.PAST_DUE,
+          entitlementStatus: EntitlementStatus.ACTIVE,
+          purchasedAdditionalLocationQuantity: 1,
+          locationAllowance: 3,
+        }),
+      },
+      {
+        code: "subscription_exists",
+        profile: { stripeSubscriptionId: "sub_restricted" },
+        row: liveCommercialRow({
+          commercialPlan: "PRACTICE",
+          billingStatus: BillingStatus.UNPAID,
+          entitlementStatus: EntitlementStatus.RESTRICTED,
+          purchasedAdditionalLocationQuantity: 1,
+          locationAllowance: 2,
+        }),
+      },
+      {
+        code: "already_active",
+        profile: { stripeSubscriptionId: "sub_cancel" },
+        row: liveCommercialRow({
+          commercialPlan: "ESSENTIAL",
+          billingStatus: BillingStatus.CANCEL_AT_PERIOD_END,
+          entitlementStatus: EntitlementStatus.ACTIVE,
+        }),
+      },
+      {
+        code: "subscription_exists",
+        profile: { stripeSubscriptionId: "sub_current" },
+        row: liveCommercialRow({
+          commercialPlan: "ESSENTIAL",
+          billingInterval: "MONTHLY",
+          billingStatus: BillingStatus.OFFER_PREPARED,
+          entitlementStatus: EntitlementStatus.PENDING,
+        }),
+      },
+    ];
+
+    for (const item of cases) {
+      const before = structuredClone(item.row);
+      let writes = 0;
+      const result = await prepareClinicCommercialOffer(
+        {
+          clinicId: "clinic_a",
+          commercialPlan: "GROUP",
+          billingInterval: "MONTHLY",
+          offeredAdditionalSiteQuantity: 2,
+        },
+        {
+          clinicEntitlement: {
+            findUnique: async () => item.row,
+            upsert: async () => {
+              writes += 1;
+              throw new Error("rejected Group offer must not write");
+            },
+          },
+          clinicBillingProfile: {
+            findUnique: async () => item.profile,
+            update: async () => {
+              writes += 1;
+              throw new Error("rejected Group offer must not update profile");
+            },
+          },
+        } as never
+      );
+      expect(result).toMatchObject({ ok: false, code: item.code });
+      expect(writes).toBe(0);
+      expect(item.row).toEqual(before);
+    }
+  });
+
   it("rejects an invalid quantity and an active Group subscription", async () => {
     const db = {
       clinicEntitlement: {
@@ -186,9 +421,30 @@ describe("operator Group offer persistence", () => {
       },
       active as never
     );
-    expect(revised.ok).toBe(false);
+    expect(revised).toMatchObject({ ok: false, code: "already_active" });
   });
 });
+
+function liveCommercialRow(
+  overrides: Record<string, unknown>
+): Record<string, unknown> {
+  return {
+    commercialPlan: "PRACTICE",
+    billingInterval: "YEARLY",
+    billingStatus: BillingStatus.ACTIVE,
+    entitlementStatus: EntitlementStatus.ACTIVE,
+    offeredAdditionalSiteQuantity: null,
+    purchasedAdditionalSiteQuantity: null,
+    purchasedAdditionalLocationQuantity: null,
+    siteAllowance: 1,
+    locationAllowance: 1,
+    extraSiteAllowance: 0,
+    extraLocationAllowance: 0,
+    scheduledAdditionalSiteQuantity: null,
+    scheduledCapacityEffectiveAt: null,
+    ...overrides,
+  };
+}
 
 describe("Group offer surfaces", () => {
   it("keeps public Group pricing custom and shows the prepared offer privately", () => {

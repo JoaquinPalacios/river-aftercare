@@ -154,6 +154,23 @@ describe("Group Checkout line items", () => {
 
     await expect(
       executeClinicCheckout({
+        state: groupState({
+          commercialPlan: "PRACTICE",
+          entitlementStatus: EntitlementStatus.ACTIVE,
+          billingStatus: BillingStatus.ACTIVE,
+          stripeSubscriptionId: "sub_practice",
+          offeredAdditionalSiteQuantity: 2,
+        }),
+        env: GROUP_BILLING_TEST_ENV,
+        stripe: stripe.port,
+        successUrl: "https://app.example/complete",
+        cancelUrl: "https://app.example/cancel",
+        persist: async () => undefined,
+      })
+    ).resolves.toMatchObject({ ok: false, code: "already_active" });
+
+    await expect(
+      executeClinicCheckout({
         state: groupState({ stripeSubscriptionId: "sub_existing" }),
         env: GROUP_BILLING_TEST_ENV,
         stripe: stripe.port,
@@ -162,6 +179,7 @@ describe("Group Checkout line items", () => {
         persist: async () => undefined,
       })
     ).resolves.toMatchObject({ ok: false, code: "subscription_exists" });
+    expect(stripe.sessions.created).toHaveLength(0);
 
     const baseOnlyEnv = {
       ...BILLING_TEST_ENV,
