@@ -66,6 +66,44 @@ function optionalPositiveInt(
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
+export interface EditableHomeCareScheduleInput {
+  frequencyCount: number | string | null;
+  frequencyPeriod: HomeCareFrequencyPeriod | "" | null;
+  timingLabel: string | null;
+  durationValue: number | string | null;
+  durationUnit: HomeCareDurationUnit | "" | null;
+}
+
+/**
+ * Editor schedule line. Wording comes from the patient summary formatter.
+ * Incomplete pairs and blank fields are omitted, so "Not specified" never
+ * appears. An instruction with no usable schedule returns null.
+ */
+export function formatEditableHomeCareSchedule(
+  input: EditableHomeCareScheduleInput
+): string | null {
+  return formatHomeCareInstructionSummary({
+    frequencyCount: optionalPositiveInt(input.frequencyCount),
+    frequencyPeriod: input.frequencyPeriod || null,
+    timingLabel: input.timingLabel,
+    durationValue: optionalPositiveInt(input.durationValue),
+    durationUnit: input.durationUnit || null,
+  });
+}
+
+/** True when any schedule field has text, including an incomplete pair. */
+export function editableHomeCareScheduleHasValue(
+  input: EditableHomeCareScheduleInput
+): boolean {
+  return [
+    input.frequencyCount,
+    input.frequencyPeriod,
+    input.timingLabel,
+    input.durationValue,
+    input.durationUnit,
+  ].some((value) => String(value ?? "").trim() !== "");
+}
+
 /**
  * Collapsed instruction label. Schedule wording matches the patient summary.
  * The instruction number is omitted when it would repeat the title, and when
@@ -82,13 +120,7 @@ export function homeCareInstructionAccordionLabel(input: {
 }): string {
   const numberLabel = `Instruction ${input.index + 1}`;
   const title = input.title.trim();
-  const schedule = formatHomeCareInstructionSummary({
-    frequencyCount: optionalPositiveInt(input.frequencyCount),
-    frequencyPeriod: input.frequencyPeriod || null,
-    timingLabel: input.timingLabel,
-    durationValue: optionalPositiveInt(input.durationValue),
-    durationUnit: input.durationUnit || null,
-  });
+  const schedule = formatEditableHomeCareSchedule(input);
   const titleRepeatsNumber = title.toLowerCase() === numberLabel.toLowerCase();
   if (!title || titleRepeatsNumber) {
     return schedule ? `${numberLabel} · ${schedule}` : numberLabel;

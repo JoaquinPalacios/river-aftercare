@@ -1,13 +1,16 @@
 "use client";
 
-import type {
-  HomeCareDurationUnit,
-  HomeCareFrequencyPeriod,
-} from "@/lib/aftercare/home-care-instruction";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import type { EditorHomeCareInstruction } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
 import { AutosizeTextarea } from "@/app/(staff)/components/autosize-textarea";
+import { DisclosureChevron } from "@/app/(staff)/components/icons";
+import {
+  editableHomeCareScheduleHasValue,
+  formatEditableHomeCareSchedule,
+  type HomeCareDurationUnit,
+  type HomeCareFrequencyPeriod,
+} from "@/lib/aftercare/home-care-instruction";
 
 function Field({
   label,
@@ -42,6 +45,12 @@ export function HomeCareInstructionFields({
   disabled: boolean;
   onChange: (item: EditorHomeCareInstruction) => void;
 }) {
+  const [scheduleOpen, setScheduleOpen] = useState(() =>
+    editableHomeCareScheduleHasValue(item)
+  );
+  const scheduleSummary = formatEditableHomeCareSchedule(item);
+  const schedulePanelId = `${item.key}-schedule-panel`;
+
   return (
     <fieldset className="homeCareInstructionFields">
       <legend className="sr-only">Instruction {index + 1}</legend>
@@ -68,92 +77,121 @@ export function HomeCareInstructionFields({
           placeholder="Enter details..."
         />
       </Field>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <p className="text-sm text-staff-muted sm:col-span-2">
-          Optional schedule — leave blank when the clinic should set this when
-          adapting the template.
-        </p>
-        <Field label="Times" htmlFor={`${item.key}-count`}>
-          <input
-            id={`${item.key}-count`}
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={99}
-            step={1}
-            value={item.frequencyCount}
-            onChange={(event) =>
-              onChange({ ...item, frequencyCount: event.target.value })
-            }
-            disabled={disabled}
-            className="staffField"
-          />
-        </Field>
-        <Field label="Per" htmlFor={`${item.key}-period`}>
-          <select
-            id={`${item.key}-period`}
-            value={item.frequencyPeriod}
-            onChange={(event) =>
-              onChange({
-                ...item,
-                frequencyPeriod: event.target.value as
-                  HomeCareFrequencyPeriod | "",
-              })
-            }
-            disabled={disabled}
-            className="staffSelect"
-          >
-            <option value="">Not specified</option>
-            <option value="DAY">Day</option>
-            <option value="WEEK">Week</option>
-          </select>
-        </Field>
-        <Field label="Timing" htmlFor={`${item.key}-timing`}>
-          <input
-            id={`${item.key}-timing`}
-            value={item.timingLabel}
-            onChange={(event) =>
-              onChange({ ...item, timingLabel: event.target.value })
-            }
-            disabled={disabled}
-            placeholder="Evening"
-            className="staffField"
-          />
-        </Field>
-        <Field label="Duration" htmlFor={`${item.key}-duration`}>
-          <input
-            id={`${item.key}-duration`}
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={520}
-            step={1}
-            value={item.durationValue}
-            onChange={(event) =>
-              onChange({ ...item, durationValue: event.target.value })
-            }
-            disabled={disabled}
-            className="staffField"
-          />
-        </Field>
-        <Field label="Duration unit" htmlFor={`${item.key}-unit`}>
-          <select
-            id={`${item.key}-unit`}
-            value={item.durationUnit}
-            onChange={(event) =>
-              onChange({
-                ...item,
-                durationUnit: event.target.value as HomeCareDurationUnit | "",
-              })
-            }
-            disabled={disabled}
-            className="staffSelect"
-          >
-            <option value="">Not specified</option>
-            <option value="DAYS">Days</option>
-            <option value="WEEKS">Weeks</option>
-          </select>
-        </Field>
+      <div
+        className="homeCareSchedule"
+        data-schedule-open={scheduleOpen ? "true" : "false"}
+      >
+        <button
+          type="button"
+          className="homeCareScheduleToggle"
+          aria-expanded={scheduleOpen}
+          aria-controls={schedulePanelId}
+          onClick={() => setScheduleOpen((open) => !open)}
+        >
+          <DisclosureChevron className="homeCareScheduleChevron" />
+          <span className="homeCareScheduleText">
+            <span className="homeCareScheduleLabel">Schedule (optional)</span>
+            {!scheduleOpen && scheduleSummary ? (
+              <span className="homeCareScheduleSummary">
+                {` · ${scheduleSummary}`}
+              </span>
+            ) : null}
+          </span>
+        </button>
+        <div
+          id={schedulePanelId}
+          className="homeCareSchedulePanel"
+          hidden={!scheduleOpen}
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <p className="text-sm text-staff-muted sm:col-span-2">
+              Optional schedule — leave blank when the clinic should set this
+              when adapting the template.
+            </p>
+            <Field label="Times" htmlFor={`${item.key}-count`}>
+              <input
+                id={`${item.key}-count`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={99}
+                step={1}
+                value={item.frequencyCount}
+                onChange={(event) =>
+                  onChange({ ...item, frequencyCount: event.target.value })
+                }
+                disabled={disabled}
+                className="staffField"
+              />
+            </Field>
+            <Field label="Per" htmlFor={`${item.key}-period`}>
+              <select
+                id={`${item.key}-period`}
+                value={item.frequencyPeriod}
+                onChange={(event) =>
+                  onChange({
+                    ...item,
+                    frequencyPeriod: event.target.value as
+                      HomeCareFrequencyPeriod | "",
+                  })
+                }
+                disabled={disabled}
+                className="staffSelect"
+              >
+                <option value="">Not specified</option>
+                <option value="DAY">Day</option>
+                <option value="WEEK">Week</option>
+              </select>
+            </Field>
+            <Field label="Timing" htmlFor={`${item.key}-timing`}>
+              <input
+                id={`${item.key}-timing`}
+                value={item.timingLabel}
+                onChange={(event) =>
+                  onChange({ ...item, timingLabel: event.target.value })
+                }
+                disabled={disabled}
+                placeholder="Evening"
+                className="staffField"
+              />
+            </Field>
+            <Field label="Duration" htmlFor={`${item.key}-duration`}>
+              <input
+                id={`${item.key}-duration`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={520}
+                step={1}
+                value={item.durationValue}
+                onChange={(event) =>
+                  onChange({ ...item, durationValue: event.target.value })
+                }
+                disabled={disabled}
+                className="staffField"
+              />
+            </Field>
+            <Field label="Duration unit" htmlFor={`${item.key}-unit`}>
+              <select
+                id={`${item.key}-unit`}
+                value={item.durationUnit}
+                onChange={(event) =>
+                  onChange({
+                    ...item,
+                    durationUnit: event.target.value as
+                      HomeCareDurationUnit | "",
+                  })
+                }
+                disabled={disabled}
+                className="staffSelect"
+              >
+                <option value="">Not specified</option>
+                <option value="DAYS">Days</option>
+                <option value="WEEKS">Weeks</option>
+              </select>
+            </Field>
+          </div>
+        </div>
       </div>
     </fieldset>
   );

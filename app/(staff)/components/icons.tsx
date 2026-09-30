@@ -40,6 +40,34 @@ export function SettingsIcon({ className }: { className?: string }) {
   );
 }
 
+/** Right-pointing disclosure mark. Rotate 90° when the control is expanded. */
+export function DisclosureChevron({
+  className,
+  direction = "right",
+}: {
+  className?: string;
+  direction?: "right" | "down";
+}) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="12"
+      height="12"
+      className={className}
+      data-chevron={direction}
+      aria-hidden="true"
+      focusable="false"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 3.5 10.5 8 6 12.5" />
+    </svg>
+  );
+}
+
 export function BackArrowIcon({ className }: { className?: string }) {
   return (
     <svg
