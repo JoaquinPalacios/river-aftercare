@@ -4,7 +4,27 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 import type { EditorHomeCareInstruction } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
 import { HomeCareInstructionFields } from "@/app/(staff)/components/home-care-instruction-fields";
+import { DisclosureChevron } from "@/app/(staff)/components/icons";
 import { homeCareInstructionAccordionLabel } from "@/lib/aftercare/home-care-instruction";
+
+export function homeCareInstructionDisclosureName(input: {
+  open: boolean;
+  summary: string;
+  title: string;
+  index: number;
+}): string {
+  const verb = input.open ? "Collapse" : "Expand";
+  const trimmed = input.title.trim();
+  const numbered = `Instruction ${input.index + 1}`;
+  const subject =
+    trimmed && trimmed.toLowerCase() !== numbered.toLowerCase()
+      ? trimmed
+      : numbered;
+  const schedule = input.summary.startsWith(`${subject} · `)
+    ? input.summary.slice(subject.length)
+    : "";
+  return `${verb} ${subject}${schedule}`;
+}
 
 function blankInstruction(title: string): EditorHomeCareInstruction {
   return {
@@ -156,8 +176,18 @@ export function HomeCareInstructionAccordions({
                   className="homeCareInstructionToggle"
                   aria-expanded={open}
                   aria-controls={panelId}
+                  aria-label={homeCareInstructionDisclosureName({
+                    open,
+                    summary,
+                    title: item.title,
+                    index,
+                  })}
                   onClick={() => toggle(item.key)}
                 >
+                  <DisclosureChevron
+                    className="homeCareInstructionChevron"
+                    direction={open ? "down" : "right"}
+                  />
                   <span className="homeCareInstructionSummary">{summary}</span>
                 </button>
               </h4>

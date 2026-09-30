@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 
 import type { EditorHomeCareInstruction } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
 import { AutosizeTextarea } from "@/app/(staff)/components/autosize-textarea";
+import { DisclosureChevron } from "@/app/(staff)/components/icons";
 import {
   editableHomeCareScheduleHasValue,
   formatEditableHomeCareSchedule,
@@ -30,26 +31,6 @@ function Field({
       {hint ? <p className="text-sm text-staff-muted">{hint}</p> : null}
       {children}
     </div>
-  );
-}
-
-function ScheduleChevron() {
-  return (
-    <svg
-      className="homeCareScheduleChevron"
-      viewBox="0 0 16 16"
-      width="12"
-      height="12"
-      aria-hidden="true"
-      focusable="false"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M6 3.5 10.5 8 6 12.5" />
-    </svg>
   );
 }
 
@@ -107,7 +88,7 @@ export function HomeCareInstructionFields({
           aria-controls={schedulePanelId}
           onClick={() => setScheduleOpen((open) => !open)}
         >
-          <ScheduleChevron />
+          <DisclosureChevron className="homeCareScheduleChevron" />
           <span className="homeCareScheduleText">
             <span className="homeCareScheduleLabel">Schedule (optional)</span>
             {!scheduleOpen && scheduleSummary ? (

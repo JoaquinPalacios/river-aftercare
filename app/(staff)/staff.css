@@ -3093,14 +3093,28 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
 .homeCareInstructionToggle {
   display: flex;
   width: 100%;
+  min-width: 0;
   min-height: 2.75rem;
-  align-items: center;
+  align-items: flex-start;
+  gap: 0.45rem;
   padding: 0.65rem 0.75rem;
   border: 0;
+  border-radius: 0.35rem;
   background: transparent;
   color: var(--staff-ink);
   text-align: left;
   cursor: pointer;
+}
+
+.homeCareInstructionChevron {
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin-top: 0.15rem;
+  color: var(--staff-muted);
+}
+
+.homeCareInstructionToggle[aria-expanded="true"] .homeCareInstructionChevron {
+  transform: rotate(90deg);
 }
 
 .homeCareInstructionToggle:focus-visible {

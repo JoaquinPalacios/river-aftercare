@@ -1,5 +1,7 @@
 /** @vitest-environment jsdom */
 
+import { readFileSync } from "node:fs";
+
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,6 +20,7 @@ vi.mock("@/app/(staff)/(operator)/operator/templates/actions", () => ({
 }));
 
 import { CanonicalDraftEditor } from "@/app/(staff)/(operator)/operator/templates/canonical-draft-editor";
+import { homeCareInstructionDisclosureName } from "@/app/(staff)/components/home-care-instruction-accordions";
 import { HomeCarePlanEditor } from "@/app/(staff)/components/guide-section-editors";
 import { OrderedGuideSectionsEditor } from "@/app/(staff)/components/ordered-guide-sections-editor";
 import type {
@@ -535,5 +538,121 @@ describe("home-care schedule disclosure", () => {
       "Schedule (optional) · Once daily · Evening · 7 days"
     );
     expect(clinicSummary.duration).toBe("Schedule (optional) · For 2 weeks");
+  });
+
+  it("discloses each instruction with a chevron without toggling from its actions", () => {
+    renderClinic([
+      instruction({ key: "one", title: "Your prescribed exercises" }),
+      instruction({
+        key: "two",
+        title: "Exercises",
+        frequencyCount: "3",
+        frequencyPeriod: "WEEK",
+        durationValue: "4",
+        durationUnit: "WEEKS",
+      }),
+    ]);
+
+    const first = instructionToggle(container, "one");
+    const chevron = first.querySelector(".homeCareInstructionChevron");
+    expect(chevron?.tagName.toLowerCase()).toBe("svg");
+    expect(chevron?.getAttribute("aria-hidden")).toBe("true");
+    expect(chevron?.getAttribute("data-chevron")).toBe("right");
+    expect(
+      container.querySelectorAll(
+        '[data-instruction-key="one"] .homeCareInstructionToggle'
+      )
+    ).toHaveLength(1);
+    expect(first.getAttribute("aria-expanded")).toBe("false");
+    expect(first.getAttribute("aria-label")).toBe(
+      "Expand Your prescribed exercises"
+    );
+    expect(
+      visibleText(first.querySelector(".homeCareInstructionSummary"))
+    ).toBe("Instruction 1 · Your prescribed exercises");
+
+    act(() => {
+      first.click();
+    });
+    expect(first.getAttribute("aria-expanded")).toBe("true");
+    expect(chevron?.getAttribute("data-chevron")).toBe("down");
+    expect(first.getAttribute("aria-label")).toBe(
+      "Collapse Your prescribed exercises"
+    );
+
+    act(() => {
+      first.focus();
+      const space = new KeyboardEvent("keydown", {
+        key: " ",
+        bubbles: true,
+        cancelable: true,
+      });
+      first.dispatchEvent(space);
+      if (!space.defaultPrevented) {
+        first.click();
+      }
+    });
+    expect(first.getAttribute("aria-expanded")).toBe("false");
+    expect(chevron?.getAttribute("data-chevron")).toBe("right");
+
+    act(() => {
+      const enter = new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true,
+        cancelable: true,
+      });
+      first.dispatchEvent(enter);
+      if (!enter.defaultPrevented) {
+        first.click();
+      }
+    });
+    expect(first.getAttribute("aria-expanded")).toBe("true");
+
+    const second = instructionToggle(container, "two");
+    expect(second.getAttribute("aria-expanded")).toBe("false");
+    expect(second.getAttribute("aria-label")).toBe(
+      "Expand Exercises · 3 times per week · 4 weeks"
+    );
+    expect(
+      visibleText(second.querySelector(".homeCareInstructionSummary"))
+    ).toBe("Exercises · 3 times per week · 4 weeks");
+    const moveDown = [
+      ...container.querySelectorAll('[data-instruction-key="one"] button'),
+    ].find((button) => button.textContent === "Move down") as HTMLButtonElement;
+    act(() => {
+      moveDown.click();
+    });
+    expect(
+      instructionToggle(container, "one").getAttribute("aria-expanded")
+    ).toBe("true");
+    expect(
+      instructionToggle(container, "two").getAttribute("aria-expanded")
+    ).toBe("false");
+    const remove = [
+      ...container.querySelectorAll('[data-instruction-key="two"] button'),
+    ].find(
+      (button) => button.textContent === "Remove instruction"
+    ) as HTMLButtonElement;
+    act(() => {
+      remove.click();
+    });
+    expect(container.querySelector('[data-instruction-key="two"]')).toBeNull();
+    expect(
+      instructionToggle(container, "one").getAttribute("aria-expanded")
+    ).toBe("true");
+
+    const css = readFileSync("app/(staff)/staff.css", "utf8");
+    expect(css).toContain(
+      '.homeCareInstructionToggle[aria-expanded="true"] .homeCareInstructionChevron'
+    );
+    expect(css).toContain("transform: rotate(90deg);");
+    expect(
+      homeCareInstructionDisclosureName({
+        open: false,
+        summary: "Instruction 1 · Your prescribed exercises",
+        title: "Your prescribed exercises",
+        index: 0,
+      })
+    ).toBe("Expand Your prescribed exercises");
   });
 });
