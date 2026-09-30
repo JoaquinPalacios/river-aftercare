@@ -2388,7 +2388,11 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
 
 .staffOperatorTableWrap {
   min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
+  /* A wide table otherwise becomes scrollable overflow on the page.
+     Paint containment keeps that scroll inside this frame. */
+  contain: paint;
   border: 1px solid var(--staff-line);
   border-radius: 0.75rem;
   background: var(--staff-panel);
@@ -3309,4 +3313,342 @@ html[data-theme-mode="dark"]
   .canonicalOutlineList {
     margin-top: 0;
   }
+}
+
+.staffTableFilters {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.staffDataTableScroll {
+  min-width: 48rem;
+}
+
+.staffTableToolbar {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.staffTableSearch {
+  position: relative;
+  flex: 1 1 16rem;
+  min-width: min(100%, 16rem);
+}
+
+.staffTableSearch .staffField {
+  padding-right: 4.5rem;
+}
+
+.staffTableSearchClear {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  min-height: 2rem;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--staff-brand);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.staffTableSearchClear:focus-visible {
+  outline: var(--interaction-focus-width) solid var(--staff-brand);
+  outline-offset: var(--interaction-focus-offset);
+}
+
+.staffTableSettingsButton {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.staffTableSettings {
+  position: fixed;
+  inset: unset;
+  z-index: 40;
+  display: flex;
+  max-height: min(32rem, calc(100dvh - 1.5rem));
+  flex-direction: column;
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.75rem;
+  background: var(--staff-panel);
+  color: var(--staff-ink);
+  box-shadow: light-dark(
+    0 12px 32px rgb(10 13 20 / 12%),
+    0 12px 32px rgb(0 0 0 / 45%)
+  );
+}
+
+.staffTableSettings[data-placement="sheet"] {
+  max-height: min(80dvh, 36rem);
+}
+
+.staffTableSettingsHeader,
+.staffTableSettingsFooter {
+  padding: 0.85rem 1rem;
+}
+
+.staffTableSettingsTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.staffTableSettingsGroup {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border: 0;
+  border-top: 1px solid var(--staff-line);
+}
+
+.staffTableSettingsGroup legend,
+.staffTableSettingsLabel {
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--staff-muted);
+}
+
+.staffTableSettingsLabel,
+.staffTableSettingsHelp {
+  margin: 0;
+}
+
+.staffTableSettingsHelp {
+  color: var(--staff-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.staffTableSettingsChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.staffTableSettingsChoice,
+.staffTableSettingsCheck {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--staff-ink);
+  font-size: 0.875rem;
+}
+
+.staffTableSettingsChoice {
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 999px;
+  background: var(--staff-canvas);
+}
+
+.staffTableSettingsChoice:has(input:checked) {
+  border-color: var(--staff-brand);
+  background: color-mix(in srgb, var(--staff-brand) 12%, var(--staff-panel));
+}
+
+.staffTableSettingsChoice input,
+.staffTableSettingsCheck input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--staff-brand);
+}
+
+.staffTableSettingsCheck:has(input:disabled) {
+  color: var(--staff-muted);
+}
+
+.staffTableSettingsColumns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.staffTablePagination {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.staffTablePaginationSummary {
+  margin: 0;
+  color: var(--staff-muted);
+  font-size: 0.875rem;
+}
+
+.staffTablePaginationControls {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.staffTablePages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.staffTablePageButton {
+  display: inline-flex;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--staff-ink);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+a.staffTablePageButton:hover {
+  background: var(--staff-canvas);
+}
+
+.staffTablePageButton[aria-current="page"] {
+  border-color: var(--staff-brand);
+  background: color-mix(in srgb, var(--staff-brand) 12%, var(--staff-panel));
+  font-weight: 650;
+}
+
+.staffTablePageButton:disabled {
+  color: var(--staff-muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.staffTablePageButton:focus-visible {
+  outline: var(--interaction-focus-width) solid var(--staff-brand);
+  outline-offset: var(--interaction-focus-offset);
+}
+
+.staffTablePageGap {
+  min-width: 1.25rem;
+  color: var(--staff-muted);
+  text-align: center;
+}
+
+.staffDataTable {
+  width: 100%;
+  min-width: 48rem;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.staffDataTable[data-density="comfortable"] :is(th, td) {
+  padding: 0.75rem 1rem;
+}
+
+.staffDataTable[data-density="compact"] :is(th, td) {
+  padding: 0.5rem 0.75rem;
+}
+
+.staffDataTable .staffOperatorSelect {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.staffTableHead {
+  font-weight: 500;
+  color: var(--staff-muted);
+}
+
+.staffTableSort {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.3rem;
+  color: inherit;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.staffTableSort:focus-visible {
+  outline: var(--interaction-focus-width) solid var(--staff-brand);
+  outline-offset: var(--interaction-focus-offset);
+  border-radius: 0.25rem;
+}
+
+.staffTableSortIcon {
+  color: var(--staff-muted);
+  font-size: 0.75rem;
+}
+
+.staffDataTable .staffStatusPills {
+  flex-wrap: nowrap;
+}
+
+.staffTableText {
+  min-width: 0;
+  max-width: 22rem;
+}
+
+.staffDataTable[data-wrap="on"] .staffTableText {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.staffDataTable[data-wrap="on"] .staffTableText[data-lines="1"] {
+  -webkit-line-clamp: 1;
+}
+
+.staffDataTable[data-wrap="off"] .staffTableText {
+  display: block;
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staffTableActions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 12rem;
+}
+
+.staffTableEmpty {
+  margin: 0;
 }

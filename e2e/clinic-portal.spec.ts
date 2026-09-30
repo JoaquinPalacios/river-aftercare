@@ -155,12 +155,8 @@ test.describe("clinic portal", () => {
     await expect(
       page.getByText("Tooth Extraction", { exact: true })
     ).toBeVisible();
-    await expect(
-      page
-        .locator("ul.divide-y > li")
-        .filter({ hasText: "Tooth Extraction" })
-        .locator("p.mt-1")
-    ).toContainText("/extraction");
+    const extraction = page.getByRole("row", { name: /Tooth Extraction/ });
+    await expect(extraction).toContainText("/extraction");
     await expect(
       page.getByText("Published", { exact: true }).first()
     ).toBeVisible();
@@ -179,10 +175,7 @@ test.describe("clinic portal", () => {
       page.getByRole("link", { name: "Preview" }).first()
     ).toBeVisible();
     await expect(
-      page
-        .locator("ul.divide-y > li")
-        .filter({ hasText: "Tooth Extraction" })
-        .getByRole("link", { name: /View patient guide/ })
+      extraction.getByRole("link", { name: /View patient guide/ })
     ).toHaveAttribute("href", tenantUrl(DEMO_TENANT_SLUG, "/extraction"));
     await expect(page.getByText("Harbor Family Dental")).toHaveCount(0);
 

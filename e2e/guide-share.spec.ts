@@ -27,9 +27,7 @@ test.describe("published guide QR sharing", () => {
       });
     await signInAsLocalAdmin(page);
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    const published = page
-      .locator("ul.divide-y > li")
-      .filter({ hasText: "Tooth Extraction" });
+    const published = page.getByRole("row", { name: /Tooth Extraction/ });
     await expect(
       published.getByRole("button", { name: "Share" })
     ).toBeVisible();
@@ -103,9 +101,7 @@ test.describe("published guide QR sharing", () => {
     await expect(page.getByRole("button", { name: "Share" })).toHaveCount(0);
 
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    const draftRow = page
-      .locator("ul.divide-y > li")
-      .filter({ hasText: title });
+    const draftRow = page.getByRole("row", { name: title });
     await expect(draftRow.getByRole("button", { name: "Share" })).toHaveCount(
       0
     );
@@ -184,9 +180,7 @@ test.describe("published guide QR sharing", () => {
     await expectGenericNotFound(page);
 
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    const unpublished = page
-      .locator("ul.divide-y > li")
-      .filter({ hasText: title });
+    const unpublished = page.getByRole("row", { name: title });
     await expect(
       unpublished.getByRole("button", { name: "Share" })
     ).toHaveCount(0);
@@ -229,9 +223,7 @@ test.describe("published guide QR sharing", () => {
   }) => {
     await signInAsLocalStaff(page);
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    const published = page
-      .locator("ul.divide-y > li")
-      .filter({ hasText: "Tooth Extraction" });
+    const published = page.getByRole("row", { name: /Tooth Extraction/ });
     await expect(published.getByRole("link", { name: "Edit" })).toHaveCount(0);
     await expect(
       published.getByRole("button", { name: "Share" })

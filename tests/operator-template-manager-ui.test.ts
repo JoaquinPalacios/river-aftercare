@@ -130,7 +130,7 @@ describe("operator template manager UI contract", () => {
       "utf8"
     );
     expect(bulkTable).toContain("TemplateOriginBadge");
-    expect(bulkTable).toContain("Select all visible templates");
+    expect(bulkTable).toContain("Select all rows on this page");
     expect(bulkTable).not.toMatch(/Unpublish/);
     expect(list).toContain("Create template");
     expect(list).toContain(
