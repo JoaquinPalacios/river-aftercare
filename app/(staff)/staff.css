@@ -3400,8 +3400,7 @@ html[data-theme-mode="dark"]
   max-height: min(32rem, calc(100dvh - 1.5rem));
   flex-direction: column;
   margin: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: auto;
   border: 1px solid var(--staff-line);
   border-radius: 0.75rem;
   background: var(--staff-panel);
@@ -3432,8 +3431,12 @@ html[data-theme-mode="dark"]
 
 .staffTableSettings[data-placement="popover"] .staffTableSettingsBody {
   display: grid;
-  grid-template-columns: minmax(16rem, 0.92fr) minmax(14rem, 1.08fr);
+  grid-template-columns: minmax(20.5rem, 1.15fr) minmax(13rem, 0.85fr);
   align-items: start;
+}
+
+.staffTableSettings[data-placement="popover"] .staffTableSettingsChoices {
+  flex-wrap: nowrap;
 }
 
 .staffTableSettings[data-placement="popover"] .staffTableSettingsColumnsPane {
