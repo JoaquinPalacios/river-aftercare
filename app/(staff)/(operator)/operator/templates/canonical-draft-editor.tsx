@@ -89,7 +89,6 @@ export function CanonicalDraftEditor({
       <CanonicalEditorToolbar
         templateId={templateId}
         templateTitle={templateTitle}
-        version={version}
         contentChanged={contentChanged}
         saving={saving}
         publishing={publishing}

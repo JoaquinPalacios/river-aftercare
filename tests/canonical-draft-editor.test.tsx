@@ -168,7 +168,13 @@ describe("canonical draft editor", () => {
     expect(publish.disabled).toBe(false);
     expect(toolbar.textContent).toContain("Templates");
     expect(toolbar.textContent).toContain("Tooth Extraction");
-    expect(toolbar.textContent).toContain("Draft v1");
+    expect(toolbar.textContent).not.toContain("Draft v");
+    expect(toolbar.querySelector('[aria-current="page"]')?.textContent).toBe(
+      "Draft"
+    );
+    expect(
+      toolbar.querySelector('.staffStatusPill[data-tone="draft"]')?.textContent
+    ).toBe("Draft");
     expect(toolbar.querySelector('a[href="/operator/templates"]')).toBeTruthy();
     expect(
       toolbar.querySelector('a[href="/operator/templates/template"]')

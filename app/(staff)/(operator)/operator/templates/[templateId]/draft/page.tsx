@@ -41,16 +41,23 @@ export default async function OperatorTemplateDraftPage({
                 href: `/operator/templates/${template.id}`,
                 label: template.title,
               },
-              { label: draft ? `Draft v${draft.version}` : "Draft" },
+              { label: "Draft" },
             ]}
           />
         )}
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
           Platform
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          {draft ? `Draft v${draft.version}` : "Draft"} · {template.title}
-        </h1>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {template.title}
+          </h1>
+          {draft && !template.isSample ? null : (
+            <span className="staffStatusPill" data-tone="draft">
+              Draft
+            </span>
+          )}
+        </div>
       </header>
       {notice ? (
         <p className="text-sm text-staff-muted" role="status">

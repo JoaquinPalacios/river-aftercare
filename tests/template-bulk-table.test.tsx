@@ -107,6 +107,31 @@ describe("template bulk table", () => {
     ) as HTMLInputElement;
   }
 
+  it("shows current Published and Draft status without revision numbers", () => {
+    const empty = row({
+      id: "empty",
+      title: "No revisions",
+      latestPublishedVersion: null,
+      draft: null,
+      isActive: false,
+    });
+    render([draft, published, sample, empty]);
+    const pills = [...container.querySelectorAll(".staffStatusPill")].map(
+      (pill) => pill.textContent
+    );
+    expect(pills).toContain("Published");
+    expect(pills).toContain("Draft");
+    expect(pills).toContain("Production");
+    expect(pills).toContain("Sample");
+    expect(pills).toContain("Active");
+    expect(pills).toContain("Inactive");
+    expect(pills.some((label) => /v\d/.test(label ?? ""))).toBe(false);
+    expect(container.textContent).toContain("None");
+    expect(container.textContent).not.toContain("v1 Published");
+    expect(container.textContent).not.toContain("Draft v1");
+    expect(container.textContent).not.toContain("Draft v2");
+  });
+
   it("selects one row and all visible rows without changing title links", () => {
     render([draft, second]);
     const link = container.querySelector(
