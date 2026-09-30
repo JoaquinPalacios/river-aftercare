@@ -64,6 +64,14 @@ export function CanonicalEditorToolbar({
               Unsaved changes
             </span>
           )}
+          {published || !contentChanged ? null : (
+            <p
+              className="canonicalEditorEditNote"
+              id="canonical-publish-needs-save"
+            >
+              Save the current draft before publishing.
+            </p>
+          )}
           {isActive ? null : (
             <span className="staffStatusPill" data-tone="inactive">
               Inactive
@@ -102,7 +110,15 @@ export function CanonicalEditorToolbar({
             <button
               type="button"
               className="staffBtn staffBtnPrimary"
-              disabled={publishing}
+              disabled={publishing || contentChanged}
+              aria-describedby={
+                contentChanged ? "canonical-publish-needs-save" : undefined
+              }
+              title={
+                contentChanged
+                  ? "Save the current draft before publishing."
+                  : undefined
+              }
               onClick={onPublish}
             >
               {publishing ? "Publishing…" : "Publish"}

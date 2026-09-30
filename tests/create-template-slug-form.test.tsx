@@ -5,6 +5,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}));
+
 vi.mock("@/app/(staff)/(operator)/operator/templates/actions", () => ({
   createCanonicalTemplateAction: vi.fn(async () => ({})),
 }));

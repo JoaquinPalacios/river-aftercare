@@ -7,6 +7,8 @@ import { CanonicalEditorToolbar } from "@/app/(staff)/components/canonical-edito
 import { CanonicalGuideOutline } from "@/app/(staff)/components/canonical-guide-outline";
 import { CanonicalGuidePreview } from "@/app/(staff)/components/canonical-guide-preview";
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
+import { UnsavedChangesDialog } from "@/app/(staff)/components/unsaved-changes-dialog";
+import { useUnsavedChangesGuard } from "@/app/(staff)/components/use-unsaved-changes-guard";
 import { EditorSectionHeading } from "@/app/(staff)/components/guide-section-editors";
 import { OrderedGuideSectionsEditor } from "@/app/(staff)/components/ordered-guide-sections-editor";
 import { TemplateLifecycleActions } from "@/app/(staff)/(operator)/operator/templates/template-lifecycle-actions";
@@ -17,7 +19,10 @@ import {
   saveCanonicalTemplateDraftAction,
   type CanonicalTemplateActionState,
 } from "@/app/(staff)/(operator)/operator/templates/actions";
-import { canonicalDraftContentChanged } from "@/lib/aftercare/canonical-editor-content";
+import {
+  canonicalDraftContentChanged,
+  canonicalEditorContentSignature,
+} from "@/lib/aftercare/canonical-editor-content";
 import { editorSectionsToComposedGuide } from "@/lib/aftercare/editor-sections-to-document";
 
 const initial: CanonicalTemplateActionState = {};
@@ -62,10 +67,19 @@ export function CanonicalDraftEditor(props: CanonicalWorkspaceProps) {
     ? `published:${initialSections.map((section) => section.key).join("|")}`
     : `${revisionId}:${savedContentSignature}`;
   const [seenKey, setSeenKey] = useState(loadedKey);
+  const [confirmedSignature, setConfirmedSignature] = useState(
+    savedContentSignature
+  );
+  const sectionsRef = useRef(sections);
+  const leaveAfterSave = useRef(false);
+  const handledSave = useRef<CanonicalTemplateActionState | null>(null);
+  const [leaving, setLeaving] = useState(false);
   if (seenKey !== loadedKey) {
     setSeenKey(loadedKey);
     setSections(initialSections);
+    setConfirmedSignature(savedContentSignature);
   }
+  sectionsRef.current = sections;
 
   const [saveState, saveAction, saving] = useActionState(
     saveCanonicalTemplateDraftAction,
@@ -80,20 +94,52 @@ export function CanonicalDraftEditor(props: CanonicalWorkspaceProps) {
     initial
   );
 
-  const contentChanged = useMemo(
-    () => canonicalDraftContentChanged(savedContentSignature, sections),
-    [savedContentSignature, sections]
-  );
+  const contentChanged =
+    !published && canonicalDraftContentChanged(confirmedSignature, sections);
+  const {
+    open: leaveOpen,
+    keepEditing,
+    discard,
+  } = useUnsavedChangesGuard(contentChanged);
   const previewSections = useMemo(
     () => editorSectionsToComposedGuide(sections),
     [sections]
   );
 
   useEffect(() => {
-    if (saveState.ok) {
-      router.refresh();
+    if (handledSave.current === saveState) {
+      return;
     }
-  }, [saveState.ok, router]);
+    handledSave.current = saveState;
+    if (saveState.error) {
+      if (leaveAfterSave.current) {
+        leaveAfterSave.current = false;
+        setLeaving(false);
+        keepEditing();
+      }
+      return;
+    }
+    if (!saveState.ok) {
+      return;
+    }
+    setConfirmedSignature(canonicalEditorContentSignature(sectionsRef.current));
+    if (leaveAfterSave.current) {
+      leaveAfterSave.current = false;
+      setLeaving(false);
+      discard();
+      return;
+    }
+    router.refresh();
+  }, [saveState, discard, keepEditing, router]);
+
+  function saveAndLeave() {
+    leaveAfterSave.current = true;
+    setLeaving(true);
+    const form = document.getElementById(
+      "canonical-draft-form"
+    ) as HTMLFormElement | null;
+    form?.requestSubmit();
+  }
 
   function revealSection(key: string) {
     focusNonce.current += 1;
@@ -114,7 +160,11 @@ export function CanonicalDraftEditor(props: CanonicalWorkspaceProps) {
         publishing={publishing}
         editing={creating}
         isActive={isActive}
-        onPublish={() => setPublishOpen(true)}
+        onPublish={() => {
+          if (!contentChanged) {
+            setPublishOpen(true);
+          }
+        }}
         lifecycle={
           <TemplateLifecycleActions
             templateId={templateId}
@@ -207,6 +257,15 @@ export function CanonicalDraftEditor(props: CanonicalWorkspaceProps) {
           <input type="hidden" name="revisionId" value={revisionId} />
           <input type="hidden" name="expectedVersion" value={String(version)} />
         </form>
+      )}
+      {published ? null : (
+        <UnsavedChangesDialog
+          open={leaveOpen}
+          pending={leaving}
+          onStay={keepEditing}
+          onLeave={discard}
+          onSave={saveAndLeave}
+        />
       )}
       <ConfirmDialog
         open={publishOpen}

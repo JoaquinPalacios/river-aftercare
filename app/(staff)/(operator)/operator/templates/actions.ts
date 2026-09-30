@@ -29,6 +29,7 @@ import {
   reactivateCanonicalTemplate,
 } from "@/lib/canonical-templates/set-canonical-template-activation";
 import { updateCanonicalTemplateMetadata } from "@/lib/canonical-templates/update-canonical-template-metadata";
+import { safeStaffReturnPath } from "@/lib/staff/safe-return-path";
 
 export interface CanonicalTemplateActionState {
   error?: string;
@@ -181,7 +182,8 @@ export async function createCanonicalTemplateAction(
   try {
     const created = await createCanonicalTemplate(parsed.data);
     revalidateTemplate(created.templateId);
-    redirect(`/operator/templates/${created.templateId}/draft`);
+    const next = safeStaffReturnPath(formData.get("next"));
+    redirect(next ?? `/operator/templates/${created.templateId}/draft`);
   } catch (error) {
     rethrowNavigation(error);
     return { error: actionError(error) };
