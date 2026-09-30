@@ -10,7 +10,7 @@ import { loadOperatorCanonicalTemplate } from "@/lib/operator/canonical-template
 import { operatorTemplateNotice } from "@/lib/operator/canonical-templates/notices";
 
 export const metadata: Metadata = {
-  title: `Template draft · ${PRODUCT_NAME}`,
+  title: `Template · ${PRODUCT_NAME}`,
 };
 
 export default async function OperatorTemplateDraftPage({
@@ -29,11 +29,15 @@ export default async function OperatorTemplateDraftPage({
   }
   const notice = operatorTemplateNotice(query.notice);
   const draft = template.openDraft;
+  const latestPublished = template.revisions.find(
+    (revision) => revision.isLatestPublished
+  );
+  const workspace = !template.isSample && (draft !== null || latestPublished);
 
   return (
     <div className="canonicalDraftPage">
-      <header>
-        {draft && !template.isSample ? null : (
+      {workspace ? null : (
+        <header>
           <PortalBreadcrumb
             items={[
               { href: "/operator/templates", label: "Templates" },
@@ -44,21 +48,19 @@ export default async function OperatorTemplateDraftPage({
               { label: "Draft" },
             ]}
           />
-        )}
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
-          Platform
-        </p>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {template.title}
-          </h1>
-          {draft && !template.isSample ? null : (
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
+            Platform
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {template.title}
+            </h1>
             <span className="staffStatusPill" data-tone="draft">
               Draft
             </span>
-          )}
-        </div>
-      </header>
+          </div>
+        </header>
+      )}
       {notice ? (
         <p className="text-sm text-staff-muted" role="status">
           {notice}
@@ -70,38 +72,35 @@ export default async function OperatorTemplateDraftPage({
           workflow.
         </p>
       ) : null}
-      {!draft ? (
-        <p className="text-sm text-staff-muted">
-          This template has no open draft.{" "}
-          <Link
-            href={`/operator/templates/${template.id}`}
-            className="staffOperatorRowLink"
-          >
-            Back to the template
-          </Link>
-        </p>
-      ) : template.isSample ? (
-        <p className="text-sm text-staff-muted">
-          <Link
-            href={`/operator/templates/${template.id}`}
-            className="staffOperatorRowLink"
-          >
-            Back to the template
-          </Link>
-        </p>
+      {draft && !template.isSample ? (
+        <CanonicalDraftEditor
+          templateId={template.id}
+          templateTitle={template.title}
+          revisionId={draft.id}
+          version={draft.version}
+          savedContentSignature={draft.savedContentSignature}
+          initialSections={draft.sections}
+          isActive={template.isActive}
+          neverPublished={template.latestPublishedVersion === null}
+        />
+      ) : latestPublished && !template.isSample ? (
+        <CanonicalDraftEditor
+          mode="published"
+          templateId={template.id}
+          templateTitle={template.title}
+          initialSections={latestPublished.sections}
+          isActive={template.isActive}
+        />
       ) : (
-        <>
-          <CanonicalDraftEditor
-            templateId={template.id}
-            templateTitle={template.title}
-            revisionId={draft.id}
-            version={draft.version}
-            savedContentSignature={draft.savedContentSignature}
-            initialSections={draft.sections}
-            isActive={template.isActive}
-            neverPublished={template.latestPublishedVersion === null}
-          />
-        </>
+        <p className="text-sm text-staff-muted">
+          {draft ? null : "This template has no open draft. "}
+          <Link
+            href={`/operator/templates/${template.id}`}
+            className="staffOperatorRowLink"
+          >
+            Back to the template
+          </Link>
+        </p>
       )}
     </div>
   );

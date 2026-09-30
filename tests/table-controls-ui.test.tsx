@@ -1,5 +1,7 @@
 /** @vitest-environment jsdom */
 
+import { readFileSync } from "node:fs";
+
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -300,5 +302,55 @@ describe("table control UI", () => {
       container.querySelector("[aria-label='Table settings']")
     ).toBeTruthy();
     expect(container.querySelector("input[type='search']")).toBeTruthy();
+    expect(container.querySelector(".staffTableSettingsBody")).toBeTruthy();
+    expect(container.querySelector(".staffTableSettingsPrimary")).toBeTruthy();
+    expect(
+      container.querySelector(".staffTableSettingsColumnsPane")
+    ).toBeTruthy();
+    const settingsChecks = [
+      ...container.querySelectorAll(".staffTableSettingsCheck input"),
+    ] as HTMLInputElement[];
+    expect(settingsChecks.length).toBeGreaterThan(0);
+    expect(
+      settingsChecks.every(
+        (input) => !input.classList.contains("staffOperatorSelect")
+      )
+    ).toBe(true);
+  });
+
+  it("restores the 1rem selection checkbox and widens shared table settings", () => {
+    const styles = readFileSync("app/(staff)/staff.css", "utf8");
+    const selection = styles.slice(
+      styles.indexOf(".staffDataTable .staffOperatorSelect {")
+    );
+    const selectionRule = selection.slice(0, selection.indexOf("}"));
+    expect(selectionRule).toContain("width: 1rem");
+    expect(selectionRule).toContain("height: 1rem");
+    expect(styles).not.toMatch(
+      /\.staffDataTable \.staffOperatorSelect \{[^}]*1\.5rem/
+    );
+    expect(styles).toContain(".staffTableSelectHit");
+    expect(styles).toContain(
+      ".staffDataTable .staffOperatorSelect:focus-visible"
+    );
+    expect(styles).toMatch(
+      /\.staffTableSettingsCheck input \{[^}]*width: 1rem;[^}]*height: 1rem;/
+    );
+    expect(styles).toContain("width: min(42rem, calc(100vw - 2rem))");
+    expect(styles).toContain(
+      '.staffTableSettings[data-placement="popover"] .staffTableSettingsBody'
+    );
+    expect(styles).toContain('.staffTableSettings[data-placement="sheet"]');
+    expect(styles).toContain("grid-template-columns:");
+
+    act(() => {
+      root.render(
+        <TemplateBulkTable templates={[row("alpha", "Alpha draft")]} />
+      );
+    });
+    expect(container.querySelector(".staffTableSettingsBody")).toBeTruthy();
+    expect(
+      container.querySelector(".staffTableSelectHit .staffOperatorSelect")
+    ).toBeTruthy();
   });
 });

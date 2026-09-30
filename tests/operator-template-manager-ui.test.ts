@@ -105,6 +105,18 @@ describe("operator template manager UI contract", () => {
     expect(toolbar).not.toContain("Publish revision");
     expect(editor).toContain('confirmLabel="Publish"');
     expect(editor).toContain("becomes immutable");
+    expect(editor).toContain("createCanonicalTemplateDraftAction");
+    expect(editor).toContain("create-published-revision-form");
+    expect(editor).toContain(
+      'data-template-workspace={published ? "published" : "draft"}'
+    );
+    expect(draft).toContain('mode="published"');
+    expect(draft).not.toContain("createCanonicalTemplateDraft(");
+    expect(toolbar).toContain("Details");
+    expect(toolbar).toContain("published-edit-note");
+    expect(toolbar.replace(/\s+/g, " ")).toContain(
+      "Creates a new editable revision. The published version remains unchanged until you publish the new draft."
+    );
   });
 
   it("labels the sample and does not offer production conversion", () => {
@@ -177,7 +189,7 @@ describe("operator template manager UI contract", () => {
     expect(nav).toContain('href: "/operator/templates", label: "Templates"');
   });
 
-  it("opens a production draft directly and keeps sample rows on the detail page", () => {
+  it("opens template content directly and keeps sample rows on the detail page", () => {
     expect(
       operatorTemplateHref(
         item({
@@ -195,7 +207,15 @@ describe("operator template manager UI contract", () => {
           latestPublishedVersion: 2,
         })
       )
-    ).toBe("/operator/templates/published");
+    ).toBe("/operator/templates/published/draft");
+    expect(
+      operatorTemplateHref(
+        item({
+          id: "empty",
+          title: "No revisions",
+        })
+      )
+    ).toBe("/operator/templates/empty");
     expect(
       operatorTemplateHref(
         item({

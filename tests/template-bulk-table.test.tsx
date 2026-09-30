@@ -140,6 +140,28 @@ describe("template bulk table", () => {
     expect(container.textContent).not.toContain("Draft v2");
   });
 
+  it("keeps selection checkboxes at the original size with a larger hit target", () => {
+    render([draft, second]);
+    const rowBox = checkbox("Select Alpha draft");
+    const headerBox = checkbox("Select all rows on this page");
+    expect(rowBox.className).toContain("staffOperatorSelect");
+    expect(headerBox.className).toContain("staffOperatorSelect");
+    expect(rowBox.parentElement?.className).toContain("staffTableSelectHit");
+    expect(headerBox.parentElement?.className).toContain("staffTableSelectHit");
+    expect(rowBox.closest("td")).toBeTruthy();
+    expect(headerBox.closest("th")).toBeTruthy();
+    expect(rowBox.checked).toBe(false);
+    expect(headerBox.indeterminate).toBe(false);
+
+    act(() => {
+      rowBox.click();
+    });
+    expect(checkbox("Select Alpha draft").checked).toBe(true);
+    expect(checkbox("Select Beta draft").checked).toBe(false);
+    expect(checkbox("Select all rows on this page").checked).toBe(false);
+    expect(checkbox("Select all rows on this page").indeterminate).toBe(true);
+  });
+
   it("selects one row and all rows on the current page without changing title links", () => {
     render([draft, second]);
     const link = container.querySelector(

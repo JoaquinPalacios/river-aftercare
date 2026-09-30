@@ -331,4 +331,60 @@ describe("canonical draft editor", () => {
       "Home care"
     );
   });
+
+  it("shows published content read-only until Edit creates the next revision", () => {
+    act(() => {
+      root.render(
+        <CanonicalDraftEditor
+          mode="published"
+          templateId="template"
+          templateTitle="Physiotherapy Home Exercise Plan"
+          initialSections={sections}
+          isActive
+        />
+      );
+    });
+    const workspace = container.querySelector(
+      "[data-template-workspace='published']"
+    );
+    expect(workspace).toBeTruthy();
+    expect(container.textContent).toContain("Published");
+    expect(container.textContent).toContain("Published content");
+    expect(container.textContent).toContain(
+      "Creates a new editable revision. The published version remains unchanged until you publish the new draft."
+    );
+    expect(container.textContent).not.toContain("Save");
+    expect(container.querySelector("#canonical-draft-form")).toBeNull();
+    expect(container.querySelector('input[name="sections"]')).toBeNull();
+    expect(
+      container.querySelector(
+        "[data-canonical-toolbar] [data-tone='published']"
+      )?.textContent
+    ).toBe("Published");
+    expect(
+      container.querySelector("a[href='/operator/templates/template']")
+        ?.textContent
+    ).toBe("Details");
+
+    const intro = container.querySelector(
+      '[data-section-key="intro"] button[aria-expanded]'
+    ) as HTMLButtonElement;
+    act(() => {
+      intro.click();
+    });
+    const title = container.querySelector("#intro-title") as HTMLInputElement;
+    expect(title.disabled).toBe(true);
+    expect(title.value).toBe("Example introduction");
+    expect(
+      container.querySelector(
+        "#create-published-revision-form input[name='templateId']"
+      )
+    ).toHaveProperty("value", "template");
+    const edit = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Edit"
+    ) as HTMLButtonElement;
+    expect(edit.getAttribute("form")).toBe("create-published-revision-form");
+    expect(edit.className).toContain("staffBtnPrimary");
+    expect(container.textContent).not.toContain("Revision ");
+  });
 });

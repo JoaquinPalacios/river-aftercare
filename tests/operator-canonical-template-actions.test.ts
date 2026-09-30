@@ -416,6 +416,20 @@ describeDb("operator canonical template actions", () => {
       )
     );
     expect(publishedUrl).toContain("notice=published");
+    const revisionsBeforeNavigation =
+      await getPrisma().guideTemplateRevision.count({
+        where: { guideTemplateId: templateId },
+      });
+    const workspace = await OperatorTemplateDraftPage({
+      params: Promise.resolve({ templateId: templateId ?? "" }),
+      searchParams: Promise.resolve({}),
+    });
+    expect(workspace).toBeTruthy();
+    expect(
+      await getPrisma().guideTemplateRevision.count({
+        where: { guideTemplateId: templateId },
+      })
+    ).toBe(revisionsBeforeNavigation);
     const published = await loadOperatorCanonicalTemplate(templateId ?? "");
     expect(published?.openDraft).toBeNull();
     expect(published?.metadataLocked).toBe(true);

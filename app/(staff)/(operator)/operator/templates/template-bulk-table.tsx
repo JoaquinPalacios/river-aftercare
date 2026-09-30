@@ -444,14 +444,16 @@ export function TemplateBulkTable({
               <thead className="border-b border-staff-line text-staff-muted">
                 <tr>
                   <th className="staffTableHead w-12" scope="col">
-                    <input
-                      ref={selectAllRef}
-                      type="checkbox"
-                      className="staffOperatorSelect"
-                      checked={allSelected}
-                      aria-label="Select all rows on this page"
-                      onChange={toggleVisible}
-                    />
+                    <label className="staffTableSelectHit">
+                      <input
+                        ref={selectAllRef}
+                        type="checkbox"
+                        className="staffOperatorSelect"
+                        checked={allSelected}
+                        aria-label="Select all rows on this page"
+                        onChange={toggleVisible}
+                      />
+                    </label>
                   </th>
                   {show("template") ? (
                     <SortableColumnHeader
@@ -492,13 +494,15 @@ export function TemplateBulkTable({
                     data-active={template.isActive ? "true" : "false"}
                   >
                     <td>
-                      <input
-                        type="checkbox"
-                        className="staffOperatorSelect"
-                        checked={selected.has(template.id)}
-                        aria-label={`Select ${template.title}`}
-                        onChange={() => toggleOne(template.id)}
-                      />
+                      <label className="staffTableSelectHit">
+                        <input
+                          type="checkbox"
+                          className="staffOperatorSelect"
+                          checked={selected.has(template.id)}
+                          aria-label={`Select ${template.title}`}
+                          onChange={() => toggleOne(template.id)}
+                        />
+                      </label>
                     </td>
                     {show("template") ? (
                       <td>
