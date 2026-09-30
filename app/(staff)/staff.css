@@ -2388,7 +2388,11 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
 
 .staffOperatorTableWrap {
   min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
+  /* A wide table otherwise becomes scrollable overflow on the page.
+     Paint containment keeps that scroll inside this frame. */
+  contain: paint;
   border: 1px solid var(--staff-line);
   border-radius: 0.75rem;
   background: var(--staff-panel);
@@ -3311,6 +3315,16 @@ html[data-theme-mode="dark"]
   }
 }
 
+.staffTableFilters {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.staffDataTableScroll {
+  min-width: 48rem;
+}
+
 .staffTableToolbar {
   display: flex;
   min-width: 0;
@@ -3552,7 +3566,7 @@ a.staffTablePageButton:hover {
 
 .staffDataTable {
   width: 100%;
-  min-width: 42rem;
+  min-width: 48rem;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.875rem;
@@ -3609,7 +3623,7 @@ a.staffTablePageButton:hover {
 .staffDataTable[data-wrap="on"] .staffTableText {
   display: -webkit-box;
   overflow: hidden;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }

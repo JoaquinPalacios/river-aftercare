@@ -9,7 +9,7 @@ Last updated: 2026-09-29 (Operator Templates can bulk Publish, Deactivate, React
 
 ## Staff table controls (2026-09-30)
 
-Operator Templates (`/operator/templates`) and Clinic Guides (`/guides`) share pagination, search, sort, and table settings. Presentation preferences live in `localStorage` under `river-aftercare:table:operator-templates` and `river-aftercare:table:clinic-guides` (page size, wrap, density, optional columns). Page, search, sort, and filters stay in the URL. Default page size is 25. The header checkbox selects the current page only. Retained guides stay a separate list. No schema change. Other staff tables are not migrated.
+Operator Templates (`/operator/templates`) and Clinic Guides (`/guides`) share pagination, search, sort, and table settings. Presentation preferences live in `localStorage` under `river-aftercare:table:operator-templates` and `river-aftercare:table:clinic-guides` (page size, wrap, density, optional columns). Page, search, sort, and filters stay in the URL. Default page size is 25. The header checkbox selects the current page only. Retained guides stay a separate list. `.staffOperatorTableWrap` uses `contain: paint` so a wide table scrolls inside that frame instead of widening the page. No schema change. Other staff tables are not migrated.
 
 ## Canonical template lifecycle (2026-09-29)
 

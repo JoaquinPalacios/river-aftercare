@@ -254,7 +254,7 @@ export function TemplateBulkTable({
     <div className="flex flex-col gap-4">
       <form
         key={`${state.category}|${state.activity}|${state.publication}`}
-        className="grid gap-3 sm:grid-cols-3"
+        className="staffTableFilters"
         aria-label="Filter templates"
         onSubmit={(event) => {
           event.preventDefault();
@@ -434,131 +434,136 @@ export function TemplateBulkTable({
         </div>
       ) : (
         <div className="staffOperatorTableWrap">
-          <table
-            className="staffDataTable"
-            data-wrap={preferences.wrapText ? "on" : "off"}
-            data-density={preferences.density}
-          >
-            <caption className="sr-only">Canonical templates</caption>
-            <thead className="border-b border-staff-line text-staff-muted">
-              <tr>
-                <th className="staffTableHead w-12" scope="col">
-                  <input
-                    ref={selectAllRef}
-                    type="checkbox"
-                    className="staffOperatorSelect"
-                    checked={allSelected}
-                    aria-label="Select all rows on this page"
-                    onChange={toggleVisible}
-                  />
-                </th>
-                {show("template") ? (
-                  <SortableColumnHeader
-                    label="Template"
-                    active={state.sort === "template"}
-                    direction={state.direction}
-                    href={operatorTemplateSortHref(state, "template")}
-                  />
-                ) : null}
-                {show("service") ? (
-                  <SortableColumnHeader
-                    label="Service"
-                    active={state.sort === "service"}
-                    direction={state.direction}
-                    href={operatorTemplateSortHref(state, "service")}
-                  />
-                ) : null}
-                {show("status") ? (
-                  <SortableColumnHeader
-                    label="Status"
-                    active={state.sort === "status"}
-                    direction={state.direction}
-                    href={operatorTemplateSortHref(state, "status")}
-                  />
-                ) : null}
-                {show("published") ? (
-                  <StaticColumnHeader label="Latest published" />
-                ) : null}
-                {show("draft") ? <StaticColumnHeader label="Draft" /> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {templates.map((template) => (
-                <tr
-                  key={template.id}
-                  className="staffOperatorRow border-b border-staff-line last:border-0"
-                  data-sample={template.isSample ? "true" : "false"}
-                  data-active={template.isActive ? "true" : "false"}
-                >
-                  <td>
+          <div className="staffDataTableScroll">
+            <table
+              className="staffDataTable"
+              data-wrap={preferences.wrapText ? "on" : "off"}
+              data-density={preferences.density}
+            >
+              <caption className="sr-only">Canonical templates</caption>
+              <thead className="border-b border-staff-line text-staff-muted">
+                <tr>
+                  <th className="staffTableHead w-12" scope="col">
                     <input
+                      ref={selectAllRef}
                       type="checkbox"
                       className="staffOperatorSelect"
-                      checked={selected.has(template.id)}
-                      aria-label={`Select ${template.title}`}
-                      onChange={() => toggleOne(template.id)}
+                      checked={allSelected}
+                      aria-label="Select all rows on this page"
+                      onChange={toggleVisible}
                     />
-                  </td>
+                  </th>
                   {show("template") ? (
-                    <td>
-                      <Link
-                        href={template.href}
-                        className="staffOperatorRowLink staffTableText"
-                        title={template.title}
-                      >
-                        {template.title}
-                      </Link>
-                      <p
-                        className="staffTableText text-staff-muted"
-                        data-lines="1"
-                        title={template.slug}
-                      >
-                        {template.slug}
-                      </p>
-                    </td>
+                    <SortableColumnHeader
+                      label="Template"
+                      active={state.sort === "template"}
+                      direction={state.direction}
+                      href={operatorTemplateSortHref(state, "template")}
+                    />
                   ) : null}
                   {show("service") ? (
-                    <td>
-                      <span
-                        className="staffTableText"
-                        title={template.serviceCategoryLabel}
-                      >
-                        {template.serviceCategoryLabel}
-                      </span>
-                    </td>
+                    <SortableColumnHeader
+                      label="Service"
+                      active={state.sort === "service"}
+                      direction={state.direction}
+                      href={operatorTemplateSortHref(state, "service")}
+                    />
                   ) : null}
                   {show("status") ? (
-                    <td>
-                      <div className="staffStatusPills">
-                        <TemplateOriginBadge isSample={template.isSample} />
-                        <TemplateActivityBadge isActive={template.isActive} />
-                      </div>
-                    </td>
+                    <SortableColumnHeader
+                      label="Status"
+                      active={state.sort === "status"}
+                      direction={state.direction}
+                      href={operatorTemplateSortHref(state, "status")}
+                    />
                   ) : null}
                   {show("published") ? (
-                    <td>
-                      {template.latestPublishedVersion === null ? (
-                        <span className="text-staff-muted">None</span>
-                      ) : (
-                        <span className="staffStatusPill" data-tone="published">
-                          Published
-                        </span>
-                      )}
-                    </td>
+                    <StaticColumnHeader label="Latest published" />
                   ) : null}
-                  {show("draft") ? (
-                    <td>
-                      {template.draft ? (
-                        <TemplateDraftBadge />
-                      ) : (
-                        <span className="text-staff-muted">None</span>
-                      )}
-                    </td>
-                  ) : null}
+                  {show("draft") ? <StaticColumnHeader label="Draft" /> : null}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {templates.map((template) => (
+                  <tr
+                    key={template.id}
+                    className="staffOperatorRow border-b border-staff-line last:border-0"
+                    data-sample={template.isSample ? "true" : "false"}
+                    data-active={template.isActive ? "true" : "false"}
+                  >
+                    <td>
+                      <input
+                        type="checkbox"
+                        className="staffOperatorSelect"
+                        checked={selected.has(template.id)}
+                        aria-label={`Select ${template.title}`}
+                        onChange={() => toggleOne(template.id)}
+                      />
+                    </td>
+                    {show("template") ? (
+                      <td>
+                        <Link
+                          href={template.href}
+                          className="staffOperatorRowLink staffTableText"
+                          title={template.title}
+                        >
+                          {template.title}
+                        </Link>
+                        <p
+                          className="staffTableText text-staff-muted"
+                          data-lines="1"
+                          title={template.slug}
+                        >
+                          {template.slug}
+                        </p>
+                      </td>
+                    ) : null}
+                    {show("service") ? (
+                      <td>
+                        <span
+                          className="staffTableText"
+                          title={template.serviceCategoryLabel}
+                        >
+                          {template.serviceCategoryLabel}
+                        </span>
+                      </td>
+                    ) : null}
+                    {show("status") ? (
+                      <td>
+                        <div className="staffStatusPills">
+                          <TemplateOriginBadge isSample={template.isSample} />
+                          <TemplateActivityBadge isActive={template.isActive} />
+                        </div>
+                      </td>
+                    ) : null}
+                    {show("published") ? (
+                      <td>
+                        {template.latestPublishedVersion === null ? (
+                          <span className="text-staff-muted">None</span>
+                        ) : (
+                          <span
+                            className="staffStatusPill"
+                            data-tone="published"
+                          >
+                            Published
+                          </span>
+                        )}
+                      </td>
+                    ) : null}
+                    {show("draft") ? (
+                      <td>
+                        {template.draft ? (
+                          <TemplateDraftBadge />
+                        ) : (
+                          <span className="text-staff-muted">None</span>
+                        )}
+                      </td>
+                    ) : null}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       <TablePagination

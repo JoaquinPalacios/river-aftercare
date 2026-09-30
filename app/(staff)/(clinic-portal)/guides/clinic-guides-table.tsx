@@ -174,99 +174,103 @@ export function ClinicGuidesTable({
         </div>
       ) : (
         <div className="staffOperatorTableWrap">
-          <table
-            className="staffDataTable"
-            data-wrap={preferences.wrapText ? "on" : "off"}
-            data-density={preferences.density}
-          >
-            <caption className="sr-only">Practice guides</caption>
-            <thead className="border-b border-staff-line text-staff-muted">
-              <tr>
-                {show("guide") ? (
-                  <SortableColumnHeader
-                    label="Guide"
-                    active={state.sort === "guide"}
-                    direction={state.direction}
-                    href={clinicGuideSortHref(state, "guide")}
-                  />
-                ) : null}
-                {show("status") ? (
-                  <SortableColumnHeader
-                    label="Status"
-                    active={state.sort === "status"}
-                    direction={state.direction}
-                    href={clinicGuideSortHref(state, "status")}
-                  />
-                ) : null}
-                {show("source") ? <StaticColumnHeader label="Source" /> : null}
-                {show("updated") ? (
-                  <SortableColumnHeader
-                    label="Updated"
-                    active={state.sort === "updated"}
-                    direction={state.direction}
-                    href={clinicGuideSortHref(state, "updated")}
-                  />
-                ) : null}
-                <StaticColumnHeader label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {guides.map((guide) => (
-                <tr
-                  key={guide.id}
-                  className="border-b border-staff-line last:border-0"
-                  data-guide-row="true"
-                >
+          <div className="staffDataTableScroll">
+            <table
+              className="staffDataTable"
+              data-wrap={preferences.wrapText ? "on" : "off"}
+              data-density={preferences.density}
+            >
+              <caption className="sr-only">Practice guides</caption>
+              <thead className="border-b border-staff-line text-staff-muted">
+                <tr>
                   {show("guide") ? (
-                    <td>
-                      <p
-                        className="staffTableText font-medium"
-                        title={guide.title}
-                      >
-                        {guide.title}
-                      </p>
-                      <p
-                        className="staffTableText text-staff-muted"
-                        data-lines="1"
-                        title={`/${guide.publicSlug}`}
-                      >
-                        /{guide.publicSlug}
-                      </p>
-                    </td>
+                    <SortableColumnHeader
+                      label="Guide"
+                      active={state.sort === "guide"}
+                      direction={state.direction}
+                      href={clinicGuideSortHref(state, "guide")}
+                    />
                   ) : null}
                   {show("status") ? (
-                    <td>
-                      <GuideStatusPills lifecycle={guide.lifecycle} />
-                    </td>
+                    <SortableColumnHeader
+                      label="Status"
+                      active={state.sort === "status"}
+                      direction={state.direction}
+                      href={clinicGuideSortHref(state, "status")}
+                    />
                   ) : null}
                   {show("source") ? (
-                    <td>
-                      <span
-                        className="staffTableText"
-                        title={guide.sourceLabel}
-                      >
-                        {guide.sourceLabel}
-                      </span>
-                    </td>
+                    <StaticColumnHeader label="Source" />
                   ) : null}
                   {show("updated") ? (
-                    <td className="text-staff-muted">{guide.updatedLabel}</td>
-                  ) : null}
-                  <td>
-                    <GuideRowActions
-                      guideId={guide.id}
-                      canManage={guide.canManage}
-                      isPublishedPublic={guide.isPublishedPublic}
-                      previewHref={guide.previewHref}
-                      destructiveAction={guide.destructiveAction}
-                      canUnpublish={guide.canUnpublish}
-                      lifecycle={guide.lifecycle}
+                    <SortableColumnHeader
+                      label="Updated"
+                      active={state.sort === "updated"}
+                      direction={state.direction}
+                      href={clinicGuideSortHref(state, "updated")}
                     />
-                  </td>
+                  ) : null}
+                  <StaticColumnHeader label="Actions" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {guides.map((guide) => (
+                  <tr
+                    key={guide.id}
+                    className="border-b border-staff-line last:border-0"
+                    data-guide-row="true"
+                  >
+                    {show("guide") ? (
+                      <td>
+                        <p
+                          className="staffTableText font-medium"
+                          title={guide.title}
+                        >
+                          {guide.title}
+                        </p>
+                        <p
+                          className="staffTableText text-staff-muted"
+                          data-lines="1"
+                          title={`/${guide.publicSlug}`}
+                        >
+                          /{guide.publicSlug}
+                        </p>
+                      </td>
+                    ) : null}
+                    {show("status") ? (
+                      <td>
+                        <GuideStatusPills lifecycle={guide.lifecycle} />
+                      </td>
+                    ) : null}
+                    {show("source") ? (
+                      <td>
+                        <span
+                          className="staffTableText"
+                          title={guide.sourceLabel}
+                        >
+                          {guide.sourceLabel}
+                        </span>
+                      </td>
+                    ) : null}
+                    {show("updated") ? (
+                      <td className="text-staff-muted">{guide.updatedLabel}</td>
+                    ) : null}
+                    <td>
+                      <GuideRowActions
+                        guideId={guide.id}
+                        canManage={guide.canManage}
+                        isPublishedPublic={guide.isPublishedPublic}
+                        previewHref={guide.previewHref}
+                        destructiveAction={guide.destructiveAction}
+                        canUnpublish={guide.canUnpublish}
+                        lifecycle={guide.lifecycle}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       <TablePagination
