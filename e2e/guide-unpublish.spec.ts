@@ -85,7 +85,7 @@ test.describe("published guide unpublish lifecycle", () => {
     });
 
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    const row = page.locator("ul.divide-y > li").filter({ hasText: title });
+    const row = page.getByRole("row", { name: title });
     await expect(row.getByText("Unpublished", { exact: true })).toHaveCount(1);
     await page.screenshot({
       path: "test-results/artifacts/phase-2a.5-unpublish-guides-status.png",

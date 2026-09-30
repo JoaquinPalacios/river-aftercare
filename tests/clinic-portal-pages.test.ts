@@ -35,7 +35,8 @@ describe("clinic portal pages", () => {
     expect(overview).not.toContain("Wisdom Teeth");
     expect(guides).toContain("requireStaffSession");
     expect(guides).toContain("clinicMembership.clinic.id");
-    expect(guides).not.toContain("searchParams");
+    expect(guides).toContain("searchParams");
+    expect(guides).not.toContain("searchParams.clinic");
     expect(guides).toContain("Create guide");
     expect(guides).not.toContain("Add guide");
     expect(guides).not.toContain("Duplicate");

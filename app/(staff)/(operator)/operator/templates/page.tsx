@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { TemplateBulkTable } from "@/app/(staff)/(operator)/operator/templates/template-bulk-table";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import {
-  SERVICE_CATEGORIES,
-  SERVICE_CATEGORY_LABELS,
-} from "@/lib/aftercare/service-category";
-import {
-  filterOperatorTemplates,
-  listOperatorCanonicalTemplates,
   operatorTemplateHref,
+  queryOperatorCanonicalTemplates,
 } from "@/lib/operator/canonical-templates/list-operator-canonical-templates";
 import { operatorTemplateNotice } from "@/lib/operator/canonical-templates/notices";
+import {
+  operatorTemplatesFilterKey,
+  operatorTemplatesListHref,
+  parseOperatorTemplateTableState,
+} from "@/lib/operator/canonical-templates/template-table-state";
 
 export const metadata: Metadata = {
   title: `Templates · ${PRODUCT_NAME}`,
@@ -24,28 +25,41 @@ export default async function OperatorTemplatesPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    category?: string;
-    activity?: string;
-    publication?: string;
-    notice?: string;
+    category?: string | string[];
+    activity?: string | string[];
+    publication?: string | string[];
+    q?: string | string[];
+    sort?: string | string[];
+    direction?: string | string[];
+    page?: string | string[];
+    pageSize?: string | string[];
+    notice?: string | string[];
   }>;
 }) {
   await requirePlatformOperator();
   const params = await searchParams;
-  const templates = filterOperatorTemplates(
-    await listOperatorCanonicalTemplates(),
-    {
-      serviceCategory: params.category,
-      activity: params.activity,
-      publication: params.publication,
-    }
+  const state = parseOperatorTemplateTableState(params);
+  const result = await queryOperatorCanonicalTemplates({
+    serviceCategory: state.category,
+    activity: state.activity,
+    publication: state.publication,
+    q: state.q,
+    sort: state.sort,
+    direction: state.direction,
+    requestedPage: state.requestedPage,
+    pageSize: state.pageSize,
+  });
+  if (result.redirect) {
+    redirect(
+      operatorTemplatesListHref({
+        ...state,
+        page: result.page,
+      })
+    );
+  }
+  const notice = operatorTemplateNotice(
+    Array.isArray(params.notice) ? params.notice[0] : params.notice
   );
-  const notice = operatorTemplateNotice(params.notice);
-  const filterKey = [
-    params.category ?? "",
-    params.activity ?? "",
-    params.publication ?? "",
-  ].join("|");
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
@@ -75,77 +89,16 @@ export default async function OperatorTemplatesPage({
           {notice}
         </p>
       ) : null}
-      <form
-        method="get"
-        className="grid gap-3 sm:grid-cols-3"
-        aria-label="Filter templates"
-      >
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium" htmlFor="category">
-            Service category
-          </label>
-          <select
-            id="category"
-            name="category"
-            defaultValue={params.category ?? ""}
-            className="staffSelect"
-          >
-            <option value="">All categories</option>
-            {SERVICE_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {SERVICE_CATEGORY_LABELS[category]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium" htmlFor="activity">
-            Availability
-          </label>
-          <select
-            id="activity"
-            name="activity"
-            defaultValue={params.activity ?? ""}
-            className="staffSelect"
-          >
-            <option value="">Active and inactive</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium" htmlFor="publication">
-            Revision state
-          </label>
-          <select
-            id="publication"
-            name="publication"
-            defaultValue={params.publication ?? ""}
-            className="staffSelect"
-          >
-            <option value="">Any revision state</option>
-            <option value="draft">Has a draft</option>
-            <option value="published">Has a published revision</option>
-            <option value="unpublished">No published revision</option>
-          </select>
-        </div>
-        <button type="submit" className="staffBtn staffBtnSecondary w-fit">
-          Apply filters
-        </button>
-      </form>
-      {templates.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-staff-line bg-staff-panel px-5 py-8 text-sm text-staff-muted">
-          No canonical templates match this view.
-        </p>
-      ) : (
-        <TemplateBulkTable
-          filterKey={filterKey}
-          templates={templates.map((template) => ({
-            ...template,
-            href: operatorTemplateHref(template),
-          }))}
-        />
-      )}
+      <TemplateBulkTable
+        filterKey={operatorTemplatesFilterKey(state, result.page)}
+        state={{ ...state, requestedPage: result.page }}
+        page={result.page}
+        total={result.total}
+        templates={result.rows.map((template) => ({
+          ...template,
+          href: operatorTemplateHref(template),
+        }))}
+      />
     </div>
   );
 }

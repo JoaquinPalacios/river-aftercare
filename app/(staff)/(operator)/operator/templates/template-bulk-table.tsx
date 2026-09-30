@@ -2,8 +2,17 @@
 
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
+import { TablePagination } from "@/app/(staff)/components/table-controls/table-pagination";
+import { TableSearch } from "@/app/(staff)/components/table-controls/table-search";
+import { TableSettings } from "@/app/(staff)/components/table-controls/table-settings";
+import {
+  SortableColumnHeader,
+  StaticColumnHeader,
+} from "@/app/(staff)/components/table-controls/sortable-column-header";
+import { useTablePresentation } from "@/app/(staff)/components/table-controls/use-table-presentation";
 import {
   TemplateActivityBadge,
   TemplateDraftBadge,
@@ -14,9 +23,31 @@ import {
   type CanonicalTemplateActionState,
 } from "@/app/(staff)/(operator)/operator/templates/actions";
 import {
+  SERVICE_CATEGORIES,
+  SERVICE_CATEGORY_LABELS,
+} from "@/lib/aftercare/service-category";
+import {
   bulkTemplateActionAvailability,
   type BulkTemplateAction,
 } from "@/lib/operator/canonical-templates/bulk-template-eligibility";
+import {
+  OPERATOR_TEMPLATE_COLUMNS,
+  OPERATOR_TEMPLATE_LOCKED_COLUMNS,
+} from "@/lib/operator/canonical-templates/template-table-columns";
+import {
+  OPERATOR_TEMPLATES_TABLE_ID,
+  operatorTemplatesFilterKey,
+  operatorTemplatesListHref,
+  operatorTemplateSortHref,
+  type OperatorTemplateTableState,
+} from "@/lib/operator/canonical-templates/template-table-state";
+import {
+  DEFAULT_TABLE_PAGE_SIZE,
+  isColumnVisible,
+  readTablePreferences,
+  TABLE_SEARCH_DEBOUNCE_MS,
+  type TablePageSize,
+} from "@/lib/staff/table-controls";
 
 export interface TemplateBulkTableRow {
   id: string;
@@ -39,24 +70,50 @@ const BULK_ACTIONS: readonly BulkTemplateAction[] = [
 
 const initial: CanonicalTemplateActionState = {};
 
+const defaultState: OperatorTemplateTableState = {
+  category: "",
+  activity: "",
+  publication: "",
+  q: "",
+  sort: "template",
+  direction: "asc",
+  pageSize: DEFAULT_TABLE_PAGE_SIZE,
+  pageSizeExplicit: true,
+  requestedPage: 1,
+};
+
 export function TemplateBulkTable({
   templates,
   filterKey,
+  state = defaultState,
+  page = 1,
+  total = templates.length,
 }: {
   templates: readonly TemplateBulkTableRow[];
-  filterKey: string;
+  filterKey?: string;
+  state?: OperatorTemplateTableState;
+  page?: number;
+  total?: number;
 }) {
-  const [state, formAction, pending] = useActionState(
+  const router = useRouter();
+  const { preferences, update, reset } = useTablePresentation(
+    OPERATOR_TEMPLATES_TABLE_ID,
+    OPERATOR_TEMPLATE_COLUMNS
+  );
+  const [draftQuery, setDraftQuery] = useState(state.q);
+  const [bulkState, formAction, pending] = useActionState(
     applyCanonicalTemplateBulkAction,
     initial
   );
-  const [seenFilter, setSeenFilter] = useState(filterKey);
+  const resolvedFilterKey =
+    filterKey ?? operatorTemplatesFilterKey(state, page);
+  const [seenFilter, setSeenFilter] = useState(resolvedFilterKey);
   const [selected, setSelected] = useState<ReadonlySet<string>>(
     () => new Set()
   );
   const [confirming, setConfirming] = useState<BulkTemplateAction | null>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
-  const handled = useRef(state);
+  const handled = useRef(bulkState);
   const reasonIds = {
     publish: useId(),
     deactivate: useId(),
@@ -64,10 +121,51 @@ export function TemplateBulkTable({
     delete: useId(),
   };
 
-  if (seenFilter !== filterKey) {
-    setSeenFilter(filterKey);
+  if (seenFilter !== resolvedFilterKey) {
+    setSeenFilter(resolvedFilterKey);
     setSelected(new Set());
   }
+
+  useEffect(() => {
+    setDraftQuery(state.q);
+  }, [state.q]);
+
+  useEffect(() => {
+    const trimmed = draftQuery.trim();
+    if (trimmed === state.q) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      router.push(
+        operatorTemplatesListHref({
+          ...state,
+          q: trimmed,
+          page: 1,
+        })
+      );
+    }, TABLE_SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [draftQuery, router, state]);
+
+  useEffect(() => {
+    if (state.pageSizeExplicit) {
+      return;
+    }
+    const stored = readTablePreferences(
+      OPERATOR_TEMPLATES_TABLE_ID,
+      OPERATOR_TEMPLATE_COLUMNS
+    );
+    if (stored.pageSize === state.pageSize) {
+      return;
+    }
+    router.replace(
+      operatorTemplatesListHref({
+        ...state,
+        pageSize: stored.pageSize,
+        page: 1,
+      })
+    );
+  }, [router, state]);
 
   const selectedTemplates = templates.filter((template) =>
     selected.has(template.id)
@@ -76,6 +174,11 @@ export function TemplateBulkTable({
   const allSelected =
     templates.length > 0 && selectedTemplates.length === templates.length;
   const partiallySelected = selectedTemplates.length > 0 && !allSelected;
+  const filtered = Boolean(
+    state.q || state.category || state.activity || state.publication
+  );
+  const show = (columnId: string) =>
+    isColumnVisible(columnId, OPERATOR_TEMPLATE_COLUMNS, preferences);
 
   useEffect(() => {
     if (selectAllRef.current) {
@@ -84,17 +187,17 @@ export function TemplateBulkTable({
   }, [partiallySelected]);
 
   useEffect(() => {
-    if (handled.current === state) {
+    if (handled.current === bulkState) {
       return;
     }
-    handled.current = state;
-    if (state.ok) {
+    handled.current = bulkState;
+    if (bulkState.ok) {
       setSelected(new Set());
     }
-    if (state.ok || state.error) {
+    if (bulkState.ok || bulkState.error) {
       setConfirming(null);
     }
-  }, [state]);
+  }, [bulkState]);
 
   function toggleOne(id: string) {
     setSelected((current) => {
@@ -123,6 +226,17 @@ export function TemplateBulkTable({
     form?.requestSubmit();
   }
 
+  function navigate(
+    next: Partial<OperatorTemplateTableState> & { page?: number }
+  ) {
+    router.push(
+      operatorTemplatesListHref({
+        ...state,
+        ...next,
+      })
+    );
+  }
+
   const publishPayload = selectedTemplates.map((template) => ({
     templateId: template.id,
     revisionId: template.draft?.id ?? "",
@@ -138,14 +252,120 @@ export function TemplateBulkTable({
 
   return (
     <div className="flex flex-col gap-4">
-      {state.message ? (
+      <form
+        key={`${state.category}|${state.activity}|${state.publication}`}
+        className="grid gap-3 sm:grid-cols-3"
+        aria-label="Filter templates"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          navigate({
+            category: String(data.get("category") ?? ""),
+            activity: String(data.get("activity") ?? ""),
+            publication: String(data.get("publication") ?? ""),
+            q: draftQuery.trim(),
+            page: 1,
+          });
+        }}
+      >
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium" htmlFor="category">
+            Service category
+          </label>
+          <select
+            id="category"
+            name="category"
+            defaultValue={state.category}
+            className="staffSelect"
+          >
+            <option value="">All categories</option>
+            {SERVICE_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {SERVICE_CATEGORY_LABELS[category]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium" htmlFor="activity">
+            Availability
+          </label>
+          <select
+            id="activity"
+            name="activity"
+            defaultValue={state.activity}
+            className="staffSelect"
+          >
+            <option value="">Active and inactive</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium" htmlFor="publication">
+            Revision state
+          </label>
+          <select
+            id="publication"
+            name="publication"
+            defaultValue={state.publication}
+            className="staffSelect"
+          >
+            <option value="">Any revision state</option>
+            <option value="draft">Has a draft</option>
+            <option value="published">Has a published revision</option>
+            <option value="unpublished">No published revision</option>
+          </select>
+        </div>
+        <button type="submit" className="staffBtn staffBtnSecondary w-fit">
+          Apply filters
+        </button>
+      </form>
+      <div className="staffTableToolbar">
+        <TableSearch
+          label="Search templates"
+          placeholder="Search templates…"
+          value={draftQuery}
+          onValueChange={setDraftQuery}
+          onClear={() => {
+            setDraftQuery("");
+            navigate({ q: "", page: 1 });
+          }}
+        />
+        <TableSettings
+          columns={OPERATOR_TEMPLATE_COLUMNS}
+          preferences={preferences}
+          pageSize={state.pageSize}
+          lockedColumnMessage={OPERATOR_TEMPLATE_LOCKED_COLUMNS}
+          onPageSizeChange={(pageSize: TablePageSize) => {
+            update({ pageSize });
+            navigate({ pageSize, page: 1 });
+          }}
+          onWrapTextChange={(wrapText) => update({ wrapText })}
+          onDensityChange={(density) => update({ density })}
+          onColumnVisibilityChange={(columnId, visible) => {
+            const hidden = new Set(preferences.hiddenColumnIds);
+            if (visible) {
+              hidden.delete(columnId);
+            } else {
+              hidden.add(columnId);
+            }
+            update({ hiddenColumnIds: [...hidden] });
+          }}
+          onReset={() => {
+            reset();
+            navigate({ pageSize: DEFAULT_TABLE_PAGE_SIZE, page: 1 });
+          }}
+        />
+      </div>
+      {bulkState.message ? (
         <p className="text-sm text-staff-muted" role="status">
-          {state.message}
+          {bulkState.message}
         </p>
       ) : null}
-      {state.error ? (
+      {bulkState.error ? (
         <p className="text-sm text-red-600" role="alert">
-          {state.error}
+          {bulkState.error}
         </p>
       ) : null}
       {selectedTemplates.length > 0 ? (
@@ -186,79 +406,169 @@ export function TemplateBulkTable({
           </div>
         </div>
       ) : null}
-      <div className="staffOperatorTableWrap">
-        <table className="min-w-full text-left text-sm">
-          <caption className="sr-only">Canonical templates</caption>
-          <thead className="border-b border-staff-line text-staff-muted">
-            <tr>
-              <th className="w-12 px-4 py-3 font-medium">
-                <input
-                  ref={selectAllRef}
-                  type="checkbox"
-                  className="staffOperatorSelect"
-                  checked={allSelected}
-                  aria-label="Select all visible templates"
-                  onChange={toggleVisible}
-                />
-              </th>
-              <th className="px-4 py-3 font-medium">Template</th>
-              <th className="px-4 py-3 font-medium">Service</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Latest published</th>
-              <th className="px-4 py-3 font-medium">Draft</th>
-            </tr>
-          </thead>
-          <tbody>
-            {templates.map((template) => (
-              <tr
-                key={template.id}
-                className="staffOperatorRow border-b border-staff-line last:border-0"
-                data-sample={template.isSample ? "true" : "false"}
-                data-active={template.isActive ? "true" : "false"}
-              >
-                <td className="px-4 py-3">
+      {templates.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-staff-line bg-staff-panel px-5 py-8 text-sm text-staff-muted">
+          <p className="staffTableEmpty">
+            {filtered
+              ? "No templates match the current search and filters."
+              : "No templates yet."}
+          </p>
+          {filtered ? (
+            <button
+              type="button"
+              className="staffBtn staffBtnSecondary mt-4"
+              onClick={() => {
+                setDraftQuery("");
+                navigate({
+                  category: "",
+                  activity: "",
+                  publication: "",
+                  q: "",
+                  page: 1,
+                });
+              }}
+            >
+              Clear search and filters
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <div className="staffOperatorTableWrap">
+          <table
+            className="staffDataTable"
+            data-wrap={preferences.wrapText ? "on" : "off"}
+            data-density={preferences.density}
+          >
+            <caption className="sr-only">Canonical templates</caption>
+            <thead className="border-b border-staff-line text-staff-muted">
+              <tr>
+                <th className="staffTableHead w-12" scope="col">
                   <input
+                    ref={selectAllRef}
                     type="checkbox"
                     className="staffOperatorSelect"
-                    checked={selected.has(template.id)}
-                    aria-label={`Select ${template.title}`}
-                    onChange={() => toggleOne(template.id)}
+                    checked={allSelected}
+                    aria-label="Select all rows on this page"
+                    onChange={toggleVisible}
                   />
-                </td>
-                <td className="px-4 py-3">
-                  <Link href={template.href} className="staffOperatorRowLink">
-                    {template.title}
-                  </Link>
-                  <p className="text-staff-muted">{template.slug}</p>
-                </td>
-                <td className="px-4 py-3">{template.serviceCategoryLabel}</td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
-                    <TemplateOriginBadge isSample={template.isSample} />
-                    <TemplateActivityBadge isActive={template.isActive} />
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  {template.latestPublishedVersion === null ? (
-                    <span className="text-staff-muted">None</span>
-                  ) : (
-                    <span className="staffStatusPill" data-tone="published">
-                      Published
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  {template.draft ? (
-                    <TemplateDraftBadge />
-                  ) : (
-                    <span className="text-staff-muted">None</span>
-                  )}
-                </td>
+                </th>
+                {show("template") ? (
+                  <SortableColumnHeader
+                    label="Template"
+                    active={state.sort === "template"}
+                    direction={state.direction}
+                    href={operatorTemplateSortHref(state, "template")}
+                  />
+                ) : null}
+                {show("service") ? (
+                  <SortableColumnHeader
+                    label="Service"
+                    active={state.sort === "service"}
+                    direction={state.direction}
+                    href={operatorTemplateSortHref(state, "service")}
+                  />
+                ) : null}
+                {show("status") ? (
+                  <SortableColumnHeader
+                    label="Status"
+                    active={state.sort === "status"}
+                    direction={state.direction}
+                    href={operatorTemplateSortHref(state, "status")}
+                  />
+                ) : null}
+                {show("published") ? (
+                  <StaticColumnHeader label="Latest published" />
+                ) : null}
+                {show("draft") ? <StaticColumnHeader label="Draft" /> : null}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {templates.map((template) => (
+                <tr
+                  key={template.id}
+                  className="staffOperatorRow border-b border-staff-line last:border-0"
+                  data-sample={template.isSample ? "true" : "false"}
+                  data-active={template.isActive ? "true" : "false"}
+                >
+                  <td>
+                    <input
+                      type="checkbox"
+                      className="staffOperatorSelect"
+                      checked={selected.has(template.id)}
+                      aria-label={`Select ${template.title}`}
+                      onChange={() => toggleOne(template.id)}
+                    />
+                  </td>
+                  {show("template") ? (
+                    <td>
+                      <Link
+                        href={template.href}
+                        className="staffOperatorRowLink staffTableText"
+                        title={template.title}
+                      >
+                        {template.title}
+                      </Link>
+                      <p
+                        className="staffTableText text-staff-muted"
+                        data-lines="1"
+                        title={template.slug}
+                      >
+                        {template.slug}
+                      </p>
+                    </td>
+                  ) : null}
+                  {show("service") ? (
+                    <td>
+                      <span
+                        className="staffTableText"
+                        title={template.serviceCategoryLabel}
+                      >
+                        {template.serviceCategoryLabel}
+                      </span>
+                    </td>
+                  ) : null}
+                  {show("status") ? (
+                    <td>
+                      <div className="staffStatusPills">
+                        <TemplateOriginBadge isSample={template.isSample} />
+                        <TemplateActivityBadge isActive={template.isActive} />
+                      </div>
+                    </td>
+                  ) : null}
+                  {show("published") ? (
+                    <td>
+                      {template.latestPublishedVersion === null ? (
+                        <span className="text-staff-muted">None</span>
+                      ) : (
+                        <span className="staffStatusPill" data-tone="published">
+                          Published
+                        </span>
+                      )}
+                    </td>
+                  ) : null}
+                  {show("draft") ? (
+                    <td>
+                      {template.draft ? (
+                        <TemplateDraftBadge />
+                      ) : (
+                        <span className="text-staff-muted">None</span>
+                      )}
+                    </td>
+                  ) : null}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <TablePagination
+        page={page}
+        pageSize={state.pageSize}
+        total={total}
+        hrefForPage={(nextPage) =>
+          operatorTemplatesListHref({ ...state, page: nextPage })
+        }
+      />
       <BulkForm
         id="bulk-publish-form"
         action={formAction}

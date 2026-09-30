@@ -29,6 +29,13 @@ vi.mock("@/app/(staff)/(operator)/operator/templates/actions", () => ({
     bulkAction(previous, formData),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+  }),
+}));
+
 import {
   TemplateBulkTable,
   type TemplateBulkTableRow,
@@ -75,6 +82,7 @@ describe("template bulk table", () => {
   beforeEach(() => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
     bulkAction.mockClear();
+    window.localStorage.clear();
     HTMLDialogElement.prototype.showModal = function showModal() {
       this.setAttribute("open", "");
     };
@@ -132,7 +140,7 @@ describe("template bulk table", () => {
     expect(container.textContent).not.toContain("Draft v2");
   });
 
-  it("selects one row and all visible rows without changing title links", () => {
+  it("selects one row and all rows on the current page without changing title links", () => {
     render([draft, second]);
     const link = container.querySelector(
       'a[href="/operator/templates/alpha/draft"]'
@@ -148,14 +156,14 @@ describe("template bulk table", () => {
     expect(container.textContent).toContain("1 template selected");
 
     act(() => {
-      checkbox("Select all visible templates").click();
+      checkbox("Select all rows on this page").click();
     });
     expect(checkbox("Select Alpha draft").checked).toBe(true);
     expect(checkbox("Select Beta draft").checked).toBe(true);
     expect(container.textContent).toContain("2 templates selected");
 
     act(() => {
-      checkbox("Select all visible templates").click();
+      checkbox("Select all rows on this page").click();
     });
     expect(checkbox("Select Alpha draft").checked).toBe(false);
     expect(checkbox("Select Beta draft").checked).toBe(false);
@@ -164,7 +172,7 @@ describe("template bulk table", () => {
   it("clears selection when the visible filter changes", () => {
     render([draft, second], "dental");
     act(() => {
-      checkbox("Select all visible templates").click();
+      checkbox("Select all rows on this page").click();
     });
     expect(container.textContent).toContain("2 templates selected");
     render([draft], "physio");
@@ -201,7 +209,7 @@ describe("template bulk table", () => {
   it("confirms publish with names and clears the selection after success", async () => {
     render([draft, second]);
     act(() => {
-      checkbox("Select all visible templates").click();
+      checkbox("Select all rows on this page").click();
     });
     const open = [...container.querySelectorAll("button")].find(
       (button) => button.textContent === "Publish"
