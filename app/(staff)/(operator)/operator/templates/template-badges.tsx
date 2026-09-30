@@ -22,10 +22,10 @@ export function TemplateActivityBadge({ isActive }: { isActive: boolean }) {
   );
 }
 
-export function TemplateDraftBadge({ version }: { version: number }) {
+export function TemplateDraftBadge() {
   return (
     <span className="staffStatusPill" data-tone="draft">
-      Draft v{version}
+      Draft
     </span>
   );
 }

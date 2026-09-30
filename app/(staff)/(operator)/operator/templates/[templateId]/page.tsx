@@ -64,9 +64,7 @@ export default async function OperatorTemplateDetailPage({
           <div className="flex flex-wrap gap-2">
             <TemplateOriginBadge isSample={template.isSample} />
             <TemplateActivityBadge isActive={template.isActive} />
-            {template.openDraft ? (
-              <TemplateDraftBadge version={template.openDraft.version} />
-            ) : null}
+            {template.openDraft ? <TemplateDraftBadge /> : null}
           </div>
         </div>
       </header>
@@ -99,7 +97,7 @@ export default async function OperatorTemplateDetailPage({
         <p className="text-sm">
           Latest published:{" "}
           {latestPublished ? (
-            `v${latestPublished.version} Published`
+            "Published"
           ) : (
             <span className="text-staff-muted">None</span>
           )}
@@ -111,7 +109,7 @@ export default async function OperatorTemplateDetailPage({
               href={`/operator/templates/${template.id}/draft`}
               className="staffOperatorRowLink"
             >
-              {`Draft v${template.openDraft.version}`}
+              Draft
             </Link>
           ) : (
             <span className="text-staff-muted">None</span>
@@ -166,7 +164,7 @@ export default async function OperatorTemplateDetailPage({
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-sm font-semibold">
-                    Version {revision.version}
+                    Revision {revision.version}
                   </h3>
                   <span
                     className="staffStatusPill"

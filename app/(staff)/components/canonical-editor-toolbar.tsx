@@ -7,7 +7,6 @@ import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 export function CanonicalEditorToolbar({
   templateId,
   templateTitle,
-  version,
   contentChanged,
   saving,
   publishing,
@@ -17,7 +16,6 @@ export function CanonicalEditorToolbar({
 }: {
   templateId: string;
   templateTitle: string;
-  version: number;
   contentChanged: boolean;
   saving: boolean;
   publishing: boolean;
@@ -35,12 +33,12 @@ export function CanonicalEditorToolbar({
               href: `/operator/templates/${templateId}`,
               label: templateTitle,
             },
-            { label: `Draft v${version}` },
+            { label: "Draft" },
           ]}
         />
         <div className="canonicalEditorToolbarStatus">
           <span className="staffStatusPill" data-tone="draft">
-            Draft v{version}
+            Draft
           </span>
           {contentChanged ? (
             <span className="staffStatusPill" data-tone="warning">

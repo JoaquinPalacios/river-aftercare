@@ -256,4 +256,56 @@ describe("operator template manager UI contract", () => {
     expect(templates[0]?.latestPublishedVersion).toBe(1);
     expect(templates[0]?.draft).toEqual({ id: "draft-2", version: 2 });
   });
+
+  it("shows current template status without version labels and keeps revision history numbered", () => {
+    const list = readFileSync(
+      "app/(staff)/(operator)/operator/templates/template-bulk-table.tsx",
+      "utf8"
+    );
+    const badges = readFileSync(
+      "app/(staff)/(operator)/operator/templates/template-badges.tsx",
+      "utf8"
+    );
+    const detail = readFileSync(
+      "app/(staff)/(operator)/operator/templates/[templateId]/page.tsx",
+      "utf8"
+    );
+    const draft = readFileSync(
+      "app/(staff)/(operator)/operator/templates/[templateId]/draft/page.tsx",
+      "utf8"
+    );
+    const toolbar = readFileSync(
+      "app/(staff)/components/canonical-editor-toolbar.tsx",
+      "utf8"
+    );
+    const editor = readFileSync(
+      "app/(staff)/(operator)/operator/templates/canonical-draft-editor.tsx",
+      "utf8"
+    );
+    const styles = readFileSync("app/(staff)/staff.css", "utf8");
+    const pillStart = styles.indexOf(".staffStatusPill {");
+    const pillRule = styles.slice(pillStart, styles.indexOf("}", pillStart));
+
+    expect(list).toContain("Published");
+    expect(list).not.toContain("v{template.latestPublishedVersion} Published");
+    expect(badges).toContain("Draft");
+    expect(badges).not.toContain("Draft v");
+    expect(detail).toContain('"Published"');
+    expect(detail).toMatch(/>\s*Draft\s*</);
+    expect(detail).toContain("Revision {revision.version}");
+    expect(detail).not.toContain("Draft v");
+    expect(detail).not.toContain("v${");
+    expect(draft).toContain('{ label: "Draft" }');
+    expect(draft).toContain("{template.title}");
+    expect(draft).toMatch(/>\s*Draft\s*</);
+    expect(draft).not.toContain("Draft v");
+    expect(toolbar).toContain('{ label: "Draft" }');
+    expect(toolbar).toMatch(/>\s*Draft\s*</);
+    expect(toolbar).not.toContain("Draft v");
+    expect(editor).toContain('name="expectedVersion"');
+    expect(editor).toContain("value={String(version)}");
+    expect(pillRule).toContain("display: inline-flex");
+    expect(pillRule).toContain("white-space: nowrap");
+    expect(pillRule).toContain("width: fit-content");
+  });
 });

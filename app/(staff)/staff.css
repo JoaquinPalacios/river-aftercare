@@ -1162,7 +1162,10 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
 
 .staffStatusPill {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
+  width: fit-content;
+  max-width: none;
   min-height: 1.5rem;
   padding: 0 0.5rem;
   border: 1px solid var(--staff-line);
@@ -1172,6 +1175,7 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .staffStatusPill[data-tone="published"],

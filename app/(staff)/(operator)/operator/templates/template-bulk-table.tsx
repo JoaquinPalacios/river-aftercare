@@ -243,13 +243,13 @@ export function TemplateBulkTable({
                     <span className="text-staff-muted">None</span>
                   ) : (
                     <span className="staffStatusPill" data-tone="published">
-                      v{template.latestPublishedVersion} Published
+                      Published
                     </span>
                   )}
                 </td>
                 <td className="px-4 py-3">
                   {template.draft ? (
-                    <TemplateDraftBadge version={template.draft.version} />
+                    <TemplateDraftBadge />
                   ) : (
                     <span className="text-staff-muted">None</span>
                   )}
