@@ -420,10 +420,17 @@ describe("canonical draft editor", () => {
     const instruction = container.querySelector(
       ".homeCareInstructionToggle"
     ) as HTMLButtonElement;
+    const schedule = container.querySelector(
+      ".homeCareScheduleToggle"
+    ) as HTMLButtonElement;
+    expect(schedule.getAttribute("aria-expanded")).toBe("true");
     act(() => {
       intro.click();
       instruction.click();
+      schedule.click();
     });
+    expect(instruction.getAttribute("aria-expanded")).toBe("true");
+    expect(schedule.getAttribute("aria-expanded")).toBe("false");
     expect(container.querySelector('[data-tone="warning"]')).toBeNull();
     expect(unloadBlocked()).toBe(false);
 
@@ -440,6 +447,15 @@ describe("canonical draft editor", () => {
     });
     expect(cleanClick.defaultPrevented).toBe(false);
     expect(leaveDialog()?.hasAttribute("open")).toBe(false);
+
+    setField("#item-timing", "Morning");
+    expect(container.querySelector('[data-tone="warning"]')?.textContent).toBe(
+      "Unsaved changes"
+    );
+    const publishWhileDirty = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Publish"
+    ) as HTMLButtonElement;
+    expect(publishWhileDirty.disabled).toBe(true);
 
     setField("#intro-title", "Example introduction revised");
     expect(container.querySelector('[data-tone="warning"]')?.textContent).toBe(
