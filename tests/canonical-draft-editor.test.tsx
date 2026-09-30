@@ -4,8 +4,13 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const { push, refresh } = vi.hoisted(() => ({
+  push: vi.fn(),
+  refresh: vi.fn(),
+}));
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
+  useRouter: () => ({ refresh, push }),
 }));
 
 vi.mock("@/app/(staff)/(operator)/operator/templates/actions", () => ({
@@ -18,6 +23,7 @@ vi.mock("@/app/(staff)/(operator)/operator/templates/actions", () => ({
 }));
 
 import { CanonicalDraftEditor } from "@/app/(staff)/(operator)/operator/templates/canonical-draft-editor";
+import { saveCanonicalTemplateDraftAction } from "@/app/(staff)/(operator)/operator/templates/actions";
 import { canonicalEditorContentSignature } from "@/lib/aftercare/canonical-editor-content";
 import type { EditorSection } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
 
@@ -78,6 +84,11 @@ describe("canonical draft editor", () => {
     HTMLDialogElement.prototype.close = function close() {
       this.removeAttribute("open");
     };
+    push.mockReset();
+    refresh.mockReset();
+    vi.mocked(saveCanonicalTemplateDraftAction).mockReset();
+    vi.mocked(saveCanonicalTemplateDraftAction).mockResolvedValue({});
+    window.history.replaceState({}, "", "/operator/templates/template/draft");
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -386,5 +397,212 @@ describe("canonical draft editor", () => {
     expect(edit.getAttribute("form")).toBe("create-published-revision-form");
     expect(edit.className).toContain("staffBtnPrimary");
     expect(container.textContent).not.toContain("Revision ");
+    expect(container.textContent).not.toContain("Save changes before leaving?");
+    const templates = container.querySelector(
+      'a[href="/operator/templates"]'
+    ) as HTMLAnchorElement;
+    const event = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+    });
+    act(() => {
+      templates.dispatchEvent(event);
+    });
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it("guards dirty draft navigation without treating disclosures as edits", async () => {
+    render();
+    const intro = container.querySelector(
+      '[data-section-key="intro"] button[aria-expanded]'
+    ) as HTMLButtonElement;
+    const instruction = container.querySelector(
+      ".homeCareInstructionToggle"
+    ) as HTMLButtonElement;
+    const schedule = container.querySelector(
+      ".homeCareScheduleToggle"
+    ) as HTMLButtonElement;
+    expect(schedule.getAttribute("aria-expanded")).toBe("true");
+    act(() => {
+      intro.click();
+      instruction.click();
+      schedule.click();
+    });
+    expect(instruction.getAttribute("aria-expanded")).toBe("true");
+    expect(schedule.getAttribute("aria-expanded")).toBe("false");
+    expect(container.querySelector('[data-tone="warning"]')).toBeNull();
+    expect(unloadBlocked()).toBe(false);
+
+    const templates = container.querySelector(
+      'a[href="/operator/templates"]'
+    ) as HTMLAnchorElement;
+    const cleanClick = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+    });
+    act(() => {
+      templates.dispatchEvent(cleanClick);
+    });
+    expect(cleanClick.defaultPrevented).toBe(false);
+    expect(leaveDialog()?.hasAttribute("open")).toBe(false);
+
+    setField("#item-timing", "Morning");
+    expect(container.querySelector('[data-tone="warning"]')?.textContent).toBe(
+      "Unsaved changes"
+    );
+    const publishWhileDirty = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Publish"
+    ) as HTMLButtonElement;
+    expect(publishWhileDirty.disabled).toBe(true);
+
+    setField("#intro-title", "Example introduction revised");
+    expect(container.querySelector('[data-tone="warning"]')?.textContent).toBe(
+      "Unsaved changes"
+    );
+    expect(container.textContent).toContain(
+      "Save the current draft before publishing."
+    );
+    const publish = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Publish"
+    ) as HTMLButtonElement;
+    expect(publish.disabled).toBe(true);
+    act(() => {
+      publish.click();
+    });
+    const publishDialog = [...container.querySelectorAll("dialog")].find(
+      (dialog) => dialog.textContent?.includes("Publish this revision?")
+    );
+    expect(publishDialog?.hasAttribute("open")).toBe(false);
+    expect(unloadBlocked()).toBe(true);
+
+    const blocked = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+    });
+    act(() => {
+      templates.dispatchEvent(blocked);
+    });
+    expect(blocked.defaultPrevented).toBe(true);
+    expect(leaveDialog()?.hasAttribute("open")).toBe(true);
+
+    act(() => {
+      dialogButton("Stay").click();
+    });
+    expect(leaveDialog()?.hasAttribute("open")).toBe(false);
+    expect(
+      (container.querySelector("#intro-title") as HTMLInputElement).value
+    ).toBe("Example introduction revised");
+
+    act(() => {
+      templates.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })
+      );
+    });
+    act(() => {
+      dialogButton("Leave without saving").click();
+    });
+    expect(push).toHaveBeenCalledWith("/operator/templates");
+    expect(saveCanonicalTemplateDraftAction).not.toHaveBeenCalled();
+    expect(
+      (container.querySelector("#intro-title") as HTMLInputElement).value
+    ).toBe("Example introduction revised");
+  });
+
+  it("saves before leaving and stays when that save fails", async () => {
+    render();
+    const intro = container.querySelector(
+      '[data-section-key="intro"] button[aria-expanded]'
+    ) as HTMLButtonElement;
+    act(() => {
+      intro.click();
+    });
+    setField("#intro-title", "Example introduction revised");
+    const templates = container.querySelector(
+      'a[href="/operator/templates"]'
+    ) as HTMLAnchorElement;
+    vi.mocked(saveCanonicalTemplateDraftAction).mockResolvedValue({
+      error: "Could not save this draft.",
+    });
+    act(() => {
+      templates.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })
+      );
+    });
+    await act(async () => {
+      dialogButton("Save and leave").click();
+    });
+    expect(saveCanonicalTemplateDraftAction).toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Could not save this draft.");
+    expect(leaveDialog()?.hasAttribute("open")).toBe(false);
+    expect(
+      (container.querySelector("#intro-title") as HTMLInputElement).value
+    ).toBe("Example introduction revised");
+
+    const save = [
+      ...(
+        container.querySelector("[data-canonical-toolbar]") as HTMLElement
+      ).querySelectorAll("button"),
+    ].find((button) => button.textContent === "Save") as HTMLButtonElement;
+    vi.mocked(saveCanonicalTemplateDraftAction).mockImplementation(
+      async () => ({
+        ok: true,
+      })
+    );
+    await act(async () => {
+      save.click();
+    });
+    expect(container.querySelector('[data-tone="warning"]')).toBeNull();
+    expect(unloadBlocked()).toBe(false);
+
+    setField("#intro-title", "Example introduction revised again");
+    expect(container.querySelector('[data-tone="warning"]')?.textContent).toBe(
+      "Unsaved changes"
+    );
+    expect(unloadBlocked()).toBe(true);
+
+    act(() => {
+      templates.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })
+      );
+    });
+    await act(async () => {
+      dialogButton("Save and leave").click();
+    });
+    expect(push).toHaveBeenCalledWith("/operator/templates");
+    expect(container.querySelector('[data-tone="warning"]')).toBeNull();
   });
 });
+
+function leaveDialog() {
+  return [...document.querySelectorAll("dialog")].find((dialog) =>
+    dialog.textContent?.includes("Save changes before leaving?")
+  );
+}
+
+function dialogButton(label: string) {
+  return [...(leaveDialog()?.querySelectorAll("button") ?? [])].find(
+    (button) => button.textContent === label
+  ) as HTMLButtonElement;
+}
+
+function setField(selector: string, value: string) {
+  const field = document.querySelector(selector) as HTMLInputElement;
+  const setter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value"
+  )?.set;
+  act(() => {
+    setter?.call(field, value);
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+function unloadBlocked() {
+  const event = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(event);
+  return event.defaultPrevented;
+}

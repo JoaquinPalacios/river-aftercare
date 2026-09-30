@@ -1,7 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
+import { UnsavedChangesDialog } from "@/app/(staff)/components/unsaved-changes-dialog";
+import { useUnsavedChangesGuard } from "@/app/(staff)/components/use-unsaved-changes-guard";
 import {
   updateCanonicalTemplateMetadataAction,
   type CanonicalTemplateActionState,
@@ -13,6 +15,14 @@ import {
 } from "@/lib/aftercare/service-category";
 
 const initial: CanonicalTemplateActionState = {};
+
+function snapshot(values: {
+  title: string;
+  slug: string;
+  serviceCategory: string;
+}): string {
+  return JSON.stringify(values);
+}
 
 export function TemplateMetadataForm({
   templateId,
@@ -31,9 +41,67 @@ export function TemplateMetadataForm({
     updateCanonicalTemplateMetadataAction,
     initial
   );
+  const [titleValue, setTitleValue] = useState(title);
+  const [slugValue, setSlugValue] = useState(slug);
+  const [categoryValue, setCategoryValue] = useState(serviceCategory);
+  const [confirmed, setConfirmed] = useState(() =>
+    snapshot({ title, slug, serviceCategory })
+  );
+  const [leaving, setLeaving] = useState(false);
+  const current = snapshot({
+    title: titleValue,
+    slug: slugValue,
+    serviceCategory: categoryValue,
+  });
+  const currentRef = useRef(current);
+  const leavingRef = useRef(false);
+  const handledState = useRef(state);
+  currentRef.current = current;
+  const dirty = current !== confirmed;
+  const { open, keepEditing, discard } = useUnsavedChangesGuard(dirty);
+
+  useEffect(() => {
+    if (handledState.current === state) {
+      return;
+    }
+    handledState.current = state;
+    if (state.error) {
+      if (leavingRef.current) {
+        leavingRef.current = false;
+        setLeaving(false);
+        keepEditing();
+      }
+      return;
+    }
+    if (!state.ok) {
+      return;
+    }
+    setConfirmed(currentRef.current);
+    if (leavingRef.current) {
+      leavingRef.current = false;
+      setLeaving(false);
+      discard();
+    }
+  }, [state, keepEditing, discard]);
+
+  function saveAndLeave() {
+    const form = document.getElementById(
+      "template-metadata-form"
+    ) as HTMLFormElement | null;
+    if (!form?.reportValidity()) {
+      return;
+    }
+    leavingRef.current = true;
+    setLeaving(true);
+    form.requestSubmit();
+  }
 
   return (
-    <form action={action} className="flex max-w-lg flex-col gap-4">
+    <form
+      id="template-metadata-form"
+      action={action}
+      className="flex max-w-lg flex-col gap-4"
+    >
       <input type="hidden" name="templateId" value={templateId} />
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium" htmlFor="template-title">
@@ -43,7 +111,8 @@ export function TemplateMetadataForm({
           id="template-title"
           name="title"
           required
-          defaultValue={title}
+          value={titleValue}
+          onChange={(event) => setTitleValue(event.target.value)}
           className="staffField"
         />
         {state.fieldErrors?.title ? (
@@ -58,9 +127,10 @@ export function TemplateMetadataForm({
           id="template-slug"
           name={metadataLocked ? undefined : "slug"}
           required
-          defaultValue={slug}
+          value={slugValue}
           readOnly={metadataLocked}
           aria-readonly={metadataLocked}
+          onChange={(event) => setSlugValue(event.target.value)}
           className="staffField staffFieldNarrow"
         />
         {metadataLocked ? (
@@ -88,8 +158,11 @@ export function TemplateMetadataForm({
           <select
             id="template-category"
             name="serviceCategory"
-            defaultValue={serviceCategory}
+            value={categoryValue}
             className="staffSelect"
+            onChange={(event) =>
+              setCategoryValue(event.target.value as ServiceCategory)
+            }
           >
             {SERVICE_CATEGORIES.map((category) => (
               <option key={category} value={category}>
@@ -122,6 +195,13 @@ export function TemplateMetadataForm({
       >
         {pending ? "Saving…" : "Save details"}
       </button>
+      <UnsavedChangesDialog
+        open={open}
+        pending={leaving || pending}
+        onStay={keepEditing}
+        onLeave={discard}
+        onSave={saveAndLeave}
+      />
     </form>
   );
 }

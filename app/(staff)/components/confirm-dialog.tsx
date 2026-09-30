@@ -15,6 +15,8 @@ export function ConfirmDialog({
   pendingLabel,
   pendingStatus,
   confirmDisabled = false,
+  alternateLabel,
+  onAlternate,
   children,
   onCancel,
   onConfirm,
@@ -31,6 +33,8 @@ export function ConfirmDialog({
   pendingLabel?: string;
   pendingStatus?: string;
   confirmDisabled?: boolean;
+  alternateLabel?: string;
+  onAlternate?: () => void;
   children?: ReactNode;
   onCancel: () => void;
   onConfirm: () => void;
@@ -142,18 +146,28 @@ export function ConfirmDialog({
           className={`staffBtn ${
             cancelTone === "secondary" ? "staffBtnSecondary" : "staffBtnQuiet"
           }`}
-          autoFocus={confirmTone === "danger" && !busy}
+          autoFocus={(confirmTone === "danger" || confirmDisabled) && !busy}
           disabled={busy}
           onClick={requestClose}
         >
           {cancelLabel}
         </button>
+        {alternateLabel && onAlternate ? (
+          <button
+            type="button"
+            className="staffBtn staffBtnSecondary"
+            disabled={busy}
+            onClick={onAlternate}
+          >
+            {alternateLabel}
+          </button>
+        ) : null}
         <button
           type="button"
           className={`staffBtn ${
             confirmTone === "primary" ? "staffBtnPrimary" : "staffBtnDanger"
           }${pendingLabel !== undefined ? " staffLoginSubmit" : ""}`}
-          autoFocus={confirmTone === "primary" && !busy}
+          autoFocus={confirmTone === "primary" && !confirmDisabled && !busy}
           disabled={busy || confirmDisabled}
           aria-busy={busy || undefined}
           onClick={handleConfirmClick}

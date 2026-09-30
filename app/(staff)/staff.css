@@ -580,6 +580,14 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
   color: var(--staff-muted);
 }
 
+.staffDialogNote {
+  margin: 0;
+  padding: 0.7rem 1.5rem 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--staff-ink);
+}
+
 .staffDialogFields {
   display: flex;
   flex-direction: column;
