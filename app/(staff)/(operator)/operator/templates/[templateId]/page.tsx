@@ -102,7 +102,7 @@ export default async function OperatorTemplateDetailPage({
             ) : (
               <Link
                 href={`/operator/templates/${template.id}/draft`}
-                className="staffOperatorRowLink"
+                className="font-medium text-staff-ink underline decoration-staff-line underline-offset-2"
               >
                 Published
               </Link>
@@ -116,7 +116,7 @@ export default async function OperatorTemplateDetailPage({
           {template.openDraft ? (
             <Link
               href={`/operator/templates/${template.id}/draft`}
-              className="staffOperatorRowLink"
+              className="font-medium text-staff-ink underline decoration-staff-line underline-offset-2"
             >
               Draft
             </Link>

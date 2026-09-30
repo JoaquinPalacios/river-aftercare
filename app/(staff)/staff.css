@@ -2414,7 +2414,7 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   text-decoration: none;
 }
 
-.staffOperatorRowLink::after {
+.staffOperatorRow .staffOperatorRowLink::after {
   content: "";
   position: absolute;
   inset: 0;
