@@ -14,7 +14,7 @@ import type { GuideSectionKind } from "@/lib/aftercare/types";
 import type { EditorSection } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
 import { AutosizeTextarea } from "@/app/(staff)/components/autosize-textarea";
 import { GuideSectionKindIcon } from "@/app/(staff)/components/guide-section-kind-icon";
-import { HomeCareInstructionFields } from "@/app/(staff)/components/home-care-instruction-fields";
+import { HomeCareInstructionAccordions } from "@/app/(staff)/components/home-care-instruction-accordions";
 import { SectionOrderControls } from "@/app/(staff)/components/section-order-controls";
 import {
   blankHomeCareInstruction,
@@ -369,63 +369,13 @@ export function OrderedGuideSectionsEditor({
                     />
                   </Field>
                   {section.kind === "HOME_CARE_PLAN" ? (
-                    <div className="flex flex-col gap-3">
-                      {section.homeCareInstructions.map((item, itemIndex) => (
-                        <HomeCareInstructionFields
-                          key={item.key}
-                          item={item}
-                          index={itemIndex}
-                          count={section.homeCareInstructions.length}
-                          disabled={disabled}
-                          onChange={(next) =>
-                            update(index, {
-                              homeCareInstructions:
-                                section.homeCareInstructions.map(
-                                  (current, position) =>
-                                    position === itemIndex ? next : current
-                                ),
-                            })
-                          }
-                          onMove={(direction) => {
-                            const target = itemIndex + direction;
-                            if (
-                              target < 0 ||
-                              target >= section.homeCareInstructions.length
-                            ) {
-                              return;
-                            }
-                            const next = [...section.homeCareInstructions];
-                            const [removed] = next.splice(itemIndex, 1);
-                            next.splice(target, 0, removed);
-                            update(index, { homeCareInstructions: next });
-                          }}
-                          onRemove={() =>
-                            update(index, {
-                              homeCareInstructions:
-                                section.homeCareInstructions.filter(
-                                  (_, position) => position !== itemIndex
-                                ),
-                            })
-                          }
-                        />
-                      ))}
-                      {disabled ? null : (
-                        <button
-                          type="button"
-                          className="staffBtn staffBtnSecondary self-start"
-                          onClick={() =>
-                            update(index, {
-                              homeCareInstructions: [
-                                ...section.homeCareInstructions,
-                                blankHomeCareInstruction(),
-                              ],
-                            })
-                          }
-                        >
-                          Add instruction
-                        </button>
-                      )}
-                    </div>
+                    <HomeCareInstructionAccordions
+                      instructions={section.homeCareInstructions}
+                      disabled={disabled}
+                      onChange={(homeCareInstructions) =>
+                        update(index, { homeCareInstructions })
+                      }
+                    />
                   ) : null}
                 </div>
               </div>

@@ -2428,6 +2428,53 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   outline-offset: -2px;
 }
 
+/* The row title stretches across the row. Keep selection above that overlay. */
+.staffOperatorSelect {
+  position: relative;
+  z-index: 1;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--staff-brand);
+}
+
+.staffBulkBar {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.75rem;
+  background: var(--staff-panel);
+  padding: 0.85rem 1rem;
+}
+
+.staffBulkBarActions,
+.homeCareInstructionTools,
+.homeCareInstructionActions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.staffBulkBarReasons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  color: var(--staff-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.staffBulkNames {
+  margin: 0.75rem 0 0;
+  padding-left: 1.15rem;
+  color: var(--staff-ink);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
 @media (min-width: 640px) {
   .staffPracticeGrid3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2995,6 +3042,79 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
 
 .canonicalBlockHeader .staffSectionOrder {
   padding: 0.55rem 0.7rem 0 0;
+}
+
+.homeCareInstruction {
+  min-width: 0;
+  scroll-margin-top: 9rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.5rem;
+  background: var(--staff-panel);
+}
+
+.homeCareInstructionHeader {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.homeCareInstructionHeading {
+  min-width: 0;
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.homeCareInstructionToggle {
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--staff-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.homeCareInstructionToggle:focus-visible {
+  outline: var(--interaction-focus-width) solid var(--staff-brand);
+  outline-offset: -2px;
+}
+
+.homeCareInstructionSummary {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.homeCareInstructionActions {
+  padding: 0.45rem 0.55rem 0 0;
+}
+
+.homeCareInstructionHint {
+  margin: 0;
+  padding: 0 0.75rem 0.65rem;
+  color: var(--staff-muted);
+  font-size: 0.875rem;
+}
+
+.homeCareInstructionFields {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0 0.75rem 0.75rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .homeCareInstructionToggle:hover {
+    background: color-mix(in srgb, var(--staff-canvas) 55%, transparent);
+  }
 }
 
 html[data-theme-mode="dark"]

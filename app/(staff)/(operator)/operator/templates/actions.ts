@@ -5,9 +5,19 @@ import { redirect } from "next/navigation";
 
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { abandonCanonicalTemplateDraft } from "@/lib/canonical-templates/abandon-canonical-template-draft";
+import {
+  deactivateCanonicalTemplates,
+  deleteNeverPublishedCanonicalTemplates,
+  publishCanonicalTemplates,
+  reactivateCanonicalTemplates,
+} from "@/lib/canonical-templates/bulk-canonical-template-lifecycle";
 import { createCanonicalTemplateDraft } from "@/lib/canonical-templates/create-canonical-template-draft";
 import { createCanonicalTemplate } from "@/lib/canonical-templates/create-canonical-template";
-import { isCanonicalTemplateError } from "@/lib/canonical-templates/errors";
+import {
+  CanonicalTemplateError,
+  isBulkCanonicalTemplateError,
+  isCanonicalTemplateError,
+} from "@/lib/canonical-templates/errors";
 import { publishCanonicalTemplateRevision } from "@/lib/canonical-templates/publish-canonical-template-revision";
 import { saveCanonicalTemplateDraft } from "@/lib/canonical-templates/save-canonical-template-draft";
 import {
@@ -24,6 +34,7 @@ export interface CanonicalTemplateActionState {
   error?: string;
   fieldErrors?: Record<string, string>;
   ok?: boolean;
+  message?: string;
 }
 
 function rethrowNavigation(error: unknown): void {
@@ -53,10 +64,88 @@ function fieldErrorsFrom(
 }
 
 function actionError(error: unknown): string {
-  if (isCanonicalTemplateError(error)) {
+  if (isBulkCanonicalTemplateError(error) || isCanonicalTemplateError(error)) {
     return error.message;
   }
   return "That template change could not be saved.";
+}
+
+function bulkResultMessage(verb: string, count: number): string {
+  return `${count} ${count === 1 ? "template" : "templates"} ${verb}.`;
+}
+
+function parseBulkJson(formData: FormData): unknown {
+  try {
+    return JSON.parse(String(formData.get("templates") ?? ""));
+  } catch {
+    throw new CanonicalTemplateError(
+      "Those templates could not be updated.",
+      "invalid"
+    );
+  }
+}
+
+function bulkTemplateIds(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    throw new CanonicalTemplateError(
+      "Those templates could not be updated.",
+      "invalid"
+    );
+  }
+  return value.map((item) => {
+    if (!item || typeof item !== "object") {
+      throw new CanonicalTemplateError(
+        "Those templates could not be updated.",
+        "invalid"
+      );
+    }
+    const templateId = String(
+      (item as { templateId?: unknown }).templateId ?? ""
+    ).trim();
+    if (!templateId) {
+      throw new CanonicalTemplateError(
+        "Those templates could not be updated.",
+        "invalid"
+      );
+    }
+    return templateId;
+  });
+}
+
+function bulkPublishTargets(value: unknown): {
+  templateId: string;
+  revisionId: string;
+  expectedVersion: number;
+}[] {
+  if (!Array.isArray(value)) {
+    throw new CanonicalTemplateError(
+      "Those templates could not be updated.",
+      "invalid"
+    );
+  }
+  return value.map((item) => {
+    if (!item || typeof item !== "object") {
+      throw new CanonicalTemplateError(
+        "Those templates could not be updated.",
+        "invalid"
+      );
+    }
+    const record = item as {
+      templateId?: unknown;
+      revisionId?: unknown;
+      expectedVersion?: unknown;
+    };
+    const templateId = String(record.templateId ?? "").trim();
+    const revisionId = String(record.revisionId ?? "").trim();
+    const expectedVersion = Number(record.expectedVersion);
+    if (!templateId || !revisionId || !Number.isInteger(expectedVersion)) {
+      throw new CanonicalTemplateError(
+        "Those templates could not be updated.",
+        "invalid"
+      );
+    }
+    return { templateId, revisionId, expectedVersion };
+  });
 }
 
 function revalidateTemplate(templateId?: string) {
@@ -250,6 +339,63 @@ export async function deactivateCanonicalTemplateAction(
     });
     revalidateTemplate(templateId);
     redirect(`/operator/templates/${templateId}?notice=deactivated`);
+  } catch (error) {
+    rethrowNavigation(error);
+    return { error: actionError(error) };
+  }
+}
+
+export async function applyCanonicalTemplateBulkAction(
+  _previous: CanonicalTemplateActionState,
+  formData: FormData
+): Promise<CanonicalTemplateActionState> {
+  const { user } = await requirePlatformOperator();
+  const operation = String(formData.get("operation") ?? "");
+
+  try {
+    const payload = parseBulkJson(formData);
+    if (operation === "publish") {
+      const result = await publishCanonicalTemplates({
+        actorUserId: user.id,
+        templates: bulkPublishTargets(payload),
+      });
+      revalidateTemplate();
+      return {
+        ok: true,
+        message: bulkResultMessage("published", result.count),
+      };
+    }
+    if (operation === "deactivate") {
+      const result = await deactivateCanonicalTemplates({
+        actorUserId: user.id,
+        templateIds: bulkTemplateIds(payload),
+      });
+      revalidateTemplate();
+      return {
+        ok: true,
+        message: bulkResultMessage("deactivated", result.count),
+      };
+    }
+    if (operation === "reactivate") {
+      const result = await reactivateCanonicalTemplates({
+        actorUserId: user.id,
+        templateIds: bulkTemplateIds(payload),
+      });
+      revalidateTemplate();
+      return {
+        ok: true,
+        message: bulkResultMessage("reactivated", result.count),
+      };
+    }
+    if (operation === "delete") {
+      const result = await deleteNeverPublishedCanonicalTemplates({
+        actorUserId: user.id,
+        templateIds: bulkTemplateIds(payload),
+      });
+      revalidateTemplate();
+      return { ok: true, message: bulkResultMessage("deleted", result.count) };
+    }
+    return { error: "Those templates could not be updated." };
   } catch (error) {
     rethrowNavigation(error);
     return { error: actionError(error) };

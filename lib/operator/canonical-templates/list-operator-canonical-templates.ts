@@ -14,7 +14,7 @@ export interface OperatorTemplateListItem {
   isActive: boolean;
   isSample: boolean;
   latestPublishedVersion: number | null;
-  draft: { version: number } | null;
+  draft: { id: string; version: number } | null;
 }
 
 export interface OperatorTemplateListFilters {
@@ -38,6 +38,7 @@ export async function listOperatorCanonicalTemplates(): Promise<
       revisions: {
         orderBy: { version: "desc" },
         select: {
+          id: true,
           version: true,
           status: true,
         },
@@ -65,6 +66,7 @@ export async function listOperatorCanonicalTemplates(): Promise<
       latestPublishedVersion: published?.version ?? null,
       draft: draft
         ? {
+            id: draft.id,
             version: draft.version,
           }
         : null,

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { formatHomeCareInstructionSummary } from "@/lib/aftercare/home-care-instruction";
+import {
+  formatHomeCareInstructionSummary,
+  homeCareInstructionAccordionLabel,
+} from "@/lib/aftercare/home-care-instruction";
 import { guideSectionDraftSchema } from "@/lib/clinic-portal/guide-schemas";
 
 function item(overrides: Record<string, unknown> = {}) {
@@ -191,5 +194,87 @@ describe("home-care instruction summary", () => {
         durationUnit: null,
       })
     ).toBeNull();
+  });
+});
+
+describe("home-care instruction accordion label", () => {
+  it("uses the patient schedule wording and skips a repeated number", () => {
+    expect(
+      homeCareInstructionAccordionLabel({
+        index: 0,
+        title: "Your prescribed exercises",
+        frequencyCount: "",
+        frequencyPeriod: "",
+        timingLabel: "",
+        durationValue: "",
+        durationUnit: "",
+      })
+    ).toBe("Instruction 1 · Your prescribed exercises");
+    expect(
+      homeCareInstructionAccordionLabel({
+        index: 1,
+        title: "Movement and activity",
+        frequencyCount: null,
+        frequencyPeriod: null,
+        timingLabel: null,
+        durationValue: null,
+        durationUnit: null,
+      })
+    ).toBe("Instruction 2 · Movement and activity");
+    expect(
+      homeCareInstructionAccordionLabel({
+        index: 0,
+        title: "Your prescribed exercises",
+        frequencyCount: "3",
+        frequencyPeriod: "WEEK",
+        timingLabel: "",
+        durationValue: "4",
+        durationUnit: "WEEKS",
+      })
+    ).toBe("Your prescribed exercises · 3 times per week · 4 weeks");
+    expect(
+      homeCareInstructionAccordionLabel({
+        index: 0,
+        title: "Evening rinse",
+        frequencyCount: 1,
+        frequencyPeriod: "DAY",
+        timingLabel: "Evening",
+        durationValue: 7,
+        durationUnit: "DAYS",
+      })
+    ).toBe("Evening rinse · Once daily · Evening · 7 days");
+    expect(
+      homeCareInstructionAccordionLabel({
+        index: 2,
+        title: "",
+        frequencyCount: "",
+        frequencyPeriod: "",
+        timingLabel: "",
+        durationValue: "2",
+        durationUnit: "WEEKS",
+      })
+    ).toBe("Instruction 3 · For 2 weeks");
+    expect(
+      homeCareInstructionAccordionLabel({
+        index: 0,
+        title: "Instruction 1",
+        frequencyCount: "",
+        frequencyPeriod: "",
+        timingLabel: "",
+        durationValue: "",
+        durationUnit: "",
+      })
+    ).toBe("Instruction 1");
+    expect(
+      homeCareInstructionAccordionLabel({
+        index: 3,
+        title: "   ",
+        frequencyCount: "",
+        frequencyPeriod: "",
+        timingLabel: "",
+        durationValue: "",
+        durationUnit: "",
+      })
+    ).toBe("Instruction 4");
   });
 });

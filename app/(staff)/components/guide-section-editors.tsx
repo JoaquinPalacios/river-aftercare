@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { guideSectionKindLabel } from "@/lib/aftercare/guide-section-kind-label";
 import type { GuideSectionKind } from "@/lib/aftercare/types";
 import { AutosizeTextarea } from "@/app/(staff)/components/autosize-textarea";
-import { HomeCareInstructionFields } from "@/app/(staff)/components/home-care-instruction-fields";
+import { HomeCareInstructionAccordions } from "@/app/(staff)/components/home-care-instruction-accordions";
 import type {
   EditorHomeCareInstruction,
   EditorSection,
@@ -268,70 +268,22 @@ export function HomeCarePlanEditor({
               disabled={disabled}
             />
           </Field>
-          <div className="flex flex-col gap-3">
-            {section.homeCareInstructions.map((item, itemIndex) => (
-              <HomeCareInstructionFields
-                key={item.key}
-                item={item}
-                index={itemIndex}
-                count={section.homeCareInstructions.length}
-                disabled={disabled}
-                onChange={(next) =>
-                  updateInstructions(
-                    index,
-                    section.homeCareInstructions.map((current, position) =>
-                      position === itemIndex ? next : current
-                    )
-                  )
-                }
-                onMove={(direction) => {
-                  const target = itemIndex + direction;
-                  if (
-                    target < 0 ||
-                    target >= section.homeCareInstructions.length
-                  ) {
-                    return;
-                  }
-                  const next = [...section.homeCareInstructions];
-                  const [removed] = next.splice(itemIndex, 1);
-                  next.splice(target, 0, removed);
-                  updateInstructions(index, next);
-                }}
-                onRemove={() =>
-                  updateInstructions(
-                    index,
-                    section.homeCareInstructions.filter(
-                      (_, position) => position !== itemIndex
-                    )
-                  )
-                }
-              />
-            ))}
-          </div>
+          <HomeCareInstructionAccordions
+            instructions={section.homeCareInstructions}
+            disabled={disabled}
+            blankTitle={blankInstructionTitle}
+            onChange={(instructions) => updateInstructions(index, instructions)}
+          />
           {disabled ? null : (
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="staffBtn staffBtnSecondary"
-                onClick={() =>
-                  updateInstructions(index, [
-                    ...section.homeCareInstructions,
-                    blankHomeCareInstruction(blankInstructionTitle),
-                  ])
-                }
-              >
-                Add instruction
-              </button>
-              <button
-                type="button"
-                className="staffBtn staffBtnSecondary"
-                onClick={() =>
-                  onChange(sections.filter((_, current) => current !== index))
-                }
-              >
-                Remove plan
-              </button>
-            </div>
+            <button
+              type="button"
+              className="staffBtn staffBtnSecondary self-start"
+              onClick={() =>
+                onChange(sections.filter((_, current) => current !== index))
+              }
+            >
+              Remove plan
+            </button>
           )}
         </article>
       ))}

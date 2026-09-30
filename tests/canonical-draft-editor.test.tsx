@@ -248,6 +248,55 @@ describe("canonical draft editor", () => {
     expect(publish?.hasAttribute("disabled")).toBe(false);
   });
 
+  it("keeps a collapsed instruction in the save payload", () => {
+    render();
+    const instruction = container.querySelector(
+      '[data-instruction-key="item"]'
+    ) as HTMLElement;
+    const toggle = instruction.querySelector(
+      "button[aria-expanded]"
+    ) as HTMLButtonElement;
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    act(() => {
+      toggle.click();
+    });
+    const title = container.querySelector("#item-title") as HTMLInputElement;
+    const setValue = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    )?.set;
+    act(() => {
+      setValue?.call(title, "Collapsed exercise");
+      title.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    act(() => {
+      toggle.click();
+    });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(
+      (container.querySelector("#item-title") as HTMLInputElement).value
+    ).toBe("Collapsed exercise");
+    const hidden = container.querySelector(
+      'input[name="sections"]'
+    ) as HTMLInputElement;
+    const payload = JSON.parse(hidden.value) as Array<{
+      kind: string;
+      homeCareInstructions: Array<{
+        title: string;
+        frequencyCount: number | null;
+        timingLabel: string | null;
+        durationValue: number | null;
+      }>;
+    }>;
+    const plan = payload.find((section) => section.kind === "HOME_CARE_PLAN");
+    expect(plan?.homeCareInstructions[0]).toMatchObject({
+      title: "Collapsed exercise",
+      frequencyCount: 1,
+      timingLabel: "Evening",
+      durationValue: 7,
+    });
+  });
+
   it("represents every block in the outline and opens the selected stage", () => {
     render();
     const rail = container.querySelector(
