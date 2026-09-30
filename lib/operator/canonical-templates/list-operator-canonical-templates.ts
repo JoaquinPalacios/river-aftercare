@@ -204,9 +204,13 @@ export async function queryOperatorCanonicalTemplates(
 export function operatorTemplateHref(template: {
   id: string;
   isSample: boolean;
+  latestPublishedVersion: number | null;
   draft: { version: number } | null;
 }): string {
-  if (!template.isSample && template.draft) {
+  if (template.isSample) {
+    return `/operator/templates/${template.id}`;
+  }
+  if (template.draft || template.latestPublishedVersion !== null) {
     return `/operator/templates/${template.id}/draft`;
   }
   return `/operator/templates/${template.id}`;

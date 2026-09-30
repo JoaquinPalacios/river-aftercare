@@ -12,6 +12,7 @@ import { OrderedGuideSectionsEditor } from "@/app/(staff)/components/ordered-gui
 import { TemplateLifecycleActions } from "@/app/(staff)/(operator)/operator/templates/template-lifecycle-actions";
 import type { EditorSection } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
 import {
+  createCanonicalTemplateDraftAction,
   publishCanonicalTemplateRevisionAction,
   saveCanonicalTemplateDraftAction,
   type CanonicalTemplateActionState,
@@ -21,25 +22,34 @@ import { editorSectionsToComposedGuide } from "@/lib/aftercare/editor-sections-t
 
 const initial: CanonicalTemplateActionState = {};
 
-export function CanonicalDraftEditor({
-  templateId,
-  templateTitle,
-  revisionId,
-  version,
-  savedContentSignature,
-  initialSections,
-  isActive,
-  neverPublished,
-}: {
+type CanonicalWorkspaceProps = {
   templateId: string;
   templateTitle: string;
-  revisionId: string;
-  version: number;
-  savedContentSignature: string;
   initialSections: EditorSection[];
   isActive: boolean;
-  neverPublished: boolean;
-}) {
+} & (
+  | {
+      mode?: "draft";
+      revisionId: string;
+      version: number;
+      savedContentSignature: string;
+      neverPublished: boolean;
+    }
+  | {
+      mode: "published";
+    }
+);
+
+export function CanonicalDraftEditor(props: CanonicalWorkspaceProps) {
+  const published = props.mode === "published";
+  const templateId = props.templateId;
+  const templateTitle = props.templateTitle;
+  const initialSections = props.initialSections;
+  const isActive = props.isActive;
+  const revisionId = published ? "" : props.revisionId;
+  const version = published ? 0 : props.version;
+  const savedContentSignature = published ? "" : props.savedContentSignature;
+  const neverPublished = published ? false : props.neverPublished;
   const router = useRouter();
   const focusNonce = useRef(0);
   const [sections, setSections] = useState(initialSections);
@@ -48,7 +58,9 @@ export function CanonicalDraftEditor({
     key: string;
     nonce: number;
   } | null>(null);
-  const loadedKey = `${revisionId}:${savedContentSignature}`;
+  const loadedKey = published
+    ? `published:${initialSections.map((section) => section.key).join("|")}`
+    : `${revisionId}:${savedContentSignature}`;
   const [seenKey, setSeenKey] = useState(loadedKey);
   if (seenKey !== loadedKey) {
     setSeenKey(loadedKey);
@@ -61,6 +73,10 @@ export function CanonicalDraftEditor({
   );
   const [publishState, publishAction, publishing] = useActionState(
     publishCanonicalTemplateRevisionAction,
+    initial
+  );
+  const [createState, createAction, creating] = useActionState(
+    createCanonicalTemplateDraftAction,
     initial
   );
 
@@ -85,19 +101,24 @@ export function CanonicalDraftEditor({
   }
 
   return (
-    <div className="canonicalDraftEditor flex flex-col gap-6">
+    <div
+      className="canonicalDraftEditor flex flex-col gap-6"
+      data-template-workspace={published ? "published" : "draft"}
+    >
       <CanonicalEditorToolbar
         templateId={templateId}
         templateTitle={templateTitle}
-        contentChanged={contentChanged}
+        mode={published ? "published" : "draft"}
+        contentChanged={published ? false : contentChanged}
         saving={saving}
         publishing={publishing}
+        editing={creating}
         isActive={isActive}
         onPublish={() => setPublishOpen(true)}
         lifecycle={
           <TemplateLifecycleActions
             templateId={templateId}
-            draftId={revisionId}
+            draftId={published ? null : revisionId}
             neverPublished={neverPublished}
             isActive={isActive}
             canCreateRevision={false}
@@ -105,62 +126,88 @@ export function CanonicalDraftEditor({
           />
         }
       />
-      {saveState.ok ? (
+      {published ? null : saveState.ok ? (
         <p className="text-sm text-staff-muted" role="status">
           Saved.
         </p>
       ) : null}
+      {createState.error ? (
+        <p className="text-sm text-red-600" role="alert">
+          {createState.error}
+        </p>
+      ) : null}
       <div className="canonicalEditorColumns">
         <div className="canonicalEditorMain">
-          <form
-            id="canonical-draft-form"
-            action={saveAction}
-            className="flex flex-col gap-6"
-          >
-            <input type="hidden" name="templateId" value={templateId} />
-            <input type="hidden" name="revisionId" value={revisionId} />
-            <input
-              type="hidden"
-              name="sections"
-              value={JSON.stringify(sectionsPayload(sections))}
-            />
-            <EditorSectionHeading title="Draft content">
+          {published ? (
+            <EditorSectionHeading title="Published content">
               <OrderedGuideSectionsEditor
                 sections={sections}
-                disabled={false}
-                onChange={setSections}
+                disabled
+                onChange={() => undefined}
                 focusRequest={focusRequest}
               />
             </EditorSectionHeading>
-            {saveState.error ? (
-              <p className="text-sm text-red-600" role="alert">
-                {saveState.error}
-              </p>
-            ) : null}
-            {isActive ? null : (
-              <p className="text-sm text-staff-muted">
-                Activate this template before publishing.
-              </p>
-            )}
-            {publishState.error ? (
-              <p className="text-sm text-red-600" role="alert">
-                {publishState.error}
-              </p>
-            ) : null}
-          </form>
+          ) : (
+            <form
+              id="canonical-draft-form"
+              action={saveAction}
+              className="flex flex-col gap-6"
+            >
+              <input type="hidden" name="templateId" value={templateId} />
+              <input type="hidden" name="revisionId" value={revisionId} />
+              <input
+                type="hidden"
+                name="sections"
+                value={JSON.stringify(sectionsPayload(sections))}
+              />
+              <EditorSectionHeading title="Draft content">
+                <OrderedGuideSectionsEditor
+                  sections={sections}
+                  disabled={false}
+                  onChange={setSections}
+                  focusRequest={focusRequest}
+                />
+              </EditorSectionHeading>
+              {saveState.error ? (
+                <p className="text-sm text-red-600" role="alert">
+                  {saveState.error}
+                </p>
+              ) : null}
+              {isActive ? null : (
+                <p className="text-sm text-staff-muted">
+                  Activate this template before publishing.
+                </p>
+              )}
+              {publishState.error ? (
+                <p className="text-sm text-red-600" role="alert">
+                  {publishState.error}
+                </p>
+              ) : null}
+            </form>
+          )}
         </div>
         <CanonicalGuideOutline sections={sections} onSelect={revealSection} />
       </div>
       <CanonicalGuidePreview sections={previewSections} />
-      <form
-        id="publish-revision-form"
-        action={publishAction}
-        className="hidden"
-      >
-        <input type="hidden" name="templateId" value={templateId} />
-        <input type="hidden" name="revisionId" value={revisionId} />
-        <input type="hidden" name="expectedVersion" value={String(version)} />
-      </form>
+      {published ? (
+        <form
+          id="create-published-revision-form"
+          action={createAction}
+          className="hidden"
+        >
+          <input type="hidden" name="templateId" value={templateId} />
+        </form>
+      ) : (
+        <form
+          id="publish-revision-form"
+          action={publishAction}
+          className="hidden"
+        >
+          <input type="hidden" name="templateId" value={templateId} />
+          <input type="hidden" name="revisionId" value={revisionId} />
+          <input type="hidden" name="expectedVersion" value={String(version)} />
+        </form>
+      )}
       <ConfirmDialog
         open={publishOpen}
         title="Publish this revision?"

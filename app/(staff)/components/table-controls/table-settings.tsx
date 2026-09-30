@@ -5,6 +5,8 @@ import { useEffect, useId, useRef } from "react";
 import { SettingsIcon } from "@/app/(staff)/components/icons";
 import {
   TABLE_PAGE_SIZES,
+  TABLE_SETTINGS_NARROW_MAX_WIDTH_PX,
+  tableSettingsPanelFrame,
   type TableColumnDefinition,
   type TableDensity,
   type TablePageSize,
@@ -45,29 +47,27 @@ export function TableSettings({
     if (!panel || !button) {
       return;
     }
-    const narrow = window.matchMedia("(max-width: 720px)").matches;
-    if (narrow) {
-      panel.dataset.placement = "sheet";
-      panel.style.top = "auto";
-      panel.style.left = "0.75rem";
-      panel.style.right = "0.75rem";
-      panel.style.bottom = "0.75rem";
-      panel.style.width = "auto";
-      return;
-    }
-    panel.dataset.placement = "popover";
-    panel.style.bottom = "auto";
-    panel.style.right = "auto";
-    const width = 320;
-    panel.style.width = `${width}px`;
+    const narrow = window.matchMedia(
+      `(max-width: ${TABLE_SETTINGS_NARROW_MAX_WIDTH_PX}px)`
+    ).matches;
     const rect = button.getBoundingClientRect();
-    const left = Math.min(
-      Math.max(8, rect.right - width),
-      window.innerWidth - width - 8
+    const rootFont = Number.parseFloat(
+      getComputedStyle(document.documentElement).fontSize
     );
-    const top = Math.min(rect.bottom + 6, window.innerHeight - 16);
-    panel.style.top = `${top}px`;
-    panel.style.left = `${left}px`;
+    const frame = tableSettingsPanelFrame({
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      rem: Number.isFinite(rootFont) && rootFont > 0 ? rootFont : 16,
+      buttonRight: rect.right,
+      buttonBottom: rect.bottom,
+      narrow,
+    });
+    panel.dataset.placement = frame.placement;
+    panel.style.top = frame.top;
+    panel.style.left = frame.left;
+    panel.style.right = frame.right;
+    panel.style.bottom = frame.bottom;
+    panel.style.width = frame.width;
   }
 
   useEffect(() => {
@@ -136,97 +136,106 @@ export function TableSettings({
             Table settings
           </h2>
         </div>
-        <fieldset className="staffTableSettingsGroup">
-          <legend>Rows</legend>
-          <p className="staffTableSettingsLabel" id={`${panelId}-page-size`}>
-            Rows per page
-          </p>
-          <div
-            className="staffTableSettingsChoices"
-            role="radiogroup"
-            aria-labelledby={`${panelId}-page-size`}
-          >
-            {TABLE_PAGE_SIZES.map((size) => (
-              <label key={size} className="staffTableSettingsChoice">
-                <input
-                  type="radio"
-                  name={`${panelId}-page-size`}
-                  value={size}
-                  checked={pageSize === size}
-                  onChange={() => onPageSizeChange(size)}
-                />
-                {size}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <fieldset className="staffTableSettingsGroup">
-          <legend>Display</legend>
-          <label className="staffTableSettingsCheck">
-            <input
-              type="checkbox"
-              checked={preferences.wrapText}
-              onChange={(event) => onWrapTextChange(event.target.checked)}
-            />
-            Wrap long text
-          </label>
-          <p className="staffTableSettingsLabel" id={`${panelId}-density`}>
-            Row density
-          </p>
-          <div
-            className="staffTableSettingsChoices"
-            role="radiogroup"
-            aria-labelledby={`${panelId}-density`}
-          >
-            {(["comfortable", "compact"] as const).map((density) => (
-              <label key={density} className="staffTableSettingsChoice">
-                <input
-                  type="radio"
-                  name={`${panelId}-density`}
-                  value={density}
-                  checked={preferences.density === density}
-                  onChange={() => onDensityChange(density)}
-                />
-                {density === "comfortable" ? "Comfortable" : "Compact"}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <fieldset className="staffTableSettingsGroup">
-          <legend>Columns</legend>
-          <p className="staffTableSettingsHelp" id={lockedId}>
-            {lockedColumnMessage}
-          </p>
-          <ul className="staffTableSettingsColumns">
-            {columns.map((column) => {
-              const visible =
-                column.required ||
-                !preferences.hiddenColumnIds.includes(column.id);
-              return (
-                <li key={column.id}>
-                  <label className="staffTableSettingsCheck">
+        <div className="staffTableSettingsBody">
+          <div className="staffTableSettingsPrimary">
+            <fieldset className="staffTableSettingsGroup">
+              <legend>Rows</legend>
+              <p
+                className="staffTableSettingsLabel"
+                id={`${panelId}-page-size`}
+              >
+                Rows per page
+              </p>
+              <div
+                className="staffTableSettingsChoices"
+                role="radiogroup"
+                aria-labelledby={`${panelId}-page-size`}
+              >
+                {TABLE_PAGE_SIZES.map((size) => (
+                  <label key={size} className="staffTableSettingsChoice">
                     <input
-                      type="checkbox"
-                      checked={visible}
-                      disabled={column.required}
-                      aria-describedby={column.required ? lockedId : undefined}
-                      onChange={(event) =>
-                        onColumnVisibilityChange(
-                          column.id,
-                          event.target.checked
-                        )
-                      }
+                      type="radio"
+                      name={`${panelId}-page-size`}
+                      value={size}
+                      checked={pageSize === size}
+                      onChange={() => onPageSizeChange(size)}
                     />
-                    {column.label}
-                    {column.required ? (
-                      <span className="sr-only">, always shown</span>
-                    ) : null}
+                    {size}
                   </label>
-                </li>
-              );
-            })}
-          </ul>
-        </fieldset>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset className="staffTableSettingsGroup">
+              <legend>Display</legend>
+              <label className="staffTableSettingsCheck">
+                <input
+                  type="checkbox"
+                  checked={preferences.wrapText}
+                  onChange={(event) => onWrapTextChange(event.target.checked)}
+                />
+                Wrap long text
+              </label>
+              <p className="staffTableSettingsLabel" id={`${panelId}-density`}>
+                Row density
+              </p>
+              <div
+                className="staffTableSettingsChoices"
+                role="radiogroup"
+                aria-labelledby={`${panelId}-density`}
+              >
+                {(["comfortable", "compact"] as const).map((density) => (
+                  <label key={density} className="staffTableSettingsChoice">
+                    <input
+                      type="radio"
+                      name={`${panelId}-density`}
+                      value={density}
+                      checked={preferences.density === density}
+                      onChange={() => onDensityChange(density)}
+                    />
+                    {density === "comfortable" ? "Comfortable" : "Compact"}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+          <fieldset className="staffTableSettingsGroup staffTableSettingsColumnsPane">
+            <legend>Columns</legend>
+            <p className="staffTableSettingsHelp" id={lockedId}>
+              {lockedColumnMessage}
+            </p>
+            <ul className="staffTableSettingsColumns">
+              {columns.map((column) => {
+                const visible =
+                  column.required ||
+                  !preferences.hiddenColumnIds.includes(column.id);
+                return (
+                  <li key={column.id}>
+                    <label className="staffTableSettingsCheck">
+                      <input
+                        type="checkbox"
+                        checked={visible}
+                        disabled={column.required}
+                        aria-describedby={
+                          column.required ? lockedId : undefined
+                        }
+                        onChange={(event) =>
+                          onColumnVisibilityChange(
+                            column.id,
+                            event.target.checked
+                          )
+                        }
+                      />
+                      {column.label}
+                      {column.required ? (
+                        <span className="sr-only">, always shown</span>
+                      ) : null}
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          </fieldset>
+        </div>
         <div className="staffTableSettingsFooter">
           <button
             type="button"

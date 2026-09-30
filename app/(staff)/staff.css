@@ -2414,7 +2414,7 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   text-decoration: none;
 }
 
-.staffOperatorRowLink::after {
+.staffOperatorRow .staffOperatorRowLink::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -2835,6 +2835,22 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
+}
+
+.canonicalEditorEditNote {
+  margin: 0;
+  max-width: 40rem;
+  color: var(--staff-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.canonicalDraftEditor[data-template-workspace="published"]
+  :is(.staffField, .staffSelect, .staffAutosizeField):disabled {
+  cursor: default;
+  opacity: 1;
+  color: var(--staff-ink);
+  background: var(--staff-canvas);
 }
 
 .canonicalEditorColumns {
@@ -3379,6 +3395,8 @@ html[data-theme-mode="dark"]
   inset: unset;
   z-index: 40;
   display: flex;
+  width: min(42rem, calc(100vw - 2rem));
+  max-width: calc(100vw - 1rem);
   max-height: min(32rem, calc(100dvh - 1.5rem));
   flex-direction: column;
   margin: 0;
@@ -3394,7 +3412,37 @@ html[data-theme-mode="dark"]
 }
 
 .staffTableSettings[data-placement="sheet"] {
+  width: auto;
+  max-width: none;
   max-height: min(80dvh, 36rem);
+}
+
+.staffTableSettingsBody {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.staffTableSettingsPrimary {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.staffTableSettings[data-placement="popover"] .staffTableSettingsBody {
+  display: grid;
+  grid-template-columns: minmax(20.5rem, 1.15fr) minmax(13rem, 0.85fr);
+  align-items: start;
+}
+
+.staffTableSettings[data-placement="popover"] .staffTableSettingsChoices {
+  flex-wrap: nowrap;
+}
+
+.staffTableSettings[data-placement="popover"] .staffTableSettingsColumnsPane {
+  border-top: 0;
+  border-left: 1px solid var(--staff-line);
+  min-height: 100%;
 }
 
 .staffTableSettingsHeader,
@@ -3572,6 +3620,10 @@ a.staffTablePageButton:hover {
   font-size: 0.875rem;
 }
 
+.staffDataTable :is(th, td) {
+  vertical-align: middle;
+}
+
 .staffDataTable[data-density="comfortable"] :is(th, td) {
   padding: 0.75rem 1rem;
 }
@@ -3580,9 +3632,32 @@ a.staffTablePageButton:hover {
   padding: 0.5rem 0.75rem;
 }
 
+/* Pre-table-controls size was 1rem. The hit wrapper carries the click target. */
+.staffTableSelectHit {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  box-sizing: content-box;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  margin: -0.875rem;
+  padding: 0.875rem;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
 .staffDataTable .staffOperatorSelect {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.staffDataTable .staffOperatorSelect:focus-visible {
+  outline: var(--interaction-focus-width) solid var(--staff-brand);
+  outline-offset: 2px;
 }
 
 .staffTableHead {

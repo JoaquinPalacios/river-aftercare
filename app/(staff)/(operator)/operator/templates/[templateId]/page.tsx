@@ -97,7 +97,16 @@ export default async function OperatorTemplateDetailPage({
         <p className="text-sm">
           Latest published:{" "}
           {latestPublished ? (
-            "Published"
+            template.isSample ? (
+              "Published"
+            ) : (
+              <Link
+                href={`/operator/templates/${template.id}/draft`}
+                className="font-medium text-staff-ink underline decoration-staff-line underline-offset-2"
+              >
+                Published
+              </Link>
+            )
           ) : (
             <span className="text-staff-muted">None</span>
           )}
@@ -107,7 +116,7 @@ export default async function OperatorTemplateDetailPage({
           {template.openDraft ? (
             <Link
               href={`/operator/templates/${template.id}/draft`}
-              className="staffOperatorRowLink"
+              className="font-medium text-staff-ink underline decoration-staff-line underline-offset-2"
             >
               Draft
             </Link>
@@ -121,6 +130,13 @@ export default async function OperatorTemplateDetailPage({
             className="staffBtn staffBtnPrimary w-fit"
           >
             Edit draft
+          </Link>
+        ) : latestPublished && !template.isSample ? (
+          <Link
+            href={`/operator/templates/${template.id}/draft`}
+            className="staffBtn staffBtnSecondary w-fit"
+          >
+            View content
           </Link>
         ) : null}
       </section>

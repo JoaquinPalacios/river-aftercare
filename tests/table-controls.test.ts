@@ -20,7 +20,9 @@ import {
   resolveTablePage,
   sanitizeTablePreferences,
   tableRangeLabel,
+  tableSettingsPanelFrame,
   TABLE_PAGE_SIZES,
+  TABLE_SETTINGS_DESKTOP_MAX_REM,
 } from "@/lib/staff/table-controls";
 
 describe("table controls", () => {
@@ -145,6 +147,60 @@ describe("table controls", () => {
       wrapText: true,
       density: "comfortable",
       hiddenColumnIds: [],
+    });
+  });
+
+  it("sizes the shared settings panel for desktop and shifts it inside the viewport", () => {
+    const rem = 16;
+    const desktop = tableSettingsPanelFrame({
+      viewportWidth: 1440,
+      viewportHeight: 900,
+      rem,
+      buttonRight: 1400,
+      buttonBottom: 120,
+      narrow: false,
+    });
+    expect(TABLE_SETTINGS_DESKTOP_MAX_REM * rem).toBe(672);
+    expect(desktop.placement).toBe("popover");
+    expect(desktop.width).toBe("672px");
+    expect(Number.parseFloat(desktop.left)).toBeGreaterThanOrEqual(8);
+    expect(Number.parseFloat(desktop.left) + 672).toBeLessThanOrEqual(1440);
+
+    const mid = tableSettingsPanelFrame({
+      viewportWidth: 1024,
+      viewportHeight: 800,
+      rem,
+      buttonRight: 980,
+      buttonBottom: 80,
+      narrow: false,
+    });
+    expect(mid.width).toBe("672px");
+    expect(Number.parseFloat(mid.left) + 672).toBeLessThanOrEqual(1024);
+
+    const tablet = tableSettingsPanelFrame({
+      viewportWidth: 800,
+      viewportHeight: 700,
+      rem,
+      buttonRight: 760,
+      buttonBottom: 80,
+      narrow: false,
+    });
+    expect(tablet.width).toBe("672px");
+
+    const sheet = tableSettingsPanelFrame({
+      viewportWidth: 390,
+      viewportHeight: 800,
+      rem,
+      buttonRight: 360,
+      buttonBottom: 80,
+      narrow: true,
+    });
+    expect(sheet).toMatchObject({
+      placement: "sheet",
+      width: "auto",
+      left: "0.75rem",
+      right: "0.75rem",
+      top: "auto",
     });
   });
 });

@@ -323,3 +323,60 @@ export function tableListHref(state: TableHrefState): string {
   const query = params.toString();
   return query ? `${state.pathname}?${query}` : state.pathname;
 }
+
+/** Desktop Table settings uses about 42rem, and never wider than the viewport. */
+export const TABLE_SETTINGS_DESKTOP_MAX_REM = 42;
+
+/** Viewports at or below this width use the single-column sheet. */
+export const TABLE_SETTINGS_NARROW_MAX_WIDTH_PX = 720;
+
+export interface TableSettingsPanelFrame {
+  placement: "popover" | "sheet";
+  top: string;
+  left: string;
+  right: string;
+  bottom: string;
+  width: string;
+}
+
+export function tableSettingsPanelFrame(input: {
+  viewportWidth: number;
+  viewportHeight: number;
+  rem: number;
+  buttonRight: number;
+  buttonBottom: number;
+  narrow: boolean;
+}): TableSettingsPanelFrame {
+  if (input.narrow) {
+    return {
+      placement: "sheet",
+      top: "auto",
+      left: "0.75rem",
+      right: "0.75rem",
+      bottom: "0.75rem",
+      width: "auto",
+    };
+  }
+  const rem = input.rem > 0 ? input.rem : 16;
+  const margin = 0.5 * rem;
+  const width = Math.min(
+    TABLE_SETTINGS_DESKTOP_MAX_REM * rem,
+    Math.max(0, input.viewportWidth - 2 * rem)
+  );
+  const left = Math.min(
+    Math.max(margin, input.buttonRight - width),
+    Math.max(margin, input.viewportWidth - width - margin)
+  );
+  const top = Math.min(
+    input.buttonBottom + 6,
+    Math.max(margin, input.viewportHeight - 16)
+  );
+  return {
+    placement: "popover",
+    top: `${top}px`,
+    left: `${left}px`,
+    right: "auto",
+    bottom: "auto",
+    width: `${width}px`,
+  };
+}
