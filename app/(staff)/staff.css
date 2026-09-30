@@ -3135,8 +3135,76 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   padding: 0 0.75rem 0.75rem;
 }
 
+.homeCareSchedule {
+  min-width: 0;
+}
+
+.homeCareScheduleToggle {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  column-gap: 0.4rem;
+  margin: 0;
+  padding: 0.15rem 0.2rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--staff-ink);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.homeCareScheduleToggle:focus-visible {
+  outline: var(--interaction-focus-width) solid var(--staff-brand);
+  outline-offset: 2px;
+}
+
+.homeCareScheduleChevron {
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin-top: 0.2rem;
+  color: var(--staff-muted);
+}
+
+.homeCareScheduleToggle[aria-expanded="true"] .homeCareScheduleChevron {
+  transform: rotate(90deg);
+}
+
+.homeCareScheduleText {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+}
+
+.homeCareScheduleLabel {
+  font-weight: 500;
+}
+
+.homeCareScheduleSummary {
+  color: var(--staff-muted);
+  font-weight: 400;
+}
+
+.homeCareSchedulePanel {
+  min-width: 0;
+  padding: 0.65rem 0 0.1rem 1.15rem;
+}
+
+.homeCareSchedulePanel[hidden] {
+  display: none;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .homeCareInstructionToggle:hover {
+    background: color-mix(in srgb, var(--staff-canvas) 55%, transparent);
+  }
+
+  .homeCareScheduleToggle:hover {
     background: color-mix(in srgb, var(--staff-canvas) 55%, transparent);
   }
 }

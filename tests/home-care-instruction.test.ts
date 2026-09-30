@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  editableHomeCareScheduleHasValue,
+  formatEditableHomeCareSchedule,
   formatHomeCareInstructionSummary,
   homeCareInstructionAccordionLabel,
 } from "@/lib/aftercare/home-care-instruction";
@@ -76,6 +78,23 @@ describe("home-care instruction validation", () => {
       timingLabel: "Evening",
       durationValue: 7,
       durationUnit: "DAYS",
+    });
+  });
+
+  it("accepts frequency without a duration", () => {
+    const parsed = guideSectionDraftSchema.parse(
+      section({
+        homeCareInstructions: [
+          item({ frequencyCount: 3, frequencyPeriod: "WEEK" }),
+        ],
+      })
+    );
+    expect(parsed.homeCareInstructions[0]).toMatchObject({
+      frequencyCount: 3,
+      frequencyPeriod: "WEEK",
+      timingLabel: null,
+      durationValue: null,
+      durationUnit: null,
     });
   });
 
@@ -194,6 +213,100 @@ describe("home-care instruction summary", () => {
         durationUnit: null,
       })
     ).toBeNull();
+    expect(
+      formatHomeCareInstructionSummary({
+        frequencyCount: 3,
+        frequencyPeriod: "WEEK",
+        timingLabel: null,
+        durationValue: null,
+        durationUnit: null,
+      })
+    ).toBe("3 times per week");
+  });
+
+  it("reuses the patient formatter for editor fields and skips blank pairs", () => {
+    const weekly = {
+      frequencyCount: "3",
+      frequencyPeriod: "WEEK" as const,
+      timingLabel: "",
+      durationValue: "4",
+      durationUnit: "WEEKS" as const,
+    };
+    expect(formatEditableHomeCareSchedule(weekly)).toBe(
+      formatHomeCareInstructionSummary({
+        frequencyCount: 3,
+        frequencyPeriod: "WEEK",
+        timingLabel: "",
+        durationValue: 4,
+        durationUnit: "WEEKS",
+      })
+    );
+    expect(formatEditableHomeCareSchedule(weekly)).toBe(
+      "3 times per week · 4 weeks"
+    );
+    expect(
+      formatEditableHomeCareSchedule({
+        frequencyCount: "1",
+        frequencyPeriod: "DAY",
+        timingLabel: "Evening",
+        durationValue: "7",
+        durationUnit: "DAYS",
+      })
+    ).toBe("Once daily · Evening · 7 days");
+    expect(
+      formatEditableHomeCareSchedule({
+        frequencyCount: "",
+        frequencyPeriod: "",
+        timingLabel: "",
+        durationValue: "2",
+        durationUnit: "WEEKS",
+      })
+    ).toBe("For 2 weeks");
+    expect(
+      formatEditableHomeCareSchedule({
+        frequencyCount: "3",
+        frequencyPeriod: "WEEK",
+        timingLabel: "",
+        durationValue: "",
+        durationUnit: "",
+      })
+    ).toBe("3 times per week");
+    expect(
+      formatEditableHomeCareSchedule({
+        frequencyCount: "",
+        frequencyPeriod: "",
+        timingLabel: "",
+        durationValue: "",
+        durationUnit: "",
+      })
+    ).toBeNull();
+    expect(
+      formatEditableHomeCareSchedule({
+        frequencyCount: "3",
+        frequencyPeriod: "",
+        timingLabel: "  ",
+        durationValue: "",
+        durationUnit: "",
+      })
+    ).toBeNull();
+    expect(
+      editableHomeCareScheduleHasValue({
+        frequencyCount: "3",
+        frequencyPeriod: "",
+        timingLabel: "",
+        durationValue: "",
+        durationUnit: "",
+      })
+    ).toBe(true);
+    expect(
+      editableHomeCareScheduleHasValue({
+        frequencyCount: "",
+        frequencyPeriod: "",
+        timingLabel: "   ",
+        durationValue: "",
+        durationUnit: "",
+      })
+    ).toBe(false);
   });
 });
 
