@@ -579,4 +579,150 @@ describe("billing setup form validation", () => {
     expect(css).toContain('.staffSelect[aria-invalid="true"]');
     expect(css).toContain("border-color: var(--staff-danger)");
   });
+
+  it("places a Checkout failure on the payment action and moves focus there", async () => {
+    const checkoutError =
+      "We couldn't open secure payment. Your details have been saved. Please try again.";
+    const scrolled: Element[] = [];
+    const original = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = function scrollIntoView() {
+      scrolled.push(this);
+    };
+    actionMock.mockImplementation(async (_previous, formData: FormData) => ({
+      error: checkoutError,
+      values: valuesFromFormData(formData),
+    }));
+
+    try {
+      await renderForm();
+      await fill({ abn: "32 671 297 130" });
+      await act(async () => {
+        input("termsAccepted").click();
+      });
+      await submit();
+
+      const alert = container.querySelector(
+        "[data-checkout-error]"
+      ) as HTMLElement | null;
+      const button = container.querySelector(
+        "button[type='submit']"
+      ) as HTMLButtonElement;
+      const paymentAction = container.querySelector(
+        "[data-billing-payment-action]"
+      );
+      expect(alert?.textContent).toBe(checkoutError);
+      expect(alert?.getAttribute("role")).toBe("alert");
+      expect(alert?.tabIndex).toBe(-1);
+      expect(alert?.className).toContain("staffFormAlert");
+      expect(paymentAction?.contains(alert)).toBe(true);
+      expect(alert?.nextElementSibling).toBe(button);
+      expect(button.getAttribute("aria-describedby")).toBe(alert?.id);
+      expect(container.querySelectorAll(".staffFormAlert")).toHaveLength(1);
+      expect(container.querySelectorAll("[data-checkout-error]")).toHaveLength(
+        1
+      );
+      const plan = container.querySelector("h2");
+      expect(plan).not.toBeNull();
+      expect(
+        plan!.compareDocumentPosition(alert!) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(document.activeElement).toBe(alert);
+      expect(scrolled).toContain(alert);
+      expect(button.disabled).toBe(false);
+      expect(button.textContent).toBe("Continue to secure payment");
+      expect(input("legalEntityName").getAttribute("aria-invalid")).toBe(
+        "false"
+      );
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+    }
+  });
+
+  it("keeps Terms and field errors off the payment action", async () => {
+    await renderForm();
+    await fill({ abn: "32 671 297 130" });
+    await submit();
+
+    const termsError = [...container.querySelectorAll("p")].find((node) =>
+      node.textContent?.includes("Agree to the Terms & Conditions to continue.")
+    );
+    expect(termsError).toBeTruthy();
+    expect(termsError?.closest("[data-billing-payment-action]")).toBeNull();
+    expect(container.querySelector("[data-checkout-error]")).toBeNull();
+    expect(document.activeElement).toBe(input("termsAccepted"));
+    expect(input("termsAccepted").getAttribute("aria-invalid")).toBe("true");
+
+    await fill({
+      legalEntityName: "",
+      abn: "32 671 297 130",
+    });
+    await act(async () => {
+      input("termsAccepted").click();
+    });
+    await submit();
+
+    expect(document.activeElement).toBe(input("legalEntityName"));
+    expect(input("legalEntityName").getAttribute("aria-invalid")).toBe("true");
+    const fieldError = container.querySelector("#legalEntityName-error");
+    expect(fieldError?.closest("[data-billing-payment-action]")).toBeNull();
+    expect(container.querySelector("[data-checkout-error]")).toBeNull();
+    expect(container.textContent).toContain(
+      "Please review the billing details."
+    );
+  });
+
+  it("disables Continue while payment is pending and allows another try after failure", async () => {
+    let release: (value: {
+      error: string;
+      values: BillingSetupSubmittedValues;
+    }) => void = () => undefined;
+    actionMock.mockImplementation((_previous, formData: FormData) =>
+      new Promise((resolve) => {
+        release = resolve;
+      }).then((value) => value)
+    );
+    await renderForm();
+    await fill({ abn: "32 671 297 130" });
+    await act(async () => {
+      input("termsAccepted").click();
+    });
+
+    const button = () =>
+      container.querySelector("button[type='submit']") as HTMLButtonElement;
+    await act(async () => {
+      form().requestSubmit();
+    });
+
+    expect(button().disabled).toBe(true);
+    expect(button().getAttribute("aria-busy")).toBe("true");
+    expect(button().textContent).toBe("Continuing…");
+    expect(button().className).toContain("w-full");
+    expect(button().className).toContain("sm:w-fit");
+    await act(async () => {
+      button().click();
+    });
+    expect(actionMock).toHaveBeenCalledTimes(1);
+
+    const submitted = valuesFromFormData(
+      actionMock.mock.calls[0]?.[1] as FormData
+    );
+    await act(async () => {
+      release({
+        error:
+          "We couldn't open secure payment. Your details have been saved. Please try again.",
+        values: submitted,
+      });
+    });
+
+    expect(button().disabled).toBe(false);
+    expect(button().textContent).toBe("Continue to secure payment");
+    expect(button().getAttribute("aria-busy")).toBeNull();
+    const alert = container.querySelector("[data-checkout-error]");
+    expect(alert?.textContent).toContain("Please try again.");
+    expect(
+      container
+        .querySelector("[data-billing-payment-action]")
+        ?.className.includes("flex-col")
+    ).toBe(true);
+  });
 });

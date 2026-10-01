@@ -189,9 +189,20 @@ function stripeApiError(input: { param: string; requestId: string }) {
 
 function scriptedStripe() {
   const customers = { created: [] as unknown[], updated: [] as unknown[] };
-  const sessions = { created: [] as unknown[] };
+  const sessions = { created: [] as unknown[], keys: [] as string[] };
+  const metadata = new Map<string, Record<string, string>>();
   let fail: "customer_create" | "customer_update" | "session_create" | null =
     null;
+
+  function remember(
+    id: string,
+    patch: Record<string, string> | undefined
+  ): Record<string, string> {
+    const next = { ...(metadata.get(id) ?? {}), ...patch };
+    metadata.set(id, next);
+    return next;
+  }
+
   const port: CheckoutStripePort = {
     customers: {
       async create(params) {
@@ -202,7 +213,10 @@ function scriptedStripe() {
             requestId: "req_CustomerCreate1",
           });
         }
-        return { id: "cus_riverside" };
+        return {
+          id: "cus_riverside",
+          metadata: remember("cus_riverside", params.metadata),
+        };
       },
       async update(id, params) {
         customers.updated.push({ id, ...params });
@@ -212,12 +226,13 @@ function scriptedStripe() {
             requestId: "req_CustomerUpdate1",
           });
         }
-        return { id };
+        return { id, metadata: remember(id, params.metadata) };
       },
     },
     checkout: {
       sessions: {
-        async create(params) {
+        async create(params, options) {
+          sessions.keys.push(options?.idempotencyKey ?? "");
           if (fail === "session_create") {
             throw stripeApiError({
               param: "line_items[0][price]",
@@ -487,7 +502,7 @@ describe("Essential monthly checkout failures", () => {
 
     expect(result).toEqual({ ok: false, code: "checkout_failed" });
     expect(checkoutFailureMessage("checkout_failed")).toBe(
-      "We couldn't open secure payment. Your details have been saved."
+      "We couldn't open secure payment. Your details have been saved. Please try again."
     );
     const profile = savedProfile(store);
     expect(profile.legalEntityName).toBe("Harbour Dental Pty Ltd");
@@ -516,6 +531,8 @@ describe("Essential monthly checkout failures", () => {
     expect(logged).toContain("resource_missing");
     expect(logged).toContain("req_SessionCreate1");
     expect(logged).toContain("line_items[0][price]");
+    expect(logged).toContain("definitive");
+    expect(logged).toContain('"checkoutAttempt":0');
     expect(logged).not.toContain(SECRET);
     expect(logged).not.toContain(CARD);
     expect(logged).not.toContain(EMAIL);
@@ -535,9 +552,12 @@ describe("Essential monthly checkout failures", () => {
     });
     expect(retry.ok).toBe(true);
     expect(stripe.customers.created).toHaveLength(1);
-    expect(stripe.customers.updated).toHaveLength(1);
+    expect(stripe.customers.updated.length).toBeGreaterThan(1);
     expect(stripe.customers.updated[0]).toMatchObject({ id: "cus_riverside" });
     expect(stripe.sessions.created).toHaveLength(1);
+    expect(stripe.sessions.keys[0]).toMatch(/-initial$/);
+    expect(stripe.sessions.keys.at(-1)).toMatch(/-attempt-\d+$/);
+    expect(stripe.sessions.keys.at(-1)).not.toBe(stripe.sessions.keys[0]);
   });
 
   it("does not lose billing details when customer creation fails", async () => {

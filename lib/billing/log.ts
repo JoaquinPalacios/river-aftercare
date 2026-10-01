@@ -99,6 +99,8 @@ export type StripeBillingLogEvent =
       stripeRequestId?: string;
       stripeStatusCode?: number;
       stripeParam?: string;
+      stripeFailureClass?: "definitive" | "ambiguous";
+      checkoutAttempt?: number;
       errorName?: string;
       errorCode?: string;
     }

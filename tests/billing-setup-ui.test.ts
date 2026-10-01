@@ -61,6 +61,8 @@ describe("billing setup UI", () => {
       /\.staffAppContent:has\(\.staffBillingSetup\)\s*\{[^}]*padding-bottom:\s*4rem;/
     );
     expect(css).toMatch(/\.staffAppContent\s*\{[^}]*padding:\s*2rem 1rem;/);
+    expect(css).toContain(".staffBillingPaymentError");
+    expect(css).toContain("scroll-margin: 5rem");
   });
 
   it("does not add Buy now to public pricing", () => {
