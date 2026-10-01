@@ -9,7 +9,10 @@ import {
 
 import { RIVER_CLINIC_ID_METADATA_KEY } from "@/lib/billing/identity";
 import { isOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
+import { checkoutReturnUrlIssue } from "@/lib/billing/checkout-origin";
 import { logStripeBilling } from "@/lib/billing/log";
+import { checkoutFailureLogFields } from "@/lib/billing/stripe-error-log";
+import { stripeDeployment } from "@/lib/billing/stripe-mode";
 import {
   stripeGroupBasePriceId,
   stripeGroupSiteAddonPriceId,
@@ -357,7 +360,8 @@ export async function executeClinicCheckout(input: {
   const { state } = input;
   const failure = (
     code: CheckoutFailureCode,
-    reason: string
+    reason: string,
+    extra?: { operation?: string; error?: unknown }
   ): CheckoutExecutionResult => {
     if (
       code === "checkout_failed" ||
@@ -368,6 +372,12 @@ export async function executeClinicCheckout(input: {
         event: "checkout_session_failed",
         clinicId: state.clinicId,
         reason,
+        ...checkoutFailureLogFields({
+          operation: extra?.operation,
+          commercialPlan: state.commercialPlan,
+          billingInterval: state.billingInterval,
+          error: extra?.error,
+        }),
       });
     }
     return { ok: false, code };
@@ -433,15 +443,34 @@ export async function executeClinicCheckout(input: {
     lineItems = checkoutLineItems(state, input.env);
   } catch (error) {
     if (error instanceof StripePriceMappingError) {
-      return failure("price_not_configured", "price_not_configured");
+      return failure("price_not_configured", "price_not_configured", {
+        operation: "price_resolution",
+      });
     }
     throw error;
   }
+
+  const deployment = stripeDeployment(input.env);
+  const returnUrlIssue =
+    checkoutReturnUrlIssue(input.successUrl, deployment) ??
+    checkoutReturnUrlIssue(input.cancelUrl, deployment);
+  if (returnUrlIssue) {
+    return failure(
+      "checkout_failed",
+      returnUrlIssue === "malformed"
+        ? "malformed_return_url"
+        : "insecure_production_return_url",
+      { operation: "return_url" }
+    );
+  }
+
   let customerId = state.stripeCustomerId;
   let createdCustomer = false;
 
+  let operation = "checkout";
   try {
     if (customerId) {
+      operation = "stripe_customer_update";
       await input.stripe.customers.update(customerId, {
         email: identity.billingEmail,
         name: identity.legalEntityName,
@@ -453,6 +482,7 @@ export async function executeClinicCheckout(input: {
         clinicId: state.clinicId,
       });
     } else {
+      operation = "stripe_customer_create";
       const customer = await input.stripe.customers.create(
         {
           email: identity.billingEmail,
@@ -464,6 +494,7 @@ export async function executeClinicCheckout(input: {
       );
       customerId = customer.id;
       createdCustomer = true;
+      operation = "persist_stripe_customer";
       await input.persist({ stripeCustomerId: customerId });
       logStripeBilling({
         event: "stripe_customer_created",
@@ -472,6 +503,7 @@ export async function executeClinicCheckout(input: {
     }
 
     if (state.stripeCheckoutSessionId) {
+      operation = "stripe_checkout_session_retrieve";
       const existing = await input.stripe.checkout.sessions.retrieve(
         state.stripeCheckoutSessionId,
         { expand: ["line_items"] }
@@ -500,12 +532,14 @@ export async function executeClinicCheckout(input: {
             createdCustomer,
           };
         }
+        operation = "stripe_checkout_session_expire";
         await input.stripe.checkout.sessions.expire(
           state.stripeCheckoutSessionId
         );
       }
     }
 
+    operation = "stripe_checkout_session_create";
     const session = await input.stripe.checkout.sessions.create(
       {
         mode: "subscription",
@@ -532,9 +566,12 @@ export async function executeClinicCheckout(input: {
     );
 
     if (!session.url || !isStripeHostedCheckoutUrl(session.url)) {
-      return failure("checkout_unavailable", "missing_checkout_url");
+      return failure("checkout_unavailable", "missing_checkout_url", {
+        operation: "stripe_checkout_session_create",
+      });
     }
 
+    operation = "persist_checkout_session";
     await input.persist({ stripeCheckoutSessionId: session.id });
     logStripeBilling({
       event: "checkout_session_created",
@@ -549,8 +586,11 @@ export async function executeClinicCheckout(input: {
       reusedSession: false,
       createdCustomer,
     };
-  } catch {
-    return failure("checkout_failed", "stripe_request_failed");
+  } catch (error) {
+    return failure("checkout_failed", "stripe_request_failed", {
+      operation,
+      error,
+    });
   }
 }
 
@@ -587,6 +627,8 @@ export async function createClinicCheckout(input: {
     input.stripe ??
     (getStripeClient(input.env) as unknown as CheckoutStripePort);
 
+  let commercialPlan: string | null = null;
+  let billingInterval: string | null = null;
   try {
     return await db.$transaction(
       async (tx) => {
@@ -618,6 +660,9 @@ export async function createClinicCheckout(input: {
           },
           select: { id: true },
         });
+
+        commercialPlan = entitlement?.commercialPlan ?? null;
+        billingInterval = entitlement?.billingInterval ?? null;
 
         const identity =
           profile?.legalEntityName &&
@@ -678,10 +723,13 @@ export async function createClinicCheckout(input: {
       event: "checkout_session_failed",
       clinicId: input.clinicId,
       reason: "checkout_transaction_failed",
+      ...checkoutFailureLogFields({
+        operation: "checkout_transaction",
+        commercialPlan,
+        billingInterval,
+        error,
+      }),
     });
-    if (error instanceof Error && error.message === "CHECKOUT_RESULT") {
-      return { ok: false, code: "checkout_failed" };
-    }
     return { ok: false, code: "checkout_failed" };
   }
 }

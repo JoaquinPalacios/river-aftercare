@@ -91,6 +91,16 @@ export type StripeBillingLogEvent =
       event: "checkout_session_failed";
       clinicId: string;
       reason: string;
+      operation?: string;
+      commercialPlan?: string;
+      billingInterval?: string;
+      stripeErrorType?: string;
+      stripeErrorCode?: string;
+      stripeRequestId?: string;
+      stripeStatusCode?: number;
+      stripeParam?: string;
+      errorName?: string;
+      errorCode?: string;
     }
   | {
       event: "legal_acceptance_recorded";
