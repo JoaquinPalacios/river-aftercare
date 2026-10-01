@@ -33,8 +33,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/app/(staff)/(operator)/operator/templates/actions", () => ({
-  applyCanonicalTemplateBulkAction: (previous: unknown, formData: FormData) =>
-    bulkAction(previous, formData),
+  applyCanonicalTemplateBulkAction: () => bulkAction(),
 }));
 
 import {
@@ -408,13 +407,15 @@ describe("template table preview", () => {
   it("is keyboard reachable and does not cancel the browser link action", () => {
     render([published, sample]);
     const link = previewLink("Dental Crown");
-    expect(link).toBeTruthy();
-    expect(link?.tabIndex).toBe(0);
+    if (!link) {
+      throw new Error("Expected the Dental Crown preview link.");
+    }
+    expect(link.tabIndex).toBe(0);
     const title = container.querySelector(
       "a.staffOperatorRowLink"
     ) as HTMLAnchorElement;
     expect(
-      link?.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_PRECEDING
+      link.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_PRECEDING
     ).toBeTruthy();
 
     act(() => {
