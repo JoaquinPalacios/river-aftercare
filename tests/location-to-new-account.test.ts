@@ -466,7 +466,8 @@ async function placeGuide(input: {
       sourceGuideTemplateId: input.sourceGuideTemplateId,
       adaptedAt: input.adaptedAt,
       downgradeRetainedAt: new Date("2026-08-01T00:00:00.000Z"),
-      downgradeRetentionUntil: new Date("2026-10-01T00:00:00.000Z"),
+      // The public reader hides a retained guide once this instant has passed.
+      downgradeRetentionUntil: new Date("2027-10-01T00:00:00.000Z"),
       contentRevisions: {
         create: {
           version: 1,
