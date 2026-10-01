@@ -10,6 +10,7 @@ describe("Australian business numbers", () => {
   it("accepts a valid ABN and rejects malformed values", () => {
     expect(isValidAbn("32 671 297 130")).toBe(true);
     expect(isValidAbn("32671297130")).toBe(true);
+    expect(isValidAbn("12 345 678 901")).toBe(false);
     expect(isValidAbn("32671297131")).toBe(false);
     expect(isValidAbn("123")).toBe(false);
   });

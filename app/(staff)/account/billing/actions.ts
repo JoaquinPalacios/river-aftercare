@@ -37,10 +37,33 @@ import {
 import { billingIdentityFromForm } from "@/lib/billing/billing-identity";
 import { saveBillingSetup } from "@/lib/billing/save-billing-setup";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
+import type { BillingSetupSubmittedValues } from "@/app/(staff)/account/billing/setup/billing-setup-values";
 
 export interface BillingSetupActionState {
   error?: string;
   fieldErrors?: Record<string, string>;
+  values?: BillingSetupSubmittedValues;
+}
+
+function submittedBillingValues(
+  form: ReturnType<typeof billingIdentityFromForm>
+): BillingSetupSubmittedValues {
+  return {
+    ...form,
+    businessNumberKind: form.businessNumberKind === "acn" ? "acn" : "abn",
+  };
+}
+
+function billingSetupFailure(
+  form: ReturnType<typeof billingIdentityFromForm>,
+  error: string,
+  fieldErrors?: Record<string, string>
+): BillingSetupActionState {
+  return {
+    error,
+    fieldErrors,
+    values: submittedBillingValues(form),
+  };
 }
 
 export interface CustomerPortalActionState {
@@ -67,6 +90,7 @@ export async function continueToSecurePaymentAction(
   }
 
   const session = await requireClinicAdmin();
+  const form = billingIdentityFromForm(formData);
   const actor = assertClinicCheckoutActor({
     role: session.clinicMembership.role,
     membershipSource: session.clinicMembership.source ?? "membership",
@@ -77,18 +101,19 @@ export async function continueToSecurePaymentAction(
         : null,
   });
   if (!actor.ok) {
-    return {
-      error: "Billing could not be started for this clinic.",
-    };
+    return billingSetupFailure(
+      form,
+      "Billing could not be started for this clinic."
+    );
   }
 
   const saved = await saveBillingSetup({
     clinicId: actor.clinicId,
     userId: session.user.id,
-    form: billingIdentityFromForm(formData),
+    form,
   });
   if (!saved.ok) {
-    return { error: saved.error, fieldErrors: saved.fieldErrors };
+    return billingSetupFailure(form, saved.error, saved.fieldErrors);
   }
 
   const requestHeaders = await headers();
@@ -108,16 +133,14 @@ export async function continueToSecurePaymentAction(
       if (checkout.code === "checkout_already_completed") {
         redirect(BILLING_COMPLETE_PATH);
       }
-      return { error: checkoutFailureMessage(checkout.code) };
+      return billingSetupFailure(form, checkoutFailureMessage(checkout.code));
     }
     redirect(checkout.url);
   } catch (error) {
     if (isRedirect(error)) {
       throw error;
     }
-    return {
-      error: checkoutFailureMessage("checkout_failed"),
-    };
+    return billingSetupFailure(form, checkoutFailureMessage("checkout_failed"));
   }
 }
 
