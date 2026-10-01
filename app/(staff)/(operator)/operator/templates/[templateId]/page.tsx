@@ -2,17 +2,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { CanonicalGuidePreview } from "@/app/(staff)/components/canonical-guide-preview";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import {
   TemplateActivityBadge,
   TemplateDraftBadge,
   TemplateOriginBadge,
 } from "@/app/(staff)/(operator)/operator/templates/template-badges";
+import { TemplateEditAction } from "@/app/(staff)/(operator)/operator/templates/template-edit-action";
 import { TemplateLifecycleActions } from "@/app/(staff)/(operator)/operator/templates/template-lifecycle-actions";
 import { TemplateMetadataForm } from "@/app/(staff)/(operator)/operator/templates/template-metadata-form";
+import { TemplatePreviewCard } from "@/app/(staff)/(operator)/operator/templates/template-preview-card";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
-import { editorSectionsToComposedGuide } from "@/lib/aftercare/editor-sections-to-document";
+import {
+  canonicalTemplatePublishedPreviewPath,
+  canonicalTemplateRevisionPreviewPath,
+} from "@/lib/canonical-templates/preview-brand";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { loadOperatorCanonicalTemplate } from "@/lib/operator/canonical-templates/load-operator-canonical-template";
 import { operatorTemplateNotice } from "@/lib/operator/canonical-templates/notices";
@@ -20,6 +24,10 @@ import { operatorTemplateNotice } from "@/lib/operator/canonical-templates/notic
 export const metadata: Metadata = {
   title: `Template · ${PRODUCT_NAME}`,
 };
+
+function sectionCountLabel(count: number): string {
+  return `${count} ${count === 1 ? "section" : "sections"}`;
+}
 
 export default async function OperatorTemplateDetailPage({
   params,
@@ -39,34 +47,70 @@ export default async function OperatorTemplateDetailPage({
   const latestPublished = template.revisions.find(
     (revision) => revision.isLatestPublished
   );
+  const canOpenWorkspace =
+    !template.isSample && (template.openDraft !== null || latestPublished);
+  const canEdit = canOpenWorkspace;
+  const previewHref = latestPublished
+    ? canonicalTemplatePublishedPreviewPath(template.id)
+    : template.openDraft
+      ? canonicalTemplateRevisionPreviewPath(template.id, template.openDraft.id)
+      : null;
 
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-4xl flex-col gap-6">
-      <header className="flex flex-col gap-4">
+    <div className="templateOverview" data-template-overview="">
+      <header className="templateOverviewHeader">
         <PortalBreadcrumb
           items={[
             { href: "/operator/templates", label: "Templates" },
             { label: template.title },
           ]}
         />
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+        <div className="templateOverviewIdentity">
+          <div className="templateOverviewTitle">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
               Platform
             </p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight">
               {template.title}
             </h1>
-            <p className="mt-2 text-sm text-staff-muted">
+            <p className="templateOverviewMeta">
               {template.slug} · {template.serviceCategoryLabel}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="templateOverviewBadges">
             <TemplateOriginBadge isSample={template.isSample} />
             <TemplateActivityBadge isActive={template.isActive} />
+            {latestPublished ? (
+              <span className="staffStatusPill" data-tone="published">
+                Published
+              </span>
+            ) : null}
             {template.openDraft ? <TemplateDraftBadge /> : null}
           </div>
         </div>
+        {canOpenWorkspace || previewHref ? (
+          <div className="templateOverviewActions">
+            {canOpenWorkspace ? (
+              <Link
+                href={`/operator/templates/${template.id}/draft`}
+                className="staffBtn staffBtnSecondary"
+              >
+                View content
+              </Link>
+            ) : null}
+            {previewHref ? (
+              <Link href={previewHref} className="staffBtn staffBtnSecondary">
+                Preview patient guide
+              </Link>
+            ) : null}
+            {canEdit ? (
+              <TemplateEditAction
+                templateId={template.id}
+                hasOpenDraft={template.openDraft !== null}
+              />
+            ) : null}
+          </div>
+        ) : null}
       </header>
       {notice ? (
         <p className="text-sm text-staff-muted" role="status">
@@ -79,173 +123,180 @@ export default async function OperatorTemplateDetailPage({
           cannot be converted or published through this workflow.
         </p>
       ) : null}
-      {!template.isActive ? (
-        <p className="text-sm text-staff-muted">
-          Inactive
-          {template.deactivatedAtLabel
-            ? ` since ${template.deactivatedAtLabel}`
-            : ""}
-          {template.deactivatedByLabel
-            ? ` · Deactivated by ${template.deactivatedByLabel}`
-            : ""}
-          . New clinic adoption is stopped. Existing clinic guides and patient
-          pages are unchanged.
-        </p>
-      ) : null}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold">Current state</h2>
-        <p className="text-sm">
-          Latest published:{" "}
-          {latestPublished ? (
-            template.isSample ? (
-              "Published"
+      <div className="templateOverviewGrid">
+        <div className="templateOverviewMain">
+          <TemplatePreviewCard
+            templateId={template.id}
+            published={latestPublished !== undefined}
+            draftId={template.openDraft?.id ?? null}
+          />
+          <section
+            className="templateOverviewCard"
+            aria-labelledby="revision-history-heading"
+          >
+            <h2 id="revision-history-heading">Revision history</h2>
+            {template.revisions.length === 0 ? (
+              <p className="mt-3 text-sm text-staff-muted">No revisions yet.</p>
             ) : (
-              <Link
-                href={`/operator/templates/${template.id}/draft`}
-                className="font-medium text-staff-ink underline decoration-staff-line underline-offset-2"
-              >
-                Published
-              </Link>
-            )
-          ) : (
-            <span className="text-staff-muted">None</span>
-          )}
-        </p>
-        <p className="text-sm">
-          Open draft:{" "}
-          {template.openDraft ? (
-            <Link
-              href={`/operator/templates/${template.id}/draft`}
-              className="font-medium text-staff-ink underline decoration-staff-line underline-offset-2"
-            >
-              Draft
-            </Link>
-          ) : (
-            <span className="text-staff-muted">None</span>
-          )}
-        </p>
-        {template.openDraft && !template.isSample ? (
-          <Link
-            href={`/operator/templates/${template.id}/draft`}
-            className="staffBtn staffBtnPrimary w-fit"
-          >
-            Edit draft
-          </Link>
-        ) : latestPublished && !template.isSample ? (
-          <Link
-            href={`/operator/templates/${template.id}/draft`}
-            className="staffBtn staffBtnSecondary w-fit"
-          >
-            View content
-          </Link>
-        ) : null}
-      </section>
-      {template.isSample ? null : (
-        <>
-          <section className="flex flex-col gap-3">
-            <h2 className="text-base font-semibold">Template details</h2>
-            <TemplateMetadataForm
-              templateId={template.id}
-              title={template.title}
-              slug={template.slug}
-              serviceCategory={template.serviceCategory}
-              metadataLocked={template.metadataLocked}
-            />
-          </section>
-          <section className="flex flex-col gap-3">
-            <h2 className="text-base font-semibold">Lifecycle</h2>
-            <TemplateLifecycleActions
-              templateId={template.id}
-              draftId={template.openDraft?.id ?? null}
-              neverPublished={template.latestPublishedVersion === null}
-              isActive={template.isActive}
-              canCreateRevision={
-                template.latestPublishedVersion !== null &&
-                template.openDraft === null
-              }
-            />
-          </section>
-        </>
-      )}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold">Revision history</h2>
-        {template.revisions.length === 0 ? (
-          <p className="text-sm text-staff-muted">No revisions yet.</p>
-        ) : (
-          <ol className="flex flex-col gap-3">
-            {template.revisions.map((revision) => (
-              <li
-                key={revision.id}
-                className="rounded-xl border border-staff-line bg-staff-panel p-4"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-sm font-semibold">
-                    Revision {revision.version}
-                  </h3>
-                  <span
-                    className="staffStatusPill"
-                    data-tone={
-                      revision.status === "PUBLISHED" ? "published" : "draft"
-                    }
+              <ol className="templateRevisionList mt-4">
+                {template.revisions.map((revision) => (
+                  <li
+                    key={revision.id}
+                    className="templateRevision"
+                    data-revision-id={revision.id}
                   >
-                    {revision.status === "PUBLISHED" ? "Published" : "Draft"}
-                  </span>
-                  {revision.isLatestPublished ? (
-                    <span className="staffStatusPill">Latest</span>
-                  ) : null}
-                </div>
-                <dl className="mt-3 grid gap-2 text-sm text-staff-muted sm:grid-cols-2">
-                  <div>
-                    <dt className="font-medium text-staff-ink">Created</dt>
-                    <dd>
-                      {revision.createdAtLabel}
-                      {revision.createdByLabel
-                        ? ` · ${revision.createdByLabel}`
-                        : ""}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium text-staff-ink">Sections</dt>
-                    <dd>{revision.sectionCount}</dd>
-                  </div>
-                  {revision.publishedAtLabel ? (
-                    <div>
-                      <dt className="font-medium text-staff-ink">Published</dt>
-                      <dd>
-                        {revision.publishedAtLabel}
-                        {revision.publisherLabel
-                          ? ` · ${revision.publisherLabel}`
-                          : ""}
-                      </dd>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-semibold">
+                        Revision {revision.version}
+                      </h3>
+                      <span
+                        className="staffStatusPill"
+                        data-tone={
+                          revision.status === "PUBLISHED"
+                            ? "published"
+                            : "draft"
+                        }
+                      >
+                        {revision.status === "PUBLISHED"
+                          ? "Published"
+                          : "Draft"}
+                      </span>
+                      {revision.isLatestPublished ? (
+                        <span className="staffStatusPill">Latest</span>
+                      ) : null}
                     </div>
-                  ) : null}
-                </dl>
-                {revision.status === "PUBLISHED" ? (
-                  <details className="mt-3">
-                    <summary className="cursor-pointer text-sm font-medium">
-                      Preview published content
-                    </summary>
-                    <div className="mt-3">
-                      <CanonicalGuidePreview
-                        sections={editorSectionsToComposedGuide(
-                          revision.sections
+                    <dl className="mt-3 grid gap-2 text-sm text-staff-muted sm:grid-cols-2">
+                      <div>
+                        <dt className="font-medium text-staff-ink">Created</dt>
+                        <dd>
+                          {revision.createdAtLabel}
+                          {revision.createdByLabel
+                            ? ` · ${revision.createdByLabel}`
+                            : ""}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-staff-ink">Sections</dt>
+                        <dd>{sectionCountLabel(revision.sectionCount)}</dd>
+                      </div>
+                      {revision.publishedAtLabel ? (
+                        <div>
+                          <dt className="font-medium text-staff-ink">
+                            Published
+                          </dt>
+                          <dd>
+                            {revision.publishedAtLabel}
+                            {revision.publisherLabel
+                              ? ` · ${revision.publisherLabel}`
+                              : ""}
+                          </dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                    <div className="templateOverviewActions mt-3">
+                      <Link
+                        href={canonicalTemplateRevisionPreviewPath(
+                          template.id,
+                          revision.id
                         )}
-                      />
+                        className="staffBtn staffBtnSecondary"
+                      >
+                        Preview revision
+                      </Link>
+                      {revision.status === "DRAFT" && !template.isSample ? (
+                        <Link
+                          href={`/operator/templates/${template.id}/draft`}
+                          className="staffBtn staffBtnSecondary"
+                        >
+                          Edit
+                        </Link>
+                      ) : null}
                     </div>
-                  </details>
-                ) : template.isSample ? null : (
-                  <Link
-                    href={`/operator/templates/${template.id}/draft`}
-                    className="staffBtn staffBtnSecondary mt-3 w-fit"
-                  >
-                    Edit draft
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        </div>
+        <div className="templateOverviewSide">
+          <section
+            className="templateOverviewCard"
+            aria-labelledby="template-status-heading"
+          >
+            <h2 id="template-status-heading">Status</h2>
+            <dl className="mt-3 grid gap-3 text-sm">
+              <div>
+                <dt className="font-medium">Availability</dt>
+                <dd className="mt-1 text-staff-muted">
+                  {template.isActive ? "Active" : "Inactive"}
+                  {!template.isActive && template.deactivatedAtLabel
+                    ? ` since ${template.deactivatedAtLabel}`
+                    : ""}
+                  {!template.isActive && template.deactivatedByLabel
+                    ? ` · Deactivated by ${template.deactivatedByLabel}`
+                    : ""}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium">Latest published</dt>
+                <dd className="mt-1 text-staff-muted">
+                  {latestPublished ? "Published" : "None"}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium">Open draft</dt>
+                <dd className="mt-1 text-staff-muted">
+                  {template.openDraft ? "Draft" : "None"}
+                </dd>
+              </div>
+            </dl>
+            {!template.isActive ? (
+              <p className="mt-3 text-sm text-staff-muted">
+                New clinic adoption is stopped. Existing clinic guides and
+                patient pages are unchanged.
+              </p>
+            ) : null}
+          </section>
+          {template.isSample ? null : (
+            <section
+              className="templateOverviewCard"
+              aria-labelledby="template-lifecycle-heading"
+            >
+              <h2 id="template-lifecycle-heading">Lifecycle</h2>
+              <p className="mt-2 text-sm text-staff-muted">
+                Deactivate stops new clinic adoption. Published revisions stay
+                immutable.
+              </p>
+              <div className="mt-4">
+                <TemplateLifecycleActions
+                  templateId={template.id}
+                  draftId={template.openDraft?.id ?? null}
+                  neverPublished={template.latestPublishedVersion === null}
+                  isActive={template.isActive}
+                  canCreateRevision={false}
+                />
+              </div>
+            </section>
+          )}
+          {template.isSample ? null : (
+            <section
+              className="templateOverviewCard"
+              aria-labelledby="template-details-heading"
+            >
+              <h2 id="template-details-heading">Template details</h2>
+              <div className="mt-4">
+                <TemplateMetadataForm
+                  templateId={template.id}
+                  title={template.title}
+                  slug={template.slug}
+                  serviceCategory={template.serviceCategory}
+                  metadataLocked={template.metadataLocked}
+                />
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

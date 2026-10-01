@@ -24,6 +24,10 @@ import {
   canonicalEditorContentSignature,
 } from "@/lib/aftercare/canonical-editor-content";
 import { editorSectionsToComposedGuide } from "@/lib/aftercare/editor-sections-to-document";
+import {
+  canonicalTemplatePublishedPreviewPath,
+  canonicalTemplateRevisionPreviewPath,
+} from "@/lib/canonical-templates/preview-brand";
 
 const initial: CanonicalTemplateActionState = {};
 
@@ -165,6 +169,11 @@ export function CanonicalDraftEditor(props: CanonicalWorkspaceProps) {
             setPublishOpen(true);
           }
         }}
+        previewHref={
+          published
+            ? canonicalTemplatePublishedPreviewPath(templateId)
+            : canonicalTemplateRevisionPreviewPath(templateId, revisionId)
+        }
         lifecycle={
           <TemplateLifecycleActions
             templateId={templateId}

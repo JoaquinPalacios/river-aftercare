@@ -11,12 +11,18 @@ export function StaffPreviewToolbar({
   backHref,
   backLabel,
   editHref,
+  editLabel = "Edit guide",
+  statusLabel = "Draft preview",
+  statusDetail,
   lifecycle,
   appearanceControl,
 }: {
   backHref: string;
   backLabel: string;
   editHref?: string;
+  editLabel?: string;
+  statusLabel?: string;
+  statusDetail?: string;
   lifecycle?: ClinicGuideLifecycleStatus;
   appearanceControl?: ReactNode;
 }) {
@@ -32,14 +38,15 @@ export function StaffPreviewToolbar({
         <span className="staffPreviewBackLabel">{backLabel}</span>
       </Link>
       <div className="staffPreviewStatus flex flex-col items-center gap-1">
-        <p className="m-0">Draft preview</p>
+        <p className="m-0">{statusLabel}</p>
+        {statusDetail ? <p className="m-0">{statusDetail}</p> : null}
         {lifecycle ? <GuideStatusPills lifecycle={lifecycle} /> : null}
       </div>
       <div className="staffPreviewToolbarEnd">
         {appearanceControl ?? null}
         {editHref ? (
           <Link href={editHref} className="staffPreviewEdit">
-            Edit guide
+            {editLabel}
           </Link>
         ) : (
           <span />

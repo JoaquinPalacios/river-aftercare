@@ -1,6 +1,6 @@
 export const OPERATOR_TEMPLATE_NOTICES: Record<string, string> = {
   published:
-    "Revision published. It is now immutable, and eligible clinics can discover this template. Clinics already pinned to an earlier revision are not updated.",
+    "Template published. The revision is now read-only. Eligible clinics can discover this template. Clinics already pinned to an earlier revision are not updated.",
   "revision-opened":
     "New draft opened from the latest published revision. The published revision stays unchanged.",
   "draft-exists": "This template already has an open draft.",

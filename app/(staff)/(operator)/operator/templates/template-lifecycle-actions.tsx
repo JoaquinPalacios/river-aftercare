@@ -76,7 +76,7 @@ export function TemplateLifecycleActions({
             setCreateOpen(true);
           }}
         >
-          Create new revision
+          Edit
         </button>
       ) : null}
       {draftId ? (
@@ -129,10 +129,10 @@ export function TemplateLifecycleActions({
           {canCreateRevision ? (
             <button
               type="button"
-              className="staffBtn staffBtnPrimary"
+              className="staffBtn staffBtnSecondary"
               onClick={() => setCreateOpen(true)}
             >
-              Create new revision
+              Edit
             </button>
           ) : null}
           {draftId ? (
@@ -155,7 +155,7 @@ export function TemplateLifecycleActions({
           ) : (
             <button
               type="button"
-              className="staffBtn staffBtnPrimary"
+              className="staffBtn staffBtnSecondary"
               onClick={() => setReactivateOpen(true)}
             >
               Reactivate
@@ -191,10 +191,10 @@ export function TemplateLifecycleActions({
       </form>
       <ConfirmDialog
         open={createOpen}
-        title="Create a new revision?"
+        title="Edit this template?"
         description="This opens one draft from the latest published revision. The published revision stays unchanged."
         cancelLabel="Cancel"
-        confirmLabel="Create new revision"
+        confirmLabel="Edit"
         confirmTone="primary"
         pending={creating}
         pendingLabel="Creating…"

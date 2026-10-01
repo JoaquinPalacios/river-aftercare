@@ -3917,3 +3917,111 @@ a.staffTablePageButton:hover {
 .staffTableEmpty {
   margin: 0;
 }
+
+.templateOverview {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: 76rem;
+  margin-inline: auto;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.templateOverviewHeader,
+.templateOverviewMain,
+.templateOverviewSide {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.templateOverviewIdentity {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.templateOverviewTitle {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.templateOverviewMeta {
+  margin: 0.35rem 0 0;
+  overflow-wrap: anywhere;
+  color: var(--staff-muted);
+  font-size: 0.875rem;
+}
+
+.templateOverviewActions,
+.templateOverviewBadges {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.templateOverviewGrid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.templateOverviewCard,
+.templateRevision {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.75rem;
+  background: var(--staff-panel);
+  padding: 1.15rem 1.25rem;
+}
+
+.templateOverviewCard h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.templateRevisionList {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.templateRevision {
+  background: var(--staff-canvas);
+  padding: 0.9rem 1rem;
+}
+
+.templatePreviewBrandNote {
+  margin: 0;
+  padding: 0.7rem 1rem;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--staff-line);
+  background: var(--staff-canvas);
+  color: var(--staff-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+@media (min-width: 1100px) {
+  .templateOverviewGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+    gap: 1.5rem;
+  }
+}

@@ -139,4 +139,26 @@ describe("template metadata unsaved changes", () => {
     expect(title().value).toBe("Shoulder mobility revised");
     link.remove();
   });
+
+  it("shows slug and service as text after publication and keeps title editable", () => {
+    act(() => {
+      root.render(
+        <TemplateMetadataForm
+          templateId="template"
+          title="Shoulder mobility"
+          slug="shoulder-mobility"
+          serviceCategory="PHYSIOTHERAPY"
+          metadataLocked
+        />
+      );
+    });
+    expect(container.querySelector('input[name="slug"]')).toBeNull();
+    expect(container.querySelector("select")).toBeNull();
+    expect(container.querySelector("#template-title")).toBeTruthy();
+    expect(container.textContent).toContain("shoulder-mobility");
+    expect(container.textContent).toContain("Physiotherapy");
+    expect(container.textContent).toContain(
+      "Slug and service category stay fixed after the first publication."
+    );
+  });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { UnsavedChangesDialog } from "@/app/(staff)/components/unsaved-changes-dialog";
 import { useUnsavedChangesGuard } from "@/app/(staff)/components/use-unsaved-changes-guard";
@@ -37,6 +38,7 @@ export function TemplateMetadataForm({
   serviceCategory: ServiceCategory;
   metadataLocked: boolean;
 }) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(
     updateCanonicalTemplateMetadataAction,
     initial
@@ -81,8 +83,10 @@ export function TemplateMetadataForm({
       leavingRef.current = false;
       setLeaving(false);
       discard();
+      return;
     }
-  }, [state, keepEditing, discard]);
+    router.refresh();
+  }, [state, keepEditing, discard, router]);
 
   function saveAndLeave() {
     const form = document.getElementById(
@@ -100,7 +104,7 @@ export function TemplateMetadataForm({
     <form
       id="template-metadata-form"
       action={action}
-      className="flex max-w-lg flex-col gap-4"
+      className="flex w-full min-w-0 flex-col gap-4"
     >
       <input type="hidden" name="templateId" value={templateId} />
       <div className="flex flex-col gap-2">
@@ -119,65 +123,62 @@ export function TemplateMetadataForm({
           <p className="text-sm text-red-600">{state.fieldErrors.title}</p>
         ) : null}
       </div>
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium" htmlFor="template-slug">
-          Slug
-        </label>
-        <input
-          id="template-slug"
-          name={metadataLocked ? undefined : "slug"}
-          required
-          value={slugValue}
-          readOnly={metadataLocked}
-          aria-readonly={metadataLocked}
-          onChange={(event) => setSlugValue(event.target.value)}
-          className="staffField staffFieldNarrow"
-        />
-        {metadataLocked ? (
-          <p className="text-sm text-staff-muted">
-            The slug cannot change after the first published revision.
+      {metadataLocked ? (
+        <div className="grid gap-3 text-sm">
+          <div>
+            <p className="font-medium">Slug</p>
+            <p className="mt-1 break-words text-staff-muted">{slug}</p>
+          </div>
+          <div>
+            <p className="font-medium">Service category</p>
+            <p className="mt-1 text-staff-muted">
+              {SERVICE_CATEGORY_LABELS[serviceCategory]}
+            </p>
+          </div>
+          <p className="text-staff-muted">
+            Slug and service category stay fixed after the first publication.
           </p>
-        ) : null}
-        {state.fieldErrors?.slug ? (
-          <p className="text-sm text-red-600">{state.fieldErrors.slug}</p>
-        ) : null}
-      </div>
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium" htmlFor="template-category">
-          Service category
-        </label>
-        {metadataLocked ? (
-          <input
-            id="template-category"
-            value={SERVICE_CATEGORY_LABELS[serviceCategory]}
-            readOnly
-            aria-readonly="true"
-            className="staffField"
-          />
-        ) : (
-          <select
-            id="template-category"
-            name="serviceCategory"
-            value={categoryValue}
-            className="staffSelect"
-            onChange={(event) =>
-              setCategoryValue(event.target.value as ServiceCategory)
-            }
-          >
-            {SERVICE_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {SERVICE_CATEGORY_LABELS[category]}
-              </option>
-            ))}
-          </select>
-        )}
-        {metadataLocked ? (
-          <p className="text-sm text-staff-muted">
-            The service category cannot change after the first published
-            revision.
-          </p>
-        ) : null}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium" htmlFor="template-slug">
+              Slug
+            </label>
+            <input
+              id="template-slug"
+              name="slug"
+              required
+              value={slugValue}
+              onChange={(event) => setSlugValue(event.target.value)}
+              className="staffField staffFieldNarrow"
+            />
+            {state.fieldErrors?.slug ? (
+              <p className="text-sm text-red-600">{state.fieldErrors.slug}</p>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium" htmlFor="template-category">
+              Service category
+            </label>
+            <select
+              id="template-category"
+              name="serviceCategory"
+              value={categoryValue}
+              className="staffSelect"
+              onChange={(event) =>
+                setCategoryValue(event.target.value as ServiceCategory)
+              }
+            >
+              {SERVICE_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {SERVICE_CATEGORY_LABELS[category]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </>
+      )}
       {state.ok ? (
         <p className="text-sm text-staff-muted" role="status">
           Template details saved.
