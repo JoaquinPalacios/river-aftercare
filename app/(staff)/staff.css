@@ -1273,6 +1273,20 @@ tr[data-active="false"] td:nth-child(2) {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--staff-brand) 20%, transparent);
 }
 
+.staffField[aria-invalid="true"],
+.staffSelect[aria-invalid="true"] {
+  border-color: var(--staff-danger);
+}
+
+.staffField[aria-invalid="true"]:focus,
+.staffField[aria-invalid="true"]:focus-visible,
+.staffSelect[aria-invalid="true"]:focus,
+.staffSelect[aria-invalid="true"]:focus-visible {
+  border-color: var(--staff-danger);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--staff-danger) 22%, transparent);
+}
+
 .staffField:disabled,
 .staffSelect:disabled {
   cursor: not-allowed;

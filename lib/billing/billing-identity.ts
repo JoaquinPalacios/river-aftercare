@@ -4,9 +4,10 @@ import { z } from "zod";
 
 import {
   digitsOnly,
+  INVALID_ABN_MESSAGE,
   isValidAbn,
   isValidAcn,
-} from "@/lib/billing/australian-business-numbers";
+} from "@/lib/validation/australian-business-number";
 
 export const AU_REGION_OPTIONS = [
   { value: "ACT", label: "Australian Capital Territory" },
@@ -103,7 +104,7 @@ export const billingIdentitySchema = z
         context.addIssue({
           code: "custom",
           path: ["abn"],
-          message: "Enter a valid 11-digit ABN.",
+          message: INVALID_ABN_MESSAGE,
         });
       }
       return;

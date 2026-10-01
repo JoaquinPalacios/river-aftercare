@@ -1,29 +1,23 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 
 import {
   continueToSecurePaymentAction,
   type BillingSetupActionState,
 } from "@/app/(staff)/account/billing/actions";
+import type { BillingSetupSubmittedValues } from "@/app/(staff)/account/billing/setup/billing-setup-values";
+import {
+  INVALID_ABN_MESSAGE,
+  isValidAbn,
+} from "@/lib/validation/australian-business-number";
 
 type RegionOption = { value: string; label: string };
 
-export type BillingSetupFormValues = {
-  legalEntityName: string;
-  tradingName: string;
-  billingContactName: string;
-  billingEmail: string;
-  addressLine1: string;
-  addressLine2: string;
-  city: string;
-  region: string;
-  postalCode: string;
-  country: string;
-  businessNumberKind: "abn" | "acn";
-  abn: string;
-  acn: string;
-};
+export type BillingSetupFormValues = Omit<
+  BillingSetupSubmittedValues,
+  "termsAccepted"
+>;
 
 const initialState: BillingSetupActionState = {};
 
@@ -58,33 +52,69 @@ export function BillingSetupForm({
     continueToSecurePaymentAction,
     initialState
   );
-  const [kind, setKind] = useState<"abn" | "acn">(defaults.businessNumberKind);
-  const [abn, setAbn] = useState(defaults.abn);
-  const [acn, setAcn] = useState(defaults.acn);
+  const [form, setForm] = useState<BillingSetupSubmittedValues>(() => ({
+    ...defaults,
+    termsAccepted: false,
+  }));
+  const [abnTouched, setAbnTouched] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const formErrorId = useId();
   const termsErrorId = useId();
+
+  useEffect(() => {
+    if (!state.values) {
+      return;
+    }
+    setForm(state.values);
+  }, [state.values]);
 
   useEffect(() => {
     if (!state.error && !state.fieldErrors) {
       return;
     }
-    const invalid = document.querySelector<HTMLElement>(
+    const invalid = formRef.current?.querySelector<HTMLElement>(
       "[aria-invalid='true']"
     );
     invalid?.focus();
   }, [state]);
 
-  function switchKind(next: "abn" | "acn") {
-    setKind(next);
-    if (next === "abn") {
-      setAcn("");
-    } else {
-      setAbn("");
-    }
+  function patch<Key extends keyof BillingSetupSubmittedValues>(
+    key: Key,
+    value: BillingSetupSubmittedValues[Key]
+  ) {
+    setForm((current) => ({ ...current, [key]: value }));
   }
 
+  function switchKind(next: "abn" | "acn") {
+    setForm((current) => ({
+      ...current,
+      businessNumberKind: next,
+      abn: next === "abn" ? current.abn : "",
+      acn: next === "acn" ? current.acn : "",
+    }));
+  }
+
+  const abnError = abnFieldError({
+    kind: form.businessNumberKind,
+    value: form.abn,
+    touched: abnTouched,
+    serverError: state.fieldErrors?.abn,
+    submittedValue: state.values?.abn,
+  });
+
   return (
-    <form action={action} className="flex min-w-0 flex-col gap-8" noValidate>
+    <form
+      ref={formRef}
+      id="billing-setup-form"
+      action={action}
+      className="flex min-w-0 flex-col gap-8"
+      noValidate
+      onReset={(event) => {
+        // React resets <form action> after the action resolves, including
+        // when the action only returns validation errors.
+        event.preventDefault();
+      }}
+    >
       {cancelMessage ? (
         <p className="staffFormStatus" role="status">
           {cancelMessage}
@@ -143,7 +173,8 @@ export function BillingSetupForm({
           id="legalEntityName"
           name="legalEntityName"
           label="Legal entity name"
-          defaultValue={defaults.legalEntityName}
+          value={form.legalEntityName}
+          onChange={(value) => patch("legalEntityName", value)}
           autoComplete="organization"
           error={state.fieldErrors?.legalEntityName}
         />
@@ -151,14 +182,16 @@ export function BillingSetupForm({
           id="tradingName"
           name="tradingName"
           label="Trading or practice name"
-          defaultValue={defaults.tradingName}
+          value={form.tradingName}
+          onChange={(value) => patch("tradingName", value)}
           error={state.fieldErrors?.tradingName}
         />
         <Field
           id="billingContactName"
           name="billingContactName"
           label="Billing contact name"
-          defaultValue={defaults.billingContactName}
+          value={form.billingContactName}
+          onChange={(value) => patch("billingContactName", value)}
           autoComplete="name"
           error={state.fieldErrors?.billingContactName}
         />
@@ -167,7 +200,8 @@ export function BillingSetupForm({
           name="billingEmail"
           label="Billing email"
           type="email"
-          defaultValue={defaults.billingEmail}
+          value={form.billingEmail}
+          onChange={(value) => patch("billingEmail", value)}
           autoComplete="email"
           error={state.fieldErrors?.billingEmail}
         />
@@ -178,7 +212,8 @@ export function BillingSetupForm({
             id="addressLine1"
             name="addressLine1"
             label="Address line 1"
-            defaultValue={defaults.addressLine1}
+            value={form.addressLine1}
+            onChange={(value) => patch("addressLine1", value)}
             autoComplete="address-line1"
             error={state.fieldErrors?.addressLine1}
           />
@@ -186,7 +221,8 @@ export function BillingSetupForm({
             id="addressLine2"
             name="addressLine2"
             label="Address line 2"
-            defaultValue={defaults.addressLine2}
+            value={form.addressLine2}
+            onChange={(value) => patch("addressLine2", value)}
             autoComplete="address-line2"
             optional
             error={state.fieldErrors?.addressLine2}
@@ -195,7 +231,8 @@ export function BillingSetupForm({
             id="city"
             name="city"
             label="Suburb or city"
-            defaultValue={defaults.city}
+            value={form.city}
+            onChange={(value) => patch("city", value)}
             autoComplete="address-level2"
             error={state.fieldErrors?.city}
           />
@@ -206,7 +243,8 @@ export function BillingSetupForm({
             <select
               id="region"
               name="region"
-              defaultValue={defaults.region}
+              value={form.region}
+              onChange={(event) => patch("region", event.target.value)}
               autoComplete="address-level1"
               aria-invalid={state.fieldErrors?.region ? "true" : "false"}
               aria-describedby={
@@ -227,7 +265,8 @@ export function BillingSetupForm({
             id="postalCode"
             name="postalCode"
             label="Postcode"
-            defaultValue={defaults.postalCode}
+            value={form.postalCode}
+            onChange={(value) => patch("postalCode", value)}
             autoComplete="postal-code"
             inputMode="numeric"
             error={state.fieldErrors?.postalCode}
@@ -239,7 +278,8 @@ export function BillingSetupForm({
             <select
               id="country"
               name="country"
-              defaultValue={defaults.country || "AU"}
+              value={form.country || "AU"}
+              onChange={(event) => patch("country", event.target.value)}
               autoComplete="country"
               className="staffField staffSelect"
             >
@@ -249,17 +289,22 @@ export function BillingSetupForm({
         </fieldset>
 
         <div className="flex flex-col gap-2">
-          <input type="hidden" name="businessNumberKind" value={kind} />
-          {kind === "abn" ? (
+          <input
+            type="hidden"
+            name="businessNumberKind"
+            value={form.businessNumberKind}
+          />
+          {form.businessNumberKind === "abn" ? (
             <Field
               id="abn"
               name="abn"
               label="ABN"
-              value={abn}
-              onChange={setAbn}
+              value={form.abn}
+              onChange={(value) => patch("abn", value)}
+              onBlur={() => setAbnTouched(true)}
               inputMode="numeric"
               autoComplete="off"
-              error={state.fieldErrors?.abn}
+              error={abnError}
               hint="11 digits. Spaces are fine."
             />
           ) : (
@@ -267,8 +312,8 @@ export function BillingSetupForm({
               id="acn"
               name="acn"
               label="ACN"
-              value={acn}
-              onChange={setAcn}
+              value={form.acn}
+              onChange={(value) => patch("acn", value)}
               inputMode="numeric"
               autoComplete="off"
               error={state.fieldErrors?.acn}
@@ -278,10 +323,12 @@ export function BillingSetupForm({
           <button
             type="button"
             className="staffBtn staffBtnQuiet min-h-11 w-fit px-3"
-            aria-pressed={kind === "acn"}
-            onClick={() => switchKind(kind === "abn" ? "acn" : "abn")}
+            aria-pressed={form.businessNumberKind === "acn"}
+            onClick={() =>
+              switchKind(form.businessNumberKind === "abn" ? "acn" : "abn")
+            }
           >
-            {kind === "abn" ? "No ABN?" : "Use ABN instead"}
+            {form.businessNumberKind === "abn" ? "No ABN?" : "Use ABN instead"}
           </button>
         </div>
       </section>
@@ -293,6 +340,8 @@ export function BillingSetupForm({
             name="termsAccepted"
             type="checkbox"
             value="on"
+            checked={form.termsAccepted}
+            onChange={(event) => patch("termsAccepted", event.target.checked)}
             aria-invalid={state.fieldErrors?.termsAccepted ? "true" : "false"}
             aria-describedby={
               state.fieldErrors?.termsAccepted ? termsErrorId : undefined
@@ -340,13 +389,38 @@ export function BillingSetupForm({
   );
 }
 
+function abnFieldError(input: {
+  kind: BillingSetupSubmittedValues["businessNumberKind"];
+  value: string;
+  touched: boolean;
+  serverError?: string;
+  submittedValue?: string;
+}): string | undefined {
+  if (input.kind !== "abn") {
+    return undefined;
+  }
+  const unchanged =
+    input.submittedValue === undefined || input.submittedValue === input.value;
+  if (input.serverError && unchanged) {
+    return input.serverError;
+  }
+  if (
+    (input.touched || Boolean(input.serverError)) &&
+    input.value.trim() &&
+    !isValidAbn(input.value)
+  ) {
+    return INVALID_ABN_MESSAGE;
+  }
+  return undefined;
+}
+
 function Field({
   id,
   name,
   label,
-  defaultValue,
   value,
   onChange,
+  onBlur,
   type = "text",
   autoComplete,
   inputMode,
@@ -357,9 +431,9 @@ function Field({
   id: string;
   name: string;
   label: string;
-  defaultValue?: string;
-  value?: string;
-  onChange?: (value: string) => void;
+  value: string;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
   type?: string;
   autoComplete?: string;
   inputMode?: "numeric" | "text" | "email";
@@ -385,11 +459,9 @@ function Field({
         id={id}
         name={name}
         type={type}
-        defaultValue={onChange ? undefined : defaultValue}
-        value={onChange ? value : undefined}
-        onChange={
-          onChange ? (event) => onChange(event.target.value) : undefined
-        }
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
         autoComplete={autoComplete}
         inputMode={inputMode}
         aria-invalid={error ? "true" : "false"}
@@ -411,7 +483,7 @@ function FieldError({ id, message }: { id: string; message?: string }) {
     return null;
   }
   return (
-    <p id={id} className="text-sm text-red-600" role="alert">
+    <p id={id} className="staffFieldError text-sm text-red-600" role="alert">
       {message}
     </p>
   );
