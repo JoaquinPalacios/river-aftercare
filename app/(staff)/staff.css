@@ -3926,6 +3926,47 @@ a.staffTablePageButton:hover {
   min-width: 12rem;
 }
 
+/* Compact action. The whole cell sits above the stretched row-title link. */
+.staffDataTable :is(th, td).staffTemplatePreviewCol {
+  width: 1%;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+}
+
+.staffDataTable td.staffTemplatePreviewCol {
+  position: relative;
+  z-index: 1;
+}
+
+.staffTemplatePreviewLink {
+  position: relative;
+  z-index: 1;
+  gap: 0.25rem;
+  padding-inline: 0.55rem;
+  white-space: nowrap;
+}
+
+/* Same 720px threshold as table settings. The accessible name stays on the link. */
+@media (max-width: 720px) {
+  .staffTemplatePreviewLink {
+    width: 2.75rem;
+    min-width: 2.75rem;
+    padding-inline: 0;
+  }
+
+  .staffTemplatePreviewLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
 .staffTableEmpty {
   margin: 0;
 }

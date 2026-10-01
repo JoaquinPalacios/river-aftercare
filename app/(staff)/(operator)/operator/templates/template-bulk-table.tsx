@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
+import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
 import { TablePagination } from "@/app/(staff)/components/table-controls/table-pagination";
 import { TableSearch } from "@/app/(staff)/components/table-controls/table-search";
 import { TableSettings } from "@/app/(staff)/components/table-controls/table-settings";
@@ -26,6 +27,7 @@ import {
   SERVICE_CATEGORIES,
   SERVICE_CATEGORY_LABELS,
 } from "@/lib/aftercare/service-category";
+import { canonicalTemplatePublishedPreviewPath } from "@/lib/canonical-templates/preview-brand";
 import {
   bulkTemplateActionAvailability,
   type BulkTemplateAction,
@@ -59,6 +61,17 @@ export interface TemplateBulkTableRow {
   isSample: boolean;
   latestPublishedVersion: number | null;
   draft: { id: string; version: number } | null;
+}
+
+/** Latest published patient preview. An open draft does not change the target. */
+export function templateTablePreviewHref(template: {
+  id: string;
+  latestPublishedVersion: number | null;
+}): string | null {
+  if (template.latestPublishedVersion === null) {
+    return null;
+  }
+  return canonicalTemplatePublishedPreviewPath(template.id);
 }
 
 const BULK_ACTIONS: readonly BulkTemplateAction[] = [
@@ -483,6 +496,12 @@ export function TemplateBulkTable({
                     <StaticColumnHeader label="Latest published" />
                   ) : null}
                   {show("draft") ? <StaticColumnHeader label="Draft" /> : null}
+                  {show("preview") ? (
+                    <StaticColumnHeader
+                      label="Preview"
+                      className="staffTemplatePreviewCol"
+                    />
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
@@ -563,6 +582,15 @@ export function TemplateBulkTable({
                         )}
                       </td>
                     ) : null}
+                    {show("preview") ? (
+                      <td
+                        className="staffTemplatePreviewCol"
+                        onClick={(event) => event.stopPropagation()}
+                        onAuxClick={(event) => event.stopPropagation()}
+                      >
+                        <TemplateTablePreview template={template} />
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
@@ -631,6 +659,37 @@ export function TemplateBulkTable({
         </ul>
       </ConfirmDialog>
     </div>
+  );
+}
+
+function TemplateTablePreview({
+  template,
+}: {
+  template: TemplateBulkTableRow;
+}) {
+  const href = templateTablePreviewHref(template);
+  if (!href) {
+    return (
+      <span className="text-staff-muted">
+        <span aria-hidden="true">—</span>
+        <span className="sr-only">
+          Preview unavailable for {template.title}
+        </span>
+      </span>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="staffBtn staffBtnSecondary staffTemplatePreviewLink"
+      aria-label={`Preview ${template.title} in a new tab`}
+    >
+      <span className="staffTemplatePreviewLabel">Preview</span>
+      <ExternalLinkIcon />
+    </a>
   );
 }
 
