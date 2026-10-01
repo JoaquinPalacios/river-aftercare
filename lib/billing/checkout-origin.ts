@@ -1,3 +1,5 @@
+import "server-only";
+
 import {
   BILLING_COMPLETE_PATH,
   BILLING_SETUP_PATH,
