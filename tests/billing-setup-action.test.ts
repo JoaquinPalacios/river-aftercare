@@ -426,7 +426,7 @@ describe("continue to secure payment validation", () => {
 
     expect(result.error).toBe(checkoutFailureMessage("checkout_failed"));
     expect(result.error).toBe(
-      "We couldn't open secure payment. Your details have been saved."
+      "We couldn't open secure payment. Your details have been saved. Please try again."
     );
     expect(result.values).toMatchObject({
       legalEntityName: "Harbour Dental Pty Ltd",

@@ -70,7 +70,9 @@ export function BillingSetupForm({
   const [abnTouched, setAbnTouched] = useState(false);
   const [acnTouched, setAcnTouched] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const paymentErrorRef = useRef<HTMLParagraphElement>(null);
   const formErrorId = useId();
+  const paymentErrorId = useId();
   const termsErrorId = useId();
   const identifierLegendId = useId();
   const identifierHintId = useId();
@@ -83,15 +85,34 @@ export function BillingSetupForm({
     setForm(state.values);
   }, [state.values]);
 
+  const hasFieldErrors = Object.values(state.fieldErrors ?? {}).some(
+    (message) => message.trim().length > 0
+  );
+  const summaryError = hasFieldErrors ? state.error : undefined;
+  const paymentError = hasFieldErrors ? undefined : state.error;
+
   useEffect(() => {
-    if (!state.error && !state.fieldErrors) {
+    if (!state.error && !hasFieldErrors) {
       return;
     }
-    const invalid = formRef.current?.querySelector<HTMLElement>(
-      "[aria-invalid='true']"
-    );
-    invalid?.focus();
-  }, [state]);
+    if (hasFieldErrors) {
+      const invalid = formRef.current?.querySelector<HTMLElement>(
+        "[aria-invalid='true']"
+      );
+      if (!invalid) {
+        return;
+      }
+      invalid.focus();
+      scrollFormTargetIntoView(invalid);
+      return;
+    }
+    const paymentErrorTarget = paymentErrorRef.current;
+    if (!paymentErrorTarget) {
+      return;
+    }
+    paymentErrorTarget.focus();
+    scrollFormTargetIntoView(paymentErrorTarget);
+  }, [state, hasFieldErrors]);
 
   function patch<Key extends keyof BillingSetupSubmittedValues>(
     key: Key,
@@ -161,9 +182,9 @@ export function BillingSetupForm({
           {cancelMessage}
         </p>
       ) : null}
-      {state.error ? (
+      {summaryError ? (
         <p id={formErrorId} className="staffFormAlert" role="alert">
-          {state.error}
+          {summaryError}
         </p>
       ) : null}
 
@@ -441,11 +462,25 @@ export function BillingSetupForm({
         <FieldError id={termsErrorId} message={shownError("termsAccepted")} />
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3" data-billing-payment-action>
+        {paymentError ? (
+          <p
+            ref={paymentErrorRef}
+            id={paymentErrorId}
+            className="staffFormAlert staffBillingPaymentError"
+            role="alert"
+            tabIndex={-1}
+            data-checkout-error
+          >
+            {paymentError}
+          </p>
+        ) : null}
         <button
           type="submit"
           className="staffBtn staffBtnPrimary h-11 w-full sm:w-fit"
           disabled={pending}
+          aria-busy={pending || undefined}
+          aria-describedby={paymentError ? paymentErrorId : undefined}
         >
           {pending ? "Continuing…" : "Continue to secure payment"}
         </button>
@@ -456,6 +491,13 @@ export function BillingSetupForm({
       </div>
     </form>
   );
+}
+
+function scrollFormTargetIntoView(element: HTMLElement) {
+  if (typeof element.scrollIntoView !== "function") {
+    return;
+  }
+  element.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 
 function identifierFieldError(input: {

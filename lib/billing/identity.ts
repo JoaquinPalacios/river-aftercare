@@ -2,6 +2,13 @@ import "server-only";
 
 export const RIVER_CLINIC_ID_METADATA_KEY = "clinicId";
 
+/**
+ * Stripe Customer metadata. Not a Checkout Session id.
+ * Absent or 0 keeps the original `initial` Checkout idempotency key.
+ * It advances only after Stripe definitively rejects session creation.
+ */
+export const RIVER_CHECKOUT_ATTEMPT_METADATA_KEY = "riverCheckoutAttempt";
+
 export function clinicIdFromMetadata(
   metadata: Record<string, string> | null | undefined
 ): string | null {

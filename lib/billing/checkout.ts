@@ -7,11 +7,17 @@ import {
   type PrismaClient,
 } from "@prisma/client";
 
-import { RIVER_CLINIC_ID_METADATA_KEY } from "@/lib/billing/identity";
+import {
+  RIVER_CHECKOUT_ATTEMPT_METADATA_KEY,
+  RIVER_CLINIC_ID_METADATA_KEY,
+} from "@/lib/billing/identity";
 import { isOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import { checkoutReturnUrlIssue } from "@/lib/billing/checkout-origin";
 import { logStripeBilling } from "@/lib/billing/log";
-import { checkoutFailureLogFields } from "@/lib/billing/stripe-error-log";
+import {
+  checkoutFailureLogFields,
+  classifyStripeCheckoutFailure,
+} from "@/lib/billing/stripe-error-log";
 import { stripeDeployment } from "@/lib/billing/stripe-mode";
 import {
   stripeGroupBasePriceId,
@@ -109,7 +115,7 @@ export function checkoutFailureMessage(code: CheckoutFailureCode): string {
     case "checkout_already_completed":
       return "Payment has already been submitted.";
     case "checkout_failed":
-      return "We couldn't open secure payment. Your details have been saved.";
+      return "We couldn't open secure payment. Your details have been saved. Please try again.";
   }
 }
 
@@ -130,7 +136,7 @@ export type CheckoutStripePort = {
         metadata?: Record<string, string>;
       },
       options?: { idempotencyKey?: string }
-    ): Promise<{ id: string }>;
+    ): Promise<{ id: string; metadata?: Record<string, string> | null }>;
     update(
       id: string,
       params: {
@@ -146,7 +152,7 @@ export type CheckoutStripePort = {
         };
         metadata?: Record<string, string>;
       }
-    ): Promise<{ id: string }>;
+    ): Promise<{ id: string; metadata?: Record<string, string> | null }>;
   };
   checkout: {
     sessions: {
@@ -318,12 +324,22 @@ function checkoutMetadata(state: LockedCheckoutState): Record<string, string> {
   return metadata;
 }
 
-function checkoutIdempotencyKey(
+/**
+ * Attempt 0 with no stored Session keeps the historical `initial` suffix.
+ * A Checkout Session that Stripe already created under that key is still
+ * returned on replay. A later definitive rejection stores attempt 1, 2, …
+ * on the Customer and the suffix becomes `attempt-N`.
+ * A stored Session id stays in the suffix so a lost create for that
+ * replacement cannot fork another Session. Once the attempt has advanced,
+ * the Session id and the attempt are both included.
+ */
+export function checkoutIdempotencyKey(
   clinicId: string,
   lineItems: ReadonlyArray<{ price: string; quantity: number }>,
-  sessionId: string | null
+  sessionId: string | null,
+  attempt = 0
 ): string {
-  const suffix = sessionId ?? "initial";
+  const suffix = checkoutIdempotencySuffix(sessionId, attempt);
   if (lineItems.length === 1 && lineItems[0]?.quantity === 1) {
     return `river-checkout-${clinicId}-${lineItems[0].price}-${suffix}`;
   }
@@ -331,6 +347,30 @@ function checkoutIdempotencyKey(
     .map((item) => `${item.price}x${item.quantity}`)
     .join("+");
   return `river-checkout-${clinicId}-${signature}-${suffix}`;
+}
+
+function checkoutIdempotencySuffix(
+  sessionId: string | null,
+  attempt: number
+): string {
+  const revision = attempt > 0 ? `attempt-${attempt}` : null;
+  if (sessionId && revision) {
+    return `${sessionId}-${revision}`;
+  }
+  if (sessionId) {
+    return sessionId;
+  }
+  return revision ?? "initial";
+}
+
+export function checkoutAttemptFromMetadata(
+  metadata: Record<string, string> | null | undefined
+): number {
+  const raw = metadata?.[RIVER_CHECKOUT_ATTEMPT_METADATA_KEY];
+  if (!raw || !/^(0|[1-9][0-9]{0,5})$/.test(raw)) {
+    return 0;
+  }
+  return Number(raw);
 }
 
 function customerAddress(
@@ -361,7 +401,7 @@ export async function executeClinicCheckout(input: {
   const failure = (
     code: CheckoutFailureCode,
     reason: string,
-    extra?: { operation?: string; error?: unknown }
+    extra?: { operation?: string; error?: unknown; checkoutAttempt?: number }
   ): CheckoutExecutionResult => {
     if (
       code === "checkout_failed" ||
@@ -377,6 +417,7 @@ export async function executeClinicCheckout(input: {
           commercialPlan: state.commercialPlan,
           billingInterval: state.billingInterval,
           error: extra?.error,
+          checkoutAttempt: extra?.checkoutAttempt,
         }),
       });
     }
@@ -466,17 +507,108 @@ export async function executeClinicCheckout(input: {
 
   let customerId = state.stripeCustomerId;
   let createdCustomer = false;
-
   let operation = "checkout";
+  let checkoutAttempt = 0;
+
+  const persistCheckoutAttempt = async (next: number): Promise<boolean> => {
+    if (!customerId || next <= checkoutAttempt || next > 1_000_000) {
+      return false;
+    }
+    try {
+      const updated = await input.stripe.customers.update(customerId, {
+        metadata: {
+          [RIVER_CLINIC_ID_METADATA_KEY]: state.clinicId,
+          [RIVER_CHECKOUT_ATTEMPT_METADATA_KEY]: String(next),
+        },
+      });
+      if (
+        updated.metadata &&
+        checkoutAttemptFromMetadata(updated.metadata) !== next
+      ) {
+        return false;
+      }
+      checkoutAttempt = next;
+      return true;
+    } catch (error) {
+      failure("checkout_failed", "checkout_attempt_not_advanced", {
+        operation: "stripe_checkout_attempt_advance",
+        error,
+        checkoutAttempt: next,
+      });
+      return false;
+    }
+  };
+
+  const openCheckoutSession = async (
+    attempt: number
+  ): Promise<CheckoutExecutionResult> => {
+    if (!customerId) {
+      return failure("checkout_failed", "stripe_request_failed", {
+        operation: "stripe_customer_create",
+        checkoutAttempt: attempt,
+      });
+    }
+    operation = "stripe_checkout_session_create";
+    const session = await input.stripe.checkout.sessions.create(
+      {
+        mode: "subscription",
+        customer: customerId,
+        client_reference_id: state.clinicId,
+        line_items: lineItems,
+        success_url: input.successUrl,
+        cancel_url: input.cancelUrl,
+        metadata: checkoutMetadata(state),
+        subscription_data: {
+          metadata: checkoutMetadata(state),
+        },
+        payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
+        wallet_options: { link: { display: "never" } },
+        allow_promotion_codes: false,
+      },
+      {
+        idempotencyKey: checkoutIdempotencyKey(
+          state.clinicId,
+          lineItems,
+          state.stripeCheckoutSessionId,
+          attempt
+        ),
+      }
+    );
+
+    if (!session.url || !isStripeHostedCheckoutUrl(session.url)) {
+      return failure("checkout_unavailable", "missing_checkout_url", {
+        operation: "stripe_checkout_session_create",
+        checkoutAttempt: attempt,
+      });
+    }
+
+    operation = "persist_checkout_session";
+    await input.persist({ stripeCheckoutSessionId: session.id });
+    logStripeBilling({
+      event: "checkout_session_created",
+      clinicId: state.clinicId,
+      commercialPlan: plan,
+      billingInterval: interval,
+    });
+
+    return {
+      ok: true,
+      url: session.url,
+      reusedSession: false,
+      createdCustomer,
+    };
+  };
+
   try {
     if (customerId) {
       operation = "stripe_customer_update";
-      await input.stripe.customers.update(customerId, {
+      const updated = await input.stripe.customers.update(customerId, {
         email: identity.billingEmail,
         name: identity.legalEntityName,
         address: customerAddress(identity),
         metadata: { [RIVER_CLINIC_ID_METADATA_KEY]: state.clinicId },
       });
+      checkoutAttempt = checkoutAttemptFromMetadata(updated.metadata);
       logStripeBilling({
         event: "stripe_customer_reused",
         clinicId: state.clinicId,
@@ -494,6 +626,7 @@ export async function executeClinicCheckout(input: {
       );
       customerId = customer.id;
       createdCustomer = true;
+      checkoutAttempt = checkoutAttemptFromMetadata(customer.metadata);
       operation = "persist_stripe_customer";
       await input.persist({ stripeCustomerId: customerId });
       logStripeBilling({
@@ -539,57 +672,52 @@ export async function executeClinicCheckout(input: {
       }
     }
 
-    operation = "stripe_checkout_session_create";
-    const session = await input.stripe.checkout.sessions.create(
-      {
-        mode: "subscription",
-        customer: customerId,
-        client_reference_id: state.clinicId,
-        line_items: lineItems,
-        success_url: input.successUrl,
-        cancel_url: input.cancelUrl,
-        metadata: checkoutMetadata(state),
-        subscription_data: {
-          metadata: checkoutMetadata(state),
-        },
-        payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
-        wallet_options: { link: { display: "never" } },
-        allow_promotion_codes: false,
-      },
-      {
-        idempotencyKey: checkoutIdempotencyKey(
-          state.clinicId,
-          lineItems,
-          state.stripeCheckoutSessionId
-        ),
+    try {
+      return await openCheckoutSession(checkoutAttempt);
+    } catch (error) {
+      const failedAttempt = checkoutAttempt;
+      const failureClass = classifyStripeCheckoutFailure(error);
+      if (
+        operation !== "stripe_checkout_session_create" ||
+        failureClass !== "definitive"
+      ) {
+        return failure("checkout_failed", "stripe_request_failed", {
+          operation,
+          error,
+          checkoutAttempt: failedAttempt,
+        });
       }
-    );
 
-    if (!session.url || !isStripeHostedCheckoutUrl(session.url)) {
-      return failure("checkout_unavailable", "missing_checkout_url", {
-        operation: "stripe_checkout_session_create",
+      failure("checkout_failed", "stripe_request_failed", {
+        operation,
+        error,
+        checkoutAttempt: failedAttempt,
       });
+      const advanced = await persistCheckoutAttempt(failedAttempt + 1);
+      if (!advanced) {
+        return { ok: false, code: "checkout_failed" };
+      }
+      return await openCheckoutSession(checkoutAttempt);
     }
-
-    operation = "persist_checkout_session";
-    await input.persist({ stripeCheckoutSessionId: session.id });
-    logStripeBilling({
-      event: "checkout_session_created",
-      clinicId: state.clinicId,
-      commercialPlan: plan,
-      billingInterval: interval,
-    });
-
-    return {
-      ok: true,
-      url: session.url,
-      reusedSession: false,
-      createdCustomer,
-    };
   } catch (error) {
+    const failedAttempt = checkoutAttempt;
+    const failureClass = classifyStripeCheckoutFailure(error);
+    if (
+      operation === "stripe_checkout_session_create" &&
+      failureClass === "definitive"
+    ) {
+      failure("checkout_failed", "stripe_request_failed", {
+        operation,
+        error,
+        checkoutAttempt: failedAttempt,
+      });
+      await persistCheckoutAttempt(failedAttempt + 1);
+      return { ok: false, code: "checkout_failed" };
+    }
     return failure("checkout_failed", "stripe_request_failed", {
       operation,
       error,
+      checkoutAttempt: failedAttempt,
     });
   }
 }

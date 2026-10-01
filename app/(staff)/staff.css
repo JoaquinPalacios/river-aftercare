@@ -1470,6 +1470,15 @@ tr[data-active="false"] td:nth-child(2) {
   color: var(--staff-danger);
 }
 
+.staffBillingPaymentError {
+  scroll-margin: 5rem;
+}
+
+.staffBillingPaymentError:focus {
+  outline: var(--interaction-focus-width) solid var(--staff-danger);
+  outline-offset: var(--interaction-focus-offset);
+}
+
 .staffFormStatus {
   margin-bottom: 1.25rem;
   border-radius: 0.375rem;
