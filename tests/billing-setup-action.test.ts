@@ -47,6 +47,7 @@ vi.mock("@/lib/billing/checkout", async () => {
 });
 
 import { continueToSecurePaymentAction } from "@/app/(staff)/account/billing/actions";
+import { checkoutFailureMessage } from "@/lib/billing/checkout";
 
 const validFields = {
   legalEntityName: "Harbour Dental Pty Ltd",
@@ -241,10 +242,81 @@ describe("continue to secure payment validation", () => {
       expect.objectContaining({
         clinicId: "clinic_a",
         userId: "user_admin",
+        successUrl: "http://app.localhost:3000/account/billing/complete",
+        cancelUrl:
+          "http://app.localhost:3000/account/billing/setup?checkout=cancelled",
       })
     );
     expect(redirectMock).toHaveBeenCalledWith(
       "https://checkout.stripe.com/c/pay/cs_test_mock"
     );
   });
+
+  it("keeps the saved billing details when Checkout cannot open", async () => {
+    allowSavedBilling();
+    createClinicCheckoutMock.mockResolvedValue({
+      ok: false,
+      code: "checkout_failed",
+    });
+
+    const result = await continueToSecurePaymentAction({}, billingForm());
+
+    expect(result.error).toBe(checkoutFailureMessage("checkout_failed"));
+    expect(result.error).toBe(
+      "We couldn't open secure payment. Your details have been saved."
+    );
+    expect(result.values).toMatchObject({
+      legalEntityName: "Harbour Dental Pty Ltd",
+      billingEmail: "accounts@example.com",
+      addressLine1: "10 River Street",
+      abn: "32 671 297 130",
+      termsAccepted: true,
+    });
+    expect(upsertMock).toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("logs an unexpected Checkout failure without the exception text", async () => {
+    allowSavedBilling();
+    const secret = "sk_live_do_not_log";
+    const card = "4242424242424242";
+    createClinicCheckoutMock.mockRejectedValue(
+      new Error(`Stripe said ${secret} and ${card}`)
+    );
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    const infoLog = vi.spyOn(console, "info").mockImplementation(() => {});
+
+    const result = await continueToSecurePaymentAction({}, billingForm());
+
+    expect(result.error).toBe(checkoutFailureMessage("checkout_failed"));
+    expect(JSON.stringify(result)).not.toContain(secret);
+    expect(JSON.stringify(result)).not.toContain(card);
+    const logged = JSON.stringify(errorLog.mock.calls);
+    expect(logged).toContain("checkout_action_failed");
+    expect(logged).toContain("clinic_a");
+    expect(logged).not.toContain(secret);
+    expect(logged).not.toContain(card);
+    expect(logged).not.toContain("accounts@example.com");
+    errorLog.mockRestore();
+    infoLog.mockRestore();
+  });
 });
+
+function allowSavedBilling() {
+  transactionMock.mockImplementation(async (callback) =>
+    callback({
+      clinicBillingProfile: { upsert: upsertMock },
+      legalAcceptance: {
+        create: vi.fn().mockResolvedValue({
+          id: "acceptance_1",
+          termsVersion: "2026-09-21",
+          privacyVersionAcknowledged: "2026-09-21",
+          acceptedAt: new Date("2026-10-01T00:00:00.000Z"),
+          clinicId: "clinic_a",
+          userId: "user_admin",
+        }),
+      },
+    })
+  );
+  upsertMock.mockResolvedValue({});
+}

@@ -19,15 +19,15 @@ import {
   confirmClinicDowngradeSelection,
   keepSelectionMessage,
 } from "@/lib/entitlements/downgrade-selection";
-import {
-  BILLING_COMPLETE_PATH,
-  BILLING_SETUP_PATH,
-} from "@/lib/billing/activation-gate";
+import { BILLING_COMPLETE_PATH } from "@/lib/billing/activation-gate";
 import {
   assertClinicCheckoutActor,
   checkoutFailureMessage,
   createClinicCheckout,
 } from "@/lib/billing/checkout";
+import { checkoutReturnUrls } from "@/lib/billing/checkout-origin";
+import { logStripeBilling } from "@/lib/billing/log";
+import { checkoutFailureLogFields } from "@/lib/billing/stripe-error-log";
 import {
   assertClinicPortalActor,
   BILLING_PORTAL_RETURN_PATH,
@@ -85,7 +85,7 @@ export async function continueToSecurePaymentAction(
   formData: FormData
 ): Promise<BillingSetupActionState> {
   const host = (await headers()).get("host");
-  if (!isStaffAppHost(host)) {
+  if (!host || !isStaffAppHost(host)) {
     notFound();
   }
 
@@ -117,17 +117,17 @@ export async function continueToSecurePaymentAction(
   }
 
   const requestHeaders = await headers();
-  const protocol =
-    requestHeaders.get("x-forwarded-proto") ??
-    (host?.includes("localhost") ? "http" : "https");
-  const origin = `${protocol}://${host}`;
+  const { successUrl, cancelUrl } = checkoutReturnUrls({
+    host,
+    forwardedProto: requestHeaders.get("x-forwarded-proto"),
+  });
 
   try {
     const checkout = await createClinicCheckout({
       clinicId: actor.clinicId,
       userId: session.user.id,
-      successUrl: `${origin}${BILLING_COMPLETE_PATH}`,
-      cancelUrl: `${origin}${BILLING_SETUP_PATH}?checkout=cancelled`,
+      successUrl,
+      cancelUrl,
     });
     if (!checkout.ok) {
       if (checkout.code === "checkout_already_completed") {
@@ -140,6 +140,15 @@ export async function continueToSecurePaymentAction(
     if (isRedirect(error)) {
       throw error;
     }
+    logStripeBilling({
+      event: "checkout_session_failed",
+      clinicId: actor.clinicId,
+      reason: "checkout_action_failed",
+      ...checkoutFailureLogFields({
+        operation: "continue_to_secure_payment",
+        error,
+      }),
+    });
     return billingSetupFailure(form, checkoutFailureMessage("checkout_failed"));
   }
 }
