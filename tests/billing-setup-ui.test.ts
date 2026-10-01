@@ -26,8 +26,13 @@ describe("billing setup UI", () => {
       "app/(staff)/account/billing/setup/billing-setup-form.tsx",
       "utf8"
     );
-    expect(form).toContain("No ABN?");
-    expect(form).toContain("Use ABN instead");
+    expect(form).toContain("Business identifier");
+    expect(form).toContain(">Optional<");
+    expect(form).toContain(
+      "No business identifier will be added to your billing profile."
+    );
+    expect(form).not.toContain("No ABN?");
+    expect(form).not.toContain("Use ABN instead");
     expect(form).toContain("I agree to the");
     expect(form).toContain("Terms & Conditions");
     expect(form).toContain("Privacy Policy");
@@ -47,6 +52,9 @@ describe("billing setup UI", () => {
       "utf8"
     );
     const css = readFileSync("app/(staff)/staff.css", "utf8");
+    expect(page).toContain(
+      'businessNumberKind: view.identity?.businessNumberKind ?? "none"'
+    );
     expect(page).toContain("staffBillingSetup");
     expect(css).toContain(".staffAppContent:has(.staffBillingSetup)");
     expect(css).toMatch(

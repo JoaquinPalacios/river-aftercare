@@ -35,6 +35,7 @@ import {
   portalFailureMessage,
 } from "@/lib/billing/customer-portal";
 import { billingIdentityFromForm } from "@/lib/billing/billing-identity";
+import { isBusinessNumberKind } from "@/lib/billing/business-number-kind";
 import { saveBillingSetup } from "@/lib/billing/save-billing-setup";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 import type { BillingSetupSubmittedValues } from "@/app/(staff)/account/billing/setup/billing-setup-values";
@@ -50,7 +51,9 @@ function submittedBillingValues(
 ): BillingSetupSubmittedValues {
   return {
     ...form,
-    businessNumberKind: form.businessNumberKind === "acn" ? "acn" : "abn",
+    businessNumberKind: isBusinessNumberKind(form.businessNumberKind)
+      ? form.businessNumberKind
+      : "none",
   };
 }
 

@@ -86,7 +86,7 @@ export default async function BillingSetupPage({
             region: view.identity?.region ?? "",
             postalCode: view.identity?.postalCode ?? "",
             country: view.identity?.country || "AU",
-            businessNumberKind: view.identity?.businessNumberKind ?? "abn",
+            businessNumberKind: view.identity?.businessNumberKind ?? "none",
             abn: view.identity?.abn ?? "",
             acn: view.identity?.acn ?? "",
           }}
