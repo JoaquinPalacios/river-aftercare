@@ -94,6 +94,16 @@ export function BillingSetupForm({
     }));
   }
 
+  function shownError<Key extends keyof BillingSetupSubmittedValues>(
+    key: Key
+  ): string | undefined {
+    const message = state.fieldErrors?.[key];
+    if (!message || !state.values || state.values[key] === form[key]) {
+      return message;
+    }
+    return undefined;
+  }
+
   const abnError = abnFieldError({
     kind: form.businessNumberKind,
     value: form.abn,
@@ -176,7 +186,7 @@ export function BillingSetupForm({
           value={form.legalEntityName}
           onChange={(value) => patch("legalEntityName", value)}
           autoComplete="organization"
-          error={state.fieldErrors?.legalEntityName}
+          error={shownError("legalEntityName")}
         />
         <Field
           id="tradingName"
@@ -184,7 +194,7 @@ export function BillingSetupForm({
           label="Trading or practice name"
           value={form.tradingName}
           onChange={(value) => patch("tradingName", value)}
-          error={state.fieldErrors?.tradingName}
+          error={shownError("tradingName")}
         />
         <Field
           id="billingContactName"
@@ -193,7 +203,7 @@ export function BillingSetupForm({
           value={form.billingContactName}
           onChange={(value) => patch("billingContactName", value)}
           autoComplete="name"
-          error={state.fieldErrors?.billingContactName}
+          error={shownError("billingContactName")}
         />
         <Field
           id="billingEmail"
@@ -203,7 +213,7 @@ export function BillingSetupForm({
           value={form.billingEmail}
           onChange={(value) => patch("billingEmail", value)}
           autoComplete="email"
-          error={state.fieldErrors?.billingEmail}
+          error={shownError("billingEmail")}
         />
 
         <fieldset className="flex flex-col gap-4">
@@ -215,7 +225,7 @@ export function BillingSetupForm({
             value={form.addressLine1}
             onChange={(value) => patch("addressLine1", value)}
             autoComplete="address-line1"
-            error={state.fieldErrors?.addressLine1}
+            error={shownError("addressLine1")}
           />
           <Field
             id="addressLine2"
@@ -225,7 +235,7 @@ export function BillingSetupForm({
             onChange={(value) => patch("addressLine2", value)}
             autoComplete="address-line2"
             optional
-            error={state.fieldErrors?.addressLine2}
+            error={shownError("addressLine2")}
           />
           <Field
             id="city"
@@ -234,7 +244,7 @@ export function BillingSetupForm({
             value={form.city}
             onChange={(value) => patch("city", value)}
             autoComplete="address-level2"
-            error={state.fieldErrors?.city}
+            error={shownError("city")}
           />
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium" htmlFor="region">
@@ -246,9 +256,9 @@ export function BillingSetupForm({
               value={form.region}
               onChange={(event) => patch("region", event.target.value)}
               autoComplete="address-level1"
-              aria-invalid={state.fieldErrors?.region ? "true" : "false"}
+              aria-invalid={shownError("region") ? "true" : "false"}
               aria-describedby={
-                state.fieldErrors?.region ? "region-error" : undefined
+                shownError("region") ? "region-error" : undefined
               }
               className="staffField staffSelect"
             >
@@ -259,7 +269,7 @@ export function BillingSetupForm({
                 </option>
               ))}
             </select>
-            <FieldError id="region-error" message={state.fieldErrors?.region} />
+            <FieldError id="region-error" message={shownError("region")} />
           </div>
           <Field
             id="postalCode"
@@ -269,7 +279,7 @@ export function BillingSetupForm({
             onChange={(value) => patch("postalCode", value)}
             autoComplete="postal-code"
             inputMode="numeric"
-            error={state.fieldErrors?.postalCode}
+            error={shownError("postalCode")}
           />
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium" htmlFor="country">
@@ -316,7 +326,7 @@ export function BillingSetupForm({
               onChange={(value) => patch("acn", value)}
               inputMode="numeric"
               autoComplete="off"
-              error={state.fieldErrors?.acn}
+              error={shownError("acn")}
               hint="9 digits. Spaces are fine."
             />
           )}
@@ -342,9 +352,9 @@ export function BillingSetupForm({
             value="on"
             checked={form.termsAccepted}
             onChange={(event) => patch("termsAccepted", event.target.checked)}
-            aria-invalid={state.fieldErrors?.termsAccepted ? "true" : "false"}
+            aria-invalid={shownError("termsAccepted") ? "true" : "false"}
             aria-describedby={
-              state.fieldErrors?.termsAccepted ? termsErrorId : undefined
+              shownError("termsAccepted") ? termsErrorId : undefined
             }
             className="mt-1 h-4 w-4 shrink-0 accent-[var(--staff-brand)]"
           />
@@ -366,10 +376,7 @@ export function BillingSetupForm({
             .
           </label>
         </div>
-        <FieldError
-          id={termsErrorId}
-          message={state.fieldErrors?.termsAccepted}
-        />
+        <FieldError id={termsErrorId} message={shownError("termsAccepted")} />
       </div>
 
       <div className="flex flex-col gap-3">

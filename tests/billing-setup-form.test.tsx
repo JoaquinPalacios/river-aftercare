@@ -343,6 +343,21 @@ describe("billing setup form validation", () => {
     ).toBeTruthy();
     expect(select("region").getAttribute("aria-invalid")).toBe("false");
     expect(document.activeElement).toBe(input("legalEntityName"));
+
+    setValue(input("postalCode"), "2486");
+    await act(async () => {
+      input("termsAccepted").click();
+    });
+    expect(input("postalCode").value).toBe("2486");
+    expect(input("postalCode").getAttribute("aria-invalid")).toBe("false");
+    expect(container.textContent).not.toContain("Enter the postcode.");
+    expect(input("termsAccepted").checked).toBe(true);
+    expect(input("termsAccepted").getAttribute("aria-invalid")).toBe("false");
+    expect(container.textContent).not.toContain(
+      "Agree to the Terms & Conditions to continue."
+    );
+    expect(container.textContent).toContain("Enter a valid 11-digit ABN.");
+    expect(input("abn").value).toBe("32671297131");
   });
 
   it("submits the corrected ABN with the rest of the form unchanged", async () => {
