@@ -101,7 +101,7 @@ export function presentScheduledPlanChange(input: {
 }
 
 export const PAST_DUE_BILLING_MESSAGE =
-  "There’s a payment issue. Stripe is retrying it, and your clinic can keep using River Aftercare.";
+  "We couldn't collect your latest subscription payment. Please review your billing details to avoid an interruption to your service.";
 
 export const RESTRICTED_BILLING_MESSAGE =
   "The latest payment hasn’t gone through. Clinic editing is paused. Published patient guides stay available, and billing on this page stays open.";

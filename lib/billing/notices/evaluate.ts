@@ -31,6 +31,7 @@ import type {
   BillingPriceChangeRecord,
   BillingNoticeDeliveryState,
   OverviewBillingNotice,
+  PaymentRecoveryDetail,
   PlannedBillingEmail,
 } from "@/lib/billing/notices/types";
 
@@ -421,22 +422,71 @@ export function priceIncreaseMayTakeEffect(input: {
   return timelyInitialSent(input.initialDelivery, assessed.change.effectiveAt);
 }
 
+export const PAST_DUE_NOTICE_TITLE = "Payment needs attention";
+
+export const UNPAID_NOTICE_TITLE = "Payment is unpaid";
+
+const PAST_DUE_RECOVERY_INSTRUCTIONS =
+  "Update the payment method in Stripe and review any open invoice there. This page does not collect card details. Opening Stripe does not clear this notice. It remains until the billing record confirms the payment.";
+
+const UNPAID_RECOVERY_INSTRUCTIONS =
+  "Clinic editing is paused while this subscription is unpaid. Published patient guides stay available. Update the payment method and review invoices in Stripe. This notice remains until the billing record confirms the restriction has lifted.";
+
 function paymentIssue(
   subscription: BillingNoticeSubscription
 ): OverviewBillingNotice | null {
-  const pastDue = subscription.billingStatus === "PAST_DUE";
+  const pastDue =
+    subscription.billingStatus === "PAST_DUE" &&
+    subscription.entitlementStatus !== "RESTRICTED";
   const restricted =
     subscription.entitlementStatus === "RESTRICTED" ||
     subscription.billingStatus === "UNPAID";
-  if (!pastDue && !restricted) {
+  if (restricted) {
+    return {
+      id: "payment_issue",
+      severity: "unpaid",
+      title: UNPAID_NOTICE_TITLE,
+      body: RESTRICTED_BILLING_MESSAGE,
+      actionLabel: "Manage billing",
+      actionHref: BILLING_NOTICE_PAGE_PATH,
+    };
+  }
+  if (!pastDue) {
     return null;
   }
   return {
     id: "payment_issue",
-    title: "There’s a payment issue.",
-    body: pastDue ? PAST_DUE_BILLING_MESSAGE : RESTRICTED_BILLING_MESSAGE,
-    actionLabel: "View billing",
+    severity: "past_due",
+    title: PAST_DUE_NOTICE_TITLE,
+    body: PAST_DUE_BILLING_MESSAGE,
+    actionLabel: "Manage billing",
     actionHref: BILLING_NOTICE_PAGE_PATH,
+  };
+}
+
+function paymentRecovery(
+  subscription: BillingNoticeSubscription,
+  issue: OverviewBillingNotice | null
+): PaymentRecoveryDetail | null {
+  if (!issue?.severity) {
+    return null;
+  }
+  const planLabel = subscription.commercialPlan
+    ? billingPlanName(subscription.commercialPlan)
+    : null;
+  return {
+    severity: issue.severity,
+    title: issue.title,
+    body: issue.body,
+    planLabel,
+    intervalLabel: billingIntervalName(subscription.billingInterval),
+    stateLabel: issue.severity === "past_due" ? "Payment issue" : "Unpaid",
+    outstandingAmountLabel: null,
+    failedPaymentLabel: null,
+    instructions:
+      issue.severity === "past_due"
+        ? PAST_DUE_RECOVERY_INSTRUCTIONS
+        : UNPAID_RECOVERY_INSTRUCTIONS,
   };
 }
 
@@ -568,7 +618,8 @@ function annualRenewalReady(input: {
   const subscription = input.subscription;
   if (
     subscription.entitlementStatus !== "ACTIVE" ||
-    subscription.billingStatus !== "ACTIVE" ||
+    (subscription.billingStatus !== "ACTIVE" &&
+      subscription.billingStatus !== "PAST_DUE") ||
     subscription.billingInterval !== "YEARLY" ||
     !subscription.commercialPlan ||
     !subscription.stripeSubscriptionId ||
@@ -618,22 +669,31 @@ function annualRenewalReady(input: {
   };
 }
 
-function selectOverview(
+const OVERVIEW_PRIORITY: OverviewBillingNotice["id"][] = [
+  "payment_issue",
+  "price_increase",
+  "annual_renewal",
+  "cancellation",
+];
+
+function orderedOverviewNotices(
   notices: Array<OverviewBillingNotice | null>
-): OverviewBillingNotice | null {
-  const priority: OverviewBillingNotice["id"][] = [
-    "payment_issue",
-    "cancellation",
-    "price_increase",
-    "annual_renewal",
-  ];
-  for (const id of priority) {
-    const notice = notices.find((entry) => entry?.id === id);
-    if (notice) {
-      return notice;
-    }
+): OverviewBillingNotice[] {
+  const present = notices.filter(
+    (entry): entry is OverviewBillingNotice => entry != null
+  );
+  return OVERVIEW_PRIORITY.flatMap((id) =>
+    present.filter((entry) => entry.id === id)
+  );
+}
+
+export function formatOperatorCommercialNotice(
+  notices: readonly OverviewBillingNotice[]
+): string | null {
+  if (notices.length === 0) {
+    return null;
   }
-  return null;
+  return notices.map((notice) => `${notice.title} ${notice.body}`).join(" ");
 }
 
 export function evaluateBillingNotices(input: {
@@ -710,6 +770,7 @@ export function evaluateBillingNotices(input: {
     });
   }
 
+  const issue = paymentIssue(input.subscription);
   const annualNotice: OverviewBillingNotice | null = annual
     ? {
         id: "annual_renewal",
@@ -728,6 +789,12 @@ export function evaluateBillingNotices(input: {
         actionHref: PRICE_CHANGE_HREF,
       }
     : null;
+  const overviewNotices = orderedOverviewNotices([
+    issue,
+    priceNotice,
+    annualNotice,
+    cancellationNotice(input.subscription),
+  ]);
 
   const showRenewalDate =
     renewal != null &&
@@ -738,12 +805,8 @@ export function evaluateBillingNotices(input: {
   const periodEndLabel = renewal ? formatBillingDate(renewal) : null;
 
   return {
-    overview: selectOverview([
-      paymentIssue(input.subscription),
-      cancellationNotice(input.subscription),
-      priceNotice,
-      annualNotice,
-    ]),
+    overview: overviewNotices[0] ?? null,
+    overviewNotices,
     page: {
       currentPriceLabel:
         currentCents != null && interval
@@ -755,6 +818,7 @@ export function evaluateBillingNotices(input: {
         ? { title: annual.title, body: annual.body }
         : null,
       priceChange: price.announced?.presentation ?? null,
+      paymentRecovery: paymentRecovery(input.subscription, issue),
     },
     emails,
     priceChangeAmbiguous: price.ambiguous,

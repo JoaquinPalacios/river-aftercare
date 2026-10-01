@@ -140,6 +140,9 @@ html[data-theme-mode="system"] {
   --color-staff-danger: var(--staff-danger);
   --color-staff-danger-hover: var(--staff-danger-hover);
   --color-staff-on-danger: var(--staff-on-danger);
+  --color-staff-warning-surface: var(--staff-status-warning-surface);
+  --color-staff-warning-text: var(--staff-status-warning-text);
+  --color-staff-warning-line: var(--staff-status-warning-line);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

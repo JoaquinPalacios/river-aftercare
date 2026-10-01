@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { BillingNotice } from "@/app/(staff)/components/billing-notice";
 import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
-import { loadOverviewBillingNotice } from "@/lib/billing/notices/load";
+import { loadOverviewBillingNotices } from "@/lib/billing/notices/load";
 import { getClinicPortalOverview } from "@/lib/clinic-portal/get-clinic-portal";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
@@ -21,7 +21,7 @@ export default async function ClinicOverviewPage() {
     notFound();
   }
 
-  const billingNotice = await loadOverviewBillingNotice({
+  const billingNotices = await loadOverviewBillingNotices({
     clinicId: clinicMembership.clinic.id,
     role: clinicMembership.role,
     source: clinicMembership.source,
@@ -55,7 +55,13 @@ export default async function ClinicOverviewPage() {
         ) : null}
       </header>
 
-      {billingNotice ? <BillingNotice notice={billingNotice} /> : null}
+      {billingNotices.length > 0 ? (
+        <div className="flex min-w-0 flex-col gap-3">
+          {billingNotices.map((notice) => (
+            <BillingNotice key={notice.id} notice={notice} />
+          ))}
+        </div>
+      ) : null}
 
       <section
         aria-labelledby="guide-summary-heading"

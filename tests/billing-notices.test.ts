@@ -17,10 +17,12 @@ import {
   assessScheduledPriceChange,
   billingNoticeIdempotencyKey,
   evaluateBillingNotices,
+  PAST_DUE_NOTICE_TITLE,
   priceIncreaseMayTakeEffect,
   renewalEventKey,
+  UNPAID_NOTICE_TITLE,
 } from "@/lib/billing/notices/evaluate";
-import { loadOverviewBillingNotice } from "@/lib/billing/notices/load";
+import { loadOverviewBillingNotices } from "@/lib/billing/notices/load";
 import { canViewCommercialBillingNotices } from "@/lib/billing/notices/permissions";
 import { runBillingNoticeJob } from "@/lib/billing/notices/run";
 import { createMemoryBillingNoticeStore } from "@/lib/billing/notices/store";
@@ -29,6 +31,10 @@ import type {
   BillingNoticeSubscription,
   BillingPriceChangeRecord,
 } from "@/lib/billing/notices/types";
+import {
+  PAST_DUE_BILLING_MESSAGE,
+  RESTRICTED_BILLING_MESSAGE,
+} from "@/lib/billing/billing-presentation";
 import {
   composeAnnualRenewalEmail,
   composePriceIncreaseEmail,
@@ -239,7 +245,7 @@ describe("billing notice decisions", () => {
 
     expect(pending.overview).toBeNull();
     expect(pending.emails).toEqual([]);
-    expect(unpaid.overview?.id).toBe("payment_issue");
+    expect(unpaid.overview?.severity).toBe("unpaid");
     expect(unpaid.emails).toEqual([]);
   });
 
@@ -248,9 +254,101 @@ describe("billing notice decisions", () => {
       subscription: { billingStatus: "PAST_DUE" },
     });
 
-    expect(result.overview?.id).toBe("payment_issue");
+    expect(result.overviewNotices.map((notice) => notice.id)).toEqual([
+      "payment_issue",
+      "annual_renewal",
+    ]);
+    expect(result.overview?.severity).toBe("past_due");
+    expect(result.overview?.title).toBe(PAST_DUE_NOTICE_TITLE);
+    expect(result.overview?.body).toBe(PAST_DUE_BILLING_MESSAGE);
+    expect(result.overview?.actionLabel).toBe("Manage billing");
+    expect(result.overview?.body).not.toMatch(/suspend/i);
     expect(result.emails).toEqual([]);
+    expect(result.page.annualReminder?.title).toContain(RENEWAL_LABEL);
     expect(result.page.nextRenewalLabel).toBe(RENEWAL_LABEL);
+    expect(result.page.paymentRecovery).toMatchObject({
+      severity: "past_due",
+      planLabel: "Practice",
+      intervalLabel: "Annual",
+      stateLabel: "Payment issue",
+      outstandingAmountLabel: null,
+      failedPaymentLabel: null,
+    });
+  });
+
+  it("keeps a price increase visible beside a past-due notice and does not email the failure", () => {
+    const later = new Date("2027-01-01T00:00:00.000Z");
+    const result = evaluate({
+      subscription: { billingStatus: "PAST_DUE" },
+      priceChanges: [priceChange({ effectiveAt: later })],
+    });
+
+    expect(result.overviewNotices.map((notice) => notice.id)).toEqual([
+      "payment_issue",
+      "price_increase",
+      "annual_renewal",
+    ]);
+    expect(result.emails.map((email) => email.kind)).toEqual([
+      "PRICE_INCREASE_INITIAL",
+    ]);
+    expect(result.page.paymentRecovery?.outstandingAmountLabel).toBeNull();
+    expect(result.page.paymentRecovery?.failedPaymentLabel).toBeNull();
+  });
+
+  it("uses unpaid wording when authoring is restricted and omits an invented amount", () => {
+    const result = evaluate({
+      subscription: {
+        entitlementStatus: "RESTRICTED",
+        billingStatus: "UNPAID",
+      },
+    });
+
+    expect(result.overviewNotices).toHaveLength(1);
+    expect(result.overview).toMatchObject({
+      id: "payment_issue",
+      severity: "unpaid",
+      title: UNPAID_NOTICE_TITLE,
+      body: RESTRICTED_BILLING_MESSAGE,
+      actionLabel: "Manage billing",
+    });
+    expect(result.overview?.body).not.toMatch(/suspend/i);
+    expect(result.overview?.body).not.toBe(PAST_DUE_BILLING_MESSAGE);
+    expect(result.emails).toEqual([]);
+    expect(result.page.annualReminder).toBeNull();
+    expect(result.page.paymentRecovery).toMatchObject({
+      severity: "unpaid",
+      stateLabel: "Unpaid",
+      outstandingAmountLabel: null,
+      failedPaymentLabel: null,
+    });
+  });
+
+  it("drops the past-due notice when the projected status is active again", () => {
+    const resolved = evaluate();
+    expect(resolved.page.paymentRecovery).toBeNull();
+    expect(resolved.overviewNotices.map((notice) => notice.id)).toEqual([
+      "annual_renewal",
+    ]);
+  });
+
+  it("shows one past-due notice for a Group account", () => {
+    const result = evaluate({
+      subscription: {
+        commercialPlan: "GROUP",
+        billingStatus: "PAST_DUE",
+        stripePriceId: "price_test_group_yearly",
+        catalogueBasePriceId: "price_test_group_yearly",
+        catalogueAddonPriceId: "price_test_group_site_yearly",
+        purchasedAdditionalLocationQuantity: null,
+        purchasedAdditionalSiteQuantity: 0,
+      },
+    });
+
+    expect(
+      result.overviewNotices.filter((notice) => notice.id === "payment_issue")
+    ).toHaveLength(1);
+    expect(result.page.paymentRecovery?.planLabel).toBe("Group");
+    expect(result.emails).toEqual([]);
   });
 
   it("announces a valid persisted price increase and sends the initial notice", () => {
@@ -482,8 +580,17 @@ describe("billing notice permissions", () => {
   it("denies ordinary clinic staff before any billing read", async () => {
     expect(canViewCommercialBillingNotices({ role: "STAFF" })).toBe(false);
     await expect(
-      loadOverviewBillingNotice({ clinicId: "clinic_staff", role: "STAFF" })
-    ).resolves.toBeNull();
+      loadOverviewBillingNotices({ clinicId: "clinic_staff", role: "STAFF" })
+    ).resolves.toEqual([]);
+  });
+
+  it("loads notices for the commercial clinic account", () => {
+    const source = readFileSync(
+      path.join(process.cwd(), "lib", "billing", "notices", "load.ts"),
+      "utf8"
+    );
+    expect(source).not.toContain("clinicSite");
+    expect(source).not.toContain("ClinicSite");
   });
 
   it("does not place commercial notices on public patient pages", () => {
@@ -499,6 +606,29 @@ describe("billing notice permissions", () => {
 });
 
 describe("billing notice delivery", () => {
+  it("does not send a River email for a failed payment, including a repeated pass", async () => {
+    const store = createMemoryBillingNoticeStore();
+    const planned = evaluate({
+      subscription: { billingStatus: "PAST_DUE" },
+    }).emails;
+    const sender = vi.fn(async () => ({ ok: true as const }));
+    const input = {
+      clinicId: "clinic_1",
+      stripeSubscriptionId: "sub_notice",
+      billingEmail: "billing@example.test",
+      emails: planned,
+      now: NOW,
+      store,
+      sender,
+      replyTo: "hello@example.test",
+    };
+    await deliverPlannedBillingEmails(input);
+    await deliverPlannedBillingEmails(input);
+    expect(planned).toEqual([]);
+    expect(sender).not.toHaveBeenCalled();
+    expect(store.rows).toEqual([]);
+  });
+
   it("records a failure and retries once without a second send after success", async () => {
     const store = createMemoryBillingNoticeStore();
     const planned = evaluate().emails;

@@ -79,6 +79,27 @@ export type OverviewBillingNotice = {
   body: string;
   actionLabel: string;
   actionHref: string;
+  /**
+   * Payment problems only. Past due keeps product access.
+   * Unpaid is the existing authoring restriction.
+   */
+  severity?: "past_due" | "unpaid";
+};
+
+/**
+ * Billing-page facts for a payment problem.
+ * Amount and failed-payment date stay null: the local projection does not store them.
+ */
+export type PaymentRecoveryDetail = {
+  severity: "past_due" | "unpaid";
+  title: string;
+  body: string;
+  planLabel: string | null;
+  intervalLabel: "Monthly" | "Annual" | null;
+  stateLabel: string;
+  outstandingAmountLabel: null;
+  failedPaymentLabel: null;
+  instructions: string;
 };
 
 export type BillingPriceChangePresentation = {
@@ -99,6 +120,7 @@ export type BillingPageCommercialDetail = {
   nextRenewalLabel: string | null;
   annualReminder: { title: string; body: string } | null;
   priceChange: BillingPriceChangePresentation | null;
+  paymentRecovery: PaymentRecoveryDetail | null;
 };
 
 export type PlannedBillingEmail = {
@@ -118,7 +140,10 @@ export type BillingNoticeCandidate = {
 };
 
 export type BillingNoticeEvaluation = {
+  /** Highest-priority notice. The full ordered list is `overviewNotices`. */
   overview: OverviewBillingNotice | null;
+  /** Payment issue, price increase, annual renewal, then informational notices. */
+  overviewNotices: OverviewBillingNotice[];
   page: BillingPageCommercialDetail;
   emails: PlannedBillingEmail[];
   priceChangeAmbiguous: boolean;

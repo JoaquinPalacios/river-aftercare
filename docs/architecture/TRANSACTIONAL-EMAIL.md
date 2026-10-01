@@ -29,6 +29,10 @@ Billing notices (annual renewal, and a future price increase when a schedule exi
   → From AUTH_EMAIL_FROM
   → To ClinicBillingProfile.billingEmail only
   → Reply-To AUTH_EMAIL_REPLY_TO (required for this flow)
+
+Failed payment, invoice, and dunning mail
+  → Stripe
+  → River does not send a second email for the same event
 ```
 
 The verified Resend sending domain is `mail.riveraftercare.com.au`. Do not send from `riveraftercare.com.au` itself.
@@ -53,6 +57,8 @@ The verified Resend sending domain is `mail.riveraftercare.com.au`. Do not send 
 | Templates            | clinic enquiry composition                                       | password-reset, invitation, and email-change     | `lib/email/billing-notice-mail.ts`  |
 
 Do not reuse Contact From/To for invitations or password reset. Do not reuse auth From for Contact.
+
+Failed-payment and invoice email stay with Stripe. The dashboard past-due notice is read from the local billing projection. It is not a Resend message, and the billing-notice cron does not send one. Do not add a River failed-payment template unless Stripe’s customer email is confirmed absent.
 
 ## Environment
 

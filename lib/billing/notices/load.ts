@@ -230,27 +230,27 @@ export function evaluateCandidate(
   });
 }
 
-export async function loadOverviewBillingNotice(input: {
+export async function loadOverviewBillingNotices(input: {
   clinicId: string;
   role: "ADMIN" | "STAFF";
   source?: "membership" | "operator_support";
   now?: Date;
   env?: Env;
-}): Promise<OverviewBillingNotice | null> {
+}): Promise<OverviewBillingNotice[]> {
   if (
     !canViewCommercialBillingNotices({
       role: input.role,
       source: input.source,
     })
   ) {
-    return null;
+    return [];
   }
   const candidate = await loadBillingNoticeCandidate(input.clinicId, input.env);
   if (!candidate) {
-    return null;
+    return [];
   }
   return evaluateCandidate(candidate, input.now ?? new Date(), input.env)
-    .overview;
+    .overviewNotices;
 }
 
 export async function findBillingNoticeCandidates(

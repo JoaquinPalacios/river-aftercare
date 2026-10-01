@@ -32,6 +32,7 @@ import {
   commercialPlanLabel,
   type SelfServePlanCode,
 } from "@/lib/billing/offer-display";
+import { formatOperatorCommercialNotice } from "@/lib/billing/notices/evaluate";
 import {
   evaluateCandidate,
   loadBillingNoticeCandidate,
@@ -230,9 +231,9 @@ export async function loadOperatorBillingPanel(
         ? profile.stripePlanDowngradeAttemptId
         : null,
     scheduledPlanChange,
-    commercialNotice: noticeEvaluation?.overview
-      ? `${noticeEvaluation.overview.title} ${noticeEvaluation.overview.body}`
-      : null,
+    commercialNotice: formatOperatorCommercialNotice(
+      noticeEvaluation?.overviewNotices ?? []
+    ),
     downgradeReadiness: downgradeReadiness
       ? {
           ready: downgradeReadiness.ready,

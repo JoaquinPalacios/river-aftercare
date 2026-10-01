@@ -686,6 +686,41 @@ describe("processVerifiedStripeEvent", () => {
       billingStatus: BillingStatus.PAST_DUE,
       entitlementStatus: EntitlementStatus.ACTIVE,
     });
+
+    const duplicate = await processVerifiedStripeEvent(failed, {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () =>
+          ({
+            ...activeSubscription,
+            status: "past_due",
+          }) as Stripe.Subscription,
+      },
+      env: BILLING_TEST_ENV,
+    });
+    expect(duplicate.outcome).toBe("duplicate");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      billingStatus: BillingStatus.PAST_DUE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+    });
+
+    const recovered = await processVerifiedStripeEvent(
+      {
+        ...invoicePaidEvent(),
+        id: "evt_invoice_recovered_1",
+        type: "invoice.paid",
+      } as Stripe.Event,
+      {
+        prisma: db,
+        reader: { retrieveSubscription: async () => activeSubscription },
+        env: BILLING_TEST_ENV,
+      }
+    );
+    expect(recovered.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+    });
   });
 
   it("projects a deleted subscription as ENDED with 60-day retention", async () => {

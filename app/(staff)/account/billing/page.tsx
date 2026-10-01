@@ -4,6 +4,7 @@ import Link from "next/link";
 import { loadBillingPageContext } from "@/app/(staff)/account/billing/billing-context";
 import { ChangePlanPanel } from "@/app/(staff)/account/billing/change-plan-panel";
 import { ManageBillingForm } from "@/app/(staff)/account/billing/manage-billing-form";
+import { PaymentRecoveryNotice } from "@/app/(staff)/account/billing/payment-recovery-notice";
 import { DowngradeGuideSelectionForm } from "@/app/(staff)/account/billing/downgrade-guide-selection-form";
 import {
   BILLING_COMPLETE_PATH,
@@ -41,6 +42,12 @@ export default async function BillingStatusPage({
     view?.portalEligible === true &&
     context.membership?.role === "ADMIN" &&
     context.membership.source !== "operator_support";
+  const paymentRecovery = commercial?.paymentRecovery ?? null;
+  const recoveryPortal = canManageBilling
+    ? "open"
+    : view?.portalEligible
+      ? "administrator"
+      : "unavailable";
   const canChangePlan =
     context.membership?.role === "ADMIN" &&
     context.membership.source !== "operator_support";
@@ -82,6 +89,19 @@ export default async function BillingStatusPage({
         <section className="min-w-0 rounded-xl border border-staff-line bg-staff-panel p-5 sm:p-6">
           <div className="max-w-xl">
             <h2 className="text-base font-semibold">{view.clinicName}</h2>
+            {paymentRecovery ? (
+              <PaymentRecoveryNotice
+                recovery={paymentRecovery}
+                portal={recoveryPortal}
+              />
+            ) : null}
+            {paymentRecovery && canManageBilling ? <ManageBillingForm /> : null}
+            {paymentRecovery && canManageBilling ? (
+              <p className="mt-3 text-sm text-staff-muted">
+                Payment methods, invoices, and cancellation are managed in
+                Stripe. This page updates after Stripe confirms a change.
+              </p>
+            ) : null}
             <dl className="mt-4 grid gap-3 text-sm">
               <div>
                 <dt className="text-staff-muted">Plan</dt>
@@ -150,7 +170,8 @@ export default async function BillingStatusPage({
             </dl>
             {showCommercialDetail &&
             presentation.kind === "active" &&
-            presentation.attentionMessage ? (
+            presentation.attentionMessage &&
+            !paymentRecovery ? (
               <p className="mt-4 text-sm" role="status">
                 {presentation.attentionMessage}
               </p>
@@ -289,7 +310,9 @@ export default async function BillingStatusPage({
                 Aftercare setup ready.
               </p>
             ) : null}
-            {presentation.kind === "restricted" && showCommercialDetail ? (
+            {presentation.kind === "restricted" &&
+            showCommercialDetail &&
+            !paymentRecovery ? (
               <p className="mt-4 text-sm text-staff-muted" role="status">
                 {RESTRICTED_BILLING_MESSAGE}
               </p>
@@ -340,14 +363,16 @@ export default async function BillingStatusPage({
                 Return to billing setup
               </Link>
             ) : null}
-            {canManageBilling ? <ManageBillingForm /> : null}
-            {view.portalEligible && !canManageBilling ? (
+            {canManageBilling && !paymentRecovery ? (
+              <ManageBillingForm />
+            ) : null}
+            {view.portalEligible && !canManageBilling && !paymentRecovery ? (
               <p className="mt-4 text-sm text-staff-muted">
                 A clinic administrator can manage payment methods, invoices, and
                 cancellation.
               </p>
             ) : null}
-            {canManageBilling ? (
+            {canManageBilling && !paymentRecovery ? (
               <p className="mt-3 text-sm text-staff-muted">
                 Payment methods, invoices, and cancellation are managed in
                 Stripe. This page updates after Stripe confirms a change.
