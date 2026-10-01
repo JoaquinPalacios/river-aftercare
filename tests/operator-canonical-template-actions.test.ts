@@ -415,7 +415,9 @@ describeDb("operator canonical template actions", () => {
         })
       )
     );
-    expect(publishedUrl).toContain("notice=published");
+    expect(publishedUrl).toBe(
+      `/operator/templates/${templateId}/draft?notice=published`
+    );
     const revisionsBeforeNavigation =
       await getPrisma().guideTemplateRevision.count({
         where: { guideTemplateId: templateId },

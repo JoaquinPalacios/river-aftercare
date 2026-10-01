@@ -154,6 +154,7 @@ function revalidateTemplate(templateId?: string) {
   if (templateId) {
     revalidatePath(`/operator/templates/${templateId}`);
     revalidatePath(`/operator/templates/${templateId}/draft`);
+    revalidatePath(`/operator/templates/${templateId}/preview`);
   }
 }
 
@@ -268,7 +269,7 @@ export async function publishCanonicalTemplateRevisionAction(
       expectedVersion,
     });
     revalidateTemplate(templateId);
-    redirect(`/operator/templates/${templateId}?notice=published`);
+    redirect(`/operator/templates/${templateId}/draft?notice=published`);
   } catch (error) {
     rethrowNavigation(error);
     return { error: actionError(error) };

@@ -16,19 +16,27 @@ export function StaffPreviewShell({
   backHref,
   backLabel,
   editHref,
+  editLabel,
+  statusLabel,
+  statusDetail,
   lifecycle,
   clinicThemeMode,
   fontClassName,
   fontCssVariable,
+  banner,
   children,
 }: {
   backHref: string;
   backLabel: string;
   editHref?: string;
+  editLabel?: string;
+  statusLabel?: string;
+  statusDetail?: string;
   lifecycle?: ClinicGuideLifecycleStatus;
   clinicThemeMode?: string | null;
   fontClassName?: string;
   fontCssVariable?: `--font-clinic-${string}` | null;
+  banner?: ReactNode;
   children: ReactNode;
 }) {
   const [appearance, setAppearance] =
@@ -46,6 +54,9 @@ export function StaffPreviewShell({
         backHref={backHref}
         backLabel={backLabel}
         editHref={editHref}
+        editLabel={editLabel}
+        statusLabel={statusLabel}
+        statusDetail={statusDetail}
         lifecycle={lifecycle}
         appearanceControl={
           <PatientPreviewAppearanceSelect
@@ -56,6 +67,7 @@ export function StaffPreviewShell({
           />
         }
       />
+      {banner}
       <PatientThemeBoundary
         appearance={previewTheme}
         fontClassName={fontClassName}

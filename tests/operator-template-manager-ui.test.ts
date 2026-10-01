@@ -13,6 +13,8 @@ const pages = [
   "app/(staff)/(operator)/operator/templates/new/page.tsx",
   "app/(staff)/(operator)/operator/templates/[templateId]/page.tsx",
   "app/(staff)/(operator)/operator/templates/[templateId]/draft/page.tsx",
+  "app/(staff)/(operator-preview)/operator/templates/[templateId]/preview/page.tsx",
+  "app/(staff)/(operator-preview)/operator/templates/[templateId]/preview/[revisionId]/page.tsx",
 ];
 
 const actions = readFileSync(
@@ -311,7 +313,12 @@ describe("operator template manager UI contract", () => {
     expect(badges).toContain("Draft");
     expect(badges).not.toContain("Draft v");
     expect(detail).toContain('"Published"');
-    expect(detail).toMatch(/>\s*Draft\s*</);
+    expect(detail).toContain('"Draft"');
+    expect(detail).toContain("Preview patient guide");
+    expect(detail).toContain("Preview revision");
+    expect(detail).not.toContain("Preview published content");
+    expect(detail).not.toContain("Create new revision");
+    expect(detail).not.toContain("Unpublish");
     expect(detail).toContain("Revision {revision.version}");
     expect(detail).not.toContain("Draft v");
     expect(detail).not.toContain("v${");

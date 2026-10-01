@@ -16,6 +16,7 @@ export function CanonicalEditorToolbar({
   isActive,
   onPublish,
   lifecycle,
+  previewHref,
 }: {
   templateId: string;
   templateTitle: string;
@@ -27,6 +28,7 @@ export function CanonicalEditorToolbar({
   isActive: boolean;
   onPublish: () => void;
   lifecycle: ReactNode;
+  previewHref?: string;
 }) {
   const published = mode === "published";
   return (
@@ -125,6 +127,11 @@ export function CanonicalEditorToolbar({
             </button>
           </>
         )}
+        {previewHref ? (
+          <Link href={previewHref} className="staffBtn staffBtnSecondary">
+            Preview patient guide
+          </Link>
+        ) : null}
         <Link
           href={`/operator/templates/${templateId}`}
           className="staffBtn staffBtnSecondary"
