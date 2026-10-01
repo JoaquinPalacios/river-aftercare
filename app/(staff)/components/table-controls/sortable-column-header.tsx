@@ -37,9 +37,18 @@ export function SortableColumnHeader({
   );
 }
 
-export function StaticColumnHeader({ label }: { label: string }) {
+export function StaticColumnHeader({
+  label,
+  className,
+}: {
+  label: string;
+  className?: string;
+}) {
   return (
-    <th className="staffTableHead" scope="col">
+    <th
+      className={className ? `staffTableHead ${className}` : "staffTableHead"}
+      scope="col"
+    >
       {label}
     </th>
   );

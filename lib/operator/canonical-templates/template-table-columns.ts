@@ -36,6 +36,13 @@ export const OPERATOR_TEMPLATE_COLUMNS = [
     defaultVisible: true,
     sortable: false,
   },
+  {
+    id: "preview",
+    label: "Preview",
+    required: false,
+    defaultVisible: true,
+    sortable: false,
+  },
 ] as const satisfies readonly TableColumnDefinition[];
 
 export const OPERATOR_TEMPLATE_LOCKED_COLUMNS =
