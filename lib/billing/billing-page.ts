@@ -4,6 +4,10 @@ import { BillingStatus, EntitlementStatus } from "@prisma/client";
 
 import { getPrisma } from "@/lib/prisma";
 
+import {
+  businessNumberKindFromSaved,
+  type BusinessNumberKind,
+} from "@/lib/billing/business-number-kind";
 import { assessCommercialOfferRevision } from "@/lib/billing/prepare-offer";
 import { clinicSupportsCustomerPortal } from "@/lib/billing/customer-portal";
 import { assessOperatorPlanUpgrade } from "@/lib/billing/plan-change";
@@ -274,7 +278,7 @@ export type ClinicBillingView = {
     region: string;
     postalCode: string;
     country: string;
-    businessNumberKind: "abn" | "acn";
+    businessNumberKind: BusinessNumberKind;
     abn: string;
     acn: string;
   } | null;
@@ -329,8 +333,7 @@ export async function loadClinicBillingView(
         region: profile.region ?? "",
         postalCode: profile.postalCode ?? "",
         country: profile.country ?? "AU",
-        businessNumberKind:
-          profile.acn && !profile.abn ? ("acn" as const) : ("abn" as const),
+        businessNumberKind: businessNumberKindFromSaved(profile),
         abn: profile.abn ?? "",
         acn: profile.acn ?? "",
       }

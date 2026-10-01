@@ -10,7 +10,10 @@ import {
 } from "@/lib/billing/checkout";
 import { saveBillingSetup } from "@/lib/billing/save-billing-setup";
 import { checkoutFailureLogFields } from "@/lib/billing/stripe-error-log";
-import { BILLING_TEST_ENV } from "@/tests/helpers/billing";
+import {
+  BILLING_TEST_ENV,
+  GROUP_BILLING_TEST_ENV,
+} from "@/tests/helpers/billing";
 
 const CLINIC_ID = "clinic_riverside";
 const USER_ID = "user_admin";
@@ -46,6 +49,7 @@ type StoredProfile = {
   billingEmail?: string | null;
   addressLine1?: string | null;
   abn?: string | null;
+  acn?: string | null;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   stripeCheckoutSessionId: string | null;
@@ -56,11 +60,11 @@ function memoryBilling(clinicId = CLINIC_ID) {
   const entitlements = new Map<
     string,
     {
-      commercialPlan: "ESSENTIAL";
-      billingInterval: "MONTHLY";
+      commercialPlan: "ESSENTIAL" | "PRACTICE" | "GROUP";
+      billingInterval: "MONTHLY" | "YEARLY";
       billingStatus: BillingStatus;
       entitlementStatus: EntitlementStatus;
-      offeredAdditionalSiteQuantity: null;
+      offeredAdditionalSiteQuantity: number | null;
     }
   >();
   entitlements.set(clinicId, {
@@ -150,6 +154,23 @@ function memoryBilling(clinicId = CLINIC_ID) {
     profiles,
     entitlements,
     entitlementWrites: () => entitlementWrites,
+    setOffer(offer: {
+      commercialPlan: "ESSENTIAL" | "PRACTICE" | "GROUP";
+      billingInterval: "MONTHLY" | "YEARLY";
+      offeredAdditionalSiteQuantity?: number | null;
+    }) {
+      const current = entitlements.get(clinicId);
+      if (!current) {
+        throw new Error("missing entitlement");
+      }
+      entitlements.set(clinicId, {
+        ...current,
+        commercialPlan: offer.commercialPlan,
+        billingInterval: offer.billingInterval,
+        offeredAdditionalSiteQuantity:
+          offer.offeredAdditionalSiteQuantity ?? null,
+      });
+    },
   };
 }
 
@@ -240,9 +261,12 @@ function savedProfile(store: ReturnType<typeof memoryBilling>) {
   return profile!;
 }
 
-async function saveDetails(store: ReturnType<typeof memoryBilling>) {
+async function saveDetails(
+  store: ReturnType<typeof memoryBilling>,
+  form: typeof billingForm = billingForm
+) {
   const saved = await saveBillingSetup(
-    { clinicId: CLINIC_ID, userId: USER_ID, form: billingForm },
+    { clinicId: CLINIC_ID, userId: USER_ID, form },
     store.db as never
   );
   expect(saved.ok).toBe(true);
@@ -321,6 +345,126 @@ describe("Essential monthly checkout failures", () => {
     );
     expect(store.entitlementWrites()).toBe(0);
     expect(JSON.stringify(info.mock.calls)).not.toContain(SECRET);
+  });
+
+  it("opens Checkout when the clinic has no ABN or ACN", async () => {
+    const store = memoryBilling();
+    const stripe = scriptedStripe();
+    await saveDetails(store, {
+      ...billingForm,
+      businessNumberKind: "none",
+      abn: "not-an-abn",
+      acn: "not-an-acn",
+    });
+
+    const result = await createClinicCheckout({
+      clinicId: CLINIC_ID,
+      userId: USER_ID,
+      successUrl: SUCCESS_URL,
+      cancelUrl: CANCEL_URL,
+      env: BILLING_TEST_ENV,
+      db: store.db as never,
+      stripe: stripe.port,
+    });
+
+    expect(result.ok).toBe(true);
+    const profile = savedProfile(store);
+    expect(profile.abn).toBeNull();
+    expect(profile.acn).toBeNull();
+    expect(profile.legalEntityName).toBe("Harbour Dental Pty Ltd");
+    const customer = stripe.customers.created[0] as Record<string, unknown>;
+    expect(customer).toMatchObject({
+      email: EMAIL,
+      name: "Harbour Dental Pty Ltd",
+      metadata: { clinicId: CLINIC_ID },
+    });
+    expect(customer).not.toHaveProperty("tax_ids");
+    expect(JSON.stringify(customer)).not.toMatch(/N\/A|NONE|00000000000/i);
+    const session = stripe.sessions.created[0] as Record<string, unknown>;
+    expect(session).toMatchObject({
+      line_items: [
+        {
+          price: BILLING_TEST_ENV.STRIPE_ESSENTIAL_MONTHLY_PRICE_ID,
+          quantity: 1,
+        },
+      ],
+    });
+    expect(session).not.toHaveProperty("automatic_tax");
+    expect(session).not.toHaveProperty("tax_id_collection");
+    expect(session).not.toHaveProperty("custom_fields");
+  });
+
+  it("keeps prepared plan line items when no business identifier is saved", async () => {
+    const cases = [
+      {
+        commercialPlan: "ESSENTIAL" as const,
+        billingInterval: "YEARLY" as const,
+        offeredAdditionalSiteQuantity: null,
+        env: BILLING_TEST_ENV,
+        lineItems: [
+          {
+            price: BILLING_TEST_ENV.STRIPE_ESSENTIAL_YEARLY_PRICE_ID,
+            quantity: 1,
+          },
+        ],
+      },
+      {
+        commercialPlan: "PRACTICE" as const,
+        billingInterval: "YEARLY" as const,
+        offeredAdditionalSiteQuantity: null,
+        env: BILLING_TEST_ENV,
+        lineItems: [
+          {
+            price: BILLING_TEST_ENV.STRIPE_PRACTICE_YEARLY_PRICE_ID,
+            quantity: 1,
+          },
+        ],
+      },
+      {
+        commercialPlan: "GROUP" as const,
+        billingInterval: "MONTHLY" as const,
+        offeredAdditionalSiteQuantity: 2,
+        env: GROUP_BILLING_TEST_ENV,
+        lineItems: [
+          {
+            price: GROUP_BILLING_TEST_ENV.STRIPE_GROUP_MONTHLY_PRICE_ID,
+            quantity: 1,
+          },
+          {
+            price:
+              GROUP_BILLING_TEST_ENV.STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID,
+            quantity: 2,
+          },
+        ],
+      },
+    ];
+
+    for (const item of cases) {
+      const store = memoryBilling();
+      const stripe = scriptedStripe();
+      store.setOffer(item);
+      await saveDetails(store, {
+        ...billingForm,
+        businessNumberKind: "none",
+        abn: "",
+        acn: "",
+      });
+      const result = await createClinicCheckout({
+        clinicId: CLINIC_ID,
+        userId: USER_ID,
+        successUrl: SUCCESS_URL,
+        cancelUrl: CANCEL_URL,
+        env: item.env,
+        db: store.db as never,
+        stripe: stripe.port,
+      });
+      expect(result.ok).toBe(true);
+      expect(stripe.sessions.created[0]).toMatchObject({
+        line_items: item.lineItems,
+      });
+      expect(savedProfile(store).abn).toBeNull();
+      expect(savedProfile(store).acn).toBeNull();
+    }
   });
 
   it("keeps the saved profile and stays unpaid when Checkout Session creation fails", async () => {

@@ -6,9 +6,12 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { BillingSetupSubmittedValues } from "@/app/(staff)/account/billing/setup/billing-setup-values";
+import type { BillingSetupFormValues } from "@/app/(staff)/account/billing/setup/billing-setup-form";
 import {
   INVALID_ABN_MESSAGE,
+  INVALID_ACN_MESSAGE,
   isValidAbn,
+  isValidAcn,
 } from "@/lib/validation/australian-business-number";
 
 const { actionMock } = vi.hoisted(() => ({
@@ -53,7 +56,7 @@ function valuesFromFormData(formData: FormData): BillingSetupSubmittedValues {
     region: read("region"),
     postalCode: read("postalCode"),
     country: read("country") || "AU",
-    businessNumberKind: kind === "acn" ? "acn" : "abn",
+    businessNumberKind: kind === "acn" || kind === "none" ? kind : "abn",
     abn: read("abn"),
     acn: read("acn"),
     termsAccepted: formData.get("termsAccepted") === "on",
@@ -80,7 +83,14 @@ describe("billing setup form validation", () => {
         fieldErrors.postalCode = "Enter the postcode.";
       }
       if (values.businessNumberKind === "abn" && !isValidAbn(values.abn)) {
-        fieldErrors.abn = INVALID_ABN_MESSAGE;
+        fieldErrors.abn = values.abn.trim()
+          ? INVALID_ABN_MESSAGE
+          : "Enter an ABN.";
+      }
+      if (values.businessNumberKind === "acn" && !isValidAcn(values.acn)) {
+        fieldErrors.acn = values.acn.trim()
+          ? INVALID_ACN_MESSAGE
+          : "Enter an ACN.";
       }
       if (!values.termsAccepted) {
         fieldErrors.termsAccepted =
@@ -108,7 +118,23 @@ describe("billing setup form validation", () => {
     container.remove();
   });
 
-  async function renderForm() {
+  const emptyDefaults: BillingSetupFormValues = {
+    legalEntityName: "",
+    tradingName: "",
+    billingContactName: "",
+    billingEmail: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    region: "",
+    postalCode: "",
+    country: "AU",
+    businessNumberKind: "abn",
+    abn: "",
+    acn: "",
+  };
+
+  async function renderForm(overrides: Partial<BillingSetupFormValues> = {}) {
     await act(async () => {
       root.render(
         <BillingSetupForm
@@ -123,24 +149,22 @@ describe("billing setup form validation", () => {
             { value: "NSW", label: "New South Wales" },
             { value: "VIC", label: "Victoria" },
           ]}
-          defaults={{
-            legalEntityName: "",
-            tradingName: "",
-            billingContactName: "",
-            billingEmail: "",
-            addressLine1: "",
-            addressLine2: "",
-            city: "",
-            region: "",
-            postalCode: "",
-            country: "AU",
-            businessNumberKind: "abn",
-            abn: "",
-            acn: "",
-          }}
+          defaults={{ ...emptyDefaults, ...overrides }}
           cancelMessage={null}
         />
       );
+    });
+  }
+
+  function radio(kind: "abn" | "acn" | "none") {
+    return container.querySelector(
+      `input[name="businessNumberKind"][value="${kind}"]`
+    ) as HTMLInputElement;
+  }
+
+  function chooseKind(kind: "abn" | "acn" | "none") {
+    act(() => {
+      radio(kind).click();
     });
   }
 
@@ -184,7 +208,10 @@ describe("billing setup form validation", () => {
     setValue(select("region"), next.region);
     setValue(input("postalCode"), next.postalCode);
     setValue(select("country"), next.country);
-    setValue(input("abn"), next.abn);
+    const abn = container.querySelector("#abn") as HTMLInputElement | null;
+    if (abn) {
+      setValue(abn, next.abn);
+    }
   }
 
   async function submit() {
@@ -392,6 +419,158 @@ describe("billing setup form validation", () => {
     expectEntered({ abn: "32 671 297 130" });
     expect(input("termsAccepted").checked).toBe(true);
     expect(window.location.pathname).toBe("/account/billing/setup");
+  });
+
+  it("shows a saved ABN and hides the ACN input", async () => {
+    await renderForm({
+      businessNumberKind: "abn",
+      abn: "32 671 297 130",
+      acn: "000 000 019",
+    });
+
+    expect(radio("abn").checked).toBe(true);
+    expect(input("abn").value).toBe("32 671 297 130");
+    expect(container.querySelector("#acn")).toBeNull();
+    expect(container.textContent).toContain("Optional");
+    expect(container.textContent).toContain("11 digits. Spaces are fine.");
+  });
+
+  it("shows a saved ACN and hides the ABN input", async () => {
+    await renderForm({
+      businessNumberKind: "acn",
+      abn: "",
+      acn: "000 000 019",
+    });
+
+    expect(radio("acn").checked).toBe(true);
+    expect(input("acn").value).toBe("000 000 019");
+    expect(container.querySelector("#abn")).toBeNull();
+    expect(container.textContent).toContain("9 digits. Spaces are fine.");
+  });
+
+  it("starts on None when no identifier is saved", async () => {
+    await renderForm({
+      businessNumberKind: "none",
+      abn: "",
+      acn: "",
+    });
+
+    expect(radio("none").checked).toBe(true);
+    expect(container.querySelector("#abn")).toBeNull();
+    expect(container.querySelector("#acn")).toBeNull();
+    expect(
+      container.querySelector('input[name="abn"]')?.getAttribute("type")
+    ).toBe("hidden");
+    expect(
+      container.querySelector('input[name="acn"]')?.getAttribute("type")
+    ).toBe("hidden");
+    expect(container.textContent).toContain("Business identifier");
+    expect(container.textContent).toContain("Optional");
+    expect(container.textContent).toContain(
+      "No business identifier will be added to your billing profile."
+    );
+    expect(container.textContent).toContain(
+      "You can add an ABN or ACN later if needed."
+    );
+    expect(container.querySelector(".billingIdentifierNone")).not.toBeNull();
+    expect(container.textContent).not.toContain("No ABN?");
+  });
+
+  it("reveals only the selected identifier and keeps the other value locally", async () => {
+    await renderForm({ businessNumberKind: "none" });
+    chooseKind("abn");
+    setValue(input("abn"), "32 671 297 130");
+    chooseKind("acn");
+
+    expect(container.querySelector("#abn")).toBeNull();
+    expect(input("acn")).not.toBeNull();
+    const hiddenAbn = container.querySelector(
+      'input[name="abn"]'
+    ) as HTMLInputElement;
+    expect(hiddenAbn.type).toBe("hidden");
+    expect(hiddenAbn.value).toBe("32 671 297 130");
+    hiddenAbn.focus();
+    expect(document.activeElement).not.toBe(hiddenAbn);
+
+    setValue(input("acn"), "000 000 019");
+    chooseKind("abn");
+    expect(input("abn").value).toBe("32 671 297 130");
+    expect(container.querySelector("#acn")).toBeNull();
+    expect(
+      (container.querySelector('input[name="acn"]') as HTMLInputElement).value
+    ).toBe("000 000 019");
+
+    chooseKind("none");
+    expect(container.querySelector("#abn")).toBeNull();
+    expect(container.querySelector("#acn")).toBeNull();
+    expect(container.textContent).toContain(
+      "No business identifier will be added to your billing profile."
+    );
+  });
+
+  it("rejects a blank or malformed ACN and keeps the typed value", async () => {
+    await renderForm({ businessNumberKind: "acn", acn: "" });
+    await fill();
+    await act(async () => {
+      input("termsAccepted").click();
+    });
+    await submit();
+
+    expect(container.textContent).toContain("Enter an ACN.");
+    expect(input("acn").getAttribute("aria-invalid")).toBe("true");
+    expect(input("acn").getAttribute("aria-describedby")).toContain(
+      "acn-error"
+    );
+    expect(actionMock).toHaveBeenCalledTimes(1);
+
+    setValue(input("acn"), "000000018");
+    await act(async () => {
+      input("acn").focus();
+      input("acn").blur();
+    });
+    expect(input("acn").value).toBe("000000018");
+    expect(container.textContent).toContain("Enter a valid 9-digit ACN.");
+
+    setValue(input("acn"), "000 000 019");
+    await act(async () => {
+      input("acn").focus();
+      input("acn").blur();
+    });
+    expect(container.textContent).not.toContain("Enter a valid 9-digit ACN.");
+    expect(input("acn").getAttribute("aria-invalid")).toBe("false");
+  });
+
+  it("rejects a blank ABN while ABN is selected", async () => {
+    await renderForm({ businessNumberKind: "abn", abn: "" });
+    await fill({ abn: "" });
+    await act(async () => {
+      input("termsAccepted").click();
+    });
+    await submit();
+
+    expect(container.textContent).toContain("Enter an ABN.");
+    expect(input("abn").getAttribute("aria-invalid")).toBe("true");
+    expect(container.querySelector("#abn-error")?.textContent).toBe(
+      "Enter an ABN."
+    );
+  });
+
+  it("submits None without an identifier field error", async () => {
+    await renderForm({ businessNumberKind: "none" });
+    await fill();
+    chooseKind("none");
+    await act(async () => {
+      input("termsAccepted").click();
+    });
+    await submit();
+
+    expect(container.textContent).not.toContain("Enter an ABN.");
+    expect(container.textContent).not.toContain("Enter an ACN.");
+    expect(container.textContent).not.toContain("Enter a valid 11-digit ABN.");
+    const formData = actionMock.mock.calls[0]?.[1] as FormData;
+    expect(formData.get("businessNumberKind")).toBe("none");
+    expect(formData.get("termsAccepted")).toBe("on");
+    expect(container.querySelector("#abn")).toBeNull();
   });
 
   it("uses the shared invalid field border for billing inputs", () => {

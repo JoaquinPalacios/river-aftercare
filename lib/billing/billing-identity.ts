@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   digitsOnly,
   INVALID_ABN_MESSAGE,
+  INVALID_ACN_MESSAGE,
   isValidAbn,
   isValidAcn,
 } from "@/lib/validation/australian-business-number";
@@ -50,9 +51,11 @@ export const billingIdentitySchema = z
     region: z.string().trim().min(1, "Choose a state or region.").max(80),
     postalCode: z.string().trim().min(1, "Enter the postcode.").max(20),
     country: z.string().trim().toUpperCase().min(2, "Choose a country.").max(2),
-    businessNumberKind: z.enum(["abn", "acn"]),
-    abn: z.string().trim().max(20),
-    acn: z.string().trim().max(20),
+    businessNumberKind: z.enum(["abn", "acn", "none"], {
+      error: "Choose ABN, ACN, or None.",
+    }),
+    abn: z.string().trim(),
+    acn: z.string().trim(),
     termsAccepted: z.boolean(),
   })
   .superRefine((value, context) => {
@@ -93,12 +96,16 @@ export const billingIdentitySchema = z
       });
     }
 
+    if (value.businessNumberKind === "none") {
+      return;
+    }
+
     if (value.businessNumberKind === "abn") {
       if (!value.abn) {
         context.addIssue({
           code: "custom",
           path: ["abn"],
-          message: "Enter an ABN, or choose No ABN to enter an ACN.",
+          message: "Enter an ABN.",
         });
       } else if (!isValidAbn(value.abn)) {
         context.addIssue({
@@ -120,7 +127,7 @@ export const billingIdentitySchema = z
       context.addIssue({
         code: "custom",
         path: ["acn"],
-        message: "Enter a valid 9-digit ACN.",
+        message: INVALID_ACN_MESSAGE,
       });
     }
   });
@@ -145,14 +152,8 @@ export type NormalizedBillingIdentity = {
 export function normalizeBillingIdentity(
   value: z.output<typeof billingIdentitySchema>
 ): NormalizedBillingIdentity {
-  const abn =
-    value.businessNumberKind === "abn" && value.abn
-      ? digitsOnly(value.abn)
-      : null;
-  const acn =
-    value.businessNumberKind === "acn" && value.acn
-      ? digitsOnly(value.acn)
-      : null;
+  const abn = value.businessNumberKind === "abn" ? digitsOnly(value.abn) : null;
+  const acn = value.businessNumberKind === "acn" ? digitsOnly(value.acn) : null;
 
   return {
     legalEntityName: value.legalEntityName,
@@ -202,7 +203,7 @@ export function billingIdentityFromForm(formData: FormData): {
     region: read("region"),
     postalCode: read("postalCode"),
     country: read("country") || "AU",
-    businessNumberKind: read("businessNumberKind") || "abn",
+    businessNumberKind: read("businessNumberKind"),
     abn: read("abn"),
     acn: read("acn"),
     termsAccepted: formData.get("termsAccepted") === "on",

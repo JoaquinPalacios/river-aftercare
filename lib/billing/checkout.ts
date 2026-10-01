@@ -664,6 +664,8 @@ export async function createClinicCheckout(input: {
         commercialPlan = entitlement?.commercialPlan ?? null;
         billingInterval = entitlement?.billingInterval ?? null;
 
+        // ABN and ACN are optional. Neither is copied onto the Stripe
+        // Customer, Checkout Session, or invoice.
         const identity =
           profile?.legalEntityName &&
           profile.billingEmail &&
@@ -671,8 +673,7 @@ export async function createClinicCheckout(input: {
           profile.city &&
           profile.region &&
           profile.postalCode &&
-          profile.country &&
-          (profile.abn || profile.acn)
+          profile.country
             ? {
                 legalEntityName: profile.legalEntityName,
                 billingEmail: profile.billingEmail,

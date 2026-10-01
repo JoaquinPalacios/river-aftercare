@@ -66,7 +66,9 @@ const validFields = {
 };
 
 function billingForm(
-  overrides: Partial<typeof validFields> = {},
+  overrides: Partial<Omit<typeof validFields, "businessNumberKind">> & {
+    businessNumberKind?: string;
+  } = {},
   termsAccepted = true
 ) {
   const formData = new FormData();
@@ -250,6 +252,167 @@ describe("continue to secure payment validation", () => {
     expect(redirectMock).toHaveBeenCalledWith(
       "https://checkout.stripe.com/c/pay/cs_test_mock"
     );
+  });
+
+  it("saves no identifier, accepts Terms, and starts Checkout", async () => {
+    allowSavedBilling();
+    createClinicCheckoutMock.mockResolvedValue({
+      ok: true,
+      url: "https://checkout.stripe.com/c/pay/cs_test_mock",
+    });
+
+    await expect(
+      continueToSecurePaymentAction(
+        {},
+        billingForm({ businessNumberKind: "none", abn: "", acn: "" })
+      )
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ abn: null, acn: null }),
+        update: expect.objectContaining({ abn: null, acn: null }),
+      })
+    );
+    expect(createClinicCheckoutMock).toHaveBeenCalled();
+    expect(redirectMock).toHaveBeenCalledWith(
+      "https://checkout.stripe.com/c/pay/cs_test_mock"
+    );
+  });
+
+  it("blocks Terms without asking for an identifier when None is selected", async () => {
+    const result = await continueToSecurePaymentAction(
+      {},
+      billingForm({ businessNumberKind: "none", abn: "", acn: "" }, false)
+    );
+
+    expect(result.fieldErrors?.termsAccepted).toBe(
+      "Agree to the Terms & Conditions to continue."
+    );
+    expect(result.fieldErrors?.abn).toBeUndefined();
+    expect(result.fieldErrors?.acn).toBeUndefined();
+    expect(result.values?.businessNumberKind).toBe("none");
+    expect(createClinicCheckoutMock).not.toHaveBeenCalled();
+    expect(transactionMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a blank ABN and a blank ACN for the selected option", async () => {
+    const blankAbn = await continueToSecurePaymentAction(
+      {},
+      billingForm({ businessNumberKind: "abn", abn: " ", acn: "000 000 019" })
+    );
+    expect(blankAbn.fieldErrors?.abn).toBe("Enter an ABN.");
+    expect(blankAbn.fieldErrors?.acn).toBeUndefined();
+
+    const blankAcn = await continueToSecurePaymentAction(
+      {},
+      billingForm({
+        businessNumberKind: "acn",
+        abn: "32 671 297 130",
+        acn: "",
+      })
+    );
+    expect(blankAcn.fieldErrors?.acn).toBe("Enter an ACN.");
+    expect(blankAcn.fieldErrors?.abn).toBeUndefined();
+    expect(transactionMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed ACN and clears a stale ABN when ACN is saved", async () => {
+    const malformed = await continueToSecurePaymentAction(
+      {},
+      billingForm({
+        businessNumberKind: "acn",
+        abn: "32 671 297 130",
+        acn: "000000018",
+      })
+    );
+    expect(malformed.fieldErrors?.acn).toBe("Enter a valid 9-digit ACN.");
+    expect(transactionMock).not.toHaveBeenCalled();
+
+    allowSavedBilling();
+    createClinicCheckoutMock.mockResolvedValue({
+      ok: true,
+      url: "https://checkout.stripe.com/c/pay/cs_test_mock",
+    });
+    await expect(
+      continueToSecurePaymentAction(
+        {},
+        billingForm({
+          businessNumberKind: "acn",
+          abn: "32 671 297 130",
+          acn: "000 000 019",
+        })
+      )
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          abn: null,
+          acn: "000000019",
+        }),
+      })
+    );
+  });
+
+  it("persists only the selected identifier when both values are submitted", async () => {
+    allowSavedBilling();
+    createClinicCheckoutMock.mockResolvedValue({
+      ok: true,
+      url: "https://checkout.stripe.com/c/pay/cs_test_mock",
+    });
+
+    await expect(
+      continueToSecurePaymentAction(
+        {},
+        billingForm({
+          businessNumberKind: "abn",
+          abn: "32 671 297 130",
+          acn: "000 000 019",
+        })
+      )
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          abn: "32671297130",
+          acn: null,
+        }),
+      })
+    );
+
+    upsertMock.mockClear();
+    await expect(
+      continueToSecurePaymentAction(
+        {},
+        billingForm({
+          businessNumberKind: "none",
+          abn: "32 671 297 130",
+          acn: "000 000 019",
+        })
+      )
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({ abn: null, acn: null }),
+      })
+    );
+  });
+
+  it("does not save an unknown identifier selection", async () => {
+    const result = await continueToSecurePaymentAction(
+      {},
+      billingForm({
+        businessNumberKind: "both",
+        abn: "32 671 297 130",
+        acn: "000 000 019",
+      })
+    );
+
+    expect(result.fieldErrors?.businessNumberKind).toBe(
+      "Choose ABN, ACN, or None."
+    );
+    expect(transactionMock).not.toHaveBeenCalled();
+    expect(createClinicCheckoutMock).not.toHaveBeenCalled();
   });
 
   it("keeps the saved billing details when Checkout cannot open", async () => {

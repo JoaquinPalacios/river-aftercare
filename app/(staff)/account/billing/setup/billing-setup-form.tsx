@@ -9,8 +9,19 @@ import {
 import type { BillingSetupSubmittedValues } from "@/app/(staff)/account/billing/setup/billing-setup-values";
 import {
   INVALID_ABN_MESSAGE,
+  INVALID_ACN_MESSAGE,
   isValidAbn,
+  isValidAcn,
 } from "@/lib/validation/australian-business-number";
+
+const IDENTIFIER_OPTIONS = [
+  { value: "abn", label: "ABN" },
+  { value: "acn", label: "ACN" },
+  { value: "none", label: "None" },
+] as const satisfies readonly {
+  value: BillingSetupSubmittedValues["businessNumberKind"];
+  label: string;
+}[];
 
 type RegionOption = { value: string; label: string };
 
@@ -57,9 +68,13 @@ export function BillingSetupForm({
     termsAccepted: false,
   }));
   const [abnTouched, setAbnTouched] = useState(false);
+  const [acnTouched, setAcnTouched] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const formErrorId = useId();
   const termsErrorId = useId();
+  const identifierLegendId = useId();
+  const identifierHintId = useId();
+  const identifierErrorId = useId();
 
   useEffect(() => {
     if (!state.values) {
@@ -85,12 +100,10 @@ export function BillingSetupForm({
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  function switchKind(next: "abn" | "acn") {
+  function selectKind(next: BillingSetupSubmittedValues["businessNumberKind"]) {
     setForm((current) => ({
       ...current,
       businessNumberKind: next,
-      abn: next === "abn" ? current.abn : "",
-      acn: next === "acn" ? current.acn : "",
     }));
   }
 
@@ -104,13 +117,31 @@ export function BillingSetupForm({
     return undefined;
   }
 
-  const abnError = abnFieldError({
-    kind: form.businessNumberKind,
+  const abnError = identifierFieldError({
+    active: form.businessNumberKind === "abn",
     value: form.abn,
     touched: abnTouched,
     serverError: state.fieldErrors?.abn,
     submittedValue: state.values?.abn,
+    isValid: isValidAbn,
+    invalidMessage: INVALID_ABN_MESSAGE,
   });
+  const acnError = identifierFieldError({
+    active: form.businessNumberKind === "acn",
+    value: form.acn,
+    touched: acnTouched,
+    serverError: state.fieldErrors?.acn,
+    submittedValue: state.values?.acn,
+    isValid: isValidAcn,
+    invalidMessage: INVALID_ACN_MESSAGE,
+  });
+  const kindError = shownError("businessNumberKind");
+  const identifierDescribedBy = [
+    identifierHintId,
+    kindError ? identifierErrorId : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <form
@@ -298,49 +329,80 @@ export function BillingSetupForm({
           </div>
         </fieldset>
 
-        <div className="flex flex-col gap-2">
-          <input
-            type="hidden"
-            name="businessNumberKind"
-            value={form.businessNumberKind}
-          />
-          {form.businessNumberKind === "abn" ? (
-            <Field
-              id="abn"
-              name="abn"
-              label="ABN"
-              value={form.abn}
-              onChange={(value) => patch("abn", value)}
-              onBlur={() => setAbnTouched(true)}
-              inputMode="numeric"
-              autoComplete="off"
-              error={abnError}
-              hint="11 digits. Spaces are fine."
-            />
-          ) : (
-            <Field
-              id="acn"
-              name="acn"
-              label="ACN"
-              value={form.acn}
-              onChange={(value) => patch("acn", value)}
-              inputMode="numeric"
-              autoComplete="off"
-              error={shownError("acn")}
-              hint="9 digits. Spaces are fine."
-            />
-          )}
-          <button
-            type="button"
-            className="staffBtn staffBtnQuiet min-h-11 w-fit px-3"
-            aria-pressed={form.businessNumberKind === "acn"}
-            onClick={() =>
-              switchKind(form.businessNumberKind === "abn" ? "acn" : "abn")
-            }
-          >
-            {form.businessNumberKind === "abn" ? "No ABN?" : "Use ABN instead"}
-          </button>
-        </div>
+        <fieldset
+          className="billingIdentifier"
+          aria-describedby={identifierDescribedBy}
+          aria-invalid={kindError ? "true" : "false"}
+        >
+          <legend id={identifierLegendId} className="text-sm font-medium">
+            Business identifier
+            <span className="ml-2 font-normal text-staff-muted">Optional</span>
+          </legend>
+          <p id={identifierHintId} className="mt-1 text-sm text-staff-muted">
+            Most Australian businesses use an ABN. If you do not have an ABN or
+            ACN, you can continue without one.
+          </p>
+          <div className="billingIdentifierChoices">
+            {IDENTIFIER_OPTIONS.map((option) => {
+              const selected = form.businessNumberKind === option.value;
+              return (
+                <label key={option.value} className="billingIdentifierChoice">
+                  <input
+                    type="radio"
+                    name="businessNumberKind"
+                    value={option.value}
+                    checked={selected}
+                    onChange={() => selectKind(option.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              );
+            })}
+          </div>
+          <div className="billingIdentifierDetail">
+            {form.businessNumberKind === "abn" ? (
+              <Field
+                id="abn"
+                name="abn"
+                label="ABN"
+                value={form.abn}
+                onChange={(value) => patch("abn", value)}
+                onBlur={() => setAbnTouched(true)}
+                inputMode="numeric"
+                autoComplete="off"
+                error={abnError}
+                hint="11 digits. Spaces are fine."
+              />
+            ) : (
+              <input type="hidden" name="abn" value={form.abn} />
+            )}
+            {form.businessNumberKind === "acn" ? (
+              <Field
+                id="acn"
+                name="acn"
+                label="ACN"
+                value={form.acn}
+                onChange={(value) => patch("acn", value)}
+                onBlur={() => setAcnTouched(true)}
+                inputMode="numeric"
+                autoComplete="off"
+                error={acnError}
+                hint="9 digits. Spaces are fine."
+              />
+            ) : (
+              <input type="hidden" name="acn" value={form.acn} />
+            )}
+            {form.businessNumberKind === "none" ? (
+              <div className="billingIdentifierNone">
+                <p>
+                  No business identifier will be added to your billing profile.
+                </p>
+                <p>You can add an ABN or ACN later if needed.</p>
+              </div>
+            ) : null}
+          </div>
+          <FieldError id={identifierErrorId} message={kindError} />
+        </fieldset>
       </section>
 
       <div className="flex flex-col gap-2">
@@ -396,14 +458,16 @@ export function BillingSetupForm({
   );
 }
 
-function abnFieldError(input: {
-  kind: BillingSetupSubmittedValues["businessNumberKind"];
+function identifierFieldError(input: {
+  active: boolean;
   value: string;
   touched: boolean;
   serverError?: string;
   submittedValue?: string;
+  isValid: (value: string) => boolean;
+  invalidMessage: string;
 }): string | undefined {
-  if (input.kind !== "abn") {
+  if (!input.active) {
     return undefined;
   }
   const unchanged =
@@ -414,9 +478,9 @@ function abnFieldError(input: {
   if (
     (input.touched || Boolean(input.serverError)) &&
     input.value.trim() &&
-    !isValidAbn(input.value)
+    !input.isValid(input.value)
   ) {
-    return INVALID_ABN_MESSAGE;
+    return input.invalidMessage;
   }
   return undefined;
 }

@@ -1,3 +1,5 @@
+import type { BusinessNumberKind } from "@/lib/billing/business-number-kind";
+
 export type BillingSetupSubmittedValues = {
   legalEntityName: string;
   tradingName: string;
@@ -9,7 +11,7 @@ export type BillingSetupSubmittedValues = {
   region: string;
   postalCode: string;
   country: string;
-  businessNumberKind: "abn" | "acn";
+  businessNumberKind: BusinessNumberKind;
   abn: string;
   acn: string;
   termsAccepted: boolean;

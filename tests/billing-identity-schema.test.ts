@@ -106,6 +106,78 @@ describe("billing identity", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts neither identifier and stores both as null", () => {
+    const parsed = billingIdentitySchema.parse({
+      ...valid,
+      businessNumberKind: "none",
+      abn: "32 671 297 130",
+      acn: "000 000 019",
+    });
+    expect(normalizeBillingIdentity(parsed)).toMatchObject({
+      abn: null,
+      acn: null,
+    });
+  });
+
+  it("rejects a blank ABN when ABN is selected and ignores a supplied ACN", () => {
+    const result = billingIdentitySchema.safeParse({
+      ...valid,
+      businessNumberKind: "abn",
+      abn: "   ",
+      acn: "000 000 019",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.path[0])).toEqual([
+        "abn",
+      ]);
+      expect(result.error.issues[0]?.message).toBe("Enter an ABN.");
+    }
+  });
+
+  it("rejects a blank ACN when ACN is selected", () => {
+    const result = billingIdentitySchema.safeParse({
+      ...valid,
+      businessNumberKind: "acn",
+      abn: "",
+      acn: " ",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe("Enter an ACN.");
+    }
+  });
+
+  it("does not validate identifier format when None is selected", () => {
+    const parsed = billingIdentitySchema.parse({
+      ...valid,
+      businessNumberKind: "none",
+      abn: "not-an-abn",
+      acn: "not-an-acn",
+    });
+    expect(normalizeBillingIdentity(parsed)).toMatchObject({
+      abn: null,
+      acn: null,
+    });
+  });
+
+  it("rejects an unknown business identifier selection", () => {
+    const result = billingIdentitySchema.safeParse({
+      ...valid,
+      businessNumberKind: "both",
+      abn: "32 671 297 130",
+      acn: "000 000 019",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.issues.some(
+          (issue) => issue.path[0] === "businessNumberKind"
+        )
+      ).toBe(true);
+    }
+  });
+
   it("requires Terms acceptance", () => {
     const result = billingIdentitySchema.safeParse({
       ...valid,

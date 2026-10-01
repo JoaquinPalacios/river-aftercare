@@ -2,6 +2,7 @@ const ABN_WEIGHTS = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19] as const;
 const ACN_WEIGHTS = [8, 7, 6, 5, 4, 3, 2, 1] as const;
 
 export const INVALID_ABN_MESSAGE = "Enter a valid 11-digit ABN.";
+export const INVALID_ACN_MESSAGE = "Enter a valid 9-digit ACN.";
 
 export function digitsOnly(value: string): string {
   return value.replace(/\D/g, "");
