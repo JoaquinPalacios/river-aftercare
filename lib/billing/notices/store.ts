@@ -1,3 +1,5 @@
+import "server-only";
+
 import { BILLING_NOTICE_CLAIM_STALE_MS } from "@/lib/billing/notices/constants";
 import type { PlannedBillingEmail } from "@/lib/billing/notices/types";
 

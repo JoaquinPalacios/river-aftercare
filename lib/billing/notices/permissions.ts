@@ -1,3 +1,5 @@
+import "server-only";
+
 export function canViewCommercialBillingNotices(input: {
   role: "ADMIN" | "STAFF" | null;
   source?: "membership" | "operator_support";

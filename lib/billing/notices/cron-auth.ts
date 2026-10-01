@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createHash, timingSafeEqual } from "node:crypto";
 
 import { parseHostname } from "@/lib/tenancy/parse-hostname";

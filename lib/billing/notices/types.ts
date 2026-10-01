@@ -1,3 +1,5 @@
+import "server-only";
+
 export type BillingNoticePlan = "ESSENTIAL" | "PRACTICE" | "GROUP";
 
 export type BillingNoticeInterval = "MONTHLY" | "YEARLY";

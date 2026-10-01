@@ -1,3 +1,5 @@
+import "server-only";
+
 export const BILLING_NOTICE_DAY_MS = 24 * 60 * 60 * 1000;
 
 export const ANNUAL_RENEWAL_NOTICE_DAYS = 30;
