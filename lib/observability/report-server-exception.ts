@@ -14,6 +14,8 @@ export const OPERATIONAL_FAILURE_CODES = {
   CONTACT_EMAIL_DELIVERY_FAILED: "contact_email_delivery_failed",
   AUTH_EMAIL_DELIVERY_FAILED: "auth_email_delivery_failed",
   AUTH_EMAIL_NOT_CONFIGURED: "auth_email_not_configured",
+  BILLING_NOTICE_DELIVERY_FAILED: "billing_notice_delivery_failed",
+  BILLING_NOTICE_NOT_CONFIGURED: "billing_notice_not_configured",
   STRIPE_WEBHOOK_FAILED: "stripe_webhook_failed",
   STRIPE_WEBHOOK_NOT_CONFIGURED: "stripe_webhook_not_configured",
   GROUP_SUBSCRIPTION_SHAPE_INVALID: GROUP_SUBSCRIPTION_SHAPE_FAILURE_CODE,
@@ -24,7 +26,7 @@ export type OperationalFailureCode =
   (typeof OPERATIONAL_FAILURE_CODES)[keyof typeof OPERATIONAL_FAILURE_CODES];
 
 export type OperationalFailureComponent =
-  "contact-email" | "auth-email" | "stripe-webhook";
+  "contact-email" | "auth-email" | "billing-notice" | "stripe-webhook";
 
 export type OperationalFailureCodeValue =
   | "not_configured"

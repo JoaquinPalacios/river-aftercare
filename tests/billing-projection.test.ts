@@ -490,6 +490,71 @@ describe("entitlement projection", () => {
     });
   });
 
+  it("restores active access when a delayed paid invoice clears past due", () => {
+    const paid = project({
+      eventType: "invoice.paid",
+      invoiceIsPaid: true,
+      subscriptionStatus: "active",
+      previous: emptyEntitlement({
+        billingStatus: BillingStatus.PAST_DUE,
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        paidThrough: PERIOD_END,
+        currentPeriodEnd: PERIOD_END,
+      }),
+    });
+    expect(paid.kind).toBe("apply");
+    if (paid.kind !== "apply") {
+      return;
+    }
+    expect(paid.entitlement).toMatchObject({
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      publicGuideRetentionUntil: null,
+    });
+  });
+
+  it("keeps past-due access when payment_failed is delivered again", () => {
+    const again = project({
+      eventType: "invoice.payment_failed",
+      subscriptionStatus: "past_due",
+      previous: emptyEntitlement({
+        billingStatus: BillingStatus.PAST_DUE,
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        paidThrough: PERIOD_END,
+      }),
+    });
+    expect(again.kind).toBe("apply");
+    if (again.kind !== "apply") {
+      return;
+    }
+    expect(again.entitlement).toMatchObject({
+      billingStatus: BillingStatus.PAST_DUE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      publicGuideRetentionUntil: null,
+    });
+  });
+
+  it("does not clear past due when a payment method is updated without a paid invoice", () => {
+    const updated = project({
+      eventType: "payment_method.attached",
+      subscriptionStatus: "past_due",
+      invoiceIsPaid: false,
+      previous: emptyEntitlement({
+        billingStatus: BillingStatus.PAST_DUE,
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        paidThrough: PERIOD_END,
+      }),
+    });
+    expect(updated.kind).toBe("apply");
+    if (updated.kind !== "apply") {
+      return;
+    }
+    expect(updated.entitlement.billingStatus).toBe(BillingStatus.PAST_DUE);
+    expect(updated.entitlement.entitlementStatus).toBe(
+      EntitlementStatus.ACTIVE
+    );
+  });
+
   it("fails closed for an unknown clinic or unknown Price ID", () => {
     expect(project({ clinicId: null }).kind).toBe("unmapped_clinic");
     expect(

@@ -462,6 +462,10 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
+        text: `${PRODUCT_NAME} ordinarily sends a reminder approximately 30 days before an annual subscription renews. The reminder identifies the current plan, the renewal date and the billing interval, includes the expected renewal amount where that amount is known, and explains how to cancel before renewal. ${PRODUCT_NAME} does not send an additional reminder before every ordinary monthly renewal.`,
+      },
+      {
+        type: "p",
         text: `The Customer may cancel using a cancellation method ${PRODUCT_NAME} makes available, including the billing portal where available.`,
       },
       {
@@ -590,11 +594,27 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `For a material increase to recurring subscription fees, ${PRODUCT_NAME} will give at least 30 days' advance notice. The changed price will apply from the first renewal or billing period commencing after that notice period.`,
+        text: `Published prices may change for new subscriptions. A change to those published prices does not by itself change the recurring charge for an existing subscription.`,
       },
       {
         type: "p",
-        text: "A Customer that does not accept a material change or price increase may cancel before the change takes effect.",
+        text: `For an increase to the recurring charge for an existing subscription, ${PRODUCT_NAME} will give the Customer at least 30 days' direct advance notice before the first increased charge. The notice identifies the affected subscription, the current price, the new price and the effective date. The same principles apply to the subscription plan and to paid allowances, including an additional Clinic Site and an additional Location.`,
+      },
+      {
+        type: "p",
+        text: "The increased charge applies no earlier than an eligible renewal or billing period after that notice. It is not applied to a period that has already been charged, and it does not take effect part-way through a prepaid annual billing period.",
+      },
+      {
+        type: "p",
+        text: "The Customer may cancel before the increase takes effect. There is no cancellation penalty for that cancellation. Access continues until the end of the current paid period, as described in clause 19.",
+      },
+      {
+        type: "p",
+        text: "Where Customer Commercial Terms agree a price, or agree how a price may change, for that Customer, those terms take precedence over a general published price change.",
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME} may continue a grandfathered or promotional price for a Customer. Doing so does not permanently guarantee that price for every customer.`,
       },
     ],
   },

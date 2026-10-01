@@ -80,6 +80,7 @@ export function ChangePlanPanel({
   scheduledEffectiveLabel,
   guideEditor,
   arrivalNotice,
+  showPrices = true,
 }: {
   phase: ChangePlanPhase;
   canAct: boolean;
@@ -97,6 +98,7 @@ export function ChangePlanPanel({
   blockedMessage: string | null;
   canCancelPreparation: boolean;
   scheduledEffectiveLabel?: string | null;
+  showPrices?: boolean;
   guideEditor?: ReactNode;
   arrivalNotice?: "cancelled" | null;
 }) {
@@ -229,7 +231,9 @@ export function ChangePlanPanel({
         <div className="mt-3 max-w-xl text-sm leading-6">
           <p>Current: Practice</p>
           <p>
-            Essential · {essentialPriceLabel} · {intervalLabel}
+            {showPrices
+              ? `Essential · ${essentialPriceLabel} · ${intervalLabel}`
+              : `Essential · ${intervalLabel}`}
           </p>
           {canAct ? (
             <form
@@ -431,10 +435,12 @@ export function ChangePlanPanel({
                 <dt className="text-staff-muted">Effective</dt>
                 <dd className="font-medium">{dateLabel ?? "Next renewal"}</dd>
               </div>
-              <div>
-                <dt className="text-staff-muted">Price from next renewal</dt>
-                <dd className="font-medium">{essentialPriceLabel}</dd>
-              </div>
+              {showPrices ? (
+                <div>
+                  <dt className="text-staff-muted">Price from next renewal</dt>
+                  <dd className="font-medium">{essentialPriceLabel}</dd>
+                </div>
+              ) : null}
               <div>
                 <dt className="text-staff-muted">Immediate charge</dt>
                 <dd className="font-medium">None</dd>

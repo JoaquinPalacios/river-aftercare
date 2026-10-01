@@ -29,6 +29,7 @@ export function PrepareBillingForm({
   paidThroughLabel,
   cancellationScheduled,
   cancellationDateLabel,
+  commercialNotice = null,
 }: {
   clinicId: string;
   plan: "ESSENTIAL" | "PRACTICE" | "GROUP" | null;
@@ -45,6 +46,7 @@ export function PrepareBillingForm({
   paidThroughLabel: string | null;
   cancellationScheduled: "Yes" | "No";
   cancellationDateLabel: string | null;
+  commercialNotice?: string | null;
 }) {
   const [state, action, pending] = useActionState(
     prepareClinicBillingAction,
@@ -113,6 +115,12 @@ export function PrepareBillingForm({
             {cancellationDateLabel ? ` · ${cancellationDateLabel}` : ""}
           </dd>
         </div>
+        {commercialNotice ? (
+          <div className="sm:col-span-2">
+            <dt className="text-staff-muted">Customer notice</dt>
+            <dd>{commercialNotice}</dd>
+          </div>
+        ) : null}
       </dl>
 
       {canRevise ? (

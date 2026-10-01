@@ -32,6 +32,12 @@ import {
   commercialPlanLabel,
   type SelfServePlanCode,
 } from "@/lib/billing/offer-display";
+import { formatOperatorCommercialNotice } from "@/lib/billing/notices/evaluate";
+import {
+  evaluateCandidate,
+  loadBillingNoticeCandidate,
+} from "@/lib/billing/notices/load";
+import type { BillingPageCommercialDetail } from "@/lib/billing/notices/types";
 import {
   billingPeriodLabel,
   billingStateLabel,
@@ -71,6 +77,7 @@ export type OperatorBillingPanel = {
     selectedCombined: number;
   } | null;
   scheduledPlanChange: ScheduledPlanChangePresentation | null;
+  commercialNotice: string | null;
   downgradeReadiness: {
     ready: boolean;
     teamCurrent: number;
@@ -167,6 +174,10 @@ export async function loadOperatorBillingPanel(
   const planChangeVisible = planChange.ok || showDowngrade;
   const periodDate =
     entitlement?.paidThrough ?? entitlement?.currentPeriodEnd ?? null;
+  const noticeCandidate = await loadBillingNoticeCandidate(clinicId);
+  const noticeEvaluation = noticeCandidate
+    ? evaluateCandidate(noticeCandidate, new Date())
+    : null;
   const plan =
     entitlement?.commercialPlan === "ESSENTIAL" ||
     entitlement?.commercialPlan === "PRACTICE" ||
@@ -220,6 +231,9 @@ export async function loadOperatorBillingPanel(
         ? profile.stripePlanDowngradeAttemptId
         : null,
     scheduledPlanChange,
+    commercialNotice: formatOperatorCommercialNotice(
+      noticeEvaluation?.overviewNotices ?? []
+    ),
     downgradeReadiness: downgradeReadiness
       ? {
           ready: downgradeReadiness.ready,
@@ -265,6 +279,7 @@ export type ClinicBillingView = {
   billingStatus: BillingStatus | null;
   publicGuideRetentionLabel: string | null;
   scheduledPlanChange: ScheduledPlanChangePresentation | null;
+  commercialDetail: BillingPageCommercialDetail | null;
   guideSelection: ClinicGuideSelectionPanel | null;
   selfServeDowngrade: ClinicSelfServeDowngrade | null;
   identity: {
@@ -306,6 +321,19 @@ export async function loadClinicBillingView(
 
   const entitlement = clinic.entitlement;
   const profile = clinic.billingProfile;
+  const noticeCandidate = await loadBillingNoticeCandidate(clinicId);
+  const noticeEvaluation = noticeCandidate
+    ? evaluateCandidate(noticeCandidate, new Date())
+    : null;
+  const reliableInstant =
+    entitlement?.currentPeriodStart &&
+    entitlement.currentPeriodEnd &&
+    entitlement.paidThrough &&
+    entitlement.currentPeriodStart.getTime() <
+      entitlement.currentPeriodEnd.getTime() &&
+    entitlement.currentPeriodEnd.getTime() === entitlement.paidThrough.getTime()
+      ? entitlement.currentPeriodEnd
+      : null;
   const presentation = presentBillingReturn({
     entitlementStatus: entitlement?.entitlementStatus ?? null,
     billingStatus: entitlement?.billingStatus ?? null,
@@ -313,12 +341,11 @@ export async function loadClinicBillingView(
     billingInterval: entitlement?.billingInterval ?? null,
     checkoutStarted: Boolean(profile?.stripeCheckoutSessionId),
     stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
-    paidThrough: entitlement?.paidThrough ?? null,
-    currentPeriodEnd: entitlement?.currentPeriodEnd ?? null,
+    paidThrough: reliableInstant,
+    currentPeriodEnd: reliableInstant,
     cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
   });
-  const periodDate =
-    entitlement?.paidThrough ?? entitlement?.currentPeriodEnd ?? null;
+  const reliablePeriodLabel = noticeEvaluation?.page.periodEndLabel ?? null;
   const cancelScheduled = Boolean(entitlement?.cancelAtPeriodEnd);
 
   const identity = profile
@@ -350,7 +377,7 @@ export async function loadClinicBillingView(
     billingLabel: billingStateLabel(entitlement?.billingStatus ?? null),
     planLabel: commercialPlanLabel(entitlement?.commercialPlan ?? null),
     intervalLabel: billingIntervalLabel(entitlement?.billingInterval ?? null),
-    paidThroughLabel: periodDate ? formatBillingDate(periodDate) : null,
+    paidThroughLabel: reliablePeriodLabel,
     periodLabel: billingPeriodLabel(cancelScheduled),
     portalEligible: clinicSupportsCustomerPortal({
       stripeCustomerId: profile?.stripeCustomerId ?? null,
@@ -368,6 +395,7 @@ export async function loadClinicBillingView(
       effectiveAt: entitlement?.scheduledPlanEffectiveAt ?? null,
       cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
     }),
+    commercialDetail: noticeEvaluation?.page ?? null,
     guideSelection:
       entitlement?.commercialPlan === "PRACTICE"
         ? await loadClinicGuideSelectionPanel(clinicId)

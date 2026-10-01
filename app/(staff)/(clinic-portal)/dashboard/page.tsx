@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { BillingNotice } from "@/app/(staff)/components/billing-notice";
 import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
+import { loadOverviewBillingNotices } from "@/lib/billing/notices/load";
 import { getClinicPortalOverview } from "@/lib/clinic-portal/get-clinic-portal";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
@@ -18,6 +20,12 @@ export default async function ClinicOverviewPage() {
   if (!overview) {
     notFound();
   }
+
+  const billingNotices = await loadOverviewBillingNotices({
+    clinicId: clinicMembership.clinic.id,
+    role: clinicMembership.role,
+    source: clinicMembership.source,
+  });
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
@@ -46,6 +54,14 @@ export default async function ClinicOverviewPage() {
           </a>
         ) : null}
       </header>
+
+      {billingNotices.length > 0 ? (
+        <div className="flex min-w-0 flex-col gap-3">
+          {billingNotices.map((notice) => (
+            <BillingNotice key={notice.id} notice={notice} />
+          ))}
+        </div>
+      ) : null}
 
       <section
         aria-labelledby="guide-summary-heading"

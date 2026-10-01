@@ -231,6 +231,7 @@ export default async function OperatorClinicDetailPage({
         paidThroughLabel={billing.paidThroughLabel}
         cancellationScheduled={billing.cancellationScheduled}
         cancellationDateLabel={billing.cancellationDateLabel}
+        commercialNotice={billing.commercialNotice}
       />
 
       <UpgradePlanForm

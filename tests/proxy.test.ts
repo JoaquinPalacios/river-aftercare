@@ -104,6 +104,29 @@ describe("proxy", () => {
     expect(
       proxy(requestFor("http://localhost:3000/operator/clinics")).status
     ).toBe(404);
+    expect(
+      proxy(requestFor("http://localhost:3000/api/cron/other")).status
+    ).toBe(404);
+  });
+
+  it("allows the billing notice cron on the marketing host and blocks it on a patient host", () => {
+    const marketing = proxy(
+      requestFor("http://localhost:3000/api/cron/billing-notices")
+    );
+    expect(marketing.status).toBe(200);
+    expect(rewrittenUrl(marketing)).toBeNull();
+
+    const staff = proxy(
+      requestFor("http://app.localhost:3000/api/cron/billing-notices")
+    );
+    expect(staff.status).toBe(200);
+    expect(rewrittenUrl(staff)).toBeNull();
+
+    expect(
+      proxy(
+        requestFor("http://demodental.localhost:3000/api/cron/billing-notices")
+      ).status
+    ).toBe(404);
   });
 
   it("rewrites marketing pricing, contact, about, privacy, terms, and clinic pages to /_marketing/...", () => {
