@@ -12,6 +12,7 @@ import {
   normalizePathname,
 } from "@/lib/tenancy/paths";
 import { PUBLIC_PATIENT_PATH_HEADER } from "@/lib/tenancy/public-patient-path";
+import { BILLING_NOTICE_CRON_PATH } from "@/lib/billing/notices/constants";
 import { getRootDomain } from "@/lib/tenancy/root-domain";
 
 const SPOOFABLE_TENANT_HEADERS = ["x-care-guide-tenant", "x-tenant"] as const;
@@ -77,7 +78,10 @@ export function proxy(request: NextRequest): NextResponse {
   }
 
   if (classification.kind === "marketing") {
-    if (isMarketingCrawlPath(pathname)) {
+    if (
+      isMarketingCrawlPath(pathname) ||
+      pathname === BILLING_NOTICE_CRON_PATH
+    ) {
       return continueWithoutSpoofedHeaders(request);
     }
 
@@ -96,7 +100,7 @@ export function proxy(request: NextRequest): NextResponse {
     });
   }
 
-  if (isStaffPath(pathname)) {
+  if (isStaffPath(pathname) || pathname === BILLING_NOTICE_CRON_PATH) {
     return notFound();
   }
 

@@ -28,11 +28,11 @@ describe("legal acceptance records", () => {
     expect(created).toMatchObject({
       clinicId: "clinic_1",
       userId: "user_1",
-      termsVersion: "2026-09-21",
+      termsVersion: "2026-10-01",
       privacyVersionAcknowledged: "2026-09-21",
       acceptedAt,
     });
-    expect(TERMS_ACCEPTANCE_VERSION).toBe("2026-09-21");
+    expect(TERMS_ACCEPTANCE_VERSION).toBe("2026-10-01");
     expect(PRIVACY_ACKNOWLEDGEMENT_VERSION).toBe("2026-09-21");
   });
 

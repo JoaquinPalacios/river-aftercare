@@ -108,8 +108,8 @@ describe("legal documents", () => {
     expect(TERMS_DOCUMENT.status).toBe(LEGAL_DOCUMENT_STATUS);
     expect(TERMS_DOCUMENT.draftBanner).toBeNull();
     expect(TERMS_DOCUMENT.lastUpdatedIso).toBe(TERMS_LAST_UPDATED_ISO);
-    expect(TERMS_DOCUMENT.lastUpdatedIso).toBe("2026-09-21");
-    expect(TERMS_DOCUMENT.lastUpdatedLabel).toBe("21 September 2026");
+    expect(TERMS_DOCUMENT.lastUpdatedIso).toBe("2026-10-01");
+    expect(TERMS_DOCUMENT.lastUpdatedLabel).toBe("1 October 2026");
     expect(TERMS_DOCUMENT.lastUpdatedIso).not.toBe(LEGAL_LAST_UPDATED_ISO);
     expect(TERMS_PAGE_LEGALLY_APPROVED).toBe(false);
     expect(TERMS_DOCUMENT.sections.map((section) => section.id)).toEqual([
@@ -259,6 +259,35 @@ describe("legal documents", () => {
     expect(term).toContain(
       "Content is not automatically deleted merely because a downgrade is scheduled."
     );
+    expect(term).toContain(
+      "ordinarily sends a reminder approximately 30 days before an annual subscription renews"
+    );
+    expect(term).toContain(
+      "does not send an additional reminder before every ordinary monthly renewal"
+    );
+
+    const changes = sectionText(TERMS_DOCUMENT, "changes");
+    expect(changes).toContain(
+      "Published prices may change for new subscriptions"
+    );
+    expect(changes).toContain("at least 30 days' direct advance notice");
+    expect(changes).toContain("affected subscription");
+    expect(changes).toContain("current price");
+    expect(changes).toContain("new price");
+    expect(changes).toContain("effective date");
+    expect(changes).toContain(
+      "no earlier than an eligible renewal or billing period after that notice"
+    );
+    expect(changes).toContain("prepaid annual billing period");
+    expect(changes).toContain("no cancellation penalty");
+    expect(changes).toContain("Customer Commercial Terms");
+    expect(changes).toContain("take precedence");
+    expect(changes).toContain("grandfathered or promotional price");
+    expect(changes).toContain("additional Clinic Site");
+    expect(changes).toContain("additional Location");
+    expect(changes).not.toContain("Stripe Tax");
+    expect(changes).not.toContain("including GST");
+    expect(PRIVACY_DOCUMENT.lastUpdatedIso).toBe("2026-09-21");
 
     const templates = sectionText(TERMS_DOCUMENT, "platform-templates");
     expect(templates).toContain("Essential plan may use available");

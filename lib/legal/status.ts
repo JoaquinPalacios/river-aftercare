@@ -9,7 +9,7 @@ export const LEGAL_LAST_UPDATED_ISO = "2026-09-17";
 
 export const PRIVACY_LAST_UPDATED_ISO = "2026-09-21";
 
-export const TERMS_LAST_UPDATED_ISO = "2026-09-21";
+export const TERMS_LAST_UPDATED_ISO = "2026-10-01";
 
 /**
  * Stable Terms version recorded when a clinic administrator accepts the

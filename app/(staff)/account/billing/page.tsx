@@ -13,6 +13,8 @@ import {
   ENDED_BILLING_MESSAGE,
   RESTRICTED_BILLING_MESSAGE,
 } from "@/lib/billing/billing-presentation";
+import { canViewCommercialBillingNotices } from "@/lib/billing/notices/permissions";
+import { BILLING_PRICE_CHANGE_ANCHOR } from "@/lib/billing/notices/constants";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 export const metadata: Metadata = {
@@ -28,6 +30,13 @@ export default async function BillingStatusPage({
   const params = searchParams ? await searchParams : {};
   const view = context.view;
   const presentation = view?.presentation;
+  const showCommercialDetail = canViewCommercialBillingNotices({
+    role: context.membership?.role ?? null,
+    source: context.membership?.source,
+  });
+  const commercial = showCommercialDetail
+    ? (view?.commercialDetail ?? null)
+    : null;
   const canManageBilling =
     view?.portalEligible === true &&
     context.membership?.role === "ADMIN" &&
@@ -88,7 +97,10 @@ export default async function BillingStatusPage({
                   <span
                     className="staffStatusPill"
                     data-tone={
-                      presentation.kind === "active" && !presentation.attention
+                      presentation.kind === "active" &&
+                      (!presentation.attention ||
+                        (!showCommercialDetail &&
+                          presentation.attention === "past_due"))
                         ? "success"
                         : presentation.kind === "inactive"
                           ? "inactive"
@@ -99,21 +111,34 @@ export default async function BillingStatusPage({
                     presentation.attention === "cancel_scheduled"
                       ? "Scheduled to end"
                       : presentation.kind === "active" &&
-                          presentation.attention === "past_due"
+                          presentation.attention === "past_due" &&
+                          showCommercialDetail
                         ? "Payment issue"
                         : presentation.kind === "active"
                           ? "Active"
                           : presentation.kind === "processing"
                             ? "Payment processing"
-                            : presentation.kind === "restricted"
+                            : presentation.kind === "restricted" &&
+                                showCommercialDetail
                               ? "Unpaid"
-                              : presentation.kind === "inactive"
-                                ? "Ended"
-                                : view.billingLabel}
+                              : presentation.kind === "restricted"
+                                ? "Billing"
+                                : presentation.kind === "inactive"
+                                  ? "Ended"
+                                  : view.billingLabel}
                   </span>
                 </dd>
               </div>
-              {view.paidThroughLabel &&
+              {showCommercialDetail && commercial?.currentPriceLabel ? (
+                <div>
+                  <dt className="text-staff-muted">Price</dt>
+                  <dd className="font-medium">
+                    {commercial.currentPriceLabel}
+                  </dd>
+                </div>
+              ) : null}
+              {showCommercialDetail &&
+              view.paidThroughLabel &&
               (presentation.kind === "active" ||
                 presentation.kind === "restricted" ||
                 presentation.kind === "inactive") ? (
@@ -123,10 +148,40 @@ export default async function BillingStatusPage({
                 </div>
               ) : null}
             </dl>
-            {presentation.kind === "active" && presentation.attentionMessage ? (
+            {showCommercialDetail &&
+            presentation.kind === "active" &&
+            presentation.attentionMessage ? (
               <p className="mt-4 text-sm" role="status">
                 {presentation.attentionMessage}
               </p>
+            ) : null}
+            {commercial?.annualReminder ? (
+              <p className="mt-4 text-sm leading-6" role="status">
+                {commercial.annualReminder.title}{" "}
+                {commercial.annualReminder.body}
+              </p>
+            ) : null}
+            {commercial?.priceChange ? (
+              <div
+                id={BILLING_PRICE_CHANGE_ANCHOR}
+                className="mt-4 scroll-mt-24 text-sm leading-6"
+                role="status"
+              >
+                <p className="font-medium">{commercial.priceChange.title}</p>
+                <p className="mt-1 text-staff-muted">
+                  {commercial.priceChange.body} Current price{" "}
+                  {commercial.priceChange.currentPriceLabel}. New price{" "}
+                  {commercial.priceChange.newPriceLabel}. Billing interval{" "}
+                  {commercial.priceChange.intervalLabel}. Effective{" "}
+                  {commercial.priceChange.effectiveLabel}.
+                </p>
+                <a
+                  href={context.contactHref}
+                  className="mt-2 inline-flex font-medium text-staff-brand underline-offset-2 hover:underline"
+                >
+                  Contact River Aftercare
+                </a>
+              </div>
             ) : null}
             {view.scheduledPlanChange && !showScheduled ? (
               <p className="mt-4 text-sm" role="status">
@@ -140,6 +195,7 @@ export default async function BillingStatusPage({
             <ChangePlanPanel
               phase="scheduled"
               canAct={canChangePlan}
+              showPrices={showCommercialDetail}
               intervalLabel={downgrade.intervalLabel}
               essentialPriceLabel={downgrade.essentialPriceLabel}
               effectiveLabel={downgrade.effectiveLabel}
@@ -167,6 +223,7 @@ export default async function BillingStatusPage({
             <ChangePlanPanel
               phase="entry"
               canAct={canChangePlan}
+              showPrices={showCommercialDetail}
               intervalLabel={downgrade.intervalLabel}
               essentialPriceLabel={downgrade.essentialPriceLabel}
               effectiveLabel={downgrade.effectiveLabel}
@@ -189,6 +246,7 @@ export default async function BillingStatusPage({
             <ChangePlanPanel
               phase="review"
               canAct={canChangePlan}
+              showPrices={showCommercialDetail}
               intervalLabel={downgrade.intervalLabel}
               essentialPriceLabel={downgrade.essentialPriceLabel}
               effectiveLabel={downgrade.effectiveLabel}
@@ -231,9 +289,14 @@ export default async function BillingStatusPage({
                 Aftercare setup ready.
               </p>
             ) : null}
-            {presentation.kind === "restricted" ? (
+            {presentation.kind === "restricted" && showCommercialDetail ? (
               <p className="mt-4 text-sm text-staff-muted" role="status">
                 {RESTRICTED_BILLING_MESSAGE}
+              </p>
+            ) : null}
+            {presentation.kind === "restricted" && !showCommercialDetail ? (
+              <p className="mt-4 text-sm text-staff-muted" role="status">
+                Your account administrator manages billing for this clinic.
               </p>
             ) : null}
             {presentation.kind === "inactive" ? (

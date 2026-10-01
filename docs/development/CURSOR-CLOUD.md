@@ -34,6 +34,10 @@ The repository configuration and a successful Cursor Build are reusable. Running
 
 Cursor checks out the repository itself. `.cursor/Dockerfile` does not `COPY` the project into the image.
 
+## Scheduled billing notices
+
+`vercel.json` schedules `GET /api/cron/billing-notices` daily at 21:00 UTC. The Cloud VM does not start that job, and local `pnpm dev` does not either. `CRON_SECRET` is not required for Vitest, Playwright, or ordinary local development. Billing-notice tests use the memory mailer and do not call Resend. Do not set a production `CRON_SECRET` in this environment.
+
 ## Runtime requirements
 
 | Tool       | Requirement                                                                                                                                                                                                                                                                                            |

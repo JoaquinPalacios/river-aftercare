@@ -122,6 +122,8 @@ model Clinic {
   sites                    ClinicSite[]
   sourceAccountSplits      ClinicAccountSplitPreparation[] @relation("AccountSplitSource")
   destinationAccountSplits ClinicAccountSplitPreparation[] @relation("AccountSplitDestination")
+  billingPriceChanges      BillingPriceChange[]
+  billingNoticeDeliveries  BillingNoticeDelivery[]
   createdAt                DateTime                        @default(now())
   updatedAt                DateTime                        @updatedAt
 }
@@ -823,6 +825,29 @@ enum StripeEventProcessingStatus {
   FAILED
 }
 
+/// A future price change for one existing subscription item.
+/// The application does not insert these rows and does not change Stripe.
+enum BillingPriceChangeStatus {
+  SCHEDULED
+  CANCELLED
+  SUPERSEDED
+}
+
+/// One outbound commercial notice. Not a customer inbox item.
+enum BillingNoticeKind {
+  ANNUAL_RENEWAL_REMINDER
+  PRICE_INCREASE_INITIAL
+  PRICE_INCREASE_REMINDER
+}
+
+/// PENDING is a claimed attempt. SENT is a confirmed provider acceptance.
+/// FAILED includes timeouts. A timeout is not SENT.
+enum BillingNoticeDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 /// One current Practice → Essential preparation per clinic.
 /// This is not the Stripe schedule. Scheduling stays on ClinicEntitlement.
 enum DowngradePreparationStatus {
@@ -1259,5 +1284,54 @@ model StripeEventReceipt {
 
   @@index([eventType, receivedAt])
   @@index([processingStatus])
+  @@index([clinicId])
+}
+
+/// Dormant schedule for a future increase on an existing subscription item.
+/// No application path inserts a row. Creating one is a later integration.
+/// It does not change Stripe Prices, subscription items, or invoices.
+model BillingPriceChange {
+  id                       String                   @id @default(cuid())
+  clinicId                 String
+  stripeSubscriptionId     String
+  stripeSubscriptionItemId String
+  /// Customer-facing name of the affected plan or paid allowance.
+  affectedLabel            String
+  billingInterval          BillingInterval
+  /// AUD cents. Not a Stripe secret and not a card number.
+  currentAmountCents       Int
+  newAmountCents           Int
+  effectiveAt              DateTime
+  status                   BillingPriceChangeStatus
+  /// Customer Commercial Terms govern. The standard notice must not be sent.
+  individuallyAgreed       Boolean                  @default(false)
+  clinic                   Clinic                   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+
+  @@index([clinicId, status])
+  @@index([status, effectiveAt])
+}
+
+/// Idempotency and audit record for one commercial email attempt.
+/// The provider payload, recipient address, and message body are not stored.
+model BillingNoticeDelivery {
+  id                   String                      @id @default(cuid())
+  clinicId             String
+  stripeSubscriptionId String
+  kind                 BillingNoticeKind
+  /// Stable per renewal period or price-change id. Not an email address.
+  eventKey             String
+  status               BillingNoticeDeliveryStatus @default(PENDING)
+  attemptCount         Int                         @default(0)
+  lastAttemptAt        DateTime?
+  sentAt               DateTime?
+  failureCode          String?
+  clinic               Clinic                      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  @@unique([clinicId, stripeSubscriptionId, kind, eventKey], map: "BillingNoticeDelivery_event_key")
+  @@index([status, lastAttemptAt])
   @@index([clinicId])
 }

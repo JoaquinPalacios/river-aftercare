@@ -76,9 +76,11 @@ function validatedMessage(
 async function sendWithResend({
   apiKey,
   message,
+  idempotencyKey,
 }: {
   apiKey: string;
   message: TransactionalEmailMessage;
+  idempotencyKey?: string;
 }): Promise<TransactionalEmailSendResult> {
   if (!apiKey) {
     return { ok: false, code: "not_configured" };
@@ -106,7 +108,10 @@ async function sendWithResend({
     }
 
     const timed = await Promise.race([
-      resend.emails.send(payload),
+      resend.emails.send(
+        payload,
+        idempotencyKey ? { idempotencyKey } : undefined
+      ),
       new Promise<never>((_resolve, reject) => {
         timer = setTimeout(() => {
           reject(new Error("timeout"));
@@ -128,7 +133,8 @@ async function sendWithResend({
 
 export async function sendTransactionalEmail(
   message: TransactionalEmailMessage,
-  transport: TransactionalEmailTransport
+  transport: TransactionalEmailTransport,
+  options?: { idempotencyKey?: string }
 ): Promise<TransactionalEmailSendResult> {
   const safeMessage = validatedMessage(message);
   if (!safeMessage) {
@@ -149,6 +155,7 @@ export async function sendTransactionalEmail(
     return await sendWithResend({
       apiKey: transport.apiKey,
       message: safeMessage,
+      idempotencyKey: options?.idempotencyKey,
     });
   } catch {
     return { ok: false, code: "delivery_failed" };

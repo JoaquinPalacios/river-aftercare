@@ -1106,4 +1106,22 @@ Ship **operator-assisted Stripe Billing**, not self-service SaaS checkout.
 - Implement in phases A→G with the production schema gate on Phase A/F, test-mode until legal/GST/invoice-template approval, then live webhook on `app.riveraftercare.com.au`.
 
 This is the architecture to approve before any package install, migration, or Dashboard catalogue creation.
+
+---
+
+## Q. Subscription notices
+
+Ordinary monthly renewals stay on Stripe’s billing email. River does not send an extra reminder before each monthly charge.
+
+An active annual subscription with a reliable period end, no cancellation at period end, and no competing downgrade or capacity schedule gets one transactional reminder about 30 days before that period ends. The clinic administrator Overview shows the same reminder during those 30 days. The Billing page shows the next renewal date whenever the persisted period end and paid-through instant match. A missing or inconsistent date is omitted. The date is not reconstructed from signup or from the billing interval.
+
+The recipient is `ClinicBillingProfile.billingEmail` only. Reply-To is `AUTH_EMAIL_REPLY_TO`. From is `AUTH_EMAIL_FROM`. The message has no patient or clinical content and no Stripe secret.
+
+Delivery is `GET /api/cron/billing-notices`, scheduled in `vercel.json` at 21:00 UTC. The route accepts the staff host and the marketing host because Vercel Cron calls the deployment domain, and it refuses a patient host. `Authorization: Bearer <CRON_SECRET>` is required. `BillingNoticeDelivery` is the claim and audit row: one row per clinic, subscription, kind, and event. The annual event key is the period start, so a later correction of the period end in the same period does not send a second reminder. A new period is a new event. `PENDING` is a claimed attempt. `SENT` is recorded only after the provider accepts the message. A timeout or `delivery_failed` stays `FAILED` with `sentAt` null. A fresh `PENDING` claim is not retried for 15 minutes. Resend receives a stable idempotency key. The memory transport does not call Resend.
+
+`BillingPriceChange` can represent a future increase on one subscription item: old amount, new amount, interval, effective time, status, and whether the price was individually agreed. Nothing in the application inserts that row, and nothing in this flow changes a Stripe subscription item, Price, or invoice. Notices and the price-increase emails stay inactive until a valid `SCHEDULED` row exists. A valid row is not individually agreed, matches the current subscription and interval, increases the amount, is at least 30 days after it was created, is still in the future, and is not earlier than the reliable period end. Cancellation, a Practice to Essential schedule, or a scheduled capacity change suppresses it. Two `SCHEDULED` rows for one subscription are ambiguous: no price notice and no price email. A failed, pending, or late initial notice does not count. `priceIncreaseMayTakeEffect` is true only after a timely `PRICE_INCREASE_INITIAL` delivery is `SENT`. A future job that applies an increase must call that function first and must not apply the increase when it is false. The seven-day reminder does not satisfy the 30-day gate. When the increase and the annual renewal fall on the same Sydney calendar date, only the price-increase communication is sent.
+
+Overview priority is payment issue, scheduled cancellation, price increase, then annual renewal. One notice is shown. The Billing page keeps the price-change detail until the schedule is no longer valid. Notices are not dismissible. Commercial amounts and payment-issue copy are visible to the account administrator and to operator support. Ordinary clinic staff do not see them. Public patient pages do not load them. A Group notice belongs to the Clinic account, once.
+
+The local Cloud VM does not run the cron. Production delivery also needs `CRON_SECRET`, `AUTH_EMAIL_FROM`, and `AUTH_EMAIL_REPLY_TO` on Vercel. This change does not apply the migration to production and does not call live Stripe or Resend.
 )
