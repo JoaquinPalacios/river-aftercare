@@ -222,6 +222,13 @@ describe("canonical template lifecycle contracts", () => {
     );
     expect(metadata).not.toHaveProperty("isSample");
     expect(
+      parseCanonicalInput(updateCanonicalTemplateMetadataSchema, {
+        actorUserId: OPERATOR_ID,
+        templateId: "template",
+        classification: "SAMPLE",
+      }).classification
+    ).toBe("SAMPLE");
+    expect(
       canonicalContentSignature([
         {
           ...intro,
@@ -916,7 +923,7 @@ describeDb("canonical template lifecycle", () => {
     ).toBe(true);
   });
 
-  it("leaves the extraction sample untouched and refuses sample lifecycle writes", async () => {
+  it("leaves the extraction sample untouched when its slug is reserved", async () => {
     const prisma = getPrisma();
     const before = await prisma.guideTemplate.findUnique({
       where: { slug: "extraction" },
@@ -936,94 +943,9 @@ describeDb("canonical template lifecycle", () => {
         title: "Tooth Extraction",
         slug: "extraction",
         serviceCategory: "DENTAL",
+        classification: "SAMPLE",
       }),
       "invalid"
-    );
-
-    const sample = await prisma.guideTemplate.create({
-      data: {
-        slug: "ctl-sample",
-        title: "Sample fixture",
-        serviceCategory: "DENTAL",
-        isActive: true,
-        isSample: true,
-        revisions: {
-          create: {
-            version: 1,
-            status: GuideRevisionStatus.DRAFT,
-            sections: {
-              create: {
-                key: "introduction",
-                kind: "INTRODUCTION",
-                title: "Keep",
-                body: "Sample body stays.",
-                sortOrder: 1,
-              },
-            },
-          },
-        },
-      },
-      include: { revisions: true },
-    });
-    const revisionId = sample.revisions[0]?.id ?? "";
-    await expectCanonicalCode(
-      updateCanonicalTemplateMetadata({
-        actorUserId: OPERATOR_ID,
-        templateId: sample.id,
-        title: "Converted",
-      }),
-      "sample"
-    );
-    await expectCanonicalCode(
-      createCanonicalTemplateDraft({
-        templateId: sample.id,
-        actorUserId: OPERATOR_ID,
-      }),
-      "sample"
-    );
-    await expectCanonicalCode(
-      saveCanonicalTemplateDraft({
-        templateId: sample.id,
-        revisionId,
-        actorUserId: OPERATOR_ID,
-        sections: [intro],
-      }),
-      "sample"
-    );
-    await expectCanonicalCode(
-      publishCanonicalTemplateRevision({
-        templateId: sample.id,
-        revisionId,
-        actorUserId: OPERATOR_ID,
-        expectedVersion: 1,
-      }),
-      "sample"
-    );
-    await expectCanonicalCode(
-      deactivateCanonicalTemplate({
-        templateId: sample.id,
-        actorUserId: OPERATOR_ID,
-      }),
-      "sample"
-    );
-    await expectCanonicalCode(
-      abandonCanonicalTemplateDraft({
-        templateId: sample.id,
-        revisionId,
-        actorUserId: OPERATOR_ID,
-      }),
-      "sample"
-    );
-
-    const afterSample = await prisma.guideTemplate.findUniqueOrThrow({
-      where: { id: sample.id },
-      include: {
-        revisions: { include: { sections: true } },
-      },
-    });
-    expect(afterSample.isSample).toBe(true);
-    expect(afterSample.revisions[0]?.sections[0]?.body).toBe(
-      "Sample body stays."
     );
 
     const after = await prisma.guideTemplate.findUnique({

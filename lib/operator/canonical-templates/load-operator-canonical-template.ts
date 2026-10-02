@@ -139,6 +139,7 @@ export interface OperatorTemplateDetail {
   serviceCategoryLabel: string;
   isActive: boolean;
   isSample: boolean;
+  clinicGuideCount: number;
   metadataLocked: boolean;
   deactivatedAtLabel: string | null;
   deactivatedByLabel: string | null;
@@ -164,6 +165,7 @@ export async function loadOperatorCanonicalTemplate(
       serviceCategory: true,
       isActive: true,
       isSample: true,
+      _count: { select: { practiceGuides: true } },
       deactivatedAt: true,
       deactivatedBy: userSelect,
       revisions: {
@@ -202,6 +204,7 @@ export async function loadOperatorCanonicalTemplate(
       template.serviceCategory,
     isActive: template.isActive,
     isSample: template.isSample,
+    clinicGuideCount: template._count.practiceGuides,
     metadataLocked: latestPublished != null,
     deactivatedAtLabel: formatOperatorTimestamp(template.deactivatedAt),
     deactivatedByLabel: personLabel(template.deactivatedBy),

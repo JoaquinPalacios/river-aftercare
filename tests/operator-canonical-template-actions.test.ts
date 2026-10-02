@@ -38,6 +38,7 @@ import OperatorTemplateDetailPage from "@/app/(staff)/(operator)/operator/templa
 import OperatorTemplateDraftPage from "@/app/(staff)/(operator)/operator/templates/[templateId]/draft/page";
 import { canonicalEditorContentSignature } from "@/lib/aftercare/canonical-editor-content";
 import { createPracticeGuideFromTemplate } from "@/lib/clinic-portal/create-practice-guide";
+import { withSampleCategoryLock } from "@/tests/active-sample-slot";
 import { listCanonicalGuideTemplates } from "@/lib/clinic-portal/list-canonical-templates";
 import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
 import { assignPrimarySiteServiceCategories } from "@/lib/clinics/site-service-categories";
@@ -584,20 +585,49 @@ describeDb("operator canonical template actions", () => {
       where: { slug: "extraction" },
       include: { revisions: true },
     });
-    const sampleResult = await deactivateCanonicalTemplateAction(
-      {},
-      form({ templateId: sampleBefore.id })
-    );
-    expect(sampleResult.error).toMatch(/sample/i);
-    const sampleAfter = await getPrisma().guideTemplate.findUniqueOrThrow({
-      where: { slug: "extraction" },
-      include: { revisions: true },
+    await withSampleCategoryLock(["DENTAL"], async () => {
+      try {
+        if (sampleBefore.isActive) {
+          await redirectUrl(
+            deactivateCanonicalTemplateAction(
+              {},
+              form({ templateId: sampleBefore.id })
+            )
+          );
+          const inactive = await getPrisma().guideTemplate.findUniqueOrThrow({
+            where: { id: sampleBefore.id },
+          });
+          expect(inactive.isActive).toBe(false);
+          expect(inactive.isSample).toBe(true);
+          await redirectUrl(
+            reactivateCanonicalTemplateAction(
+              {},
+              form({ templateId: sampleBefore.id })
+            )
+          );
+        }
+        const sampleAfter = await getPrisma().guideTemplate.findUniqueOrThrow({
+          where: { slug: "extraction" },
+          include: { revisions: true },
+        });
+        expect(sampleAfter.isSample).toBe(true);
+        expect(sampleAfter.isActive).toBe(sampleBefore.isActive);
+        expect(
+          sampleAfter.revisions.map((revision) => revision.reviewerName)
+        ).toEqual(
+          sampleBefore.revisions.map((revision) => revision.reviewerName)
+        );
+      } finally {
+        await getPrisma().guideTemplate.update({
+          where: { id: sampleBefore.id },
+          data: {
+            isActive: sampleBefore.isActive,
+            deactivatedAt: sampleBefore.deactivatedAt,
+            deactivatedByUserId: sampleBefore.deactivatedByUserId,
+          },
+        });
+      }
     });
-    expect(sampleAfter.isSample).toBe(true);
-    expect(sampleAfter.isActive).toBe(sampleBefore.isActive);
-    expect(
-      sampleAfter.revisions.map((revision) => revision.reviewerName)
-    ).toEqual(sampleBefore.revisions.map((revision) => revision.reviewerName));
   });
 
   it("removes an unpublished template when its only draft is abandoned", async () => {

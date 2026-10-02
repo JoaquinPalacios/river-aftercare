@@ -200,16 +200,12 @@ export async function queryOperatorCanonicalTemplates(
   };
 }
 
-/** Draft editor while a production draft is open; otherwise the detail page. */
+/** Content workspace when a draft or published revision exists. */
 export function operatorTemplateHref(template: {
   id: string;
-  isSample: boolean;
   latestPublishedVersion: number | null;
   draft: { version: number } | null;
 }): string {
-  if (template.isSample) {
-    return `/operator/templates/${template.id}`;
-  }
   if (template.draft || template.latestPublishedVersion !== null) {
     return `/operator/templates/${template.id}/draft`;
   }

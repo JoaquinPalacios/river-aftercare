@@ -1,8 +1,14 @@
 import "server-only";
 
-import { GuideRevisionStatus, type Prisma } from "@prisma/client";
+import {
+  GuideRevisionStatus,
+  type Prisma,
+  type ServiceCategory,
+} from "@prisma/client";
 
+import { serviceCategoryLabel } from "@/lib/aftercare/service-category";
 import { abandonCanonicalTemplateDraftInTransaction } from "@/lib/canonical-templates/abandon-canonical-template-draft";
+import { activeSampleConflictMessage } from "@/lib/canonical-templates/classification";
 import {
   canonicalTemplateTransactionOptions,
   countPublishedCanonicalRevisions,
@@ -15,6 +21,7 @@ import {
   isCanonicalTemplateError,
 } from "@/lib/canonical-templates/errors";
 import { lockCanonicalTemplate } from "@/lib/canonical-templates/locks";
+import { lockCanonicalSampleCategory } from "@/lib/canonical-templates/sample-slot";
 import {
   assertCanonicalTemplateRevisionPublishable,
   publishCanonicalTemplateRevisionInTransaction,
@@ -189,12 +196,6 @@ export async function deactivateCanonicalTemplates(input: {
     await requireCanonicalActor(tx, input.actorUserId);
     await preflight(tx, templateIds, async (templateId) => {
       const template = await loadCanonicalTemplate(tx, templateId);
-      if (template.isSample) {
-        throw new CanonicalTemplateError(
-          "Sample templates are outside the production template lifecycle.",
-          "sample"
-        );
-      }
       if (!template.isActive) {
         throw new CanonicalTemplateError(
           "This template is already inactive.",
@@ -227,12 +228,6 @@ export async function reactivateCanonicalTemplates(input: {
     await requireCanonicalActor(tx, input.actorUserId);
     await preflight(tx, templateIds, async (templateId) => {
       const template = await loadCanonicalTemplate(tx, templateId);
-      if (template.isSample) {
-        throw new CanonicalTemplateError(
-          "Sample templates are outside the production template lifecycle.",
-          "sample"
-        );
-      }
       if (template.isActive) {
         throw new CanonicalTemplateError(
           "This template is already active.",
@@ -240,6 +235,7 @@ export async function reactivateCanonicalTemplates(input: {
         );
       }
     });
+    await assertBulkSampleReactivation(tx, templateIds);
     for (const templateId of templateIds) {
       await applyOne(tx, templateId, async () => {
         await reactivateCanonicalTemplateInTransaction(tx, {
@@ -253,7 +249,7 @@ export async function reactivateCanonicalTemplates(input: {
 }
 
 /**
- * Deletes never-published production templates through the abandon service.
+ * Deletes never-published templates through the abandon service.
  * A template that has ever been published is rejected before any write.
  */
 export async function deleteNeverPublishedCanonicalTemplates(input: {
@@ -302,12 +298,6 @@ async function assertNeverPublishedDeletable(
   templateId: string
 ): Promise<string> {
   const template = await loadCanonicalTemplate(tx, templateId);
-  if (template.isSample) {
-    throw new CanonicalTemplateError(
-      "Sample templates are outside the production template lifecycle.",
-      "sample"
-    );
-  }
   const published = await countPublishedCanonicalRevisions(tx, template.id);
   if (published > 0) {
     throw new CanonicalTemplateError(
@@ -349,4 +339,69 @@ async function assertNeverPublishedDeletable(
     );
   }
   return draft.id;
+}
+
+/**
+ * Fails the batch when reactivation would leave two active samples in one
+ * service category. Template locks are already held. Category locks are taken
+ * in sorted order before the occupancy check.
+ */
+async function assertBulkSampleReactivation(
+  tx: Tx,
+  templateIds: readonly string[]
+): Promise<void> {
+  const templates = await tx.guideTemplate.findMany({
+    where: { id: { in: [...templateIds] } },
+    select: {
+      id: true,
+      title: true,
+      isSample: true,
+      isActive: true,
+      serviceCategory: true,
+    },
+  });
+  const samples = templates.filter((template) => template.isSample);
+  const categories = [
+    ...new Set(samples.map((template) => template.serviceCategory)),
+  ].sort();
+  for (const category of categories) {
+    await lockCanonicalSampleCategory(tx, category);
+  }
+
+  const failures: Failure[] = [];
+  for (const category of categories) {
+    const selected = samples.filter(
+      (template) => template.serviceCategory === category
+    );
+    const activating = selected.filter((template) => !template.isActive);
+    if (activating.length === 0) {
+      continue;
+    }
+    const occupant = await tx.guideTemplate.findFirst({
+      where: {
+        serviceCategory: category,
+        isSample: true,
+        isActive: true,
+        id: { notIn: selected.map((template) => template.id) },
+      },
+      select: { title: true },
+    });
+    if (!occupant && activating.length < 2) {
+      continue;
+    }
+    const label = serviceCategoryLabel(category as ServiceCategory) ?? category;
+    for (const template of activating) {
+      const other =
+        occupant?.title ??
+        activating.find((item) => item.id !== template.id)?.title ??
+        "another sample";
+      failures.push({
+        title: template.title.trim() || "A selected template",
+        message: activeSampleConflictMessage(label, other),
+      });
+    }
+  }
+  if (failures.length > 0) {
+    throw new BulkCanonicalTemplateError(nothingChanged(failures), failures);
+  }
 }

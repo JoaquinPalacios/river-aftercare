@@ -56,6 +56,7 @@ function row(
   return {
     slug: overrides.id,
     href: `/operator/templates/${overrides.id}/draft`,
+    serviceCategory: "DENTAL",
     serviceCategoryLabel: "Dental",
     isActive: true,
     isSample: false,

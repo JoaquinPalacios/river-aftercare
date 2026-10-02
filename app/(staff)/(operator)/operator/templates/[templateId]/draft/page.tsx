@@ -32,7 +32,7 @@ export default async function OperatorTemplateDraftPage({
   const latestPublished = template.revisions.find(
     (revision) => revision.isLatestPublished
   );
-  const workspace = !template.isSample && (draft !== null || latestPublished);
+  const workspace = draft !== null || latestPublished !== undefined;
 
   return (
     <div className="canonicalDraftPage">
@@ -66,13 +66,7 @@ export default async function OperatorTemplateDraftPage({
           {notice}
         </p>
       ) : null}
-      {template.isSample ? (
-        <p className="rounded-xl border border-staff-line bg-staff-panel px-4 py-3 text-sm">
-          Sample templates stay outside the production draft and publish
-          workflow.
-        </p>
-      ) : null}
-      {draft && !template.isSample ? (
+      {draft ? (
         <CanonicalDraftEditor
           templateId={template.id}
           templateTitle={template.title}
@@ -83,7 +77,7 @@ export default async function OperatorTemplateDraftPage({
           isActive={template.isActive}
           neverPublished={template.latestPublishedVersion === null}
         />
-      ) : latestPublished && !template.isSample ? (
+      ) : latestPublished ? (
         <CanonicalDraftEditor
           mode="published"
           templateId={template.id}

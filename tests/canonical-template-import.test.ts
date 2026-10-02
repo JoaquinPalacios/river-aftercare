@@ -549,6 +549,7 @@ describeDb("canonical template draft import", () => {
         title: "Synthetic sample",
         slug: "cti-sample",
         serviceCategory: "DENTAL",
+        isActive: false,
         isSample: true,
         revisions: {
           create: {

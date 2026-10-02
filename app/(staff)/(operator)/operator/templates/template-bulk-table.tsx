@@ -56,6 +56,7 @@ export interface TemplateBulkTableRow {
   title: string;
   slug: string;
   href: string;
+  serviceCategory: string;
   serviceCategoryLabel: string;
   isActive: boolean;
   isSample: boolean;

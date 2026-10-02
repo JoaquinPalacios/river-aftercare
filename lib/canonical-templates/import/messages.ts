@@ -1,5 +1,5 @@
 export const IMPORT_SAMPLE_REFUSAL =
-  "Sample templates cannot be imported. The demo bootstrap remains the only writer of the extraction sample.";
+  "Sample templates cannot be imported. Edit them in Operator Templates. Import does not overwrite a sample.";
 
 export function unsupportedImportSchemaVersionMessage(value: unknown): string {
   const shown = value === undefined ? "missing" : JSON.stringify(value);

@@ -43,7 +43,9 @@ describe("template metadata unsaved changes", () => {
           title="Shoulder mobility"
           slug="shoulder-mobility"
           serviceCategory="PHYSIOTHERAPY"
+          isSample={false}
           metadataLocked={false}
+          activeSamples={[]}
         />
       );
     });
@@ -148,7 +150,9 @@ describe("template metadata unsaved changes", () => {
           title="Shoulder mobility"
           slug="shoulder-mobility"
           serviceCategory="PHYSIOTHERAPY"
+          isSample={false}
           metadataLocked
+          activeSamples={[]}
         />
       );
     });
@@ -157,8 +161,9 @@ describe("template metadata unsaved changes", () => {
     expect(container.querySelector("#template-title")).toBeTruthy();
     expect(container.textContent).toContain("shoulder-mobility");
     expect(container.textContent).toContain("Physiotherapy");
+    expect(container.textContent).toContain("Production");
     expect(container.textContent).toContain(
-      "Slug and service category stay fixed after the first publication."
+      "Slug, service category, and classification stay fixed after the first publication."
     );
   });
 });

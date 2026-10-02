@@ -92,17 +92,6 @@ export async function loadCanonicalTemplate(
   return template;
 }
 
-export function assertProductionCanonicalTemplate(template: {
-  isSample: boolean;
-}): void {
-  if (template.isSample) {
-    throw new CanonicalTemplateError(
-      "Sample templates are outside the production template lifecycle.",
-      "sample"
-    );
-  }
-}
-
 export function assertCanonicalDraft(revision: {
   status: GuideRevisionStatus;
 }): void {
@@ -150,6 +139,12 @@ export function throwCanonicalUniqueConflict(error: unknown): never {
   }
   if (target.includes("slug")) {
     throw new CanonicalTemplateError("That slug is already used.", "conflict");
+  }
+  if (target.includes("one_active_sample")) {
+    throw new CanonicalTemplateError(
+      "That service category already has an active sample.",
+      "conflict"
+    );
   }
   if (target.includes("version")) {
     throw new CanonicalTemplateError(

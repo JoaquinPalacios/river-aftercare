@@ -1,7 +1,7 @@
 import "server-only";
 
+import { isSampleClassification } from "@/lib/canonical-templates/classification";
 import {
-  assertProductionCanonicalTemplate,
   countPublishedCanonicalRevisions,
   loadCanonicalTemplate,
   requireCanonicalActor,
@@ -13,11 +13,13 @@ import {
   parseCanonicalInput,
   updateCanonicalTemplateMetadataSchema,
 } from "@/lib/canonical-templates/schemas";
+import { assertActiveSampleAvailable } from "@/lib/canonical-templates/sample-slot";
 
 /**
- * Title stays editable after publication. Slug and service category can be
- * corrected only before the first published revision. isSample is not an
- * input and is never written here.
+ * Title stays editable after publication. Slug, service category, and
+ * Production/Sample classification can change only before the first published
+ * revision. An active sample still has to be the only active sample in its
+ * service category.
  */
 export async function updateCanonicalTemplateMetadata(input: {
   actorUserId: string;
@@ -25,6 +27,7 @@ export async function updateCanonicalTemplateMetadata(input: {
   title?: string;
   slug?: string;
   serviceCategory?: string;
+  classification?: "PRODUCTION" | "SAMPLE";
 }): Promise<{ templateId: string }> {
   const values = parseCanonicalInput(
     updateCanonicalTemplateMetadataSchema,
@@ -37,7 +40,11 @@ export async function updateCanonicalTemplateMetadata(input: {
       async (tx) => {
         await requireCanonicalActor(tx, values.actorUserId);
         const template = await loadCanonicalTemplate(tx, values.templateId);
-        assertProductionCanonicalTemplate(template);
+        const nextIsSample =
+          values.classification === undefined
+            ? template.isSample
+            : isSampleClassification(values.classification);
+        const nextCategory = values.serviceCategory ?? template.serviceCategory;
 
         const published = await countPublishedCanonicalRevisions(
           tx,
@@ -59,6 +66,23 @@ export async function updateCanonicalTemplateMetadata(input: {
               "immutable"
             );
           }
+          if (nextIsSample !== template.isSample) {
+            throw new CanonicalTemplateError(
+              "The classification cannot change after the first published revision.",
+              "immutable"
+            );
+          }
+        }
+
+        const entersSampleSlot =
+          nextIsSample &&
+          template.isActive &&
+          (!template.isSample || nextCategory !== template.serviceCategory);
+        if (entersSampleSlot) {
+          await assertActiveSampleAvailable(tx, {
+            serviceCategory: nextCategory,
+            exceptTemplateId: template.id,
+          });
         }
 
         await tx.guideTemplate.update({
@@ -67,6 +91,9 @@ export async function updateCanonicalTemplateMetadata(input: {
             title: values.title,
             slug: values.slug,
             serviceCategory: values.serviceCategory,
+            ...(values.classification === undefined
+              ? {}
+              : { isSample: nextIsSample }),
           },
         });
 

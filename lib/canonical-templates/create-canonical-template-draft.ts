@@ -3,7 +3,6 @@ import "server-only";
 import { GuideRevisionStatus, type Prisma } from "@prisma/client";
 
 import {
-  assertProductionCanonicalTemplate,
   loadCanonicalTemplate,
   requireCanonicalActor,
   runLockedCanonicalTemplateTransaction,
@@ -34,7 +33,6 @@ export async function createCanonicalTemplateDraftInTransaction(
 ): Promise<{ revisionId: string; version: number }> {
   await requireCanonicalActor(tx, input.actorUserId);
   const template = await loadCanonicalTemplate(tx, input.templateId);
-  assertProductionCanonicalTemplate(template);
 
   const openDraft = await tx.guideTemplateRevision.findFirst({
     where: {

@@ -440,7 +440,7 @@ describeDb("canonical template patient preview", () => {
     ).rejects.toMatchObject({ digest: "NEXT_HTTP_ERROR_FALLBACK;404" });
   });
 
-  it("keeps sample lifecycle actions unavailable and still allows preview", async () => {
+  it("edits a published sample through the normal workflow and still allows preview", async () => {
     const sample = await getPrisma().guideTemplate.findUnique({
       where: { slug: "extraction" },
       select: { id: true, isSample: true },
@@ -455,9 +455,13 @@ describeDb("canonical template patient preview", () => {
     expect(html).toContain("Sample");
     expect(html).toContain("Preview patient guide");
     expect(html).toContain("River Aftercare Demo Clinic");
-    expect(html).not.toContain("Deactivate");
-    expect(html).not.toContain("Reactivate");
+    expect(html).toContain("View content");
+    expect(html).toContain('data-template-edit="create-draft"');
+    expect(html).toContain("Deactivate");
+    expect(html).toContain(
+      "Sample templates use the same editing and publishing workflow"
+    );
+    expect(html).not.toContain("cannot be converted or published");
     expect(html).not.toContain("Delete template");
-    expect(html).not.toContain('data-template-edit="create-draft"');
   });
 });

@@ -11,6 +11,7 @@ import {
 import { DEMO_AFTERCARE_TENANT_SLUG } from "@/lib/aftercare/demo-tenant";
 import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
 import { assignPrimarySiteServiceCategories } from "@/lib/clinics/site-service-categories";
+import { withTemporaryClinicCategory } from "@/tests/active-sample-slot";
 import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practice-guide";
 import {
   createCustomPracticeGuide,
@@ -193,62 +194,77 @@ describe("first-clinic clinical governance", () => {
     }
     await seedActors();
     const demoClinicId = await resolveDemoClinicId();
+    await assignPrimarySiteServiceCategories(db(), CLINIC_ID, [
+      "DENTAL",
+      "COSMETIC_AESTHETIC",
+    ]);
 
-    await db().guideTemplate.create({
-      data: {
-        id: SAMPLE_ID,
-        slug: `${SLUG}sample-reviewed`,
-        title: "Sample with review fields",
-        serviceCategory: "DENTAL",
-        isActive: true,
-        isSample: true,
-        revisions: {
-          create: {
-            version: 1,
-            status: GuideRevisionStatus.PUBLISHED,
-            publishedAt: new Date("2026-09-01"),
-            reviewedAt: new Date("2026-09-01"),
-            reviewerName: "Named clinical reviewer",
-            reviewRecordedByUserId: OPERATOR_ID,
-            sections: {
-              create: {
-                key: "introduction",
-                kind: "INTRODUCTION",
-                title: "Sample",
-                body: "Sample body.",
-                sortOrder: 1,
+    await withTemporaryClinicCategory(
+      demoClinicId,
+      "COSMETIC_AESTHETIC",
+      async () => {
+        try {
+          await db().guideTemplate.create({
+            data: {
+              id: SAMPLE_ID,
+              slug: `${SLUG}sample-reviewed`,
+              title: "Sample with review fields",
+              serviceCategory: "COSMETIC_AESTHETIC",
+              isActive: true,
+              isSample: true,
+              revisions: {
+                create: {
+                  version: 1,
+                  status: GuideRevisionStatus.PUBLISHED,
+                  publishedAt: new Date("2026-09-01"),
+                  reviewedAt: new Date("2026-09-01"),
+                  reviewerName: "Named clinical reviewer",
+                  reviewRecordedByUserId: OPERATOR_ID,
+                  sections: {
+                    create: {
+                      key: "introduction",
+                      kind: "INTRODUCTION",
+                      title: "Sample",
+                      body: "Sample body.",
+                      sortOrder: 1,
+                    },
+                  },
+                },
               },
             },
-          },
-        },
-      },
-    });
+          });
 
-    const demo = await listCanonicalGuideTemplates(demoClinicId);
-    const normal = await listCanonicalGuideTemplates(CLINIC_ID);
-    expect(demo.templates.some((template) => template.id === SAMPLE_ID)).toBe(
-      true
-    );
-    expect(
-      demo.templates.find((template) => template.id === SAMPLE_ID)?.availability
-    ).toBe("sample");
-    expect(normal.templates.some((template) => template.id === SAMPLE_ID)).toBe(
-      false
-    );
+          const demo = await listCanonicalGuideTemplates(demoClinicId);
+          const normal = await listCanonicalGuideTemplates(CLINIC_ID);
+          expect(
+            demo.templates.some((template) => template.id === SAMPLE_ID)
+          ).toBe(true);
+          expect(
+            demo.templates.find((template) => template.id === SAMPLE_ID)
+              ?.availability
+          ).toBe("sample");
+          expect(
+            normal.templates.some((template) => template.id === SAMPLE_ID)
+          ).toBe(false);
 
-    await expect(
-      createPracticeGuideFromTemplate({
-        clinicId: CLINIC_ID,
-        actorUserId: ADMIN_ID,
-        values: { templateId: SAMPLE_ID },
-      })
-    ).rejects.toSatisfy(
-      (error: unknown) =>
-        error instanceof ClinicPortalError && error.code === "not_found"
+          await expect(
+            createPracticeGuideFromTemplate({
+              clinicId: CLINIC_ID,
+              actorUserId: ADMIN_ID,
+              values: { templateId: SAMPLE_ID },
+            })
+          ).rejects.toSatisfy(
+            (error: unknown) =>
+              error instanceof ClinicPortalError && error.code === "not_found"
+          );
+          expect(
+            await db().practiceGuide.count({ where: { clinicId: CLINIC_ID } })
+          ).toBe(0);
+        } finally {
+          await db().guideTemplate.deleteMany({ where: { id: SAMPLE_ID } });
+        }
+      }
     );
-    expect(
-      await db().practiceGuide.count({ where: { clinicId: CLINIC_ID } })
-    ).toBe(0);
   });
 
   it("pins the latest published revision even when older review metadata differs", async (ctx) => {

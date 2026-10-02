@@ -2,6 +2,7 @@ import "server-only";
 
 import { GuideRevisionStatus, type Prisma } from "@prisma/client";
 
+import { isSampleClassification } from "@/lib/canonical-templates/classification";
 import {
   canonicalTemplateTransactionOptions,
   requireCanonicalActor,
@@ -11,6 +12,7 @@ import {
   createCanonicalTemplateSchema,
   parseCanonicalInput,
 } from "@/lib/canonical-templates/schemas";
+import { assertActiveSampleAvailable } from "@/lib/canonical-templates/sample-slot";
 import { getPrisma } from "@/lib/prisma";
 
 export async function createCanonicalTemplateInTransaction(
@@ -20,16 +22,24 @@ export async function createCanonicalTemplateInTransaction(
     title: string;
     slug: string;
     serviceCategory: Prisma.GuideTemplateCreateInput["serviceCategory"];
+    classification?: "PRODUCTION" | "SAMPLE";
   }
 ): Promise<{ templateId: string; revisionId: string; version: number }> {
   await requireCanonicalActor(tx, input.actorUserId);
+  const classification = input.classification ?? "PRODUCTION";
+  const isSample = isSampleClassification(classification);
+  if (isSample) {
+    await assertActiveSampleAvailable(tx, {
+      serviceCategory: input.serviceCategory,
+    });
+  }
   const template = await tx.guideTemplate.create({
     data: {
       title: input.title,
       slug: input.slug,
       serviceCategory: input.serviceCategory,
       isActive: true,
-      isSample: false,
+      isSample,
       revisions: {
         create: {
           version: 1,
@@ -55,15 +65,16 @@ export async function createCanonicalTemplateInTransaction(
 }
 
 /**
- * Creates a production canonical template and its first draft revision.
- * Sample templates cannot be created here. The demo bootstrap remains the
- * exceptional writer for the extraction sample.
+ * Creates a canonical template and its first draft revision.
+ * Production is the default classification. A sample is created only when
+ * that service category has no active sample.
  */
 export async function createCanonicalTemplate(input: {
   actorUserId: string;
   title: string;
   slug: string;
   serviceCategory: string;
+  classification?: "PRODUCTION" | "SAMPLE";
 }): Promise<{ templateId: string; revisionId: string; version: number }> {
   const values = parseCanonicalInput(createCanonicalTemplateSchema, input);
 

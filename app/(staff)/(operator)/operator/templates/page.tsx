@@ -73,8 +73,9 @@ export default async function OperatorTemplatesPage({
             Templates
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-staff-muted">
-            Production canonical templates for eligible clinics. Save keeps a
-            draft. Publish releases it. The sample template stays demo-only.
+            Canonical templates. Save keeps a draft. Publish releases it.
+            Samples stay out of the production library, with one active sample
+            in each service category.
           </p>
         </div>
         <Link

@@ -14,17 +14,28 @@ import {
   SERVICE_CATEGORIES,
   SERVICE_CATEGORY_LABELS,
 } from "@/lib/aftercare/service-category";
+import type { CanonicalTemplateClassification } from "@/lib/canonical-templates/classification";
 import { isReservedDemoCanonicalSlug } from "@/lib/canonical-templates/constants";
 import { suggestGuideSlug } from "@/lib/clinics/slug-suggestion";
+import {
+  activeSampleForCategory,
+  TemplateClassificationField,
+  type TemplateClassificationOption,
+} from "@/app/(staff)/(operator)/operator/templates/template-classification-field";
 
 const initial: CanonicalTemplateActionState = {};
 const blankSnapshot = JSON.stringify({
   title: "",
   slug: "",
   serviceCategory: "",
+  classification: "PRODUCTION",
 });
 
-export function CreateTemplateForm() {
+export function CreateTemplateForm({
+  activeSamples,
+}: {
+  activeSamples: readonly TemplateClassificationOption[];
+}) {
   const [state, action, pending] = useActionState(
     createCanonicalTemplateAction,
     initial
@@ -33,15 +44,21 @@ export function CreateTemplateForm() {
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
   const [serviceCategory, setServiceCategory] = useState("");
+  const [classification, setClassification] =
+    useState<CanonicalTemplateClassification>("PRODUCTION");
   const [leaving, setLeaving] = useState(false);
   const nextRef = useRef<HTMLInputElement>(null);
   const titleReady = title.trim().length > 0 && title.trim().length <= 120;
   const slugReady =
     isValidCareGuideSlug(slug) && !isReservedDemoCanonicalSlug(slug);
   const categoryReady = isServiceCategory(serviceCategory);
-  const canCreate = titleReady && slugReady && categoryReady && !pending;
+  const activeSample = activeSampleForCategory(activeSamples, serviceCategory);
+  const sampleBlocked = classification === "SAMPLE" && activeSample !== null;
+  const canCreate =
+    titleReady && slugReady && categoryReady && !sampleBlocked && !pending;
   const dirty =
-    JSON.stringify({ title, slug, serviceCategory }) !== blankSnapshot;
+    JSON.stringify({ title, slug, serviceCategory, classification }) !==
+    blankSnapshot;
   const {
     open: leaveOpen,
     href,
@@ -146,8 +163,8 @@ export function CreateTemplateForm() {
         ) : null}
         <p id="slug-hint" className="text-sm text-staff-muted">
           Generated from the title until you edit it. The slug stays editable
-          until the first publication. The slug extraction is reserved for the
-          demo sample.
+          until the first publication. The slug extraction belongs to the Dental
+          sample.
         </p>
         {state.fieldErrors?.slug ? (
           <p className="text-sm text-red-600">{state.fieldErrors.slug}</p>
@@ -181,6 +198,13 @@ export function CreateTemplateForm() {
           </p>
         ) : null}
       </div>
+      <TemplateClassificationField
+        value={classification}
+        onChange={setClassification}
+        serviceCategory={serviceCategory}
+        activeSample={classification === "SAMPLE" ? activeSample : null}
+        error={state.fieldErrors?.classification}
+      />
       {state.error ? (
         <p className="text-sm text-red-600" role="alert">
           {state.error}

@@ -1,9 +1,15 @@
+import {
+  isServiceCategory,
+  serviceCategoryLabel,
+} from "@/lib/aftercare/service-category";
+
 export type BulkTemplateAction =
   "publish" | "deactivate" | "reactivate" | "delete";
 
 export interface BulkTemplateRow {
   id: string;
   title: string;
+  serviceCategory: string;
   isActive: boolean;
   isSample: boolean;
   latestPublishedVersion: number | null;
@@ -22,7 +28,7 @@ const ACTIONS: readonly BulkTemplateAction[] = [
   "delete",
 ];
 
-type Block = "sample" | "inactive" | "active" | "no-draft" | "published";
+type Block = "inactive" | "active" | "no-draft" | "published";
 
 /**
  * Structural eligibility for the bulk bar.
@@ -53,12 +59,17 @@ function availabilityFor(
     }
     counts.set(block, (counts.get(block) ?? 0) + 1);
   }
-  if (counts.size === 0) {
+  const slot =
+    action === "reactivate" ? duplicateSampleReactivation(selected) : null;
+  if (counts.size === 0 && !slot) {
     return { enabled: true, reason: null };
   }
   const phrases = [...counts.entries()].map(([block, count]) =>
     blockPhrase(action, block, count)
   );
+  if (slot) {
+    phrases.push(slot);
+  }
   const label = actionLabel(action);
   return {
     enabled: false,
@@ -70,9 +81,6 @@ function blockingCondition(
   action: BulkTemplateAction,
   template: BulkTemplateRow
 ): Block | null {
-  if (template.isSample) {
-    return "sample";
-  }
   if (action === "publish") {
     if (!template.isActive) {
       return "inactive";
@@ -120,9 +128,6 @@ function blockPhrase(
   count: number
 ): string {
   const noun = countNoun(count);
-  if (block === "sample") {
-    return count === 1 ? `${noun} is a sample` : `${noun} are samples`;
-  }
   if (block === "inactive") {
     return action === "deactivate"
       ? count === 1
@@ -145,4 +150,31 @@ function blockPhrase(
   return count === 1
     ? `${noun} has a published revision`
     : `${noun} have published revisions`;
+}
+
+function duplicateSampleReactivation(
+  selected: readonly BulkTemplateRow[]
+): string | null {
+  const counts = new Map<string, number>();
+  for (const template of selected) {
+    if (!template.isSample || template.isActive) {
+      continue;
+    }
+    counts.set(
+      template.serviceCategory,
+      (counts.get(template.serviceCategory) ?? 0) + 1
+    );
+  }
+  const duplicates = [...counts.entries()].filter((entry) => entry[1] > 1);
+  if (duplicates.length === 0) {
+    return null;
+  }
+  return duplicates
+    .map(([category]) => {
+      const label = isServiceCategory(category)
+        ? serviceCategoryLabel(category)
+        : category;
+      return `${label} would have more than one active sample`;
+    })
+    .join(" and ");
 }

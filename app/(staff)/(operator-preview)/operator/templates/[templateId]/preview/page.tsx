@@ -32,7 +32,6 @@ export default async function CanonicalTemplatePreviewPage({
     <CanonicalPatientPreview
       templateId={template.id}
       templateTitle={template.title}
-      isSample={template.isSample}
       revision={revision}
     />
   );

@@ -6,6 +6,7 @@ import { GuideRevisionStatus, type PrismaClient } from "@prisma/client";
 import { DEMO_AFTERCARE_TENANT_SLUG } from "@/lib/aftercare/demo-tenant";
 import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
 import { assignPrimarySiteServiceCategories } from "@/lib/clinics/site-service-categories";
+import { withTemporaryClinicCategory } from "@/tests/active-sample-slot";
 import { DEMO_EXTRACTION_TEMPLATE_SLUG } from "@/lib/aftercare/demo-extraction-template";
 import { createPracticeGuideFromTemplate } from "@/lib/clinic-portal/create-practice-guide";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
@@ -101,6 +102,7 @@ async function seedFixtures() {
   await ensurePrimarySiteForClinic(client, NORMAL_CLINIC_ID);
   await assignPrimarySiteServiceCategories(client, NORMAL_CLINIC_ID, [
     "DENTAL",
+    "CHIROPRACTIC",
   ]);
   return demoClinicId;
 }
@@ -136,190 +138,208 @@ describe("canonical template visibility and enablement", () => {
     }
     const demoClinicId = await seedFixtures();
 
-    await db().guideTemplate.create({
-      data: {
-        id: SAMPLE_TEMPLATE_ID,
-        slug: `${SLUG}sample`,
-        title: "Sample crown",
-        serviceCategory: "DENTAL",
-        isActive: true,
-        isSample: true,
-        revisions: {
-          create: {
-            version: 1,
-            status: GuideRevisionStatus.PUBLISHED,
-            publishedAt: new Date("2026-09-01"),
-            reviewedAt: null,
-            reviewerName: null,
-            sections: {
-              create: {
-                key: "introduction",
-                kind: "INTRODUCTION",
-                title: "Sample",
-                body: "Sample body.",
-                sortOrder: 1,
+    await withTemporaryClinicCategory(
+      demoClinicId,
+      "CHIROPRACTIC",
+      async () => {
+        try {
+          await db().guideTemplate.create({
+            data: {
+              id: SAMPLE_TEMPLATE_ID,
+              slug: `${SLUG}sample`,
+              title: "Sample crown",
+              serviceCategory: "CHIROPRACTIC",
+              isActive: true,
+              isSample: true,
+              revisions: {
+                create: {
+                  version: 1,
+                  status: GuideRevisionStatus.PUBLISHED,
+                  publishedAt: new Date("2026-09-01"),
+                  reviewedAt: null,
+                  reviewerName: null,
+                  sections: {
+                    create: {
+                      key: "introduction",
+                      kind: "INTRODUCTION",
+                      title: "Sample",
+                      body: "Sample body.",
+                      sortOrder: 1,
+                    },
+                  },
+                },
               },
             },
-          },
-        },
-      },
-    });
+          });
 
-    await db().guideTemplate.create({
-      data: {
-        id: REVIEWED_TEMPLATE_ID,
-        slug: `${SLUG}reviewed`,
-        title: "Reviewed filling",
-        serviceCategory: "DENTAL",
-        isActive: true,
-        revisions: {
-          create: {
-            version: 1,
-            status: GuideRevisionStatus.PUBLISHED,
-            publishedAt: new Date("2026-09-01"),
-            reviewedAt: new Date("2026-09-01"),
-            reviewerName: "Named clinical reviewer",
-            reviewRecordedByUserId: USER_ID,
-            sections: {
-              create: {
-                key: "introduction",
-                kind: "INTRODUCTION",
-                title: "Reviewed",
-                body: "Reviewed body.",
-                sortOrder: 1,
+          await db().guideTemplate.create({
+            data: {
+              id: REVIEWED_TEMPLATE_ID,
+              slug: `${SLUG}reviewed`,
+              title: "Reviewed filling",
+              serviceCategory: "DENTAL",
+              isActive: true,
+              revisions: {
+                create: {
+                  version: 1,
+                  status: GuideRevisionStatus.PUBLISHED,
+                  publishedAt: new Date("2026-09-01"),
+                  reviewedAt: new Date("2026-09-01"),
+                  reviewerName: "Named clinical reviewer",
+                  reviewRecordedByUserId: USER_ID,
+                  sections: {
+                    create: {
+                      key: "introduction",
+                      kind: "INTRODUCTION",
+                      title: "Reviewed",
+                      body: "Reviewed body.",
+                      sortOrder: 1,
+                    },
+                  },
+                },
               },
             },
-          },
-        },
-      },
-    });
+          });
 
-    await db().guideTemplate.create({
-      data: {
-        id: INACTIVE_TEMPLATE_ID,
-        slug: `${SLUG}inactive`,
-        title: "Inactive reviewed",
-        serviceCategory: "DENTAL",
-        isActive: false,
-        revisions: {
-          create: {
-            version: 1,
-            status: GuideRevisionStatus.PUBLISHED,
-            publishedAt: new Date("2026-09-01"),
-            reviewedAt: new Date("2026-09-01"),
-            reviewerName: "Named clinical reviewer",
-            reviewRecordedByUserId: USER_ID,
-            sections: {
-              create: {
-                key: "introduction",
-                kind: "INTRODUCTION",
-                title: "Hidden",
-                body: "Hidden.",
-                sortOrder: 1,
+          await db().guideTemplate.create({
+            data: {
+              id: INACTIVE_TEMPLATE_ID,
+              slug: `${SLUG}inactive`,
+              title: "Inactive reviewed",
+              serviceCategory: "DENTAL",
+              isActive: false,
+              revisions: {
+                create: {
+                  version: 1,
+                  status: GuideRevisionStatus.PUBLISHED,
+                  publishedAt: new Date("2026-09-01"),
+                  reviewedAt: new Date("2026-09-01"),
+                  reviewerName: "Named clinical reviewer",
+                  reviewRecordedByUserId: USER_ID,
+                  sections: {
+                    create: {
+                      key: "introduction",
+                      kind: "INTRODUCTION",
+                      title: "Hidden",
+                      body: "Hidden.",
+                      sortOrder: 1,
+                    },
+                  },
+                },
               },
             },
-          },
-        },
-      },
-    });
+          });
 
-    await db().guideTemplate.create({
-      data: {
-        id: DRAFT_TEMPLATE_ID,
-        slug: `${SLUG}draft`,
-        title: "Draft only",
-        serviceCategory: "DENTAL",
-        isActive: true,
-        revisions: {
-          create: {
-            version: 1,
-            status: GuideRevisionStatus.DRAFT,
-            reviewedAt: new Date("2026-09-01"),
-            reviewerName: "Named clinical reviewer",
-            reviewRecordedByUserId: USER_ID,
-            sections: {
-              create: {
-                key: "introduction",
-                kind: "INTRODUCTION",
-                title: "Draft",
-                body: "Draft.",
-                sortOrder: 1,
+          await db().guideTemplate.create({
+            data: {
+              id: DRAFT_TEMPLATE_ID,
+              slug: `${SLUG}draft`,
+              title: "Draft only",
+              serviceCategory: "DENTAL",
+              isActive: true,
+              revisions: {
+                create: {
+                  version: 1,
+                  status: GuideRevisionStatus.DRAFT,
+                  reviewedAt: new Date("2026-09-01"),
+                  reviewerName: "Named clinical reviewer",
+                  reviewRecordedByUserId: USER_ID,
+                  sections: {
+                    create: {
+                      key: "introduction",
+                      kind: "INTRODUCTION",
+                      title: "Draft",
+                      body: "Draft.",
+                      sortOrder: 1,
+                    },
+                  },
+                },
               },
             },
-          },
-        },
-      },
-    });
+          });
 
-    await db().guideTemplate.create({
-      data: {
-        id: UNREVIEWED_GENERIC_ID,
-        slug: `${SLUG}unreviewed`,
-        title: "Unreviewed published",
-        serviceCategory: "DENTAL",
-        isActive: true,
-        revisions: {
-          create: {
-            version: 1,
-            status: GuideRevisionStatus.PUBLISHED,
-            publishedAt: new Date("2026-09-01"),
-            reviewedAt: null,
-            reviewerName: null,
-            sections: {
-              create: {
-                key: "introduction",
-                kind: "INTRODUCTION",
-                title: "Unreviewed",
-                body: "Must not masquerade as reviewed.",
-                sortOrder: 1,
+          await db().guideTemplate.create({
+            data: {
+              id: UNREVIEWED_GENERIC_ID,
+              slug: `${SLUG}unreviewed`,
+              title: "Unreviewed published",
+              serviceCategory: "DENTAL",
+              isActive: true,
+              revisions: {
+                create: {
+                  version: 1,
+                  status: GuideRevisionStatus.PUBLISHED,
+                  publishedAt: new Date("2026-09-01"),
+                  reviewedAt: null,
+                  reviewerName: null,
+                  sections: {
+                    create: {
+                      key: "introduction",
+                      kind: "INTRODUCTION",
+                      title: "Unreviewed",
+                      body: "Must not masquerade as reviewed.",
+                      sortOrder: 1,
+                    },
+                  },
+                },
               },
             },
-          },
-        },
-      },
-    });
+          });
 
-    const demo = await listCanonicalGuideTemplates(demoClinicId);
-    const normal = await listCanonicalGuideTemplates(NORMAL_CLINIC_ID);
+          const demo = await listCanonicalGuideTemplates(demoClinicId);
+          const normal = await listCanonicalGuideTemplates(NORMAL_CLINIC_ID);
 
-    expect(demo.isDemoTenant).toBe(true);
-    expect(normal.isDemoTenant).toBe(false);
+          expect(demo.isDemoTenant).toBe(true);
+          expect(normal.isDemoTenant).toBe(false);
 
-    const demoIds = new Set(demo.templates.map((template) => template.id));
-    const normalIds = new Set(normal.templates.map((template) => template.id));
+          const demoIds = new Set(
+            demo.templates.map((template) => template.id)
+          );
+          const normalIds = new Set(
+            normal.templates.map((template) => template.id)
+          );
 
-    expect(demoIds.has(SAMPLE_TEMPLATE_ID)).toBe(true);
-    expect(demoIds.has(REVIEWED_TEMPLATE_ID)).toBe(true);
-    expect(demoIds.has(UNREVIEWED_GENERIC_ID)).toBe(true);
-    expect(demoIds.has(INACTIVE_TEMPLATE_ID)).toBe(false);
-    expect(demoIds.has(DRAFT_TEMPLATE_ID)).toBe(false);
+          expect(demoIds.has(SAMPLE_TEMPLATE_ID)).toBe(true);
+          expect(demoIds.has(REVIEWED_TEMPLATE_ID)).toBe(true);
+          expect(demoIds.has(UNREVIEWED_GENERIC_ID)).toBe(true);
+          expect(demoIds.has(INACTIVE_TEMPLATE_ID)).toBe(false);
+          expect(demoIds.has(DRAFT_TEMPLATE_ID)).toBe(false);
 
-    expect(normalIds.has(REVIEWED_TEMPLATE_ID)).toBe(true);
-    expect(normalIds.has(SAMPLE_TEMPLATE_ID)).toBe(false);
-    expect(normalIds.has(UNREVIEWED_GENERIC_ID)).toBe(true);
-    expect(normalIds.has(INACTIVE_TEMPLATE_ID)).toBe(false);
-    expect(normalIds.has(DRAFT_TEMPLATE_ID)).toBe(false);
-    expect(
-      normal.templates.find((template) => template.id === REVIEWED_TEMPLATE_ID)
-        ?.availability
-    ).toBe("published");
-    expect(
-      normal.templates.find((template) => template.id === UNREVIEWED_GENERIC_ID)
-        ?.availability
-    ).toBe("published");
+          expect(normalIds.has(REVIEWED_TEMPLATE_ID)).toBe(true);
+          expect(normalIds.has(SAMPLE_TEMPLATE_ID)).toBe(false);
+          expect(normalIds.has(UNREVIEWED_GENERIC_ID)).toBe(true);
+          expect(normalIds.has(INACTIVE_TEMPLATE_ID)).toBe(false);
+          expect(normalIds.has(DRAFT_TEMPLATE_ID)).toBe(false);
+          expect(
+            normal.templates.find(
+              (template) => template.id === REVIEWED_TEMPLATE_ID
+            )?.availability
+          ).toBe("published");
+          expect(
+            normal.templates.find(
+              (template) => template.id === UNREVIEWED_GENERIC_ID
+            )?.availability
+          ).toBe("published");
 
-    const seededExtraction = demo.templates.find(
-      (template) => template.slug === DEMO_EXTRACTION_TEMPLATE_SLUG
+          const seededExtraction = demo.templates.find(
+            (template) => template.slug === DEMO_EXTRACTION_TEMPLATE_SLUG
+          );
+          if (seededExtraction) {
+            expect(seededExtraction.availability).toBe("sample");
+            expect(seededExtraction.title).toBe("Tooth Extraction");
+            expect(
+              normal.templates.some(
+                (template) => template.slug === DEMO_EXTRACTION_TEMPLATE_SLUG
+              )
+            ).toBe(false);
+          }
+        } finally {
+          await db().guideTemplate.deleteMany({
+            where: { id: SAMPLE_TEMPLATE_ID },
+          });
+        }
+      }
     );
-    if (seededExtraction) {
-      expect(seededExtraction.availability).toBe("sample");
-      expect(seededExtraction.title).toBe("Tooth Extraction");
-      expect(
-        normal.templates.some(
-          (template) => template.slug === DEMO_EXTRACTION_TEMPLATE_SLUG
-        )
-      ).toBe(false);
-    }
   });
 
   it("lets demodental enable a sample template, defaults publicSlug, and blocks other clinics", async (ctx) => {
@@ -328,102 +348,117 @@ describe("canonical template visibility and enablement", () => {
     }
     const demoClinicId = await seedFixtures();
 
-    await db().guideTemplate.create({
-      data: {
-        id: SAMPLE_TEMPLATE_ID,
-        slug: `${SLUG}enable`,
-        title: "Tooth Extraction sample",
-        serviceCategory: "DENTAL",
-        isActive: true,
-        isSample: true,
-        revisions: {
-          create: {
-            version: 1,
-            status: GuideRevisionStatus.PUBLISHED,
-            publishedAt: new Date("2026-09-01"),
-            reviewedAt: null,
-            reviewerName: null,
-            sections: {
-              create: {
-                key: "introduction",
-                kind: "INTRODUCTION",
-                title: "After your extraction",
-                body: "Sample body.",
-                sortOrder: 1,
+    await withTemporaryClinicCategory(
+      demoClinicId,
+      "CHIROPRACTIC",
+      async () => {
+        try {
+          await db().guideTemplate.create({
+            data: {
+              id: SAMPLE_TEMPLATE_ID,
+              slug: `${SLUG}enable`,
+              title: "Tooth Extraction sample",
+              serviceCategory: "CHIROPRACTIC",
+              isActive: true,
+              isSample: true,
+              revisions: {
+                create: {
+                  version: 1,
+                  status: GuideRevisionStatus.PUBLISHED,
+                  publishedAt: new Date("2026-09-01"),
+                  reviewedAt: null,
+                  reviewerName: null,
+                  sections: {
+                    create: {
+                      key: "introduction",
+                      kind: "INTRODUCTION",
+                      title: "After your extraction",
+                      body: "Sample body.",
+                      sortOrder: 1,
+                    },
+                  },
+                },
               },
             },
-          },
-        },
-      },
-    });
+          });
 
-    const created = await createPracticeGuideFromTemplate({
-      clinicId: demoClinicId,
-      actorUserId: USER_ID,
-      values: { templateId: SAMPLE_TEMPLATE_ID },
-    });
-    const demoGuide = await db().practiceGuide.findUniqueOrThrow({
-      where: { id: created.id },
-      select: { publicSlug: true, clinicId: true },
-    });
-    expect(demoGuide.publicSlug).toBe(`${SLUG}enable`);
-    expect(demoGuide.clinicId).toBe(demoClinicId);
+          const created = await createPracticeGuideFromTemplate({
+            clinicId: demoClinicId,
+            actorUserId: USER_ID,
+            values: { templateId: SAMPLE_TEMPLATE_ID },
+          });
+          const demoGuide = await db().practiceGuide.findUniqueOrThrow({
+            where: { id: created.id },
+            select: { publicSlug: true, clinicId: true },
+          });
+          expect(demoGuide.publicSlug).toBe(`${SLUG}enable`);
+          expect(demoGuide.clinicId).toBe(demoClinicId);
 
-    await expect(
-      createPracticeGuideFromTemplate({
-        clinicId: demoClinicId,
-        actorUserId: USER_ID,
-        values: { templateId: SAMPLE_TEMPLATE_ID },
-      })
-    ).rejects.toSatisfy(
-      (error: unknown) =>
-        error instanceof ClinicPortalError && error.code === "conflict"
+          await expect(
+            createPracticeGuideFromTemplate({
+              clinicId: demoClinicId,
+              actorUserId: USER_ID,
+              values: { templateId: SAMPLE_TEMPLATE_ID },
+            })
+          ).rejects.toSatisfy(
+            (error: unknown) =>
+              error instanceof ClinicPortalError && error.code === "conflict"
+          );
+
+          await expect(
+            createPracticeGuideFromTemplate({
+              clinicId: NORMAL_CLINIC_ID,
+              actorUserId: USER_ID,
+              values: { templateId: SAMPLE_TEMPLATE_ID },
+            })
+          ).rejects.toSatisfy(
+            (error: unknown) =>
+              error instanceof ClinicPortalError && error.code === "not_found"
+          );
+          expect(
+            await db().practiceGuide.count({
+              where: { clinicId: NORMAL_CLINIC_ID },
+            })
+          ).toBe(0);
+
+          expect(DEMO_EXTRACTION_TEMPLATE_SLUG).toBe("extraction");
+
+          // The shared demodental clinic may already occupy publicSlug "extraction".
+          // Defaulting is proved above on this test's own template slug. Here, only
+          // assert that a non-demo clinic still cannot enable the canonical sample.
+          const extraction = await db().guideTemplate.findUnique({
+            where: { slug: DEMO_EXTRACTION_TEMPLATE_SLUG },
+            select: { id: true },
+          });
+          if (extraction) {
+            await expect(
+              createPracticeGuideFromTemplate({
+                clinicId: NORMAL_CLINIC_ID,
+                actorUserId: USER_ID,
+                values: { templateId: extraction.id },
+              })
+            ).rejects.toSatisfy(
+              (error: unknown) =>
+                error instanceof ClinicPortalError && error.code === "not_found"
+            );
+            expect(
+              await db().practiceGuide.count({
+                where: {
+                  clinicId: NORMAL_CLINIC_ID,
+                  guideTemplateId: extraction.id,
+                },
+              })
+            ).toBe(0);
+          }
+        } finally {
+          await db().practiceGuide.deleteMany({
+            where: { guideTemplateId: SAMPLE_TEMPLATE_ID },
+          });
+          await db().guideTemplate.deleteMany({
+            where: { id: SAMPLE_TEMPLATE_ID },
+          });
+        }
+      }
     );
-
-    await expect(
-      createPracticeGuideFromTemplate({
-        clinicId: NORMAL_CLINIC_ID,
-        actorUserId: USER_ID,
-        values: { templateId: SAMPLE_TEMPLATE_ID },
-      })
-    ).rejects.toSatisfy(
-      (error: unknown) =>
-        error instanceof ClinicPortalError && error.code === "not_found"
-    );
-    expect(
-      await db().practiceGuide.count({
-        where: { clinicId: NORMAL_CLINIC_ID },
-      })
-    ).toBe(0);
-
-    expect(DEMO_EXTRACTION_TEMPLATE_SLUG).toBe("extraction");
-
-    // The shared demodental clinic may already occupy publicSlug "extraction".
-    // Defaulting is proved above on this test's own template slug. Here, only
-    // assert that a non-demo clinic still cannot enable the canonical sample.
-    const extraction = await db().guideTemplate.findUnique({
-      where: { slug: DEMO_EXTRACTION_TEMPLATE_SLUG },
-      select: { id: true },
-    });
-    if (extraction) {
-      await expect(
-        createPracticeGuideFromTemplate({
-          clinicId: NORMAL_CLINIC_ID,
-          actorUserId: USER_ID,
-          values: { templateId: extraction.id },
-        })
-      ).rejects.toSatisfy(
-        (error: unknown) =>
-          error instanceof ClinicPortalError && error.code === "not_found"
-      );
-      expect(
-        await db().practiceGuide.count({
-          where: {
-            clinicId: NORMAL_CLINIC_ID,
-            guideTemplateId: extraction.id,
-          },
-        })
-      ).toBe(0);
-    }
   });
 });

@@ -37,7 +37,7 @@ describe("create template slug", () => {
     document.body.appendChild(container);
     root = createRoot(container);
     act(() => {
-      root.render(<CreateTemplateForm />);
+      root.render(<CreateTemplateForm activeSamples={[]} />);
     });
   });
 
