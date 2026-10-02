@@ -135,6 +135,24 @@ const DOCUMENT = {
   sections: SECTIONS,
 };
 
+function demoTabPanel(html: string, viewId: string): string {
+  const panel = html
+    .split('role="tabpanel"')
+    .slice(1)
+    .find((part) => part.includes(`-${viewId}-panel"`));
+  if (!panel) {
+    throw new Error(`Missing ${viewId} tab panel.`);
+  }
+
+  const contactAt = panel.indexOf('id="practice-contact-heading"');
+  if (contactAt === -1) {
+    return panel;
+  }
+
+  const sectionAt = panel.lastIndexOf("<section", contactAt);
+  return sectionAt === -1 ? panel : panel.slice(0, sectionAt);
+}
+
 describe("printable recovery guide", () => {
   beforeEach(() => {
     getPublishedPracticeGuide.mockReset();
@@ -299,7 +317,7 @@ describe("printable recovery guide", () => {
     expect(print).not.toContain("MedicalWebPage");
   });
 
-  it("keeps contact and emergency reachable while Today omits the full guide", async () => {
+  it("keeps clinic contact reachable while Today shows warning and emergency apart from the full guide", async () => {
     getPublishedPracticeGuide.mockResolvedValue(DOCUMENT);
 
     const web = renderToStaticMarkup(
@@ -318,15 +336,26 @@ describe("printable recovery guide", () => {
         }),
       })
     );
+    const today = demoTabPanel(web, "today");
+    const fullGuide = demoTabPanel(web, "full-guide");
 
-    expect(web).toContain("Leave the site undisturbed today.");
-    expect(web).toContain("Contact the practice if bleeding does not slow.");
+    expect(today).toContain("Leave the site undisturbed today.");
+    expect(today).toContain("Contact the practice if bleeding does not slow.");
+    expect(today).toContain("Seek urgent help for difficulty breathing.");
+    expect(today).toContain('data-tone="warning"');
+    expect(today).toContain('data-tone="emergency"');
+    expect(today.match(/data-tone="warning"/g)).toHaveLength(1);
+    expect(today.match(/data-tone="emergency"/g)).toHaveLength(1);
+    expect(today).not.toContain("Follow the stages in order.");
+    expect(today).not.toContain("Weekend contact");
+    expect(fullGuide).toContain("Follow the stages in order.");
+    expect(fullGuide).toContain("Seek urgent help for difficulty breathing.");
+    expect(fullGuide).toContain("Weekend contact");
+    expect(fullGuide).toContain('data-guide-tone="warning"');
+    expect(fullGuide).toContain('data-guide-tone="emergency"');
     expect(web).toContain("Call the clinic during hours.");
     expect(web).toContain("Call Riverside Dental Demo");
     expect(web).toContain("If you need urgent help");
-    expect(web).not.toContain("Follow the stages in order.");
-    expect(web).not.toContain("Seek urgent help for difficulty breathing.");
-    expect(web).not.toContain("Weekend contact");
     expect(print).toContain("Follow the stages in order.");
     expect(print).toContain("Seek urgent help for difficulty breathing.");
     expect(print).toContain("Weekend contact");
@@ -412,7 +441,10 @@ describe("printable recovery guide", () => {
       })
     );
 
-    expect(web).toContain("This guide does not include a recovery timeline.");
+    expect(web).not.toContain(
+      "This guide does not include a recovery timeline."
+    );
+    expect(web).not.toContain('role="tablist"');
     expect(web).toContain("Home care plan");
     expect(web).toContain("Repeated movement");
     expect(web).toContain("Restrictions");
