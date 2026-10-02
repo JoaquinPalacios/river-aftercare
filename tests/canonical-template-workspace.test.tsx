@@ -26,6 +26,7 @@ vi.mock("@/app/(staff)/(operator)/operator/templates/actions", () => ({
 }));
 
 import { CanonicalDraftEditor } from "@/app/(staff)/(operator)/operator/templates/canonical-draft-editor";
+import { updateLiveDemoAction } from "@/app/(staff)/(operator)/operator/templates/actions";
 import { TemplateDemoAdoption } from "@/app/(staff)/(operator)/operator/templates/template-demo-adoption";
 import type { EditorSection } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
 import { canonicalEditorContentSignature } from "@/lib/aftercare/canonical-editor-content";
@@ -194,14 +195,34 @@ describe("canonical template workspace classification and live demo", () => {
     expect(dialog?.textContent).toContain(
       "publishes a new practice-guide revision for the designated demo"
     );
+    expect(dialog?.className).toContain("liveDemoConfirm");
+    expect(dialog?.querySelector(".liveDemoConfirmFrame")).toBeTruthy();
+    expect(dialog?.querySelector(".liveDemoConfirmScroll")).toBeTruthy();
+    expect(dialog?.querySelector(".staffDialogActions")).toBeTruthy();
     expect(dialog?.textContent).toContain("Riverside Dental Demo");
-    expect(dialog?.textContent).toContain(
+    const demoUrl = dialog?.querySelector(
+      ".liveDemoConfirmUrl"
+    ) as HTMLAnchorElement;
+    expect(demoUrl.textContent).toBe(
       "http://demodental.localhost:3000/extraction"
     );
-    expect(dialog?.textContent).toContain("Pinned canonical revision");
-    expect(dialog?.textContent).toContain("Revision 1");
-    expect(dialog?.textContent).toContain("Revision 2");
-    expect(dialog?.textContent).toContain("Already up to date");
+    expect(demoUrl.className).toContain("liveDemoConfirmUrl");
+    expect(dialog?.textContent).toContain("Current revision");
+    expect(dialog?.textContent).toContain("New revision");
+    expect(
+      dialog?.querySelector(".liveDemoConfirmTransition")?.textContent
+    ).toContain("Revision 1");
+    expect(
+      dialog?.querySelector(".liveDemoConfirmTransition")?.textContent
+    ).toContain("Revision 2");
+    expect(
+      dialog
+        ?.querySelector(".liveDemoConfirmTransition")
+        ?.getAttribute("data-same")
+    ).toBe("false");
+    expect(dialog?.textContent).toContain("Current practice revision");
+    expect(dialog?.textContent).toContain("Clinic overrides kept");
+    expect(dialog?.textContent).toContain("Additional sections kept");
     expect(dialog?.textContent).toContain(
       "first-24-hours: The first day at Riverside Dental Demo"
     );
@@ -239,6 +260,75 @@ describe("canonical template workspace classification and live demo", () => {
     });
     expect(updateDialog()?.hasAttribute("open")).toBe(false);
     expect(container.querySelector("#publish-revision-form")).toBeNull();
+  });
+
+  it("restores focus when Escape closes the confirmation", () => {
+    renderPublished({
+      isSample: true,
+      demoAdoption: adoption(),
+      demoPublicUrl: "http://demodental.localhost:3000/extraction",
+    });
+    const trigger = container.querySelector(
+      "[data-update-live-demo]"
+    ) as HTMLButtonElement;
+    trigger.focus();
+    act(() => {
+      trigger.click();
+    });
+    const dialog = updateDialog() as HTMLDialogElement;
+    expect(dialog.className).toContain("liveDemoConfirm");
+    const confirm = [...dialog.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Update live demo")
+    ) as HTMLButtonElement;
+    expect(confirm.disabled).toBe(false);
+    expect(dialog.querySelector(".staffDialogActions")).toBeTruthy();
+
+    act(() => {
+      dialog.dispatchEvent(
+        new Event("cancel", { bubbles: true, cancelable: true })
+      );
+    });
+    expect(dialog.hasAttribute("open")).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("disables confirmation and shows a pending indicator while adoption runs", async () => {
+    vi.mocked(updateLiveDemoAction).mockImplementation(
+      () => new Promise(() => undefined)
+    );
+    renderPublished({
+      isSample: true,
+      demoAdoption: adoption(),
+    });
+    const trigger = container.querySelector(
+      "[data-update-live-demo]"
+    ) as HTMLButtonElement;
+    act(() => {
+      trigger.click();
+    });
+    const dialog = updateDialog() as HTMLDialogElement;
+    const confirm = [...dialog.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Update live demo")
+    ) as HTMLButtonElement;
+    await act(async () => {
+      confirm.click();
+    });
+    expect(confirm.disabled).toBe(true);
+    expect(confirm.textContent).toContain("Updating…");
+    expect(confirm.querySelector(".staffLoginSpinner")).not.toBeNull();
+    expect(confirm.getAttribute("aria-busy")).toBe("true");
+    expect(dialog.getAttribute("aria-busy")).toBe("true");
+    expect(dialog.querySelector("[role='status']")?.textContent).toBe(
+      "Updating the live demo. Please wait."
+    );
+    const cancel = [...dialog.querySelectorAll("button")].find(
+      (button) => button.textContent === "Cancel"
+    ) as HTMLButtonElement;
+    expect(cancel.disabled).toBe(true);
+    await act(async () => {
+      confirm.click();
+    });
+    expect(updateLiveDemoAction).toHaveBeenCalledTimes(1);
   });
 
   it("says the designated demo is up to date and reuses that confirmation copy", () => {
@@ -336,7 +426,9 @@ describe("template overview live demo", () => {
       node.textContent?.includes("Update live demo?")
     );
     expect(dialog?.hasAttribute("open")).toBe(true);
-    expect(dialog?.textContent).toContain("Pinned canonical revision");
+    expect(dialog?.textContent).toContain("Current revision");
+    expect(dialog?.textContent).toContain("New revision");
+    expect(overview.textContent).toContain("Pinned canonical revision");
     expect(
       overview.querySelector("#update-live-demo-guide_tmpl_demo_extraction")
     ).toBeTruthy();

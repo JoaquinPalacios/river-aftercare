@@ -116,4 +116,53 @@ describe("staff confirm dialog pending UX", () => {
     });
     expect(onConfirm).not.toHaveBeenCalled();
   });
+
+  it("keeps Tab inside the dialog, including the cycle past the last control", async () => {
+    await act(async () => {
+      root.render(
+        <ConfirmDialog
+          open
+          title="Update live demo?"
+          description="Confirm the designated demo."
+          cancelLabel="Cancel"
+          confirmLabel="Update live demo"
+          confirmTone="primary"
+          onCancel={() => undefined}
+          onConfirm={() => undefined}
+        >
+          <a href="http://demodental.localhost:3000/extraction">Demo guide</a>
+        </ConfirmDialog>
+      );
+    });
+
+    const dialog = container.querySelector("dialog") as HTMLDialogElement;
+    const link = container.querySelector("a") as HTMLAnchorElement;
+    const confirm = Array.from(dialog.querySelectorAll("button")).find(
+      (button) => button.textContent === "Update live demo"
+    ) as HTMLButtonElement;
+    confirm.focus();
+
+    const forward = new KeyboardEvent("keydown", {
+      key: "Tab",
+      bubbles: true,
+      cancelable: true,
+    });
+    await act(async () => {
+      confirm.dispatchEvent(forward);
+    });
+    expect(forward.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(link);
+
+    const backward = new KeyboardEvent("keydown", {
+      key: "Tab",
+      bubbles: true,
+      cancelable: true,
+      shiftKey: true,
+    });
+    await act(async () => {
+      link.dispatchEvent(backward);
+    });
+    expect(backward.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(confirm);
+  });
 });
