@@ -30,8 +30,8 @@ const EXTRACTION_REVISION_ID = "guide_rev_demo_extraction_v1";
 const EXTRACTION_GUIDE_ID = "practice_guide_demo_rivers_extraction";
 const EXTRACTION_PLACEMENT_ID = "mpl_practice_guide_demo_rivers_extraction";
 const EXTRACTION_SNAPSHOT_ID = "practice_rev_demo_rivers_extraction_v1";
-const OPERATOR_ID = "sdp_operator";
-const SAMPLE_SLUG = "sdp-physio";
+const OPERATOR_ID = "publication_operator";
+const SAMPLE_SLUG = "publication-physio";
 
 const V1_INTRO = "Synthetic physiotherapy introduction, revision 1.";
 const V2_INTRO = "Synthetic physiotherapy introduction, revision 2.";
@@ -303,17 +303,16 @@ describe("sample publication and the Riverside demo", () => {
       return;
     }
 
-    const extractionBefore =
-      await db().practiceGuidePlacement.findUniqueOrThrow({
-        where: { id: EXTRACTION_PLACEMENT_ID },
+    await withSampleCategoryLock(["DENTAL", "PHYSIOTHERAPY"], async () => {
+      const extractionBefore =
+        await db().practiceGuidePlacement.findUniqueOrThrow({
+          where: { id: EXTRACTION_PLACEMENT_ID },
+        });
+      const canonicalBefore = await db().guideTemplateRevision.findMany({
+        where: { guideTemplateId: EXTRACTION_TEMPLATE_ID },
+        orderBy: { version: "asc" },
+        include: { sections: { orderBy: { sortOrder: "asc" } } },
       });
-    const canonicalBefore = await db().guideTemplateRevision.findMany({
-      where: { guideTemplateId: EXTRACTION_TEMPLATE_ID },
-      orderBy: { version: "asc" },
-      include: { sections: { orderBy: { sortOrder: "asc" } } },
-    });
-
-    await withSampleCategoryLock(["PHYSIOTHERAPY"], async () => {
       try {
         await cleanupSyntheticSample();
         await db().clinic.deleteMany({ where: { slug: "sdp-publication" } });
@@ -572,30 +571,29 @@ describe("sample publication and the Riverside demo", () => {
         await cleanupSyntheticSample();
         await db().clinic.deleteMany({ where: { slug: "sdp-publication" } });
       }
-    });
 
-    const extractionAfter = await db().practiceGuidePlacement.findUniqueOrThrow(
-      {
-        where: { id: EXTRACTION_PLACEMENT_ID },
-      }
-    );
-    expect(extractionAfter).toEqual(extractionBefore);
-    const canonicalAfter = await db().guideTemplateRevision.findMany({
-      where: { guideTemplateId: EXTRACTION_TEMPLATE_ID },
-      orderBy: { version: "asc" },
-      include: { sections: { orderBy: { sortOrder: "asc" } } },
+      const extractionAfter =
+        await db().practiceGuidePlacement.findUniqueOrThrow({
+          where: { id: EXTRACTION_PLACEMENT_ID },
+        });
+      expect(extractionAfter).toEqual(extractionBefore);
+      const canonicalAfter = await db().guideTemplateRevision.findMany({
+        where: { guideTemplateId: EXTRACTION_TEMPLATE_ID },
+        orderBy: { version: "asc" },
+        include: { sections: { orderBy: { sortOrder: "asc" } } },
+      });
+      expect(canonicalAfter.map((revision) => revision.id)).toEqual(
+        canonicalBefore.map((revision) => revision.id)
+      );
+      expect(
+        canonicalAfter.map((revision) =>
+          revision.sections.map((section) => section.body)
+        )
+      ).toEqual(
+        canonicalBefore.map((revision) =>
+          revision.sections.map((section) => section.body)
+        )
+      );
     });
-    expect(canonicalAfter.map((revision) => revision.id)).toEqual(
-      canonicalBefore.map((revision) => revision.id)
-    );
-    expect(
-      canonicalAfter.map((revision) =>
-        revision.sections.map((section) => section.body)
-      )
-    ).toEqual(
-      canonicalBefore.map((revision) =>
-        revision.sections.map((section) => section.body)
-      )
-    );
   });
 });

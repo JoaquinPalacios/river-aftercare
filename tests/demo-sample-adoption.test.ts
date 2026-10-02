@@ -328,7 +328,7 @@ describeDb("designated demo sample adoption", () => {
     });
   });
 
-  it("rejects a sample category that has no designated demo", async () => {
+  it("rejects a chiropractic sample that is not the designated sample", async () => {
     await withSampleCategoryLock(["CHIROPRACTIC"], async () => {
       const parked = await getPrisma().guideTemplate.findMany({
         where: {
@@ -360,9 +360,11 @@ describeDb("designated demo sample adoption", () => {
             expectedPinnedRevisionId: null,
             expectedPublishedPracticeGuideRevisionId: null,
           }),
-          "invalid"
+          "forbidden"
         );
-        expect(error.message).toContain("does not have a designated demo");
+        expect(error.message).toContain(
+          "not the designated sample for this service category"
+        );
       } finally {
         await getPrisma().guideTemplate.updateMany({
           where: { slug: "sdp-chiropractic" },
