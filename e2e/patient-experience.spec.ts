@@ -97,7 +97,7 @@ test.describe("tenant homepage and guide", () => {
     await expect(
       page.getByRole("heading", { name: "Recovery overview" })
     ).toBeVisible();
-    await expect(page.locator("text=Important.")).toHaveCount(1);
+    await expect(page.locator("text=Important.")).toHaveCount(2);
     await expect(page.getByText("If you need urgent help")).toBeVisible();
     await expect(
       page.getByRole("link", { name: /Call Riverside Dental Demo/ })
