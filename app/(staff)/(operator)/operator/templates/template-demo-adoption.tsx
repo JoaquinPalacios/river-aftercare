@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, type ReactNode } from "react";
+import { useActionState, useId, useState, type ReactNode } from "react";
 
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
 import {
@@ -175,6 +175,10 @@ function LiveDemoUpdateActions({
         confirmTone="primary"
         pending={pending}
         pendingLabel="Updating…"
+        pendingStatus="Updating the live demo. Please wait."
+        dialogClassName="liveDemoConfirm"
+        layoutClassName="liveDemoConfirmFrame"
+        scrollRegionClassName="liveDemoConfirmScroll"
         onCancel={() => setOpen(false)}
         onConfirm={() => {
           const form = document.getElementById(
@@ -183,9 +187,103 @@ function LiveDemoUpdateActions({
           form?.requestSubmit();
         }}
       >
-        <DemoAdoptionSummary adoption={adoption} publicUrl={publicUrl} />
+        <LiveDemoConfirmDetails adoption={adoption} publicUrl={publicUrl} />
       </ConfirmDialog>
     </>
+  );
+}
+
+function LiveDemoConfirmDetails({
+  adoption,
+  publicUrl,
+}: {
+  adoption: DesignatedDemoAdoptionView;
+  publicUrl: string | null;
+}) {
+  const keptHeadingId = useId();
+  const current = revisionLabel(adoption.pinnedRevisionVersion);
+  const next = revisionLabel(adoption.latestPublishedRevisionVersion);
+  return (
+    <div className="liveDemoConfirmDetails">
+      <div className="liveDemoConfirmClinic">
+        <p className="liveDemoConfirmKicker">Demo clinic</p>
+        <p className="liveDemoConfirmClinicName">{adoption.clinicName}</p>
+        {publicUrl ? (
+          <a className="liveDemoConfirmUrl" href={publicUrl}>
+            {publicUrl}
+          </a>
+        ) : adoption.publicSlug ? (
+          <p className="liveDemoConfirmUrl">/{adoption.publicSlug}</p>
+        ) : null}
+      </div>
+      <div
+        className="liveDemoConfirmTransition"
+        data-same={adoption.alreadyCurrent ? "true" : "false"}
+      >
+        <div>
+          <p className="liveDemoConfirmKicker">Current revision</p>
+          <p className="liveDemoConfirmRevision">{current}</p>
+        </div>
+        <span className="liveDemoConfirmArrow">
+          <span className="sr-only">to</span>
+          <span aria-hidden="true">→</span>
+        </span>
+        <div>
+          <p className="liveDemoConfirmKicker">New revision</p>
+          <p className="liveDemoConfirmRevision liveDemoConfirmRevisionNext">
+            {next}
+          </p>
+        </div>
+      </div>
+      <section
+        className="liveDemoConfirmSecondary"
+        aria-labelledby={keptHeadingId}
+      >
+        <h3 id={keptHeadingId}>Kept on the demo</h3>
+        <dl>
+          <div>
+            <dt>Current practice revision</dt>
+            <dd>
+              {revisionLabel(adoption.publishedPracticeGuideRevisionVersion)}
+            </dd>
+          </div>
+          <div>
+            <dt>Clinic overrides kept</dt>
+            <dd>
+              {adoption.overrides.length === 0 ? (
+                "None"
+              ) : (
+                <ul>
+                  {adoption.overrides.map((override) => (
+                    <li key={override.sectionKey}>
+                      {override.sectionKey}: {override.title}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Additional sections kept</dt>
+            <dd>
+              {adoption.additions.length === 0 ? (
+                "None"
+              ) : (
+                <ul>
+                  {adoption.additions.map((addition) => (
+                    <li key={addition.key}>
+                      {addition.insertAfterSectionKey
+                        ? `${addition.title} after ${addition.insertAfterSectionKey}`
+                        : addition.title}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </dd>
+          </div>
+        </dl>
+      </section>
+    </div>
   );
 }
 

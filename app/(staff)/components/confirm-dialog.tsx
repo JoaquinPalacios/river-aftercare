@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 
 export function ConfirmDialog({
   open,
@@ -20,6 +27,9 @@ export function ConfirmDialog({
   children,
   onCancel,
   onConfirm,
+  dialogClassName,
+  layoutClassName,
+  scrollRegionClassName,
 }: {
   open: boolean;
   title: string;
@@ -38,6 +48,9 @@ export function ConfirmDialog({
   children?: ReactNode;
   onCancel: () => void;
   onConfirm: () => void;
+  dialogClassName?: string;
+  layoutClassName?: string;
+  scrollRegionClassName?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
@@ -105,13 +118,33 @@ export function ConfirmDialog({
     onConfirm();
   }
 
+  const descriptionNode = (
+    <p id={descriptionId} className="staffDialogBody">
+      {description}
+    </p>
+  );
+  const details = scrollRegionClassName ? (
+    <div className={scrollRegionClassName}>
+      {descriptionNode}
+      {children}
+    </div>
+  ) : (
+    <>
+      {descriptionNode}
+      {children}
+    </>
+  );
+
   return (
     <dialog
       ref={dialogRef}
-      className="staffDialog"
+      className={
+        dialogClassName ? `staffDialog ${dialogClassName}` : "staffDialog"
+      }
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
       aria-busy={busy || undefined}
+      onKeyDown={keepFocusInDialog}
       onCancel={(event) => {
         event.preventDefault();
         requestClose();
@@ -122,62 +155,102 @@ export function ConfirmDialog({
         }
       }}
     >
-      <div className="staffDialogHeader">
-        <h2 id={titleId} className="staffDialogTitle">
-          {title}
-        </h2>
-      </div>
-      <p id={descriptionId} className="staffDialogBody">
-        {description}
-      </p>
-      {children}
-      <div className="sr-only" role="status" aria-live="polite">
-        {busy ? (pendingStatus ?? "") : ""}
-      </div>
-      <div
-        className={
-          actionLayout === "balanced"
-            ? "staffDialogActions staffDialogActionsBalanced"
-            : "staffDialogActions"
-        }
-      >
-        <button
-          type="button"
-          className={`staffBtn ${
-            cancelTone === "secondary" ? "staffBtnSecondary" : "staffBtnQuiet"
-          }`}
-          autoFocus={(confirmTone === "danger" || confirmDisabled) && !busy}
-          disabled={busy}
-          onClick={requestClose}
+      <DialogFrame className={layoutClassName}>
+        <div className="staffDialogHeader">
+          <h2 id={titleId} className="staffDialogTitle">
+            {title}
+          </h2>
+        </div>
+        {details}
+        <div className="sr-only" role="status" aria-live="polite">
+          {busy ? (pendingStatus ?? "") : ""}
+        </div>
+        <div
+          className={
+            actionLayout === "balanced"
+              ? "staffDialogActions staffDialogActionsBalanced"
+              : "staffDialogActions"
+          }
         >
-          {cancelLabel}
-        </button>
-        {alternateLabel && onAlternate ? (
           <button
             type="button"
-            className="staffBtn staffBtnSecondary"
+            className={`staffBtn ${
+              cancelTone === "secondary" ? "staffBtnSecondary" : "staffBtnQuiet"
+            }`}
+            autoFocus={(confirmTone === "danger" || confirmDisabled) && !busy}
             disabled={busy}
-            onClick={onAlternate}
+            onClick={requestClose}
           >
-            {alternateLabel}
+            {cancelLabel}
           </button>
-        ) : null}
-        <button
-          type="button"
-          className={`staffBtn ${
-            confirmTone === "primary" ? "staffBtnPrimary" : "staffBtnDanger"
-          }${pendingLabel !== undefined ? " staffLoginSubmit" : ""}`}
-          autoFocus={confirmTone === "primary" && !confirmDisabled && !busy}
-          disabled={busy || confirmDisabled}
-          aria-busy={busy || undefined}
-          onClick={handleConfirmClick}
-        >
-          {busy ? (
-            <span className="staffLoginSpinner" aria-hidden="true" />
+          {alternateLabel && onAlternate ? (
+            <button
+              type="button"
+              className="staffBtn staffBtnSecondary"
+              disabled={busy}
+              onClick={onAlternate}
+            >
+              {alternateLabel}
+            </button>
           ) : null}
-          {confirmText}
-        </button>
-      </div>
+          <button
+            type="button"
+            className={`staffBtn ${
+              confirmTone === "primary" ? "staffBtnPrimary" : "staffBtnDanger"
+            }${pendingLabel !== undefined ? " staffLoginSubmit" : ""}`}
+            autoFocus={confirmTone === "primary" && !confirmDisabled && !busy}
+            disabled={busy || confirmDisabled}
+            aria-busy={busy || undefined}
+            onClick={handleConfirmClick}
+          >
+            {busy ? (
+              <span className="staffLoginSpinner" aria-hidden="true" />
+            ) : null}
+            {confirmText}
+          </button>
+        </div>
+      </DialogFrame>
     </dialog>
   );
+}
+
+function keepFocusInDialog(event: KeyboardEvent<HTMLDialogElement>) {
+  if (event.key !== "Tab") {
+    return;
+  }
+  const dialog = event.currentTarget;
+  const focusable = Array.from(
+    dialog.querySelectorAll<HTMLElement>(
+      "a[href], button, input, select, textarea"
+    )
+  ).filter(
+    (element) => !element.hasAttribute("disabled") && element.tabIndex >= 0
+  );
+  if (focusable.length === 0) {
+    event.preventDefault();
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = document.activeElement;
+  const inside = active instanceof Node && dialog.contains(active);
+  if (
+    event.shiftKey ? !inside || active === first : !inside || active === last
+  ) {
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
+  }
+}
+
+function DialogFrame({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  if (!className) {
+    return children;
+  }
+  return <div className={className}>{children}</div>;
 }
