@@ -1,12 +1,12 @@
 import type { PrismaClient } from "@prisma/client";
 
-import { PHYSIO_DEMO_TENANT_SLUG } from "@/lib/aftercare/demo-tenant";
-import { isLocalDevelopmentDatabase } from "@/lib/dev/database-target";
+import { PHYSIO_DEMO_TENANT_SLUG } from "../aftercare/demo-tenant.ts";
+import { ensurePrimarySiteAndRootLocation } from "../clinics/primary-site-location.mjs";
+import { isLocalDevelopmentDatabase } from "./database-target.ts";
 import {
   syncRiversidePracticePublication,
   type RiversideSeedSection,
-} from "@/lib/dev/riverside-demo-seed";
-import { ensurePrimarySiteAndRootLocation } from "@/lib/clinics/primary-site-location.mjs";
+} from "./riverside-demo-seed.ts";
 
 export const PHYSIO_DEMO_CLINIC_ID = "clinic_demo_physio";
 export const PHYSIO_DEMO_TEMPLATE_ID = "guide_tmpl_demo_physio_home_exercise";
@@ -181,7 +181,9 @@ export function composedPhysioPracticeSections(): RiversideSeedSection[] {
  */
 export async function seedPhysioDemo(
   prisma: SeedPrisma,
-  env: NodeJS.ProcessEnv = process.env
+  env:
+    | NodeJS.ProcessEnv
+    | { DATABASE_URL?: string; VERCEL_ENV?: string } = process.env
 ): Promise<{ applied: boolean; sampleSkipped: boolean }> {
   if (!isLocalDevelopmentDatabase(env.DATABASE_URL, env.VERCEL_ENV)) {
     return { applied: false, sampleSkipped: false };

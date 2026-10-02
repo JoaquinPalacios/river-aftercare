@@ -27,6 +27,8 @@ const OPERATOR_ID = "sdp_physio_operator";
 const DENTAL_GUIDE_ID = "practice_guide_demo_rivers_extraction";
 const CHANGED_BODY =
   "Synthetic expected-symptom text adopted into River Physio Demo.";
+const LATER_BODY =
+  "Synthetic expected-symptom text for a later canonical revision.";
 
 async function restorePhysioDemo() {
   const prisma = getPrisma();
@@ -66,7 +68,7 @@ async function restorePhysioDemo() {
   });
 }
 
-async function publishChangedHomeExercise() {
+async function publishChangedHomeExercise(body: string) {
   const opened = await createCanonicalTemplateDraft({
     templateId: PHYSIO_DEMO_TEMPLATE_ID,
     actorUserId: OPERATOR_ID,
@@ -90,7 +92,7 @@ async function publishChangedHomeExercise() {
       key: section.key,
       kind: section.kind,
       title: section.title,
-      body: section.key === "expected-symptoms" ? CHANGED_BODY : section.body,
+      body: section.key === "expected-symptoms" ? body : section.body,
       periodLabel: section.periodLabel,
       startDay: section.startDay,
       endDay: section.endDay,
@@ -190,7 +192,7 @@ describeDb("physiotherapy designated demo adoption", () => {
           isClinicPortalError(error) && error.code === "conflict"
       );
 
-      const published = await publishChangedHomeExercise();
+      const published = await publishChangedHomeExercise(CHANGED_BODY);
       const dentalDuring = await prisma.practiceGuide.findUniqueOrThrow({
         where: { id: DENTAL_GUIDE_ID },
         select: { pinnedRevisionId: true },
@@ -273,7 +275,7 @@ describeDb("physiotherapy designated demo adoption", () => {
       expect(repeat.status).toBe("current");
       expect(repeat.practiceRevisionId).toBe(first.practiceRevisionId);
 
-      const second = await publishChangedHomeExercise();
+      const second = await publishChangedHomeExercise(LATER_BODY);
       const stale = adoptPublishedSampleForDesignatedDemo({
         actorUserId: OPERATOR_ID,
         templateId: PHYSIO_DEMO_TEMPLATE_ID,

@@ -6,7 +6,9 @@ export const PHYSIO_DEMO_EXAMPLE_LABEL = "View live physiotherapy example";
  * An empty or invalid value keeps the marketing action disabled.
  */
 export function physiotherapyDemoExampleHref(
-  env: NodeJS.ProcessEnv = process.env
+  env:
+    | NodeJS.ProcessEnv
+    | { CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL?: string } = process.env
 ): string | null {
   const value = env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL?.trim() ?? "";
   if (!value) {

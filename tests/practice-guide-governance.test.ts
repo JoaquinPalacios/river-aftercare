@@ -240,10 +240,6 @@ describe("first-clinic clinical governance", () => {
             demo.templates.some((template) => template.id === SAMPLE_ID)
           ).toBe(false);
           expect(
-            demo.templates.find((template) => template.id === SAMPLE_ID)
-              ?.availability
-          ).toBe("sample");
-          expect(
             normal.templates.some((template) => template.id === SAMPLE_ID)
           ).toBe(false);
 
