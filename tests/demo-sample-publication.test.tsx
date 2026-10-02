@@ -530,8 +530,8 @@ describe("sample publication and the Riverside demo", () => {
           expect(recovery.currentStage?.body).toBe(V2_STAGE);
           expect(todayHtml).toContain(V2_STAGE);
           expect(todayHtml).toContain(WARNING_BODY);
+          expect(todayHtml).toContain(EMERGENCY_BODY);
           expect(todayHtml).not.toContain(V2_INTRO);
-          expect(todayHtml).not.toContain(EMERGENCY_BODY);
           expect(todayHtml).not.toContain(CONTACT_BODY);
           expect(printHtml).toContain(V2_INTRO);
           expect(printHtml).toContain(V2_STAGE);

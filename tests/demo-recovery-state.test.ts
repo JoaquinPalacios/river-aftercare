@@ -319,6 +319,6 @@ describe("demo recovery-state resolver", () => {
     expect(recovery.hasTimeline).toBe(false);
     expect(recovery.currentStage).toBeNull();
     expect(today.whatToDo).toBeNull();
-    expect(today.warnings).toBeNull();
+    expect(today.alerts).toEqual([]);
   });
 });
