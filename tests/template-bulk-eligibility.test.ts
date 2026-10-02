@@ -9,6 +9,7 @@ function row(
   overrides: Partial<BulkTemplateRow> & Pick<BulkTemplateRow, "id" | "title">
 ): BulkTemplateRow {
   return {
+    serviceCategory: "DENTAL",
     isActive: true,
     isSample: false,
     latestPublishedVersion: null,
@@ -30,19 +31,48 @@ describe("canonical template bulk eligibility", () => {
     expect(availability.reactivate.reason).toContain("already active");
   });
 
-  it("keeps sample rows out of production actions", () => {
+  it("uses the same structural rules for an editable sample", () => {
     const availability = bulkTemplateActionAvailability([
-      row({ id: "sample", title: "Tooth Extraction", isSample: true }),
+      row({
+        id: "sample",
+        title: "Tooth Extraction",
+        isSample: true,
+        latestPublishedVersion: 1,
+        draft: { id: "sample-draft", version: 2 },
+      }),
     ]);
-    for (const action of [
-      availability.publish,
-      availability.deactivate,
-      availability.reactivate,
-      availability.delete,
-    ]) {
-      expect(action.enabled).toBe(false);
-      expect(action.reason).toContain("is a sample");
-    }
+    expect(availability.publish).toEqual({ enabled: true, reason: null });
+    expect(availability.deactivate).toEqual({ enabled: true, reason: null });
+    expect(availability.reactivate.enabled).toBe(false);
+    expect(availability.delete.enabled).toBe(false);
+    expect(availability.delete.reason).toContain("published revision");
+  });
+
+  it("rejects reactivating two samples in the same category", () => {
+    const availability = bulkTemplateActionAvailability([
+      row({
+        id: "old",
+        title: "Previous physio sample",
+        serviceCategory: "PHYSIOTHERAPY",
+        isSample: true,
+        isActive: false,
+        latestPublishedVersion: 1,
+        draft: null,
+      }),
+      row({
+        id: "next",
+        title: "Replacement physio sample",
+        serviceCategory: "PHYSIOTHERAPY",
+        isSample: true,
+        isActive: false,
+        latestPublishedVersion: 1,
+        draft: null,
+      }),
+    ]);
+    expect(availability.reactivate.enabled).toBe(false);
+    expect(availability.reactivate.reason).toContain(
+      "Physiotherapy would have more than one active sample"
+    );
   });
 
   it("fails closed when any selected template cannot be published or deleted", () => {
@@ -79,11 +109,11 @@ describe("canonical template bulk eligibility", () => {
     ]);
     expect(availability.publish.enabled).toBe(false);
     expect(availability.publish.reason).toBe(
-      "Publish unavailable — 1 selected template is a sample and 1 selected template is inactive and 1 selected template has no open draft."
+      "Publish unavailable — 2 selected templates have no open draft and 1 selected template is inactive."
     );
     expect(availability.delete.enabled).toBe(false);
     expect(availability.delete.reason).toContain(
-      "1 selected template is a sample"
+      "1 selected template has no open draft"
     );
     expect(availability.delete.reason).toContain(
       "1 selected template has a published revision"

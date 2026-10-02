@@ -19,12 +19,10 @@ import styles from "@/app/(aftercare)/patient.module.css";
 export function CanonicalPatientPreview({
   templateId,
   templateTitle,
-  isSample,
   revision,
 }: {
   templateId: string;
   templateTitle: string;
-  isSample: boolean;
   revision: OperatorTemplateRevisionView;
 }) {
   const chrome = canonicalPreviewPracticeChrome();
@@ -45,9 +43,7 @@ export function CanonicalPatientPreview({
       <StaffPreviewShell
         backHref={`/operator/templates/${templateId}`}
         backLabel={`Back to ${templateTitle}`}
-        editHref={
-          isSample ? undefined : `/operator/templates/${templateId}/draft`
-        }
+        editHref={`/operator/templates/${templateId}/draft`}
         editLabel="View content"
         statusLabel={CANONICAL_PREVIEW_OPERATOR_LABEL}
         statusDetail={`Revision ${revision.version} · ${status}`}

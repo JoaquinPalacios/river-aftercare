@@ -14,6 +14,7 @@ import { setGuideAvailableAtLocation } from "@/lib/clinic-portal/guide-placement
 import { listCanonicalGuideTemplates } from "@/lib/clinic-portal/list-canonical-templates";
 import { publishPracticeGuide } from "@/lib/clinic-portal/publish-practice-guide";
 import { savePracticeGuideDraft } from "@/lib/clinic-portal/save-practice-guide-draft";
+import { withSampleCategoryLock } from "@/tests/active-sample-slot";
 import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
 import {
   assignPrimarySiteServiceCategories,
@@ -257,92 +258,104 @@ describe("service categories and guide classification", () => {
       "physio_tpl",
       "PHYSIOTHERAPY"
     );
-    await db().guideTemplate.create({
-      data: {
-        id: `${PREFIX}sample_tpl`,
-        slug: `${PREFIX}sample-tpl`,
-        title: "Sample placeholder",
-        serviceCategory: "DENTAL",
-        isActive: true,
-        isSample: true,
-        revisions: {
-          create: {
-            version: 1,
-            status: GuideRevisionStatus.PUBLISHED,
-            publishedAt: new Date("2026-09-01T00:00:00.000Z"),
-            sections: {
+    await withSampleCategoryLock(["COSMETIC_AESTHETIC"], async () => {
+      try {
+        await db().guideTemplate.create({
+          data: {
+            id: `${PREFIX}sample_tpl`,
+            slug: `${PREFIX}sample-tpl`,
+            title: "Sample placeholder",
+            serviceCategory: "COSMETIC_AESTHETIC",
+            isActive: true,
+            isSample: true,
+            revisions: {
               create: {
-                key: "introduction",
-                kind: "INTRODUCTION",
-                title: "Sample",
-                body: "Sample body.",
-                sortOrder: 1,
+                version: 1,
+                status: GuideRevisionStatus.PUBLISHED,
+                publishedAt: new Date("2026-09-01T00:00:00.000Z"),
+                sections: {
+                  create: {
+                    key: "introduction",
+                    kind: "INTRODUCTION",
+                    title: "Sample",
+                    body: "Sample body.",
+                    sortOrder: 1,
+                  },
+                },
               },
             },
           },
-        },
-      },
+        });
+
+        const dental = await createAccount("onlydental");
+        await assignPrimarySiteServiceCategories(db(), dental.clinicId, [
+          "DENTAL",
+        ]);
+        const dentalList = await listCanonicalGuideTemplates(dental.clinicId);
+        expect(dentalList.templates.map((template) => template.id)).toContain(
+          dentalTemplate.id
+        );
+        expect(
+          dentalList.templates.map((template) => template.id)
+        ).not.toContain(physioTemplate.id);
+        expect(
+          dentalList.templates.map((template) => template.id)
+        ).not.toContain(`${PREFIX}sample_tpl`);
+
+        const physio = await createAccount("onlyphysio");
+        await assignPrimarySiteServiceCategories(db(), physio.clinicId, [
+          "PHYSIOTHERAPY",
+        ]);
+        const physioList = await listCanonicalGuideTemplates(physio.clinicId);
+        expect(physioList.templates.map((template) => template.id)).toContain(
+          physioTemplate.id
+        );
+        expect(
+          physioList.templates.every(
+            (template) => template.serviceCategory === "PHYSIOTHERAPY"
+          )
+        ).toBe(true);
+
+        const mixed = await createAccount("mixed");
+        await assignPrimarySiteServiceCategories(db(), mixed.clinicId, [
+          "DENTAL",
+        ]);
+        await addSite(mixed.clinicId, "mixed-cosmetic", ["COSMETIC_AESTHETIC"]);
+        await addSite(mixed.clinicId, "mixed-physio", ["PHYSIOTHERAPY"]);
+        const mixedList = await listCanonicalGuideTemplates(mixed.clinicId);
+        const mixedIds = mixedList.templates.map((template) => template.id);
+        expect(mixedIds).toContain(dentalTemplate.id);
+        expect(mixedIds).toContain(physioTemplate.id);
+        expect(mixedIds).not.toContain(`${PREFIX}sample_tpl`);
+        expect(
+          mixedList.templates.every((template) =>
+            ["DENTAL", "PHYSIOTHERAPY"].includes(template.serviceCategory)
+          )
+        ).toBe(true);
+        expect(mixedList.serviceCategories).toEqual([
+          "DENTAL",
+          "PHYSIOTHERAPY",
+          "COSMETIC_AESTHETIC",
+        ]);
+
+        const blank = await createAccount("blank");
+        const blankList = await listCanonicalGuideTemplates(blank.clinicId);
+        expect(blankList.templates).toEqual([]);
+        expect(blankList.templatesNeedServiceCategories).toBe(true);
+
+        await expect(
+          createPracticeGuideFromTemplate({
+            clinicId: physio.clinicId,
+            actorUserId: physio.userId,
+            values: { templateId: dentalTemplate.id },
+          })
+        ).rejects.toBeInstanceOf(ClinicPortalError);
+      } finally {
+        await db().guideTemplate.deleteMany({
+          where: { id: `${PREFIX}sample_tpl` },
+        });
+      }
     });
-
-    const dental = await createAccount("onlydental");
-    await assignPrimarySiteServiceCategories(db(), dental.clinicId, ["DENTAL"]);
-    const dentalList = await listCanonicalGuideTemplates(dental.clinicId);
-    expect(dentalList.templates.map((template) => template.id)).toContain(
-      dentalTemplate.id
-    );
-    expect(dentalList.templates.map((template) => template.id)).not.toContain(
-      physioTemplate.id
-    );
-    expect(dentalList.templates.map((template) => template.id)).not.toContain(
-      `${PREFIX}sample_tpl`
-    );
-
-    const physio = await createAccount("onlyphysio");
-    await assignPrimarySiteServiceCategories(db(), physio.clinicId, [
-      "PHYSIOTHERAPY",
-    ]);
-    const physioList = await listCanonicalGuideTemplates(physio.clinicId);
-    expect(physioList.templates.map((template) => template.id)).toContain(
-      physioTemplate.id
-    );
-    expect(
-      physioList.templates.every(
-        (template) => template.serviceCategory === "PHYSIOTHERAPY"
-      )
-    ).toBe(true);
-
-    const mixed = await createAccount("mixed");
-    await assignPrimarySiteServiceCategories(db(), mixed.clinicId, ["DENTAL"]);
-    await addSite(mixed.clinicId, "mixed-cosmetic", ["COSMETIC_AESTHETIC"]);
-    await addSite(mixed.clinicId, "mixed-physio", ["PHYSIOTHERAPY"]);
-    const mixedList = await listCanonicalGuideTemplates(mixed.clinicId);
-    const mixedIds = mixedList.templates.map((template) => template.id);
-    expect(mixedIds).toContain(dentalTemplate.id);
-    expect(mixedIds).toContain(physioTemplate.id);
-    expect(mixedIds).not.toContain(`${PREFIX}sample_tpl`);
-    expect(
-      mixedList.templates.every((template) =>
-        ["DENTAL", "PHYSIOTHERAPY"].includes(template.serviceCategory)
-      )
-    ).toBe(true);
-    expect(mixedList.serviceCategories).toEqual([
-      "DENTAL",
-      "PHYSIOTHERAPY",
-      "COSMETIC_AESTHETIC",
-    ]);
-
-    const blank = await createAccount("blank");
-    const blankList = await listCanonicalGuideTemplates(blank.clinicId);
-    expect(blankList.templates).toEqual([]);
-    expect(blankList.templatesNeedServiceCategories).toBe(true);
-
-    await expect(
-      createPracticeGuideFromTemplate({
-        clinicId: physio.clinicId,
-        actorUserId: physio.userId,
-        values: { templateId: dentalTemplate.id },
-      })
-    ).rejects.toBeInstanceOf(ClinicPortalError);
   });
 
   it("inherits, preserves, and leaves legacy custom guides unclassified", async (ctx) => {

@@ -52,6 +52,7 @@ function row(id: string, title: string): TemplateBulkTableRow {
     title,
     slug: id,
     href: `/operator/templates/${id}`,
+    serviceCategory: "DENTAL",
     serviceCategoryLabel: "Dental",
     isActive: true,
     isSample: false,

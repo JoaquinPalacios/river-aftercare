@@ -4,7 +4,6 @@ import type { Prisma } from "@prisma/client";
 
 import {
   assertCanonicalDraft,
-  assertProductionCanonicalTemplate,
   countPublishedCanonicalRevisions,
   loadCanonicalRevision,
   loadCanonicalTemplate,
@@ -30,7 +29,6 @@ export async function abandonCanonicalTemplateDraftInTransaction(
 ): Promise<{ deletedTemplate: boolean }> {
   await requireCanonicalActor(tx, input.actorUserId);
   const template = await loadCanonicalTemplate(tx, input.templateId);
-  assertProductionCanonicalTemplate(template);
   const revision = await loadCanonicalRevision(tx, {
     templateId: template.id,
     revisionId: input.revisionId,

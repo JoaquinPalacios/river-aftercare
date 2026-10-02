@@ -1,6 +1,8 @@
 /**
- * Demo sample slug. Ordinary production template creation must refuse it.
- * The demo bootstrap remains the only writer of that row.
+ * Slug of the Dental sample. New templates cannot take it.
+ * The existing Tooth Extraction row keeps this slug and is edited through
+ * the canonical lifecycle. The demo bootstrap creates it once and refuses
+ * to overwrite operator edits.
  */
 export const RESERVED_DEMO_CANONICAL_SLUG = "extraction";
 

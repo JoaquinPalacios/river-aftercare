@@ -1696,6 +1696,94 @@ textarea.staffField.staffAutosizeField {
   resize: none;
 }
 
+.staffChoice {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.staffChoiceOptions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  min-width: 0;
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 481px) {
+  .staffChoiceOptions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.staffChoiceOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0 0.75rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.375rem;
+  background: var(--staff-panel);
+  color: var(--staff-ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.staffChoiceOption span {
+  min-width: 0;
+}
+
+.staffChoiceOption input {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--staff-brand);
+}
+
+.staffChoiceOption input:focus {
+  outline: none;
+}
+
+.staffChoiceOption:focus-within {
+  outline: var(--interaction-focus-width) solid var(--staff-brand);
+  outline-offset: 2px;
+}
+
+.staffChoiceOption:has(:checked) {
+  border-color: var(--staff-brand);
+  background: color-mix(in srgb, var(--staff-brand) 10%, var(--staff-panel));
+  font-weight: 600;
+}
+
+.staffChoiceHint {
+  margin-top: 0.5rem;
+}
+
+.staffChoiceNote {
+  margin-top: 0.75rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.375rem;
+  background: var(--staff-canvas);
+  padding: 0.75rem 0.875rem;
+  color: var(--staff-ink);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.staffChoiceLink {
+  color: var(--staff-brand);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 .staffSelect {
   appearance: none;
   -webkit-appearance: none;

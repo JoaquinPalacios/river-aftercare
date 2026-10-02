@@ -122,7 +122,7 @@ There is no HTTP upload route. Operator Templates remains the human lifecycle UI
 
 ## Sample protection
 
-`extraction` is refused for `create`, `create-revision`, and `update-draft`. Any `isSample` template is refused. The demo bootstrap remains the only writer of that sample. `tooth-extraction` is a legal future slug and is not created by this phase.
+`extraction` is refused for `create`, `create-revision`, and `update-draft`. Any `isSample` template is refused. Operator Templates edits samples. Import does not overwrite them, and the demo bootstrap refuses a row that no longer matches its original payload. `tooth-extraction` is a legal future slug and is not created by this phase.
 
 ## What a write does
 

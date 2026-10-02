@@ -3,12 +3,12 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 
 import {
-  assertProductionCanonicalTemplate,
   loadCanonicalTemplate,
   requireCanonicalActor,
   runLockedCanonicalTemplateTransaction,
 } from "@/lib/canonical-templates/context";
 import { CanonicalTemplateError } from "@/lib/canonical-templates/errors";
+import { assertActiveSampleAvailable } from "@/lib/canonical-templates/sample-slot";
 
 export interface CanonicalActivationInput {
   templateId: string;
@@ -26,7 +26,6 @@ export async function deactivateCanonicalTemplateInTransaction(
   const deactivatedAt = input.deactivatedAt ?? new Date();
   await requireCanonicalActor(tx, input.actorUserId);
   const template = await loadCanonicalTemplate(tx, input.templateId);
-  assertProductionCanonicalTemplate(template);
   if (!template.isActive) {
     throw new CanonicalTemplateError(
       "This template is already inactive.",
@@ -68,12 +67,17 @@ export async function reactivateCanonicalTemplateInTransaction(
 ): Promise<{ templateId: string }> {
   await requireCanonicalActor(tx, input.actorUserId);
   const template = await loadCanonicalTemplate(tx, input.templateId);
-  assertProductionCanonicalTemplate(template);
   if (template.isActive) {
     throw new CanonicalTemplateError(
       "This template is already active.",
       "conflict"
     );
+  }
+  if (template.isSample) {
+    await assertActiveSampleAvailable(tx, {
+      serviceCategory: template.serviceCategory,
+      exceptTemplateId: template.id,
+    });
   }
 
   await tx.guideTemplate.update({

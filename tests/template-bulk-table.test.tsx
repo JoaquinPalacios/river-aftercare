@@ -48,6 +48,7 @@ function row(
   return {
     slug: overrides.id,
     href: `/operator/templates/${overrides.id}/draft`,
+    serviceCategory: "DENTAL",
     serviceCategoryLabel: "Dental",
     isActive: true,
     isSample: false,
@@ -202,7 +203,7 @@ describe("template bulk table", () => {
     expect(container.textContent).not.toContain("template selected");
   });
 
-  it("disables production actions for a sample and explains mixed selection", () => {
+  it("publishes an editable sample and refuses deleting a published one", () => {
     render([draft, sample, published]);
     act(() => {
       checkbox("Select Tooth Extraction").click();
@@ -213,9 +214,9 @@ describe("template bulk table", () => {
     const remove = [...container.querySelectorAll("button")].find(
       (button) => button.textContent === "Delete"
     ) as HTMLButtonElement;
-    expect(publish.disabled).toBe(true);
+    expect(publish.disabled).toBe(false);
     expect(remove.disabled).toBe(true);
-    expect(container.textContent).toContain("is a sample");
+    expect(container.textContent).toContain("published revision");
     expect(container.textContent).not.toContain("Unpublish");
 
     act(() => {
@@ -223,9 +224,9 @@ describe("template bulk table", () => {
       checkbox("Select Published example").click();
     });
     expect(container.textContent).toContain(
-      "Delete unavailable — 1 selected template is a sample and 1 selected template has a published revision."
+      "Delete unavailable — 2 selected templates have published revisions."
     );
-    expect(publish.disabled).toBe(true);
+    expect(remove.disabled).toBe(true);
   });
 
   it("confirms publish with names and clears the selection after success", async () => {

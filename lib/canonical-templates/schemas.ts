@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { SERVICE_CATEGORIES } from "@/lib/aftercare/service-category";
 import { careGuideSlugSchema } from "@/lib/aftercare/slug";
+import { CANONICAL_TEMPLATE_CLASSIFICATIONS } from "@/lib/canonical-templates/classification";
 import { isReservedDemoCanonicalSlug } from "@/lib/canonical-templates/constants";
 import { CanonicalTemplateError } from "@/lib/canonical-templates/errors";
 
@@ -29,6 +30,11 @@ export const canonicalServiceCategorySchema = z.enum(SERVICE_CATEGORIES, {
   error: "Choose a service category.",
 });
 
+export const canonicalTemplateClassificationSchema = z.enum(
+  CANONICAL_TEMPLATE_CLASSIFICATIONS,
+  { error: "Choose Production or Sample." }
+);
+
 const actorIdSchema = z.string().trim().min(1);
 
 export const createCanonicalTemplateSchema = z.object({
@@ -36,6 +42,7 @@ export const createCanonicalTemplateSchema = z.object({
   title: canonicalTemplateTitleSchema,
   slug: canonicalTemplateSlugSchema,
   serviceCategory: canonicalServiceCategorySchema,
+  classification: canonicalTemplateClassificationSchema.default("PRODUCTION"),
 });
 
 export const updateCanonicalTemplateMetadataSchema = z
@@ -45,12 +52,14 @@ export const updateCanonicalTemplateMetadataSchema = z
     title: canonicalTemplateTitleSchema.optional(),
     slug: canonicalTemplateSlugSchema.optional(),
     serviceCategory: canonicalServiceCategorySchema.optional(),
+    classification: canonicalTemplateClassificationSchema.optional(),
   })
   .refine(
     (value) =>
       value.title !== undefined ||
       value.slug !== undefined ||
-      value.serviceCategory !== undefined,
+      value.serviceCategory !== undefined ||
+      value.classification !== undefined,
     { message: "Choose a template detail to update." }
   );
 

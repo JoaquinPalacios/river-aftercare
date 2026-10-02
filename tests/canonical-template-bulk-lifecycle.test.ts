@@ -19,6 +19,7 @@ import {
 import { publishCanonicalTemplateRevision } from "@/lib/canonical-templates/publish-canonical-template-revision";
 import { saveCanonicalTemplateDraft } from "@/lib/canonical-templates/save-canonical-template-draft";
 import { getPrisma } from "@/lib/prisma";
+import { withSampleCategoryLock } from "@/tests/active-sample-slot";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 const describeDb = hasDatabase ? describe : describe.skip;
@@ -206,38 +207,38 @@ describeDb("canonical template bulk lifecycle", () => {
     );
   });
 
-  it("leaves a sample and a valid template unpublished together", async () => {
-    const ready = await draftTemplate("cbulk-prod", "Production draft");
-    const sample = await getPrisma().guideTemplate.create({
-      data: {
-        title: "Synthetic sample",
-        slug: "cbulk-sample",
-        serviceCategory: "DENTAL",
-        isSample: true,
-        isActive: true,
-        revisions: {
-          create: {
-            version: 1,
-            status: "DRAFT",
-            createdByUserId: OPERATOR_ID,
-            sections: {
-              create: {
-                key: "introduction",
-                kind: "INTRODUCTION",
-                title: "After treatment",
-                body: "Rest.",
-                sortOrder: 1,
+  it("publishes a sample and a production template together", async () => {
+    await withSampleCategoryLock(["CHIROPRACTIC"], async () => {
+      const ready = await draftTemplate("cbulk-prod", "Production draft");
+      const sample = await getPrisma().guideTemplate.create({
+        data: {
+          title: "Synthetic sample",
+          slug: "cbulk-sample",
+          serviceCategory: "CHIROPRACTIC",
+          isSample: true,
+          isActive: true,
+          revisions: {
+            create: {
+              version: 1,
+              status: "DRAFT",
+              createdByUserId: OPERATOR_ID,
+              sections: {
+                create: {
+                  key: "introduction",
+                  kind: "INTRODUCTION",
+                  title: "After treatment",
+                  body: "Rest.",
+                  sortOrder: 1,
+                },
               },
             },
           },
         },
-      },
-      include: { revisions: true },
-    });
-    const sampleRevision = sample.revisions[0];
-    expect(sampleRevision).toBeTruthy();
-    await expect(
-      publishCanonicalTemplates({
+        include: { revisions: true },
+      });
+      const sampleRevision = sample.revisions[0];
+      expect(sampleRevision).toBeTruthy();
+      const published = await publishCanonicalTemplates({
         actorUserId: OPERATOR_ID,
         templates: [
           {
@@ -251,26 +252,82 @@ describeDb("canonical template bulk lifecycle", () => {
             expectedVersion: 1,
           },
         ],
-      })
-    ).rejects.toSatisfy(
-      (error: unknown) =>
-        isBulkCanonicalTemplateError(error) &&
-        error.message.includes("Synthetic sample") &&
-        error.message.includes("Nothing was changed.")
-    );
-    expect(await revisionStatus(ready.revisionId)).toBe(
-      GuideRevisionStatus.DRAFT
-    );
-    expect(await revisionStatus(sampleRevision?.id ?? "")).toBe(
-      GuideRevisionStatus.DRAFT
-    );
-    expect(
-      (
-        await getPrisma().guideTemplate.findUniqueOrThrow({
-          where: { id: sample.id },
+      });
+      expect(published.count).toBe(2);
+      expect(await revisionStatus(ready.revisionId)).toBe(
+        GuideRevisionStatus.PUBLISHED
+      );
+      expect(await revisionStatus(sampleRevision?.id ?? "")).toBe(
+        GuideRevisionStatus.PUBLISHED
+      );
+      expect(
+        (
+          await getPrisma().guideTemplate.findUniqueOrThrow({
+            where: { id: sample.id },
+          })
+        ).isSample
+      ).toBe(true);
+      await getPrisma().guideTemplate.delete({ where: { id: sample.id } });
+    });
+  });
+
+  it("rolls back reactivation when two samples would occupy one category", async () => {
+    await withSampleCategoryLock(["COSMETIC_AESTHETIC"], async () => {
+      const first = await getPrisma().guideTemplate.create({
+        data: {
+          title: "Older cosmetic sample",
+          slug: "cbulk-sample-old",
+          serviceCategory: "COSMETIC_AESTHETIC",
+          isSample: true,
+          isActive: false,
+          revisions: {
+            create: {
+              version: 1,
+              status: "PUBLISHED",
+              publishedAt: new Date(),
+              publishedByUserId: OPERATOR_ID,
+            },
+          },
+        },
+      });
+      const second = await getPrisma().guideTemplate.create({
+        data: {
+          title: "Newer cosmetic sample",
+          slug: "cbulk-sample-new",
+          serviceCategory: "COSMETIC_AESTHETIC",
+          isSample: true,
+          isActive: false,
+          revisions: {
+            create: {
+              version: 1,
+              status: "PUBLISHED",
+              publishedAt: new Date(),
+              publishedByUserId: OPERATOR_ID,
+            },
+          },
+        },
+      });
+      await expect(
+        reactivateCanonicalTemplates({
+          actorUserId: OPERATOR_ID,
+          templateIds: [first.id, second.id],
         })
-      ).isSample
-    ).toBe(true);
+      ).rejects.toSatisfy(
+        (error: unknown) =>
+          isBulkCanonicalTemplateError(error) &&
+          error.message.includes("Nothing was changed.") &&
+          error.message.includes("already has an active sample")
+      );
+      const stored = await getPrisma().guideTemplate.findMany({
+        where: { id: { in: [first.id, second.id] } },
+      });
+      expect(stored.every((template) => template.isActive === false)).toBe(
+        true
+      );
+      await getPrisma().guideTemplate.deleteMany({
+        where: { id: { in: [first.id, second.id] } },
+      });
+    });
   });
 
   it("deactivates and reactivates active production templates without deleting revisions", async () => {

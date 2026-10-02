@@ -18,6 +18,7 @@ import {
   canonicalTemplateRevisionPreviewPath,
 } from "@/lib/canonical-templates/preview-brand";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { listActiveCanonicalSamples } from "@/lib/canonical-templates/sample-slot";
 import { loadOperatorCanonicalTemplate } from "@/lib/operator/canonical-templates/load-operator-canonical-template";
 import { operatorTemplateNotice } from "@/lib/operator/canonical-templates/notices";
 
@@ -39,7 +40,10 @@ export default async function OperatorTemplateDetailPage({
   await requirePlatformOperator();
   const { templateId } = await params;
   const query = await searchParams;
-  const template = await loadOperatorCanonicalTemplate(templateId);
+  const [template, activeSamples] = await Promise.all([
+    loadOperatorCanonicalTemplate(templateId),
+    listActiveCanonicalSamples(),
+  ]);
   if (!template) {
     notFound();
   }
@@ -48,7 +52,7 @@ export default async function OperatorTemplateDetailPage({
     (revision) => revision.isLatestPublished
   );
   const canOpenWorkspace =
-    !template.isSample && (template.openDraft !== null || latestPublished);
+    template.openDraft !== null || latestPublished !== undefined;
   const canEdit = canOpenWorkspace;
   const previewHref = latestPublished
     ? canonicalTemplatePublishedPreviewPath(template.id)
@@ -119,8 +123,14 @@ export default async function OperatorTemplateDetailPage({
       ) : null}
       {template.isSample ? (
         <p className="rounded-xl border border-staff-line bg-staff-panel px-4 py-3 text-sm">
-          Sample. This demo template is not a production canonical template. It
-          cannot be converted or published through this workflow.
+          Sample templates use the same editing and publishing workflow as
+          production templates. They stay out of the production library. Each
+          service category has one active sample.
+          {template.clinicGuideCount > 0
+            ? ` ${template.clinicGuideCount} clinic ${
+                template.clinicGuideCount === 1 ? "guide uses" : "guides use"
+              } this template. Deactivating it stops new adoption and leaves those guides and published revisions in place.`
+            : ""}
         </p>
       ) : null}
       <div className="templateOverviewGrid">
@@ -203,7 +213,7 @@ export default async function OperatorTemplateDetailPage({
                       >
                         Preview revision
                       </Link>
-                      {revision.status === "DRAFT" && !template.isSample ? (
+                      {revision.status === "DRAFT" ? (
                         <Link
                           href={`/operator/templates/${template.id}/draft`}
                           className="staffBtn staffBtnSecondary"
@@ -257,44 +267,45 @@ export default async function OperatorTemplateDetailPage({
               </p>
             ) : null}
           </section>
-          {template.isSample ? null : (
-            <section
-              className="templateOverviewCard"
-              aria-labelledby="template-lifecycle-heading"
-            >
-              <h2 id="template-lifecycle-heading">Lifecycle</h2>
-              <p className="mt-2 text-sm text-staff-muted">
-                Deactivate stops new clinic adoption. Published revisions stay
-                immutable.
-              </p>
-              <div className="mt-4">
-                <TemplateLifecycleActions
-                  templateId={template.id}
-                  draftId={template.openDraft?.id ?? null}
-                  neverPublished={template.latestPublishedVersion === null}
-                  isActive={template.isActive}
-                  canCreateRevision={false}
-                />
-              </div>
-            </section>
-          )}
-          {template.isSample ? null : (
-            <section
-              className="templateOverviewCard"
-              aria-labelledby="template-details-heading"
-            >
-              <h2 id="template-details-heading">Template details</h2>
-              <div className="mt-4">
-                <TemplateMetadataForm
-                  templateId={template.id}
-                  title={template.title}
-                  slug={template.slug}
-                  serviceCategory={template.serviceCategory}
-                  metadataLocked={template.metadataLocked}
-                />
-              </div>
-            </section>
-          )}
+          <section
+            className="templateOverviewCard"
+            aria-labelledby="template-lifecycle-heading"
+          >
+            <h2 id="template-lifecycle-heading">Lifecycle</h2>
+            <p className="mt-2 text-sm text-staff-muted">
+              Deactivate stops new clinic adoption. Published revisions stay
+              immutable.
+              {template.isSample
+                ? " Deactivating a sample frees its service category for a replacement. An older sample is not reactivated automatically."
+                : ""}
+            </p>
+            <div className="mt-4">
+              <TemplateLifecycleActions
+                templateId={template.id}
+                draftId={template.openDraft?.id ?? null}
+                neverPublished={template.latestPublishedVersion === null}
+                isActive={template.isActive}
+                canCreateRevision={false}
+              />
+            </div>
+          </section>
+          <section
+            className="templateOverviewCard"
+            aria-labelledby="template-details-heading"
+          >
+            <h2 id="template-details-heading">Template details</h2>
+            <div className="mt-4">
+              <TemplateMetadataForm
+                templateId={template.id}
+                title={template.title}
+                slug={template.slug}
+                serviceCategory={template.serviceCategory}
+                isSample={template.isSample}
+                metadataLocked={template.metadataLocked}
+                activeSamples={activeSamples}
+              />
+            </div>
+          </section>
         </div>
       </div>
     </div>

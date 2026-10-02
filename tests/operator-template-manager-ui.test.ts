@@ -153,8 +153,23 @@ describe("operator template manager UI contract", () => {
     expect(list).toContain("min-w-0 flex-1");
     expect(detail).toContain("Sample");
     expect(detail).toContain("isSample");
+    expect(detail).not.toContain("cannot be converted or published");
     expect(detail).not.toContain('name="isSample"');
     expect(create).not.toContain("isSample");
+    expect(create).toContain("TemplateClassificationField");
+    const classificationField = readFileSync(
+      "app/(staff)/(operator)/operator/templates/template-classification-field.tsx",
+      "utf8"
+    );
+    expect(classificationField).toContain('name="classification"');
+    expect(classificationField).toContain("Production");
+    expect(classificationField).toContain("Sample");
+    expect(classificationField).toContain("activeSampleConflictMessage");
+    const draftPage = readFileSync(
+      "app/(staff)/(operator)/operator/templates/[templateId]/draft/page.tsx",
+      "utf8"
+    );
+    expect(draftPage).not.toContain("stay outside the production");
     expect(create).toContain("SERVICE_CATEGORY_LABELS");
     const labels = readFileSync("lib/aftercare/service-category.ts", "utf8");
     expect(labels).toContain('DENTAL: "Dental"');
@@ -191,7 +206,7 @@ describe("operator template manager UI contract", () => {
     expect(nav).toContain('href: "/operator/templates", label: "Templates"');
   });
 
-  it("opens template content directly and keeps sample rows on the detail page", () => {
+  it("opens production and sample content in the workspace", () => {
     expect(
       operatorTemplateHref(
         item({
@@ -229,7 +244,7 @@ describe("operator template manager UI contract", () => {
           draft: { id: "draft-2", version: 2 },
         })
       )
-    ).toBe("/operator/templates/sample");
+    ).toBe("/operator/templates/sample/draft");
   });
 
   it("filters production and sample rows without collapsing their states", () => {

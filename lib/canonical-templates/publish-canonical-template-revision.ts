@@ -5,7 +5,6 @@ import { GuideRevisionStatus, type Prisma } from "@prisma/client";
 import {
   assertCanonicalDraft,
   assertKnownServiceCategory,
-  assertProductionCanonicalTemplate,
   loadCanonicalRevision,
   loadCanonicalTemplate,
   requireCanonicalActor,
@@ -31,7 +30,6 @@ export async function assertCanonicalTemplateRevisionPublishable(
 ): Promise<void> {
   await requireCanonicalActor(tx, input.actorUserId);
   const template = await loadCanonicalTemplate(tx, input.templateId);
-  assertProductionCanonicalTemplate(template);
   if (!template.isActive) {
     throw new CanonicalTemplateError(
       "Activate this template before publishing.",
@@ -89,9 +87,10 @@ export async function publishCanonicalTemplateRevisionInTransaction(
 }
 
 /**
- * Publishes one production draft. Section and home-care rows are validated
- * and left in place. Publication records the publisher and time. Review
- * metadata is not required. Sample publication stays on the demo bootstrap.
+ * Publishes one draft. Section and home-care rows are validated and left in
+ * place. Publication records the publisher and time. Review metadata is not
+ * required. Sample and production drafts use the same publication rules.
+ * A published revision is not rewritten.
  */
 export async function publishCanonicalTemplateRevision(
   input: CanonicalPublicationInput

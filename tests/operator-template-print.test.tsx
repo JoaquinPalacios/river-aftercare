@@ -100,7 +100,6 @@ describe("operator template preview printing", () => {
         <CanonicalPatientPreview
           templateId="template-print"
           templateTitle="Sample recovery guide"
-          isSample={false}
           revision={revision(status)}
         />
       );

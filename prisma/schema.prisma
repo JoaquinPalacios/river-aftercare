@@ -443,8 +443,11 @@ model GuideTemplate {
   isActive              Boolean                 @default(true)
   deactivatedAt         DateTime?
   deactivatedByUserId   String?
-  /// Sample/demo library content. Set only by the demo bootstrap. Ordinary
-  /// canonical lifecycle services cannot change this flag in either direction.
+  /// Sample or production classification. False is Production.
+  /// At most one active sample per service category. That rule is the partial
+  /// unique index GuideTemplate_one_active_sample_per_category_key, which
+  /// Prisma cannot express. Inactive samples do not occupy the slot.
+  /// Classification can change only before the first published revision.
   /// Distinct from clinic publish attestation on PracticeGuideRevision.
   isSample              Boolean                 @default(false)
   revisions             GuideTemplateRevision[]

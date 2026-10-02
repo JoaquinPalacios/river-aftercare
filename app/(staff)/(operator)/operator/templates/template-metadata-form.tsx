@@ -14,6 +14,15 @@ import {
   SERVICE_CATEGORY_LABELS,
   type ServiceCategory,
 } from "@/lib/aftercare/service-category";
+import {
+  classificationFromIsSample,
+  type CanonicalTemplateClassification,
+} from "@/lib/canonical-templates/classification";
+import {
+  activeSampleForCategory,
+  TemplateClassificationField,
+  type TemplateClassificationOption,
+} from "@/app/(staff)/(operator)/operator/templates/template-classification-field";
 
 const initial: CanonicalTemplateActionState = {};
 
@@ -21,6 +30,7 @@ function snapshot(values: {
   title: string;
   slug: string;
   serviceCategory: string;
+  classification: string;
 }): string {
   return JSON.stringify(values);
 }
@@ -30,13 +40,17 @@ export function TemplateMetadataForm({
   title,
   slug,
   serviceCategory,
+  isSample,
   metadataLocked,
+  activeSamples,
 }: {
   templateId: string;
   title: string;
   slug: string;
   serviceCategory: ServiceCategory;
+  isSample: boolean;
   metadataLocked: boolean;
+  activeSamples: readonly TemplateClassificationOption[];
 }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(
@@ -46,15 +60,30 @@ export function TemplateMetadataForm({
   const [titleValue, setTitleValue] = useState(title);
   const [slugValue, setSlugValue] = useState(slug);
   const [categoryValue, setCategoryValue] = useState(serviceCategory);
+  const [classification, setClassification] =
+    useState<CanonicalTemplateClassification>(
+      classificationFromIsSample(isSample)
+    );
   const [confirmed, setConfirmed] = useState(() =>
-    snapshot({ title, slug, serviceCategory })
+    snapshot({
+      title,
+      slug,
+      serviceCategory,
+      classification: classificationFromIsSample(isSample),
+    })
   );
   const [leaving, setLeaving] = useState(false);
   const current = snapshot({
     title: titleValue,
     slug: slugValue,
     serviceCategory: categoryValue,
+    classification,
   });
+  const slotOccupant = activeSampleForCategory(
+    activeSamples,
+    categoryValue,
+    templateId
+  );
   const currentRef = useRef(current);
   const leavingRef = useRef(false);
   const handledState = useRef(state);
@@ -135,8 +164,15 @@ export function TemplateMetadataForm({
               {SERVICE_CATEGORY_LABELS[serviceCategory]}
             </p>
           </div>
+          <div>
+            <p className="font-medium">Classification</p>
+            <p className="mt-1 text-staff-muted">
+              {isSample ? "Sample" : "Production"}
+            </p>
+          </div>
           <p className="text-staff-muted">
-            Slug and service category stay fixed after the first publication.
+            Slug, service category, and classification stay fixed after the
+            first publication.
           </p>
         </div>
       ) : (
@@ -177,6 +213,13 @@ export function TemplateMetadataForm({
               ))}
             </select>
           </div>
+          <TemplateClassificationField
+            value={classification}
+            onChange={setClassification}
+            serviceCategory={categoryValue}
+            activeSample={classification === "SAMPLE" ? slotOccupant : null}
+            error={state.fieldErrors?.classification}
+          />
         </>
       )}
       {state.ok ? (

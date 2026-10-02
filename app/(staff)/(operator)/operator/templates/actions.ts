@@ -172,6 +172,7 @@ export async function createCanonicalTemplateAction(
     title: formData.get("title") ?? "",
     slug: formData.get("slug") ?? "",
     serviceCategory: formData.get("serviceCategory") ?? "",
+    classification: formData.get("classification") ?? "PRODUCTION",
   });
   if (!parsed.success) {
     return {
@@ -199,12 +200,14 @@ export async function updateCanonicalTemplateMetadataAction(
   const templateId = templateIdFrom(formData);
   const slug = formData.get("slug");
   const serviceCategory = formData.get("serviceCategory");
+  const classification = formData.get("classification");
   const parsed = updateCanonicalTemplateMetadataSchema.safeParse({
     actorUserId: user.id,
     templateId,
     title: formData.get("title") ?? "",
     ...(typeof slug === "string" ? { slug } : {}),
     ...(typeof serviceCategory === "string" ? { serviceCategory } : {}),
+    ...(typeof classification === "string" ? { classification } : {}),
   });
   if (!parsed.success) {
     return {
