@@ -183,6 +183,21 @@ describe("operator template preview printing", () => {
     expect(patientCss).toContain("break-inside: avoid");
     expect(patientCss).toContain("orphans: 3");
     expect(patientCss).toContain("widows: 3");
+    expect(patientCss).toContain("break-after: auto");
+    expect(patientCss).toContain(".section:not(:has(.planList))");
+    expect(patientCss).toContain('data-print-flow="break"');
+    expect(patientCss).toContain("break-before: avoid");
+    const printBlock = patientCss.slice(patientCss.lastIndexOf("@media print"));
+    expect(printBlock).toContain(".disclaimer");
+    expect(printBlock).toContain(".footer");
+    const cardRule = printBlock.match(
+      /\.planItem,\s*\.timelineItem,[\s\S]*?\}/
+    )?.[0];
+    expect(cardRule).toContain("break-inside: avoid");
+    expect(cardRule).toContain("break-after: auto");
+    expect(cardRule).not.toContain("break-after: avoid");
+    expect(printBlock).toMatch(/\.disclaimer,[\s\S]*?break-after:\s*avoid/);
+    expect(printBlock).toMatch(/\.footer\s*\{[\s\S]*?break-before:\s*avoid/);
 
     const toolbar = readFileSync(
       "app/(staff)/(guide-preview)/guides/[guideId]/preview/staff-preview-toolbar.tsx",

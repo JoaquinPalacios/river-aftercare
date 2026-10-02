@@ -896,7 +896,13 @@
 
   .main {
     flex: none;
+    padding-top: 0.85rem;
     padding-bottom: 0;
+  }
+
+  .hero {
+    margin-bottom: 1rem;
+    padding-bottom: 0.85rem;
   }
 
   .header .logoStack,
@@ -969,17 +975,83 @@
   .warning,
   .emergency,
   .reassurance,
-  .contact {
+  .contact,
+  .printContact {
     break-inside: auto;
   }
 
+  /* Short prose sections stay with their heading. A home-care plan is one
+     section around many instructions, so it must be allowed to fragment.
+     Long sections opt out with data-print-flow="break". */
+  .section:not(:has(.planList)) {
+    break-inside: avoid;
+  }
+
+  .sectionTitle + .body,
+  .sectionTitle + .contentList,
+  .sectionTitle + .contentOrderedList,
+  .planTitle + .planMeta,
+  .planTitle + .body,
+  .planMeta + .body,
+  .disclaimerTitle + .disclaimerCopy,
+  .urgentTitle + .body,
+  .timelineContent {
+    break-before: avoid;
+  }
+
+  /* Keep each short card intact, but do not chain cards with break-after.
+     Chromium otherwise treats a timeline or instruction list as one
+     unbreakable run, leaves the previous page mostly blank, and parks
+     About this guide with the attribution on a page of their own. */
   .planItem,
   .timelineItem,
   .disclaimer,
   .practiceContact,
   .printUrgent {
     break-inside: avoid;
+    break-after: auto;
+  }
+
+  .disclaimer,
+  .practiceContact,
+  .printUrgent {
     break-after: avoid;
+  }
+
+  .section[data-print-flow="break"],
+  .planItem[data-print-flow="break"],
+  .timelineItem[data-print-flow="break"] {
+    break-inside: auto;
+  }
+
+  .disclaimer {
+    margin-top: 1rem;
+    padding-top: 0.8rem;
+  }
+
+  .timelineItem {
+    display: block;
+    position: relative;
+    padding-left: 0.95rem;
+    margin: 0 0 0.85rem;
+  }
+
+  .timelineItem:last-child {
+    margin-bottom: 0;
+  }
+
+  .timelineRail {
+    position: absolute;
+    top: 0.35rem;
+    bottom: 0;
+    left: 0.2rem;
+    height: auto;
+  }
+
+  .timelinePeriod,
+  .timelineContent {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .warning,
@@ -1019,7 +1091,7 @@
   }
 
   .footer {
-    margin-top: 0.85rem;
+    margin-top: 0.65rem;
     padding-top: 0;
     padding-bottom: 0;
     break-before: avoid;

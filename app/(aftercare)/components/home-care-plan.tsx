@@ -1,5 +1,6 @@
 import { GuideContent } from "@/app/(aftercare)/components/guide-content";
 import { formatHomeCareInstructionSummary } from "@/lib/aftercare/home-care-instruction";
+import { patientGuidePrintFlow } from "@/lib/aftercare/patient-print-flow";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
 
 import styles from "../patient.module.css";
@@ -19,7 +20,13 @@ export function HomeCarePlan({ section }: { section: ComposedGuideSection }) {
           const summary = formatHomeCareInstructionSummary(item);
           const detailId = `plan-${section.key}-${item.key}`;
           return (
-            <li key={item.key} className={styles.planItem}>
+            <li
+              key={item.key}
+              className={styles.planItem}
+              data-print-flow={patientGuidePrintFlow(
+                `${item.title}\n${item.body ?? ""}`
+              )}
+            >
               <h3 id={detailId} className={styles.planTitle}>
                 {item.title}
               </h3>
