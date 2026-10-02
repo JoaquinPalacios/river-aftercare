@@ -90,9 +90,10 @@ test.describe("tenant homepage and guide", () => {
         .getByRole("tabpanel", { name: "Timeline" })
         .getByText("First few hours")
     ).toBeVisible();
-    await expect(page.getByText("Today / first 24 hours")).toBeVisible();
-    await expect(page.getByText("Days 2–3", { exact: true })).toBeVisible();
-    await expect(page.getByText("Days 4–7")).toBeVisible();
+    const timeline = page.getByRole("tabpanel", { name: "Timeline" });
+    await expect(timeline.getByText("Today / first 24 hours")).toBeVisible();
+    await expect(timeline.getByText("Days 2–3", { exact: true })).toBeVisible();
+    await expect(timeline.getByText("Days 4–7")).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Recovery overview" })
     ).toBeVisible();

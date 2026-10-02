@@ -58,7 +58,7 @@ test.describe("marketing reveal sequence consistency", () => {
     await expectRevealAncestor(
       page.locator('p[class*="verticalNote"]').filter({
         hasText:
-          "Physiotherapy template availability is confirmed during onboarding.",
+          "Published physiotherapy templates are available for a clinic to enable.",
       })
     );
 
