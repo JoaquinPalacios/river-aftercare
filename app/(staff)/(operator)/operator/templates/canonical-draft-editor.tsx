@@ -28,6 +28,7 @@ import {
   canonicalTemplatePublishedPreviewPath,
   canonicalTemplateRevisionPreviewPath,
 } from "@/lib/canonical-templates/preview-brand";
+import type { DesignatedDemoAdoptionView } from "@/lib/demo-adoption/load-designated-demo-adoption";
 
 const initial: CanonicalTemplateActionState = {};
 
@@ -36,6 +37,7 @@ type CanonicalWorkspaceProps = {
   templateTitle: string;
   initialSections: EditorSection[];
   isActive: boolean;
+  isSample?: boolean;
 } & (
   | {
       mode?: "draft";
@@ -46,6 +48,8 @@ type CanonicalWorkspaceProps = {
     }
   | {
       mode: "published";
+      demoAdoption?: DesignatedDemoAdoptionView | null;
+      demoPublicUrl?: string | null;
     }
 );
 
@@ -55,6 +59,9 @@ export function CanonicalDraftEditor(props: CanonicalWorkspaceProps) {
   const templateTitle = props.templateTitle;
   const initialSections = props.initialSections;
   const isActive = props.isActive;
+  const isSample = props.isSample ?? false;
+  const demoAdoption = published ? (props.demoAdoption ?? null) : null;
+  const demoPublicUrl = published ? (props.demoPublicUrl ?? null) : null;
   const revisionId = published ? "" : props.revisionId;
   const version = published ? 0 : props.version;
   const savedContentSignature = published ? "" : props.savedContentSignature;
@@ -164,6 +171,9 @@ export function CanonicalDraftEditor(props: CanonicalWorkspaceProps) {
         publishing={publishing}
         editing={creating}
         isActive={isActive}
+        isSample={isSample}
+        demoAdoption={demoAdoption}
+        demoPublicUrl={demoPublicUrl}
         onPublish={() => {
           if (!contentChanged) {
             setPublishOpen(true);

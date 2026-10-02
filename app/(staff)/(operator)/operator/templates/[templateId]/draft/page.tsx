@@ -4,8 +4,11 @@ import { notFound } from "next/navigation";
 
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { CanonicalDraftEditor } from "@/app/(staff)/(operator)/operator/templates/canonical-draft-editor";
+import { designatedDemoPublicUrl } from "@/app/(staff)/(operator)/operator/templates/request-host";
+import { TemplateOriginBadge } from "@/app/(staff)/(operator)/operator/templates/template-badges";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { loadDesignatedDemoAdoption } from "@/lib/demo-adoption/load-designated-demo-adoption";
 import { loadOperatorCanonicalTemplate } from "@/lib/operator/canonical-templates/load-operator-canonical-template";
 import { operatorTemplateNotice } from "@/lib/operator/canonical-templates/notices";
 
@@ -33,6 +36,11 @@ export default async function OperatorTemplateDraftPage({
     (revision) => revision.isLatestPublished
   );
   const workspace = draft !== null || latestPublished !== undefined;
+  const publishedWorkspace = draft === null && latestPublished !== undefined;
+  const demoAdoption = publishedWorkspace
+    ? await loadDesignatedDemoAdoption(template.id)
+    : null;
+  const demoPublicUrl = await designatedDemoPublicUrl(demoAdoption);
 
   return (
     <div className="canonicalDraftPage">
@@ -55,6 +63,7 @@ export default async function OperatorTemplateDraftPage({
             <h1 className="text-2xl font-semibold tracking-tight">
               {template.title}
             </h1>
+            <TemplateOriginBadge isSample={template.isSample} />
             <span className="staffStatusPill" data-tone="draft">
               Draft
             </span>
@@ -75,6 +84,7 @@ export default async function OperatorTemplateDraftPage({
           savedContentSignature={draft.savedContentSignature}
           initialSections={draft.sections}
           isActive={template.isActive}
+          isSample={template.isSample}
           neverPublished={template.latestPublishedVersion === null}
         />
       ) : latestPublished ? (
@@ -84,6 +94,9 @@ export default async function OperatorTemplateDraftPage({
           templateTitle={template.title}
           initialSections={latestPublished.sections}
           isActive={template.isActive}
+          isSample={template.isSample}
+          demoAdoption={demoAdoption}
+          demoPublicUrl={demoPublicUrl}
         />
       ) : (
         <p className="text-sm text-staff-muted">

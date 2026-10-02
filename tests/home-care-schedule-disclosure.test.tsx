@@ -17,6 +17,7 @@ vi.mock("@/app/(staff)/(operator)/operator/templates/actions", () => ({
   createCanonicalTemplateDraftAction: vi.fn(async () => ({})),
   deactivateCanonicalTemplateAction: vi.fn(async () => ({})),
   reactivateCanonicalTemplateAction: vi.fn(async () => ({})),
+  updateLiveDemoAction: vi.fn(async () => ({})),
 }));
 
 import { CanonicalDraftEditor } from "@/app/(staff)/(operator)/operator/templates/canonical-draft-editor";

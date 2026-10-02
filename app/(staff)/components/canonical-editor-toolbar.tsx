@@ -4,6 +4,13 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
+import { WorkspaceLiveDemoUpdate } from "@/app/(staff)/(operator)/operator/templates/template-demo-adoption";
+import { TemplateOriginBadge } from "@/app/(staff)/(operator)/operator/templates/template-badges";
+import {
+  liveDemoCurrency,
+  liveDemoCurrencyLabel,
+} from "@/lib/demo-adoption/live-demo-currency";
+import type { DesignatedDemoAdoptionView } from "@/lib/demo-adoption/load-designated-demo-adoption";
 
 export function CanonicalEditorToolbar({
   templateId,
@@ -17,6 +24,9 @@ export function CanonicalEditorToolbar({
   onPublish,
   lifecycle,
   previewHref,
+  isSample = false,
+  demoAdoption = null,
+  demoPublicUrl = null,
 }: {
   templateId: string;
   templateTitle: string;
@@ -29,8 +39,13 @@ export function CanonicalEditorToolbar({
   onPublish: () => void;
   lifecycle: ReactNode;
   previewHref?: string;
+  isSample?: boolean;
+  demoAdoption?: DesignatedDemoAdoptionView | null;
+  demoPublicUrl?: string | null;
 }) {
   const published = mode === "published";
+  const designatedDemo = published && isSample ? demoAdoption : null;
+  const demoCurrency = designatedDemo ? liveDemoCurrency(designatedDemo) : null;
   return (
     <div className="canonicalEditorToolbar" data-canonical-toolbar="">
       <div className="canonicalEditorToolbarStart">
@@ -52,6 +67,7 @@ export function CanonicalEditorToolbar({
           }
         />
         <div className="canonicalEditorToolbarStatus">
+          <TemplateOriginBadge isSample={isSample} />
           {published ? (
             <span className="staffStatusPill" data-tone="published">
               Published
@@ -61,6 +77,19 @@ export function CanonicalEditorToolbar({
               Draft
             </span>
           )}
+          {demoCurrency ? (
+            <p
+              className="canonicalEditorEditNote"
+              data-live-demo-currency={demoCurrency}
+            >
+              {liveDemoCurrencyLabel(demoCurrency)}
+            </p>
+          ) : null}
+          {designatedDemo?.blocker ? (
+            <p className="canonicalEditorEditNote" role="status">
+              {designatedDemo.blocker}
+            </p>
+          ) : null}
           {published || !contentChanged ? null : (
             <span className="staffStatusPill" data-tone="warning">
               Unsaved changes
@@ -127,6 +156,13 @@ export function CanonicalEditorToolbar({
             </button>
           </>
         )}
+        {designatedDemo ? (
+          <WorkspaceLiveDemoUpdate
+            templateId={templateId}
+            adoption={designatedDemo}
+            publicUrl={demoPublicUrl}
+          />
+        ) : null}
         {previewHref ? (
           <Link href={previewHref} className="staffBtn staffBtnSecondary">
             Preview patient guide

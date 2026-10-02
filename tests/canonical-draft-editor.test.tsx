@@ -20,6 +20,7 @@ vi.mock("@/app/(staff)/(operator)/operator/templates/actions", () => ({
   createCanonicalTemplateDraftAction: vi.fn(async () => ({})),
   deactivateCanonicalTemplateAction: vi.fn(async () => ({})),
   reactivateCanonicalTemplateAction: vi.fn(async () => ({})),
+  updateLiveDemoAction: vi.fn(async () => ({})),
 }));
 
 import { CanonicalDraftEditor } from "@/app/(staff)/(operator)/operator/templates/canonical-draft-editor";
@@ -367,11 +368,12 @@ describe("canonical draft editor", () => {
     expect(container.textContent).not.toContain("Save");
     expect(container.querySelector("#canonical-draft-form")).toBeNull();
     expect(container.querySelector('input[name="sections"]')).toBeNull();
-    expect(
-      container.querySelector(
-        "[data-canonical-toolbar] [data-tone='published']"
-      )?.textContent
-    ).toBe("Published");
+    const pills = [
+      ...container.querySelectorAll(
+        "[data-canonical-toolbar] .staffStatusPill"
+      ),
+    ].map((pill) => pill.textContent);
+    expect(pills).toEqual(["Production", "Published"]);
     expect(
       container.querySelector("a[href='/operator/templates/template']")
         ?.textContent
