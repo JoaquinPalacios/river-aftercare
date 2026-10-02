@@ -302,6 +302,7 @@ html.aftercareDocument body {
 }
 
 @page {
+  size: A4 portrait;
   margin: 16mm 14mm;
 }
 

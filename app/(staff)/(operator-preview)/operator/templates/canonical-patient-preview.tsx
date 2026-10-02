@@ -52,6 +52,7 @@ export function CanonicalPatientPreview({
         statusLabel={CANONICAL_PREVIEW_OPERATOR_LABEL}
         statusDetail={`Revision ${revision.version} · ${status}`}
         clinicThemeMode={CANONICAL_PREVIEW_THEME_INPUT.themeMode}
+        printLabel="Print / Save as PDF"
         banner={
           <p className="templatePreviewBrandNote">
             {CANONICAL_PREVIEW_BRAND_NOTE}

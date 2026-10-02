@@ -95,6 +95,29 @@ const defaultState: OperatorTemplateTableState = {
   requestedPage: 1,
 };
 
+interface TemplateFilterDraft {
+  category: string;
+  activity: string;
+  publication: string;
+}
+
+function templateFilterDraft(
+  state: Pick<
+    OperatorTemplateTableState,
+    "category" | "activity" | "publication"
+  >
+): TemplateFilterDraft {
+  return {
+    category: state.category,
+    activity: state.activity,
+    publication: state.publication,
+  };
+}
+
+function templateFiltersAreDefault(filters: TemplateFilterDraft): boolean {
+  return !filters.category && !filters.activity && !filters.publication;
+}
+
 export function TemplateBulkTable({
   templates,
   filterKey,
@@ -114,6 +137,19 @@ export function TemplateBulkTable({
     OPERATOR_TEMPLATE_COLUMNS
   );
   const [draftQuery, setDraftQuery] = useState(state.q);
+  const appliedFilters = templateFilterDraft(state);
+  const appliedFilterKey = `${appliedFilters.category}|${appliedFilters.activity}|${appliedFilters.publication}`;
+  const [pendingFilterKey, setPendingFilterKey] = useState(appliedFilterKey);
+  const [pendingFilters, setPendingFilters] = useState(appliedFilters);
+  if (pendingFilterKey !== appliedFilterKey) {
+    setPendingFilterKey(appliedFilterKey);
+    setPendingFilters(appliedFilters);
+  }
+  const displayedFilters =
+    pendingFilterKey === appliedFilterKey ? pendingFilters : appliedFilters;
+  const showClearFilters =
+    !templateFiltersAreDefault(appliedFilters) ||
+    !templateFiltersAreDefault(displayedFilters);
   const [bulkState, formAction, pending] = useActionState(
     applyCanonicalTemplateBulkAction,
     initial
@@ -250,6 +286,17 @@ export function TemplateBulkTable({
     );
   }
 
+  function clearFilters() {
+    setPendingFilters({ category: "", activity: "", publication: "" });
+    setSelected(new Set());
+    navigate({
+      category: "",
+      activity: "",
+      publication: "",
+      page: 1,
+    });
+  }
+
   const publishPayload = selectedTemplates.map((template) => ({
     templateId: template.id,
     revisionId: template.draft?.id ?? "",
@@ -266,7 +313,6 @@ export function TemplateBulkTable({
   return (
     <div className="flex flex-col gap-4">
       <form
-        key={`${state.category}|${state.activity}|${state.publication}`}
         className="staffTableFilters"
         aria-label="Filter templates"
         onSubmit={(event) => {
@@ -281,58 +327,89 @@ export function TemplateBulkTable({
           });
         }}
       >
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium" htmlFor="category">
-            Service category
-          </label>
-          <select
-            id="category"
-            name="category"
-            defaultValue={state.category}
-            className="staffSelect"
-          >
-            <option value="">All categories</option>
-            {SERVICE_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {SERVICE_CATEGORY_LABELS[category]}
-              </option>
-            ))}
-          </select>
+        <div className="staffTableFilterFields">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium" htmlFor="category">
+              Service category
+            </label>
+            <select
+              id="category"
+              name="category"
+              value={displayedFilters.category}
+              className="staffSelect"
+              onChange={(event) =>
+                setPendingFilters((current) => ({
+                  ...current,
+                  category: event.target.value,
+                }))
+              }
+            >
+              <option value="">All categories</option>
+              {SERVICE_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {SERVICE_CATEGORY_LABELS[category]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium" htmlFor="activity">
+              Availability
+            </label>
+            <select
+              id="activity"
+              name="activity"
+              value={displayedFilters.activity}
+              className="staffSelect"
+              onChange={(event) =>
+                setPendingFilters((current) => ({
+                  ...current,
+                  activity: event.target.value,
+                }))
+              }
+            >
+              <option value="">Active and inactive</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium" htmlFor="publication">
+              Revision state
+            </label>
+            <select
+              id="publication"
+              name="publication"
+              value={displayedFilters.publication}
+              className="staffSelect"
+              onChange={(event) =>
+                setPendingFilters((current) => ({
+                  ...current,
+                  publication: event.target.value,
+                }))
+              }
+            >
+              <option value="">Any revision state</option>
+              <option value="draft">Has a draft</option>
+              <option value="published">Has a published revision</option>
+              <option value="unpublished">No published revision</option>
+            </select>
+          </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium" htmlFor="activity">
-            Availability
-          </label>
-          <select
-            id="activity"
-            name="activity"
-            defaultValue={state.activity}
-            className="staffSelect"
-          >
-            <option value="">Active and inactive</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+        <div className="staffTableFilterActions">
+          {showClearFilters ? (
+            <button
+              type="button"
+              className="staffBtn staffBtnQuiet"
+              onClick={clearFilters}
+            >
+              Clear filters
+            </button>
+          ) : null}
+          <button type="submit" className="staffBtn staffBtnSecondary">
+            Apply filters
+          </button>
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium" htmlFor="publication">
-            Revision state
-          </label>
-          <select
-            id="publication"
-            name="publication"
-            defaultValue={state.publication}
-            className="staffSelect"
-          >
-            <option value="">Any revision state</option>
-            <option value="draft">Has a draft</option>
-            <option value="published">Has a published revision</option>
-            <option value="unpublished">No published revision</option>
-          </select>
-        </div>
-        <button type="submit" className="staffBtn staffBtnSecondary w-fit">
-          Apply filters
-        </button>
       </form>
       <div className="staffTableToolbar">
         <TableSearch

@@ -852,11 +852,26 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
     var(--interaction-easing);
 }
 
+.staffPreviewToolbarStart {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-self: start;
+  gap: 0.35rem 0.75rem;
+}
+
 .staffPreviewBack {
   justify-self: start;
   min-width: 0;
   max-width: 100%;
   color: var(--staff-muted);
+}
+
+.staffPreviewPrint {
+  max-width: 100%;
+  gap: 0.4rem;
+  white-space: nowrap;
 }
 
 .staffPreviewShell[data-preview-theme="dark"] .staffPreviewBack {
@@ -975,14 +990,44 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
     justify-items: start;
   }
 
+  .staffPreviewToolbarStart,
   .staffPreviewStatus,
   .staffPreviewEdit,
   .staffPreviewToolbarEnd {
     justify-self: start;
+    max-width: 100%;
   }
 
   .staffPreviewToolbarEnd {
     justify-content: flex-start;
+  }
+
+  .staffPreviewPrint {
+    white-space: normal;
+  }
+}
+
+@media print {
+  html:has(.staffPreviewShell),
+  html:has(.staffPreviewShell) body {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #111318 !important;
+    color-scheme: light !important;
+  }
+
+  .navigationProgress,
+  .staffPreviewToolbar,
+  .templatePreviewBrandNote {
+    display: none !important;
+  }
+
+  .staffPreviewShell {
+    min-height: 0 !important;
+    background: #ffffff !important;
+    color: #111318 !important;
   }
 }
 
@@ -3534,9 +3579,50 @@ html[data-theme-mode="dark"]
 }
 
 .staffTableFilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+}
+
+.staffTableFilterFields {
   display: grid;
+  flex: 1 1 36rem;
+  min-width: min(100%, 16rem);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.staffTableFilterFields .staffSelect {
+  width: 100%;
+  max-width: none;
+}
+
+.staffTableFilterActions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.staffTableFilterActions .staffBtn {
+  height: 2.75rem;
+  width: auto;
+}
+
+@media (max-width: 720px) {
+  .staffTableFilterFields {
+    flex-basis: 100%;
+    grid-template-columns: 1fr;
+  }
+
+  .staffTableFilterActions {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 
 .staffDataTableScroll {
