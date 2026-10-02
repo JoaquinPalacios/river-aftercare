@@ -11,7 +11,7 @@ import {
 import { signInAsLocalAdmin, signInAsLocalStaff } from "./helpers/staff-auth";
 
 const DEMO_CLINIC_ID = "clinic_demo_rivers";
-const DEMO_LOGO = "/demo/riverside-mark.svg";
+const DEMO_LOGO = "/brand/river-aftercare-isologo.svg";
 const ARTIFACT_DIR = "docs/product/artifacts/r2-clinic-assets";
 
 const PNG = Buffer.from(

@@ -46,6 +46,7 @@ describe("canonical template eligibility", () => {
       clinicCanUseCanonicalTemplate({
         clinicSlug: "ordinary-clinic",
         serviceCategory: "DENTAL",
+        templateSlug: "tooth-extraction",
         availability: classified.availability,
       })
     ).toBe(true);
@@ -53,6 +54,7 @@ describe("canonical template eligibility", () => {
       clinicCanUseCanonicalTemplate({
         clinicSlug: "demodental",
         serviceCategory: "DENTAL",
+        templateSlug: "tooth-extraction",
         availability: classified.availability,
       })
     ).toBe(true);
@@ -94,13 +96,7 @@ describe("canonical template eligibility", () => {
       clinicCanUseCanonicalTemplate({
         clinicSlug: "demodental",
         serviceCategory: "DENTAL",
-        availability: classified.availability,
-      })
-    ).toBe(true);
-    expect(
-      clinicCanUseCanonicalTemplate({
-        clinicSlug: "demophysio",
-        serviceCategory: "PHYSIOTHERAPY",
+        templateSlug: "extraction",
         availability: classified.availability,
       })
     ).toBe(true);
@@ -108,13 +104,23 @@ describe("canonical template eligibility", () => {
       clinicCanUseCanonicalTemplate({
         clinicSlug: "demodental",
         serviceCategory: "PHYSIOTHERAPY",
+        templateSlug: "home-exercise-plan",
+        availability: classified.availability,
+      })
+    ).toBe(true);
+    expect(
+      clinicCanUseCanonicalTemplate({
+        clinicSlug: "demodental",
+        serviceCategory: "PHYSIOTHERAPY",
+        templateSlug: "extraction",
         availability: classified.availability,
       })
     ).toBe(false);
     expect(
       clinicCanUseCanonicalTemplate({
-        clinicSlug: "demophysio",
+        clinicSlug: "ordinary-clinic",
         serviceCategory: "DENTAL",
+        templateSlug: "extraction",
         availability: classified.availability,
       })
     ).toBe(false);
@@ -122,6 +128,7 @@ describe("canonical template eligibility", () => {
       clinicCanUseCanonicalTemplate({
         clinicSlug: "ordinary-clinic",
         serviceCategory: "PHYSIOTHERAPY",
+        templateSlug: "home-exercise-plan",
         availability: classified.availability,
       })
     ).toBe(false);
@@ -142,8 +149,9 @@ describe("canonical template eligibility", () => {
   it("does not offer a null availability to any clinic", () => {
     expect(
       clinicCanUseCanonicalTemplate({
-        clinicSlug: "demophysio",
+        clinicSlug: "demodental",
         serviceCategory: "PHYSIOTHERAPY",
+        templateSlug: "home-exercise-plan",
         availability: null,
       })
     ).toBe(false);
@@ -151,6 +159,7 @@ describe("canonical template eligibility", () => {
       clinicCanUseCanonicalTemplate({
         clinicSlug: "ordinary-clinic",
         serviceCategory: "DENTAL",
+        templateSlug: "tooth-extraction",
         availability: null,
       })
     ).toBe(false);

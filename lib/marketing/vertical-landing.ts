@@ -220,7 +220,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       label: "Current dental demo",
       value: "Tooth Extraction",
     },
-    note: "Riverside Dental Demo uses a Tooth Extraction sample guide to show the current patient experience. It is not clinically reviewed. Available dental templates are confirmed during onboarding.",
+    note: "River Aftercare Demo Clinic uses a Tooth Extraction sample guide to show the current patient experience. It is fictional and illustrative, and it is not clinically reviewed. Available dental templates are confirmed during onboarding.",
   },
   workflow: {
     h2: "From approved instructions to a page patients can revisit",
@@ -248,10 +248,10 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       kind: "demo",
       eyebrow: "Dental demo",
       h2: "See the patient experience in action",
-      body: "Riverside Dental Demo shows the current River Aftercare patient experience using a published Tooth Extraction sample guide.",
-      ctaLabel: "Open Riverside Dental Demo",
+      body: "River Aftercare Demo Clinic shows the current patient experience using a published Tooth Extraction sample guide. The clinic is fictional and illustrative.",
+      ctaLabel: "Open the Tooth Extraction example",
       preview: {
-        kicker: "Riverside Dental Demo",
+        kicker: "River Aftercare Demo Clinic",
         title: "Tooth Extraction",
         facts: ["Clinic branded", "Browser-based", "No app or login"],
       },
@@ -273,7 +273,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       {
         question: "What dental templates are available?",
         answer:
-          "Riverside Dental Demo currently uses a Tooth Extraction sample guide. It is not clinically reviewed. Dental template availability is confirmed during onboarding as the library develops.",
+          "River Aftercare Demo Clinic currently uses a Tooth Extraction sample guide. It is fictional and illustrative, and it is not clinically reviewed. Dental template availability is confirmed during onboarding as the library develops.",
       },
       {
         question: "Can River Aftercare match our dental practice branding?",
@@ -392,7 +392,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       label: "Current physiotherapy demo",
       value: "Home Exercise Plan",
     },
-    note: `Essential includes available ${PRODUCT_NAME} templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Published physiotherapy templates are available for a clinic to enable. The River Physio Demo Home Exercise Plan is a separate sample and is not one of those production templates. If none of the published templates fits, your clinic can publish its own approved guidance within its plan.`,
+    note: `Essential includes available ${PRODUCT_NAME} templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Published physiotherapy templates are available for a clinic to enable. The River Aftercare Demo Clinic Home Exercise Plan is a separate sample and is not one of those production templates. If none of the published templates fits, your clinic can publish its own approved guidance within its plan.`,
   },
   workflow: {
     h2: "Fit aftercare into the workflow you already have",
@@ -420,10 +420,10 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       kind: "example",
       eyebrow: "Physiotherapy demo",
       h2: "See a home-care guide in the patient view",
-      body: "River Physio Demo is a fictional clinic. Its Home Exercise Plan shows a written home-care guide, including schedules, expected symptoms, activity guidance, contact, and warning sections. It is a demonstration, not an individually prescribed plan. River Aftercare does not track exercise completion, adherence, or patient progress.",
+      body: "River Aftercare Demo Clinic is fictional. Its Home Exercise Plan shows a written home-care guide, including schedules, expected symptoms, activity guidance, contact, and warning sections. It is a demonstration, not an individually prescribed plan. River Aftercare does not track exercise completion, adherence, or patient progress.",
       ctaLabel: "View live physiotherapy example",
       preview: {
-        kicker: "River Physio Demo",
+        kicker: "River Aftercare Demo Clinic",
         title: "Home Exercise Plan",
         facts: ["Clinic branded", "No recovery timeline", "No app or login"],
       },
@@ -468,7 +468,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       },
       {
         question: "What physiotherapy templates are available?",
-        answer: `Published ${PRODUCT_NAME} physiotherapy templates are available for a clinic to enable. They are separate from the River Physio Demo sample, Physiotherapy Home Exercise Plan, which is a demonstration and not a production template. If none of the published templates fits, your clinic can publish its own approved guidance within its plan. ${PRODUCT_NAME} does not track exercise completion, adherence or patient progress.`,
+        answer: `Published ${PRODUCT_NAME} physiotherapy templates are available for a clinic to enable. They are separate from the River Aftercare Demo Clinic sample, Physiotherapy Home Exercise Plan, which is a demonstration and not a production template. If none of the published templates fits, your clinic can publish its own approved guidance within its plan. ${PRODUCT_NAME} does not track exercise completion, adherence or patient progress.`,
       },
       {
         question: `Can ${PRODUCT_NAME} match our physiotherapy clinic branding?`,

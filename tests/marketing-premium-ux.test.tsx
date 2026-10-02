@@ -92,7 +92,7 @@ describe("premium marketing UX contracts", () => {
     expect(html).toContain("Coming next");
     expect(html).toContain("Bite gently on the gauze");
     expect(html).toContain("Recovery overview");
-    expect(html).toContain("Call Riverside Dental Demo");
+    expect(html).toContain("Practice contact page");
     expect(html).toContain('type="radio"');
     expect(html).toContain('tabindex="-1"');
     expect(html).toMatch(/phoneShell[^>]*aria-hidden="true"/);

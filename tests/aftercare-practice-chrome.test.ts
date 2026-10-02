@@ -24,7 +24,8 @@ const PROFILE = {
 describe("resolvePracticeChrome", () => {
   it("identifies the designated dental and physiotherapy demos", () => {
     expect(isDemoTenant("demodental")).toBe(true);
-    expect(isDemoTenant("demophysio")).toBe(true);
+    expect(isDemoTenant("demophysio")).toBe(false);
+    expect(isDemoTenant("demo")).toBe(false);
     expect(isDemoTenant("pacificdental")).toBe(false);
     expect(isDemoTenant("test-tmpl-vis-normal")).toBe(false);
   });

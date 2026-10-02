@@ -90,7 +90,7 @@ describe("marketing homepage", () => {
     expect(html).not.toContain("No login, no feed");
     expect(html).toContain("riverside.[your-domain]/extraction");
     expect(html).toContain("Call the practice →");
-    expect(html).toContain("Call Riverside Dental Demo");
+    expect(html).toContain("Practice contact page");
     expect(html).not.toContain("Dental Implant");
     expect(html).not.toContain("Root Canal");
     expect(html).not.toContain("Wisdom Teeth");
@@ -210,7 +210,7 @@ describe("marketing homepage", () => {
     expect(html).not.toContain("Book an appointment");
     expect(html).toContain("http://demodental.localhost:3000/");
     expect(html).toContain("http://app.localhost:3000/login");
-    expect(html).toContain("Riverside Dental Demo");
+    expect(html).toContain("River Aftercare Demo Clinic");
     expect(html).toContain("heroTitleBlock");
     expect(html).toContain("heroEyebrow");
     expect(html).toContain("heroTitle");
@@ -242,7 +242,7 @@ describe("marketing homepage", () => {
     expect(html).not.toContain("Your recovery");
     expect(html).toContain("Questions about your recovery?");
     expect(html).not.toContain("Need help?");
-    expect(html).toContain("Call Riverside Dental Demo");
+    expect(html).toContain("Practice contact page");
     expect(html).toContain("numberedSteps");
     expect(html).toContain("numberedStepRule");
     expect(html).toContain("data-mk-numbered-steps");
@@ -254,7 +254,7 @@ describe("marketing homepage", () => {
     expect(html).not.toContain("navAnchor");
     expect(html).toContain("navStaff");
     expect(html).toContain("Tooth Extraction");
-    expect(html).toContain("Post-treatment instructions");
+    expect(html).toContain("Aftercare instructions");
     expect(html).toContain("Immediate care");
     expect(html).toContain("Early recovery");
     expect(html).toContain("Healing check");

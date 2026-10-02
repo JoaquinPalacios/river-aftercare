@@ -6,10 +6,10 @@ import {
   serializeAftercareThemeCss,
 } from "@/lib/branding/aftercare-theme";
 
-export const MARKETING_DEMO_CLINIC_NAME = "Riverside Dental Demo";
-export const MARKETING_DEMO_PRIMARY_COLOR = "#0f766e";
-export const MARKETING_DEMO_ACCENT_COLOR = "#f59e0b";
-export const MARKETING_DEMO_TERMINOLOGY = "POST_TREATMENT";
+export const MARKETING_DEMO_CLINIC_NAME = "River Aftercare Demo Clinic";
+export const MARKETING_DEMO_PRIMARY_COLOR = "#3b4bd1";
+export const MARKETING_DEMO_ACCENT_COLOR = "#3b4bd1";
+export const MARKETING_DEMO_TERMINOLOGY = "AFTERCARE";
 export const MARKETING_DEMO_GUIDE_TITLE = "Tooth Extraction";
 export const MARKETING_DEMO_RECOVERY_HEADING = "Recovery overview";
 export const MARKETING_DEMO_TODAY_LABEL = "Today";
@@ -56,7 +56,7 @@ export const MARKETING_DEMO_INSTRUCTIONS_LABEL = instructionLabel(
   MARKETING_DEMO_TERMINOLOGY
 );
 
-export const MARKETING_DEMO_CALL_LABEL = `Call ${MARKETING_DEMO_CLINIC_NAME}`;
+export const MARKETING_DEMO_CALL_LABEL = "Practice contact page";
 
 export const MARKETING_DEMO_THEME_SCOPE = AFTERCARE_THEME_SCOPE;
 export const MARKETING_DEMO_THEME_APPEARANCE = "portal";

@@ -10,16 +10,18 @@ import {
 test.describe("operator clinic invitations", () => {
   test("operator can open Team and invite a pending user", async ({ page }) => {
     await signInAsLocalOperator(page);
-    await page.getByRole("link", { name: "Riverside Dental Demo" }).click();
+    await page
+      .getByRole("link", { name: "River Aftercare Demo Clinic" })
+      .click();
     await expect(
-      page.getByRole("heading", { name: "Riverside Dental Demo" })
+      page.getByRole("heading", { name: "River Aftercare Demo Clinic" })
     ).toBeVisible();
     await expect(page.getByRole("heading", { name: "Team" })).toBeVisible();
     await page.getByRole("link", { name: "Open team" }).click();
     await expect(page).toHaveURL(/\/operator\/clinics\/.+\/team$/);
     await expect(page.getByRole("heading", { name: "Team" })).toBeVisible();
     await expect(
-      page.getByText("Manage who can access Riverside Dental Demo.")
+      page.getByText("Manage who can access River Aftercare Demo Clinic.")
     ).toBeVisible();
     await expect(page.getByRole("link", { name: "Invite user" })).toBeVisible();
     await expect(
@@ -96,7 +98,9 @@ test.describe("operator clinic invitations", () => {
 
   test("clinic admin cannot open operator Team", async ({ page }) => {
     await signInAsLocalOperator(page);
-    await page.getByRole("link", { name: "Riverside Dental Demo" }).click();
+    await page
+      .getByRole("link", { name: "River Aftercare Demo Clinic" })
+      .click();
     await page.getByRole("link", { name: "Open team" }).click();
     const teamUrl = page.url();
     await page.context().clearCookies();
@@ -107,7 +111,9 @@ test.describe("operator clinic invitations", () => {
 
   test("operator can change an active member role", async ({ page }) => {
     await signInAsLocalOperator(page);
-    await page.getByRole("link", { name: "Riverside Dental Demo" }).click();
+    await page
+      .getByRole("link", { name: "River Aftercare Demo Clinic" })
+      .click();
     await page.getByRole("link", { name: "Open team" }).click();
     await expect(page.getByRole("heading", { name: "Team" })).toBeVisible();
 

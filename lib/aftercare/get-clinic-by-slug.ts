@@ -14,6 +14,7 @@ import {
 } from "@/lib/clinics/patient-profile";
 import { isValidCareGuideSlug } from "@/lib/aftercare/slug";
 import { getPrisma } from "@/lib/prisma";
+import { sharedDemoSiteSlugForHostname } from "@/lib/tenancy/shared-demo-hostname";
 
 export interface ClinicBySlugRecord {
   id: string;
@@ -135,16 +136,21 @@ function tenantFromSite(site: PatientSiteRow): ClinicBySlugRecord | null {
  * Resolves a public tenant hostname to its ClinicSite.
  * Clinic.slug is not consulted. An inactive site or a missing root location
  * fails closed.
+ *
+ * The hostname label `demo` is an alias for the existing shared-demo site
+ * slug. No other label is rewritten, so an unknown subdomain does not
+ * resolve to that site.
  */
 export async function getClinicBySlug(
   slug: string
 ): Promise<ClinicBySlugRecord | null> {
-  if (!isValidCareGuideSlug(slug)) {
+  const siteSlug = sharedDemoSiteSlugForHostname(slug) ?? slug;
+  if (!isValidCareGuideSlug(slug) || !isValidCareGuideSlug(siteSlug)) {
     return null;
   }
 
   const site = await getPrisma().clinicSite.findUnique({
-    where: { slug },
+    where: { slug: siteSlug },
     select: patientSiteSelect,
   });
 

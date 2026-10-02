@@ -25,14 +25,14 @@ const DARK_LOGO_PNG = Buffer.from(
 );
 
 const ORIGINAL = {
-  primaryColor: "#0f766e",
-  accentColor: "#f59e0b",
-  darkPrimaryColor: null as string | null,
-  darkAccentColor: null as string | null,
-  useCustomDarkBranding: false,
-  darkLogoUrl: null as string | null,
+  primaryColor: "#3b4bd1",
+  accentColor: "#3b4bd1",
+  darkPrimaryColor: "#8ea0ff",
+  darkAccentColor: "#8ea0ff",
+  useCustomDarkBranding: true,
+  darkLogoUrl: "/brand/river-aftercare-isologo.svg",
   faviconUrl: null as string | null,
-  logoUrl: "/demo/riverside-mark.svg",
+  logoUrl: "/brand/river-aftercare-isologo.svg",
 };
 
 async function restoreDemoBranding(): Promise<void> {

@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
+import { isSharedDemoHostnameLabel } from "@/lib/tenancy/shared-demo-hostname";
 import { careGuideSlugSchema } from "@/lib/aftercare/slug";
 import {
   primaryClinicSiteData,
@@ -21,9 +22,12 @@ export const createOperatorClinicSchema = z.object({
     .refine((value) => !isReservedTenantSlug(value), {
       message: "That hostname is reserved by the platform.",
     })
-    .refine((value) => !isDemoTenant(value), {
-      message: DEMO_TENANT_SLUG_RESERVED_MESSAGE,
-    }),
+    .refine(
+      (value) => !isDemoTenant(value) && !isSharedDemoHostnameLabel(value),
+      {
+        message: DEMO_TENANT_SLUG_RESERVED_MESSAGE,
+      }
+    ),
 });
 
 export type CreateOperatorClinicInput = z.infer<
@@ -33,9 +37,13 @@ export type CreateOperatorClinicInput = z.infer<
 export async function createOperatorClinic(
   values: CreateOperatorClinicInput
 ): Promise<{ id: string }> {
-  if (isReservedTenantSlug(values.slug) || isDemoTenant(values.slug)) {
+  if (
+    isReservedTenantSlug(values.slug) ||
+    isDemoTenant(values.slug) ||
+    isSharedDemoHostnameLabel(values.slug)
+  ) {
     throw new ClinicPortalError(
-      isDemoTenant(values.slug)
+      isDemoTenant(values.slug) || isSharedDemoHostnameLabel(values.slug)
         ? DEMO_TENANT_SLUG_RESERVED_MESSAGE
         : "That hostname is reserved by the platform.",
       "invalid"

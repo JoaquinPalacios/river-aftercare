@@ -29,17 +29,23 @@ test.describe("tenant homepage and guide", () => {
     expect(response?.status()).toBe(200);
     await expectPublicTenantUrl(page, HOME);
     await expect(
-      page.getByRole("link", { name: "Riverside Dental Demo", exact: true })
+      page.getByRole("link", {
+        name: "River Aftercare Demo Clinic",
+        exact: true,
+      })
     ).toBeVisible();
-    await expectOneH1(page, "Riverside Dental Demo");
+    await expectOneH1(page, "River Aftercare Demo Clinic");
     await expect(
-      page.getByText("Post-treatment instructions").first()
+      page.getByText("Aftercare instructions").first()
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Tooth Extraction" })
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: /Call Riverside Dental Demo/ })
+      page.getByRole("link", { name: /Call River Aftercare Demo Clinic/ })
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: "Practice contact page" })
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Book an appointment" })
@@ -100,9 +106,14 @@ test.describe("tenant homepage and guide", () => {
     await expect(page.locator("text=Important.")).toHaveCount(2);
     await expect(page.getByText("If you need urgent help")).toBeVisible();
     await expect(
-      page.getByRole("link", { name: /Call Riverside Dental Demo/ })
+      page.getByRole("link", { name: /Call River Aftercare Demo Clinic/ })
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: "Practice contact page" })
     ).toBeVisible();
-    await expect(page.getByText("Riverside Dental Demo").first()).toBeVisible();
+    await expect(
+      page.getByText("River Aftercare Demo Clinic").first()
+    ).toBeVisible();
     await expect(page.getByText("Draft preview", { exact: true })).toHaveCount(
       0
     );
@@ -124,7 +135,8 @@ test.describe("tenant homepage and guide", () => {
 
     const brand = await tabUntil(
       page,
-      (href, text) => href === "/" && text.includes("Riverside Dental Demo")
+      (href, text) =>
+        href === "/" && text.includes("River Aftercare Demo Clinic")
     );
     expect(brand.href).toBe("/");
 
@@ -142,11 +154,6 @@ test.describe("tenant homepage and guide", () => {
     await tabUntil(page, (href) => href === "/");
     await tabUntil(page, (href, text) =>
       Boolean(
-        href?.startsWith("tel:") && text.includes("Call Riverside Dental Demo")
-      )
-    );
-    await tabUntil(page, (href, text) =>
-      Boolean(
         href?.startsWith("https://") && text.includes("Practice contact page")
       )
     );
@@ -157,7 +164,7 @@ test.describe("tenant homepage and guide", () => {
   }) => {
     await page.goto(HOME, { waitUntil: "load" });
     await expect(page).toHaveTitle(
-      "Riverside Dental Demo — Post-treatment instructions"
+      "River Aftercare Demo Clinic — Aftercare instructions"
     );
     const homeRobots = await page
       .locator('meta[name="robots"]')
@@ -167,7 +174,7 @@ test.describe("tenant homepage and guide", () => {
 
     await page.goto(EXTRACTION, { waitUntil: "load" });
     await expect(page).toHaveTitle(
-      "Tooth Extraction Post-treatment | Riverside Dental Demo"
+      "Tooth Extraction Aftercare | River Aftercare Demo Clinic"
     );
     const guideRobots = await page
       .locator('meta[name="robots"]')
@@ -196,7 +203,7 @@ test.describe("mobile viewport", () => {
         page.getByRole("link", { name: "Tooth Extraction" })
       );
       await expectUsableTapTarget(
-        page.getByRole("link", { name: /Call Riverside Dental Demo/ })
+        page.getByRole("link", { name: "Practice contact page" })
       );
       if (viewport.width === 390) {
         await page.screenshot({
@@ -209,16 +216,16 @@ test.describe("mobile viewport", () => {
       await expectNoHorizontalOverflow(page);
       await expectHeadingDoesNotOverflow(page.locator("h1"));
       await expectUsableTapTarget(
-        page.getByRole("link", { name: /Call Riverside Dental Demo/ })
+        page.getByRole("link", { name: "Practice contact page" })
       );
       await expect(
         page.locator("section").filter({
-          hasText: "Contact Riverside Dental Demo",
+          hasText: "Contact River Aftercare Demo Clinic",
         })
       ).toBeVisible();
       const contactOverflow = await page
         .locator("section")
-        .filter({ hasText: "Contact Riverside Dental Demo" })
+        .filter({ hasText: "Contact River Aftercare Demo Clinic" })
         .evaluate((element) => element.scrollWidth - element.clientWidth);
       expect(contactOverflow).toBeLessThanOrEqual(1);
       if (viewport.width === 390) {

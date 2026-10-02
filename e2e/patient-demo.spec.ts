@@ -17,7 +17,7 @@ test.describe("interactive recovery demo", () => {
     page,
   }) => {
     await page.goto(HOME, { waitUntil: "load" });
-    await expectOneH1(page, "Riverside Dental Demo");
+    await expectOneH1(page, "River Aftercare Demo Clinic");
     await page.getByRole("link", { name: "Tooth Extraction" }).click();
     await expectPublicTenantUrl(page, EXTRACTION);
     await expect(page.getByRole("tab", { name: "Today" })).toHaveAttribute(

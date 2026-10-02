@@ -85,7 +85,7 @@ test.describe("account settings and clinic members", () => {
   }) => {
     await signInAsLocalOperator(page);
     await page
-      .getByRole("link", { name: "Riverside Dental Demo" })
+      .getByRole("link", { name: "River Aftercare Demo Clinic" })
       .first()
       .click();
     await expect(
@@ -101,7 +101,7 @@ test.describe("account settings and clinic members", () => {
   }) => {
     await signInAsLocalOperator(page);
     await page
-      .getByRole("link", { name: "Riverside Dental Demo" })
+      .getByRole("link", { name: "River Aftercare Demo Clinic" })
       .first()
       .click();
     await page.getByRole("button", { name: "Manage clinic workspace" }).click();

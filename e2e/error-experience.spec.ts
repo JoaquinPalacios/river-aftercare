@@ -66,7 +66,7 @@ test.describe("host-aware 404 and health", () => {
       page.getByRole("link", { name: "Back to dashboard" })
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "Riverside Dental Demo" })
+      page.getByRole("link", { name: "River Aftercare Demo Clinic" })
     ).toHaveCount(0);
     await expectSafeFailureCopy(page);
     await expectNoSeriousAxeViolations(page);

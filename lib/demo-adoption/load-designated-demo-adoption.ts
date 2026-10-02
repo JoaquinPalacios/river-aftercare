@@ -62,6 +62,7 @@ export async function loadDesignatedDemoAdoption(
     where: { id: templateId },
     select: {
       id: true,
+      slug: true,
       title: true,
       serviceCategory: true,
       isSample: true,
@@ -81,7 +82,7 @@ export async function loadDesignatedDemoAdoption(
     return null;
   }
   const designation = designatedDemoForCategory(template.serviceCategory);
-  if (!designation) {
+  if (!designation || template.slug !== designation.sampleSlug) {
     return null;
   }
   const clinic = await prisma.clinic.findUnique({

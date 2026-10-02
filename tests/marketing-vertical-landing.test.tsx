@@ -74,13 +74,13 @@ describe("clinic vertical landing pages", () => {
     expect(cosmetic).not.toContain("leave the chair");
     expect(physio).not.toContain("leave the chair");
 
-    expect(dental).toContain("Riverside Dental Demo");
+    expect(dental).toContain("River Aftercare Demo Clinic");
     expect(dental).toContain("View the dental demo");
     expect(dental).toContain("heroActions");
     expect(dental).toContain('data-mk-hero-actions=""');
     expect(physio).toContain('data-mk-hero-actions=""');
     expect(dental).toContain("Tooth Extraction");
-    expect(dental).toContain("http://demodental.localhost:3000/");
+    expect(dental).toContain("http://demodental.localhost:3000/extraction");
     expect(physio).not.toContain("Riverside Dental Demo");
     expect(chiro).not.toContain("Riverside Dental Demo");
     expect(cosmetic).not.toContain("Riverside Dental Demo");
@@ -148,7 +148,7 @@ describe("clinic vertical landing pages", () => {
       "mkReveal"
     );
     const dentalNoteAt = dental.indexOf(
-      "Riverside Dental Demo uses a Tooth Extraction sample guide to show the current patient experience."
+      "River Aftercare Demo Clinic uses a Tooth Extraction sample guide to show the current patient experience."
     );
     expect(dentalNoteAt).toBeGreaterThan(templateAt);
     expect(
@@ -175,7 +175,7 @@ describe("clinic vertical landing pages", () => {
       "From approved instructions to a page patients can keep"
     );
     expect(dental).toContain("See the patient experience in action");
-    expect(dental).toContain("It is not clinically reviewed.");
+    expect(dental).toContain("it is not clinically reviewed.");
     expect(dental).not.toContain("See a real River Aftercare dental example");
     expect(dental).not.toContain("Do patients need to download an app?");
     expect(dental).not.toContain("Do patients need an account?");
@@ -270,7 +270,7 @@ describe("clinic vertical landing pages", () => {
       "Published physiotherapy templates are available for a clinic to enable."
     );
     expect(landing.guidance.note).toContain(
-      "The River Physio Demo Home Exercise Plan is a separate sample"
+      "The River Aftercare Demo Clinic Home Exercise Plan is a separate sample"
     );
     expect(landing.guidance.note).not.toMatch(/ankle|knee|shoulder|lumbar/i);
     expect(landing.workflow.h2).toBe(
@@ -317,12 +317,13 @@ describe("clinic vertical landing pages", () => {
   it("opens the physiotherapy example in a new tab only when the public URL is configured", async () => {
     const previous = process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL;
     process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL =
-      "https://demophysio.riveraftercare.com.au/home-exercise-plan";
+      "https://demo.riveraftercare.com.au/home-exercise-plan";
     try {
       const enabled = renderToStaticMarkup(await MarketingPhysiotherapyPage());
       expect(enabled).toContain(
-        'href="https://demophysio.riveraftercare.com.au/home-exercise-plan"'
+        'href="https://demo.riveraftercare.com.au/home-exercise-plan"'
       );
+      expect(enabled).not.toContain("demophysio.riveraftercare.com.au");
       expect(enabled).toContain('target="_blank"');
       expect(enabled).toContain('rel="noopener noreferrer"');
       expect(enabled).toContain('data-live-example="ready"');

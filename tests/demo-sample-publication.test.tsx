@@ -314,26 +314,35 @@ describe("sample publication and the Riverside demo", () => {
     });
 
     await withSampleCategoryLock(["PHYSIOTHERAPY"], async () => {
-      const parked = await db().guideTemplate.findMany({
-        where: {
-          serviceCategory: "PHYSIOTHERAPY",
-          isSample: true,
-          isActive: true,
-        },
-        select: { id: true },
-      });
-      if (parked.length > 0) {
-        await db().guideTemplate.updateMany({
-          where: { id: { in: parked.map((row) => row.id) } },
-          data: { isActive: false },
-        });
-      }
       try {
-        const physio = await db().clinic.findUniqueOrThrow({
-          where: { slug: "demophysio" },
+        await cleanupSyntheticSample();
+        await db().clinic.deleteMany({ where: { slug: "sdp-publication" } });
+        const physio = await db().clinic.create({
+          data: {
+            name: "Publication Clinic",
+            slug: "sdp-publication",
+          },
+          select: { id: true, name: true, slug: true },
+        });
+        const { ensurePrimarySiteAndRootLocation } =
+          await import("@/lib/clinics/primary-site-location.mjs");
+        await ensurePrimarySiteAndRootLocation(db(), {
+          clinicId: physio.id,
+          clinicName: physio.name,
+          slug: physio.slug,
+          profile: { displayName: physio.name },
+        });
+        const site = await db().clinicSite.findUniqueOrThrow({
+          where: { slug: "sdp-publication" },
           select: { id: true },
         });
-        await cleanupSyntheticSample();
+        await db().clinicSiteServiceCategory.create({
+          data: {
+            clinicSiteId: site.id,
+            clinicId: physio.id,
+            serviceCategory: "PHYSIOTHERAPY",
+          },
+        });
         await db().user.create({
           data: {
             id: OPERATOR_ID,
@@ -349,7 +358,7 @@ describe("sample publication and the Riverside demo", () => {
             title: "Synthetic physiotherapy sample",
             slug: SAMPLE_SLUG,
             serviceCategory: "PHYSIOTHERAPY",
-            classification: "SAMPLE",
+            classification: "PRODUCTION",
           });
           await saveCanonicalTemplateDraft({
             templateId: created.templateId,
@@ -439,7 +448,7 @@ describe("sample publication and the Riverside demo", () => {
             )?.sections[0]?.body
           ).toBe(V1_INTRO);
           const stillV1 = await getPublishedPracticeGuide({
-            clinicSlug: "demophysio",
+            clinicSlug: "sdp-publication",
             publicSlug: SAMPLE_SLUG,
           });
           expect(stillV1?.revision.id).toBe(firstSnapshot?.id);
@@ -503,7 +512,7 @@ describe("sample publication and the Riverside demo", () => {
           expect(refreshed.pinnedRevisionId).toBe(created.revisionId);
 
           const published = await getPublishedPracticeGuide({
-            clinicSlug: "demophysio",
+            clinicSlug: "sdp-publication",
             publicSlug: SAMPLE_SLUG,
           });
           expect(published?.revision.id).toBe(latest?.id);
@@ -519,8 +528,8 @@ describe("sample publication and the Riverside demo", () => {
             recovery
           );
           const chrome = resolvePracticeChrome({
-            slug: published?.clinic.slug ?? "demophysio",
-            name: published?.clinic.name ?? "River Physio Demo",
+            slug: published?.clinic.slug ?? "sdp-publication",
+            name: published?.clinic.name ?? "Publication Clinic",
             profile: published?.profile ?? null,
           });
           const todayHtml = renderToStaticMarkup(
@@ -555,18 +564,13 @@ describe("sample publication and the Riverside demo", () => {
           expect(printHtml).toContain(EMERGENCY_BODY);
           expect(printHtml).toContain(CONTACT_BODY);
           expect(printHtml).toContain(`href="/${SAMPLE_SLUG}"`);
-          expect(chrome.emergencyInstructions).toContain("emergency services");
         } finally {
           await cleanupSyntheticSample();
+          await db().clinic.deleteMany({ where: { slug: "sdp-publication" } });
         }
       } finally {
         await cleanupSyntheticSample();
-        if (parked.length > 0) {
-          await db().guideTemplate.updateMany({
-            where: { id: { in: parked.map((row) => row.id) } },
-            data: { isActive: true },
-          });
-        }
+        await db().clinic.deleteMany({ where: { slug: "sdp-publication" } });
       }
     });
 

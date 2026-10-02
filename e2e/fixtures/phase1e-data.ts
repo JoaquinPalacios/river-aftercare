@@ -45,6 +45,7 @@ export async function assertLocalhostTenantsResolve(): Promise<void> {
   for (const host of [
     "localhost",
     "demodental.localhost",
+    "demo.localhost",
     `${HARBOR.slug}.localhost`,
     "unknown.localhost",
   ]) {

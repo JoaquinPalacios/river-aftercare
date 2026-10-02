@@ -44,14 +44,14 @@ const LOGO_PNG = solidPng(48, 24, [15, 118, 110]);
 const DARK_LOGO_PNG = solidPng(48, 24, [34, 211, 238]);
 
 const ORIGINAL = {
-  primaryColor: "#0f766e",
-  accentColor: "#f59e0b",
-  darkPrimaryColor: null as string | null,
-  darkAccentColor: null as string | null,
-  useCustomDarkBranding: false,
-  darkLogoUrl: null as string | null,
+  primaryColor: "#3b4bd1",
+  accentColor: "#3b4bd1",
+  darkPrimaryColor: "#8ea0ff",
+  darkAccentColor: "#8ea0ff",
+  useCustomDarkBranding: true,
+  darkLogoUrl: "/brand/river-aftercare-isologo.svg",
   faviconUrl: null as string | null,
-  logoUrl: "/demo/riverside-mark.svg",
+  logoUrl: "/brand/river-aftercare-isologo.svg",
 };
 
 function writeArtifact(

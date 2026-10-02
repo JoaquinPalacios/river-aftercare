@@ -125,6 +125,7 @@ describeDb("physiotherapy designated demo adoption", () => {
       await restorePhysioDemo();
     });
     await getPrisma().user.deleteMany({ where: { id: OPERATOR_ID } });
+    await getPrisma().clinic.deleteMany({ where: { slug: "sdp-ordinary" } });
   });
 
   it("adopts only into River Physio Demo and leaves Riverside in place", async () => {
@@ -143,37 +144,72 @@ describeDb("physiotherapy designated demo adoption", () => {
 
       const dentalBefore = await prisma.practiceGuide.findUniqueOrThrow({
         where: { id: DENTAL_GUIDE_ID },
-        select: { pinnedRevisionId: true, publicSlug: true },
+        select: {
+          pinnedRevisionId: true,
+          publicSlug: true,
+          clinicId: true,
+        },
       });
-      const dental = await prisma.clinic.findUniqueOrThrow({
+      const shared = await prisma.clinic.findUniqueOrThrow({
         where: { slug: "demodental" },
       });
-      const physio = await prisma.clinic.findUniqueOrThrow({
-        where: { slug: "demophysio" },
+      const ordinary = await prisma.clinic.upsert({
+        where: { slug: "sdp-ordinary" },
+        update: {},
+        create: {
+          name: "Ordinary Isolation Clinic",
+          slug: "sdp-ordinary",
+        },
       });
-      const dentalTemplates = await listCanonicalGuideTemplates(dental.id);
-      const physioTemplates = await listCanonicalGuideTemplates(physio.id);
+      const ordinarySite = await prisma.clinicSite.upsert({
+        where: { slug: "sdp-ordinary" },
+        update: { clinicId: ordinary.id, active: true, isPrimary: true },
+        create: {
+          clinicId: ordinary.id,
+          name: "Ordinary",
+          slug: "sdp-ordinary",
+          displayName: "Ordinary Isolation Clinic",
+          active: true,
+          isPrimary: true,
+        },
+      });
+      await prisma.clinicSiteServiceCategory.upsert({
+        where: {
+          clinicSiteId_serviceCategory: {
+            clinicSiteId: ordinarySite.id,
+            serviceCategory: "PHYSIOTHERAPY",
+          },
+        },
+        update: {},
+        create: {
+          clinicSiteId: ordinarySite.id,
+          clinicId: ordinary.id,
+          serviceCategory: "PHYSIOTHERAPY",
+        },
+      });
+      const sharedTemplates = await listCanonicalGuideTemplates(shared.id);
+      const ordinaryTemplates = await listCanonicalGuideTemplates(ordinary.id);
       expect(
-        dentalTemplates.templates.some(
-          (template) => template.id === PHYSIO_DEMO_TEMPLATE_ID
-        )
-      ).toBe(false);
-      expect(
-        physioTemplates.templates.find(
+        sharedTemplates.templates.find(
           (template) => template.id === PHYSIO_DEMO_TEMPLATE_ID
         )?.availability
       ).toBe("sample");
       expect(
-        physioTemplates.templates.some(
+        sharedTemplates.templates.some(
           (template) =>
             template.serviceCategory === "DENTAL" &&
             template.availability === "sample"
+        )
+      ).toBe(true);
+      expect(
+        ordinaryTemplates.templates.some(
+          (template) => template.availability === "sample"
         )
       ).toBe(false);
 
       await expect(
         createPracticeGuideFromTemplate({
-          clinicId: dental.id,
+          clinicId: ordinary.id,
           actorUserId: OPERATOR_ID,
           values: { templateId: PHYSIO_DEMO_TEMPLATE_ID },
         })
@@ -183,7 +219,7 @@ describeDb("physiotherapy designated demo adoption", () => {
       );
       await expect(
         createPracticeGuideFromTemplate({
-          clinicId: physio.id,
+          clinicId: shared.id,
           actorUserId: OPERATOR_ID,
           values: { templateId: PHYSIO_DEMO_TEMPLATE_ID },
         })
@@ -191,6 +227,13 @@ describeDb("physiotherapy designated demo adoption", () => {
         (error: unknown) =>
           isClinicPortalError(error) && error.code === "conflict"
       );
+      const physioGuide = await prisma.practiceGuide.findUniqueOrThrow({
+        where: { id: PHYSIO_DEMO_PRACTICE_GUIDE_ID },
+        select: { clinicId: true, publicSlug: true },
+      });
+      expect(physioGuide.clinicId).toBe(shared.id);
+      expect(physioGuide.publicSlug).toBe(PHYSIO_DEMO_PUBLIC_SLUG);
+      expect(dentalBefore.clinicId).toBe(shared.id);
 
       const published = await publishChangedHomeExercise(CHANGED_BODY);
       const dentalDuring = await prisma.practiceGuide.findUniqueOrThrow({
@@ -297,7 +340,11 @@ describeDb("physiotherapy designated demo adoption", () => {
 
       const dentalAfter = await prisma.practiceGuide.findUniqueOrThrow({
         where: { id: DENTAL_GUIDE_ID },
-        select: { pinnedRevisionId: true, publicSlug: true },
+        select: {
+          pinnedRevisionId: true,
+          publicSlug: true,
+          clinicId: true,
+        },
       });
       expect(dentalAfter).toEqual(dentalBefore);
     });

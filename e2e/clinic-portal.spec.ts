@@ -53,7 +53,7 @@ test.describe("clinic portal", () => {
 
     await signInAsLocalAdmin(page);
     await expect(
-      page.getByRole("heading", { name: "Riverside Dental Demo" })
+      page.getByRole("heading", { name: "River Aftercare Demo Clinic" })
     ).toBeVisible();
     await expect(
       page.getByText("Manage your clinic's patient aftercare.")
@@ -241,7 +241,7 @@ test.describe("clinic portal", () => {
     await page.getByRole("link", { name: "Practice" }).click();
     await expect(page).toHaveURL(staffUrl("/practice"));
     await expect(
-      page.getByRole("heading", { name: "Riverside Dental Demo" })
+      page.getByRole("heading", { name: "River Aftercare Demo Clinic" })
     ).toBeVisible();
     await expect(
       page.getByLabel("Primary colour", { exact: true })
@@ -503,7 +503,7 @@ test.describe("platform operator", () => {
         .getByRole("navigation", { name: "Platform" })
         .getByRole("link", { name: "SEO & Discovery" })
     ).toBeVisible();
-    await expect(page.getByText("Riverside Dental Demo")).toBeVisible();
+    await expect(page.getByText("River Aftercare Demo Clinic")).toBeVisible();
     await expect(
       page.getByRole("cell", { name: "demodental", exact: true })
     ).toBeVisible();
@@ -513,12 +513,16 @@ test.describe("platform operator", () => {
     });
     await expectNoSeriousAxeViolationsLightAndDark(page);
 
-    await page.getByRole("link", { name: "Riverside Dental Demo" }).click();
+    await page
+      .getByRole("link", { name: "River Aftercare Demo Clinic" })
+      .click();
     await expect(
-      page.getByRole("heading", { name: "Riverside Dental Demo" })
+      page.getByRole("heading", { name: "River Aftercare Demo Clinic" })
     ).toBeVisible();
     await expect(
-      page.locator("header").getByText("Rivers Care Demo Clinic · demodental")
+      page
+        .locator("header")
+        .getByText("River Aftercare Demo Clinic · demodental")
     ).toBeVisible();
     await expect(page.getByText("Tooth Extraction")).toBeVisible();
     await expect(

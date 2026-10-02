@@ -17,7 +17,7 @@ const FAQ_EXPECTATIONS = {
     answers: [
       "No. Patients open their aftercare page in the browser from a durable link or QR code. No River Aftercare app or patient login is required.",
       "Essential includes available River Aftercare templates and up to 2 active custom clinic guides.",
-      "Riverside Dental Demo currently uses a Tooth Extraction sample guide. It is not clinically reviewed.",
+      "River Aftercare Demo Clinic currently uses a Tooth Extraction sample guide. It is fictional and illustrative, and it is not clinically reviewed.",
       "Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details",
       "It is not currently a practice-management system, CRM, patient health record, messaging platform or clinical monitoring system.",
       "Essential supports up to 2 active custom clinic guides. Practice supports up to 30 active custom clinic guides with broader creation and adaptation.",
@@ -36,7 +36,7 @@ const FAQ_EXPECTATIONS = {
       "It can publish clinic-approved written exercise, recovery and home-care guidance, but it does not currently track exercise completion, adherence or patient progress.",
       "No. Patients open their aftercare page in the browser from a durable link or QR code. No River Aftercare app or patient login is required.",
       "Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides",
-      "Published River Aftercare physiotherapy templates are available for a clinic to enable. They are separate from the River Physio Demo sample, Physiotherapy Home Exercise Plan, which is a demonstration and not a production template.",
+      "Published River Aftercare physiotherapy templates are available for a clinic to enable. They are separate from the River Aftercare Demo Clinic sample, Physiotherapy Home Exercise Plan, which is a demonstration and not a production template.",
       "Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details",
       "It does not currently replace a practice-management system, store patient health records, provide patient messaging or monitor exercise adherence.",
     ],
