@@ -3,6 +3,7 @@ import {
   guideSectionTone,
   type GuideSectionTone,
 } from "@/lib/aftercare/guide-section-tone";
+import { patientGuidePrintFlow } from "@/lib/aftercare/patient-print-flow";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
 
 import styles from "../patient.module.css";
@@ -40,6 +41,7 @@ export function GuideSection({ section }: { section: ComposedGuideSection }) {
     <section
       className={sectionClassName(tone)}
       data-guide-tone={tone}
+      data-print-flow={patientGuidePrintFlow(section.body)}
       aria-labelledby={headingId}
     >
       <h2 id={headingId} className={styles.sectionTitle}>

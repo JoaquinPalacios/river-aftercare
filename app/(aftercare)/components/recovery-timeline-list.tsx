@@ -1,5 +1,6 @@
 import { GuideContent } from "@/app/(aftercare)/components/guide-content";
 import type { TimelineStageStatus } from "@/lib/aftercare/demo-recovery-state";
+import { patientGuidePrintFlow } from "@/lib/aftercare/patient-print-flow";
 import type { ComposedGuideSection } from "@/lib/aftercare/types";
 
 const STATUS_LABEL: Record<TimelineStageStatus, string> = {
@@ -77,6 +78,9 @@ export function RecoveryTimelineList({
               className={classes.timelineItem}
               data-status={status}
               data-timeline-stage={section.key}
+              data-print-flow={patientGuidePrintFlow(
+                `${period ?? ""}\n${section.title}\n${section.body}`
+              )}
             >
               {period ? (
                 <p className={classes.timelinePeriod}>{period}</p>
