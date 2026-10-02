@@ -805,7 +805,7 @@ test.describe("clinic portal UX polish", () => {
       .getByRole("dialog", { name: "Delete this guide?" })
       .getByRole("button", { name: "Delete guide" })
       .click();
-    await expect(page.getByText("Empty preview draft")).toHaveCount(0);
+    await expect(page.getByText(slug)).toHaveCount(0);
   });
 
   test("desktop sidebar stays viewport-fixed while the page scrolls", async ({
@@ -1020,7 +1020,7 @@ test.describe("clinic portal UX polish", () => {
       path: "docs/product/artifacts/phase-2a.2/delete-draft-dialog-1440.png",
     });
     await dialog.getByRole("button", { name: "Delete guide" }).click();
-    await expect(page.getByText("Delete me draft")).toHaveCount(0);
+    await expect(page.getByText(slug)).toHaveCount(0);
   });
 
   test("admin can delete an unpublished draft from the editor more actions menu", async ({
