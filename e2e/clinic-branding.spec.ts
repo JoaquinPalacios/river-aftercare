@@ -163,12 +163,13 @@ test.describe("clinic Dark branding and favicon", () => {
 
     await signInAsLocalAdmin(page);
     await page.goto(staffUrl("/practice"), { waitUntil: "load" });
+    const darkLogo = page.getByRole("group", { name: "Dark logo" });
     await page.setInputFiles("#clinic-dark-logo-file", {
       name: "dark-logo.png",
       mimeType: "image/png",
       buffer: DARK_LOGO_PNG,
     });
-    await page.getByRole("button", { name: "Upload Dark logo" }).click();
+    await darkLogo.getByRole("button", { name: "Upload replacement" }).click();
     await expect(page.getByText("Dark logo updated.")).toBeVisible();
     await page.setInputFiles("#clinic-favicon-file", {
       name: "clinic-favicon.png",

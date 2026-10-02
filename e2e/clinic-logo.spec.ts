@@ -78,7 +78,7 @@ test.describe("clinic logo upload", () => {
     await expect(logoControl.getByRole("status")).toHaveText(
       "Practice logo updated."
     );
-    const uploaded = page.locator("img.staffLogoPreview");
+    const uploaded = logoControl.locator("img.staffLogoPreview");
     await expect(uploaded).toHaveAttribute(
       "src",
       /\/clinic-branding\/clinic_demo_rivers\/.+\.png$/
@@ -115,7 +115,7 @@ test.describe("clinic logo upload", () => {
     });
 
     await page.goto(staffUrl("/practice"), { waitUntil: "load" });
-    await expect(page.getByText("Choose replacement")).toBeVisible();
+    await expect(logoControl.getByText("Choose replacement")).toBeVisible();
     await page.setInputFiles("#clinic-logo-file", {
       name: "clinic-mark.svg",
       mimeType: "image/svg+xml",
@@ -126,7 +126,7 @@ test.describe("clinic logo upload", () => {
     await expect(logoControl.getByRole("status")).toHaveText(
       "Practice logo updated."
     );
-    await expect(page.locator("img.staffLogoPreview")).toHaveAttribute(
+    await expect(logoControl.locator("img.staffLogoPreview")).toHaveAttribute(
       "src",
       /\/clinic-branding\/clinic_demo_rivers\/.+\.svg$/
     );

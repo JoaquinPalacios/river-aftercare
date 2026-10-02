@@ -296,7 +296,10 @@ test.describe("clinic portal", () => {
     });
 
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    await page.getByRole("link", { name: "Edit" }).first().click();
+    await page
+      .getByRole("row", { name: /Tooth Extraction/ })
+      .getByRole("link", { name: "Edit" })
+      .click();
     await expect(
       page
         .getByRole("button", { name: "Save", exact: true })
@@ -549,7 +552,10 @@ test.describe("clinic portal UX polish", () => {
   }) => {
     await signInAsLocalAdmin(page);
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    await page.getByRole("link", { name: "Edit" }).first().click();
+    await page
+      .getByRole("row", { name: /Tooth Extraction/ })
+      .getByRole("link", { name: "Edit" })
+      .click();
     await expect(
       page.getByRole("heading", { name: "Tooth Extraction" }).first()
     ).toBeVisible();
@@ -567,7 +573,10 @@ test.describe("clinic portal UX polish", () => {
     await expect(page).toHaveURL(staffUrl("/guides"));
     await expect(page.getByRole("dialog")).toHaveCount(0);
 
-    await page.getByRole("link", { name: "Edit" }).first().click();
+    await page
+      .getByRole("row", { name: /Tooth Extraction/ })
+      .getByRole("link", { name: "Edit" })
+      .click();
     const introduction = page.getByLabel("Short introduction");
     await introduction.fill(`${await introduction.inputValue()} `);
     await expect(page.locator("[data-save-state=unsaved]")).toBeVisible();
@@ -607,7 +616,10 @@ test.describe("clinic portal UX polish", () => {
     await page.getByRole("button", { name: "Discard changes" }).click();
     await expect(page).toHaveURL(staffUrl("/guides"));
 
-    await page.getByRole("link", { name: "Edit" }).first().click();
+    await page
+      .getByRole("row", { name: /Tooth Extraction/ })
+      .getByRole("link", { name: "Edit" })
+      .click();
     await expect(page.locator("[data-save-state=saved]")).toHaveCount(0);
     await page
       .getByRole("button", { name: "Publish guide" })
@@ -638,6 +650,7 @@ test.describe("clinic portal UX polish", () => {
     const slug = `ux-polish-${Date.now()}`;
     await page.getByLabel("Guide title").fill("UX polish draft");
     await page.getByLabel("Public slug").fill(slug);
+    await page.locator("#serviceCategory").selectOption("DENTAL");
     await page.getByRole("button", { name: "Create custom guide" }).click();
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
     await expect(page.locator("[data-save-state=saved]")).toHaveCount(0);
@@ -735,12 +748,16 @@ test.describe("clinic portal UX polish", () => {
     await expect(page.locator("#clinic-logo-file")).toHaveCount(1);
     await expect(page.locator("#clinic-dark-logo-file")).toHaveCount(1);
     await expect(page.locator("#clinic-favicon-file")).toHaveCount(1);
-    await expect(page.getByText("Choose replacement")).toBeVisible();
+    await expect(
+      page
+        .getByRole("group", { name: "Practice logo" })
+        .getByText("Choose replacement")
+    ).toBeVisible();
     await expect(
       page.getByText("SVG, PNG, JPEG or WebP", { exact: false }).first()
     ).toBeVisible();
     await expect(page.locator('input[type="file"]')).toHaveCount(3);
-    await expect(page.locator('input[type="color"]')).toHaveCount(3);
+    await expect(page.locator('input[type="color"]')).toHaveCount(5);
     await page.getByLabel("Display name").fill("Riverside Dental Demo ");
     await expect(page.locator("[data-save-state=unsaved]")).toBeVisible();
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -762,6 +779,7 @@ test.describe("clinic portal UX polish", () => {
     const slug = `empty-preview-${Date.now()}`;
     await page.getByLabel("Guide title").fill("Empty preview draft");
     await page.getByLabel("Public slug").fill(slug);
+    await page.locator("#serviceCategory").selectOption("DENTAL");
     await page.getByRole("button", { name: "Create custom guide" }).click();
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
     await expect(
@@ -924,7 +942,10 @@ test.describe("clinic portal UX polish", () => {
     await signInAsLocalAdmin(page);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    await page.getByRole("link", { name: "Edit" }).first().click();
+    await page
+      .getByRole("row", { name: /Tooth Extraction/ })
+      .getByRole("link", { name: "Edit" })
+      .click();
 
     const stages = page.locator("article[data-stage-key]");
     const firstStage = stages.nth(0);
@@ -973,6 +994,7 @@ test.describe("clinic portal UX polish", () => {
     const slug = `delete-draft-${Date.now()}`;
     await page.getByLabel("Guide title").fill("Delete me draft");
     await page.getByLabel("Public slug").fill(slug);
+    await page.locator("#serviceCategory").selectOption("DENTAL");
     await page.getByRole("button", { name: "Create custom guide" }).click();
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
     await page
@@ -1009,6 +1031,7 @@ test.describe("clinic portal UX polish", () => {
     const slug = `editor-delete-${Date.now()}`;
     await page.getByLabel("Guide title").fill("Editor delete draft");
     await page.getByLabel("Public slug").fill(slug);
+    await page.locator("#serviceCategory").selectOption("DENTAL");
     await page.getByRole("button", { name: "Create custom guide" }).click();
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
     await page

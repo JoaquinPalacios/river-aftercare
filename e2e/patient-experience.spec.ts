@@ -218,15 +218,13 @@ test.describe("mobile viewport", () => {
       await expectUsableTapTarget(
         page.getByRole("link", { name: "Practice contact page" })
       );
-      await expect(
-        page.locator("section").filter({
-          hasText: "Contact River Aftercare Demo Clinic",
-        })
-      ).toBeVisible();
-      const contactOverflow = await page
-        .locator("section")
-        .filter({ hasText: "Contact River Aftercare Demo Clinic" })
-        .evaluate((element) => element.scrollWidth - element.clientWidth);
+      const contact = page.getByRole("region", {
+        name: "Contact River Aftercare Demo Clinic",
+      });
+      await expect(contact).toBeVisible();
+      const contactOverflow = await contact.evaluate(
+        (element) => element.scrollWidth - element.clientWidth
+      );
       expect(contactOverflow).toBeLessThanOrEqual(1);
       if (viewport.width === 390) {
         await page.screenshot({

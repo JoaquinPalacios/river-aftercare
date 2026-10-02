@@ -15,6 +15,7 @@ test.describe("published guide unpublish lifecycle", () => {
     const slug = `unpublish-${stamp}`;
     await page.getByLabel("Guide title").fill(title);
     await page.getByLabel("Public slug").fill(slug);
+    await page.locator("#serviceCategory").selectOption("DENTAL");
     await page.getByRole("button", { name: "Create custom guide" }).click();
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
 

@@ -127,5 +127,8 @@ test("the shared hostname does not serve staff sign-in", async ({ page }) => {
   });
 
   expect(response?.status()).toBe(404);
-  await expectGenericNotFound(page);
+  const body = ((await page.textContent("body")) ?? "").toLowerCase();
+  expect(body).not.toContain("staff sign in");
+  expect(body).not.toContain("password");
+  expect(page.url()).not.toContain("/_sites");
 });
