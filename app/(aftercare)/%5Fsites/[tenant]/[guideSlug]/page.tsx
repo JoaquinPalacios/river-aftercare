@@ -270,6 +270,7 @@ function DemoTimeline({
         stageStatusByKey={timelineStatusByKey(recovery)}
         heading="Recovery overview"
         headingId="recovery-overview-heading"
+        headingIdPrefix="overview"
       />
     </div>
   );

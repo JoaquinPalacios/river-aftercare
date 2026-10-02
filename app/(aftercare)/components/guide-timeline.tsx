@@ -9,11 +9,13 @@ export function GuideTimeline({
   stageStatusByKey,
   heading = "Recovery guide",
   headingId = "recovery-timeline-heading",
+  headingIdPrefix,
 }: {
   sections: ComposedGuideSection[];
   stageStatusByKey?: Readonly<Record<string, TimelineStageStatus>>;
   heading?: string;
   headingId?: string;
+  headingIdPrefix?: string;
 }) {
   return (
     <RecoveryTimelineList
@@ -21,6 +23,7 @@ export function GuideTimeline({
       stageStatusByKey={stageStatusByKey}
       heading={heading}
       headingId={headingId}
+      headingIdPrefix={headingIdPrefix}
       classes={{
         timeline: styles.timeline,
         sectionTitle: styles.sectionTitle,
