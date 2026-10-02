@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
 import {
   updateLiveDemoAction,
   type CanonicalTemplateActionState,
 } from "@/app/(staff)/(operator)/operator/templates/actions";
+import { liveDemoUpdateOffered } from "@/lib/demo-adoption/live-demo-currency";
 import type { DesignatedDemoAdoptionView } from "@/lib/demo-adoption/load-designated-demo-adoption";
 
 const initial: CanonicalTemplateActionState = {};
@@ -20,13 +21,6 @@ export function TemplateDemoAdoption({
   adoption: DesignatedDemoAdoptionView;
   publicUrl: string | null;
 }) {
-  const [state, action, pending] = useActionState(
-    updateLiveDemoAction,
-    initial
-  );
-  const [open, setOpen] = useState(false);
-  const previewHref = `/operator/templates/${templateId}/demo-preview`;
-
   return (
     <section
       className="templateOverviewCard"
@@ -39,7 +33,11 @@ export function TemplateDemoAdoption({
         live demo only after you confirm the revision below.
       </p>
       <DemoAdoptionSummary adoption={adoption} publicUrl={publicUrl} />
-      <div className="mt-4 flex flex-wrap gap-2">
+      <LiveDemoUpdateActions
+        templateId={templateId}
+        adoption={adoption}
+        publicUrl={publicUrl}
+      >
         {publicUrl ? (
           <a
             className="staffBtn staffBtnSecondary"
@@ -53,24 +51,86 @@ export function TemplateDemoAdoption({
         {adoption.canUpdate ? (
           <a
             className="staffBtn staffBtnSecondary"
-            href={previewHref}
+            href={`/operator/templates/${templateId}/demo-preview`}
             target="_blank"
             rel="noopener noreferrer"
           >
             Preview proposed content
           </a>
         ) : null}
-        {adoption.canUpdate ? (
-          <button
-            type="button"
-            className="staffBtn staffBtnPrimary"
-            onClick={() => setOpen(true)}
-          >
-            Update live demo
-          </button>
-        ) : null}
-      </div>
-      {adoption.blocker ? (
+      </LiveDemoUpdateActions>
+    </section>
+  );
+}
+
+export function WorkspaceLiveDemoUpdate({
+  templateId,
+  adoption,
+  publicUrl,
+}: {
+  templateId: string;
+  adoption: DesignatedDemoAdoptionView;
+  publicUrl: string | null;
+}) {
+  if (!liveDemoUpdateOffered(adoption)) {
+    return null;
+  }
+  return (
+    <LiveDemoUpdateActions
+      templateId={templateId}
+      adoption={adoption}
+      publicUrl={publicUrl}
+      bare
+      showBlocker={false}
+    />
+  );
+}
+
+function LiveDemoUpdateActions({
+  templateId,
+  adoption,
+  publicUrl,
+  bare = false,
+  showBlocker = true,
+  children,
+}: {
+  templateId: string;
+  adoption: DesignatedDemoAdoptionView;
+  publicUrl: string | null;
+  bare?: boolean;
+  showBlocker?: boolean;
+  children?: ReactNode;
+}) {
+  const [state, action, pending] = useActionState(
+    updateLiveDemoAction,
+    initial
+  );
+  const [open, setOpen] = useState(false);
+  const offered = liveDemoUpdateOffered(adoption);
+  const trigger = (
+    <>
+      {children}
+      {offered ? (
+        <button
+          type="button"
+          className="staffBtn staffBtnPrimary"
+          data-update-live-demo=""
+          onClick={() => setOpen(true)}
+        >
+          Update live demo
+        </button>
+      ) : null}
+    </>
+  );
+
+  return (
+    <>
+      {bare ? (
+        trigger
+      ) : (
+        <div className="mt-4 flex flex-wrap gap-2">{trigger}</div>
+      )}
+      {showBlocker && adoption.blocker ? (
         <p className="mt-3 text-sm" role="status">
           {adoption.blocker}
         </p>
@@ -125,7 +185,7 @@ export function TemplateDemoAdoption({
       >
         <DemoAdoptionSummary adoption={adoption} publicUrl={publicUrl} />
       </ConfirmDialog>
-    </section>
+    </>
   );
 }
 
