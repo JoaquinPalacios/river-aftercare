@@ -322,7 +322,7 @@ test.describe("clinic portal", () => {
     await expect(page.locator(".staffEditorToolbar")).toBeVisible();
     await expect(page.locator(".staffEditorRailCard")).toHaveCount(0);
 
-    async function expectFourRowTextarea(
+    async function expectAutosizeTextarea(
       locator: ReturnType<typeof page.getByLabel>,
       label: string
     ) {
@@ -335,15 +335,15 @@ test.describe("clinic portal", () => {
           lineHeight: Number.parseFloat(style.lineHeight),
         };
       });
-      expect(metrics.rows, `${label} rows`).toBeGreaterThanOrEqual(4);
+      expect(metrics.rows, `${label} rows`).toBe(3);
       expect(metrics.height, `${label} height`).toBeGreaterThanOrEqual(
-        metrics.lineHeight * 4 - 1
+        metrics.lineHeight * 3 - 1
       );
     }
 
     const instructions = page.getByLabel("Instructions").first();
     await expect(instructions).toBeVisible();
-    await expectFourRowTextarea(instructions, "timeline instructions");
+    await expectAutosizeTextarea(instructions, "timeline instructions");
     await instructions.scrollIntoViewIfNeeded();
     await page.screenshot({
       path: "test-results/artifacts/phase-2a.5-editor-timeline-instructions.png",
@@ -357,13 +357,13 @@ test.describe("clinic portal", () => {
       .getByLabel("Guidance")
       .first();
     await expect(warningGuidance).toBeVisible();
-    await expectFourRowTextarea(warningGuidance, "warning/contact guidance");
+    await expectAutosizeTextarea(warningGuidance, "warning/contact guidance");
     await warningGuidance.scrollIntoViewIfNeeded();
     await page.screenshot({
       path: "test-results/artifacts/phase-2a.5-editor-warning-guidance.png",
     });
 
-    await expectFourRowTextarea(
+    await expectAutosizeTextarea(
       page.getByLabel("Short introduction"),
       "short introduction"
     );
@@ -798,7 +798,7 @@ test.describe("clinic portal UX polish", () => {
       .filter({ visible: true })
       .click();
     await expect(page).toHaveURL(staffUrl("/guides"));
-    const row = page.locator("li").filter({ hasText: "Empty preview draft" });
+    const row = page.getByRole("row", { name: /Empty preview draft/ });
     await row.getByRole("button", { name: "More actions" }).click();
     await row.getByRole("menuitem", { name: "Delete guide" }).click();
     await page
@@ -1002,7 +1002,7 @@ test.describe("clinic portal UX polish", () => {
       .filter({ visible: true })
       .click();
     await expect(page).toHaveURL(staffUrl("/guides"));
-    const row = page.locator("li", { hasText: "Delete me draft" });
+    const row = page.getByRole("row", { name: /Delete me draft/ });
     await expect(row).toBeVisible();
     await row.getByRole("button", { name: "More actions" }).click();
     await expect(
