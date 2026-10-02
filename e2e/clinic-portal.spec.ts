@@ -798,7 +798,7 @@ test.describe("clinic portal UX polish", () => {
       .filter({ visible: true })
       .click();
     await expect(page).toHaveURL(staffUrl("/guides"));
-    const row = page.getByRole("row", { name: /Empty preview draft/ });
+    const row = page.getByRole("row", { name: new RegExp(slug) });
     await row.getByRole("button", { name: "More actions" }).click();
     await row.getByRole("menuitem", { name: "Delete guide" }).click();
     await page
@@ -1002,7 +1002,7 @@ test.describe("clinic portal UX polish", () => {
       .filter({ visible: true })
       .click();
     await expect(page).toHaveURL(staffUrl("/guides"));
-    const row = page.getByRole("row", { name: /Delete me draft/ });
+    const row = page.getByRole("row", { name: new RegExp(slug) });
     await expect(row).toBeVisible();
     await row.getByRole("button", { name: "More actions" }).click();
     await expect(
