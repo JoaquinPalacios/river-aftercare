@@ -302,6 +302,7 @@ html.aftercareDocument body {
 }
 
 @page {
+  size: A4 portrait;
   margin: 16mm 14mm;
 }
 
@@ -318,6 +319,8 @@ html.aftercareDocument body {
   }
 
   .aftercareTheme {
+    min-height: 0;
+    height: auto;
     background: #ffffff;
     color: #111318;
     font-family: var(--cg-font-sans, var(--font-geist-sans)), sans-serif;

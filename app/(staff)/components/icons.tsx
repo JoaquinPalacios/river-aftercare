@@ -68,6 +68,28 @@ export function DisclosureChevron({
   );
 }
 
+export function PrinterIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4.25 5.25V2.75h7.5v2.5" />
+      <path d="M4.25 11.25H3.4A1.15 1.15 0 0 1 2.25 10.1V6.4A1.15 1.15 0 0 1 3.4 5.25h9.2a1.15 1.15 0 0 1 1.15 1.15v3.7a1.15 1.15 0 0 1-1.15 1.15h-.85" />
+      <path d="M4.25 9.25h7.5V13.25h-7.5z" />
+    </svg>
+  );
+}
+
 export function BackArrowIcon({ className }: { className?: string }) {
   return (
     <svg

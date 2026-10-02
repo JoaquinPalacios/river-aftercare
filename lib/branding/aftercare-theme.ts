@@ -268,6 +268,29 @@ function boundaryDeclarations(tokens: string, colorScheme: string): string {
 }
 
 /**
+ * Printed guides always use the light token set, including the light brand,
+ * so a dark portal or patient theme cannot produce a dark PDF.
+ */
+function serializePrintAppearance(theme: AftercareTheme): string {
+  const scope = `.${AFTERCARE_THEME_SCOPE}`;
+  const light = boundaryDeclarations(serializeTokenBlock(theme.light), "light");
+  const selectors = [
+    scope,
+    `${scope}[data-patient-theme="light"]`,
+    `${scope}[data-patient-theme="dark"]`,
+    `${scope}[data-patient-theme="system"]`,
+    `${scope}[data-patient-theme="portal"]`,
+    `html[data-theme-mode="light"] ${scope}`,
+    `html[data-theme-mode="dark"] ${scope}`,
+    `html[data-theme-mode="system"] ${scope}`,
+    `html[data-theme-mode="light"] ${scope}[data-patient-theme="portal"]`,
+    `html[data-theme-mode="dark"] ${scope}[data-patient-theme="portal"]`,
+    `html[data-theme-mode="system"] ${scope}[data-patient-theme="portal"]`,
+  ].join(",");
+  return `@media print{${selectors}{${light}}}`;
+}
+
+/**
  * Patient tokens live on `.aftercareTheme`, not on `html`, so an embedded
  * preview can keep a coherent patient surface while portal chrome uses a
  * different color-scheme.
@@ -308,11 +331,12 @@ export function serializeAftercareThemeCss(
               `html.aftercareDocument[data-theme-mode="dark"] ${scope}{${boundaryDeclarations(dark, "dark")}}`,
             ].join("");
 
+  const print = serializePrintAppearance(theme);
   if (options?.colorSchemeSelector === "scope") {
-    return scoped;
+    return `${scoped}${print}`;
   }
 
-  return `html{color-scheme:${colorScheme}}${scoped}`;
+  return `html{color-scheme:${colorScheme}}${scoped}${print}`;
 }
 
 function parseRadiusPreset(value: string | null | undefined): string {

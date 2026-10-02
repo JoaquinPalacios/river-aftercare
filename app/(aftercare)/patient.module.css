@@ -883,11 +883,65 @@
 
   .page,
   .printPage {
+    min-height: 0;
+    height: auto;
+    display: block;
     background: #ffffff;
     color: #111318;
     font-family: var(--cg-font-sans, var(--font-geist-sans)), sans-serif;
     font-size: 11pt;
-    line-height: 1.4;
+    line-height: 1.45;
+    overflow-wrap: break-word;
+  }
+
+  .main {
+    flex: none;
+    padding-bottom: 0;
+  }
+
+  .header .logoStack,
+  .header .logo,
+  .printBrand .logo {
+    width: 1.75rem;
+    height: 1.75rem;
+    max-width: 1.75rem;
+    max-height: 1.75rem;
+  }
+
+  .title,
+  .sectionTitle,
+  .planTitle,
+  .name,
+  .body,
+  .contentList,
+  .contentOrderedList {
+    color: #111318;
+    overflow-wrap: anywhere;
+  }
+
+  .planMeta {
+    color: #4b5563;
+  }
+
+  .page h1,
+  .page h2,
+  .page h3,
+  .printPage h1,
+  .printPage h2,
+  .printPage h3,
+  .sectionTitle,
+  .planTitle,
+  .timelinePeriod {
+    break-inside: avoid;
+    break-after: avoid;
+  }
+
+  .page p,
+  .page li,
+  .printPage p,
+  .printPage li {
+    orphans: 3;
+    widows: 3;
   }
 
   .printPage .title {
@@ -904,25 +958,55 @@
     padding-bottom: 0.85rem;
   }
 
-  .printBrand .logo {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-
   .guideLink {
     box-shadow: none;
   }
 
   .section,
+  .timeline,
+  .planList,
+  .timelineList,
+  .warning,
+  .emergency,
+  .reassurance,
+  .contact {
+    break-inside: auto;
+  }
+
+  .planItem,
+  .timelineItem,
+  .disclaimer,
+  .practiceContact,
+  .printUrgent {
+    break-inside: avoid;
+    break-after: avoid;
+  }
+
   .warning,
   .emergency,
   .reassurance,
   .contact,
-  .practiceContact,
-  .printUrgent,
-  .disclaimer,
-  .timelineItem {
-    break-inside: avoid;
+  .printUrgent {
+    color: #111318;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .warning {
+    border-left: 3px solid var(--cg-warning, #b45309);
+    box-shadow: none;
+  }
+
+  .emergency,
+  .urgent,
+  .printUrgent {
+    border-left: 3px solid var(--cg-emergency, #b91c1c);
+    box-shadow: none;
+  }
+
+  .contact {
+    border-left: 3px solid var(--cg-brand, #3b4bd1);
+    box-shadow: none;
   }
 
   .timeline {
@@ -930,11 +1014,16 @@
     border: 1px solid #d7d7d2;
     background: #ffffff;
     padding: 0.85rem 0.9rem 1rem;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .footer {
-    padding-top: 1.75rem;
+    margin-top: 0.85rem;
+    padding-top: 0;
     padding-bottom: 0;
+    break-before: avoid;
+    break-inside: avoid;
     text-align: center;
   }
 

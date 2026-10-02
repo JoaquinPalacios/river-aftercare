@@ -24,6 +24,7 @@ export function StaffPreviewShell({
   fontClassName,
   fontCssVariable,
   banner,
+  printLabel,
   children,
 }: {
   backHref: string;
@@ -37,6 +38,7 @@ export function StaffPreviewShell({
   fontClassName?: string;
   fontCssVariable?: `--font-clinic-${string}` | null;
   banner?: ReactNode;
+  printLabel?: string;
   children: ReactNode;
 }) {
   const [appearance, setAppearance] =
@@ -58,6 +60,7 @@ export function StaffPreviewShell({
         statusLabel={statusLabel}
         statusDetail={statusDetail}
         lifecycle={lifecycle}
+        printLabel={printLabel}
         appearanceControl={
           <PatientPreviewAppearanceSelect
             value={appearance}

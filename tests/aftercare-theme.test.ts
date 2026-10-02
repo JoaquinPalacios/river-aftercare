@@ -365,6 +365,12 @@ describe("serializeAftercareThemeCss", () => {
     );
     expect(css).not.toContain("html{color-scheme");
     expect(css).not.toContain("html.aftercareDocument");
+    const printCss = css.slice(css.lastIndexOf("@media print"));
+    expect(printCss).toContain("color-scheme:light");
+    expect(printCss).toContain("--cg-surface:#ffffff");
+    expect(printCss).toContain("--cg-text:#111318");
+    expect(printCss).not.toContain("--cg-surface:#111318");
+    expect(printCss).not.toContain("#24180c");
     expect(css).toContain("--cg-notice-surface:");
     expect(css).toContain("--cg-notice-text:");
     expect(css).toContain("--cg-notice-muted:");

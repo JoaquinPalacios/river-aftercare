@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { GuideStatusPills } from "@/app/(staff)/components/guide-status-pills";
-import { BackArrowIcon } from "@/app/(staff)/components/icons";
+import { BackArrowIcon, PrinterIcon } from "@/app/(staff)/components/icons";
 import type { ClinicGuideLifecycleStatus } from "@/lib/clinic-portal/guide-status-view";
 
 export function StaffPreviewToolbar({
@@ -16,6 +16,7 @@ export function StaffPreviewToolbar({
   statusDetail,
   lifecycle,
   appearanceControl,
+  printLabel,
 }: {
   backHref: string;
   backLabel: string;
@@ -25,18 +26,31 @@ export function StaffPreviewToolbar({
   statusDetail?: string;
   lifecycle?: ClinicGuideLifecycleStatus;
   appearanceControl?: ReactNode;
+  printLabel?: string;
 }) {
   return (
     <header className="staffPreviewToolbar">
-      <Link
-        href={backHref}
-        className="staffPreviewBack"
-        aria-label={backLabel}
-        title={backLabel}
-      >
-        <BackArrowIcon />
-        <span className="staffPreviewBackLabel">{backLabel}</span>
-      </Link>
+      <div className="staffPreviewToolbarStart">
+        <Link
+          href={backHref}
+          className="staffPreviewBack"
+          aria-label={backLabel}
+          title={backLabel}
+        >
+          <BackArrowIcon />
+          <span className="staffPreviewBackLabel">{backLabel}</span>
+        </Link>
+        {printLabel ? (
+          <button
+            type="button"
+            className="staffBtn staffBtnSecondary staffPreviewPrint"
+            onClick={() => window.print()}
+          >
+            <PrinterIcon />
+            {printLabel}
+          </button>
+        ) : null}
+      </div>
       <div className="staffPreviewStatus flex flex-col items-center gap-1">
         <p className="m-0">{statusLabel}</p>
         {statusDetail ? <p className="m-0">{statusDetail}</p> : null}

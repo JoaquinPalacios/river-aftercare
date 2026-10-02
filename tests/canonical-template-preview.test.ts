@@ -147,6 +147,10 @@ describe("canonical template preview contract", () => {
     expect(brand).not.toContain("demodental");
     expect(preview).toContain("<PatientPage");
     expect(preview).toContain("<GuideDocument");
+    expect(preview).toContain('printLabel="Print / Save as PDF"');
+    expect(preview).not.toContain("Download PDF");
+    expect(publishedPage).toContain("CanonicalPatientPreview");
+    expect(revisionPage).toContain("CanonicalPatientPreview");
     expect(preview).toContain("canonicalPreviewPracticeChrome");
     expect(preview).not.toContain("Riverside");
     expect(preview).not.toContain("demodental");
@@ -276,6 +280,7 @@ describeDb("canonical template patient preview", () => {
     expect(latest).toContain(PRODUCT_ISOLOGO_SRC);
     expect(latest).toContain("data-guide-document");
     expect(latest).toContain("Operator preview");
+    expect(latest).toContain("Print / Save as PDF");
     expect(latest).toContain(CANONICAL_PREVIEW_BRAND_NOTE);
     expect(latest).toContain("About this guide");
     expect(latest).not.toContain("Riverside");
@@ -293,6 +298,7 @@ describeDb("canonical template patient preview", () => {
     );
     expect(historical).toContain(PUBLISHED_BODY);
     expect(historical).toContain("Revision 1 · Published");
+    expect(historical).toContain("Print / Save as PDF");
 
     const next = await createCanonicalTemplateDraft({
       templateId: created.templateId,
@@ -322,6 +328,7 @@ describeDb("canonical template patient preview", () => {
     );
     expect(draftPreview).toContain(DRAFT_BODY);
     expect(draftPreview).toContain("Revision 2 · Draft");
+    expect(draftPreview).toContain("Print / Save as PDF");
     expect(draftPreview).not.toContain(PUBLISHED_BODY);
 
     const overviewWithDraft = renderToStaticMarkup(
