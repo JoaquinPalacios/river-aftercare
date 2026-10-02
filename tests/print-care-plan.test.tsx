@@ -266,4 +266,132 @@ describe("printable recovery guide", () => {
     expect(print).not.toContain("reviewAttestedBy");
     expect(print).not.toContain("MedicalWebPage");
   });
+
+  it("keeps contact and emergency reachable while Today omits the full guide", async () => {
+    getPublishedPracticeGuide.mockResolvedValue(DOCUMENT);
+
+    const web = renderToStaticMarkup(
+      await TenantGuidePage({
+        params: Promise.resolve({
+          tenant: "demodental",
+          guideSlug: "extraction",
+        }),
+      })
+    );
+    const print = renderToStaticMarkup(
+      await PrintPage({
+        params: Promise.resolve({
+          tenant: "demodental",
+          guideSlug: "extraction",
+        }),
+      })
+    );
+
+    expect(web).toContain("Leave the site undisturbed today.");
+    expect(web).toContain("Contact the practice if bleeding does not slow.");
+    expect(web).toContain("Call the clinic during hours.");
+    expect(web).toContain("Call Riverside Dental Demo");
+    expect(web).toContain("If you need urgent help");
+    expect(web).not.toContain("Follow the stages in order.");
+    expect(web).not.toContain("Seek urgent help for difficulty breathing.");
+    expect(web).not.toContain("Weekend contact");
+    expect(print).toContain("Follow the stages in order.");
+    expect(print).toContain("Seek urgent help for difficulty breathing.");
+    expect(print).toContain("Weekend contact");
+    expect(print).toContain("Call the clinic during hours.");
+    expect(print).toContain("Phone 02 5550 0100");
+  });
+
+  it("renders a guide without a recovery timeline as the full document", async () => {
+    getPublishedPracticeGuide.mockResolvedValue({
+      ...DOCUMENT,
+      title: "Shoulder home care",
+      sections: [
+        {
+          key: "introduction",
+          kind: "INTRODUCTION" as const,
+          title: "About this plan",
+          body: "Follow the home-care plan from your practitioner.",
+          periodLabel: null,
+          provenance: "canonical" as const,
+        },
+        {
+          key: "restrictions",
+          kind: "RESTRICTIONS" as const,
+          title: "Restrictions",
+          body: "Avoid the movement that caused the flare.",
+          periodLabel: null,
+          provenance: "canonical" as const,
+        },
+        {
+          key: "plan",
+          kind: "HOME_CARE_PLAN" as const,
+          title: "Home care plan",
+          body: "Repeat the movements your practitioner set.",
+          periodLabel: null,
+          provenance: "canonical" as const,
+          homeCareInstructions: [
+            {
+              key: "repeat",
+              title: "Repeated movement",
+              body: "Stop if pain sharpens.",
+              frequencyCount: 3,
+              frequencyPeriod: "WEEK" as const,
+              timingLabel: null,
+              durationValue: 4,
+              durationUnit: "WEEKS" as const,
+              sortOrder: 1,
+            },
+          ],
+        },
+        {
+          key: "contact-practice",
+          kind: "CONTACT_PRACTICE" as const,
+          title: "Contact the practice",
+          body: "Use the practice phone if a movement is unclear.",
+          periodLabel: null,
+          provenance: "canonical" as const,
+        },
+        {
+          key: "emergency",
+          kind: "EMERGENCY" as const,
+          title: "When this is urgent",
+          body: "Seek urgent help for a sudden loss of strength.",
+          periodLabel: null,
+          provenance: "canonical" as const,
+        },
+      ],
+    });
+
+    const web = renderToStaticMarkup(
+      await TenantGuidePage({
+        params: Promise.resolve({
+          tenant: "demodental",
+          guideSlug: "shoulder-care",
+        }),
+      })
+    );
+    const print = renderToStaticMarkup(
+      await PrintPage({
+        params: Promise.resolve({
+          tenant: "demodental",
+          guideSlug: "shoulder-care",
+        }),
+      })
+    );
+
+    expect(web).toContain("This guide does not include a recovery timeline.");
+    expect(web).toContain("Home care plan");
+    expect(web).toContain("Repeated movement");
+    expect(web).toContain("Restrictions");
+    expect(web).toContain("Use the practice phone if a movement is unclear.");
+    expect(web).toContain("Seek urgent help for a sudden loss of strength.");
+    expect(web).not.toContain("Day 1 of 7");
+    expect(print).toContain("Home care plan");
+    expect(print).toContain("Restrictions");
+    expect(print).toContain("Seek urgent help for a sudden loss of strength.");
+    expect(print).not.toContain(
+      "This guide does not include a recovery timeline."
+    );
+  });
 });

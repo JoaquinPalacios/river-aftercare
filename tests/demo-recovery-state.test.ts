@@ -179,4 +179,92 @@ describe("demo recovery-state resolver", () => {
     expect(recovery.currentStage?.startDay).toBe(4);
     expect(recovery.currentStage?.endDay).toBe(7);
   });
+
+  it("treats day 0 as the current stage and the first 24 hours as upcoming", () => {
+    const recovery = resolveDemoRecoveryState(EXTRACTION_STAGES, {
+      simulatedDay: 0,
+      recoveryWindowDays: 7,
+      simulatedStartDate: "2026-09-10",
+    });
+
+    expect(recovery.currentStage?.key).toBe("immediate-care");
+    expect(recovery.currentStage).toMatchObject({ startDay: 0, endDay: 0 });
+    expect(recovery.nextStage?.key).toBe("first-24-hours");
+    expect(recovery.stages.map((stage) => stage.status)).toEqual([
+      "current",
+      "upcoming",
+      "upcoming",
+      "upcoming",
+    ]);
+    expect(recovery.simulatedStartDate).toBe("2026-09-10");
+    expect(recovery.progress).toBe(0);
+  });
+
+  it("keeps the same stage when only the unused demonstration date changes", () => {
+    const withoutDate = resolveDemoRecoveryState(EXTRACTION_STAGES, {
+      simulatedDay: 1,
+      recoveryWindowDays: 7,
+    });
+    const withDate = resolveDemoRecoveryState(
+      EXTRACTION_STAGES,
+      DEMO_RECOVERY_FIXTURE
+    );
+
+    expect(withDate.stages).toEqual(withoutDate.stages);
+    expect(withDate.currentStage?.key).toBe("first-24-hours");
+    expect(withDate.simulatedStartDate).toBe("2026-09-10");
+  });
+
+  it("marks every overlapping stage current and keeps the first as the Today stage", () => {
+    const recovery = resolveDemoRecoveryState(
+      [
+        section({
+          key: "early",
+          kind: "RECOVERY_TIMELINE",
+          title: "Early",
+          startDay: 0,
+          endDay: 2,
+        }),
+        section({
+          key: "overlap",
+          kind: "RECOVERY_TIMELINE",
+          title: "Overlap",
+          startDay: 1,
+          endDay: 3,
+        }),
+      ],
+      { simulatedDay: 1, recoveryWindowDays: 7 }
+    );
+
+    expect(recovery.stages.map((stage) => stage.status)).toEqual([
+      "current",
+      "current",
+    ]);
+    expect(recovery.currentStage?.key).toBe("early");
+    expect(recovery.nextStage).toBeNull();
+  });
+
+  it("does not treat a home-care plan as a recovery timeline", () => {
+    const sections = [
+      section({
+        key: "plan",
+        kind: "HOME_CARE_PLAN",
+        title: "Home care plan",
+        body: "Repeat the movements your practitioner set.",
+      }),
+      section({
+        key: "restrictions",
+        kind: "RESTRICTIONS",
+        title: "Restrictions",
+        body: "Avoid the movement that caused the flare.",
+      }),
+    ];
+    const recovery = resolveDemoRecoveryState(sections, DEMO_RECOVERY_FIXTURE);
+    const today = buildDemoTodayContent(sections, recovery);
+
+    expect(recovery.hasTimeline).toBe(false);
+    expect(recovery.currentStage).toBeNull();
+    expect(today.whatToDo).toBeNull();
+    expect(today.warnings).toBeNull();
+  });
 });
