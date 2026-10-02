@@ -1,4 +1,6 @@
-import { GuideRevisionStatus } from "@prisma/client";
+import { GuideRevisionStatus, type ServiceCategory } from "@prisma/client";
+
+import { designatedDemoForCategory } from "@/lib/demo-adoption/designated-demos";
 
 export interface CanonicalRevisionCandidate {
   id: string;
@@ -65,12 +67,24 @@ export function classifyCanonicalTemplate(input: {
   };
 }
 
+/**
+ * Production templates are available to any clinic whose site includes the
+ * category. A sample is available only to the designated demo for that
+ * category. Being a demo account does not open every sample.
+ */
 export function clinicCanUseCanonicalTemplate(input: {
-  isDemoTenant: boolean;
+  clinicSlug: string;
+  serviceCategory: ServiceCategory;
   availability: CanonicalTemplateAvailability | null;
 }): boolean {
   if (input.availability === "published") {
     return true;
   }
-  return input.availability === "sample" && input.isDemoTenant;
+  if (input.availability !== "sample") {
+    return false;
+  }
+  return (
+    designatedDemoForCategory(input.serviceCategory)?.clinicSlug ===
+    input.clinicSlug
+  );
 }

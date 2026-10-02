@@ -22,7 +22,7 @@ import { saveCanonicalTemplateDraft } from "@/lib/canonical-templates/save-canon
 import { createPracticeGuideFromTemplate } from "@/lib/clinic-portal/create-practice-guide";
 import { publishPracticeGuide } from "@/lib/clinic-portal/publish-practice-guide";
 import { savePracticeGuideDraft } from "@/lib/clinic-portal/save-practice-guide-draft";
-import { withTemporaryClinicCategory } from "@/tests/active-sample-slot";
+import { withSampleCategoryLock } from "@/tests/active-sample-slot";
 
 const DEMO_CLINIC_ID = "clinic_demo_rivers";
 const EXTRACTION_TEMPLATE_ID = "guide_tmpl_demo_extraction";
@@ -313,10 +313,26 @@ describe("sample publication and the Riverside demo", () => {
       include: { sections: { orderBy: { sortOrder: "asc" } } },
     });
 
-    await withTemporaryClinicCategory(
-      DEMO_CLINIC_ID,
-      "PHYSIOTHERAPY",
-      async () => {
+    await withSampleCategoryLock(["PHYSIOTHERAPY"], async () => {
+      const parked = await db().guideTemplate.findMany({
+        where: {
+          serviceCategory: "PHYSIOTHERAPY",
+          isSample: true,
+          isActive: true,
+        },
+        select: { id: true },
+      });
+      if (parked.length > 0) {
+        await db().guideTemplate.updateMany({
+          where: { id: { in: parked.map((row) => row.id) } },
+          data: { isActive: false },
+        });
+      }
+      try {
+        const physio = await db().clinic.findUniqueOrThrow({
+          where: { slug: "demophysio" },
+          select: { id: true },
+        });
         await cleanupSyntheticSample();
         await db().user.create({
           data: {
@@ -349,12 +365,12 @@ describe("sample publication and the Riverside demo", () => {
           });
 
           const practice = await createPracticeGuideFromTemplate({
-            clinicId: DEMO_CLINIC_ID,
+            clinicId: physio.id,
             actorUserId: OPERATOR_ID,
             values: { templateId: created.templateId },
           });
           await publishPracticeGuide({
-            clinicId: DEMO_CLINIC_ID,
+            clinicId: physio.id,
             actorUserId: OPERATOR_ID,
             guideId: practice.id,
           });
@@ -423,7 +439,7 @@ describe("sample publication and the Riverside demo", () => {
             )?.sections[0]?.body
           ).toBe(V1_INTRO);
           const stillV1 = await getPublishedPracticeGuide({
-            clinicSlug: "demodental",
+            clinicSlug: "demophysio",
             publicSlug: SAMPLE_SLUG,
           });
           expect(stillV1?.revision.id).toBe(firstSnapshot?.id);
@@ -444,7 +460,7 @@ describe("sample publication and the Riverside demo", () => {
           ).toContain(V1_INTRO);
 
           await savePracticeGuideDraft({
-            clinicId: DEMO_CLINIC_ID,
+            clinicId: physio.id,
             actorUserId: OPERATOR_ID,
             values: {
               guideId: practice.id,
@@ -455,7 +471,7 @@ describe("sample publication and the Riverside demo", () => {
             },
           });
           await publishPracticeGuide({
-            clinicId: DEMO_CLINIC_ID,
+            clinicId: physio.id,
             actorUserId: OPERATOR_ID,
             guideId: practice.id,
           });
@@ -487,7 +503,7 @@ describe("sample publication and the Riverside demo", () => {
           expect(refreshed.pinnedRevisionId).toBe(created.revisionId);
 
           const published = await getPublishedPracticeGuide({
-            clinicSlug: "demodental",
+            clinicSlug: "demophysio",
             publicSlug: SAMPLE_SLUG,
           });
           expect(published?.revision.id).toBe(latest?.id);
@@ -503,8 +519,8 @@ describe("sample publication and the Riverside demo", () => {
             recovery
           );
           const chrome = resolvePracticeChrome({
-            slug: published?.clinic.slug ?? "demodental",
-            name: published?.clinic.name ?? "Rivers Care Demo Clinic",
+            slug: published?.clinic.slug ?? "demophysio",
+            name: published?.clinic.name ?? "River Physio Demo",
             profile: published?.profile ?? null,
           });
           const todayHtml = renderToStaticMarkup(
@@ -543,8 +559,16 @@ describe("sample publication and the Riverside demo", () => {
         } finally {
           await cleanupSyntheticSample();
         }
+      } finally {
+        await cleanupSyntheticSample();
+        if (parked.length > 0) {
+          await db().guideTemplate.updateMany({
+            where: { id: { in: parked.map((row) => row.id) } },
+            data: { isActive: true },
+          });
+        }
       }
-    );
+    });
 
     const extractionAfter = await db().practiceGuidePlacement.findUniqueOrThrow(
       {

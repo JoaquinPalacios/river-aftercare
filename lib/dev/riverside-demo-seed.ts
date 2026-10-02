@@ -14,6 +14,18 @@ export function riversidePracticeSeedPlan(
   };
 }
 
+export interface RiversideSeedHomeCareInstruction {
+  key: string;
+  title: string;
+  body: string | null;
+  frequencyCount: number | null;
+  frequencyPeriod: "DAY" | "WEEK" | null;
+  timingLabel: string | null;
+  durationValue: number | null;
+  durationUnit: "DAYS" | "WEEKS" | null;
+  sortOrder: number;
+}
+
 export interface RiversideSeedSection {
   key: string;
   kind: Prisma.PracticeGuideRevisionSectionCreateWithoutRevisionInput["kind"];
@@ -24,6 +36,7 @@ export interface RiversideSeedSection {
   endDay: number | null;
   sortOrder: number;
   provenance: Prisma.PracticeGuideRevisionSectionCreateWithoutRevisionInput["provenance"];
+  homeCareInstructions?: readonly RiversideSeedHomeCareInstruction[];
 }
 
 type SeedDb = Pick<
@@ -115,8 +128,28 @@ async function replaceOriginalRiversideSnapshots(
   });
 
   const sections = input.sections.map((section, index) => ({
-    ...section,
+    key: section.key,
+    kind: section.kind,
+    title: section.title,
+    body: section.body,
+    periodLabel: section.periodLabel,
+    startDay: section.startDay,
+    endDay: section.endDay,
     sortOrder: index + 1,
+    provenance: section.provenance,
+    homeCareInstructions: {
+      create: (section.homeCareInstructions ?? []).map((item) => ({
+        key: item.key,
+        title: item.title,
+        body: item.body,
+        frequencyCount: item.frequencyCount,
+        frequencyPeriod: item.frequencyPeriod,
+        timingLabel: item.timingLabel,
+        durationValue: item.durationValue,
+        durationUnit: item.durationUnit,
+        sortOrder: item.sortOrder,
+      })),
+    },
   }));
 
   await prisma.practiceGuideRevision.create({

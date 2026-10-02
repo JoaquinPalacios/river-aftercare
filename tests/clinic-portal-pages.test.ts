@@ -187,7 +187,7 @@ describe("clinic portal pages", () => {
     expect(form).not.toContain("Canonical template");
     expect(list).toContain("clinicCanUseCanonicalTemplate");
     expect(create).toContain("clinicCanUseCanonicalTemplate");
-    expect(create).toContain("isDemoTenant");
+    expect(create).toContain("clinicSlug");
     expect(create).toContain("classifyCanonicalTemplate");
     expect(create).toContain("eligibleRevisionId");
     expect(list).toContain("isSample");

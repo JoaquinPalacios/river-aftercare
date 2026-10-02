@@ -11,6 +11,7 @@ import {
   resolveLocalLoginSeed,
   upsertLocalLoginAccounts,
 } from "../lib/dev/local-login-accounts.ts";
+import { seedPhysioDemo } from "../lib/dev/physio-demo-seed.ts";
 import {
   riversidePracticeSeedPlan,
   syncRiversidePracticePublication,
@@ -361,6 +362,7 @@ async function main() {
   }
 
   const aftercareDemo = await upsertAftercareDemo(clinic.id);
+  const physioDemo = await seedPhysioDemo(prisma, process.env);
 
   console.info("Seeded clinic-scoped demo data:");
   console.info(
@@ -382,6 +384,19 @@ async function main() {
   console.info(
     `- Practice guide: ${aftercareDemo.practiceGuide.publicSlug} pinned=${aftercareDemo.revision.id} published/enabled`
   );
+  if (!physioDemo.applied) {
+    console.info(
+      "- Physiotherapy demo: not seeded. Remote and production databases are left unchanged."
+    );
+  } else if (physioDemo.sampleSkipped) {
+    console.info(
+      "- Physiotherapy demo clinic shell ensured. The active physiotherapy sample was left in place."
+    );
+  } else {
+    console.info(
+      "- Physiotherapy demo: River Physio Demo (demophysio) synthetic Home Exercise Plan sample."
+    );
+  }
 }
 
 main()

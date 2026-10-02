@@ -138,7 +138,7 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-09-21",
+    lastModified: "2026-10-02",
   },
   "/chiropractic": {
     seoTitle: "Chiropractic Aftercare Software for Practices | River Aftercare",

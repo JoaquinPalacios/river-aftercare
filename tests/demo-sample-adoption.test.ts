@@ -329,25 +329,52 @@ describeDb("designated demo sample adoption", () => {
   });
 
   it("rejects a sample category that has no designated demo", async () => {
-    await withSampleCategoryLock(["DENTAL", "PHYSIOTHERAPY"], async () => {
-      const sample = await createCanonicalTemplate({
-        actorUserId: OPERATOR_ID,
-        title: "Synthetic physiotherapy sample",
-        slug: "sdp-physiotherapy",
-        serviceCategory: "PHYSIOTHERAPY",
-        classification: "SAMPLE",
+    await withSampleCategoryLock(["CHIROPRACTIC"], async () => {
+      const parked = await getPrisma().guideTemplate.findMany({
+        where: {
+          serviceCategory: "CHIROPRACTIC",
+          isSample: true,
+          isActive: true,
+        },
+        select: { id: true },
       });
-      const error = await expectPortalCode(
-        adoptPublishedSampleForDesignatedDemo({
+      if (parked.length > 0) {
+        await getPrisma().guideTemplate.updateMany({
+          where: { id: { in: parked.map((row) => row.id) } },
+          data: { isActive: false },
+        });
+      }
+      try {
+        const sample = await createCanonicalTemplate({
           actorUserId: OPERATOR_ID,
-          templateId: sample.templateId,
-          canonicalRevisionId: sample.revisionId,
-          expectedPinnedRevisionId: null,
-          expectedPublishedPracticeGuideRevisionId: null,
-        }),
-        "invalid"
-      );
-      expect(error.message).toContain("does not have a designated demo");
+          title: "Synthetic chiropractic sample",
+          slug: "sdp-chiropractic",
+          serviceCategory: "CHIROPRACTIC",
+          classification: "SAMPLE",
+        });
+        const error = await expectPortalCode(
+          adoptPublishedSampleForDesignatedDemo({
+            actorUserId: OPERATOR_ID,
+            templateId: sample.templateId,
+            canonicalRevisionId: sample.revisionId,
+            expectedPinnedRevisionId: null,
+            expectedPublishedPracticeGuideRevisionId: null,
+          }),
+          "invalid"
+        );
+        expect(error.message).toContain("does not have a designated demo");
+      } finally {
+        await getPrisma().guideTemplate.updateMany({
+          where: { slug: "sdp-chiropractic" },
+          data: { isActive: false },
+        });
+        if (parked.length > 0) {
+          await getPrisma().guideTemplate.updateMany({
+            where: { id: { in: parked.map((row) => row.id) } },
+            data: { isActive: true },
+          });
+        }
+      }
     });
   });
 

@@ -66,6 +66,14 @@ export type VerticalExtraSection =
       preview: VerticalDemoPreview;
     }
   | {
+      kind: "example";
+      eyebrow: string;
+      h2: string;
+      body: string;
+      ctaLabel: string;
+      preview: VerticalDemoPreview;
+    }
+  | {
       kind: "copy";
       eyebrow: string;
       h2: string;
@@ -380,7 +388,11 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       "clinic contact and escalation information",
     ],
     boundary: `${PRODUCT_NAME} publishes clinic-approved written guidance. It does not currently track exercise completion, adherence or patient progress.`,
-    note: `Essential includes available ${PRODUCT_NAME} templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Physiotherapy template availability is confirmed during onboarding. If no suitable ${PRODUCT_NAME} template is available, your clinic can publish its own approved guidance within its plan.`,
+    status: {
+      label: "Current physiotherapy demo",
+      value: "Home Exercise Plan",
+    },
+    note: `Essential includes available ${PRODUCT_NAME} templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Published physiotherapy templates are available for a clinic to enable. The River Physio Demo Home Exercise Plan is a separate sample and is not one of those production templates. If none of the published templates fits, your clinic can publish its own approved guidance within its plan.`,
   },
   workflow: {
     h2: "Fit aftercare into the workflow you already have",
@@ -404,6 +416,18 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
     ],
   },
   extras: [
+    {
+      kind: "example",
+      eyebrow: "Physiotherapy demo",
+      h2: "See a home-care guide in the patient view",
+      body: "River Physio Demo is a fictional clinic. Its Home Exercise Plan shows a written home-care guide, including schedules, expected symptoms, activity guidance, contact, and warning sections. It is a demonstration, not an individually prescribed plan. River Aftercare does not track exercise completion, adherence, or patient progress.",
+      ctaLabel: "View live physiotherapy example",
+      preview: {
+        kicker: "River Physio Demo",
+        title: "Home Exercise Plan",
+        facts: ["Clinic branded", "No recovery timeline", "No app or login"],
+      },
+    },
     {
       kind: "copy",
       eyebrow: "How it fits",
@@ -444,7 +468,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       },
       {
         question: "What physiotherapy templates are available?",
-        answer: `Physiotherapy template availability is confirmed during onboarding. If no suitable ${PRODUCT_NAME} template is available, your clinic can publish its own approved guidance within its plan.`,
+        answer: `Published ${PRODUCT_NAME} physiotherapy templates are available for a clinic to enable. They are separate from the River Physio Demo sample, Physiotherapy Home Exercise Plan, which is a demonstration and not a production template. If none of the published templates fits, your clinic can publish its own approved guidance within its plan. ${PRODUCT_NAME} does not track exercise completion, adherence or patient progress.`,
       },
       {
         question: `Can ${PRODUCT_NAME} match our physiotherapy clinic branding?`,

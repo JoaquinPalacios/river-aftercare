@@ -5,7 +5,6 @@ import {
 } from "@prisma/client";
 
 import { composeGuideDocument } from "@/lib/aftercare/compose-guide-document";
-import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import {
   classifyCanonicalTemplate,
   clinicCanUseCanonicalTemplate,
@@ -204,7 +203,8 @@ export async function createPracticeGuideFromTemplate(input: {
     revisions: template?.revisions ?? [],
   });
   const allowed = clinicCanUseCanonicalTemplate({
-    isDemoTenant: isDemoTenant(clinic.slug),
+    clinicSlug: clinic.slug,
+    serviceCategory: template.serviceCategory,
     availability: classified.availability,
   });
   const publishedRevision = template?.revisions.find(

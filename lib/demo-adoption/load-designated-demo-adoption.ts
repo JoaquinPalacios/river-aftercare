@@ -246,13 +246,16 @@ export async function loadDesignatedDemoAdoption(
         ? "This demo guide is not pinned to the sample."
         : !placement
           ? "The designated demo placement could not be found."
-          : demoCustomisationBlocker({
-              canonicalSectionKeys: new Set(
-                canonicalSections.map((section) => section.key)
-              ),
-              overrides,
-              additions,
-            });
+          : guide.publicSlug !== designation.publicGuideSlug ||
+              placement.publicSlug !== designation.publicGuideSlug
+            ? "The designated demo guide is not published at its stable public address."
+            : demoCustomisationBlocker({
+                canonicalSectionKeys: new Set(
+                  canonicalSections.map((section) => section.key)
+                ),
+                overrides,
+                additions,
+              });
 
   const published = placement?.publishedPracticeGuideRevision ?? null;
   const publishedRevision = published

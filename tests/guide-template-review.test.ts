@@ -44,13 +44,15 @@ describe("canonical template eligibility", () => {
     });
     expect(
       clinicCanUseCanonicalTemplate({
-        isDemoTenant: false,
+        clinicSlug: "ordinary-clinic",
+        serviceCategory: "DENTAL",
         availability: classified.availability,
       })
     ).toBe(true);
     expect(
       clinicCanUseCanonicalTemplate({
-        isDemoTenant: true,
+        clinicSlug: "demodental",
+        serviceCategory: "DENTAL",
         availability: classified.availability,
       })
     ).toBe(true);
@@ -90,13 +92,36 @@ describe("canonical template eligibility", () => {
     });
     expect(
       clinicCanUseCanonicalTemplate({
-        isDemoTenant: true,
+        clinicSlug: "demodental",
+        serviceCategory: "DENTAL",
         availability: classified.availability,
       })
     ).toBe(true);
     expect(
       clinicCanUseCanonicalTemplate({
-        isDemoTenant: false,
+        clinicSlug: "demophysio",
+        serviceCategory: "PHYSIOTHERAPY",
+        availability: classified.availability,
+      })
+    ).toBe(true);
+    expect(
+      clinicCanUseCanonicalTemplate({
+        clinicSlug: "demodental",
+        serviceCategory: "PHYSIOTHERAPY",
+        availability: classified.availability,
+      })
+    ).toBe(false);
+    expect(
+      clinicCanUseCanonicalTemplate({
+        clinicSlug: "demophysio",
+        serviceCategory: "DENTAL",
+        availability: classified.availability,
+      })
+    ).toBe(false);
+    expect(
+      clinicCanUseCanonicalTemplate({
+        clinicSlug: "ordinary-clinic",
+        serviceCategory: "PHYSIOTHERAPY",
         availability: classified.availability,
       })
     ).toBe(false);
@@ -117,13 +142,15 @@ describe("canonical template eligibility", () => {
   it("does not offer a null availability to any clinic", () => {
     expect(
       clinicCanUseCanonicalTemplate({
-        isDemoTenant: true,
+        clinicSlug: "demophysio",
+        serviceCategory: "PHYSIOTHERAPY",
         availability: null,
       })
     ).toBe(false);
     expect(
       clinicCanUseCanonicalTemplate({
-        isDemoTenant: false,
+        clinicSlug: "ordinary-clinic",
+        serviceCategory: "DENTAL",
         availability: null,
       })
     ).toBe(false);

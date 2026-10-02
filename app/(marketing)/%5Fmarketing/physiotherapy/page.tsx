@@ -1,5 +1,6 @@
 import { MarketingVerticalLanding } from "@/app/(marketing)/components/marketing-vertical-landing";
 import { marketingConfiguredPublicLinks } from "@/lib/marketing/configured-public-links";
+import { physiotherapyDemoExampleHref } from "@/lib/marketing/physio-demo-link";
 import { VERTICAL_LANDINGS } from "@/lib/marketing/vertical-landing";
 import {
   generateMarketingMetadata,
@@ -20,6 +21,7 @@ export default async function MarketingPhysiotherapyPage() {
       content={VERTICAL_LANDINGS["/physiotherapy"]}
       staffHref={staffHref}
       demoHref={demoHref}
+      exampleHref={physiotherapyDemoExampleHref()}
       jsonLd={jsonLd}
     />
   );

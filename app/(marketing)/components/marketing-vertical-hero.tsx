@@ -15,9 +15,11 @@ import styles from "../marketing.module.css";
 export function MarketingVerticalHero({
   content,
   secondary,
+  extra,
 }: {
   content: VerticalLandingContent;
   secondary: ReactNode;
+  extra?: ReactNode;
 }) {
   const titleId = `${content.themeId}-hero`;
 
@@ -52,6 +54,7 @@ export function MarketingVerticalHero({
                   {content.hero.primaryCtaLabel}
                 </MarketingPrimaryLink>
                 {secondary}
+                {extra}
               </div>
             </MarketingRevealItem>
           </div>

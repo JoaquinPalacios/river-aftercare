@@ -311,6 +311,15 @@ async function adoptLockedDemo(
       "not_found"
     );
   }
+  if (
+    guide.publicSlug !== designation.publicGuideSlug ||
+    placement.publicSlug !== designation.publicGuideSlug
+  ) {
+    throw new ClinicPortalError(
+      "The designated demo guide is not published at its stable public address.",
+      "conflict"
+    );
+  }
 
   const pinnedRevision = await tx.guideTemplateRevision.findFirst({
     where: {
