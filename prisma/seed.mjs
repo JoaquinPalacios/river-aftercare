@@ -11,6 +11,10 @@ import {
   resolveLocalLoginSeed,
   upsertLocalLoginAccounts,
 } from "../lib/dev/local-login-accounts.ts";
+import {
+  riversidePracticeSeedPlan,
+  syncRiversidePracticePublication,
+} from "../lib/dev/riverside-demo-seed.ts";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -184,18 +188,34 @@ async function upsertAftercareDemo(clinicId) {
     });
   }
 
+  const existingPublishedRevisions =
+    await prisma.practiceGuideRevision.findMany({
+      where: {
+        practiceGuideId: DEMO_EXTRACTION_GUIDE.practiceGuideId,
+        status: "PUBLISHED",
+      },
+      select: { version: true },
+    });
+  const { preserveAdoptedRevisions } = riversidePracticeSeedPlan(
+    existingPublishedRevisions.map((row) => row.version)
+  );
+
   const practiceGuide = await prisma.practiceGuide.upsert({
     where: { id: DEMO_EXTRACTION_GUIDE.practiceGuideId },
     update: {
       clinicId,
       title: DEMO_EXTRACTION_GUIDE.title,
       guideTemplateId: template.id,
-      pinnedRevisionId: revision.id,
+      ...(preserveAdoptedRevisions
+        ? {}
+        : {
+            pinnedRevisionId: revision.id,
+            publishedAt: DEMO_EXTRACTION_GUIDE.publishedAt,
+          }),
       publicSlug: DEMO_EXTRACTION_GUIDE.slug,
       isEnabled: true,
       status: "PUBLISHED",
       sortOrder: 1,
-      publishedAt: DEMO_EXTRACTION_GUIDE.publishedAt,
     },
     create: {
       id: DEMO_EXTRACTION_GUIDE.practiceGuideId,
@@ -255,31 +275,17 @@ async function upsertAftercareDemo(clinicId) {
     },
   });
 
-  await snapshotDemoPracticeRevisions(practiceGuide.id);
-  await prisma.practiceGuidePlacement.upsert({
-    where: {
-      locationId_practiceGuideId: {
-        locationId: hierarchy.locationId,
-        practiceGuideId: practiceGuide.id,
-      },
-    },
-    create: {
-      id: `mpl_${practiceGuide.id}`,
-      practiceGuideId: practiceGuide.id,
-      locationId: hierarchy.locationId,
-      clinicId,
-      publishedPracticeGuideRevisionId:
-        "practice_rev_demo_rivers_extraction_v1",
-      publicSlug: DEMO_EXTRACTION_GUIDE.slug,
-      isEnabled: true,
-    },
-    update: {
-      clinicId,
-      publishedPracticeGuideRevisionId:
-        "practice_rev_demo_rivers_extraction_v1",
-      publicSlug: DEMO_EXTRACTION_GUIDE.slug,
-      isEnabled: true,
-    },
+  await syncRiversidePracticePublication(prisma, {
+    practiceGuideId: practiceGuide.id,
+    clinicId,
+    locationId: hierarchy.locationId,
+    seededPinnedRevisionId: revision.id,
+    seededPublishedRevisionId: "practice_rev_demo_rivers_extraction_v1",
+    seededDraftRevisionId: "practice_rev_demo_rivers_extraction_draft",
+    title: DEMO_EXTRACTION_GUIDE.title,
+    publicSlug: DEMO_EXTRACTION_GUIDE.slug,
+    publishedAt: DEMO_EXTRACTION_GUIDE.publishedAt,
+    sections: demoComposedSections(),
   });
 
   return { template, revision, practiceGuide };
@@ -319,42 +325,6 @@ function demoComposedSections() {
         provenance: "PRACTICE_ADDITION",
       },
     ];
-  });
-}
-
-async function snapshotDemoPracticeRevisions(practiceGuideId) {
-  // Historical demo publications are not clinic attestations. Leave
-  // reviewAttestedAt / reviewAttestedByUserId null.
-  await prisma.practiceGuideRevision.deleteMany({
-    where: { practiceGuideId },
-  });
-
-  const sections = demoComposedSections().map((section, index) => ({
-    ...section,
-    sortOrder: index + 1,
-  }));
-
-  await prisma.practiceGuideRevision.create({
-    data: {
-      id: "practice_rev_demo_rivers_extraction_draft",
-      practiceGuideId,
-      version: 0,
-      status: "DRAFT",
-      title: DEMO_EXTRACTION_GUIDE.title,
-      sections: { create: sections },
-    },
-  });
-
-  await prisma.practiceGuideRevision.create({
-    data: {
-      id: "practice_rev_demo_rivers_extraction_v1",
-      practiceGuideId,
-      version: 1,
-      status: "PUBLISHED",
-      title: DEMO_EXTRACTION_GUIDE.title,
-      publishedAt: DEMO_EXTRACTION_GUIDE.publishedAt,
-      sections: { create: sections },
-    },
   });
 }
 

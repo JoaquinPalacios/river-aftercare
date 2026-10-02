@@ -218,9 +218,7 @@ describe("tenant guide page", () => {
     expect(html).toContain("Interactive demo");
     expect(html).toContain("Sample content only");
     expect(html).toContain("Not clinical advice");
-    expect(html).toContain('role="tablist"');
-    expect(html).toContain("Today");
-    expect(html).toContain("Timeline");
+    expect(html).not.toContain('role="tablist"');
     expect(html).toContain("Print / Save PDF");
     expect(html).not.toContain("Check-in");
     expect(html).not.toContain("How are you feeling today?");

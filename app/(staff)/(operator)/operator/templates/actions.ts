@@ -29,6 +29,8 @@ import {
   reactivateCanonicalTemplate,
 } from "@/lib/canonical-templates/set-canonical-template-activation";
 import { updateCanonicalTemplateMetadata } from "@/lib/canonical-templates/update-canonical-template-metadata";
+import { adoptPublishedSampleForDesignatedDemo } from "@/lib/demo-adoption/adopt-demo-sample-revision";
+import { isClinicPortalError } from "@/lib/clinic-portal/errors";
 import { safeStaffReturnPath } from "@/lib/staff/safe-return-path";
 
 export interface CanonicalTemplateActionState {
@@ -65,7 +67,11 @@ function fieldErrorsFrom(
 }
 
 function actionError(error: unknown): string {
-  if (isBulkCanonicalTemplateError(error) || isCanonicalTemplateError(error)) {
+  if (
+    isBulkCanonicalTemplateError(error) ||
+    isCanonicalTemplateError(error) ||
+    isClinicPortalError(error)
+  ) {
     return error.message;
   }
   return "That template change could not be saved.";
@@ -406,6 +412,48 @@ export async function applyCanonicalTemplateBulkAction(
     rethrowNavigation(error);
     return { error: actionError(error) };
   }
+}
+
+export async function updateLiveDemoAction(
+  _previous: CanonicalTemplateActionState,
+  formData: FormData
+): Promise<CanonicalTemplateActionState> {
+  const { user } = await requirePlatformOperator();
+  const templateId = templateIdFrom(formData);
+  const canonicalRevisionId = String(
+    formData.get("canonicalRevisionId") ?? ""
+  ).trim();
+  if (!canonicalRevisionId) {
+    return { error: "Choose a published sample revision before updating." };
+  }
+
+  try {
+    const result = await adoptPublishedSampleForDesignatedDemo({
+      actorUserId: user.id,
+      templateId,
+      canonicalRevisionId,
+      expectedPinnedRevisionId: optionalFormId(
+        formData.get("expectedPinnedRevisionId")
+      ),
+      expectedPublishedPracticeGuideRevisionId: optionalFormId(
+        formData.get("expectedPublishedPracticeGuideRevisionId")
+      ),
+    });
+    revalidateTemplate(templateId);
+    redirect(
+      `/operator/templates/${templateId}?notice=${
+        result.status === "current" ? "demo-current" : "demo-updated"
+      }`
+    );
+  } catch (error) {
+    rethrowNavigation(error);
+    return { error: actionError(error) };
+  }
+}
+
+function optionalFormId(value: FormDataEntryValue | null): string | null {
+  const text = String(value ?? "").trim();
+  return text.length > 0 ? text : null;
 }
 
 export async function reactivateCanonicalTemplateAction(

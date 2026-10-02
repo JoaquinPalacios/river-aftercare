@@ -31,10 +31,17 @@ export interface ResolvedRecoveryState {
   stages: ResolvedTimelineStage[];
 }
 
+export interface DemoTodayAlert {
+  key: string;
+  tone: "warning" | "emergency";
+  title: string;
+  body: string;
+}
+
 export interface DemoTodayContent {
   whatToDo: { title: string; body: string } | null;
   whatIsNormal: { title: string; body: string } | null;
-  warnings: { title: string; body: string } | null;
+  alerts: DemoTodayAlert[];
   comingNext: { periodLabel: string | null; title: string } | null;
 }
 
@@ -239,9 +246,24 @@ export function buildDemoTodayContent(
   recovery: ResolvedRecoveryState
 ): DemoTodayContent {
   const whatIsNormal = firstSectionOfKind(sections, "WHAT_IS_NORMAL");
-  const warnings =
-    firstSectionOfKind(sections, "WARNING_SIGNS") ??
-    firstSectionOfKind(sections, "EMERGENCY");
+  const alerts: DemoTodayAlert[] = [];
+  for (const section of sections) {
+    if (section.kind === "WARNING_SIGNS") {
+      alerts.push({
+        key: section.key,
+        tone: "warning",
+        title: section.title,
+        body: section.body,
+      });
+    } else if (section.kind === "EMERGENCY") {
+      alerts.push({
+        key: section.key,
+        tone: "emergency",
+        title: section.title,
+        body: section.body,
+      });
+    }
+  }
 
   return {
     whatToDo: recovery.currentStage
@@ -250,7 +272,7 @@ export function buildDemoTodayContent(
     whatIsNormal: whatIsNormal
       ? { title: whatIsNormal.title, body: whatIsNormal.body }
       : null,
-    warnings: warnings ? { title: warnings.title, body: warnings.body } : null,
+    alerts,
     comingNext: recovery.nextStage
       ? {
           periodLabel: recovery.nextStage.periodLabel,

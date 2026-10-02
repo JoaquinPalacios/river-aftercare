@@ -27,6 +27,7 @@ export function RecoveryTimelineList({
   stageStatusByKey,
   heading = "Recovery guide",
   headingId = "recovery-timeline-heading",
+  headingIdPrefix,
   classes,
   compact = false,
   labelledAsPreview = false,
@@ -35,6 +36,7 @@ export function RecoveryTimelineList({
   stageStatusByKey?: Readonly<Record<string, TimelineStageStatus>>;
   heading?: string;
   headingId?: string;
+  headingIdPrefix?: string;
   classes: RecoveryTimelineListClasses;
   compact?: boolean;
   labelledAsPreview?: boolean;
@@ -62,7 +64,9 @@ export function RecoveryTimelineList({
       )}
       <ol className={classes.timelineList}>
         {sections.map((section, index) => {
-          const headingKey = `section-${section.key}`;
+          const headingKey = headingIdPrefix
+            ? `${headingIdPrefix}-section-${section.key}`
+            : `section-${section.key}`;
           const period = section.periodLabel;
           const status = stageStatusByKey?.[section.key];
           const isLast = index === lastIndex;

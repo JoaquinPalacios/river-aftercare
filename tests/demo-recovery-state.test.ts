@@ -137,11 +137,65 @@ describe("demo recovery-state resolver", () => {
 
     expect(today.whatToDo?.body).toContain("Leave the site undisturbed today.");
     expect(today.whatIsNormal?.body).toContain("Mild swelling");
-    expect(today.warnings?.title).toBe("When to contact us");
+    expect(today.alerts).toEqual([
+      {
+        key: "warning-signs",
+        tone: "warning",
+        title: "When to contact us",
+        body: "Call if bleeding will not slow.",
+      },
+    ]);
     expect(today.comingNext).toEqual({
       periodLabel: "Days 2–3",
       title: "Early recovery",
     });
+  });
+
+  it("shows warning signs and emergency together, in published order", () => {
+    const sections = [
+      ...EXTRACTION_STAGES,
+      section({
+        key: "emergency",
+        kind: "EMERGENCY",
+        title: "When to get urgent help",
+        body: "Trouble breathing needs urgent care.",
+      }),
+    ];
+    const recovery = resolveDemoRecoveryState(sections, DEMO_RECOVERY_FIXTURE);
+    const today = buildDemoTodayContent(sections, recovery);
+
+    expect(today.alerts.map((alert) => alert.tone)).toEqual([
+      "warning",
+      "emergency",
+    ]);
+    expect(today.alerts.map((alert) => alert.title)).toEqual([
+      "When to contact us",
+      "When to get urgent help",
+    ]);
+  });
+
+  it("shows emergency on its own when warning signs are absent", () => {
+    const sections = [
+      section({
+        key: "emergency",
+        kind: "EMERGENCY",
+        title: "Urgent help",
+        body: "Call emergency services.",
+      }),
+    ];
+    const today = buildDemoTodayContent(
+      sections,
+      resolveDemoRecoveryState(sections, DEMO_RECOVERY_FIXTURE)
+    );
+
+    expect(today.alerts).toEqual([
+      {
+        key: "emergency",
+        tone: "emergency",
+        title: "Urgent help",
+        body: "Call emergency services.",
+      },
+    ]);
   });
 
   it("parses period labels without depending on extraction keys", () => {

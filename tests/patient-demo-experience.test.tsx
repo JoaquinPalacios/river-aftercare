@@ -9,13 +9,22 @@ describe("PatientDemoExperience", () => {
     const html = renderToStaticMarkup(
       <PatientDemoExperience
         printHref="/extraction/print"
-        today={<p>Today panel</p>}
-        timeline={<p>Timeline panel</p>}
+        views={[
+          { id: "today", label: "Today", content: <p>Today panel</p> },
+          { id: "timeline", label: "Timeline", content: <p>Timeline panel</p> },
+          {
+            id: "full-guide",
+            label: "Full guide",
+            content: <p>Full guide panel</p>,
+          },
+        ]}
       />
     );
 
     expect(html).toContain("Today");
     expect(html).toContain("Timeline");
+    expect(html).toContain("Full guide");
+    expect(html).toContain("Full guide panel");
     expect(html).toContain('href="/extraction/print"');
     expect(html).toContain("Print / Save PDF");
     expect(html).toContain('aria-label="Print / Save PDF"');
@@ -43,5 +52,25 @@ describe("PatientDemoExperience", () => {
     expect(source).not.toMatch(/sessionStorage/);
     expect(source).not.toMatch(/\bfetch\(/);
     expect(source).toContain("Print / Save PDF");
+  });
+
+  it("uses one guide presentation when there is no timeline tab", () => {
+    const html = renderToStaticMarkup(
+      <PatientDemoExperience
+        printHref="/physio/print"
+        views={[
+          {
+            id: "guide",
+            label: "Full guide",
+            content: <p>Whole guide</p>,
+          },
+        ]}
+      />
+    );
+
+    expect(html).toContain("Whole guide");
+    expect(html).toContain('href="/physio/print"');
+    expect(html).not.toContain('role="tablist"');
+    expect(html).not.toContain("Timeline");
   });
 });

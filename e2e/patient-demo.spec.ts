@@ -47,6 +47,11 @@ test.describe("interactive recovery demo", () => {
       page.getByRole("heading", { name: "Recovery overview" })
     ).toBeVisible();
     await page.keyboard.press("ArrowRight");
+    await expect(page.getByRole("tab", { name: "Full guide" })).toBeFocused();
+    await expect(
+      page.getByRole("heading", { name: "After your extraction", exact: true })
+    ).toBeVisible();
+    await page.keyboard.press("ArrowRight");
     await expect(page.getByRole("tab", { name: "Today" })).toBeFocused();
     await expect(page.getByRole("tab", { name: "Check-in" })).toHaveCount(0);
 
@@ -95,8 +100,9 @@ test.describe("interactive recovery demo", () => {
     await page.goto(EXTRACTION, { waitUntil: "load" });
     await page.getByRole("tab", { name: "Timeline" }).click();
 
-    const stages = page.locator("[data-timeline-stage]");
-    const separators = page.locator("[data-timeline-separator]");
+    const timeline = page.getByRole("tabpanel", { name: "Timeline" });
+    const stages = timeline.locator("[data-timeline-stage]");
+    const separators = timeline.locator("[data-timeline-separator]");
     const stageCount = await stages.count();
 
     expect(stageCount).toBeGreaterThan(1);
@@ -104,7 +110,9 @@ test.describe("interactive recovery demo", () => {
     await expect(
       stages.last().locator("[data-timeline-separator]")
     ).toHaveCount(0);
-    await expect(page.locator("[class*='timelineRail']").first()).toBeVisible();
+    await expect(
+      timeline.locator("[class*='timelineRail']").first()
+    ).toBeVisible();
   });
 
   test("print view uses the resolved guide and hides interactive chrome", async ({
@@ -176,6 +184,8 @@ test.describe("interactive recovery demo", () => {
       await page.goto(EXTRACTION, { waitUntil: "load" });
       await expectNoSeriousAxeViolations(page);
       await page.getByRole("tab", { name: "Timeline" }).click();
+      await expectNoSeriousAxeViolations(page);
+      await page.getByRole("tab", { name: "Full guide" }).click();
       await expectNoSeriousAxeViolations(page);
       await page.goto(PRINT, { waitUntil: "load" });
       await expectNoSeriousAxeViolations(page);

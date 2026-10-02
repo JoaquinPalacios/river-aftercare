@@ -197,9 +197,41 @@ describe("printable recovery guide", () => {
     expect(print).not.toContain("reviewAttestedBy");
     expect(print).not.toContain("MedicalWebPage");
     expect(web).toContain("Leave the site undisturbed today.");
+    expect(web).toContain("Full guide");
+    expect(web).toContain("When this is urgent");
+    expect(web).toContain('data-tone="warning"');
+    expect(web).toContain('data-tone="emergency"');
+    expect(web).toContain("Weekend contact");
     expect(print).toContain("Leave the site undisturbed today.");
     expect(web).toContain("Print / Save PDF");
     expect(web).not.toContain("Check-in");
+  });
+
+  it("shows a guide without a recovery timeline as one document", async () => {
+    getPublishedPracticeGuide.mockResolvedValue({
+      ...DOCUMENT,
+      sections: SECTIONS.filter(
+        (section) => section.kind !== "RECOVERY_TIMELINE"
+      ),
+    });
+
+    const web = renderToStaticMarkup(
+      await TenantGuidePage({
+        params: Promise.resolve({
+          tenant: "demodental",
+          guideSlug: "extraction",
+        }),
+      })
+    );
+
+    expect(web).toContain("After your extraction");
+    expect(web).toContain("Warning signs");
+    expect(web).toContain("When this is urgent");
+    expect(web).toContain("Print / Save PDF");
+    expect(web).not.toContain('role="tablist"');
+    expect(web).not.toContain(
+      "This guide does not include a recovery timeline"
+    );
   });
 
   it("omits attribution from print when the clinic disables it", async () => {

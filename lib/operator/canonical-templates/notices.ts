@@ -12,6 +12,10 @@ export const OPERATOR_TEMPLATE_NOTICES: Record<string, string> = {
     "Template deactivated. It no longer appears for new clinic adoption. Existing clinic guides and patient pages are unchanged.",
   reactivated:
     "Template reactivated. Eligible clinics can discover the latest published revision again.",
+  "demo-updated":
+    "Live demo updated. The public guide now uses the selected published sample revision. Earlier revisions stay available.",
+  "demo-current":
+    "The live demo is already using that published sample revision. No new revision was created.",
 };
 
 export function operatorTemplateNotice(

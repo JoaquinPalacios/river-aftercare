@@ -30,6 +30,7 @@ import { listCanonicalGuideTemplates } from "@/lib/clinic-portal/list-canonical-
 import { ensurePrimarySiteForClinic } from "@/lib/clinics/primary-site-location.mjs";
 import { assignPrimarySiteServiceCategories } from "@/lib/clinics/site-service-categories";
 import { getPrisma } from "@/lib/prisma";
+import { withSampleCategoryLock } from "@/tests/active-sample-slot";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 const describeDb = hasDatabase ? describe : describe.skip;
@@ -576,21 +577,27 @@ describeDb("canonical template draft import", () => {
     }
     expect(await snapshotTemplate("cti-sample")).toEqual(beforeSample);
 
-    const beforeExtraction = await snapshotTemplate("extraction");
-    for (const mode of ["create", "create-revision", "update-draft"] as const) {
-      const report = await importCanonicalTemplateDraft({
-        payload: payload({
-          mode,
-          slug: "extraction",
-          serviceCategory: "DENTAL",
-        }),
-        apply: true,
-        operatorEmail: OPERATOR_EMAIL,
-      });
-      expect(report.outcome).toBe("invalid");
-      expect(report.validationErrors.join("\n")).toContain("extraction");
-    }
-    expect(await snapshotTemplate("extraction")).toEqual(beforeExtraction);
+    await withSampleCategoryLock(["DENTAL"], async () => {
+      const beforeExtraction = await snapshotTemplate("extraction");
+      for (const mode of [
+        "create",
+        "create-revision",
+        "update-draft",
+      ] as const) {
+        const report = await importCanonicalTemplateDraft({
+          payload: payload({
+            mode,
+            slug: "extraction",
+            serviceCategory: "DENTAL",
+          }),
+          apply: true,
+          operatorEmail: OPERATOR_EMAIL,
+        });
+        expect(report.outcome).toBe("invalid");
+        expect(report.validationErrors.join("\n")).toContain("extraction");
+      }
+      expect(await snapshotTemplate("extraction")).toEqual(beforeExtraction);
+    });
   });
 
   it("rolls back a failed create and a failed create-revision in one transaction", async () => {
