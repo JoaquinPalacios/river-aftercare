@@ -15,6 +15,7 @@ const pages = [
   "app/(staff)/(operator)/operator/templates/[templateId]/draft/page.tsx",
   "app/(staff)/(operator-preview)/operator/templates/[templateId]/preview/page.tsx",
   "app/(staff)/(operator-preview)/operator/templates/[templateId]/preview/[revisionId]/page.tsx",
+  "app/(staff)/(operator-preview)/operator/templates/[templateId]/demo-preview/page.tsx",
 ];
 
 const actions = readFileSync(
@@ -46,7 +47,9 @@ describe("operator template manager UI contract", () => {
       );
     }
     expect(actions).toContain("requirePlatformOperator");
-    expect(actions.match(/await requirePlatformOperator\(\)/g)?.length).toBe(9);
+    expect(actions.match(/await requirePlatformOperator\(\)/g)?.length).toBe(
+      10
+    );
   });
 
   it("calls lifecycle services instead of writing template rows itself", () => {
@@ -63,6 +66,9 @@ describe("operator template manager UI contract", () => {
     expect(actions).toContain("deactivateCanonicalTemplates");
     expect(actions).toContain("reactivateCanonicalTemplates");
     expect(actions).toContain("deleteNeverPublishedCanonicalTemplates");
+    expect(actions).toContain("adoptPublishedSampleForDesignatedDemo");
+    expect(actions).not.toContain("savePracticeGuideDraft");
+    expect(actions).not.toContain("adaptPracticeGuideFromTemplate");
     expect(actions).not.toMatch(/Unpublish/);
     expect(actions).not.toContain("guideTemplate.create");
     expect(actions).not.toContain("guideTemplate.update");

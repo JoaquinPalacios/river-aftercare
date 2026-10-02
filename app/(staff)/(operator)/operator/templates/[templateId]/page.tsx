@@ -30,6 +30,25 @@ export const metadata: Metadata = {
   title: `Template · ${PRODUCT_NAME}`,
 };
 
+async function readRequestHost(): Promise<{
+  host: string;
+  protocol: string;
+}> {
+  try {
+    const requestHeaders = await headers();
+    const host =
+      requestHeaders.get("x-forwarded-host") ??
+      requestHeaders.get("host") ??
+      "";
+    const protocol =
+      requestHeaders.get("x-forwarded-proto") ??
+      (host.includes("localhost") ? "http" : "https");
+    return { host, protocol };
+  } catch {
+    return { host: "", protocol: "http" };
+  }
+}
+
 function sectionCountLabel(count: number): string {
   return `${count} ${count === 1 ? "section" : "sections"}`;
 }
@@ -53,12 +72,9 @@ export default async function OperatorTemplateDetailPage({
     notFound();
   }
   const notice = operatorTemplateNotice(query.notice);
-  const requestHeaders = await headers();
-  const host =
-    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
-  const protocol =
-    requestHeaders.get("x-forwarded-proto") ??
-    (host.includes("localhost") ? "http" : "https");
+  const request = await readRequestHost();
+  const host = request.host;
+  const protocol = request.protocol;
   const publicUrl =
     adoption?.publicSlug && host
       ? clinicPatientSiteUrl({
