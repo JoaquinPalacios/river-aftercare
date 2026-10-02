@@ -39,6 +39,9 @@ for (const host of HOSTS) {
       await expect(page.getByRole("link", { name: /^Call / })).toHaveCount(0);
       await expect(
         page.getByRole("link", { name: "Practice contact page" })
+      ).toHaveCount(0);
+      await expect(
+        page.getByText(/fictional demonstration clinic/i)
       ).toBeVisible();
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
         "href",

@@ -215,6 +215,7 @@ describe("PatientPage disclaimer placement", () => {
     );
     expect(phoneOnly).toContain(EXPECTED_WITH_CONTACT);
     expect(phoneOnly).toContain("Call Harbor Family Dental");
+    expect(phoneOnly).toContain("Questions about your recovery?");
     expect(phoneOnly).not.toContain("Practice contact page");
 
     const urlOnly = renderToStaticMarkup(
@@ -230,6 +231,7 @@ describe("PatientPage disclaimer placement", () => {
     );
     expect(urlOnly).toContain(EXPECTED_WITH_CONTACT);
     expect(urlOnly).toContain("Practice contact page");
+    expect(urlOnly).toContain("Questions about your recovery?");
     expect(urlOnly).not.toContain("Call Harbor Family Dental");
   });
 
@@ -252,6 +254,8 @@ describe("PatientPage disclaimer placement", () => {
     );
     expect(addressOnly).not.toContain("12 Harbor Street");
     expect(addressOnly).toContain("Contact Harbor Family Dental");
+    expect(addressOnly).not.toContain("Questions about your recovery?");
+    expect(addressOnly).not.toContain("Practice contact page");
 
     const emergencyOnly = renderToStaticMarkup(
       <PatientPage
@@ -270,6 +274,8 @@ describe("PatientPage disclaimer placement", () => {
     );
     expect(emergencyOnly).toContain("If you need urgent help");
     expect(emergencyOnly).toContain("Call if swelling worsens.");
+    expect(emergencyOnly).not.toContain("Questions about your recovery?");
+    expect(emergencyOnly).not.toContain("Practice contact page");
   });
 
   it("does not stack the real-clinic disclaimer on demodental sample messaging", () => {

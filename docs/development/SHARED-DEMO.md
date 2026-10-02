@@ -28,7 +28,7 @@ Do not run this against production until Joaquín explicitly approves the write.
 
    `pnpm configure:shared-demo -- --apply --allow-production --confirm-shared-demo`
 
-4. Set the neutral River Aftercare Demo Clinic brand only as a separate approval. This clears a stored phone, street address, and contact email on that demo profile and copies the profile onto the primary site and root location. It does not edit guide snapshots.
+4. Set the neutral River Aftercare Demo Clinic brand only as a separate approval. This clears a stored phone, street address, contact email, and contact URL on that demo profile and copies the profile onto the primary site and root location. The contact URL stays unset. It does not edit guide snapshots.
 
    `pnpm configure:shared-demo -- --apply --allow-production --confirm-shared-demo --confirm-branding`
 

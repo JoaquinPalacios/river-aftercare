@@ -46,6 +46,12 @@ test.describe("tenant homepage and guide", () => {
     ).toHaveCount(0);
     await expect(
       page.getByRole("link", { name: "Practice contact page" })
+    ).toHaveCount(0);
+    await expect(page.getByText("Questions about your recovery?")).toHaveCount(
+      0
+    );
+    await expect(
+      page.getByText(/fictional demonstration clinic/i)
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Book an appointment" })
@@ -110,7 +116,10 @@ test.describe("tenant homepage and guide", () => {
     ).toHaveCount(0);
     await expect(
       page.getByRole("link", { name: "Practice contact page" })
-    ).toBeVisible();
+    ).toHaveCount(0);
+    await expect(page.getByText("Questions about your recovery?")).toHaveCount(
+      0
+    );
     await expect(
       page.getByText("River Aftercare Demo Clinic").first()
     ).toBeVisible();
@@ -152,11 +161,10 @@ test.describe("tenant homepage and guide", () => {
     await expectOneH1(page, "Tooth Extraction");
 
     await tabUntil(page, (href) => href === "/");
-    await tabUntil(page, (href, text) =>
-      Boolean(
-        href?.startsWith("https://") && text.includes("Practice contact page")
-      )
-    );
+    await expect(
+      page.getByRole("link", { name: "Practice contact page" })
+    ).toHaveCount(0);
+    await expect(page.locator('a[href^="https://"]')).toHaveCount(0);
   });
 
   test("exposes noindex metadata and a public hostname title", async ({
@@ -202,9 +210,9 @@ test.describe("mobile viewport", () => {
       await expectUsableTapTarget(
         page.getByRole("link", { name: "Tooth Extraction" })
       );
-      await expectUsableTapTarget(
+      await expect(
         page.getByRole("link", { name: "Practice contact page" })
-      );
+      ).toHaveCount(0);
       if (viewport.width === 390) {
         await page.screenshot({
           path: "test-results/artifacts/tenant-home-mobile.png",
@@ -215,9 +223,9 @@ test.describe("mobile viewport", () => {
       await page.goto(EXTRACTION, { waitUntil: "load" });
       await expectNoHorizontalOverflow(page);
       await expectHeadingDoesNotOverflow(page.locator("h1"));
-      await expectUsableTapTarget(
+      await expect(
         page.getByRole("link", { name: "Practice contact page" })
-      );
+      ).toHaveCount(0);
       const contact = page.getByRole("region", {
         name: "Contact River Aftercare Demo Clinic",
       });

@@ -3,7 +3,7 @@ import { DEMO_AFTERCARE_TENANT_SLUG } from "../aftercare/demo-tenant.ts";
 
 /**
  * Neutral identity for the one shared demonstration account.
- * No practitioner, street address, ABN, or telephone number.
+ * No practitioner, street address, ABN, telephone number, or contact URL.
  */
 export const SHARED_DEMO_CLINIC_ID = "clinic_demo_rivers";
 
@@ -14,9 +14,6 @@ export const SHARED_DEMO_ACCOUNT = {
   name: SHARED_DEMO_DISPLAY_NAME,
   slug: DEMO_AFTERCARE_TENANT_SLUG,
 } as const;
-
-export const SHARED_DEMO_CONTACT_URL =
-  "https://example.com/river-aftercare-demo";
 
 export const SHARED_DEMO_EMERGENCY_INSTRUCTIONS =
   "This is a fictional demonstration clinic. It is not a real practice and cannot give clinical advice. In a real emergency, contact local emergency services.";
@@ -44,7 +41,7 @@ export const SHARED_DEMO_PROFILE = {
   postalCode: null,
   country: null,
   bookingUrl: null,
-  contactUrl: SHARED_DEMO_CONTACT_URL,
+  contactUrl: null,
   contactEmail: null,
   emergencyInstructions: SHARED_DEMO_EMERGENCY_INSTRUCTIONS,
   showCareGuideAttribution: true,
