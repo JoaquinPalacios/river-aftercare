@@ -216,7 +216,7 @@ test.describe("clinic vertical acquisition pages", () => {
         "How many custom aftercare guides can we publish?",
       ],
       answer:
-        "Riverside Dental Demo currently uses a Tooth Extraction sample guide.",
+        "River Aftercare Demo Clinic currently uses a Tooth Extraction sample guide.",
     },
     {
       path: "/physiotherapy",
@@ -230,7 +230,7 @@ test.describe("clinic vertical acquisition pages", () => {
         "Does River Aftercare replace our practice-management system or store patient health records?",
       ],
       answer:
-        "Published River Aftercare physiotherapy templates are available for a clinic to enable. They are separate from the River Physio Demo sample, Physiotherapy Home Exercise Plan, which is a demonstration and not a production template.",
+        "Published River Aftercare physiotherapy templates are available for a clinic to enable. They are separate from the River Aftercare Demo Clinic sample, Physiotherapy Home Exercise Plan, which is a demonstration and not a production template.",
     },
     {
       path: "/chiropractic",
@@ -303,14 +303,17 @@ test.describe("clinic vertical acquisition pages", () => {
     });
   }
 
-  test("dental demo CTA uses the real Riverside tenant", async ({ page }) => {
+  test("dental demo CTA opens the Tooth Extraction guide on the legacy hostname", async ({
+    page,
+  }) => {
     await page.goto(marketingUrl("/dental"), { waitUntil: "domcontentloaded" });
+    const guideHref = tenantUrl(DEMO_TENANT_SLUG, "/extraction");
     await expect(
       page.getByRole("link", { name: "View the dental demo" })
-    ).toHaveAttribute("href", tenantUrl(DEMO_TENANT_SLUG, "/"));
+    ).toHaveAttribute("href", guideHref);
     await expect(
-      page.getByRole("link", { name: "Open Riverside Dental Demo" })
-    ).toHaveAttribute("href", tenantUrl(DEMO_TENANT_SLUG, "/"));
+      page.getByRole("link", { name: "Open the Tooth Extraction example" })
+    ).toHaveAttribute("href", guideHref);
   });
 
   test("homepage and footer discover the four clinic pages", async ({

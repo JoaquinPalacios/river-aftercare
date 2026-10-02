@@ -3,14 +3,23 @@ import type { Prisma } from "@prisma/client";
 import { isValidCareGuideSlug } from "@/lib/aftercare/slug";
 import { isReservedLocationSlug } from "@/lib/clinics/reserved-location-slugs";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
+import { isSharedDemoHostnameLabel } from "@/lib/tenancy/shared-demo-hostname";
 
 type CollisionDb = Prisma.TransactionClient;
 
 export function assertSiteSlug(slug: string): void {
-  if (!isValidCareGuideSlug(slug) || isReservedTenantSlug(slug)) {
+  if (
+    !isValidCareGuideSlug(slug) ||
+    isReservedTenantSlug(slug) ||
+    isDemoTenant(slug) ||
+    isSharedDemoHostnameLabel(slug)
+  ) {
     throw new ClinicPortalError(
-      "Enter a site address using lowercase letters, numbers, and hyphens.",
+      isDemoTenant(slug) || isSharedDemoHostnameLabel(slug)
+        ? "That hostname is reserved for the interactive demo."
+        : "Enter a site address using lowercase letters, numbers, and hyphens.",
       "invalid"
     );
   }

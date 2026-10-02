@@ -95,51 +95,22 @@ describe("physiotherapy demo foundation", () => {
     expect(
       physiotherapyDemoExampleHref({
         CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL:
+          "https://demo.riveraftercare.com.au/home-exercise-plan",
+      })
+    ).toBe("https://demo.riveraftercare.com.au/home-exercise-plan");
+    expect(
+      physiotherapyDemoExampleHref({
+        CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL:
           "https://demophysio.riveraftercare.com.au/home-exercise-plan",
       })
-    ).toBe("https://demophysio.riveraftercare.com.au/home-exercise-plan");
+    ).toBeNull();
   });
 
-  it("refuses a remote clinic shell unless production confirmation is explicit", () => {
-    expect(
-      planPhysioDemoClinicShell({
-        local: false,
-        apply: false,
-        allowProduction: false,
-        confirmDemoClinic: false,
-        clinicExists: false,
-      })
-    ).toEqual({ action: "create" });
-    expect(
-      planPhysioDemoClinicShell({
-        local: false,
-        apply: true,
-        allowProduction: false,
-        confirmDemoClinic: false,
-        clinicExists: false,
-      }).action
-    ).toBe("refuse");
-    expect(
-      planPhysioDemoClinicShell({
-        local: false,
-        apply: true,
-        allowProduction: true,
-        confirmDemoClinic: true,
-        clinicExists: false,
-      })
-    ).toEqual({ action: "create" });
-    expect(
-      planPhysioDemoClinicShell({
-        local: true,
-        apply: true,
-        allowProduction: false,
-        confirmDemoClinic: false,
-        clinicExists: true,
-      })
-    ).toEqual({
-      action: "noop",
-      reason: "The clinic shell already exists.",
-    });
+  it("refuses the retired physiotherapy clinic command", () => {
+    expect(planPhysioDemoClinicShell().action).toBe("refuse");
+    expect(planPhysioDemoClinicShell().reason).toContain(
+      "does not create a clinic"
+    );
   });
 
   it("does not treat a remote database as local development", async () => {

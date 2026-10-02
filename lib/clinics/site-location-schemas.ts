@@ -11,6 +11,8 @@ import { parseClinicTypeface } from "@/lib/branding/clinic-typeface";
 import { isClinicLogoStoredReference } from "@/lib/clinic-assets/public-url";
 import { isReservedLocationSlug } from "@/lib/clinics/reserved-location-slugs";
 import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
+import { isSharedDemoHostnameLabel } from "@/lib/tenancy/shared-demo-hostname";
+import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 
 function optionalText(max: number) {
   return z
@@ -94,7 +96,13 @@ export const siteSlugSchema = z
   })
   .refine((value) => !isReservedTenantSlug(value), {
     message: "That site address is reserved.",
-  });
+  })
+  .refine(
+    (value) => !isDemoTenant(value) && !isSharedDemoHostnameLabel(value),
+    {
+      message: "That hostname is reserved for the interactive demo.",
+    }
+  );
 
 export const createSiteSchema = z.object({
   siteName: z.string().trim().min(1, "Enter a site name.").max(80),

@@ -11,7 +11,7 @@ import {
 import { signInAsLocalAdmin, signInAsLocalStaff } from "./helpers/staff-auth";
 
 const DEMO_CLINIC_ID = "clinic_demo_rivers";
-const DEMO_LOGO = "/demo/riverside-mark.svg";
+const DEMO_LOGO = "/brand/river-aftercare-isologo.svg";
 const ARTIFACT_DIR = "docs/product/artifacts/r2-clinic-assets";
 
 const PNG = Buffer.from(
@@ -78,7 +78,7 @@ test.describe("clinic logo upload", () => {
     await expect(logoControl.getByRole("status")).toHaveText(
       "Practice logo updated."
     );
-    const uploaded = page.locator("img.staffLogoPreview");
+    const uploaded = logoControl.locator("img.staffLogoPreview");
     await expect(uploaded).toHaveAttribute(
       "src",
       /\/clinic-branding\/clinic_demo_rivers\/.+\.png$/
@@ -115,7 +115,7 @@ test.describe("clinic logo upload", () => {
     });
 
     await page.goto(staffUrl("/practice"), { waitUntil: "load" });
-    await expect(page.getByText("Choose replacement")).toBeVisible();
+    await expect(logoControl.getByText("Choose replacement")).toBeVisible();
     await page.setInputFiles("#clinic-logo-file", {
       name: "clinic-mark.svg",
       mimeType: "image/svg+xml",
@@ -126,7 +126,7 @@ test.describe("clinic logo upload", () => {
     await expect(logoControl.getByRole("status")).toHaveText(
       "Practice logo updated."
     );
-    await expect(page.locator("img.staffLogoPreview")).toHaveAttribute(
+    await expect(logoControl.locator("img.staffLogoPreview")).toHaveAttribute(
       "src",
       /\/clinic-branding\/clinic_demo_rivers\/.+\.svg$/
     );

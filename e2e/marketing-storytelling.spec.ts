@@ -807,8 +807,13 @@ test.describe("Phase 1F.11 story clarity", () => {
       "true"
     );
     await expect(
-      product.locator("[data-mk-product-canvas]").getByText("Riverside Dental")
+      product
+        .locator("[data-mk-product-canvas]")
+        .getByText("River Aftercare Demo Clinic")
     ).toHaveCount(2);
+    await expect(
+      product.locator("[data-mk-product-canvas]").getByText("Riverside Dental")
+    ).toHaveCount(0);
     await expect(
       product.locator("[data-mk-product-canvas]").getByText("Tooth Extraction")
     ).toBeVisible();

@@ -264,10 +264,10 @@ test.describe("marketing homepage", () => {
       await expect(
         hero
           .locator('[class*="deviceStage"]')
-          .getByText("Call Riverside Dental Demo")
+          .getByText("Practice contact page")
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: "Call Riverside Dental Demo" })
+        page.getByRole("link", { name: "Call River Aftercare Demo Clinic" })
       ).toHaveCount(0);
       await expect(
         hero.locator('[class*="deviceStage"]').getByText(/book/i)

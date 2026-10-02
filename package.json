@@ -30,6 +30,7 @@
     "audit:account-split-branding": "prisma generate --config prisma.config.ts && node scripts/audit-account-split-branding-ownership.mjs",
     "prod:audit:account-split-branding": "node scripts/prod-audit-account-split-branding.mjs",
     "bootstrap:demo-template": "node scripts/bootstrap-demo-template.mjs",
+    "configure:shared-demo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/configure-shared-demo.mjs",
     "provision:physio-demo-clinic": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/provision-physio-demo-clinic.mjs",
     "canonical-template:import": "node --experimental-transform-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning scripts/import-canonical-template.mjs",
     "db:studio": "prisma studio --config prisma.config.ts",

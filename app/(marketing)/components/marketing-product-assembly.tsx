@@ -47,7 +47,7 @@ export function MarketingProductAssembly() {
           <div className={styles.productFragment}>
             <p className={styles.productFragmentLabel}>Clinic brand</p>
             <p className={styles.productClinicName} translate="no">
-              Riverside Dental
+              {MARKETING_DEMO_CLINIC_NAME}
             </p>
             <div className={styles.productSwatchRow}>
               <span className={styles.productSwatchItem}>

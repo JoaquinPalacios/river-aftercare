@@ -85,7 +85,7 @@ test.describe("account settings and clinic members", () => {
   }) => {
     await signInAsLocalOperator(page);
     await page
-      .getByRole("link", { name: "Riverside Dental Demo" })
+      .getByRole("link", { name: "River Aftercare Demo Clinic" })
       .first()
       .click();
     await expect(
@@ -101,7 +101,7 @@ test.describe("account settings and clinic members", () => {
   }) => {
     await signInAsLocalOperator(page);
     await page
-      .getByRole("link", { name: "Riverside Dental Demo" })
+      .getByRole("link", { name: "River Aftercare Demo Clinic" })
       .first()
       .click();
     await page.getByRole("button", { name: "Manage clinic workspace" }).click();
@@ -110,7 +110,7 @@ test.describe("account settings and clinic members", () => {
       page.getByText("Assisting", { exact: true }).first()
     ).toBeVisible();
     await expect(page.locator(".staffOperatorAssistClinic")).toContainText(
-      /Riverside/i
+      "River Aftercare Demo Clinic"
     );
     await expect(
       page.getByRole("button", { name: "Exit support" })

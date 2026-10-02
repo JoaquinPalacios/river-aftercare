@@ -45,7 +45,7 @@ test.describe("marketing reveal sequence consistency", () => {
     });
     const explanation = page.locator('p[class*="verticalNote"]').filter({
       hasText:
-        "Riverside Dental Demo uses a Tooth Extraction sample guide to show the current patient experience.",
+        "River Aftercare Demo Clinic uses a Tooth Extraction sample guide to show the current patient experience.",
     });
     await expectRevealAncestor(template);
     await expectRevealAncestor(explanation);

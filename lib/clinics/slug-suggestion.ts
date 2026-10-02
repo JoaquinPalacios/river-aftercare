@@ -3,7 +3,18 @@ import {
   isValidCareGuideSlug,
 } from "@/lib/aftercare/slug-rules";
 import { isReservedLocationSlug } from "@/lib/clinics/reserved-location-slugs";
+import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
+import { isSharedDemoHostnameLabel } from "@/lib/tenancy/shared-demo-hostname";
+
+function siteSlugAvailable(candidate: string): boolean {
+  return (
+    isValidCareGuideSlug(candidate) &&
+    !isReservedTenantSlug(candidate) &&
+    !isDemoTenant(candidate) &&
+    !isSharedDemoHostnameLabel(candidate)
+  );
+}
 
 function normalizeSlugSource(name: string): string {
   return name
@@ -27,13 +38,11 @@ function withFallback(normalized: string, fallback: string): string {
 
 export function suggestSiteSlug(name: string): string {
   const candidate = withFallback(normalizeSlugSource(name), "site");
-  if (isValidCareGuideSlug(candidate) && !isReservedTenantSlug(candidate)) {
+  if (siteSlugAvailable(candidate)) {
     return candidate;
   }
   const safe = withFallback(`${candidate}-site`, "site");
-  return isValidCareGuideSlug(safe) && !isReservedTenantSlug(safe)
-    ? safe
-    : "clinic-site";
+  return siteSlugAvailable(safe) ? safe : "clinic-site";
 }
 
 export function suggestLocationSlug(name: string): string {

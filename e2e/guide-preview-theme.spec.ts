@@ -63,7 +63,10 @@ test.describe("authenticated patient preview theme", () => {
   }) => {
     await signInAsLocalAdmin(page);
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    await page.getByRole("link", { name: "Preview" }).first().click();
+    await page
+      .getByRole("row", { name: /Tooth Extraction/ })
+      .getByRole("link", { name: "Preview" })
+      .click();
     await expect(page).toHaveURL(/\/guides\/.+\/preview/);
 
     const appearance = page.getByLabel("Patient preview appearance");

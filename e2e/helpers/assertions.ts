@@ -9,7 +9,7 @@ export async function expectGenericNotFound(page: Page): Promise<void> {
     page.getByText("This aftercare page is not available.")
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Riverside Dental Demo", exact: true })
+    page.getByRole("link", { name: "River Aftercare Demo Clinic", exact: true })
   ).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: "Harbor Family Dental", exact: true })

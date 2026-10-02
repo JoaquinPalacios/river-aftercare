@@ -359,7 +359,9 @@ describe("aftercare style boundary", () => {
     expect(fixtures).toContain(
       'MARKETING_DEMO_RECOVERY_HEADING = "Recovery overview"'
     );
-    expect(fixtures).toContain("Call ${MARKETING_DEMO_CLINIC_NAME}");
+    expect(fixtures).toContain(
+      'MARKETING_DEMO_CALL_LABEL = "Practice contact page"'
+    );
   });
 
   it("keeps patient Client Components isolated to theme control, required error boundaries, and marketing Motion to marketing", () => {

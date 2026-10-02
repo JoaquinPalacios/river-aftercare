@@ -87,7 +87,7 @@ async function waitForPhoneFrame(page: Page): Promise<void> {
     "Tooth Extraction"
   );
   await expect(page.locator('[class*="phoneBrand"]')).toContainText(
-    "Riverside Dental Demo"
+    "River Aftercare Demo Clinic"
   );
 }
 

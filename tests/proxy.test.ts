@@ -40,6 +40,23 @@ describe("proxy", () => {
     }
   });
 
+  it("rewrites the shared demo hostname label without aliasing it in the proxy", () => {
+    const response = proxy(requestFor("http://demo.localhost:3000/extraction"));
+    expect(rewrittenUrl(response)?.pathname).toBe("/_sites/demo/extraction");
+    expect(proxy(requestFor("http://demo.localhost:3000/login")).status).toBe(
+      404
+    );
+  });
+
+  it("does not rewrite an unknown host to the shared demo", () => {
+    const response = proxy(
+      requestFor("http://not-the-shared-demo.localhost:3000/extraction")
+    );
+    expect(rewrittenUrl(response)?.pathname).toBe(
+      "/_sites/not-the-shared-demo/extraction"
+    );
+  });
+
   it("rewrites a tenant host to /_sites/<slug>/...", () => {
     const response = proxy(
       requestFor("http://demodental.localhost:3000/extraction", {

@@ -34,7 +34,10 @@ import {
   sameComposedSections,
   sameText,
 } from "@/lib/demo-adoption/composition";
-import { designatedDemoForCategory } from "@/lib/demo-adoption/designated-demos";
+import {
+  designatedDemoAcceptsTemplate,
+  designatedDemoForCategory,
+} from "@/lib/demo-adoption/designated-demos";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 
@@ -78,6 +81,7 @@ export async function adoptPublishedSampleForDesignatedDemo(
     where: { id: input.templateId },
     select: {
       id: true,
+      slug: true,
       serviceCategory: true,
       isSample: true,
       isActive: true,
@@ -88,6 +92,7 @@ export async function adoptPublishedSampleForDesignatedDemo(
   }
   assertSampleEligible(template);
   const designation = designatedDemoForCategory(template.serviceCategory);
+  assertDesignatedSampleIdentity(template, designation);
   if (!designation) {
     throw new ClinicPortalError(
       "This service category does not have a designated demo.",
@@ -121,6 +126,22 @@ export async function adoptPublishedSampleForDesignatedDemo(
       );
     }
     throw error;
+  }
+}
+
+function assertDesignatedSampleIdentity(
+  template: { slug: string; serviceCategory: string },
+  designation: { sampleSlug: string; serviceCategory: string } | null
+): void {
+  if (
+    !designation ||
+    template.serviceCategory !== designation.serviceCategory ||
+    template.slug !== designation.sampleSlug
+  ) {
+    throw new ClinicPortalError(
+      "This sample is not the designated sample for this service category.",
+      "forbidden"
+    );
   }
 }
 
@@ -162,6 +183,7 @@ async function adoptLockedDemo(
     where: { id: input.templateId },
     select: {
       id: true,
+      slug: true,
       title: true,
       serviceCategory: true,
       isSample: true,
@@ -173,6 +195,7 @@ async function adoptLockedDemo(
   }
   assertSampleEligible(template);
   const designation = designatedDemoForCategory(template.serviceCategory);
+  assertDesignatedSampleIdentity(template, designation);
   const clinic = await tx.clinic.findFirst({
     where: { id: clinicId },
     select: { id: true, slug: true },
@@ -180,6 +203,11 @@ async function adoptLockedDemo(
   if (
     !clinic ||
     !designation ||
+    !designatedDemoAcceptsTemplate({
+      clinicSlug: clinic.slug,
+      serviceCategory: template.serviceCategory,
+      templateSlug: template.slug,
+    }) ||
     clinic.slug !== designation.clinicSlug ||
     clinic.id !== clinicId
   ) {
@@ -292,6 +320,15 @@ async function adoptLockedDemo(
     );
   }
   assertPracticeGuideWritable(guide);
+  if (
+    guide.serviceCategory &&
+    guide.serviceCategory !== designation.serviceCategory
+  ) {
+    throw new ClinicPortalError(
+      "This guide belongs to a different service category. It was not updated.",
+      "conflict"
+    );
+  }
   if (!guide.pinnedRevisionId) {
     throw new ClinicPortalError(
       "This demo guide is not pinned to the sample.",

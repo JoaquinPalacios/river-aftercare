@@ -111,6 +111,7 @@ export async function listCanonicalGuideTemplates(
         !clinicCanUseCanonicalTemplate({
           clinicSlug: clinic.slug,
           serviceCategory: template.serviceCategory,
+          templateSlug: template.slug,
           availability: classified.availability,
         }) ||
         !classified.availability ||

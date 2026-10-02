@@ -26,7 +26,7 @@ test.describe("tenant isolation and unpublished content", () => {
     ).toHaveCount(0);
     await expect(
       page.getByRole("heading", {
-        name: "Riverside Dental Demo",
+        name: "River Aftercare Demo Clinic",
         exact: true,
       })
     ).toHaveCount(0);
@@ -54,14 +54,17 @@ test.describe("tenant isolation and unpublished content", () => {
     ).toBeVisible();
 
     await expect(
-      page.getByRole("link", { name: "Riverside Dental Demo", exact: true })
+      page.getByRole("link", {
+        name: "River Aftercare Demo Clinic",
+        exact: true,
+      })
     ).toHaveCount(0);
     await expect(
-      page.getByRole("link", { name: /Call Riverside Dental Demo/ })
+      page.getByRole("link", { name: /Call River Aftercare Demo Clinic/ })
     ).toHaveCount(0);
     await expect(page.getByText("Powered by River Aftercare")).toHaveCount(0);
     await expect(
-      page.locator('img[src="/demo/riverside-mark.svg"]')
+      page.locator('img[src="/brand/river-aftercare-isologo.svg"]')
     ).toHaveCount(0);
     const homeBrand = await page
       .locator(".aftercareTheme")
@@ -83,7 +86,10 @@ test.describe("tenant isolation and unpublished content", () => {
     await expect(page.getByText(HARBOR.additionBody)).toBeVisible();
 
     await expect(
-      page.getByRole("link", { name: "Riverside Dental Demo", exact: true })
+      page.getByRole("link", {
+        name: "River Aftercare Demo Clinic",
+        exact: true,
+      })
     ).toHaveCount(0);
     await expect(
       page.getByRole("heading", {
@@ -91,14 +97,14 @@ test.describe("tenant isolation and unpublished content", () => {
       })
     ).toHaveCount(0);
     await expect(
-      page.getByRole("heading", { name: "Weekend contact (Riverside demo)" })
+      page.getByRole("heading", { name: "Weekend contact" })
     ).toHaveCount(0);
     await expect(
-      page.getByRole("link", { name: /Call Riverside Dental Demo/ })
+      page.getByRole("link", { name: /Call River Aftercare Demo Clinic/ })
     ).toHaveCount(0);
     await expect(page.getByText("Powered by River Aftercare")).toHaveCount(0);
     await expect(
-      page.locator('img[src="/demo/riverside-mark.svg"]')
+      page.locator('img[src="/brand/river-aftercare-isologo.svg"]')
     ).toHaveCount(0);
   });
 

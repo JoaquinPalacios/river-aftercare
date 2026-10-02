@@ -19,26 +19,28 @@ export function PracticeContact({ chrome }: { chrome: PracticeChrome }) {
       <h2 id="practice-contact-heading" className={styles.contactTitle}>
         Contact {chrome.displayName}
       </h2>
-      <p className={styles.contactCopy}>Questions about your recovery?</p>
       {hasRenderedWebPracticeContactChannel(chrome) ? (
-        <div className={styles.actions}>
-          {chrome.phoneHref ? (
-            <a
-              className={`${styles.action} ${styles.primary}`}
-              href={chrome.phoneHref}
-            >
-              Call {chrome.displayName}
-            </a>
-          ) : null}
-          {chrome.contactHref ? (
-            <a
-              className={`${styles.action} ${styles.secondary}`}
-              href={chrome.contactHref}
-            >
-              Practice contact page
-            </a>
-          ) : null}
-        </div>
+        <>
+          <p className={styles.contactCopy}>Questions about your recovery?</p>
+          <div className={styles.actions}>
+            {chrome.phoneHref ? (
+              <a
+                className={`${styles.action} ${styles.primary}`}
+                href={chrome.phoneHref}
+              >
+                Call {chrome.displayName}
+              </a>
+            ) : null}
+            {chrome.contactHref ? (
+              <a
+                className={`${styles.action} ${styles.secondary}`}
+                href={chrome.contactHref}
+              >
+                Practice contact page
+              </a>
+            ) : null}
+          </div>
+        </>
       ) : null}
       {chrome.emergencyInstructions ? (
         <div className={styles.urgent}>

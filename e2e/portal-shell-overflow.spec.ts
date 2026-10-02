@@ -127,7 +127,7 @@ test.describe("portal shell overflow contract", () => {
       page.getByRole("heading", { name: "All Clinics" })
     ).toBeVisible();
     const clinicHref = await page
-      .getByRole("link", { name: /Riverside Dental Demo/i })
+      .getByRole("link", { name: /River Aftercare Demo Clinic/i })
       .first()
       .getAttribute("href");
     expect(clinicHref).toBeTruthy();

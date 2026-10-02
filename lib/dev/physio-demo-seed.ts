@@ -1,8 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
 
-import { PHYSIO_DEMO_TENANT_SLUG } from "../aftercare/demo-tenant.ts";
-import { ensurePrimarySiteAndRootLocation } from "../clinics/primary-site-location.mjs";
+import { DEMO_AFTERCARE_TENANT_SLUG } from "../aftercare/demo-tenant.ts";
 import { isLocalDevelopmentDatabase } from "./database-target.ts";
+import { SHARED_DEMO_CLINIC_ID } from "./shared-demo-brand.ts";
 import {
   syncRiversidePracticePublication,
   type RiversideSeedSection,
@@ -17,31 +17,6 @@ export const PHYSIO_DEMO_PRACTICE_GUIDE_ID =
 export const PHYSIO_DEMO_PUBLIC_SLUG = "home-exercise-plan";
 
 const PUBLISHED_AT = new Date("2026-10-02T00:00:00.000Z");
-
-const PROFILE = {
-  displayName: "River Physio Demo",
-  logoUrl: "/demo/physio-mark.svg",
-  primaryColor: "#146f88",
-  accentColor: "#2d3bb8",
-  neutralColor: "#f4fbff",
-  radiusPreset: "SOFT" as const,
-  instructionTerminology: "AFTERCARE" as const,
-  themeMode: "SYSTEM" as const,
-  allowPatientThemeToggle: true,
-  phone: null,
-  addressLine1: null,
-  addressLine2: null,
-  city: null,
-  region: null,
-  postalCode: null,
-  country: null,
-  bookingUrl: null,
-  contactUrl: "https://example.com/river-physio-demo",
-  contactEmail: null,
-  emergencyInstructions:
-    "This is a fictional demonstration clinic. It is not a real physiotherapy practice and cannot give clinical advice. In a real emergency, contact local emergency services.",
-  showCareGuideAttribution: true,
-};
 
 const HOME_CARE = [
   {
@@ -102,7 +77,7 @@ const CANONICAL_SECTIONS = [
     key: "contact-practice",
     kind: "CONTACT_PRACTICE" as const,
     title: "Contact information",
-    body: "River Physio Demo does not have a real phone number, address, or practitioner. Use the demonstration contact link only to see how contact details appear.",
+    body: "River Aftercare Demo Clinic does not have a real phone number, address, or practitioner. Use the demonstration contact link only to see how contact details appear.",
     sortOrder: 5,
   },
   {
@@ -131,7 +106,7 @@ const ADDITION = {
   key: "demonstration-note",
   kind: "CUSTOM" as const,
   title: "Demonstration note",
-  body: "River Physio Demo and this guide are illustrations. They are not individually prescribed clinical guidance.",
+  body: "River Aftercare Demo Clinic and this guide are illustrations. They are not individually prescribed clinical guidance.",
   sortOrder: 1,
   insertAfterSectionKey: "contact-practice",
 };
@@ -174,10 +149,11 @@ export function composedPhysioPracticeSections(): RiversideSeedSection[] {
 }
 
 /**
- * Local seed may create the fictional clinic, the synthetic sample, and the
- * original practice snapshot. A remote database is left untouched.
- * A newer published practice revision keeps its pin and snapshot.
- * A different active physiotherapy sample keeps the category slot.
+ * Local seed places the synthetic physiotherapy sample and its practice
+ * guide on the existing shared demo account. It does not create another
+ * clinic. A remote database is left untouched. A newer published practice
+ * or canonical revision keeps its pin and snapshot. A different active
+ * physiotherapy sample keeps the category slot.
  */
 export async function seedPhysioDemo(
   prisma: SeedPrisma,
@@ -189,36 +165,54 @@ export async function seedPhysioDemo(
     return { applied: false, sampleSkipped: false };
   }
 
-  const existingClinic = await prisma.clinic.findFirst({
+  const clinic = await prisma.clinic.findFirst({
     where: {
-      OR: [{ id: PHYSIO_DEMO_CLINIC_ID }, { slug: PHYSIO_DEMO_TENANT_SLUG }],
+      id: SHARED_DEMO_CLINIC_ID,
+      slug: DEMO_AFTERCARE_TENANT_SLUG,
     },
     select: { id: true },
   });
-  const clinicId = existingClinic?.id ?? PHYSIO_DEMO_CLINIC_ID;
-  await prisma.clinic.upsert({
-    where: { id: clinicId },
-    update: { name: "River Physio Demo", slug: PHYSIO_DEMO_TENANT_SLUG },
-    create: {
-      id: PHYSIO_DEMO_CLINIC_ID,
-      name: "River Physio Demo",
-      slug: PHYSIO_DEMO_TENANT_SLUG,
+  if (!clinic) {
+    return { applied: false, sampleSkipped: false };
+  }
+  const clinicId = clinic.id;
+  const location = await prisma.clinicLocation.findFirst({
+    where: {
+      clinicId,
+      servesSiteRoot: true,
+      active: true,
+      clinicSite: {
+        slug: DEMO_AFTERCARE_TENANT_SLUG,
+        isPrimary: true,
+        active: true,
+      },
     },
+    select: { id: true },
   });
-  await prisma.clinicProfile.upsert({
-    where: { clinicId },
-    update: PROFILE,
-    create: { clinicId, ...PROFILE },
+  if (!location) {
+    return { applied: false, sampleSkipped: false };
+  }
+  const hierarchy = { locationId: location.id };
+
+  const existingGuide = await prisma.practiceGuide.findUnique({
+    where: { id: PHYSIO_DEMO_PRACTICE_GUIDE_ID },
+    select: { clinicId: true },
   });
-  const profile = await prisma.clinicProfile.findUniqueOrThrow({
-    where: { clinicId },
-  });
-  const hierarchy = await ensurePrimarySiteAndRootLocation(prisma, {
-    clinicId,
-    clinicName: "River Physio Demo",
-    slug: PHYSIO_DEMO_TENANT_SLUG,
-    profile,
-  });
+  let rememberedPublishedRevisionId: string | null = null;
+  if (existingGuide && existingGuide.clinicId !== clinicId) {
+    const currentPlacement = await prisma.practiceGuidePlacement.findFirst({
+      where: {
+        practiceGuideId: PHYSIO_DEMO_PRACTICE_GUIDE_ID,
+        isEnabled: true,
+      },
+      select: { publishedPracticeGuideRevisionId: true },
+    });
+    rememberedPublishedRevisionId =
+      currentPlacement?.publishedPracticeGuideRevisionId ?? null;
+    await prisma.practiceGuidePlacement.deleteMany({
+      where: { practiceGuideId: PHYSIO_DEMO_PRACTICE_GUIDE_ID },
+    });
+  }
 
   const occupant = await prisma.guideTemplate.findFirst({
     where: {
@@ -324,10 +318,11 @@ export async function seedPhysioDemo(
       clinicId,
       title: "Physiotherapy Home Exercise Plan",
       guideTemplateId: PHYSIO_DEMO_TEMPLATE_ID,
+      serviceCategory: "PHYSIOTHERAPY",
       publicSlug: PHYSIO_DEMO_PUBLIC_SLUG,
       isEnabled: true,
       status: "PUBLISHED",
-      sortOrder: 1,
+      sortOrder: 2,
       ...(preservePractice
         ? {}
         : {
@@ -340,11 +335,12 @@ export async function seedPhysioDemo(
       clinicId,
       title: "Physiotherapy Home Exercise Plan",
       guideTemplateId: PHYSIO_DEMO_TEMPLATE_ID,
+      serviceCategory: "PHYSIOTHERAPY",
       pinnedRevisionId: PHYSIO_DEMO_CANONICAL_REVISION_ID,
       publicSlug: PHYSIO_DEMO_PUBLIC_SLUG,
       isEnabled: true,
       status: "PUBLISHED",
-      sortOrder: 1,
+      sortOrder: 2,
       publishedAt: PUBLISHED_AT,
     },
   });
@@ -390,7 +386,7 @@ export async function seedPhysioDemo(
     });
   }
 
-  await syncRiversidePracticePublication(prisma, {
+  const publication = await syncRiversidePracticePublication(prisma, {
     practiceGuideId: PHYSIO_DEMO_PRACTICE_GUIDE_ID,
     clinicId,
     locationId: hierarchy.locationId,
@@ -402,72 +398,37 @@ export async function seedPhysioDemo(
     publishedAt: PUBLISHED_AT,
     sections: composedPhysioPracticeSections(),
   });
+  if (publication.preserved && rememberedPublishedRevisionId) {
+    await prisma.practiceGuidePlacement.updateMany({
+      where: {
+        practiceGuideId: PHYSIO_DEMO_PRACTICE_GUIDE_ID,
+        locationId: hierarchy.locationId,
+      },
+      data: {
+        publishedPracticeGuideRevisionId: rememberedPublishedRevisionId,
+      },
+    });
+  }
 
   return { applied: true, sampleSkipped: false };
 }
 
-export type PhysioDemoClinicShellPlan =
-  | { action: "create" }
-  | { action: "noop"; reason: string }
-  | { action: "refuse"; reason: string };
+export type PhysioDemoClinicShellPlan = {
+  action: "refuse";
+  reason: string;
+};
 
-export function planPhysioDemoClinicShell(input: {
-  local: boolean;
-  apply: boolean;
-  allowProduction: boolean;
-  confirmDemoClinic: boolean;
-  clinicExists: boolean;
+/** Retired. The command must not create a second demonstration account. */
+export function planPhysioDemoClinicShell(_input?: {
+  local?: boolean;
+  apply?: boolean;
+  allowProduction?: boolean;
+  confirmDemoClinic?: boolean;
+  clinicExists?: boolean;
 }): PhysioDemoClinicShellPlan {
-  if (!input.apply) {
-    return input.clinicExists
-      ? { action: "noop", reason: "The clinic shell already exists." }
-      : { action: "create" };
-  }
-  if (!input.local && (!input.allowProduction || !input.confirmDemoClinic)) {
-    return {
-      action: "refuse",
-      reason:
-        "Remote clinic creation is refused. Pass --allow-production and --confirm-demo-clinic. This command does not publish a sample or open Stripe Checkout.",
-    };
-  }
-  if (input.clinicExists) {
-    return { action: "noop", reason: "The clinic shell already exists." };
-  }
-  return { action: "create" };
-}
-
-export async function loadPhysioDemoClinicExists(
-  prisma: Pick<PrismaClient, "clinic">
-): Promise<boolean> {
-  const clinic = await prisma.clinic.findUnique({
-    where: { slug: PHYSIO_DEMO_TENANT_SLUG },
-    select: { id: true },
-  });
-  return clinic !== null;
-}
-
-/**
- * Creates only the account, profile, primary site, and root location.
- * It does not create a sample, a practice guide, or a Stripe customer.
- */
-export async function createPhysioDemoClinicShell(
-  prisma: SeedPrisma
-): Promise<void> {
-  await prisma.clinic.create({
-    data: {
-      name: "River Physio Demo",
-      slug: PHYSIO_DEMO_TENANT_SLUG,
-      profile: { create: PROFILE },
-    },
-  });
-  const clinic = await prisma.clinic.findUniqueOrThrow({
-    where: { slug: PHYSIO_DEMO_TENANT_SLUG },
-    include: { profile: true },
-  });
-  await ensurePrimarySiteAndRootLocation(prisma, {
-    clinicId: clinic.id,
-    clinicName: clinic.name,
-    slug: clinic.slug,
-    profile: clinic.profile,
-  });
+  return {
+    action: "refuse",
+    reason:
+      "provision:physio-demo-clinic is retired. River Aftercare uses the existing shared demo account. This command does not create a clinic. Use pnpm configure:shared-demo.",
+  };
 }

@@ -17,6 +17,7 @@ import {
   WORKING_DRAFT_VERSION,
 } from "@/lib/aftercare/practice-revision-document";
 import { listAccountServiceCategories } from "@/lib/clinics/site-service-categories";
+import { designatedDemoAcceptsTemplate } from "@/lib/demo-adoption/designated-demos";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { upsertRootPlacement } from "@/lib/clinic-portal/root-placement";
 import { reserveCustomGuidePlace } from "@/lib/entitlements/guide-usage";
@@ -205,7 +206,13 @@ export async function createPracticeGuideFromTemplate(input: {
   const allowed = clinicCanUseCanonicalTemplate({
     clinicSlug: clinic.slug,
     serviceCategory: template.serviceCategory,
+    templateSlug: template.slug,
     availability: classified.availability,
+  });
+  const designation = designatedDemoAcceptsTemplate({
+    clinicSlug: clinic.slug,
+    serviceCategory: template.serviceCategory,
+    templateSlug: template.slug,
   });
   const publishedRevision = template?.revisions.find(
     (revision) => revision.id === classified.eligibleRevisionId
@@ -228,8 +235,35 @@ export async function createPracticeGuideFromTemplate(input: {
     );
   }
 
-  const desiredSlug = input.values.publicSlug ?? template.slug;
-  const publicSlug = await nextUnusedSlug(input.clinicId, desiredSlug);
+  let publicSlug: string;
+  if (template.isSample && designation) {
+    if (
+      input.values.publicSlug &&
+      input.values.publicSlug !== designation.publicGuideSlug
+    ) {
+      throw new ClinicPortalError(
+        "The designated demo guide must use its stable public address.",
+        "invalid"
+      );
+    }
+    const addressTaken = await getPrisma().practiceGuide.findFirst({
+      where: {
+        clinicId: input.clinicId,
+        publicSlug: designation.publicGuideSlug,
+      },
+      select: { id: true },
+    });
+    if (addressTaken) {
+      throw new ClinicPortalError(
+        "The designated demo already has a guide at that public address.",
+        "conflict"
+      );
+    }
+    publicSlug = designation.publicGuideSlug;
+  } else {
+    const desiredSlug = input.values.publicSlug ?? template.slug;
+    publicSlug = await nextUnusedSlug(input.clinicId, desiredSlug);
+  }
   const sortOrder = await nextSortOrder(input.clinicId);
   const composed = composeGuideDocument({
     canonicalSections: publishedRevision.sections.map((section) => ({

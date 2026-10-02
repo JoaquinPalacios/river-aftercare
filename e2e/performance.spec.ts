@@ -135,18 +135,18 @@ test.describe("Phase 1 performance and asset contracts", () => {
   test("demo logo is a small same-origin SVG with explicit dimensions", async ({
     page,
   }) => {
-    const logoPath = "public/demo/riverside-mark.svg";
+    const logoPath = "public/brand/river-aftercare-isologo.svg";
     const fileBytes = readFileSync(logoPath).byteLength;
-    expect(fileBytes).toBeLessThan(2048);
+    expect(fileBytes).toBeLessThan(8192);
 
     await page.goto(HOME, { waitUntil: "load" });
-    const logo = page.locator('img[src="/demo/riverside-mark.svg"]');
-    await expect(logo).toHaveAttribute("width", "44");
-    await expect(logo).toHaveAttribute("height", "44");
-    await expect(logo).toHaveAttribute("alt", "");
+    const logo = page.locator('img[src="/brand/river-aftercare-isologo.svg"]');
+    await expect(logo.first()).toHaveAttribute("width", "44");
+    await expect(logo.first()).toHaveAttribute("height", "44");
+    await expect(logo.first()).toHaveAttribute("alt", "");
 
     const response = await page.request.get(
-      tenantUrl(DEMO_TENANT_SLUG, "/demo/riverside-mark.svg")
+      tenantUrl(DEMO_TENANT_SLUG, "/brand/river-aftercare-isologo.svg")
     );
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"] ?? "").toMatch(/svg/i);

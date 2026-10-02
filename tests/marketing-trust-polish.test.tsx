@@ -100,16 +100,16 @@ describe("marketing + trust polish", () => {
     expect(MARKETING_DEMO_PATIENT_THEME_CSS).toContain(
       'html[data-theme-mode="dark"]'
     );
-    expect(MARKETING_DEMO_PATIENT_THEME_CSS).toContain("#0f766e");
-    expect(MARKETING_DEMO_PATIENT_THEME_CSS).not.toContain("#3b4bd1");
+    expect(MARKETING_DEMO_PATIENT_THEME_CSS).toContain("#3b4bd1");
+    expect(MARKETING_DEMO_PATIENT_THEME_CSS).not.toContain("#0f766e");
 
     const home = renderToStaticMarkup(await MarketingHomePage());
     expect(home).toContain('data-patient-theme="portal"');
     expect(home).toContain('data-mk-patient-surface="phone"');
     expect(home).not.toContain('data-mk-patient-surface="home"');
     expect(home).toContain("Recovery overview");
-    expect(home).toContain("Post-treatment instructions");
-    expect(home).toContain("Call Riverside Dental Demo");
+    expect(home).toContain("Aftercare instructions");
+    expect(home).toContain("Practice contact page");
     expect(home).not.toContain("Your recovery");
     expect(home).not.toContain("Need help?");
     expect(home).not.toContain("Call Riverside Dental →");
@@ -121,12 +121,12 @@ describe("marketing + trust polish", () => {
   it("keeps the hero patient proof on current tenant-home terminology", async () => {
     const home = renderToStaticMarkup(await MarketingHomePage());
     expect(home).toContain('data-mk-patient-surface="phone"');
-    expect(home).toContain("Riverside Dental Demo");
-    expect(home).toContain("Post-treatment instructions");
+    expect(home).toContain("River Aftercare Demo Clinic");
+    expect(home).toContain("Aftercare instructions");
     expect(home).toContain("Tooth Extraction");
     expect(home).toContain("Today");
     expect(home).toContain("Timeline");
-    expect(home).toContain("Call Riverside Dental Demo");
+    expect(home).toContain("Practice contact page");
     expect(home).not.toContain("data-mk-patient-preview");
     expect(home).not.toContain("See what patients actually receive");
     expect(home).not.toContain("View post-treatment instructions");

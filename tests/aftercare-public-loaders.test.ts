@@ -382,6 +382,33 @@ describe("aftercare public loaders", () => {
     );
   });
 
+  it("resolves the shared demo hostname to the existing site slug", async () => {
+    prismaMock.clinicSite.findUnique.mockResolvedValue(
+      siteFromClinic(CLINIC_A)
+    );
+
+    const tenant = await getClinicBySlug("demo");
+
+    expect(tenant?.slug).toBe("demodental");
+    expect(tenant?.id).toBe(CLINIC_A.id);
+    expect(prismaMock.clinicSite.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { slug: "demodental" },
+      })
+    );
+  });
+
+  it("does not rewrite an unknown hostname to the shared demo", async () => {
+    prismaMock.clinicSite.findUnique.mockResolvedValue(null);
+
+    await expect(getClinicBySlug("not-the-shared-demo")).resolves.toBeNull();
+    expect(prismaMock.clinicSite.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { slug: "not-the-shared-demo" },
+      })
+    );
+  });
+
   it("returns null for an unknown clinic slug", async () => {
     prismaMock.clinicSite.findUnique.mockResolvedValue(null);
 

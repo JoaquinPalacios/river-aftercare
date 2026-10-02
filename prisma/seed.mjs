@@ -16,6 +16,10 @@ import {
   riversidePracticeSeedPlan,
   syncRiversidePracticePublication,
 } from "../lib/dev/riverside-demo-seed.ts";
+import {
+  SHARED_DEMO_ACCOUNT,
+  SHARED_DEMO_PROFILE,
+} from "../lib/dev/shared-demo-brand.ts";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -23,36 +27,9 @@ const adapter = new PrismaPg({
 
 const prisma = new PrismaClient({ adapter });
 
-const DEMO_CLINIC = {
-  id: "clinic_demo_rivers",
-  name: "Rivers Care Demo Clinic",
-  slug: "demodental",
-};
+const DEMO_CLINIC = SHARED_DEMO_ACCOUNT;
 
-const DEMO_CLINIC_PROFILE = {
-  displayName: "Riverside Dental Demo",
-  logoUrl: "/demo/riverside-mark.svg",
-  primaryColor: "#0f766e",
-  accentColor: "#f59e0b",
-  neutralColor: "#ffffff",
-  radiusPreset: "SOFT",
-  instructionTerminology: "POST_TREATMENT",
-  themeMode: "SYSTEM",
-  allowPatientThemeToggle: true,
-  phone: "02 5550 0100",
-  addressLine1: "12 Riverside Demo Street",
-  addressLine2: null,
-  city: "Sydney",
-  region: "NSW",
-  postalCode: "2000",
-  country: "AU",
-  bookingUrl: "https://www.example.com/riverside-dental-demo/book",
-  contactUrl: "https://www.example.com/riverside-dental-demo/contact",
-  contactEmail: "hello@riverside-dental-demo.example",
-  emergencyInstructions:
-    "Call the clinic during hours. Use emergency services if you have trouble breathing, uncontrolled bleeding, or rapidly worsening swelling.",
-  showCareGuideAttribution: true,
-};
+const DEMO_CLINIC_PROFILE = SHARED_DEMO_PROFILE;
 
 const DEMO_EXTRACTION_SECTION_IDS = {
   introduction: "guide_sec_demo_extraction_intro",
@@ -145,6 +122,17 @@ async function upsertAftercareDemo(clinicId) {
     },
   });
 
+  const publishedCanonical = await prisma.guideTemplateRevision.findMany({
+    where: {
+      guideTemplateId: DEMO_EXTRACTION_GUIDE.templateId,
+      status: "PUBLISHED",
+    },
+    select: { version: true },
+  });
+  const preserveCanonical = publishedCanonical.some(
+    (revision) => revision.version > 1
+  );
+
   const revision = await prisma.guideTemplateRevision.upsert({
     where: { id: DEMO_EXTRACTION_GUIDE.revisionId },
     update: {
@@ -168,25 +156,27 @@ async function upsertAftercareDemo(clinicId) {
     },
   });
 
-  await prisma.guideTemplateSection.deleteMany({
-    where: { revisionId: revision.id },
-  });
-
-  for (const section of DEMO_EXTRACTION_GUIDE.sections) {
-    await prisma.guideTemplateSection.create({
-      data: {
-        id: section.id,
-        revisionId: revision.id,
-        key: section.key,
-        kind: section.kind,
-        title: section.title,
-        body: section.body,
-        periodLabel: section.periodLabel,
-        startDay: section.startDay ?? null,
-        endDay: section.endDay ?? null,
-        sortOrder: section.sortOrder,
-      },
+  if (!preserveCanonical) {
+    await prisma.guideTemplateSection.deleteMany({
+      where: { revisionId: revision.id },
     });
+
+    for (const section of DEMO_EXTRACTION_GUIDE.sections) {
+      await prisma.guideTemplateSection.create({
+        data: {
+          id: section.id,
+          revisionId: revision.id,
+          key: section.key,
+          kind: section.kind,
+          title: section.title,
+          body: section.body,
+          periodLabel: section.periodLabel,
+          startDay: section.startDay ?? null,
+          endDay: section.endDay ?? null,
+          sortOrder: section.sortOrder,
+        },
+      });
+    }
   }
 
   const existingPublishedRevisions =
@@ -232,49 +222,51 @@ async function upsertAftercareDemo(clinicId) {
     },
   });
 
-  await prisma.practiceGuideOverride.upsert({
-    where: { id: DEMO_EXTRACTION_GUIDE.overrideId },
-    update: {
-      practiceGuideId: practiceGuide.id,
-      sectionKey: DEMO_EXTRACTION_GUIDE.override.sectionKey,
-      title: DEMO_EXTRACTION_GUIDE.override.title,
-      body: DEMO_EXTRACTION_GUIDE.override.body,
-    },
-    create: {
-      id: DEMO_EXTRACTION_GUIDE.overrideId,
-      practiceGuideId: practiceGuide.id,
-      sectionKey: DEMO_EXTRACTION_GUIDE.override.sectionKey,
-      title: DEMO_EXTRACTION_GUIDE.override.title,
-      body: DEMO_EXTRACTION_GUIDE.override.body,
-    },
-  });
+  if (!preserveAdoptedRevisions) {
+    await prisma.practiceGuideOverride.upsert({
+      where: { id: DEMO_EXTRACTION_GUIDE.overrideId },
+      update: {
+        practiceGuideId: practiceGuide.id,
+        sectionKey: DEMO_EXTRACTION_GUIDE.override.sectionKey,
+        title: DEMO_EXTRACTION_GUIDE.override.title,
+        body: DEMO_EXTRACTION_GUIDE.override.body,
+      },
+      create: {
+        id: DEMO_EXTRACTION_GUIDE.overrideId,
+        practiceGuideId: practiceGuide.id,
+        sectionKey: DEMO_EXTRACTION_GUIDE.override.sectionKey,
+        title: DEMO_EXTRACTION_GUIDE.override.title,
+        body: DEMO_EXTRACTION_GUIDE.override.body,
+      },
+    });
 
-  await prisma.practiceGuideAddition.upsert({
-    where: { id: DEMO_EXTRACTION_GUIDE.additionId },
-    update: {
-      practiceGuideId: practiceGuide.id,
-      key: DEMO_EXTRACTION_GUIDE.addition.key,
-      kind: DEMO_EXTRACTION_GUIDE.addition.kind,
-      title: DEMO_EXTRACTION_GUIDE.addition.title,
-      body: DEMO_EXTRACTION_GUIDE.addition.body,
-      periodLabel: DEMO_EXTRACTION_GUIDE.addition.periodLabel,
-      sortOrder: DEMO_EXTRACTION_GUIDE.addition.sortOrder,
-      insertAfterSectionKey:
-        DEMO_EXTRACTION_GUIDE.addition.insertAfterSectionKey,
-    },
-    create: {
-      id: DEMO_EXTRACTION_GUIDE.additionId,
-      practiceGuideId: practiceGuide.id,
-      key: DEMO_EXTRACTION_GUIDE.addition.key,
-      kind: DEMO_EXTRACTION_GUIDE.addition.kind,
-      title: DEMO_EXTRACTION_GUIDE.addition.title,
-      body: DEMO_EXTRACTION_GUIDE.addition.body,
-      periodLabel: DEMO_EXTRACTION_GUIDE.addition.periodLabel,
-      sortOrder: DEMO_EXTRACTION_GUIDE.addition.sortOrder,
-      insertAfterSectionKey:
-        DEMO_EXTRACTION_GUIDE.addition.insertAfterSectionKey,
-    },
-  });
+    await prisma.practiceGuideAddition.upsert({
+      where: { id: DEMO_EXTRACTION_GUIDE.additionId },
+      update: {
+        practiceGuideId: practiceGuide.id,
+        key: DEMO_EXTRACTION_GUIDE.addition.key,
+        kind: DEMO_EXTRACTION_GUIDE.addition.kind,
+        title: DEMO_EXTRACTION_GUIDE.addition.title,
+        body: DEMO_EXTRACTION_GUIDE.addition.body,
+        periodLabel: DEMO_EXTRACTION_GUIDE.addition.periodLabel,
+        sortOrder: DEMO_EXTRACTION_GUIDE.addition.sortOrder,
+        insertAfterSectionKey:
+          DEMO_EXTRACTION_GUIDE.addition.insertAfterSectionKey,
+      },
+      create: {
+        id: DEMO_EXTRACTION_GUIDE.additionId,
+        practiceGuideId: practiceGuide.id,
+        key: DEMO_EXTRACTION_GUIDE.addition.key,
+        kind: DEMO_EXTRACTION_GUIDE.addition.kind,
+        title: DEMO_EXTRACTION_GUIDE.addition.title,
+        body: DEMO_EXTRACTION_GUIDE.addition.body,
+        periodLabel: DEMO_EXTRACTION_GUIDE.addition.periodLabel,
+        sortOrder: DEMO_EXTRACTION_GUIDE.addition.sortOrder,
+        insertAfterSectionKey:
+          DEMO_EXTRACTION_GUIDE.addition.insertAfterSectionKey,
+      },
+    });
+  }
 
   await syncRiversidePracticePublication(prisma, {
     practiceGuideId: practiceGuide.id,
@@ -390,11 +382,11 @@ async function main() {
     );
   } else if (physioDemo.sampleSkipped) {
     console.info(
-      "- Physiotherapy demo clinic shell ensured. The active physiotherapy sample was left in place."
+      "- Shared demo: the active physiotherapy sample was left in place."
     );
   } else {
     console.info(
-      "- Physiotherapy demo: River Physio Demo (demophysio) synthetic Home Exercise Plan sample."
+      "- Shared demo: synthetic Home Exercise Plan sample on demodental."
     );
   }
 }

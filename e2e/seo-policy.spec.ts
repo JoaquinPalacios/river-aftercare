@@ -125,7 +125,7 @@ test.describe("launch SEO surfaces", () => {
     expect(robots).toMatch(/noindex/i);
     expect(robots).not.toMatch(/nofollow/i);
     await expect(page).toHaveTitle(
-      "Tooth Extraction Post-treatment | Riverside Dental Demo"
+      "Tooth Extraction Aftercare | River Aftercare Demo Clinic"
     );
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
@@ -133,7 +133,7 @@ test.describe("launch SEO surfaces", () => {
     );
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       "content",
-      "Tooth Extraction Post-treatment | Riverside Dental Demo"
+      "Tooth Extraction Aftercare | River Aftercare Demo Clinic"
     );
   });
 });

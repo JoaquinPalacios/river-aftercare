@@ -53,7 +53,7 @@ test.describe("clinic portal", () => {
 
     await signInAsLocalAdmin(page);
     await expect(
-      page.getByRole("heading", { name: "Riverside Dental Demo" })
+      page.getByRole("heading", { name: "River Aftercare Demo Clinic" })
     ).toBeVisible();
     await expect(
       page.getByText("Manage your clinic's patient aftercare.")
@@ -241,7 +241,7 @@ test.describe("clinic portal", () => {
     await page.getByRole("link", { name: "Practice" }).click();
     await expect(page).toHaveURL(staffUrl("/practice"));
     await expect(
-      page.getByRole("heading", { name: "Riverside Dental Demo" })
+      page.getByRole("heading", { name: "River Aftercare Demo Clinic" })
     ).toBeVisible();
     await expect(
       page.getByLabel("Primary colour", { exact: true })
@@ -296,7 +296,10 @@ test.describe("clinic portal", () => {
     });
 
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    await page.getByRole("link", { name: "Edit" }).first().click();
+    await page
+      .getByRole("row", { name: /Tooth Extraction/ })
+      .getByRole("link", { name: "Edit" })
+      .click();
     await expect(
       page
         .getByRole("button", { name: "Save", exact: true })
@@ -319,7 +322,7 @@ test.describe("clinic portal", () => {
     await expect(page.locator(".staffEditorToolbar")).toBeVisible();
     await expect(page.locator(".staffEditorRailCard")).toHaveCount(0);
 
-    async function expectFourRowTextarea(
+    async function expectAutosizeTextarea(
       locator: ReturnType<typeof page.getByLabel>,
       label: string
     ) {
@@ -332,15 +335,15 @@ test.describe("clinic portal", () => {
           lineHeight: Number.parseFloat(style.lineHeight),
         };
       });
-      expect(metrics.rows, `${label} rows`).toBeGreaterThanOrEqual(4);
+      expect(metrics.rows, `${label} rows`).toBe(3);
       expect(metrics.height, `${label} height`).toBeGreaterThanOrEqual(
-        metrics.lineHeight * 4 - 1
+        metrics.lineHeight * 3 - 1
       );
     }
 
     const instructions = page.getByLabel("Instructions").first();
     await expect(instructions).toBeVisible();
-    await expectFourRowTextarea(instructions, "timeline instructions");
+    await expectAutosizeTextarea(instructions, "timeline instructions");
     await instructions.scrollIntoViewIfNeeded();
     await page.screenshot({
       path: "test-results/artifacts/phase-2a.5-editor-timeline-instructions.png",
@@ -354,13 +357,13 @@ test.describe("clinic portal", () => {
       .getByLabel("Guidance")
       .first();
     await expect(warningGuidance).toBeVisible();
-    await expectFourRowTextarea(warningGuidance, "warning/contact guidance");
+    await expectAutosizeTextarea(warningGuidance, "warning/contact guidance");
     await warningGuidance.scrollIntoViewIfNeeded();
     await page.screenshot({
       path: "test-results/artifacts/phase-2a.5-editor-warning-guidance.png",
     });
 
-    await expectFourRowTextarea(
+    await expectAutosizeTextarea(
       page.getByLabel("Short introduction"),
       "short introduction"
     );
@@ -503,7 +506,7 @@ test.describe("platform operator", () => {
         .getByRole("navigation", { name: "Platform" })
         .getByRole("link", { name: "SEO & Discovery" })
     ).toBeVisible();
-    await expect(page.getByText("Riverside Dental Demo")).toBeVisible();
+    await expect(page.getByText("River Aftercare Demo Clinic")).toBeVisible();
     await expect(
       page.getByRole("cell", { name: "demodental", exact: true })
     ).toBeVisible();
@@ -513,12 +516,16 @@ test.describe("platform operator", () => {
     });
     await expectNoSeriousAxeViolationsLightAndDark(page);
 
-    await page.getByRole("link", { name: "Riverside Dental Demo" }).click();
+    await page
+      .getByRole("link", { name: "River Aftercare Demo Clinic" })
+      .click();
     await expect(
-      page.getByRole("heading", { name: "Riverside Dental Demo" })
+      page.getByRole("heading", { name: "River Aftercare Demo Clinic" })
     ).toBeVisible();
     await expect(
-      page.locator("header").getByText("Rivers Care Demo Clinic · demodental")
+      page
+        .locator("header")
+        .getByText("River Aftercare Demo Clinic · demodental")
     ).toBeVisible();
     await expect(page.getByText("Tooth Extraction")).toBeVisible();
     await expect(
@@ -545,7 +552,10 @@ test.describe("clinic portal UX polish", () => {
   }) => {
     await signInAsLocalAdmin(page);
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    await page.getByRole("link", { name: "Edit" }).first().click();
+    await page
+      .getByRole("row", { name: /Tooth Extraction/ })
+      .getByRole("link", { name: "Edit" })
+      .click();
     await expect(
       page.getByRole("heading", { name: "Tooth Extraction" }).first()
     ).toBeVisible();
@@ -563,7 +573,10 @@ test.describe("clinic portal UX polish", () => {
     await expect(page).toHaveURL(staffUrl("/guides"));
     await expect(page.getByRole("dialog")).toHaveCount(0);
 
-    await page.getByRole("link", { name: "Edit" }).first().click();
+    await page
+      .getByRole("row", { name: /Tooth Extraction/ })
+      .getByRole("link", { name: "Edit" })
+      .click();
     const introduction = page.getByLabel("Short introduction");
     await introduction.fill(`${await introduction.inputValue()} `);
     await expect(page.locator("[data-save-state=unsaved]")).toBeVisible();
@@ -603,7 +616,10 @@ test.describe("clinic portal UX polish", () => {
     await page.getByRole("button", { name: "Discard changes" }).click();
     await expect(page).toHaveURL(staffUrl("/guides"));
 
-    await page.getByRole("link", { name: "Edit" }).first().click();
+    await page
+      .getByRole("row", { name: /Tooth Extraction/ })
+      .getByRole("link", { name: "Edit" })
+      .click();
     await expect(page.locator("[data-save-state=saved]")).toHaveCount(0);
     await page
       .getByRole("button", { name: "Publish guide" })
@@ -634,6 +650,7 @@ test.describe("clinic portal UX polish", () => {
     const slug = `ux-polish-${Date.now()}`;
     await page.getByLabel("Guide title").fill("UX polish draft");
     await page.getByLabel("Public slug").fill(slug);
+    await page.locator("#serviceCategory").selectOption("DENTAL");
     await page.getByRole("button", { name: "Create custom guide" }).click();
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
     await expect(page.locator("[data-save-state=saved]")).toHaveCount(0);
@@ -731,12 +748,16 @@ test.describe("clinic portal UX polish", () => {
     await expect(page.locator("#clinic-logo-file")).toHaveCount(1);
     await expect(page.locator("#clinic-dark-logo-file")).toHaveCount(1);
     await expect(page.locator("#clinic-favicon-file")).toHaveCount(1);
-    await expect(page.getByText("Choose replacement")).toBeVisible();
+    await expect(
+      page
+        .getByRole("group", { name: "Practice logo" })
+        .getByText("Choose replacement")
+    ).toBeVisible();
     await expect(
       page.getByText("SVG, PNG, JPEG or WebP", { exact: false }).first()
     ).toBeVisible();
     await expect(page.locator('input[type="file"]')).toHaveCount(3);
-    await expect(page.locator('input[type="color"]')).toHaveCount(3);
+    await expect(page.locator('input[type="color"]')).toHaveCount(5);
     await page.getByLabel("Display name").fill("Riverside Dental Demo ");
     await expect(page.locator("[data-save-state=unsaved]")).toBeVisible();
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -758,6 +779,7 @@ test.describe("clinic portal UX polish", () => {
     const slug = `empty-preview-${Date.now()}`;
     await page.getByLabel("Guide title").fill("Empty preview draft");
     await page.getByLabel("Public slug").fill(slug);
+    await page.locator("#serviceCategory").selectOption("DENTAL");
     await page.getByRole("button", { name: "Create custom guide" }).click();
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
     await expect(
@@ -776,14 +798,14 @@ test.describe("clinic portal UX polish", () => {
       .filter({ visible: true })
       .click();
     await expect(page).toHaveURL(staffUrl("/guides"));
-    const row = page.locator("li").filter({ hasText: "Empty preview draft" });
+    const row = page.getByRole("row", { name: new RegExp(slug) });
     await row.getByRole("button", { name: "More actions" }).click();
     await row.getByRole("menuitem", { name: "Delete guide" }).click();
     await page
       .getByRole("dialog", { name: "Delete this guide?" })
       .getByRole("button", { name: "Delete guide" })
       .click();
-    await expect(page.getByText("Empty preview draft")).toHaveCount(0);
+    await expect(page.getByText(slug)).toHaveCount(0);
   });
 
   test("desktop sidebar stays viewport-fixed while the page scrolls", async ({
@@ -920,7 +942,10 @@ test.describe("clinic portal UX polish", () => {
     await signInAsLocalAdmin(page);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    await page.getByRole("link", { name: "Edit" }).first().click();
+    await page
+      .getByRole("row", { name: /Tooth Extraction/ })
+      .getByRole("link", { name: "Edit" })
+      .click();
 
     const stages = page.locator("article[data-stage-key]");
     const firstStage = stages.nth(0);
@@ -969,6 +994,7 @@ test.describe("clinic portal UX polish", () => {
     const slug = `delete-draft-${Date.now()}`;
     await page.getByLabel("Guide title").fill("Delete me draft");
     await page.getByLabel("Public slug").fill(slug);
+    await page.locator("#serviceCategory").selectOption("DENTAL");
     await page.getByRole("button", { name: "Create custom guide" }).click();
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
     await page
@@ -976,7 +1002,7 @@ test.describe("clinic portal UX polish", () => {
       .filter({ visible: true })
       .click();
     await expect(page).toHaveURL(staffUrl("/guides"));
-    const row = page.locator("li", { hasText: "Delete me draft" });
+    const row = page.getByRole("row", { name: new RegExp(slug) });
     await expect(row).toBeVisible();
     await row.getByRole("button", { name: "More actions" }).click();
     await expect(
@@ -994,7 +1020,7 @@ test.describe("clinic portal UX polish", () => {
       path: "docs/product/artifacts/phase-2a.2/delete-draft-dialog-1440.png",
     });
     await dialog.getByRole("button", { name: "Delete guide" }).click();
-    await expect(page.getByText("Delete me draft")).toHaveCount(0);
+    await expect(page.getByText(slug)).toHaveCount(0);
   });
 
   test("admin can delete an unpublished draft from the editor more actions menu", async ({
@@ -1005,6 +1031,7 @@ test.describe("clinic portal UX polish", () => {
     const slug = `editor-delete-${Date.now()}`;
     await page.getByLabel("Guide title").fill("Editor delete draft");
     await page.getByLabel("Public slug").fill(slug);
+    await page.locator("#serviceCategory").selectOption("DENTAL");
     await page.getByRole("button", { name: "Create custom guide" }).click();
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
     await page

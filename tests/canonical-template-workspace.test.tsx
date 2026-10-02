@@ -357,11 +357,16 @@ describe("live demo eligibility", () => {
     expect(liveDemoUpdateOffered({ canUpdate: true })).toBe(true);
     expect(designatedDemoForCategory("DENTAL")?.clinicSlug).toBe("demodental");
     expect(designatedDemoForCategory("PHYSIOTHERAPY")).toMatchObject({
-      clinicSlug: "demophysio",
+      clinicSlug: "demodental",
+      sampleSlug: "home-exercise-plan",
       publicGuideSlug: "home-exercise-plan",
     });
-    expect(designatedDemoForCategory("CHIROPRACTIC")).toBeNull();
-    expect(designatedDemoForCategory("COSMETIC_AESTHETIC")).toBeNull();
+    expect(designatedDemoForCategory("CHIROPRACTIC")?.sampleSlug).toBe(
+      "chiropractic-adjustment"
+    );
+    expect(
+      designatedDemoForCategory("COSMETIC_AESTHETIC")?.seedPracticeGuide
+    ).toBe(false);
   });
 
   it("distinguishes an up-to-date demo from an older published revision", () => {
