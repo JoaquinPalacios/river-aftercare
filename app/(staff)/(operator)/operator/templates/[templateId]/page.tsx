@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -9,6 +10,7 @@ import {
   TemplateOriginBadge,
 } from "@/app/(staff)/(operator)/operator/templates/template-badges";
 import { TemplateEditAction } from "@/app/(staff)/(operator)/operator/templates/template-edit-action";
+import { TemplateDemoAdoption } from "@/app/(staff)/(operator)/operator/templates/template-demo-adoption";
 import { TemplateLifecycleActions } from "@/app/(staff)/(operator)/operator/templates/template-lifecycle-actions";
 import { TemplateMetadataForm } from "@/app/(staff)/(operator)/operator/templates/template-metadata-form";
 import { TemplatePreviewCard } from "@/app/(staff)/(operator)/operator/templates/template-preview-card";
@@ -19,6 +21,8 @@ import {
 } from "@/lib/canonical-templates/preview-brand";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { listActiveCanonicalSamples } from "@/lib/canonical-templates/sample-slot";
+import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
+import { loadDesignatedDemoAdoption } from "@/lib/demo-adoption/load-designated-demo-adoption";
 import { loadOperatorCanonicalTemplate } from "@/lib/operator/canonical-templates/load-operator-canonical-template";
 import { operatorTemplateNotice } from "@/lib/operator/canonical-templates/notices";
 
@@ -40,14 +44,30 @@ export default async function OperatorTemplateDetailPage({
   await requirePlatformOperator();
   const { templateId } = await params;
   const query = await searchParams;
-  const [template, activeSamples] = await Promise.all([
+  const [template, activeSamples, adoption] = await Promise.all([
     loadOperatorCanonicalTemplate(templateId),
     listActiveCanonicalSamples(),
+    loadDesignatedDemoAdoption(templateId),
   ]);
   if (!template) {
     notFound();
   }
   const notice = operatorTemplateNotice(query.notice);
+  const requestHeaders = await headers();
+  const host =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
+  const protocol =
+    requestHeaders.get("x-forwarded-proto") ??
+    (host.includes("localhost") ? "http" : "https");
+  const publicUrl =
+    adoption?.publicSlug && host
+      ? clinicPatientSiteUrl({
+          requestHost: host,
+          clinicSlug: adoption.clinicSlug,
+          protocol,
+          pathname: `/${adoption.publicSlug}`,
+        })
+      : null;
   const latestPublished = template.revisions.find(
     (revision) => revision.isLatestPublished
   );
@@ -267,6 +287,13 @@ export default async function OperatorTemplateDetailPage({
               </p>
             ) : null}
           </section>
+          {adoption ? (
+            <TemplateDemoAdoption
+              templateId={template.id}
+              adoption={adoption}
+              publicUrl={publicUrl}
+            />
+          ) : null}
           <section
             className="templateOverviewCard"
             aria-labelledby="template-lifecycle-heading"

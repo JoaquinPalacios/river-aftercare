@@ -125,24 +125,27 @@ export function DemoToday({
         )}
       </section>
 
-      {today.warnings ? (
+      {today.alerts.map((alert) => (
         <section
-          className={`${styles.section} ${styles.warning}`}
-          aria-labelledby="today-warning-heading"
+          key={alert.key}
+          className={`${styles.section} ${
+            alert.tone === "emergency" ? styles.emergency : styles.warning
+          }`}
+          data-today-alert={alert.key}
+          data-tone={alert.tone}
+          aria-labelledby={`today-alert-${alert.key}`}
         >
-          <h2 id="today-warning-heading" className={styles.sectionTitle}>
+          <h2 id={`today-alert-${alert.key}`} className={styles.sectionTitle}>
             <span className={styles.vh}>Important. </span>
-            {today.warnings.title}
+            {alert.title}
           </h2>
-          {sectionBodyParagraphs(today.warnings.body).map(
-            (paragraph, index) => (
-              <p key={`warn-${index}`} className={styles.body}>
-                {paragraph}
-              </p>
-            )
-          )}
+          {sectionBodyParagraphs(alert.body).map((paragraph, index) => (
+            <p key={`${alert.key}-${index}`} className={styles.body}>
+              {paragraph}
+            </p>
+          ))}
         </section>
-      ) : null}
+      ))}
     </div>
   );
 }

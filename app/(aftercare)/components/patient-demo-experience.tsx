@@ -10,34 +10,27 @@ import {
 
 import styles from "../patient.module.css";
 
-type DemoView = "today" | "timeline";
-
-interface DemoTab {
-  id: DemoView;
+export interface PatientDemoView {
+  id: string;
   label: string;
+  content: ReactNode;
 }
 
-const TABS: DemoTab[] = [
-  { id: "today", label: "Today" },
-  { id: "timeline", label: "Timeline" },
-];
-
 export function PatientDemoExperience({
-  today,
-  timeline,
+  views,
   printHref,
 }: {
-  today: ReactNode;
-  timeline: ReactNode;
+  views: readonly PatientDemoView[];
   printHref: string;
 }) {
-  const [view, setView] = useState<DemoView>("today");
+  const [view, setView] = useState(views[0]?.id ?? "guide");
   const baseId = useId();
-  const tabRefs = useRef<Partial<Record<DemoView, HTMLButtonElement | null>>>(
-    {}
-  );
+  const tabRefs = useRef<Partial<Record<string, HTMLButtonElement | null>>>({});
+  const selected = views.some((item) => item.id === view)
+    ? view
+    : (views[0]?.id ?? "guide");
 
-  function selectView(next: DemoView) {
+  function selectView(next: string) {
     setView(next);
     tabRefs.current[next]?.focus();
   }
@@ -56,31 +49,48 @@ export function PatientDemoExperience({
     }
 
     event.preventDefault();
-    const last = TABS.length - 1;
+    const last = views.length - 1;
     const nextIndex =
       event.key === "Home"
         ? 0
         : event.key === "End"
           ? last
           : event.key === "ArrowRight"
-            ? (index + 1) % TABS.length
-            : (index - 1 + TABS.length) % TABS.length;
-    const next = TABS[nextIndex];
+            ? (index + 1) % views.length
+            : (index - 1 + views.length) % views.length;
+    const next = views[nextIndex];
     if (next) {
       selectView(next.id);
     }
   }
 
+  if (views.length < 2) {
+    return (
+      <div className={styles.demoExperience} data-demo-view={selected}>
+        <div className={styles.demoNav}>
+          <a
+            className={styles.demoPrint}
+            href={printHref}
+            aria-label="Print / Save PDF"
+          >
+            Print / Save PDF
+          </a>
+        </div>
+        {views[0]?.content}
+      </div>
+    );
+  }
+
   return (
-    <div className={styles.demoExperience} data-demo-view={view}>
+    <div className={styles.demoExperience} data-demo-view={selected}>
       <div className={styles.demoNav}>
         <div
           role="tablist"
-          aria-label="Recovery views"
+          aria-label="Guide views"
           className={styles.demoTabs}
         >
-          {TABS.map((tab, index) => {
-            const selected = view === tab.id;
+          {views.map((tab, index) => {
+            const isSelected = selected === tab.id;
             return (
               <button
                 key={tab.id}
@@ -88,8 +98,8 @@ export function PatientDemoExperience({
                 role="tab"
                 id={`${baseId}-${tab.id}`}
                 aria-controls={`${baseId}-${tab.id}-panel`}
-                aria-selected={selected}
-                tabIndex={selected ? 0 : -1}
+                aria-selected={isSelected}
+                tabIndex={isSelected ? 0 : -1}
                 className={styles.demoTab}
                 ref={(node) => {
                   tabRefs.current[tab.id] = node;
@@ -111,22 +121,17 @@ export function PatientDemoExperience({
         </a>
       </div>
 
-      <div
-        role="tabpanel"
-        id={`${baseId}-today-panel`}
-        aria-labelledby={`${baseId}-today`}
-        hidden={view !== "today"}
-      >
-        {today}
-      </div>
-      <div
-        role="tabpanel"
-        id={`${baseId}-timeline-panel`}
-        aria-labelledby={`${baseId}-timeline`}
-        hidden={view !== "timeline"}
-      >
-        {timeline}
-      </div>
+      {views.map((tab) => (
+        <div
+          key={tab.id}
+          role="tabpanel"
+          id={`${baseId}-${tab.id}-panel`}
+          aria-labelledby={`${baseId}-${tab.id}`}
+          hidden={selected !== tab.id}
+        >
+          {tab.content}
+        </div>
+      ))}
     </div>
   );
 }

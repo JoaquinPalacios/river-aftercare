@@ -47,6 +47,11 @@ test.describe("interactive recovery demo", () => {
       page.getByRole("heading", { name: "Recovery overview" })
     ).toBeVisible();
     await page.keyboard.press("ArrowRight");
+    await expect(page.getByRole("tab", { name: "Full guide" })).toBeFocused();
+    await expect(
+      page.getByRole("heading", { name: "After your extraction", exact: true })
+    ).toBeVisible();
+    await page.keyboard.press("ArrowRight");
     await expect(page.getByRole("tab", { name: "Today" })).toBeFocused();
     await expect(page.getByRole("tab", { name: "Check-in" })).toHaveCount(0);
 
@@ -176,6 +181,8 @@ test.describe("interactive recovery demo", () => {
       await page.goto(EXTRACTION, { waitUntil: "load" });
       await expectNoSeriousAxeViolations(page);
       await page.getByRole("tab", { name: "Timeline" }).click();
+      await expectNoSeriousAxeViolations(page);
+      await page.getByRole("tab", { name: "Full guide" }).click();
       await expectNoSeriousAxeViolations(page);
       await page.goto(PRINT, { waitUntil: "load" });
       await expectNoSeriousAxeViolations(page);

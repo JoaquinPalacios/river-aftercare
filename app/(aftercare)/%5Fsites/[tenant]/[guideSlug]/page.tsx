@@ -176,27 +176,45 @@ export default async function TenantGuidePage({
       {demoEnabled ? (
         <PatientDemoExperience
           printHref={printHref}
-          today={
-            recovery.hasTimeline ? (
-              <DemoToday
-                recovery={recovery}
-                today={today}
-                clinicName={chrome.displayName}
-                phoneHref={chrome.phoneHref}
-                phoneDisplay={chrome.phoneDisplay}
-              />
-            ) : (
-              <GuideDocument sections={document.sections} />
-            )
-          }
-          timeline={
-            recovery.hasTimeline ? (
-              <DemoTimeline recovery={recovery} sections={timelineSections} />
-            ) : (
-              <p className={styles.empty}>
-                This guide does not include a recovery timeline.
-              </p>
-            )
+          views={
+            recovery.hasTimeline
+              ? [
+                  {
+                    id: "today",
+                    label: "Today",
+                    content: (
+                      <DemoToday
+                        recovery={recovery}
+                        today={today}
+                        clinicName={chrome.displayName}
+                        phoneHref={chrome.phoneHref}
+                        phoneDisplay={chrome.phoneDisplay}
+                      />
+                    ),
+                  },
+                  {
+                    id: "timeline",
+                    label: "Timeline",
+                    content: (
+                      <DemoTimeline
+                        recovery={recovery}
+                        sections={timelineSections}
+                      />
+                    ),
+                  },
+                  {
+                    id: "full-guide",
+                    label: "Full guide",
+                    content: <GuideDocument sections={document.sections} />,
+                  },
+                ]
+              : [
+                  {
+                    id: "guide",
+                    label: "Full guide",
+                    content: <GuideDocument sections={document.sections} />,
+                  },
+                ]
           }
         />
       ) : (
