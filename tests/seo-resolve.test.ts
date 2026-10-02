@@ -250,7 +250,7 @@ describe("marketing SEO resolution", () => {
       description,
     });
     expect(DEFAULT_MARKETING_PAGE_SEO["/physiotherapy"].lastModified).toBe(
-      "2026-09-21"
+      "2026-10-02"
     );
   });
 

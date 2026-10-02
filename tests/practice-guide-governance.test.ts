@@ -238,11 +238,7 @@ describe("first-clinic clinical governance", () => {
           const normal = await listCanonicalGuideTemplates(CLINIC_ID);
           expect(
             demo.templates.some((template) => template.id === SAMPLE_ID)
-          ).toBe(true);
-          expect(
-            demo.templates.find((template) => template.id === SAMPLE_ID)
-              ?.availability
-          ).toBe("sample");
+          ).toBe(false);
           expect(
             normal.templates.some((template) => template.id === SAMPLE_ID)
           ).toBe(false);

@@ -208,59 +208,86 @@ describeDb("canonical sample management", () => {
           ["CHIROPRACTIC", "chiro"],
           ["COSMETIC_AESTHETIC", "cosmetic"],
         ] as const;
-        for (const [serviceCategory, slug] of categories) {
-          const created = await createCanonicalTemplate({
-            actorUserId: OPERATOR_ID,
-            title: `${serviceCategory} sample`,
-            slug: `csm-${slug}`,
-            serviceCategory,
-            classification: "SAMPLE",
+        const parked = await getPrisma().guideTemplate.findMany({
+          where: {
+            isSample: true,
+            isActive: true,
+            serviceCategory: { in: categories.map(([category]) => category) },
+          },
+          select: { id: true },
+        });
+        if (parked.length > 0) {
+          await getPrisma().guideTemplate.updateMany({
+            where: { id: { in: parked.map((row) => row.id) } },
+            data: { isActive: false },
           });
-          const row = await getPrisma().guideTemplate.findUniqueOrThrow({
-            where: { id: created.templateId },
-          });
-          expect(row.isSample).toBe(true);
-          expect(row.isActive).toBe(true);
+        }
+        try {
+          for (const [serviceCategory, slug] of categories) {
+            const created = await createCanonicalTemplate({
+              actorUserId: OPERATOR_ID,
+              title: `${serviceCategory} sample`,
+              slug: `csm-${slug}`,
+              serviceCategory,
+              classification: "SAMPLE",
+            });
+            const row = await getPrisma().guideTemplate.findUniqueOrThrow({
+              where: { id: created.templateId },
+            });
+            expect(row.isSample).toBe(true);
+            expect(row.isActive).toBe(true);
 
-          const error = await expectCanonicalCode(
+            const error = await expectCanonicalCode(
+              createCanonicalTemplate({
+                actorUserId: OPERATOR_ID,
+                title: `${serviceCategory} second`,
+                slug: `csm-${slug}-2`,
+                serviceCategory,
+                classification: "SAMPLE",
+              }),
+              "conflict"
+            );
+            expect(error).toBeInstanceOf(Error);
+            if (error instanceof Error) {
+              expect(error.message).toContain("already has an active sample");
+            }
+          }
+
+          const dentalError = await expectCanonicalCode(
             createCanonicalTemplate({
               actorUserId: OPERATOR_ID,
-              title: `${serviceCategory} second`,
-              slug: `csm-${slug}-2`,
-              serviceCategory,
+              title: "Second dental sample",
+              slug: "csm-dental-2",
+              serviceCategory: "DENTAL",
               classification: "SAMPLE",
             }),
             "conflict"
           );
-          expect(error).toBeInstanceOf(Error);
-          if (error instanceof Error) {
-            expect(error.message).toContain("already has an active sample");
+          if (dentalError instanceof Error) {
+            expect(dentalError.message).toBe(
+              "Dental already has an active sample: Tooth Extraction."
+            );
           }
-        }
 
-        const dentalError = await expectCanonicalCode(
-          createCanonicalTemplate({
-            actorUserId: OPERATOR_ID,
-            title: "Second dental sample",
-            slug: "csm-dental-2",
-            serviceCategory: "DENTAL",
-            classification: "SAMPLE",
-          }),
-          "conflict"
-        );
-        if (dentalError instanceof Error) {
-          expect(dentalError.message).toBe(
-            "Dental already has an active sample: Tooth Extraction."
-          );
-        }
-
-        const active = await getPrisma().guideTemplate.groupBy({
-          by: ["serviceCategory"],
-          where: { isSample: true, isActive: true },
-          _count: { _all: true },
-        });
-        for (const row of active) {
-          expect(row._count._all).toBe(1);
+          const active = await getPrisma().guideTemplate.groupBy({
+            by: ["serviceCategory"],
+            where: { isSample: true, isActive: true },
+            _count: { _all: true },
+          });
+          for (const row of active) {
+            expect(row._count._all).toBe(1);
+          }
+        } finally {
+          await getPrisma().guideTemplate.updateMany({
+            where: { slug: { startsWith: "csm-" }, isSample: true },
+            data: { isActive: false },
+          });
+          if (parked.length > 0) {
+            await getPrisma().guideTemplate.updateMany({
+              where: { id: { in: parked.map((row) => row.id) } },
+              data: { isActive: true },
+            });
+          }
         }
       }
     );
@@ -268,44 +295,73 @@ describeDb("canonical sample management", () => {
 
   it("lets only one of two concurrent sample creates occupy a category", async () => {
     await withSampleCategoryLock(["PHYSIOTHERAPY"], async () => {
-      const results = await Promise.allSettled([
-        createCanonicalTemplate({
-          actorUserId: OPERATOR_ID,
-          title: "Race sample A",
-          slug: "csm-race-a",
+      const parked = await getPrisma().guideTemplate.findMany({
+        where: {
           serviceCategory: "PHYSIOTHERAPY",
-          classification: "SAMPLE",
-        }),
-        createCanonicalTemplate({
-          actorUserId: OPERATOR_ID,
-          title: "Race sample B",
-          slug: "csm-race-b",
-          serviceCategory: "PHYSIOTHERAPY",
-          classification: "SAMPLE",
-        }),
-      ]);
-      const fulfilled = results.filter(
-        (result) => result.status === "fulfilled"
-      );
-      const rejected = results.filter((result) => result.status === "rejected");
-      expect(fulfilled).toHaveLength(1);
-      expect(rejected).toHaveLength(1);
-      const reason =
-        rejected[0]?.status === "rejected" ? rejected[0].reason : null;
-      expect(isCanonicalTemplateError(reason)).toBe(true);
-      if (isCanonicalTemplateError(reason)) {
-        expect(reason.code).toBe("conflict");
-        expect(reason.message).toContain("already has an active sample");
+          isSample: true,
+          isActive: true,
+        },
+        select: { id: true },
+      });
+      if (parked.length > 0) {
+        await getPrisma().guideTemplate.updateMany({
+          where: { id: { in: parked.map((row) => row.id) } },
+          data: { isActive: false },
+        });
       }
-      expect(
-        await getPrisma().guideTemplate.count({
-          where: {
+      try {
+        const results = await Promise.allSettled([
+          createCanonicalTemplate({
+            actorUserId: OPERATOR_ID,
+            title: "Race sample A",
+            slug: "csm-race-a",
             serviceCategory: "PHYSIOTHERAPY",
-            isSample: true,
-            isActive: true,
-          },
-        })
-      ).toBe(1);
+            classification: "SAMPLE",
+          }),
+          createCanonicalTemplate({
+            actorUserId: OPERATOR_ID,
+            title: "Race sample B",
+            slug: "csm-race-b",
+            serviceCategory: "PHYSIOTHERAPY",
+            classification: "SAMPLE",
+          }),
+        ]);
+        const fulfilled = results.filter(
+          (result) => result.status === "fulfilled"
+        );
+        const rejected = results.filter(
+          (result) => result.status === "rejected"
+        );
+        expect(fulfilled).toHaveLength(1);
+        expect(rejected).toHaveLength(1);
+        const reason =
+          rejected[0]?.status === "rejected" ? rejected[0].reason : null;
+        expect(isCanonicalTemplateError(reason)).toBe(true);
+        if (isCanonicalTemplateError(reason)) {
+          expect(reason.code).toBe("conflict");
+          expect(reason.message).toContain("already has an active sample");
+        }
+        expect(
+          await getPrisma().guideTemplate.count({
+            where: {
+              serviceCategory: "PHYSIOTHERAPY",
+              isSample: true,
+              isActive: true,
+            },
+          })
+        ).toBe(1);
+      } finally {
+        await getPrisma().guideTemplate.updateMany({
+          where: { slug: { startsWith: "csm-race-" } },
+          data: { isActive: false },
+        });
+        if (parked.length > 0) {
+          await getPrisma().guideTemplate.updateMany({
+            where: { id: { in: parked.map((row) => row.id) } },
+            data: { isActive: true },
+          });
+        }
+      }
     });
   });
 
@@ -690,99 +746,126 @@ describeDb("canonical sample management", () => {
     await withSampleCategoryLock(
       ["PHYSIOTHERAPY", "COSMETIC_AESTHETIC"] as ServiceCategory[],
       async () => {
-        const sample = await createCanonicalTemplate({
-          actorUserId: OPERATOR_ID,
-          title: "Bulk physio sample",
-          slug: "csm-bulk-sample",
-          serviceCategory: "PHYSIOTHERAPY",
-          classification: "SAMPLE",
+        const parked = await getPrisma().guideTemplate.findMany({
+          where: {
+            isSample: true,
+            isActive: true,
+            serviceCategory: { in: ["PHYSIOTHERAPY", "COSMETIC_AESTHETIC"] },
+          },
+          select: { id: true },
         });
-        const production = await createCanonicalTemplate({
-          actorUserId: OPERATOR_ID,
-          title: "Bulk physio production",
-          slug: "csm-bulk-prod",
-          serviceCategory: "PHYSIOTHERAPY",
-        });
-        await saveCanonicalTemplateDraft({
-          templateId: sample.templateId,
-          revisionId: sample.revisionId,
-          actorUserId: OPERATOR_ID,
-          sections: [intro],
-        });
-        await saveCanonicalTemplateDraft({
-          templateId: production.templateId,
-          revisionId: production.revisionId,
-          actorUserId: OPERATOR_ID,
-          sections: [intro],
-        });
-        const published = await publishCanonicalTemplates({
-          actorUserId: OPERATOR_ID,
-          templates: [
-            {
-              templateId: sample.templateId,
-              revisionId: sample.revisionId,
-              expectedVersion: 1,
-            },
-            {
-              templateId: production.templateId,
-              revisionId: production.revisionId,
-              expectedVersion: 1,
-            },
-          ],
-        });
-        expect(published.count).toBe(2);
+        if (parked.length > 0) {
+          await getPrisma().guideTemplate.updateMany({
+            where: { id: { in: parked.map((row) => row.id) } },
+            data: { isActive: false },
+          });
+        }
+        try {
+          const sample = await createCanonicalTemplate({
+            actorUserId: OPERATOR_ID,
+            title: "Bulk physio sample",
+            slug: "csm-bulk-sample",
+            serviceCategory: "PHYSIOTHERAPY",
+            classification: "SAMPLE",
+          });
+          const production = await createCanonicalTemplate({
+            actorUserId: OPERATOR_ID,
+            title: "Bulk physio production",
+            slug: "csm-bulk-prod",
+            serviceCategory: "PHYSIOTHERAPY",
+          });
+          await saveCanonicalTemplateDraft({
+            templateId: sample.templateId,
+            revisionId: sample.revisionId,
+            actorUserId: OPERATOR_ID,
+            sections: [intro],
+          });
+          await saveCanonicalTemplateDraft({
+            templateId: production.templateId,
+            revisionId: production.revisionId,
+            actorUserId: OPERATOR_ID,
+            sections: [intro],
+          });
+          const published = await publishCanonicalTemplates({
+            actorUserId: OPERATOR_ID,
+            templates: [
+              {
+                templateId: sample.templateId,
+                revisionId: sample.revisionId,
+                expectedVersion: 1,
+              },
+              {
+                templateId: production.templateId,
+                revisionId: production.revisionId,
+                expectedVersion: 1,
+              },
+            ],
+          });
+          expect(published.count).toBe(2);
 
-        const disposable = await createCanonicalTemplate({
-          actorUserId: OPERATOR_ID,
-          title: "Disposable cosmetic sample",
-          slug: "csm-bulk-delete",
-          serviceCategory: "COSMETIC_AESTHETIC",
-          classification: "SAMPLE",
-        });
-        await deleteNeverPublishedCanonicalTemplates({
-          actorUserId: OPERATOR_ID,
-          templateIds: [disposable.templateId],
-        });
-        expect(
-          await getPrisma().guideTemplate.findUnique({
-            where: { id: disposable.templateId },
-          })
-        ).toBeNull();
+          const disposable = await createCanonicalTemplate({
+            actorUserId: OPERATOR_ID,
+            title: "Disposable cosmetic sample",
+            slug: "csm-bulk-delete",
+            serviceCategory: "COSMETIC_AESTHETIC",
+            classification: "SAMPLE",
+          });
+          await deleteNeverPublishedCanonicalTemplates({
+            actorUserId: OPERATOR_ID,
+            templateIds: [disposable.templateId],
+          });
+          expect(
+            await getPrisma().guideTemplate.findUnique({
+              where: { id: disposable.templateId },
+            })
+          ).toBeNull();
 
-        await deactivateCanonicalTemplates({
-          actorUserId: OPERATOR_ID,
-          templateIds: [sample.templateId],
-        });
-        const successor = await createCanonicalTemplate({
-          actorUserId: OPERATOR_ID,
-          title: "Successor physio sample",
-          slug: "csm-bulk-successor",
-          serviceCategory: "PHYSIOTHERAPY",
-          classification: "SAMPLE",
-        });
-        await expect(
-          reactivateCanonicalTemplates({
+          await deactivateCanonicalTemplates({
             actorUserId: OPERATOR_ID,
             templateIds: [sample.templateId],
-          })
-        ).rejects.toSatisfy((error: unknown) => {
-          return (
-            isBulkCanonicalTemplateError(error) &&
-            error.message.includes("Nothing was changed.") &&
-            error.message.includes("already has an active sample")
-          );
-        });
-        const blocked = await getPrisma().guideTemplate.findUniqueOrThrow({
-          where: { id: sample.templateId },
-        });
-        expect(blocked.isActive).toBe(false);
-        expect(
-          (
-            await getPrisma().guideTemplate.findUniqueOrThrow({
-              where: { id: successor.templateId },
+          });
+          const successor = await createCanonicalTemplate({
+            actorUserId: OPERATOR_ID,
+            title: "Successor physio sample",
+            slug: "csm-bulk-successor",
+            serviceCategory: "PHYSIOTHERAPY",
+            classification: "SAMPLE",
+          });
+          await expect(
+            reactivateCanonicalTemplates({
+              actorUserId: OPERATOR_ID,
+              templateIds: [sample.templateId],
             })
-          ).isActive
-        ).toBe(true);
+          ).rejects.toSatisfy((error: unknown) => {
+            return (
+              isBulkCanonicalTemplateError(error) &&
+              error.message.includes("Nothing was changed.") &&
+              error.message.includes("already has an active sample")
+            );
+          });
+          const blocked = await getPrisma().guideTemplate.findUniqueOrThrow({
+            where: { id: sample.templateId },
+          });
+          expect(blocked.isActive).toBe(false);
+          expect(
+            (
+              await getPrisma().guideTemplate.findUniqueOrThrow({
+                where: { id: successor.templateId },
+              })
+            ).isActive
+          ).toBe(true);
+        } finally {
+          await getPrisma().guideTemplate.updateMany({
+            where: { slug: { startsWith: "csm-bulk-" }, isSample: true },
+            data: { isActive: false },
+          });
+          if (parked.length > 0) {
+            await getPrisma().guideTemplate.updateMany({
+              where: { id: { in: parked.map((row) => row.id) } },
+              data: { isActive: true },
+            });
+          }
+        }
       }
     );
   });

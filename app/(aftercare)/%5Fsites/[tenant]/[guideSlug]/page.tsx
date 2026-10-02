@@ -8,6 +8,10 @@ import {
   isDemoPatientExperienceEnabled,
 } from "@/lib/aftercare/demo-tenant";
 import {
+  demoPatientGuideLede,
+  demoPatientViewIds,
+} from "@/lib/aftercare/demo-patient-presentation";
+import {
   buildDemoTodayContent,
   resolveDemoRecoveryState,
   timelineStatusByKey,
@@ -169,7 +173,10 @@ export default async function TenantGuidePage({
         <h1 className={styles.title}>{document.title}</h1>
         <p className={styles.lede}>
           {demoEnabled
-            ? `What matters today in your recovery from ${chrome.displayName}.`
+            ? demoPatientGuideLede({
+                clinicName: chrome.displayName,
+                hasTimeline: recovery.hasTimeline,
+              })
             : `Recovery information from ${chrome.displayName}. Read the sections below in order, and contact the practice if you are unsure or need help.`}
         </p>
       </header>
@@ -177,7 +184,7 @@ export default async function TenantGuidePage({
         <PatientDemoExperience
           printHref={printHref}
           views={
-            recovery.hasTimeline
+            demoPatientViewIds(recovery.hasTimeline)[0] === "today"
               ? [
                   {
                     id: "today",

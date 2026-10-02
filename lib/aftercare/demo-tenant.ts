@@ -4,6 +4,9 @@
  */
 export const DEMO_AFTERCARE_TENANT_SLUG = "demodental";
 
+/** Designated physiotherapy demonstration. Not a paying clinic. */
+export const PHYSIO_DEMO_TENANT_SLUG = "demophysio";
+
 export const DEMO_BANNER_TITLE = "Interactive demo";
 export const DEMO_BANNER_COPY =
   "Sample content only · Not clinical advice · Changes aren't saved";
@@ -33,7 +36,10 @@ export const DEMO_RECOVERY_FIXTURE = {
   simulatedStartDate: "2026-09-10",
 } as const;
 
-const DEMO_AFTERCARE_TENANT_SLUGS = new Set([DEMO_AFTERCARE_TENANT_SLUG]);
+const DEMO_AFTERCARE_TENANT_SLUGS = new Set([
+  DEMO_AFTERCARE_TENANT_SLUG,
+  PHYSIO_DEMO_TENANT_SLUG,
+]);
 
 export function isDemoTenant(clinicSlug: string): boolean {
   return DEMO_AFTERCARE_TENANT_SLUGS.has(clinicSlug);

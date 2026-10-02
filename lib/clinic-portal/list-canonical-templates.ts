@@ -109,7 +109,8 @@ export async function listCanonicalGuideTemplates(
       });
       if (
         !clinicCanUseCanonicalTemplate({
-          isDemoTenant: demoTenant,
+          clinicSlug: clinic.slug,
+          serviceCategory: template.serviceCategory,
           availability: classified.availability,
         }) ||
         !classified.availability ||

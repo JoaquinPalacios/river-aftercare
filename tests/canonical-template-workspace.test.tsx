@@ -356,7 +356,10 @@ describe("live demo eligibility", () => {
     expect(liveDemoUpdateOffered({ canUpdate: false })).toBe(false);
     expect(liveDemoUpdateOffered({ canUpdate: true })).toBe(true);
     expect(designatedDemoForCategory("DENTAL")?.clinicSlug).toBe("demodental");
-    expect(designatedDemoForCategory("PHYSIOTHERAPY")).toBeNull();
+    expect(designatedDemoForCategory("PHYSIOTHERAPY")).toMatchObject({
+      clinicSlug: "demophysio",
+      publicGuideSlug: "home-exercise-plan",
+    });
     expect(designatedDemoForCategory("CHIROPRACTIC")).toBeNull();
     expect(designatedDemoForCategory("COSMETIC_AESTHETIC")).toBeNull();
   });

@@ -1436,6 +1436,12 @@ html[data-theme-mode="dark"] .wordmarkName {
   }
 }
 
+.secondary:disabled,
+.primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .secondary:focus-visible {
   outline: 2.5px solid var(--mk-focus);
   outline-offset: 3px;

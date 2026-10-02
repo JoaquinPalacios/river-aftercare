@@ -24,9 +24,11 @@ import {
 
 describe("clinic vertical landing pages", () => {
   const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
+  const previousPhysioDemo = process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL;
 
   beforeEach(() => {
     process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
+    delete process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL;
   });
 
   afterEach(() => {
@@ -34,6 +36,11 @@ describe("clinic vertical landing pages", () => {
       delete process.env.CARE_GUIDE_ROOT_DOMAIN;
     } else {
       process.env.CARE_GUIDE_ROOT_DOMAIN = previousRoot;
+    }
+    if (previousPhysioDemo === undefined) {
+      delete process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL;
+    } else {
+      process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL = previousPhysioDemo;
     }
   });
 
@@ -86,7 +93,13 @@ describe("clinic vertical landing pages", () => {
       "home exercise programme or exercise-tracking app"
     );
     expect(physio).toContain(
-      "Physiotherapy template availability is confirmed during onboarding. If no suitable River Aftercare template is available, your clinic can publish its own approved guidance within its plan."
+      "Published River Aftercare physiotherapy templates are available for a clinic to enable."
+    );
+    expect(physio).toContain("View live physiotherapy example");
+    expect(physio).toContain('data-live-example="unavailable"');
+    expect(physio).toContain("Request a demo");
+    expect(physio).not.toContain(
+      'href="https://demophysio.riveraftercare.com.au'
     );
     expect(physio).toContain("up to 2 active custom clinic guides");
     expect(physio).toContain("up to 30 active custom guides");
@@ -142,7 +155,7 @@ describe("clinic vertical landing pages", () => {
       dental.slice(Math.max(0, dentalNoteAt - 280), dentalNoteAt)
     ).toContain("mkReveal");
     const physioNoteAt = physio.indexOf(
-      "Physiotherapy template availability is confirmed during onboarding."
+      "Published physiotherapy templates are available for a clinic to enable."
     );
     expect(physioNoteAt).toBeGreaterThan(-1);
     expect(
@@ -254,7 +267,10 @@ describe("clinic vertical landing pages", () => {
       "Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls."
     );
     expect(landing.guidance.note).toContain(
-      "Physiotherapy template availability is confirmed during onboarding."
+      "Published physiotherapy templates are available for a clinic to enable."
+    );
+    expect(landing.guidance.note).toContain(
+      "The River Physio Demo Home Exercise Plan is a separate sample"
     );
     expect(landing.guidance.note).not.toMatch(/ankle|knee|shoulder|lumbar/i);
     expect(landing.workflow.h2).toBe(
@@ -270,11 +286,15 @@ describe("clinic vertical landing pages", () => {
       "Use an available River Aftercare template or clinic-approved recovery and home-care content."
     );
     expect(landing.extras[0]).toMatchObject({
+      kind: "example",
+      ctaLabel: "View live physiotherapy example",
+    });
+    expect(landing.extras[1]).toMatchObject({
       kind: "copy",
       eyebrow: "How it fits",
       h2: "Designed to complement clinical software, not replace it",
     });
-    expect(landing.extras[0]?.kind === "copy" && landing.extras[0].body).toBe(
+    expect(landing.extras[1]?.kind === "copy" && landing.extras[1].body).toBe(
       "River Aftercare focuses on clear patient-facing guidance. It is not currently a practice-management system, patient health record, messaging platform, clinical monitoring system or exercise-adherence tracker."
     );
     expect(landing.faq.items).toHaveLength(6);
@@ -289,6 +309,32 @@ describe("clinic vertical landing pages", () => {
     expect(JSON.stringify(landing)).not.toMatch(
       /tracks whether patients complete|monitors exercise adherence|clinical monitoring of/i
     );
+    expect(physio).toContain("Request a demo");
+    expect(physio).toContain('data-live-example="unavailable"');
+    expect(physio).not.toContain('data-live-example="ready"');
+  });
+
+  it("opens the physiotherapy example in a new tab only when the public URL is configured", async () => {
+    const previous = process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL;
+    process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL =
+      "https://demophysio.riveraftercare.com.au/home-exercise-plan";
+    try {
+      const enabled = renderToStaticMarkup(await MarketingPhysiotherapyPage());
+      expect(enabled).toContain(
+        'href="https://demophysio.riveraftercare.com.au/home-exercise-plan"'
+      );
+      expect(enabled).toContain('target="_blank"');
+      expect(enabled).toContain('rel="noopener noreferrer"');
+      expect(enabled).toContain('data-live-example="ready"');
+      expect(enabled).toContain("Request a demo");
+      expect(enabled).toContain('href="#workflow"');
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL;
+      } else {
+        process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL = previous;
+      }
+    }
   });
 
   it("keeps chiropractic copy on between-visit home-care without a demo or treatment advice", async () => {

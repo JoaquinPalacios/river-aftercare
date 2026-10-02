@@ -7,6 +7,7 @@ import {
 } from "@/app/(marketing)/components/marketing-experience";
 import { MarketingFaq } from "@/app/(marketing)/components/marketing-faq";
 import { MarketingPrimaryAnchor } from "@/app/(marketing)/components/marketing-primary-anchor";
+import { marketingPrimaryClassName } from "@/app/(marketing)/components/marketing-primary-class";
 import { MarketingPrimaryLink } from "@/app/(marketing)/components/marketing-primary-link";
 import { MarketingShell } from "@/app/(marketing)/components/marketing-shell";
 import {
@@ -20,18 +21,74 @@ import type { JsonLdGraph } from "@/lib/seo/json-ld";
 
 import styles from "../marketing.module.css";
 
+function LiveExampleAction({
+  href,
+  label,
+  prominent,
+}: {
+  href: string | null;
+  label: string;
+  prominent?: boolean;
+}) {
+  const className = prominent
+    ? undefined
+    : `${styles.button} ${styles.secondary}`;
+  if (!href) {
+    return (
+      <button
+        type="button"
+        className={prominent ? marketingPrimaryClassName() : className}
+        disabled
+        aria-disabled="true"
+        data-live-example="unavailable"
+      >
+        {label}
+      </button>
+    );
+  }
+  if (prominent) {
+    return (
+      <MarketingPrimaryAnchor
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-live-example="ready"
+      >
+        {label}
+      </MarketingPrimaryAnchor>
+    );
+  }
+  return (
+    <a
+      className={className}
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-live-example="ready"
+    >
+      {label}
+    </a>
+  );
+}
+
 export function MarketingVerticalLanding({
   content,
   staffHref,
   demoHref,
+  exampleHref = null,
   jsonLd,
 }: {
   content: VerticalLandingContent;
   staffHref: string;
   demoHref: string;
+  exampleHref?: string | null;
   jsonLd: JsonLdGraph;
 }) {
   const id = content.themeId;
+  const example = content.extras.find((extra) => extra.kind === "example");
+  const exampleAction = example ? (
+    <LiveExampleAction href={exampleHref} label={example.ctaLabel} />
+  ) : null;
 
   return (
     <MarketingShell
@@ -44,6 +101,7 @@ export function MarketingVerticalLanding({
         <MarketingVerticalHero
           content={content}
           secondary={verticalHeroSecondary(content, demoHref)}
+          extra={exampleAction}
         />
 
         <section
@@ -244,7 +302,7 @@ export function MarketingVerticalLanding({
         </section>
 
         {content.extras.map((extra) =>
-          extra.kind === "demo" ? (
+          extra.kind === "demo" || extra.kind === "example" ? (
             <section
               key={extra.h2}
               className={`${styles.verticalBand} ${styles.verticalSurfaceShowcase}`}
@@ -267,9 +325,17 @@ export function MarketingVerticalLanding({
                       <MarketingRevealItem delay={editorialRevealDelay(2)}>
                         <p className={styles.copy}>{extra.body}</p>
                         <div className={styles.actions}>
-                          <MarketingPrimaryAnchor href={demoHref}>
-                            {extra.ctaLabel}
-                          </MarketingPrimaryAnchor>
+                          {extra.kind === "example" ? (
+                            <LiveExampleAction
+                              href={exampleHref}
+                              label={extra.ctaLabel}
+                              prominent
+                            />
+                          ) : (
+                            <MarketingPrimaryAnchor href={demoHref}>
+                              {extra.ctaLabel}
+                            </MarketingPrimaryAnchor>
+                          )}
                         </div>
                       </MarketingRevealItem>
                     </div>

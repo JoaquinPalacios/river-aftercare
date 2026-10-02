@@ -22,8 +22,9 @@ const PROFILE = {
 };
 
 describe("resolvePracticeChrome", () => {
-  it("identifies only demodental as the interactive demo tenant", () => {
+  it("identifies the designated dental and physiotherapy demos", () => {
     expect(isDemoTenant("demodental")).toBe(true);
+    expect(isDemoTenant("demophysio")).toBe(true);
     expect(isDemoTenant("pacificdental")).toBe(false);
     expect(isDemoTenant("test-tmpl-vis-normal")).toBe(false);
   });

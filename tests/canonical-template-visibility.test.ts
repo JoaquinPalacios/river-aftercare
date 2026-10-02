@@ -299,7 +299,7 @@ describe("canonical template visibility and enablement", () => {
             normal.templates.map((template) => template.id)
           );
 
-          expect(demoIds.has(SAMPLE_TEMPLATE_ID)).toBe(true);
+          expect(demoIds.has(SAMPLE_TEMPLATE_ID)).toBe(false);
           expect(demoIds.has(REVIEWED_TEMPLATE_ID)).toBe(true);
           expect(demoIds.has(UNREVIEWED_GENERIC_ID)).toBe(true);
           expect(demoIds.has(INACTIVE_TEMPLATE_ID)).toBe(false);
@@ -382,18 +382,6 @@ describe("canonical template visibility and enablement", () => {
             },
           });
 
-          const created = await createPracticeGuideFromTemplate({
-            clinicId: demoClinicId,
-            actorUserId: USER_ID,
-            values: { templateId: SAMPLE_TEMPLATE_ID },
-          });
-          const demoGuide = await db().practiceGuide.findUniqueOrThrow({
-            where: { id: created.id },
-            select: { publicSlug: true, clinicId: true },
-          });
-          expect(demoGuide.publicSlug).toBe(`${SLUG}enable`);
-          expect(demoGuide.clinicId).toBe(demoClinicId);
-
           await expect(
             createPracticeGuideFromTemplate({
               clinicId: demoClinicId,
@@ -402,7 +390,7 @@ describe("canonical template visibility and enablement", () => {
             })
           ).rejects.toSatisfy(
             (error: unknown) =>
-              error instanceof ClinicPortalError && error.code === "conflict"
+              error instanceof ClinicPortalError && error.code === "not_found"
           );
 
           await expect(
