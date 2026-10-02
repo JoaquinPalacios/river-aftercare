@@ -321,7 +321,7 @@ describe("operator template filter controls", () => {
     expect(styles).toContain(".staffTableFilterFields");
     expect(styles).toContain("align-items: flex-end");
     expect(styles).toContain("margin-left: auto");
-    const narrow = styles.slice(styles.indexOf("@media (max-width: 720px)"));
+    const narrow = styles.slice(styles.indexOf("@media (max-width: 960px)"));
     expect(narrow).toContain(".staffTableFilterFields");
     expect(narrow).toContain("grid-template-columns: 1fr");
   });

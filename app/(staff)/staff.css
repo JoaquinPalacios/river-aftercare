@@ -3613,7 +3613,7 @@ html[data-theme-mode="dark"]
   width: auto;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 960px) {
   .staffTableFilterFields {
     flex-basis: 100%;
     grid-template-columns: 1fr;

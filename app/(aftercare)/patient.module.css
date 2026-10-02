@@ -884,6 +884,7 @@
   .page,
   .printPage {
     min-height: 0;
+    height: auto;
     display: block;
     background: #ffffff;
     color: #111318;
@@ -891,6 +892,11 @@
     font-size: 11pt;
     line-height: 1.45;
     overflow-wrap: break-word;
+  }
+
+  .main {
+    flex: none;
+    padding-bottom: 0;
   }
 
   .header .logoStack,
@@ -917,9 +923,12 @@
     color: #4b5563;
   }
 
-  h1,
-  h2,
-  h3,
+  .page h1,
+  .page h2,
+  .page h3,
+  .printPage h1,
+  .printPage h2,
+  .printPage h3,
   .sectionTitle,
   .planTitle,
   .timelinePeriod {
@@ -927,8 +936,10 @@
     break-after: avoid;
   }
 
-  p,
-  li {
+  .page p,
+  .page li,
+  .printPage p,
+  .printPage li {
     orphans: 3;
     widows: 3;
   }
@@ -968,6 +979,7 @@
   .practiceContact,
   .printUrgent {
     break-inside: avoid;
+    break-after: avoid;
   }
 
   .warning,
@@ -1007,8 +1019,11 @@
   }
 
   .footer {
-    padding-top: 1.75rem;
+    margin-top: 0.85rem;
+    padding-top: 0;
     padding-bottom: 0;
+    break-before: avoid;
+    break-inside: avoid;
     text-align: center;
   }
 
