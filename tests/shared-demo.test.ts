@@ -6,8 +6,14 @@ import {
   designatedDemoAcceptsTemplate,
   designatedDemosForClinicSlug,
 } from "@/lib/demo-adoption/designated-demos";
+import { readFileSync } from "node:fs";
+
 import { planPhysioDemoClinicShell } from "@/lib/dev/physio-demo-seed";
-import { planSharedDemoConfig } from "@/lib/dev/shared-demo-config";
+import {
+  assessSharedDemoIdentity,
+  planSharedDemoConfig,
+  type SharedDemoIdentityInput,
+} from "@/lib/dev/shared-demo-config";
 import {
   dentalDemoGuideHref,
   exactVerifiedGuideHref,
@@ -20,28 +26,80 @@ import {
   sharedDemoSiteSlugForHostname,
 } from "@/lib/tenancy/shared-demo-hostname";
 import { createOperatorClinicSchema } from "@/lib/operator/create-operator-clinic";
+import { SHARED_DEMO_EMERGENCY_INSTRUCTIONS } from "@/lib/dev/shared-demo-brand";
 
-const snapshot = {
-  clinic: {
+function localIdentity(): SharedDemoIdentityInput {
+  const clinic = {
     id: "clinic_demo_rivers",
     slug: "demodental",
     name: "River Aftercare Demo Clinic",
-  },
-  site: {
-    id: "csite_clinic_demo_rivers",
-    slug: "demodental",
-    displayName: "River Aftercare Demo Clinic",
-  },
-  categories: ["DENTAL"] as const,
-  profile: {
-    displayName: "River Aftercare Demo Clinic",
+  };
+  const brand = {
     logoUrl: "/brand/river-aftercare-isologo.svg",
+    darkLogoUrl: "/brand/river-aftercare-isologo.svg",
+    faviconUrl: null,
+    primaryColor: "#3b4bd1",
+    accentColor: "#3b4bd1",
+    darkPrimaryColor: "#8ea0ff",
+    darkAccentColor: "#8ea0ff",
+    useCustomDarkBranding: true,
+    neutralColor: "#f7f8ff",
+    radiusPreset: "MEDIUM",
+    typeface: null,
+    instructionTerminology: "AFTERCARE",
+    themeMode: "SYSTEM",
+    allowPatientThemeToggle: true,
+    showCareGuideAttribution: true,
+  };
+  const contact = {
     phone: null,
     addressLine1: null,
-    primaryColor: "#3b4bd1",
+    addressLine2: null,
+    city: null,
+    region: null,
+    postalCode: null,
+    country: null,
+    bookingUrl: null,
+    contactUrl: null,
     contactEmail: null,
-  },
-};
+    emergencyInstructions: SHARED_DEMO_EMERGENCY_INSTRUCTIONS,
+  };
+  const site = {
+    id: "csite_clinic_demo_rivers",
+    clinicId: clinic.id,
+    slug: "demodental",
+    name: clinic.name,
+    displayName: clinic.name,
+    active: true,
+    isPrimary: true,
+    brand,
+  };
+  const location = {
+    id: "cloc_clinic_demo_rivers",
+    clinicId: clinic.id,
+    clinicSiteId: site.id,
+    name: clinic.name,
+    displayName: clinic.name,
+    slug: null,
+    active: true,
+    servesSiteRoot: true,
+    contact,
+  };
+  return {
+    clinicsBySlug: [clinic],
+    clinicById: { ...clinic },
+    sitesBySlug: [site],
+    siteById: { ...site, brand: { ...brand } },
+    primarySites: [{ ...site, brand: { ...brand } }],
+    rootLocations: [location],
+    rootLocationById: { ...location, contact: { ...contact } },
+    profile: {
+      displayName: clinic.name,
+      brand: { ...brand },
+      contact: { ...contact },
+    },
+  };
+}
 
 describe("shared designated demo", () => {
   it("points every category at the existing demodental account", () => {
@@ -176,17 +234,24 @@ describe("shared designated demo", () => {
 
   it("refuses to create a second demo clinic and plans category updates without branding", () => {
     expect(planPhysioDemoClinicShell().action).toBe("refuse");
+    const provision = readFileSync(
+      "scripts/provision-physio-demo-clinic.mjs",
+      "utf8"
+    );
+    expect(provision).toContain("process.exit(1)");
+    expect(provision).not.toContain("PrismaClient");
+    expect(provision).not.toContain("DATABASE_URL");
     const missing = planSharedDemoConfig({
       local: false,
       apply: true,
       allowProduction: true,
       confirmSharedDemo: true,
       confirmBranding: false,
-      snapshot: { ...snapshot, categories: ["DENTAL"] },
+      snapshot: assessSharedDemoIdentity(localIdentity(), ["DENTAL"]),
     });
     expect(missing.action).toBe("configure");
     expect(missing.writesCategories).toBe(true);
-    expect(missing.writesBranding).toBe(false);
+    expect(missing.writesIdentity).toBe(false);
     expect(missing.missingCategories).toEqual([
       "PHYSIOTHERAPY",
       "CHIROPRACTIC",
@@ -198,23 +263,29 @@ describe("shared designated demo", () => {
       allowProduction: false,
       confirmSharedDemo: false,
       confirmBranding: true,
-      snapshot: { ...snapshot, categories: ["DENTAL"] },
+      snapshot: assessSharedDemoIdentity(localIdentity(), ["DENTAL"]),
     });
     expect(remote.action).toBe("refuse");
     expect(remote.writesCategories).toBe(false);
+    expect(remote.writesIdentity).toBe(false);
     const absent = planSharedDemoConfig({
       local: true,
       apply: true,
       allowProduction: false,
       confirmSharedDemo: false,
       confirmBranding: true,
-      snapshot: {
-        clinic: null,
-        site: null,
-        categories: [],
+      snapshot: assessSharedDemoIdentity({
+        clinicsBySlug: [],
+        clinicById: null,
+        sitesBySlug: [],
+        siteById: null,
+        primarySites: [],
+        rootLocations: [],
+        rootLocationById: null,
         profile: null,
-      },
+      }),
     });
     expect(absent.action).toBe("refuse");
+    expect(absent.reason).toContain("does not create an account");
   });
 });

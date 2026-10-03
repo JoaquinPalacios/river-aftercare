@@ -6,6 +6,7 @@ import { PrismaClient } from "@prisma/client";
 import { isLocalDevelopmentDatabase } from "../lib/dev/database-target.ts";
 import {
   applySharedDemoConfig,
+  formatSharedDemoConfigReport,
   loadSharedDemoConfigSnapshot,
   planSharedDemoConfig,
 } from "../lib/dev/shared-demo-config.ts";
@@ -51,12 +52,15 @@ function parseArgs(argv) {
 function printHelp() {
   console.info(`Configure the existing shared River Aftercare demo.
 
-Uses the account and site slug demodental. Does not create an account,
-a canonical sample, or a practice guide, and does not rewrite published
-guide revisions.
+Resolves the existing account by the unique slug demodental, then checks
+that account id, primary site id, site slug, and root location id against
+each other. Does not create an account, a site, or a location. Does not
+rewrite published guide revisions, canonical pins, overrides, or additions.
+Does not replace stored colours, logo, or theme.
 
 Dry-run is the default. A remote database also needs --allow-production
-and --confirm-shared-demo. Branding changes also need --confirm-branding.
+and --confirm-shared-demo. --confirm-branding updates the public name,
+contact details, and emergency instructions only.
 Deployment does not run this command.
 
 Usage:
@@ -94,12 +98,7 @@ async function main() {
     });
     console.info(`Plan: ${plan.action}`);
     console.info(plan.reason);
-    if (plan.missingCategories.length > 0) {
-      console.info(`Missing categories: ${plan.missingCategories.join(", ")}`);
-    }
-    if (plan.brandingChanges.length > 0) {
-      console.info(`Branding differences: ${plan.brandingChanges.join(", ")}`);
-    }
+    console.info(formatSharedDemoConfigReport(plan));
     if (!options.apply || plan.action !== "configure") {
       if (plan.action === "refuse") {
         process.exitCode = 1;
