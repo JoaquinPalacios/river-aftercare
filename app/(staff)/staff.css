@@ -359,6 +359,12 @@ html[data-theme-mode="dark"] .staffNavRowMuted {
   opacity: 0.6;
 }
 
+.staffBtnPrimary:disabled {
+  background: color-mix(in srgb, #3b4bd1 12%, var(--staff-canvas));
+  color: var(--staff-muted);
+  opacity: 1;
+}
+
 .staffLoginSubmit {
   gap: 0.5rem;
   min-width: 11rem;

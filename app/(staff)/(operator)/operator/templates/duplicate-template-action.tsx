@@ -337,6 +337,9 @@ function DuplicateTemplateDialog({
             className="staffBtn staffBtnPrimary staffLoginSubmit"
             disabled={!canDuplicate}
             aria-busy={busy || undefined}
+            aria-describedby={
+              sampleBlocked ? "classification-sample-slot" : undefined
+            }
           >
             {busy ? (
               <span className="staffLoginSpinner" aria-hidden="true" />

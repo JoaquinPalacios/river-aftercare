@@ -205,6 +205,9 @@ describe("duplicate template confirmation", () => {
       (button) => button.getAttribute("type") === "submit"
     ) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
+    expect(submit.getAttribute("aria-describedby")).toBe(
+      "classification-sample-slot"
+    );
 
     await act(async () => {
       sample.click();
@@ -259,6 +262,7 @@ describe("duplicate template confirmation", () => {
 
   it("keeps the confirmation dialog inside the viewport on a narrow screen", () => {
     const css = readFileSync("app/(staff)/staff.css", "utf8");
+    expect(css).toContain(".staffBtnPrimary:disabled");
     expect(css).toContain(".templateDuplicateDialog");
     expect(css).toContain("width: min(32rem, calc(100vw - 2rem))");
     expect(css).toContain("max-height: calc(100dvh - 2rem)");
