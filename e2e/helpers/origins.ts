@@ -1,6 +1,8 @@
 export const E2E_PORT = 4173;
 
 export const DEMO_TENANT_SLUG = "demodental";
+/** Preferred public hostname label for the shared demo. Not the site slug. */
+export const SHARED_DEMO_PUBLIC_LABEL = "demo";
 export const HARBOR_TENANT_SLUG = "harbordental";
 export const UNKNOWN_TENANT_SLUG = "unknown";
 

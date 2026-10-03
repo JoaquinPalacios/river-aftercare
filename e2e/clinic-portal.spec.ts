@@ -16,6 +16,7 @@ import {
 import {
   DEMO_TENANT_SLUG,
   marketingUrl,
+  SHARED_DEMO_PUBLIC_LABEL,
   staffUrl,
   tenantUrl,
 } from "./helpers/origins";
@@ -96,7 +97,7 @@ test.describe("clinic portal", () => {
     await setPortalColorScheme(page, "light");
     await expect(
       page.getByRole("link", { name: /View patient site/ }).first()
-    ).toHaveAttribute("href", tenantUrl(DEMO_TENANT_SLUG, "/"));
+    ).toHaveAttribute("href", tenantUrl(SHARED_DEMO_PUBLIC_LABEL, "/"));
     await expect(page.getByText("In-progress sessions")).toHaveCount(0);
     await expect(page.getByText("Start a new session")).toHaveCount(0);
     await expect(page.getByText("Procedure templates")).toHaveCount(0);
@@ -176,7 +177,10 @@ test.describe("clinic portal", () => {
     ).toBeVisible();
     await expect(
       extraction.getByRole("link", { name: /View patient guide/ })
-    ).toHaveAttribute("href", tenantUrl(DEMO_TENANT_SLUG, "/extraction"));
+    ).toHaveAttribute(
+      "href",
+      tenantUrl(SHARED_DEMO_PUBLIC_LABEL, "/extraction")
+    );
     await expect(page.getByText("Harbor Family Dental")).toHaveCount(0);
 
     await page.setViewportSize({ width: 1440, height: 900 });

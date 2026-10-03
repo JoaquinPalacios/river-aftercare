@@ -23,3 +23,41 @@ export function sharedDemoSiteSlugForHostname(label: string): string | null {
 export function isSharedDemoHostnameLabel(label: string): boolean {
   return label === SHARED_DEMO_HOSTNAME_LABEL;
 }
+
+/**
+ * Hostname label used when publishing a ClinicSite slug.
+ * The shared demo keeps its internal slug and publishes on the preferred label.
+ * Every other site publishes on its own slug.
+ */
+export function publicHostnameLabelForSiteSlug(siteSlug: string): string {
+  if (siteSlug === DEMO_AFTERCARE_TENANT_SLUG) {
+    return SHARED_DEMO_HOSTNAME_LABEL;
+  }
+  return siteSlug;
+}
+
+/**
+ * Canonical host for one request host.
+ * The historical shared-demo hostname and the preferred hostname share one
+ * canonical. Every other host is unchanged. This does not redirect.
+ */
+export function canonicalPublicHost(
+  hostHeader: string,
+  rootDomain: string
+): string {
+  const trimmed = hostHeader.trim();
+  const root = rootDomain.trim().toLowerCase();
+  if (!trimmed || !root) {
+    return trimmed;
+  }
+
+  const lower = trimmed.toLowerCase();
+  const legacyHost = `${DEMO_AFTERCARE_TENANT_SLUG}.${root}`;
+  if (lower === legacyHost) {
+    return `${SHARED_DEMO_HOSTNAME_LABEL}.${root}`;
+  }
+  if (lower.startsWith(`${legacyHost}:`)) {
+    return `${SHARED_DEMO_HOSTNAME_LABEL}.${root}${trimmed.slice(legacyHost.length)}`;
+  }
+  return trimmed;
+}

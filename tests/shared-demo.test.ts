@@ -21,8 +21,11 @@ import {
   SHARED_DEMO_PHYSIO_GUIDE_URL,
 } from "@/lib/marketing/shared-demo-links";
 import { physiotherapyDemoExampleHref } from "@/lib/marketing/physio-demo-link";
+import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import {
+  canonicalPublicHost,
   isSharedDemoHostnameLabel,
+  publicHostnameLabelForSiteSlug,
   sharedDemoSiteSlugForHostname,
 } from "@/lib/tenancy/shared-demo-hostname";
 import { createOperatorClinicSchema } from "@/lib/operator/create-operator-clinic";
@@ -187,6 +190,79 @@ describe("shared designated demo", () => {
     expect(sharedDemoSiteSlugForHostname("demodental")).toBeNull();
     expect(sharedDemoSiteSlugForHostname("unknown")).toBeNull();
     expect(sharedDemoSiteSlugForHostname("demophysio")).toBeNull();
+  });
+
+  it("publishes the shared demo on the preferred hostname and leaves other sites alone", () => {
+    const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
+    process.env.CARE_GUIDE_ROOT_DOMAIN = "riveraftercare.com.au";
+    try {
+      expect(publicHostnameLabelForSiteSlug("demodental")).toBe("demo");
+      expect(publicHostnameLabelForSiteSlug("harbordental")).toBe(
+        "harbordental"
+      );
+      expect(publicHostnameLabelForSiteSlug("demo")).toBe("demo");
+
+      for (const demo of DESIGNATED_DEMOS) {
+        expect(
+          clinicPatientSiteUrl({
+            requestHost: "app.riveraftercare.com.au",
+            clinicSlug: demo.clinicSlug,
+            protocol: "https",
+            pathname: `/${demo.publicGuideSlug}`,
+          })
+        ).toBe(`https://demo.riveraftercare.com.au/${demo.publicGuideSlug}`);
+      }
+
+      expect(
+        clinicPatientSiteUrl({
+          requestHost: "app.riveraftercare.com.au",
+          clinicSlug: "harbordental",
+          protocol: "https",
+          pathname: "/extraction",
+        })
+      ).toBe("https://harbordental.riveraftercare.com.au/extraction");
+      expect(
+        clinicPatientSiteUrl({
+          requestHost: "app.riveraftercare.com.au",
+          clinicSlug: "demodental",
+          protocol: "https",
+          pathname: "/extraction/print",
+        })
+      ).toBe("https://demo.riveraftercare.com.au/extraction/print");
+    } finally {
+      if (previousRoot === undefined) {
+        delete process.env.CARE_GUIDE_ROOT_DOMAIN;
+      } else {
+        process.env.CARE_GUIDE_ROOT_DOMAIN = previousRoot;
+      }
+    }
+  });
+
+  it("canonicalizes only the historical shared-demo host onto the preferred host", () => {
+    expect(
+      canonicalPublicHost(
+        "demodental.riveraftercare.com.au",
+        "riveraftercare.com.au"
+      )
+    ).toBe("demo.riveraftercare.com.au");
+    expect(canonicalPublicHost("demodental.localhost:3000", "localhost")).toBe(
+      "demo.localhost:3000"
+    );
+    expect(
+      canonicalPublicHost("demo.riveraftercare.com.au", "riveraftercare.com.au")
+    ).toBe("demo.riveraftercare.com.au");
+    expect(
+      canonicalPublicHost(
+        "harbordental.riveraftercare.com.au",
+        "riveraftercare.com.au"
+      )
+    ).toBe("harbordental.riveraftercare.com.au");
+    expect(
+      canonicalPublicHost("demodental.example.test", "riveraftercare.com.au")
+    ).toBe("demodental.example.test");
+    expect(canonicalPublicHost("demodental.localhost:3000", "")).toBe(
+      "demodental.localhost:3000"
+    );
   });
 
   it("rejects claiming the shared hostname or the historical demo slug", () => {

@@ -114,7 +114,7 @@ describe("clinic portal loaders", () => {
     expect(overview?.slug).toBe("demodental");
     expect(overview?.publishedGuideCount).toBe(1);
     expect(overview?.draftGuideCount).toBe(0);
-    expect(overview?.patientSiteHref).toBe("http://demodental.localhost:3000/");
+    expect(overview?.patientSiteHref).toBe("http://demo.localhost:3000/");
     expect(overview?.displayName).not.toBe("Harbor Family Dental");
     expect(JSON.stringify(overview)).not.toMatch(/session/i);
     expect(JSON.stringify(overview)).not.toMatch(/analytics/i);
@@ -178,11 +178,22 @@ describe("clinic portal loaders", () => {
     expect(guides).toHaveLength(2);
     expect(guides[0]?.title).toBe("Tooth Extraction");
     expect(guides[0]?.previewHref).toBe(
-      "http://demodental.localhost:3000/extraction"
+      "http://demo.localhost:3000/extraction"
     );
     expect(guides[1]?.previewHref).toBeNull();
     expect(guides.map((guide) => guide.title)).not.toContain("Wisdom Teeth");
     expect(guides.map((guide) => guide.title)).not.toContain("Root Canal");
+  });
+
+  it("keeps an ordinary clinic on its own hostname", async () => {
+    prismaMock.clinic.findUnique.mockResolvedValue(CLINIC_B);
+
+    const overview = await getClinicPortalOverview(CLINIC_B.id);
+
+    expect(overview?.slug).toBe("harbordental");
+    expect(overview?.patientSiteHref).toBe(
+      "http://harbordental.localhost:3000/"
+    );
   });
 
   it("does not return another clinic when asked for a missing id", async () => {

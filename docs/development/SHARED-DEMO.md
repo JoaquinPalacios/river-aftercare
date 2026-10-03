@@ -1,6 +1,6 @@
 # Shared demonstration
 
-River Aftercare has one demonstration account. Its public slug is `demodental`. The local seed uses account id `clinic_demo_rivers`. Production uses the existing account that already has that slug; the configuration command reads that id from the database and does not hardcode it. The public hostname `demo.riveraftercare.com.au` is an alias for that site. `demodental.riveraftercare.com.au` keeps resolving.
+River Aftercare has one demonstration account. Its site slug is `demodental`. The local seed uses account id `clinic_demo_rivers`. Production uses the existing account that already has that slug; the configuration command reads that id from the database and does not hardcode it. Generated public URLs use the preferred hostname `demo.riveraftercare.com.au`. `demodental.riveraftercare.com.au` keeps resolving the same site, with no redirect. Canonical metadata for both hostnames uses the preferred host. In-page patient links stay relative, so a visit that starts on either hostname continues on that hostname.
 
 The shared public name is River Aftercare Demo Clinic for every service category. Stored colours, the uploaded logo, and theme settings stay as they are. The production demo's current primary colour is `#0F766E` and its accent is `#2DD4BF`. The command does not replace those with River Aftercare's corporate blue or isologo.
 
