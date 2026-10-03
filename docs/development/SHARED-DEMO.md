@@ -44,7 +44,7 @@ The Dental sample on the live demo is canonical revision 3, with no retained ove
    - Dental: `CARE_GUIDE_SHARED_DEMO_DENTAL_URL=https://demo.riveraftercare.com.au/extraction`
    - Physiotherapy: `CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL=https://demo.riveraftercare.com.au/home-exercise-plan`
 
-   Chiropractic and Cosmetic & Aesthetic stay unlinked until those guides exist.
+   Set the physiotherapy variable in the Vercel project before the production build. `/physiotherapy` is statically generated, so a runtime-only value does not enable the hero. When the value matches, the hero secondary control is “View the physiotherapy demo” and opens that guide in a new tab. Any other value keeps the disabled placeholder. Chiropractic and Cosmetic & Aesthetic stay unlinked until those guides exist.
 
 Wildcard DNS `*.riveraftercare.com.au` already reaches the app. No new Vercel domain is required for `demo`. Unknown subdomains still fail closed.
 

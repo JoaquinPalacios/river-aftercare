@@ -15,6 +15,7 @@ import {
   verticalHeroSecondary,
 } from "@/app/(marketing)/components/marketing-vertical-hero";
 import { JsonLd } from "@/app/(marketing)/components/json-ld";
+import { PHYSIO_DEMO_HERO_LABEL } from "@/lib/marketing/physio-demo-link";
 import { editorialRevealDelay } from "@/lib/marketing/reveal-timing";
 import type { VerticalLandingContent } from "@/lib/marketing/vertical-landing";
 import type { JsonLdGraph } from "@/lib/seo/json-ld";
@@ -86,6 +87,11 @@ export function MarketingVerticalLanding({
 }) {
   const id = content.themeId;
   const example = content.extras.find((extra) => extra.kind === "example");
+  const anchorSecondary =
+    content.hero.secondaryCta.kind === "anchor"
+      ? content.hero.secondaryCta
+      : null;
+  const heroDemoHref = example && anchorSecondary ? exampleHref : null;
   const exampleAction = example ? (
     <LiveExampleAction href={exampleHref} label={example.ctaLabel} />
   ) : null;
@@ -100,8 +106,17 @@ export function MarketingVerticalLanding({
       <main>
         <MarketingVerticalHero
           content={content}
-          secondary={verticalHeroSecondary(content, demoHref)}
-          extra={exampleAction}
+          secondary={
+            heroDemoHref ? (
+              <LiveExampleAction
+                href={heroDemoHref}
+                label={PHYSIO_DEMO_HERO_LABEL}
+              />
+            ) : (
+              verticalHeroSecondary(content, demoHref)
+            )
+          }
+          extra={heroDemoHref ? undefined : exampleAction}
         />
 
         <section
@@ -336,6 +351,16 @@ export function MarketingVerticalLanding({
                               {extra.ctaLabel}
                             </MarketingPrimaryAnchor>
                           )}
+                          {extra.kind === "example" &&
+                          heroDemoHref &&
+                          anchorSecondary ? (
+                            <Link
+                              className={`${styles.button} ${styles.secondary}`}
+                              href={anchorSecondary.href}
+                            >
+                              {anchorSecondary.label}
+                            </Link>
+                          ) : null}
                         </div>
                       </MarketingRevealItem>
                     </div>
