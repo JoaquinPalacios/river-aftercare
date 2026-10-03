@@ -103,9 +103,9 @@ export function EditorLivePreview({
           <p className={styles.empty}>{RECOVERY_TIMELINE_ABSENT_NOTE}</p>
         )}
         {companionSections.length > 0 ? (
-          <ul className={styles.companionList}>
+          <ul className="editorPreviewCompanions">
             {companionSections.map((section) => (
-              <li key={section.key} className={styles.companionItem}>
+              <li key={section.key} className="editorPreviewCompanion">
                 <p className={styles.period}>{section.kindLabel}</p>
                 <p className={styles.title}>
                   {section.title.trim() || "Untitled section"}
