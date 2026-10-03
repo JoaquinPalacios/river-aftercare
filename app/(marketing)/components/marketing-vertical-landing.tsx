@@ -15,7 +15,6 @@ import {
   verticalHeroSecondary,
 } from "@/app/(marketing)/components/marketing-vertical-hero";
 import { JsonLd } from "@/app/(marketing)/components/json-ld";
-import { PHYSIO_DEMO_HERO_LABEL } from "@/lib/marketing/physio-demo-link";
 import { editorialRevealDelay } from "@/lib/marketing/reveal-timing";
 import type { VerticalLandingContent } from "@/lib/marketing/vertical-landing";
 import type { JsonLdGraph } from "@/lib/seo/json-ld";
@@ -91,7 +90,10 @@ export function MarketingVerticalLanding({
     content.hero.secondaryCta.kind === "anchor"
       ? content.hero.secondaryCta
       : null;
-  const heroDemoHref = example && anchorSecondary ? exampleHref : null;
+  const promotedDemo =
+    exampleHref && anchorSecondary && content.hero.demoHeroLabel
+      ? { href: exampleHref, label: content.hero.demoHeroLabel }
+      : null;
   const exampleAction = example ? (
     <LiveExampleAction href={exampleHref} label={example.ctaLabel} />
   ) : null;
@@ -107,16 +109,16 @@ export function MarketingVerticalLanding({
         <MarketingVerticalHero
           content={content}
           secondary={
-            heroDemoHref ? (
+            promotedDemo ? (
               <LiveExampleAction
-                href={heroDemoHref}
-                label={PHYSIO_DEMO_HERO_LABEL}
+                href={promotedDemo.href}
+                label={promotedDemo.label}
               />
             ) : (
               verticalHeroSecondary(content, demoHref)
             )
           }
-          extra={heroDemoHref ? undefined : exampleAction}
+          extra={promotedDemo ? undefined : exampleAction}
         />
 
         <section
@@ -279,6 +281,18 @@ export function MarketingVerticalLanding({
                     {content.workflow.h2}
                   </h2>
                 </MarketingRevealItem>
+                {promotedDemo && !example && anchorSecondary ? (
+                  <MarketingRevealItem delay={editorialRevealDelay(1)}>
+                    <div className={styles.actions}>
+                      <Link
+                        className={`${styles.button} ${styles.secondary}`}
+                        href={anchorSecondary.href}
+                      >
+                        {anchorSecondary.label}
+                      </Link>
+                    </div>
+                  </MarketingRevealItem>
+                ) : null}
               </MarketingRevealGroup>
             </div>
             <div className={styles.verticalRailWrap}>
@@ -347,12 +361,16 @@ export function MarketingVerticalLanding({
                               prominent
                             />
                           ) : (
-                            <MarketingPrimaryAnchor href={demoHref}>
+                            <MarketingPrimaryAnchor
+                              href={demoHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
                               {extra.ctaLabel}
                             </MarketingPrimaryAnchor>
                           )}
                           {extra.kind === "example" &&
-                          heroDemoHref &&
+                          promotedDemo &&
                           anchorSecondary ? (
                             <Link
                               className={`${styles.button} ${styles.secondary}`}

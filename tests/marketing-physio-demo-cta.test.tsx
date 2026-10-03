@@ -49,10 +49,13 @@ function classNamesForLabel(html: string, label: string): string[] {
 describe("physiotherapy live demo CTA", () => {
   const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
   const previousPhysioDemo = process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL;
+  const previousPhysioRiver =
+    process.env.RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL;
 
   beforeEach(() => {
     process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
     delete process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL;
+    delete process.env.RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL;
   });
 
   afterEach(() => {
@@ -65,6 +68,11 @@ describe("physiotherapy live demo CTA", () => {
       delete process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL;
     } else {
       process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL = previousPhysioDemo;
+    }
+    if (previousPhysioRiver === undefined) {
+      delete process.env.RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL;
+    } else {
+      process.env.RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL = previousPhysioRiver;
     }
   });
 

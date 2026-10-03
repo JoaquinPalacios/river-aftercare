@@ -308,12 +308,16 @@ test.describe("clinic vertical acquisition pages", () => {
   }) => {
     await page.goto(marketingUrl("/dental"), { waitUntil: "domcontentloaded" });
     const guideHref = tenantUrl(DEMO_TENANT_SLUG, "/extraction");
-    await expect(
-      page.getByRole("link", { name: "View the dental demo" })
-    ).toHaveAttribute("href", guideHref);
-    await expect(
-      page.getByRole("link", { name: "Open the Tooth Extraction example" })
-    ).toHaveAttribute("href", guideHref);
+    const demo = page.getByRole("link", { name: "View the dental demo" });
+    const example = page.getByRole("link", {
+      name: "Open the Tooth Extraction example",
+    });
+    await expect(demo).toHaveAttribute("href", guideHref);
+    await expect(demo).toHaveAttribute("target", "_blank");
+    await expect(demo).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(example).toHaveAttribute("href", guideHref);
+    await expect(example).toHaveAttribute("target", "_blank");
+    await expect(example).toHaveAttribute("rel", "noopener noreferrer");
   });
 
   test("homepage and footer discover the four clinic pages", async ({

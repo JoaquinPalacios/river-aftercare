@@ -300,7 +300,7 @@ describe("shared designated demo", () => {
     ).toBeNull();
     expect(
       dentalDemoGuideHref({}, "https://demodental.riveraftercare.com.au/")
-    ).toBe("https://demodental.riveraftercare.com.au/extraction");
+    ).toBe(SHARED_DEMO_DENTAL_GUIDE_URL);
     expect(
       dentalDemoGuideHref({
         CARE_GUIDE_SHARED_DEMO_DENTAL_URL: SHARED_DEMO_DENTAL_GUIDE_URL,
