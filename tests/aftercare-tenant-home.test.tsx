@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 const { listPublishedPracticeGuides, notFound } = vi.hoisted(() => ({
@@ -110,9 +110,20 @@ function headingTags(html: string): string[] {
 }
 
 describe("tenant homepage", () => {
+  const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
+
   beforeEach(() => {
+    process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
     listPublishedPracticeGuides.mockReset();
     notFound.mockClear();
+  });
+
+  afterEach(() => {
+    if (previousRoot === undefined) {
+      delete process.env.CARE_GUIDE_ROOT_DOMAIN;
+    } else {
+      process.env.CARE_GUIDE_ROOT_DOMAIN = previousRoot;
+    }
   });
 
   it("renders the practice name, published guide, contact, and attribution", async () => {
@@ -273,9 +284,7 @@ describe("tenant homepage", () => {
       "Riverside Dental Demo — Post-treatment instructions"
     );
     expect(metadata.robots).toEqual({ index: false, follow: true });
-    expect(metadata.alternates?.canonical).toBe(
-      "http://demodental.localhost:3000/"
-    );
+    expect(metadata.alternates?.canonical).toBe("http://demo.localhost:3000/");
     expect(JSON.stringify(metadata)).not.toContain("/_sites");
   });
 

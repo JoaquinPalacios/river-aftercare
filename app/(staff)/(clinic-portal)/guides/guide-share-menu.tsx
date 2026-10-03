@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 
+import { shareMenuPanelPosition } from "@/lib/staff/share-menu-frame";
+
 export function GuideShareMenu({
   publicUrl,
   svgHref,
@@ -29,14 +31,18 @@ export function GuideShareMenu({
     }
 
     const rect = button.getBoundingClientRect();
-    const width = Math.max(panel.offsetWidth, 272);
-    const left = Math.min(
-      Math.max(8, rect.right - width),
-      window.innerWidth - width - 8
-    );
-    panel.style.top = `${rect.bottom + 6}px`;
-    panel.style.left = `${left}px`;
-    panel.style.width = `${width}px`;
+    const frame = shareMenuPanelPosition({
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      buttonTop: rect.top,
+      buttonRight: rect.right,
+      buttonBottom: rect.bottom,
+      panelWidth: panel.offsetWidth,
+      panelHeight: panel.offsetHeight,
+    });
+    panel.style.top = `${frame.top}px`;
+    panel.style.left = `${frame.left}px`;
+    panel.style.width = `${frame.width}px`;
   }
 
   useEffect(() => {

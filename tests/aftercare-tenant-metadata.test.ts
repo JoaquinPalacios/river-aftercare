@@ -22,13 +22,24 @@ import {
 import { PRODUCT_ICON_HREFS } from "@/lib/seo/icons";
 
 describe("tenant metadata helpers", () => {
+  const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
+
   it("builds a public hostname canonical URL", async () => {
-    await expect(publicTenantCanonicalUrl("/")).resolves.toBe(
-      "http://demodental.localhost:3000/"
-    );
-    await expect(publicTenantCanonicalUrl("/extraction")).resolves.toBe(
-      "http://demodental.localhost:3000/extraction"
-    );
+    process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
+    try {
+      await expect(publicTenantCanonicalUrl("/")).resolves.toBe(
+        "http://demo.localhost:3000/"
+      );
+      await expect(publicTenantCanonicalUrl("/extraction")).resolves.toBe(
+        "http://demo.localhost:3000/extraction"
+      );
+    } finally {
+      if (previousRoot === undefined) {
+        delete process.env.CARE_GUIDE_ROOT_DOMAIN;
+      } else {
+        process.env.CARE_GUIDE_ROOT_DOMAIN = previousRoot;
+      }
+    }
   });
 
   it("never emits an internal /_sites canonical URL", async () => {

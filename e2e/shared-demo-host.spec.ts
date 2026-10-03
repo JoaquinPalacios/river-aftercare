@@ -5,9 +5,13 @@ import {
   expectOneH1,
   expectPublicTenantUrl,
 } from "./helpers/assertions";
-import { DEMO_TENANT_SLUG, tenantUrl } from "./helpers/origins";
+import {
+  DEMO_TENANT_SLUG,
+  SHARED_DEMO_PUBLIC_LABEL,
+  tenantUrl,
+} from "./helpers/origins";
 
-const SHARED_HOST = "demo";
+const SHARED_HOST = SHARED_DEMO_PUBLIC_LABEL;
 const HOSTS = [DEMO_TENANT_SLUG, SHARED_HOST] as const;
 
 for (const host of HOSTS) {
@@ -45,8 +49,14 @@ for (const host of HOSTS) {
       ).toBeVisible();
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
         "href",
-        extraction
+        tenantUrl(SHARED_HOST, "/extraction")
       );
+      await expect(
+        page.getByRole("link", {
+          name: "River Aftercare Demo Clinic",
+          exact: true,
+        })
+      ).toHaveAttribute("href", "/");
     });
 
     test("serves the physiotherapy guide as one document", async ({ page }) => {
@@ -69,7 +79,7 @@ for (const host of HOSTS) {
       ).toBeVisible();
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
         "href",
-        guide
+        tenantUrl(SHARED_HOST, "/home-exercise-plan")
       );
     });
 
@@ -81,6 +91,10 @@ for (const host of HOSTS) {
 
       const dental = await page.goto(dentalPrint, { waitUntil: "load" });
       expect(dental?.status()).toBe(200);
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+        "href",
+        tenantUrl(SHARED_HOST, "/extraction")
+      );
       await expect(
         page.getByText("SAMPLE / NOT CLINICAL ADVICE")
       ).toBeVisible();

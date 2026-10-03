@@ -14,6 +14,7 @@ import { resolveClinicLogoSrc } from "@/lib/clinic-assets/public-url";
 import { PRODUCT_HEAD_METADATA } from "@/lib/seo/icons";
 import { sanitizeMetadataText } from "@/lib/seo/metadata-text";
 import { TENANT_LAUNCH_ROBOTS } from "@/lib/seo/robots-policy";
+import { canonicalPublicHost } from "@/lib/tenancy/shared-demo-hostname";
 
 export const AFTERCARE_ROBOTS = TENANT_LAUNCH_ROBOTS;
 
@@ -44,10 +45,13 @@ export async function publicTenantCanonicalUrl(
     requestHeaders.get("x-forwarded-proto") ??
     (host.includes("localhost") ? "http" : "https");
   const normalizedPath = pathname === "" || pathname === "/" ? "/" : pathname;
+  const rootDomain = process.env.CARE_GUIDE_ROOT_DOMAIN?.trim() ?? "";
+  // Canonical URLs follow the incoming host. The shared-demo hostname alias
+  // is the one exception, so the historical and preferred hosts are not
+  // indexed as two pages. The root domain comes from configuration.
+  const publicHost = canonicalPublicHost(host, rootDomain);
 
-  // Canonical URLs always mirror the incoming Host. They must not hard-code
-  // `.localhost` or a commercial platform domain.
-  return `${protocol}://${host}${normalizedPath}`;
+  return `${protocol}://${publicHost}${normalizedPath}`;
 }
 
 export function tenantGuideDocumentTitle(

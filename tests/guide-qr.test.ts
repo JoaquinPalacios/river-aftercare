@@ -76,7 +76,15 @@ describe("published guide QR", () => {
         protocol: "http",
         pathname: "/extraction",
       })
-    ).toBe("http://demodental.localhost:3000/extraction");
+    ).toBe("http://demo.localhost:3000/extraction");
+    expect(
+      clinicPatientSiteUrl({
+        requestHost: "app.localhost:3000",
+        clinicSlug: "harbordental",
+        protocol: "http",
+        pathname: "/extraction",
+      })
+    ).toBe("http://harbordental.localhost:3000/extraction");
 
     process.env.CARE_GUIDE_ROOT_DOMAIN = "example.com";
     expect(
@@ -84,9 +92,17 @@ describe("published guide QR", () => {
         requestHost: "app.example.com",
         clinicSlug: "demodental",
         protocol: "https",
+        pathname: "/chiropractic-adjustment",
+      })
+    ).toBe("https://demo.example.com/chiropractic-adjustment");
+    expect(
+      clinicPatientSiteUrl({
+        requestHost: "app.example.com",
+        clinicSlug: "harbordental",
+        protocol: "https",
         pathname: "/extraction",
       })
-    ).toBe("https://demodental.example.com/extraction");
+    ).toBe("https://harbordental.example.com/extraction");
   });
 
   it("parses download formats and staff QR paths", () => {

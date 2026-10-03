@@ -119,7 +119,7 @@ Launch default is **private from search** (`PRIVATE_FROM_SEARCH`). Patient pages
 
 - title
 - description
-- canonical (tenant hostname, never `/_sites`)
+- canonical (tenant hostname, never `/_sites`). The shared demo’s historical hostname `demodental` and preferred hostname `demo` share one canonical on `demo`. Other clinics canonicalise to the host that served the page. Neither hostname redirects.
 - Open Graph
 - clinic identity
 

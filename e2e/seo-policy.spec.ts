@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import {
   DEMO_TENANT_SLUG,
   marketingUrl,
+  SHARED_DEMO_PUBLIC_LABEL,
   staffUrl,
   tenantUrl,
 } from "./helpers/origins";
@@ -129,7 +130,7 @@ test.describe("launch SEO surfaces", () => {
     );
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
-      tenantUrl(DEMO_TENANT_SLUG, "/extraction")
+      tenantUrl(SHARED_DEMO_PUBLIC_LABEL, "/extraction")
     );
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       "content",

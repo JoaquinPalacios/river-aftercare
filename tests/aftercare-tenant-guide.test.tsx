@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 const { getPublishedPracticeGuide, listPublishedLocationGuides, notFound } =
@@ -184,11 +184,22 @@ function headingTags(html: string): string[] {
 }
 
 describe("tenant guide page", () => {
+  const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
+
   beforeEach(() => {
+    process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
     getPublishedPracticeGuide.mockReset();
     listPublishedLocationGuides.mockReset();
     listPublishedLocationGuides.mockResolvedValue(null);
     notFound.mockClear();
+  });
+
+  afterEach(() => {
+    if (previousRoot === undefined) {
+      delete process.env.CARE_GUIDE_ROOT_DOMAIN;
+    } else {
+      process.env.CARE_GUIDE_ROOT_DOMAIN = previousRoot;
+    }
   });
 
   it("renders composed guide content without internal provenance labels", async () => {
@@ -315,10 +326,10 @@ describe("tenant guide page", () => {
     );
     expect(metadata.robots).toEqual({ index: false, follow: true });
     expect(metadata.alternates?.canonical).toBe(
-      "http://demodental.localhost:3000/extraction"
+      "http://demo.localhost:3000/extraction"
     );
     expect(metadata.openGraph?.url).toBe(
-      "http://demodental.localhost:3000/extraction"
+      "http://demo.localhost:3000/extraction"
     );
     expect(JSON.stringify(metadata)).not.toContain("/_sites");
     expect(JSON.stringify(metadata)).not.toContain("MedicalWebPage");

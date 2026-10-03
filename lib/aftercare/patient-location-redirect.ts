@@ -13,6 +13,7 @@ import { getPrisma } from "@/lib/prisma";
 import { normalizePathname } from "@/lib/tenancy/paths";
 import { PUBLIC_PATIENT_PATH_HEADER } from "@/lib/tenancy/public-patient-path";
 import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
+import { publicHostnameLabelForSiteSlug } from "@/lib/tenancy/shared-demo-hostname";
 
 /**
  * Old non-root location URLs that a future move must keep working.
@@ -248,7 +249,7 @@ function isClosedRedirectHref(
     return false;
   }
   const hostLabel = url.hostname.split(".")[0];
-  if (hostLabel !== destinationSlug) {
+  if (hostLabel !== publicHostnameLabelForSiteSlug(destinationSlug)) {
     return false;
   }
   return url.pathname === pathname;

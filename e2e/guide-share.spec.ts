@@ -5,7 +5,7 @@ import { expectNoSeriousAxeViolations } from "./helpers/axe";
 import { expectGenericNotFound } from "./helpers/assertions";
 import { expectNoHorizontalOverflow } from "./helpers/layout";
 import {
-  DEMO_TENANT_SLUG,
+  SHARED_DEMO_PUBLIC_LABEL,
   staffOrigin,
   staffUrl,
   tenantUrl,
@@ -34,7 +34,7 @@ test.describe("published guide QR sharing", () => {
     await published.getByRole("button", { name: "Share" }).click();
     const panel = page.getByRole("dialog", { name: "Share published guide" });
     await expect(panel).toBeVisible();
-    const publicUrl = tenantUrl(DEMO_TENANT_SLUG, "/extraction");
+    const publicUrl = tenantUrl(SHARED_DEMO_PUBLIC_LABEL, "/extraction");
     await expect(panel.locator("a.staffShareUrl")).toHaveAttribute(
       "href",
       publicUrl
@@ -117,7 +117,7 @@ test.describe("published guide QR sharing", () => {
       .getByRole("button", { name: "Publish guide" })
       .click();
     await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
-    const publicUrl = tenantUrl(DEMO_TENANT_SLUG, `/${slug}`);
+    const publicUrl = tenantUrl(SHARED_DEMO_PUBLIC_LABEL, `/${slug}`);
     await page.getByRole("button", { name: "Share" }).click();
     const editorPanel = page.getByRole("dialog", {
       name: "Share published guide",
@@ -234,6 +234,9 @@ test.describe("published guide QR sharing", () => {
       page
         .getByRole("dialog", { name: "Share published guide" })
         .locator("a.staffShareUrl")
-    ).toHaveAttribute("href", tenantUrl(DEMO_TENANT_SLUG, "/extraction"));
+    ).toHaveAttribute(
+      "href",
+      tenantUrl(SHARED_DEMO_PUBLIC_LABEL, "/extraction")
+    );
   });
 });
