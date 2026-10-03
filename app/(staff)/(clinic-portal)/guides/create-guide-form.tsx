@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 
 import {
   createCustomGuideAction,
@@ -39,6 +45,11 @@ export function CreateGuideForm({
     createGuideFromTemplateAction,
     initialState
   );
+  const [pendingTemplateId, setPendingTemplateId] = useState<string | null>(
+    null
+  );
+  const pendingTemplateIdRef = useRef<string | null>(null);
+  const submittedStateRef = useRef<GuideActionState | null>(null);
   const [customState, customAction, customPending] = useActionState(
     createCustomGuideAction,
     initialState
@@ -62,6 +73,36 @@ export function CreateGuideForm({
     allowance.customGuides.atLimit ||
     allowance.combinedGuides.atLimit ||
     !categoriesAvailable;
+
+  useEffect(() => {
+    if (pendingTemplateId === null || templatePending) {
+      return;
+    }
+    // A redirect leaves the previous result in place and keeps this row
+    // pending until navigation. Any returned result, including a failure,
+    // restores the idle labels.
+    if (templateState === submittedStateRef.current) {
+      return;
+    }
+    pendingTemplateIdRef.current = null;
+    submittedStateRef.current = null;
+    setPendingTemplateId(null);
+  }, [pendingTemplateId, templatePending, templateState]);
+
+  function startTemplateCreate(event: FormEvent<HTMLFormElement>) {
+    if (pendingTemplateIdRef.current) {
+      event.preventDefault();
+      return;
+    }
+    const templateId = new FormData(event.currentTarget).get("templateId");
+    if (typeof templateId !== "string" || templateId.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    pendingTemplateIdRef.current = templateId;
+    submittedStateRef.current = templateState;
+    setPendingTemplateId(templateId);
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -132,7 +173,8 @@ export function CreateGuideForm({
                     <TemplateList
                       templates={group}
                       action={templateAction}
-                      pending={templatePending}
+                      pendingTemplateId={pendingTemplateId}
+                      onSubmit={startTemplateCreate}
                       error={templateState.error}
                     />
                   </div>
@@ -142,7 +184,8 @@ export function CreateGuideForm({
               <TemplateList
                 templates={visibleTemplates}
                 action={templateAction}
-                pending={templatePending}
+                pendingTemplateId={pendingTemplateId}
+                onSubmit={startTemplateCreate}
                 error={templateState.error}
               />
             )}
@@ -313,12 +356,14 @@ export function CreateGuideForm({
 function TemplateList({
   templates,
   action,
-  pending,
+  pendingTemplateId,
+  onSubmit,
   error,
 }: {
   templates: CanonicalGuideTemplateOption[];
   action: (payload: FormData) => void;
-  pending: boolean;
+  pendingTemplateId: string | null;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   error?: string;
 }) {
   if (templates.length === 0) {
@@ -347,24 +392,44 @@ function TemplateList({
                 : "Published template"}
           </p>
           {template.alreadyEnabled ? null : (
-            <form action={action} className="mt-3">
+            <form action={action} className="mt-3" onSubmit={onSubmit}>
               <input type="hidden" name="templateId" value={template.id} />
               {error ? (
                 <p className="mb-2 text-sm text-red-600" role="alert">
                   {error}
                 </p>
               ) : null}
-              <button
-                type="submit"
-                disabled={pending}
-                className="staffBtn staffBtnPrimary"
-              >
-                {pending ? "Creating…" : "Create from template"}
-              </button>
+              <TemplateCreateButton
+                templateId={template.id}
+                pendingTemplateId={pendingTemplateId}
+              />
             </form>
           )}
         </li>
       ))}
     </ul>
+  );
+}
+
+function TemplateCreateButton({
+  templateId,
+  pendingTemplateId,
+}: {
+  templateId: string;
+  pendingTemplateId: string | null;
+}) {
+  const isPending = pendingTemplateId === templateId;
+  return (
+    <button
+      type="submit"
+      disabled={pendingTemplateId !== null}
+      aria-busy={isPending || undefined}
+      className="staffBtn staffBtnPrimary staffPendingSubmit"
+    >
+      {isPending ? (
+        <span className="staffBtnSpinner" aria-hidden="true" />
+      ) : null}
+      {isPending ? "Creating…" : "Create from template"}
+    </button>
   );
 }
