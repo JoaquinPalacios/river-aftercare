@@ -327,7 +327,9 @@ describe("clinic vertical landing pages", () => {
       expect(enabled).toContain('target="_blank"');
       expect(enabled).toContain('rel="noopener noreferrer"');
       expect(enabled).toContain('data-live-example="ready"');
+      expect(enabled).toContain("View the physiotherapy demo");
       expect(enabled).toContain("Request a demo");
+      expect(enabled).toContain("See how River Aftercare works");
       expect(enabled).toContain('href="#workflow"');
     } finally {
       if (previous === undefined) {
