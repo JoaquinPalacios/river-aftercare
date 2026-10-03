@@ -39,17 +39,16 @@ The Dental sample on the live demo is canonical revision 3, with no retained ove
 
 4. Publish each new canonical sample in the operator template workspace, then create and publish its practice guide on this account at the designated public slug. Later revisions move only through Update live demo for that category.
 
-5. Enable marketing links only after each guide URL is verified. `/dental`, `/physiotherapy`, and `/chiropractic` are statically generated (`dynamic = "error"`), so Vercel must supply the variables at build time. A runtime-only value does not change the hero.
+5. Enable marketing links only after each guide URL is verified. `/dental`, `/physiotherapy`, `/chiropractic`, and `/cosmetic-clinics` are statically generated (`dynamic = "error"`), so Vercel must supply the variables at build time. A runtime-only value does not change the hero.
 
    Preferred variables:
 
    - Dental: `RIVER_AFTERCARE_DEMO_DENTAL_URL=https://demo.riveraftercare.com.au/extraction`
    - Physiotherapy: `RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL=https://demo.riveraftercare.com.au/home-exercise-plan`
    - Chiropractic: `RIVER_AFTERCARE_DEMO_CHIROPRACTIC_URL=https://demo.riveraftercare.com.au/chiropractic-adjustment`
+   - Cosmetic & Aesthetic: `RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL=https://demo.riveraftercare.com.au/superficial-chemical-peel`
 
-   Leave `RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL` unset. That name is reserved for `https://demo.riveraftercare.com.au/superficial-chemical-peel` and does not enable a marketing CTA until that sample is published.
-
-   Each value must be HTTPS on `demo.riveraftercare.com.au` with that category's exact guide path. A trailing slash is accepted and the CTA uses the canonical URL without it. Any other host, path, query, or hash leaves Physiotherapy and Chiropractic unavailable. Dental marketing still opens the shared Tooth Extraction guide rather than publishing an unrecognised URL.
+   Each value must be HTTPS on `demo.riveraftercare.com.au` with that category's exact guide path. A trailing slash is accepted and the CTA uses the canonical URL without it. Any other host, path, query, or hash leaves Physiotherapy, Chiropractic, and Cosmetic & Aesthetic unavailable. Dental marketing still opens the shared Tooth Extraction guide rather than publishing an unrecognised URL.
 
    Deprecated names still work when the matching new variable is unset or blank. The new variable wins when both are set, including when the new value fails validation. The legacy Dental value `https://demodental.riveraftercare.com.au/extraction` (or that host with no extra path) is recognised and resolved to `https://demo.riveraftercare.com.au/extraction`. Other hosts are not rewritten. `demodental.riveraftercare.com.au` keeps serving existing patient links.
 
