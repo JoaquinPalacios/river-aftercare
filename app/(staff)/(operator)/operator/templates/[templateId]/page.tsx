@@ -8,6 +8,7 @@ import {
   TemplateDraftBadge,
   TemplateOriginBadge,
 } from "@/app/(staff)/(operator)/operator/templates/template-badges";
+import { DuplicateTemplateAction } from "@/app/(staff)/(operator)/operator/templates/duplicate-template-action";
 import { TemplateEditAction } from "@/app/(staff)/(operator)/operator/templates/template-edit-action";
 import { TemplateDemoAdoption } from "@/app/(staff)/(operator)/operator/templates/template-demo-adoption";
 import { TemplateLifecycleActions } from "@/app/(staff)/(operator)/operator/templates/template-lifecycle-actions";
@@ -97,29 +98,35 @@ export default async function OperatorTemplateDetailPage({
             {template.openDraft ? <TemplateDraftBadge /> : null}
           </div>
         </div>
-        {canOpenWorkspace || previewHref ? (
-          <div className="templateOverviewActions">
-            {canOpenWorkspace ? (
-              <Link
-                href={`/operator/templates/${template.id}/draft`}
-                className="staffBtn staffBtnSecondary"
-              >
-                View content
-              </Link>
-            ) : null}
-            {previewHref ? (
-              <Link href={previewHref} className="staffBtn staffBtnSecondary">
-                Preview patient guide
-              </Link>
-            ) : null}
-            {canEdit ? (
-              <TemplateEditAction
-                templateId={template.id}
-                hasOpenDraft={template.openDraft !== null}
-              />
-            ) : null}
-          </div>
-        ) : null}
+        <div className="templateOverviewActions">
+          {canOpenWorkspace ? (
+            <Link
+              href={`/operator/templates/${template.id}/draft`}
+              className="staffBtn staffBtnSecondary"
+            >
+              View content
+            </Link>
+          ) : null}
+          {previewHref ? (
+            <Link href={previewHref} className="staffBtn staffBtnSecondary">
+              Preview patient guide
+            </Link>
+          ) : null}
+          {canEdit ? (
+            <TemplateEditAction
+              templateId={template.id}
+              hasOpenDraft={template.openDraft !== null}
+            />
+          ) : null}
+          <DuplicateTemplateAction
+            sourceTemplateId={template.id}
+            sourceTitle={template.title}
+            serviceCategory={template.serviceCategory}
+            serviceCategoryLabel={template.serviceCategoryLabel}
+            published={latestPublished !== undefined}
+            activeSamples={activeSamples}
+          />
+        </div>
       </header>
       {notice ? (
         <p className="text-sm text-staff-muted" role="status">

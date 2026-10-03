@@ -8,18 +8,9 @@ import {
   runLockedCanonicalTemplateTransaction,
   throwCanonicalUniqueConflict,
 } from "@/lib/canonical-templates/context";
+import { loadLatestPublishedCanonicalContent } from "@/lib/canonical-templates/published-canonical-content";
 import { canonicalSectionCreateData } from "@/lib/canonical-templates/sections";
 import { CanonicalTemplateError } from "@/lib/canonical-templates/errors";
-import type { CanonicalDraftSection } from "@/lib/canonical-templates/sections";
-
-const clonedRevisionInclude = {
-  sections: {
-    orderBy: { sortOrder: "asc" as const },
-    include: {
-      homeCareInstructions: { orderBy: { sortOrder: "asc" as const } },
-    },
-  },
-};
 
 /**
  * Opens the next draft from the latest published revision.
@@ -48,42 +39,13 @@ export async function createCanonicalTemplateDraftInTransaction(
     );
   }
 
-  const latest = await tx.guideTemplateRevision.findFirst({
-    where: {
-      guideTemplateId: template.id,
-      status: GuideRevisionStatus.PUBLISHED,
-    },
-    orderBy: { version: "desc" },
-    include: clonedRevisionInclude,
-  });
+  const latest = await loadLatestPublishedCanonicalContent(tx, template.id);
   if (!latest) {
     throw new CanonicalTemplateError(
       "Publish the current draft before opening another one.",
       "conflict"
     );
   }
-
-  const sections: CanonicalDraftSection[] = latest.sections.map((section) => ({
-    key: section.key,
-    kind: section.kind,
-    title: section.title,
-    body: section.body,
-    periodLabel: section.periodLabel,
-    startDay: section.startDay,
-    endDay: section.endDay,
-    sortOrder: section.sortOrder,
-    homeCareInstructions: section.homeCareInstructions.map((item) => ({
-      key: item.key,
-      title: item.title,
-      body: item.body,
-      frequencyCount: item.frequencyCount,
-      frequencyPeriod: item.frequencyPeriod,
-      timingLabel: item.timingLabel,
-      durationValue: item.durationValue,
-      durationUnit: item.durationUnit,
-      sortOrder: item.sortOrder,
-    })),
-  }));
 
   const created = await tx.guideTemplateRevision.create({
     data: {
@@ -92,7 +54,9 @@ export async function createCanonicalTemplateDraftInTransaction(
       status: GuideRevisionStatus.DRAFT,
       createdByUserId: input.actorUserId,
       sections: {
-        create: sections.map((section) => canonicalSectionCreateData(section)),
+        create: latest.sections.map((section) =>
+          canonicalSectionCreateData(section)
+        ),
       },
     },
     select: { id: true, version: true },

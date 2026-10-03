@@ -159,14 +159,13 @@ export function throwCanonicalUniqueConflict(error: unknown): never {
 }
 
 function uniqueTarget(error: unknown): string {
-  if (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.meta &&
-    "target" in error.meta
-  ) {
-    return JSON.stringify(error.meta.target);
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+    return "";
   }
-  return "";
+  // PrismaPg reports the index name on driverAdapterError and in the
+  // message. Older clients put the columns on meta.target. Both need to
+  // map to the same operator-facing conflict.
+  return `${JSON.stringify(error.meta ?? {})} ${error.message}`;
 }
 
 export async function countPublishedCanonicalRevisions(

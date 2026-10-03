@@ -48,12 +48,13 @@ describe("operator template manager UI contract", () => {
     }
     expect(actions).toContain("requirePlatformOperator");
     expect(actions.match(/await requirePlatformOperator\(\)/g)?.length).toBe(
-      10
+      11
     );
   });
 
   it("calls lifecycle services instead of writing template rows itself", () => {
     expect(actions).toContain("createCanonicalTemplate");
+    expect(actions).toContain("duplicateCanonicalTemplate");
     expect(actions).toContain("updateCanonicalTemplateMetadata");
     expect(actions).toContain("saveCanonicalTemplateDraft");
     expect(actions).not.toContain("recordCanonicalTemplateReview");
@@ -335,6 +336,7 @@ describe("operator template manager UI contract", () => {
     expect(badges).not.toContain("Draft v");
     expect(detail).toContain('"Published"');
     expect(detail).toContain('"Draft"');
+    expect(detail).toContain("DuplicateTemplateAction");
     expect(detail).toContain("Preview patient guide");
     expect(detail).toContain("Preview revision");
     expect(detail).not.toContain("Preview published content");
