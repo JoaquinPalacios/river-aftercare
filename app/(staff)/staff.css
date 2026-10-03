@@ -2244,6 +2244,12 @@ a.staffOverflowItem {
   gap: 1rem;
 }
 
+.staffEditorRail .canonicalOutline {
+  position: static;
+  max-height: none;
+  overflow: visible;
+}
+
 .staffEditorLayout > * {
   min-width: 0;
   max-width: 100%;
@@ -3321,7 +3327,8 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   margin: 0;
 }
 
-.canonicalBlockToggle {
+.canonicalBlockToggle,
+.canonicalBlockStatic {
   display: flex;
   width: 100%;
   min-height: 2.75rem;
@@ -3333,6 +3340,9 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   background: transparent;
   color: var(--staff-ink);
   text-align: left;
+}
+
+.canonicalBlockToggle {
   cursor: pointer;
 }
 

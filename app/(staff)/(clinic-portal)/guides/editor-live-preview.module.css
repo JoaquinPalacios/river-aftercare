@@ -29,6 +29,15 @@
   color: var(--preview-muted);
 }
 
+.preview h2 {
+  margin: 0 0 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--preview-muted);
+}
+
 .list {
   margin: 0;
   padding: 0;
@@ -96,8 +105,22 @@
 
 .empty {
   margin: 0.55rem 0 0;
-  max-width: 16rem;
+  max-width: 36rem;
   color: var(--preview-muted);
   font-size: 0.875rem;
   line-height: 1.5;
+}
+
+.companionList {
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.companionItem {
+  margin: 0 0 0.65rem;
+}
+
+.companionItem:last-child {
+  margin-bottom: 0;
 }

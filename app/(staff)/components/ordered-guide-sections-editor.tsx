@@ -77,11 +77,14 @@ export function OrderedGuideSectionsEditor({
   disabled,
   onChange,
   focusRequest = null,
+  allowTimelineAddition = true,
 }: {
   sections: EditorSection[];
   disabled: boolean;
   onChange: (sections: EditorSection[]) => void;
   focusRequest?: { key: string; nonce: number } | null;
+  /** Home-exercise guides without a timeline keep the control hidden. */
+  allowTimelineAddition?: boolean;
 }) {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(
     () => new Set()
@@ -163,7 +166,10 @@ export function OrderedGuideSectionsEditor({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div
+      className="flex flex-col gap-4"
+      data-timeline-addition={allowTimelineAddition ? "available" : "hidden"}
+    >
       {sections.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           <button
@@ -393,14 +399,16 @@ export function OrderedGuideSectionsEditor({
             <GuideSectionKindIcon kind="INTRODUCTION" />
             Add section
           </button>
-          <button
-            type="button"
-            className="staffBtn staffBtnSecondary gap-2"
-            onClick={() => add("RECOVERY_TIMELINE")}
-          >
-            <GuideSectionKindIcon kind="RECOVERY_TIMELINE" />
-            Add timeline stage
-          </button>
+          {allowTimelineAddition ? (
+            <button
+              type="button"
+              className="staffBtn staffBtnSecondary gap-2"
+              onClick={() => add("RECOVERY_TIMELINE")}
+            >
+              <GuideSectionKindIcon kind="RECOVERY_TIMELINE" />
+              Add timeline stage
+            </button>
+          ) : null}
           <button
             type="button"
             className="staffBtn staffBtnSecondary gap-2"

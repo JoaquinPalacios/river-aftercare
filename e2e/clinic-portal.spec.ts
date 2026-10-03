@@ -314,7 +314,9 @@ test.describe("clinic portal", () => {
       page.getByRole("button", { name: "Cancel" }).filter({ visible: true })
     ).toBeVisible();
     await expect(page.locator("[data-save-state=saved]")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Add stage" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Add timeline stage" })
+    ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Tooth Extraction" }).first()
     ).toBeVisible();
@@ -341,7 +343,11 @@ test.describe("clinic portal", () => {
       );
     }
 
-    const instructions = page.getByLabel("Instructions").first();
+    const firstTimeline = page
+      .locator('article[data-section-kind="RECOVERY_TIMELINE"]')
+      .first();
+    await firstTimeline.getByRole("button").first().click();
+    const instructions = firstTimeline.getByLabel("Instructions");
     await expect(instructions).toBeVisible();
     await expectAutosizeTextarea(instructions, "timeline instructions");
     await instructions.scrollIntoViewIfNeeded();
@@ -349,13 +355,13 @@ test.describe("clinic portal", () => {
       path: "test-results/artifacts/phase-2a.5-editor-timeline-instructions.png",
     });
 
-    const warningGuidance = page
-      .locator("section")
-      .filter({
-        has: page.getByRole("heading", { name: "Warnings / contact" }),
-      })
-      .getByLabel("Guidance")
+    const warning = page
+      .locator(
+        'article[data-section-kind="WARNING_SIGNS"], article[data-section-kind="CONTACT_PRACTICE"], article[data-section-kind="EMERGENCY"]'
+      )
       .first();
+    await warning.getByRole("button").first().click();
+    const warningGuidance = warning.getByLabel("Guidance");
     await expect(warningGuidance).toBeVisible();
     await expectAutosizeTextarea(warningGuidance, "warning/contact guidance");
     await warningGuidance.scrollIntoViewIfNeeded();
@@ -590,11 +596,13 @@ test.describe("clinic portal UX polish", () => {
       .filter({ visible: true })
       .click();
     const discardDialog = page.getByRole("dialog", {
-      name: "Discard unsaved changes?",
+      name: "Save changes before leaving?",
     });
     await expect(discardDialog).toBeVisible();
     await expect(
-      discardDialog.getByText("Your latest changes haven't been saved.")
+      discardDialog.getByText(
+        "You have unsaved changes. Save them before leaving this page?"
+      )
     ).toBeVisible();
     await page.screenshot({
       path: "test-results/artifacts/staff-guide-editor-cancel-dialog-1440.png",
@@ -604,7 +612,7 @@ test.describe("clinic portal UX polish", () => {
       path: "test-results/artifacts/staff-guide-editor-cancel-dialog-dark-1440.png",
     });
     await setPortalColorScheme(page, "light");
-    await discardDialog.getByRole("button", { name: "Keep editing" }).click();
+    await discardDialog.getByRole("button", { name: "Stay" }).click();
     await expect(discardDialog).toHaveCount(0);
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
     await expect(page.locator("[data-save-state=unsaved]")).toBeVisible();
@@ -613,7 +621,7 @@ test.describe("clinic portal UX polish", () => {
       .getByRole("button", { name: "Cancel" })
       .filter({ visible: true })
       .click();
-    await page.getByRole("button", { name: "Discard changes" }).click();
+    await page.getByRole("button", { name: "Leave without saving" }).click();
     await expect(page).toHaveURL(staffUrl("/guides"));
 
     await page
@@ -783,10 +791,10 @@ test.describe("clinic portal UX polish", () => {
     await page.getByRole("button", { name: "Create custom guide" }).click();
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
     await expect(
-      page.getByRole("heading", { name: "Patient timeline preview" })
+      page.getByRole("heading", { name: "Patient preview" })
     ).toBeVisible();
     await expect(
-      page.getByText("Add a recovery stage to see the patient timeline here.")
+      page.getByText("This guide does not include a recovery timeline.").first()
     ).toBeVisible();
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.screenshot({
@@ -936,7 +944,7 @@ test.describe("clinic portal UX polish", () => {
     });
   });
 
-  test("timeline accordion is exclusive and live preview follows unsaved titles", async ({
+  test("timeline sections expand independently and live preview follows unsaved titles", async ({
     page,
   }) => {
     await signInAsLocalAdmin(page);
@@ -947,16 +955,20 @@ test.describe("clinic portal UX polish", () => {
       .getByRole("link", { name: "Edit" })
       .click();
 
-    const stages = page.locator("article[data-stage-key]");
+    const stages = page.locator(
+      'article[data-section-kind="RECOVERY_TIMELINE"]'
+    );
     const firstStage = stages.nth(0);
     const secondStage = stages.nth(1);
+    await expect(firstStage).toHaveAttribute("data-expanded", "false");
+    await firstStage.getByRole("button").first().click();
     await expect(firstStage).toHaveAttribute("data-expanded", "true");
     await page.screenshot({
       path: "docs/product/artifacts/phase-2a.2/editor-stages-collapsed-1440.png",
       fullPage: true,
     });
     await secondStage.getByRole("button").first().click();
-    await expect(firstStage).toHaveAttribute("data-expanded", "false");
+    await expect(firstStage).toHaveAttribute("data-expanded", "true");
     await expect(secondStage).toHaveAttribute("data-expanded", "true");
     await page.screenshot({
       path: "docs/product/artifacts/phase-2a.2/editor-stage-expanded-1440.png",
@@ -977,13 +989,15 @@ test.describe("clinic portal UX polish", () => {
     ).toBeVisible();
     await titleField.fill(original);
 
-    await page.getByRole("button", { name: "Add stage" }).click();
+    await page.getByRole("button", { name: "Add timeline stage" }).click();
     const newest = stages.last();
     await expect(newest).toHaveAttribute("data-expanded", "true");
     await expect(
       newest.getByRole("textbox", { name: "Title", exact: true })
-    ).toHaveValue("New stage");
-    await newest.getByRole("button", { name: "Remove stage" }).click();
+    ).toHaveValue("");
+    await newest
+      .getByRole("button", { name: "Remove Recovery timeline" })
+      .click();
   });
 
   test("admin can delete an unpublished custom draft from the overflow menu", async ({

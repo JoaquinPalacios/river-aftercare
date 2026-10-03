@@ -49,11 +49,15 @@ export function Field({
   );
 }
 
-export function FieldError({ message }: { message?: string }) {
+export function FieldError({ message, id }: { message?: string; id?: string }) {
   if (!message) {
     return null;
   }
-  return <p className="text-sm text-red-600">{message}</p>;
+  return (
+    <p id={id} className="text-sm text-red-600">
+      {message}
+    </p>
+  );
 }
 
 export function EditorSectionHeading({

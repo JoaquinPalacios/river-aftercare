@@ -19,62 +19,39 @@ import {
 import { EditorLivePreview } from "@/app/(staff)/(clinic-portal)/guides/editor-live-preview";
 import { GuideLifecycleActions } from "@/app/(staff)/(clinic-portal)/guides/guide-lifecycle-actions";
 import { GuideShareMenu } from "@/app/(staff)/(clinic-portal)/guides/guide-share-menu";
-import {
-  TimelineAccordion,
-  type EditorSection,
-} from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
+import type { EditorSection } from "@/app/(staff)/(clinic-portal)/guides/timeline-accordion";
 import { AutosizeTextarea } from "@/app/(staff)/components/autosize-textarea";
+import { CanonicalGuideOutline } from "@/app/(staff)/components/canonical-guide-outline";
 import { ConfirmDialog } from "@/app/(staff)/components/confirm-dialog";
 import {
-  EditorSectionHeading,
   Field,
   FieldError,
-  GenericSectionEditor,
-  HomeCarePlanEditor,
-  newGuideContentKey,
 } from "@/app/(staff)/components/guide-section-editors";
 import { GuideStatusPills } from "@/app/(staff)/components/guide-status-pills";
+import { OrderedGuideSectionsEditor } from "@/app/(staff)/components/ordered-guide-sections-editor";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { SaveStatus } from "@/app/(staff)/components/save-status";
+import { UnsavedChangesDialog } from "@/app/(staff)/components/unsaved-changes-dialog";
 import { useUnsavedChangesGuard } from "@/app/(staff)/components/use-unsaved-changes-guard";
 import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
+import { guideSectionKindLabel } from "@/lib/aftercare/guide-section-kind-label";
 import { guideQrDownloadPath } from "@/lib/clinic-portal/guide-qr";
 import { formSaveStatus } from "@/lib/clinic-portal/form-save-status";
+import {
+  clinicGuideOffersTimelineAddition,
+  RECOVERY_TIMELINE_ABSENT_NOTE,
+} from "@/lib/clinic-portal/guide-editor-timeline";
 import {
   clinicGuideDestructiveAction,
   clinicGuideStatusPills,
   guideEditorPublicationMode,
 } from "@/lib/clinic-portal/guide-status-view";
 import type { PracticeGuideEditorRecord } from "@/lib/clinic-portal/load-practice-guide-editor";
-import type {
-  HomeCareDurationUnit,
-  HomeCareFrequencyPeriod,
-} from "@/lib/aftercare/home-care-instruction";
 import {
   SERVICE_CATEGORY_LABELS,
   serviceCategoryLabel,
   type ServiceCategory,
 } from "@/lib/aftercare/service-category";
-import type { GuideSectionKind } from "@/lib/aftercare/types";
-
-const ADDITIONAL_KINDS: GuideSectionKind[] = [
-  "INTRODUCTION",
-  "IMMEDIATE_CARE",
-  "FIRST_24_HOURS",
-  "WHAT_IS_NORMAL",
-  "PAIN",
-  "RESTRICTIONS",
-  "MEDICATIONS",
-  "SITE_CARE",
-  "WHAT_TO_AVOID",
-  "CUSTOM",
-];
-
-const WARNING_KINDS: GuideSectionKind[] = [
-  "WARNING_SIGNS",
-  "CONTACT_PRACTICE",
-  "EMERGENCY",
-];
 
 const emptyAction: GuideActionState = {};
 
@@ -134,7 +111,15 @@ export function GuideEditor({
   const router = useRouter();
   const errorSummaryRef = useRef<HTMLParagraphElement>(null);
   const pendingSnapshot = useRef<string>("");
+  const focusNonce = useRef(0);
+  const leaveAfterSave = useRef(false);
+  const handledSave = useRef<GuideActionState | null>(null);
   const previewId = useId().replace(/:/g, "");
+  const [leaving, setLeaving] = useState(false);
+  const [focusRequest, setFocusRequest] = useState<{
+    key: string;
+    nonce: number;
+  } | null>(null);
   const [title, setTitle] = useState(guide.title);
   const [serviceCategory, setServiceCategory] = useState<string>(
     guide.serviceCategory ?? ""
@@ -197,21 +182,16 @@ export function GuideEditor({
     discard,
   } = useUnsavedChangesGuard(dirty);
 
-  const timeline = sections.filter(
+  const hasTimeline = sections.some(
     (section) => section.kind === "RECOVERY_TIMELINE"
   );
-  const additional = sections.filter((section) =>
-    ADDITIONAL_KINDS.includes(section.kind)
-  );
-  const homeCare = sections.filter(
-    (section) => section.kind === "HOME_CARE_PLAN"
-  );
-  const warnings = sections.filter((section) =>
-    WARNING_KINDS.includes(section.kind)
-  );
-  const [expandedStageKey, setExpandedStageKey] = useState<string | null>(
-    () => timeline[0]?.key ?? null
-  );
+  const allowTimelineAddition = clinicGuideOffersTimelineAddition({
+    serviceCategory: guide.serviceCategory,
+    publicSlug,
+    title,
+    templateTitle: guide.template?.title,
+    sectionKinds: sections.map((section) => section.kind),
+  });
 
   useEffect(() => {
     if (ignoreNextServerSnapshot.current) {
@@ -222,12 +202,31 @@ export function GuideEditor({
   }, [serverSerialized]);
 
   useEffect(() => {
-    if (saveState.ok) {
-      setConfirmed(pendingSnapshot.current);
-      ignoreNextServerSnapshot.current = true;
-      router.refresh();
+    if (handledSave.current === saveState) {
+      return;
     }
-  }, [saveState, router]);
+    handledSave.current = saveState;
+    if (saveState.error || saveState.fieldErrors) {
+      if (leaveAfterSave.current) {
+        leaveAfterSave.current = false;
+        setLeaving(false);
+        keepEditing();
+      }
+      return;
+    }
+    if (!saveState.ok) {
+      return;
+    }
+    setConfirmed(pendingSnapshot.current);
+    if (leaveAfterSave.current) {
+      leaveAfterSave.current = false;
+      setLeaving(false);
+      discard();
+      return;
+    }
+    ignoreNextServerSnapshot.current = true;
+    router.refresh();
+  }, [saveState, discard, keepEditing, router]);
 
   useEffect(() => {
     if (publishState.ok) {
@@ -249,62 +248,44 @@ export function GuideEditor({
     errorSummaryRef.current?.focus();
   }, [saveState]);
 
-  function replaceGroup(
-    predicate: (section: EditorSection) => boolean,
-    nextGroup: EditorSection[]
-  ) {
-    setSections((current) => [
-      ...current.filter((section) => !predicate(section)),
-      ...nextGroup,
-    ]);
-  }
-
   function payloadSections(): unknown[] {
-    return [...timeline, ...additional, ...homeCare, ...warnings].map(
-      (section) => ({
-        key: section.key,
-        kind: section.kind,
-        title: section.title,
-        body: section.body,
-        periodLabel: section.periodLabel || null,
-        startDay: section.startDay === "" ? null : Number(section.startDay),
-        endDay: section.endDay === "" ? null : Number(section.endDay),
-        homeCareInstructions:
-          section.kind === "HOME_CARE_PLAN"
-            ? section.homeCareInstructions.map((item) => ({
-                key: item.key,
-                title: item.title,
-                body: item.body.trim() ? item.body : null,
-                frequencyCount: optionalCount(item.frequencyCount),
-                frequencyPeriod: item.frequencyPeriod || null,
-                timingLabel: item.timingLabel.trim() ? item.timingLabel : null,
-                durationValue: optionalCount(item.durationValue),
-                durationUnit: item.durationUnit || null,
-              }))
-            : [],
-      })
-    );
+    return sections.map((section) => ({
+      key: section.key,
+      kind: section.kind,
+      title: section.title,
+      body: section.body,
+      periodLabel: section.periodLabel || null,
+      startDay: section.startDay === "" ? null : Number(section.startDay),
+      endDay: section.endDay === "" ? null : Number(section.endDay),
+      homeCareInstructions:
+        section.kind === "HOME_CARE_PLAN"
+          ? section.homeCareInstructions.map((item) => ({
+              key: item.key,
+              title: item.title,
+              body: item.body.trim() ? item.body : null,
+              frequencyCount: optionalCount(item.frequencyCount),
+              frequencyPeriod: item.frequencyPeriod || null,
+              timingLabel: item.timingLabel.trim() ? item.timingLabel : null,
+              durationValue: optionalCount(item.durationValue),
+              durationUnit: item.durationUnit || null,
+            }))
+          : [],
+    }));
   }
 
-  function addStage() {
-    const key = newGuideContentKey("stage");
-    replaceGroup(
-      (section) => section.kind === "RECOVERY_TIMELINE",
-      [
-        ...timeline,
-        {
-          key,
-          kind: "RECOVERY_TIMELINE",
-          title: "New stage",
-          body: "Add recovery instructions for this period.",
-          periodLabel: "",
-          startDay: "",
-          endDay: "",
-          homeCareInstructions: [],
-        },
-      ]
-    );
-    setExpandedStageKey(key);
+  function saveAndLeave() {
+    leaveAfterSave.current = true;
+    setLeaving(true);
+    pendingSnapshot.current = serialized;
+    const form = document.getElementById(
+      "guide-draft-form"
+    ) as HTMLFormElement | null;
+    form?.requestSubmit();
+  }
+
+  function revealSection(key: string) {
+    focusNonce.current += 1;
+    setFocusRequest({ key, nonce: focusNonce.current });
   }
 
   const categoryLabel = serviceCategoryLabel(guide.serviceCategory);
@@ -353,6 +334,7 @@ export function GuideEditor({
             <button
               type="button"
               disabled={publishing || dirty}
+              aria-describedby={dirty ? "guide-publish-needs-save" : undefined}
               title={
                 dirty ? "Save the current draft before publishing." : undefined
               }
@@ -397,9 +379,25 @@ export function GuideEditor({
     </div>
   );
 
+  const timelineStages = sections.filter(
+    (section) => section.kind === "RECOVERY_TIMELINE"
+  );
+  const companionSections = sections
+    .filter((section) => section.kind !== "RECOVERY_TIMELINE")
+    .map((section) => ({
+      key: section.key,
+      title: section.title,
+      kindLabel: guideSectionKindLabel(section.kind),
+    }));
+  const provenance = guide.template
+    ? `Linked to the River template “${guide.template.title}”. Saving on this page does not adapt the guide or update a live demo.`
+    : guide.adaptedFromTemplate
+      ? "Clinic-owned copy of a River template. Edits stay on this guide and do not change the River template."
+      : "Custom guide for this clinic.";
   const preview = (
     <EditorLivePreview
-      stages={timeline}
+      stages={timelineStages}
+      companionSections={companionSections}
       clinicThemeMode={clinicThemeMode}
       fontClassName={fontClassName}
       fontCssVariable={fontCssVariable}
@@ -469,7 +467,17 @@ export function GuideEditor({
             <GuideStatusPills pills={statusPills} />
           </div>
           <p className="staffEditorToolbarContext">{sourceLabel}</p>
-          <div className="staffEditorSaveStatus">{saveFeedback}</div>
+          <div className="staffEditorSaveStatus">
+            {saveFeedback}
+            {dirty && publication.publish ? (
+              <p
+                className="canonicalEditorEditNote"
+                id="guide-publish-needs-save"
+              >
+                Save the current draft before publishing.
+              </p>
+            ) : null}
+          </div>
         </div>
         <div className="staffEditorToolbarActions">{actions}</div>
       </div>
@@ -478,7 +486,7 @@ export function GuideEditor({
         <form
           id="guide-draft-form"
           action={saveAction}
-          className="flex flex-col gap-8"
+          className="flex flex-col gap-6"
           onSubmit={() => {
             pendingSnapshot.current = serialized;
           }}
@@ -490,171 +498,174 @@ export function GuideEditor({
             value={JSON.stringify(payloadSections())}
           />
 
-          <EditorSectionHeading title="Basics">
-            <Field label="Guide title" htmlFor="title">
-              <input
-                id="title"
-                name="title"
-                data-guide-field
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                disabled={!canEdit}
-                aria-invalid={saveState.fieldErrors?.title ? "true" : "false"}
-                className="staffField"
-              />
-              <FieldError message={saveState.fieldErrors?.title} />
-            </Field>
-            {guide.categoryEditable ? (
-              <Field label="Service" htmlFor="serviceCategory">
-                {allowedServiceCategories.length > 0 ? (
-                  <select
-                    id="serviceCategory"
-                    name="serviceCategory"
-                    value={serviceCategory}
-                    onChange={(event) => setServiceCategory(event.target.value)}
-                    disabled={!canEdit}
-                    className="staffField"
-                  >
-                    {guide.serviceCategory ? null : (
-                      <option value="">Not set</option>
-                    )}
-                    {[
-                      ...new Set([
-                        ...(guide.serviceCategory
-                          ? [guide.serviceCategory]
-                          : []),
-                        ...allowedServiceCategories,
-                      ]),
-                    ].map((category) => (
-                      <option key={category} value={category}>
-                        {SERVICE_CATEGORY_LABELS[category]}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <p id="serviceCategory" className="text-sm text-staff-muted">
-                    Configure a site service before changing this guide&apos;s
-                    service.
-                  </p>
-                )}
-                <FieldError message={saveState.fieldErrors?.serviceCategory} />
+          <section
+            className="canonicalEditorBlock"
+            data-guide-details=""
+            data-block-accent="section"
+            data-expanded="true"
+          >
+            <header className="canonicalBlockHeader">
+              <h2 className="canonicalBlockHeading">
+                <span className="canonicalBlockStatic">
+                  <span className="canonicalBlockBadge">Guide</span>
+                  <span className="canonicalBlockSummary">Guide details</span>
+                </span>
+              </h2>
+            </header>
+            <div className="canonicalBlockFields">
+              <p className="text-sm text-staff-muted">{provenance}</p>
+              <Field label="Guide title" htmlFor="title">
+                <input
+                  id="title"
+                  name="title"
+                  data-guide-field
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  disabled={!canEdit}
+                  aria-invalid={saveState.fieldErrors?.title ? "true" : "false"}
+                  aria-describedby={
+                    saveState.fieldErrors?.title ? "title-error" : undefined
+                  }
+                  className="staffField"
+                />
+                <FieldError
+                  id="title-error"
+                  message={saveState.fieldErrors?.title}
+                />
               </Field>
-            ) : null}
-            <Field label="Public slug" htmlFor="publicSlug">
-              {slugLocked ? (
-                <input type="hidden" name="publicSlug" value={publicSlug} />
+              {guide.categoryEditable ? (
+                <Field label="Service" htmlFor="serviceCategory">
+                  {allowedServiceCategories.length > 0 ? (
+                    <select
+                      id="serviceCategory"
+                      name="serviceCategory"
+                      value={serviceCategory}
+                      onChange={(event) =>
+                        setServiceCategory(event.target.value)
+                      }
+                      disabled={!canEdit}
+                      aria-invalid={
+                        saveState.fieldErrors?.serviceCategory
+                          ? "true"
+                          : "false"
+                      }
+                      aria-describedby={
+                        saveState.fieldErrors?.serviceCategory
+                          ? "serviceCategory-error"
+                          : undefined
+                      }
+                      className="staffField"
+                    >
+                      {guide.serviceCategory ? null : (
+                        <option value="">Not set</option>
+                      )}
+                      {[
+                        ...new Set([
+                          ...(guide.serviceCategory
+                            ? [guide.serviceCategory]
+                            : []),
+                          ...allowedServiceCategories,
+                        ]),
+                      ].map((category) => (
+                        <option key={category} value={category}>
+                          {SERVICE_CATEGORY_LABELS[category]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p
+                      id="serviceCategory"
+                      className="text-sm text-staff-muted"
+                    >
+                      Configure a site service before changing this guide&apos;s
+                      service.
+                    </p>
+                  )}
+                  <FieldError
+                    id="serviceCategory-error"
+                    message={saveState.fieldErrors?.serviceCategory}
+                  />
+                </Field>
               ) : null}
-              <input
-                id="publicSlug"
-                name={slugLocked ? undefined : "publicSlug"}
-                data-guide-field
-                value={publicSlug}
-                onChange={(event) => setPublicSlug(event.target.value)}
-                disabled={slugLocked}
-                aria-invalid={
-                  saveState.fieldErrors?.publicSlug ? "true" : "false"
-                }
-                className="staffField staffFieldNarrow"
-              />
-              <p className="staffEditorUrl text-sm text-staff-muted">
-                Patient URL:{" "}
-                {patientUrlExample.replace(/\/[^/]*$/, `/${publicSlug || "…"}`)}
-              </p>
-              {guide.isPublished ? (
-                <p className="text-sm text-staff-muted">
-                  The published public URL is protected so existing patient
-                  links keep working.
+              <Field label="Public slug" htmlFor="publicSlug">
+                {slugLocked ? (
+                  <input type="hidden" name="publicSlug" value={publicSlug} />
+                ) : null}
+                <input
+                  id="publicSlug"
+                  name={slugLocked ? undefined : "publicSlug"}
+                  data-guide-field
+                  value={publicSlug}
+                  onChange={(event) => setPublicSlug(event.target.value)}
+                  disabled={slugLocked}
+                  aria-invalid={
+                    saveState.fieldErrors?.publicSlug ? "true" : "false"
+                  }
+                  aria-describedby={
+                    saveState.fieldErrors?.publicSlug
+                      ? "publicSlug-error"
+                      : undefined
+                  }
+                  className="staffField staffFieldNarrow"
+                />
+                <p className="staffEditorUrl text-sm text-staff-muted">
+                  Patient URL:{" "}
+                  {patientUrlExample.replace(
+                    /\/[^/]*$/,
+                    `/${publicSlug || "…"}`
+                  )}
                 </p>
-              ) : null}
-              <FieldError message={saveState.fieldErrors?.publicSlug} />
-            </Field>
-            <Field label="Short introduction" htmlFor="introduction">
-              <AutosizeTextarea
-                id="introduction"
-                name="introduction"
-                data-guide-field
-                value={introduction}
-                onChange={(event) => setIntroduction(event.target.value)}
-                disabled={!canEdit}
-                aria-invalid={
-                  saveState.fieldErrors?.introduction ? "true" : "false"
-                }
-              />
-              <FieldError message={saveState.fieldErrors?.introduction} />
-            </Field>
-          </EditorSectionHeading>
+                {guide.isPublished ? (
+                  <p className="text-sm text-staff-muted">
+                    The published public URL is protected so existing patient
+                    links keep working.
+                  </p>
+                ) : null}
+                <FieldError
+                  id="publicSlug-error"
+                  message={saveState.fieldErrors?.publicSlug}
+                />
+              </Field>
+              <Field label="Short introduction" htmlFor="introduction">
+                <AutosizeTextarea
+                  id="introduction"
+                  name="introduction"
+                  data-guide-field
+                  value={introduction}
+                  onChange={(event) => setIntroduction(event.target.value)}
+                  disabled={!canEdit}
+                  aria-invalid={
+                    saveState.fieldErrors?.introduction ? "true" : "false"
+                  }
+                  aria-describedby={
+                    saveState.fieldErrors?.introduction
+                      ? "introduction-error"
+                      : undefined
+                  }
+                />
+                <FieldError
+                  id="introduction-error"
+                  message={saveState.fieldErrors?.introduction}
+                />
+              </Field>
+            </div>
+          </section>
 
-          <EditorSectionHeading title="Timeline">
-            <TimelineAccordion
-              stages={timeline}
-              disabled={!canEdit}
-              expandedKey={expandedStageKey}
-              onExpandedKeyChange={setExpandedStageKey}
-              onChange={(next) =>
-                replaceGroup(
-                  (section) => section.kind === "RECOVERY_TIMELINE",
-                  next
-                )
-              }
-            />
-            {canEdit ? (
-              <button
-                type="button"
-                onClick={addStage}
-                className="staffBtn staffBtnSecondary self-start"
-              >
-                Add stage
-              </button>
-            ) : null}
-          </EditorSectionHeading>
-
-          <EditorSectionHeading title="Additional guidance">
-            <GenericSectionEditor
-              sections={additional}
-              kinds={ADDITIONAL_KINDS}
-              disabled={!canEdit}
-              addLabel="Add guidance"
-              onChange={(next) =>
-                replaceGroup(
-                  (section) => ADDITIONAL_KINDS.includes(section.kind),
-                  next
-                )
-              }
-            />
-          </EditorSectionHeading>
-
-          <EditorSectionHeading title="Home care plan">
-            <p className="text-sm text-staff-muted">
-              Recurring or milestone instructions. Leave frequency blank when an
-              instruction only needs a duration, such as a review in a set
-              number of weeks.
+          {hasTimeline ? null : (
+            <p
+              className="text-sm text-staff-muted"
+              data-recovery-timeline="absent"
+            >
+              {RECOVERY_TIMELINE_ABSENT_NOTE}
             </p>
-            <HomeCarePlanEditor
-              sections={homeCare}
-              disabled={!canEdit}
-              onChange={(next) =>
-                replaceGroup(
-                  (section) => section.kind === "HOME_CARE_PLAN",
-                  next
-                )
-              }
-            />
-          </EditorSectionHeading>
-
-          <EditorSectionHeading title="Warnings / contact">
-            <GenericSectionEditor
-              sections={warnings}
-              kinds={WARNING_KINDS}
-              disabled={!canEdit}
-              addLabel="Add warning or contact section"
-              onChange={(next) =>
-                replaceGroup(
-                  (section) => WARNING_KINDS.includes(section.kind),
-                  next
-                )
-              }
-            />
-          </EditorSectionHeading>
+          )}
+          <OrderedGuideSectionsEditor
+            sections={sections}
+            disabled={!canEdit}
+            allowTimelineAddition={allowTimelineAddition}
+            onChange={setSections}
+            focusRequest={focusRequest}
+          />
 
           {saveState.error || saveState.fieldErrors?.sections ? (
             <p
@@ -680,8 +691,9 @@ export function GuideEditor({
 
         <aside
           className="staffEditorRail"
-          aria-label="Patient timeline preview"
+          aria-label="Guide outline and patient preview"
         >
+          <CanonicalGuideOutline sections={sections} onSelect={revealSection} />
           <div className="staffEditorRailDesktop">{preview}</div>
           <div className="staffEditorRailMobile">
             <div className="staffEditorPreviewToggle">
@@ -692,7 +704,7 @@ export function GuideEditor({
                 aria-controls={`mobile-preview-${previewId}`}
                 onClick={() => setPreviewOpen((open) => !open)}
               >
-                Preview patient timeline
+                Preview patient guide
               </button>
             </div>
             {previewOpen ? (
@@ -710,23 +722,23 @@ export function GuideEditor({
 
       <div className="staffEditorActionsMobile">{actions}</div>
 
-      <ConfirmDialog
+      <UnsavedChangesDialog
         open={discardOpen}
-        title="Discard unsaved changes?"
-        description="Your latest changes haven't been saved."
-        cancelLabel="Keep editing"
-        confirmLabel="Discard changes"
-        confirmTone="danger"
-        onCancel={keepEditing}
-        onConfirm={discard}
+        pending={leaving || saving}
+        canSave={canEdit}
+        onStay={keepEditing}
+        onLeave={discard}
+        onSave={saveAndLeave}
       />
       <ConfirmDialog
         open={publishOpen}
         title="Publish this guide?"
-        description="Patients using the public guide will see this version."
+        description="Patients using the public guide will see this version. This publishes the saved draft."
         cancelLabel="Cancel"
         confirmLabel="Publish guide"
         confirmTone="primary"
+        pending={publishing}
+        pendingLabel="Publishing…"
         onCancel={() => {
           setPublishOpen(false);
         }}
