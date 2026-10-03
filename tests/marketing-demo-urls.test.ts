@@ -15,7 +15,6 @@ import MarketingDentalPage from "@/app/(marketing)/%5Fmarketing/dental/page";
 import MarketingPhysiotherapyPage from "@/app/(marketing)/%5Fmarketing/physiotherapy/page";
 import {
   chiropracticDemoExampleHref,
-  configuredCosmeticAestheticDemoHref,
   cosmeticAestheticDemoExampleHref,
   dentalDemoGuideHref,
   exactVerifiedGuideHref,
@@ -34,6 +33,7 @@ const REQUEST_LABEL = "Request a demo";
 const DENTAL_LABEL = "View the dental demo";
 const PHYSIO_LABEL = "View the physiotherapy demo";
 const CHIRO_LABEL = "View the chiropractic demo";
+const COSMETIC_LABEL = "View the cosmetic demo";
 const CHIRO_WORKFLOW_LABEL = "See how it works";
 
 const DEMO_ENV_KEYS = [
@@ -303,21 +303,59 @@ describe("marketing demo URL validation", () => {
     ).toBeNull();
   });
 
-  it("keeps the cosmetic demonstration unavailable to marketing", () => {
-    expect(cosmeticAestheticDemoExampleHref()).toBeNull();
+  it("enables cosmetic only for its own verified guide", () => {
+    expect(cosmeticAestheticDemoExampleHref({})).toBeNull();
     expect(
-      configuredCosmeticAestheticDemoHref({
+      cosmeticAestheticDemoExampleHref({
+        RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL: " ",
+      })
+    ).toBeNull();
+    expect(
+      cosmeticAestheticDemoExampleHref({
+        RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL: "",
+      })
+    ).toBeNull();
+    expect(
+      cosmeticAestheticDemoExampleHref({
         RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL:
           SHARED_DEMO_COSMETIC_GUIDE_URL,
       })
     ).toBe(SHARED_DEMO_COSMETIC_GUIDE_URL);
     expect(
-      configuredCosmeticAestheticDemoHref({
+      cosmeticAestheticDemoExampleHref({
+        RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL: `${SHARED_DEMO_COSMETIC_GUIDE_URL}/`,
+      })
+    ).toBe(SHARED_DEMO_COSMETIC_GUIDE_URL);
+    expect(
+      cosmeticAestheticDemoExampleHref({
         RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL:
-          "https://clinic.example/peel",
+          "https://clinic.example/superficial-chemical-peel",
       })
     ).toBeNull();
-    expect(configuredCosmeticAestheticDemoHref({})).toBeNull();
+    expect(
+      cosmeticAestheticDemoExampleHref({
+        RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL:
+          SHARED_DEMO_DENTAL_GUIDE_URL,
+      })
+    ).toBeNull();
+    expect(
+      cosmeticAestheticDemoExampleHref({
+        RIVER_AFTERCARE_DEMO_CHIROPRACTIC_URL: SHARED_DEMO_CHIRO_GUIDE_URL,
+        RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL: SHARED_DEMO_PHYSIO_GUIDE_URL,
+        RIVER_AFTERCARE_DEMO_DENTAL_URL: SHARED_DEMO_DENTAL_GUIDE_URL,
+      })
+    ).toBeNull();
+    expect(
+      cosmeticAestheticDemoExampleHref({
+        RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL:
+          "http://demo.riveraftercare.com.au/superficial-chemical-peel",
+      })
+    ).toBeNull();
+    expect(
+      cosmeticAestheticDemoExampleHref({
+        RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL: `${SHARED_DEMO_COSMETIC_GUIDE_URL}?preview=1`,
+      })
+    ).toBeNull();
   });
 });
 
@@ -477,16 +515,129 @@ describe("marketing demo hero presentation", () => {
     ).toHaveLength(1);
   });
 
-  it("does not enable a cosmetic live example from its reserved variable", async () => {
-    process.env.RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL =
-      SHARED_DEMO_COSMETIC_GUIDE_URL;
+  it("keeps cosmetic as two actions until its own URL validates", async () => {
     const html = renderToStaticMarkup(await MarketingCosmeticClinicsPage());
     const hero = heroActionsHtml(html);
 
-    expect(cosmeticAestheticDemoExampleHref()).toBeNull();
+    expect(hero.match(/<(a|button)\b/g)).toHaveLength(2);
+    expect(hero).toContain(REQUEST_LABEL);
     expect(hero).toContain(CHIRO_WORKFLOW_LABEL);
-    expect(hero).not.toContain("View the cosmetic");
+    expect(hero).toContain('href="#workflow"');
+    expect(hero).not.toContain(COSMETIC_LABEL);
     expect(html).not.toContain(SHARED_DEMO_COSMETIC_GUIDE_URL);
+    expect(html).not.toContain(SHARED_DEMO_DENTAL_GUIDE_URL);
+    expect(html).not.toContain(SHARED_DEMO_CHIRO_GUIDE_URL);
+    expect(html).not.toContain(SHARED_DEMO_PHYSIO_GUIDE_URL);
     expect(html).not.toContain('data-live-example="ready"');
+    expect(sectionHtml(html, "cosmetic-workflow")).not.toContain(
+      CHIRO_WORKFLOW_LABEL
+    );
+  });
+
+  it("does not publish a blank or invalid cosmetic URL", async () => {
+    for (const value of [
+      " ",
+      "",
+      "https://clinic.example/superficial-chemical-peel",
+      "http://demo.riveraftercare.com.au/superficial-chemical-peel",
+      SHARED_DEMO_CHIRO_GUIDE_URL,
+    ]) {
+      process.env.RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL = value;
+      const html = renderToStaticMarkup(await MarketingCosmeticClinicsPage());
+      const hero = heroActionsHtml(html);
+
+      expect(hero).toContain(CHIRO_WORKFLOW_LABEL);
+      expect(hero).not.toContain(COSMETIC_LABEL);
+      expect(html).not.toContain(SHARED_DEMO_COSMETIC_GUIDE_URL);
+      expect(html).not.toContain("clinic.example");
+      expect(html).not.toContain('data-live-example="ready"');
+    }
+  });
+
+  it("matches the dental hero when the cosmetic guide URL is verified", async () => {
+    process.env.RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL = `${SHARED_DEMO_COSMETIC_GUIDE_URL}/`;
+    process.env.RIVER_AFTERCARE_DEMO_DENTAL_URL = SHARED_DEMO_DENTAL_GUIDE_URL;
+    process.env.RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL =
+      SHARED_DEMO_PHYSIO_GUIDE_URL;
+    process.env.RIVER_AFTERCARE_DEMO_CHIROPRACTIC_URL =
+      SHARED_DEMO_CHIRO_GUIDE_URL;
+    const html = renderToStaticMarkup(await MarketingCosmeticClinicsPage());
+    const dental = renderToStaticMarkup(await MarketingDentalPage());
+    const hero = heroActionsHtml(html);
+    const dentalHero = heroActionsHtml(dental);
+    const workflow = sectionHtml(html, "cosmetic-workflow");
+    const demo = tagForLabel(hero, COSMETIC_LABEL);
+
+    expect(hero.match(/<(a|button)\b/g)).toHaveLength(2);
+    expect(dentalHero.match(/<(a|button)\b/g)).toHaveLength(2);
+    expect(hero.indexOf(REQUEST_LABEL)).toBeLessThan(
+      hero.indexOf(COSMETIC_LABEL)
+    );
+    expect(hero).not.toContain(CHIRO_WORKFLOW_LABEL);
+    expect(demo).toContain(`href="${SHARED_DEMO_COSMETIC_GUIDE_URL}"`);
+    expect(demo).toContain('target="_blank"');
+    expect(demo).toContain('rel="noopener noreferrer"');
+    expect(demo).toContain('data-live-example="ready"');
+    expect(classNamesForLabel(hero, COSMETIC_LABEL)).toEqual(
+      classNamesForLabel(dentalHero, DENTAL_LABEL)
+    );
+    expect(classNamesForLabel(hero, REQUEST_LABEL)).toEqual(
+      classNamesForLabel(dentalHero, REQUEST_LABEL)
+    );
+    expect(workflow).toContain(CHIRO_WORKFLOW_LABEL);
+    expect(workflow).toContain('href="#workflow"');
+    expect(html).not.toContain(SHARED_DEMO_DENTAL_GUIDE_URL);
+    expect(html).not.toContain(SHARED_DEMO_PHYSIO_GUIDE_URL);
+    expect(html).not.toContain(SHARED_DEMO_CHIRO_GUIDE_URL);
+    expect(
+      html.match(new RegExp(SHARED_DEMO_COSMETIC_GUIDE_URL, "g"))
+    ).toHaveLength(1);
+  });
+
+  it("keeps each service-category CTA on its own shared guide", async () => {
+    process.env.RIVER_AFTERCARE_DEMO_DENTAL_URL = SHARED_DEMO_DENTAL_GUIDE_URL;
+    process.env.RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL =
+      SHARED_DEMO_PHYSIO_GUIDE_URL;
+    process.env.RIVER_AFTERCARE_DEMO_CHIROPRACTIC_URL =
+      SHARED_DEMO_CHIRO_GUIDE_URL;
+    process.env.RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL =
+      SHARED_DEMO_COSMETIC_GUIDE_URL;
+
+    const pages = [
+      {
+        html: renderToStaticMarkup(await MarketingDentalPage()),
+        label: DENTAL_LABEL,
+        href: SHARED_DEMO_DENTAL_GUIDE_URL,
+      },
+      {
+        html: renderToStaticMarkup(await MarketingPhysiotherapyPage()),
+        label: PHYSIO_LABEL,
+        href: SHARED_DEMO_PHYSIO_GUIDE_URL,
+      },
+      {
+        html: renderToStaticMarkup(await MarketingChiropracticPage()),
+        label: CHIRO_LABEL,
+        href: SHARED_DEMO_CHIRO_GUIDE_URL,
+      },
+      {
+        html: renderToStaticMarkup(await MarketingCosmeticClinicsPage()),
+        label: COSMETIC_LABEL,
+        href: SHARED_DEMO_COSMETIC_GUIDE_URL,
+      },
+    ];
+
+    for (const page of pages) {
+      const hero = heroActionsHtml(page.html);
+      const demo = tagForLabel(hero, page.label);
+      expect(hero.match(/<(a|button)\b/g)).toHaveLength(2);
+      expect(hero.indexOf(REQUEST_LABEL)).toBeLessThan(
+        hero.indexOf(page.label)
+      );
+      expect(demo).toContain(`href="${page.href}"`);
+      expect(demo).toContain('target="_blank"');
+      expect(demo).toContain('rel="noopener noreferrer"');
+      expect(page.html).toContain("demo.riveraftercare.com.au");
+      expect(page.html).not.toContain("demodental.riveraftercare.com.au");
+    }
   });
 });

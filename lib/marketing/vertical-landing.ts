@@ -3,6 +3,7 @@ import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import type { ClinicVerticalPath } from "@/lib/marketing/clinic-verticals";
 import {
   CHIRO_DEMO_HERO_LABEL,
+  COSMETIC_DEMO_HERO_LABEL,
   PHYSIO_DEMO_HERO_LABEL,
 } from "@/lib/marketing/physio-demo-link";
 
@@ -690,6 +691,7 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
       label: "See how it works",
       href: "#workflow",
     },
+    demoHeroLabel: COSMETIC_DEMO_HERO_LABEL,
     panel: {
       label: "How patients receive clinic aftercare",
       items: [

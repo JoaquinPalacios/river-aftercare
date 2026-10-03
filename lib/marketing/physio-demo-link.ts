@@ -5,4 +5,6 @@ export const PHYSIO_DEMO_HERO_LABEL = "View the physiotherapy demo";
 
 export const CHIRO_DEMO_HERO_LABEL = "View the chiropractic demo";
 
+export const COSMETIC_DEMO_HERO_LABEL = "View the cosmetic demo";
+
 export { physiotherapyDemoExampleHref } from "@/lib/marketing/shared-demo-links";
