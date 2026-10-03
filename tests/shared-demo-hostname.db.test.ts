@@ -106,7 +106,33 @@ describeDb("shared demo hostname and configuration", () => {
     });
     expect(planned.action).toBe("configure");
     expect(planned.missingCategories).toContain("CHIROPRACTIC");
-    expect(planned.writesBranding).toBe(false);
+    expect(planned.writesIdentity).toBe(false);
+    const clinicId = "clinic_demo_rivers";
+    const sitesBefore = await prisma.clinicSite.count({
+      where: { clinicId },
+    });
+    const locationsBefore = await prisma.clinicLocation.count({
+      where: { clinicId },
+    });
+    const brandBefore = await prisma.clinicSite.findUniqueOrThrow({
+      where: { slug: "demodental" },
+      select: {
+        primaryColor: true,
+        accentColor: true,
+        logoUrl: true,
+        themeMode: true,
+      },
+    });
+    const guideBefore = await prisma.practiceGuide.findUniqueOrThrow({
+      where: { id: DENTAL_GUIDE_ID },
+      select: { pinnedRevisionId: true, publicSlug: true },
+    });
+    const overridesBefore = await prisma.practiceGuideOverride.count({
+      where: { practiceGuideId: DENTAL_GUIDE_ID },
+    });
+    const additionsBefore = await prisma.practiceGuideAddition.count({
+      where: { practiceGuideId: DENTAL_GUIDE_ID },
+    });
     await applySharedDemoConfig(prisma, planned);
 
     const restored = await loadSharedDemoConfigSnapshot(prisma);
@@ -138,5 +164,135 @@ describeDb("shared demo hostname and configuration", () => {
     expect(after.publishedPracticeGuideRevisionId).toBe(
       before.publishedPracticeGuideRevisionId
     );
+    expect(await prisma.clinicSite.count({ where: { clinicId } })).toBe(
+      sitesBefore
+    );
+    expect(await prisma.clinicLocation.count({ where: { clinicId } })).toBe(
+      locationsBefore
+    );
+    const brandAfter = await prisma.clinicSite.findUniqueOrThrow({
+      where: { slug: "demodental" },
+      select: {
+        primaryColor: true,
+        accentColor: true,
+        logoUrl: true,
+        themeMode: true,
+      },
+    });
+    expect(brandAfter).toEqual(brandBefore);
+    const guideAfter = await prisma.practiceGuide.findUniqueOrThrow({
+      where: { id: DENTAL_GUIDE_ID },
+      select: { pinnedRevisionId: true, publicSlug: true },
+    });
+    expect(guideAfter).toEqual(guideBefore);
+    expect(
+      await prisma.practiceGuideOverride.count({
+        where: { practiceGuideId: DENTAL_GUIDE_ID },
+      })
+    ).toBe(overridesBefore);
+    expect(
+      await prisma.practiceGuideAddition.count({
+        where: { practiceGuideId: DENTAL_GUIDE_ID },
+      })
+    ).toBe(additionsBefore);
+  });
+
+  it("clears a stored phone without replacing colour, logo, or theme and without creating rows", async () => {
+    const clinicId = "clinic_demo_rivers";
+    const before = await prisma.clinicSite.findUniqueOrThrow({
+      where: { slug: "demodental" },
+      select: {
+        primaryColor: true,
+        accentColor: true,
+        logoUrl: true,
+        themeMode: true,
+      },
+    });
+    const clinicsBefore = await prisma.clinic.count();
+    const sitesBefore = await prisma.clinicSite.count();
+    const locationsBefore = await prisma.clinicLocation.count();
+    await prisma.clinicProfile.update({
+      where: { clinicId },
+      data: { phone: "0000000000" },
+    });
+    try {
+      const planned = planSharedDemoConfig({
+        local: true,
+        apply: true,
+        allowProduction: false,
+        confirmSharedDemo: false,
+        confirmBranding: true,
+        snapshot: await loadSharedDemoConfigSnapshot(prisma),
+      });
+      expect(planned.action).toBe("configure");
+      expect(planned.writesIdentity).toBe(true);
+      expect(planned.writesCategories).toBe(false);
+      expect(planned.clinicId).toBe(clinicId);
+      await applySharedDemoConfig(prisma, planned);
+      const profile = await prisma.clinicProfile.findUniqueOrThrow({
+        where: { clinicId },
+        select: {
+          phone: true,
+          primaryColor: true,
+          logoUrl: true,
+          themeMode: true,
+        },
+      });
+      expect(profile.phone).toBeNull();
+      expect(profile.primaryColor).toBe(before.primaryColor);
+      expect(profile.logoUrl).toBe(before.logoUrl);
+      expect(profile.themeMode).toBe(before.themeMode);
+      const site = await prisma.clinicSite.findUniqueOrThrow({
+        where: { slug: "demodental" },
+        select: {
+          primaryColor: true,
+          accentColor: true,
+          logoUrl: true,
+          themeMode: true,
+        },
+      });
+      expect(site).toEqual(before);
+      const repeat = planSharedDemoConfig({
+        local: true,
+        apply: true,
+        allowProduction: false,
+        confirmSharedDemo: false,
+        confirmBranding: true,
+        snapshot: await loadSharedDemoConfigSnapshot(prisma),
+      });
+      expect(repeat.action).toBe("noop");
+    } finally {
+      await prisma.clinicProfile.update({
+        where: { clinicId },
+        data: { phone: null },
+      });
+    }
+    expect(await prisma.clinic.count()).toBe(clinicsBefore);
+    expect(await prisma.clinicSite.count()).toBe(sitesBefore);
+    expect(await prisma.clinicLocation.count()).toBe(locationsBefore);
+
+    await expect(
+      applySharedDemoConfig(prisma, {
+        action: "configure",
+        reason: "missing account",
+        clinicId: "missing_shared_demo_account",
+        siteId: "missing_shared_demo_site",
+        locationId: "missing_shared_demo_location",
+        missingCategories: [],
+        writesCategories: false,
+        writesIdentity: true,
+        identityFields: [],
+        contactFields: [],
+        emergencyFields: [],
+        retainedProfileBrand: [],
+        retainedSiteBrand: [],
+        categoryReport: {
+          label: "service categories",
+          current: "(none)",
+          proposed: "(none)",
+        },
+      })
+    ).rejects.toThrow(/does not create an account/);
+    expect(await prisma.clinic.count()).toBe(clinicsBefore);
   });
 });
