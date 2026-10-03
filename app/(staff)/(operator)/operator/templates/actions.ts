@@ -13,6 +13,7 @@ import {
 } from "@/lib/canonical-templates/bulk-canonical-template-lifecycle";
 import { createCanonicalTemplateDraft } from "@/lib/canonical-templates/create-canonical-template-draft";
 import { createCanonicalTemplate } from "@/lib/canonical-templates/create-canonical-template";
+import { duplicateCanonicalTemplate } from "@/lib/canonical-templates/duplicate-canonical-template";
 import {
   CanonicalTemplateError,
   isBulkCanonicalTemplateError,
@@ -22,6 +23,7 @@ import { publishCanonicalTemplateRevision } from "@/lib/canonical-templates/publ
 import { saveCanonicalTemplateDraft } from "@/lib/canonical-templates/save-canonical-template-draft";
 import {
   createCanonicalTemplateSchema,
+  duplicateCanonicalTemplateSchema,
   updateCanonicalTemplateMetadataSchema,
 } from "@/lib/canonical-templates/schemas";
 import {
@@ -64,6 +66,22 @@ function fieldErrorsFrom(
     }
   }
   return fieldErrors;
+}
+
+function duplicateFailureState(error: unknown): CanonicalTemplateActionState {
+  if (!isCanonicalTemplateError(error)) {
+    return { error: actionError(error) };
+  }
+  if (error.message === "That slug is already used.") {
+    return { error: error.message, fieldErrors: { slug: error.message } };
+  }
+  if (error.message.includes("active sample")) {
+    return {
+      error: error.message,
+      fieldErrors: { classification: error.message },
+    };
+  }
+  return { error: error.message };
 }
 
 function actionError(error: unknown): string {
@@ -195,6 +213,39 @@ export async function createCanonicalTemplateAction(
   } catch (error) {
     rethrowNavigation(error);
     return { error: actionError(error) };
+  }
+}
+
+export async function duplicateCanonicalTemplateAction(
+  _previous: CanonicalTemplateActionState,
+  formData: FormData
+): Promise<CanonicalTemplateActionState> {
+  const { user } = await requirePlatformOperator();
+  const parsed = duplicateCanonicalTemplateSchema.safeParse({
+    actorUserId: user.id,
+    sourceTemplateId: formData.get("sourceTemplateId") ?? "",
+    title: formData.get("title") ?? "",
+    slug: formData.get("slug") ?? "",
+    serviceCategory: formData.get("serviceCategory") ?? "",
+    classification: formData.get("classification") ?? "",
+  });
+  if (!parsed.success) {
+    return {
+      error: "Check the template details.",
+      fieldErrors: fieldErrorsFrom(parsed.error.issues),
+    };
+  }
+
+  try {
+    const created = await duplicateCanonicalTemplate(parsed.data);
+    revalidateTemplate(parsed.data.sourceTemplateId);
+    revalidateTemplate(created.templateId);
+    redirect(
+      `/operator/templates/${created.templateId}/draft?notice=duplicated`
+    );
+  } catch (error) {
+    rethrowNavigation(error);
+    return duplicateFailureState(error);
   }
 }
 

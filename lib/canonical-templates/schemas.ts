@@ -45,6 +45,15 @@ export const createCanonicalTemplateSchema = z.object({
   classification: canonicalTemplateClassificationSchema.default("PRODUCTION"),
 });
 
+export const duplicateCanonicalTemplateSchema = z.object({
+  actorUserId: actorIdSchema,
+  sourceTemplateId: z.string().trim().min(1),
+  title: canonicalTemplateTitleSchema,
+  slug: canonicalTemplateSlugSchema,
+  serviceCategory: canonicalServiceCategorySchema,
+  classification: canonicalTemplateClassificationSchema,
+});
+
 export const updateCanonicalTemplateMetadataSchema = z
   .object({
     actorUserId: actorIdSchema,

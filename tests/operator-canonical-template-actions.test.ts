@@ -26,6 +26,7 @@ import {
   abandonCanonicalTemplateDraftAction,
   createCanonicalTemplateAction,
   createCanonicalTemplateDraftAction,
+  duplicateCanonicalTemplateAction,
   deactivateCanonicalTemplateAction,
   publishCanonicalTemplateRevisionAction,
   reactivateCanonicalTemplateAction,
@@ -256,12 +257,29 @@ describeDb("operator canonical template actions", () => {
       )
     ).rejects.toThrow(/NOT_FOUND/);
     await expect(
+      duplicateCanonicalTemplateAction(
+        {},
+        form({
+          sourceTemplateId: "missing",
+          title: "Blocked duplicate",
+          slug: "otm-blocked-copy",
+          serviceCategory: "DENTAL",
+          classification: "PRODUCTION",
+        })
+      )
+    ).rejects.toThrow(/NOT_FOUND/);
+    await expect(
       deactivateCanonicalTemplateAction({}, form({ templateId: "missing" }))
     ).rejects.toThrow(/NOT_FOUND/);
     expect(notFoundMock).toHaveBeenCalled();
     expect(
       await getPrisma().guideTemplate.findUnique({
         where: { slug: "otm-blocked" },
+      })
+    ).toBeNull();
+    expect(
+      await getPrisma().guideTemplate.findUnique({
+        where: { slug: "otm-blocked-copy" },
       })
     ).toBeNull();
   });
@@ -656,5 +674,123 @@ describeDb("operator canonical template actions", () => {
     expect(
       await getPrisma().guideTemplate.findUnique({ where: { id: templateId } })
     ).toBeNull();
+  });
+
+  it("duplicates a published template into a new draft workspace", async () => {
+    const createdUrl = await redirectUrl(
+      createCanonicalTemplateAction(
+        {},
+        form({
+          title: "Action source",
+          slug: "otm-duplicate-source",
+          serviceCategory: "DENTAL",
+        })
+      )
+    );
+    const sourceId = createdUrl.split("/")[3] ?? "";
+    const draft = await loadOperatorCanonicalTemplate(sourceId);
+    expect(
+      await duplicateCanonicalTemplateAction(
+        {},
+        form({
+          sourceTemplateId: sourceId,
+          title: "Too soon",
+          slug: "otm-duplicate-early",
+          serviceCategory: "DENTAL",
+          classification: "PRODUCTION",
+        })
+      )
+    ).toMatchObject({
+      error: expect.stringMatching(/Publish this template before duplicating/),
+    });
+    expect(
+      await getPrisma().guideTemplate.findUnique({
+        where: { slug: "otm-duplicate-early" },
+      })
+    ).toBeNull();
+
+    await saveCanonicalTemplateDraftAction(
+      {},
+      form({
+        templateId: sourceId,
+        revisionId: draft?.openDraft?.id ?? "",
+        sections: JSON.stringify(
+          exampleSections({
+            stages: ["earlier"],
+            instructions: ["daily"],
+          })
+        ),
+      })
+    );
+    await redirectUrl(
+      publishCanonicalTemplateRevisionAction(
+        {},
+        form({
+          templateId: sourceId,
+          revisionId: draft?.openDraft?.id ?? "",
+          expectedVersion: "1",
+        })
+      )
+    );
+
+    const mismatch = await duplicateCanonicalTemplateAction(
+      {},
+      form({
+        sourceTemplateId: sourceId,
+        title: "Wrong category",
+        slug: "otm-duplicate-category",
+        serviceCategory: "PHYSIOTHERAPY",
+        classification: "PRODUCTION",
+      })
+    );
+    expect(mismatch.error).toMatch(/source service category/);
+    expect(
+      await getPrisma().guideTemplate.findUnique({
+        where: { slug: "otm-duplicate-category" },
+      })
+    ).toBeNull();
+
+    const duplicateUrl = await redirectUrl(
+      duplicateCanonicalTemplateAction(
+        {},
+        form({
+          sourceTemplateId: sourceId,
+          title: "Action duplicate",
+          slug: "otm-duplicate-copy",
+          serviceCategory: "DENTAL",
+          classification: "PRODUCTION",
+        })
+      )
+    );
+    const duplicateId = duplicateUrl.split("/")[3] ?? "";
+    expect(duplicateUrl).toBe(
+      `/operator/templates/${duplicateId}/draft?notice=duplicated`
+    );
+    const copy = await loadOperatorCanonicalTemplate(duplicateId);
+    const source = await loadOperatorCanonicalTemplate(sourceId);
+    expect(copy?.openDraft?.version).toBe(1);
+    expect(copy?.latestPublishedVersion).toBeNull();
+    expect(copy?.serviceCategory).toBe("DENTAL");
+    expect(copy?.isSample).toBe(false);
+    expect(copy?.openDraft?.sections.map((section) => section.key)).toEqual([
+      "intro",
+      "earlier",
+      "plan",
+    ]);
+    expect(source?.latestPublishedVersion).toBe(1);
+    expect(source?.openDraft).toBeNull();
+    expect(source?.slug).toBe("otm-duplicate-source");
+
+    const conflict = await duplicateCanonicalTemplateAction(
+      {},
+      form({
+        sourceTemplateId: sourceId,
+        title: "Action duplicate again",
+        slug: "otm-duplicate-copy",
+        serviceCategory: "DENTAL",
+        classification: "PRODUCTION",
+      })
+    );
+    expect(conflict.fieldErrors?.slug).toBe("That slug is already used.");
   });
 });

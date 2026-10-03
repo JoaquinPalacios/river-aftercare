@@ -1,4 +1,6 @@
 export const OPERATOR_TEMPLATE_NOTICES: Record<string, string> = {
+  duplicated:
+    "Draft created from the latest published revision. This template is not published. The source template is unchanged.",
   published:
     "Template published. The revision is now read-only. Eligible clinics can discover this template. Clinics already pinned to an earlier revision are not updated.",
   "revision-opened":
