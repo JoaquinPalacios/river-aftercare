@@ -25,10 +25,18 @@ import {
 describe("clinic vertical landing pages", () => {
   const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
   const previousPhysioDemo = process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL;
+  const previousPhysioRiver =
+    process.env.RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL;
+  const previousChiroRiver = process.env.RIVER_AFTERCARE_DEMO_CHIROPRACTIC_URL;
+  const previousCosmeticRiver =
+    process.env.RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL;
 
   beforeEach(() => {
     process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
     delete process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL;
+    delete process.env.RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL;
+    delete process.env.RIVER_AFTERCARE_DEMO_CHIROPRACTIC_URL;
+    delete process.env.RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL;
   });
 
   afterEach(() => {
@@ -41,6 +49,22 @@ describe("clinic vertical landing pages", () => {
       delete process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL;
     } else {
       process.env.CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL = previousPhysioDemo;
+    }
+    if (previousPhysioRiver === undefined) {
+      delete process.env.RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL;
+    } else {
+      process.env.RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL = previousPhysioRiver;
+    }
+    if (previousChiroRiver === undefined) {
+      delete process.env.RIVER_AFTERCARE_DEMO_CHIROPRACTIC_URL;
+    } else {
+      process.env.RIVER_AFTERCARE_DEMO_CHIROPRACTIC_URL = previousChiroRiver;
+    }
+    if (previousCosmeticRiver === undefined) {
+      delete process.env.RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL;
+    } else {
+      process.env.RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL =
+        previousCosmeticRiver;
     }
   });
 

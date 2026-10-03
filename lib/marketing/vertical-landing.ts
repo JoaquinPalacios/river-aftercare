@@ -1,6 +1,10 @@
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 import type { ClinicVerticalPath } from "@/lib/marketing/clinic-verticals";
+import {
+  CHIRO_DEMO_HERO_LABEL,
+  PHYSIO_DEMO_HERO_LABEL,
+} from "@/lib/marketing/physio-demo-link";
 
 export type VerticalThemeId =
   "dental" | "physiotherapy" | "chiropractic" | "cosmetic";
@@ -90,6 +94,11 @@ export interface VerticalLandingContent {
     body: string;
     primaryCtaLabel: string;
     secondaryCta: VerticalSecondaryCta;
+    /**
+     * Hero label used when a verified category demo URL replaces the anchor.
+     * Absent categories keep the anchor and do not borrow another demo.
+     */
+    demoHeroLabel?: string;
     panel: {
       label: string;
       items: readonly [
@@ -313,6 +322,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       label: "See how River Aftercare works",
       href: "#workflow",
     },
+    demoHeroLabel: PHYSIO_DEMO_HERO_LABEL,
     panel: {
       label: "How patients receive recovery guidance",
       items: [
@@ -503,6 +513,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       label: "See how it works",
       href: "#workflow",
     },
+    demoHeroLabel: CHIRO_DEMO_HERO_LABEL,
     panel: {
       label: "How patients receive practice guidance",
       items: [

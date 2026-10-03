@@ -99,7 +99,12 @@ export function verticalHeroSecondary(
 ) {
   if (content.hero.secondaryCta.kind === "demo") {
     return (
-      <a className={`${styles.button} ${styles.secondary}`} href={demoHref}>
+      <a
+        className={`${styles.button} ${styles.secondary}`}
+        href={demoHref}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
         {content.hero.secondaryCta.label}
       </a>
     );

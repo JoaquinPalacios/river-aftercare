@@ -39,12 +39,24 @@ The Dental sample on the live demo is canonical revision 3, with no retained ove
 
 4. Publish each new canonical sample in the operator template workspace, then create and publish its practice guide on this account at the designated public slug. Later revisions move only through Update live demo for that category.
 
-5. Enable a marketing link only after the exact guide URL is verified:
+5. Enable marketing links only after each guide URL is verified. `/dental`, `/physiotherapy`, and `/chiropractic` are statically generated (`dynamic = "error"`), so Vercel must supply the variables at build time. A runtime-only value does not change the hero.
 
-   - Dental: `CARE_GUIDE_SHARED_DEMO_DENTAL_URL=https://demo.riveraftercare.com.au/extraction`
-   - Physiotherapy: `CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL=https://demo.riveraftercare.com.au/home-exercise-plan`
+   Preferred variables:
 
-   Set the physiotherapy variable in the Vercel project before the production build. `/physiotherapy` is statically generated, so a runtime-only value does not enable the hero. When the value matches, the hero secondary control is “View the physiotherapy demo” and opens that guide in a new tab. Any other value keeps the disabled placeholder. Chiropractic and Cosmetic & Aesthetic stay unlinked until those guides exist.
+   - Dental: `RIVER_AFTERCARE_DEMO_DENTAL_URL=https://demo.riveraftercare.com.au/extraction`
+   - Physiotherapy: `RIVER_AFTERCARE_DEMO_PHYSIOTHERAPY_URL=https://demo.riveraftercare.com.au/home-exercise-plan`
+   - Chiropractic: `RIVER_AFTERCARE_DEMO_CHIROPRACTIC_URL=https://demo.riveraftercare.com.au/chiropractic-adjustment`
+
+   Leave `RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL` unset. That name is reserved for `https://demo.riveraftercare.com.au/superficial-chemical-peel` and does not enable a marketing CTA until that sample is published.
+
+   Each value must be HTTPS on `demo.riveraftercare.com.au` with that category's exact guide path. A trailing slash is accepted and the CTA uses the canonical URL without it. Any other host, path, query, or hash leaves Physiotherapy and Chiropractic unavailable. Dental marketing still opens the shared Tooth Extraction guide rather than publishing an unrecognised URL.
+
+   Deprecated names still work when the matching new variable is unset or blank. The new variable wins when both are set, including when the new value fails validation. The legacy Dental value `https://demodental.riveraftercare.com.au/extraction` (or that host with no extra path) is recognised and resolved to `https://demo.riveraftercare.com.au/extraction`. Other hosts are not rewritten. `demodental.riveraftercare.com.au` keeps serving existing patient links.
+
+   - `CARE_GUIDE_SHARED_DEMO_DENTAL_URL`
+   - `CARE_GUIDE_PHYSIO_DEMO_PUBLIC_URL`
+
+   Retire the old variables after this release is deployed with the three new variables set: delete the two `CARE_GUIDE_*` demo URL entries from Vercel. Do not remove them before the new variables are present on the build that is going live. A later change can delete the legacy reads once no environment still relies on them. Do not rename `CARE_GUIDE_ROOT_DOMAIN` as part of this configuration.
 
 Wildcard DNS `*.riveraftercare.com.au` already reaches the app. No new Vercel domain is required for `demo`. Unknown subdomains still fail closed.
 
