@@ -13,10 +13,10 @@ describe("guide editor UX", () => {
     expect(editor).toContain('saving ? "Saving…" : "Save"');
     expect(editor).not.toContain("Save draft");
     expect(editor).toContain("Publish guide");
-    expect(editor).toContain("Discard unsaved changes?");
-    expect(editor).toContain("Keep editing");
-    expect(editor).toContain("Discard changes");
+    expect(editor).toContain("UnsavedChangesDialog");
+    expect(editor).toContain("onSave={saveAndLeave}");
     expect(editor).toContain("Publish this guide?");
+    expect(editor).not.toContain("Discard unsaved changes?");
     expect(editor).not.toContain("PRACTICE_REVIEW_ATTESTATION_LABEL");
     expect(editor).not.toContain("requiresReviewAttestation");
     expect(editor).not.toContain("reviewAttested");
@@ -37,7 +37,9 @@ describe("guide editor UX", () => {
     expect(editor).toContain("useUnsavedChangesGuard");
     expect(editor).toContain("formSaveStatus");
     expect(editor).toContain("EditorLivePreview");
-    expect(editor).toContain("TimelineAccordion");
+    expect(editor).toContain("OrderedGuideSectionsEditor");
+    expect(editor).toContain("CanonicalGuideOutline");
+    expect(editor).not.toContain("TimelineAccordion");
     expect(editor).not.toContain("window.confirm");
     expect(editor).toContain("slugLocked");
     expect(editor).toContain('<input type="hidden" name="publicSlug"');

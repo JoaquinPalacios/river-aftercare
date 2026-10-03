@@ -18,8 +18,9 @@ describe("guide editor accordion and live preview", () => {
     expect(accordion).toContain("inert={!expanded || undefined}");
     expect(accordion).toContain("Needs attention");
     expect(accordion).toContain("staffAccordionTrigger");
-    expect(editor).toContain("setExpandedStageKey(key)");
-    expect(editor).toContain("Add stage");
+    expect(editor).toContain("OrderedGuideSectionsEditor");
+    expect(editor).toContain("allowTimelineAddition");
+    expect(editor).not.toContain("setExpandedStageKey");
     expect(editor).not.toContain('from "motion');
     expect(editor).not.toContain("from 'motion");
   });
@@ -41,8 +42,9 @@ describe("guide editor accordion and live preview", () => {
     expect(preview).toContain("RecoveryTimelineList");
     expect(preview).toContain("editorStagesToPreviewSections");
     expect(preview).toContain("Live patient timeline");
-    expect(preview).toContain("Patient timeline preview");
-    expect(preview).toContain(
+    expect(preview).toContain("Patient preview");
+    expect(preview).toContain("RECOVERY_TIMELINE_ABSENT_NOTE");
+    expect(preview).not.toContain(
       "Add a recovery stage to see the patient timeline here."
     );
     expect(patient).toContain("RecoveryTimelineList");

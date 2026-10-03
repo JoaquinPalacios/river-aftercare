@@ -2244,6 +2244,36 @@ a.staffOverflowItem {
   gap: 1rem;
 }
 
+.staffEditorRail .canonicalOutline {
+  position: static;
+  max-height: none;
+  overflow: visible;
+}
+
+/* Staff-only. These rules stay out of the patient CSS graph. */
+[data-live-preview] h2 {
+  margin: 0 0 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--preview-muted, var(--staff-muted));
+}
+
+[data-live-preview] .editorPreviewCompanions {
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-live-preview] .editorPreviewCompanion {
+  margin: 0 0 0.65rem;
+}
+
+[data-live-preview] .editorPreviewCompanion:last-child {
+  margin-bottom: 0;
+}
+
 .staffEditorLayout > * {
   min-width: 0;
   max-width: 100%;
@@ -3321,7 +3351,8 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   margin: 0;
 }
 
-.canonicalBlockToggle {
+.canonicalBlockToggle,
+.canonicalBlockStatic {
   display: flex;
   width: 100%;
   min-height: 2.75rem;
@@ -3333,6 +3364,9 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   background: transparent;
   color: var(--staff-ink);
   text-align: left;
+}
+
+.canonicalBlockToggle {
   cursor: pointer;
 }
 
