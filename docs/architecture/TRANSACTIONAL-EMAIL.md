@@ -42,19 +42,20 @@ The verified Resend sending domain is `mail.riveraftercare.com.au`. Do not send 
 - `RESEND_API_KEY` (existing Production key; send-only and domain-scoped)
 - Mailbox parsing (`lib/email/mailbox.ts`)
 - Bounded Resend send with an 8s timeout (`lib/email/transactional-mailer.ts`)
-- Memory inbox for tests / local sinks
+- Memory inbox for tests and the local default
+- Optional development Mailpit HTTP send at a fixed loopback URL (`docs/development/LOCAL-MAILPIT.md`)
 - Header / empty-recipient / CRLF rejection
 
 ## What stays separate
 
-| Concern              | Marketing Contact                                                | Auth email                                       | Billing notices                     |
-| -------------------- | ---------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------- |
-| From                 | `CONTACT_EMAIL_FROM`                                             | `AUTH_EMAIL_FROM`                                | `AUTH_EMAIL_FROM`                   |
-| Recipient            | `CONTACT_EMAIL_TO` (inbox)                                       | the eligible User.email                          | `ClinicBillingProfile.billingEmail` |
-| Reply-To             | sanitised visitor email                                          | optional `AUTH_EMAIL_REPLY_TO`                   | `AUTH_EMAIL_REPLY_TO` (required)    |
-| Transport selector   | `CONTACT_MAILER` (`memory` refused when `VERCEL_ENV=production`) | memory locally; Resend only on Vercel production | same auth transport                 |
-| Turnstile / honeypot | yes                                                              | no                                               | no                                  |
-| Templates            | clinic enquiry composition                                       | password-reset, invitation, and email-change     | `lib/email/billing-notice-mail.ts`  |
+| Concern              | Marketing Contact                                                | Auth email                                                                  | Billing notices                     |
+| -------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------- |
+| From                 | `CONTACT_EMAIL_FROM`                                             | `AUTH_EMAIL_FROM`                                                           | `AUTH_EMAIL_FROM`                   |
+| Recipient            | `CONTACT_EMAIL_TO` (inbox)                                       | the eligible User.email                                                     | `ClinicBillingProfile.billingEmail` |
+| Reply-To             | sanitised visitor email                                          | optional `AUTH_EMAIL_REPLY_TO`                                              | `AUTH_EMAIL_REPLY_TO` (required)    |
+| Transport selector   | `CONTACT_MAILER` (`memory` refused when `VERCEL_ENV=production`) | memory by default; optional local Mailpit; Resend only on Vercel production | same auth transport                 |
+| Turnstile / honeypot | yes                                                              | no                                                                          | no                                  |
+| Templates            | clinic enquiry composition                                       | password-reset, invitation, and email-change                                | `lib/email/billing-notice-mail.ts`  |
 
 Do not reuse Contact From/To for invitations or password reset. Do not reuse auth From for Contact.
 
@@ -64,15 +65,16 @@ Failed-payment and invoice email stay with Stripe. The dashboard past-due notice
 
 Server-only. Never prefix with `NEXT_PUBLIC_`. Never commit real keys.
 
-| Variable              | Used by                                              | Notes                                                                            |
-| --------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `RESEND_API_KEY`      | Contact + future auth                                | Existing Vercel Production secret. Do not rotate from application PRs.           |
-| `CONTACT_EMAIL_FROM`  | Contact                                              | Envelope From.                                                                   |
-| `CONTACT_EMAIL_TO`    | Contact                                              | Destination inbox.                                                               |
-| `CONTACT_MAILER`      | Contact                                              | `resend` (default) or `memory`. Memory refused in Vercel production.             |
-| `AUTH_EMAIL_FROM`     | Password-reset and invitation auth                   | Required only when auth delivery is invoked. Lazy; not a build-time requirement. |
-| `AUTH_EMAIL_REPLY_TO` | Password-reset, invitation auth, and billing notices | Optional for auth. Required before a billing notice is sent.                     |
-| `CRON_SECRET`         | `GET /api/cron/billing-notices`                      | Bearer secret for Vercel Cron. Not required locally.                             |
+| Variable               | Used by                                              | Notes                                                                                                                                   |
+| ---------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `RESEND_API_KEY`       | Contact + future auth                                | Existing Vercel Production secret. Do not rotate from application PRs.                                                                  |
+| `CONTACT_EMAIL_FROM`   | Contact                                              | Envelope From.                                                                                                                          |
+| `CONTACT_EMAIL_TO`     | Contact                                              | Destination inbox.                                                                                                                      |
+| `CONTACT_MAILER`       | Contact                                              | `resend` (default) or `memory`. Memory refused in Vercel production.                                                                    |
+| `AUTH_EMAIL_FROM`      | Password-reset and invitation auth                   | Required only when auth delivery is invoked. Lazy; not a build-time requirement.                                                        |
+| `AUTH_EMAIL_REPLY_TO`  | Password-reset, invitation auth, and billing notices | Optional for auth. Required before a billing notice is sent.                                                                            |
+| `AUTH_EMAIL_TRANSPORT` | Auth mail, including billing notices                 | Optional. `mailpit` only when `NODE_ENV=development` and the process is not on Vercel. Unset uses memory. Ignored for Resend selection. |
+| `CRON_SECRET`          | `GET /api/cron/billing-notices`                      | Bearer secret for Vercel Cron. Not required locally.                                                                                    |
 
 Intended Production auth values (configure in Vercel; not hardcoded defaults):
 
@@ -86,9 +88,12 @@ Local / documentation examples:
 ```bash
 AUTH_EMAIL_FROM="River Aftercare <accounts@example.test>"
 AUTH_EMAIL_REPLY_TO=hello@example.test
+# AUTH_EMAIL_TRANSPORT=mailpit
 ```
 
 Missing `AUTH_EMAIL_FROM` must not break `pnpm build`. Auth delivery then returns a controlled `not_configured` failure only if a later flow actually tries to send.
+
+`AUTH_EMAIL_TRANSPORT=mailpit` is local development only. The sender is native `fetch` to `http://127.0.0.1:8025/api/v1/send`. It does not run at production startup, and it is not selected when `VERCEL` or `VERCEL_ENV` is set. Vercel production continues to require `RESEND_API_KEY` even if this variable is present. An unreachable Mailpit returns `delivery_failed` and does not fall back to the memory inbox. See [../development/LOCAL-MAILPIT.md](../development/LOCAL-MAILPIT.md).
 
 ## Safety
 

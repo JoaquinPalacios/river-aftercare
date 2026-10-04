@@ -239,13 +239,14 @@ Password-reset creation for forgot-password uses `createPasswordResetTokenIfAllo
 
 Shared transport: `lib/email/transactional-mailer.ts`. Marketing Contact and auth mail share transport only.
 
-| Variable              | Purpose                                                                                                                                  |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `RESEND_API_KEY`      | Existing send-only, domain-scoped Resend key. Shared. Never client-bundled.                                                              |
-| `AUTH_EMAIL_FROM`     | Password-reset and invitation From. Production intended: `River Aftercare <accounts@mail.riveraftercare.com.au>`. Not a runtime default. |
-| `AUTH_EMAIL_REPLY_TO` | Optional. Production intended: `contact@riveraftercare.com.au`.                                                                          |
+| Variable               | Purpose                                                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `RESEND_API_KEY`       | Existing send-only, domain-scoped Resend key. Shared. Never client-bundled.                                                                |
+| `AUTH_EMAIL_FROM`      | Password-reset and invitation From. Production intended: `River Aftercare <accounts@mail.riveraftercare.com.au>`. Not a runtime default.   |
+| `AUTH_EMAIL_REPLY_TO`  | Optional. Production intended: `contact@riveraftercare.com.au`.                                                                            |
+| `AUTH_EMAIL_TRANSPORT` | Optional local `mailpit`. Ignored unless `NODE_ENV=development` and the process is outside Vercel. Never selects the production transport. |
 
-Config is lazy (`getAuthEmailDeliveryConfig`). Missing `AUTH_EMAIL_FROM` does not fail `next build`. Vercel production never uses the memory transport for auth mail. Local/tests use memory.
+Config is lazy (`getAuthEmailDeliveryConfig`). Missing `AUTH_EMAIL_FROM` does not fail `next build`. Vercel production never uses the memory transport for auth mail, and a Mailpit setting cannot replace Resend there. Local development and tests use memory unless `AUTH_EMAIL_TRANSPORT=mailpit`, `NODE_ENV=development`, and neither `VERCEL` nor `VERCEL_ENV` is set. See [../development/LOCAL-MAILPIT.md](../development/LOCAL-MAILPIT.md).
 
 See [TRANSACTIONAL-EMAIL.md](TRANSACTIONAL-EMAIL.md).
 

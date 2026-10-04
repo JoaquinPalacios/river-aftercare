@@ -26,6 +26,7 @@ This directory is the product and architecture documentation for Care Guide.
 | [launch/R2-PROVISIONING.md](launch/R2-PROVISIONING.md)                     | Manual Cloudflare R2 bucket/token/domain steps for Joaquín. Not executed from Cursor.                                                                                  |
 | [development/POSTGRES-18-UPGRADE.md](development/POSTGRES-18-UPGRADE.md)   | Local PostgreSQL 17 → 18 dump/restore runbook. Protects the existing PG17 Docker volume.                                                                               |
 | [development/CURSOR-CLOUD.md](development/CURSOR-CLOUD.md)                 | Cursor Cloud Agent environment: local PostgreSQL 18, disposable login accounts, and the maintenance contract. Isolated from production.                                |
+| [development/LOCAL-MAILPIT.md](development/LOCAL-MAILPIT.md)               | Optional local Mailpit inbox for invitation and password-reset testing. Not required for ordinary development or tests.                                                |
 
 ## How to read these documents
 
