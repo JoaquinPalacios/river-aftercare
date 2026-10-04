@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const resendState = vi.hoisted(() => ({
   send: vi.fn(),
@@ -17,6 +17,8 @@ vi.mock("resend", () => ({
 import {
   clearTransactionalEmailMemoryInbox,
   getTransactionalEmailMemoryInbox,
+  MAILPIT_SEND_TIMEOUT_MS,
+  MAILPIT_SEND_URL,
   sendTransactionalEmail,
   type TransactionalEmailMessage,
 } from "@/lib/email/transactional-mailer";
@@ -51,16 +53,28 @@ describe("transactional email foundation", () => {
     replyTo: process.env.AUTH_EMAIL_REPLY_TO,
     resend: process.env.RESEND_API_KEY,
     vercelEnv: process.env.VERCEL_ENV,
+    vercel: process.env.VERCEL,
+    transport: process.env.AUTH_EMAIL_TRANSPORT,
+    nodeEnv: process.env.NODE_ENV,
   };
+
+  beforeEach(() => {
+    delete process.env.AUTH_EMAIL_TRANSPORT;
+    delete process.env.VERCEL;
+  });
 
   afterEach(() => {
     restore("AUTH_EMAIL_FROM", previous.from);
     restore("AUTH_EMAIL_REPLY_TO", previous.replyTo);
     restore("RESEND_API_KEY", previous.resend);
     restore("VERCEL_ENV", previous.vercelEnv);
+    restore("VERCEL", previous.vercel);
+    restore("AUTH_EMAIL_TRANSPORT", previous.transport);
+    restore("NODE_ENV", previous.nodeEnv);
     clearTransactionalEmailMemoryInbox();
     resendState.send.mockReset();
     resendState.keys.length = 0;
+    vi.unstubAllGlobals();
   });
 
   it("captures memory messages without calling Resend", async () => {
@@ -255,5 +269,179 @@ describe("transactional email foundation", () => {
     const config = getAuthEmailDeliveryConfig();
     expect(config.ready).toBe(false);
     expect(config).toMatchObject({ reason: "missing_api_key" });
+  });
+
+  function developmentAuthEnv(
+    overrides: Record<string, string | undefined> = {}
+  ): Record<string, string | undefined> {
+    return {
+      NODE_ENV: "development",
+      AUTH_EMAIL_FROM: "River Aftercare <accounts@example.test>",
+      AUTH_EMAIL_REPLY_TO: "Hello <hello@example.test>",
+      AUTH_EMAIL_TRANSPORT: "mailpit",
+      ...overrides,
+    };
+  }
+
+  it("selects Mailpit only for local development", () => {
+    const selected = getAuthEmailDeliveryConfig(developmentAuthEnv());
+    expect(selected).toMatchObject({
+      ready: true,
+      from: "River Aftercare <accounts@example.test>",
+      replyTo: "Hello <hello@example.test>",
+      transport: { kind: "mailpit" },
+    });
+
+    expect(
+      getAuthEmailDeliveryConfig(
+        developmentAuthEnv({ AUTH_EMAIL_TRANSPORT: "  MAILPIT  " })
+      )
+    ).toMatchObject({ transport: { kind: "mailpit" } });
+
+    expect(
+      getAuthEmailDeliveryConfig(
+        developmentAuthEnv({ AUTH_EMAIL_TRANSPORT: undefined })
+      )
+    ).toMatchObject({ transport: { kind: "memory" } });
+
+    expect(
+      getAuthEmailDeliveryConfig(developmentAuthEnv({ NODE_ENV: "test" }))
+    ).toMatchObject({ transport: { kind: "memory" } });
+
+    expect(
+      getAuthEmailDeliveryConfig(developmentAuthEnv({ NODE_ENV: "production" }))
+    ).toMatchObject({ transport: { kind: "memory" } });
+  });
+
+  it("does not let Mailpit replace Resend or run on Vercel", () => {
+    const production = getAuthEmailDeliveryConfig(
+      developmentAuthEnv({
+        NODE_ENV: "production",
+        VERCEL_ENV: "production",
+        RESEND_API_KEY: "re_prod_key",
+      })
+    );
+    expect(production).toMatchObject({
+      ready: true,
+      transport: { kind: "resend", apiKey: "re_prod_key" },
+    });
+
+    expect(
+      getAuthEmailDeliveryConfig(
+        developmentAuthEnv({
+          VERCEL_ENV: "production",
+          RESEND_API_KEY: undefined,
+        })
+      )
+    ).toEqual({ ready: false, reason: "missing_api_key" });
+
+    for (const vercelEnv of ["preview", "development", "production"]) {
+      const config = getAuthEmailDeliveryConfig(
+        developmentAuthEnv({
+          VERCEL_ENV: vercelEnv,
+          RESEND_API_KEY:
+            vercelEnv === "production" ? "re_prod_key" : undefined,
+        })
+      );
+      const selected = config.ready ? config.transport.kind : config.reason;
+      expect(selected).not.toBe("mailpit");
+    }
+
+    expect(
+      getAuthEmailDeliveryConfig(developmentAuthEnv({ VERCEL: "1" }))
+    ).toMatchObject({ transport: { kind: "memory" } });
+  });
+
+  it("posts a Mailpit send payload and does not treat failure as delivered", async () => {
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => {
+      return new Response('{"ID":"hidden"}', { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await sendTransactionalEmail(message, { kind: "mailpit" });
+
+    expect(result).toEqual({ ok: true });
+    expect(JSON.stringify(result)).not.toContain("hidden");
+    expect(getTransactionalEmailMemoryInbox()).toHaveLength(0);
+    expect(resendState.send).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(MAILPIT_SEND_URL);
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(init.method).toBe("POST");
+    expect(init.redirect).toBe("error");
+    expect(init.cache).toBe("no-store");
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+    expect(MAILPIT_SEND_TIMEOUT_MS).toBe(8000);
+    expect(init.headers).toMatchObject({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    });
+    expect(JSON.parse(String(init.body))).toEqual({
+      From: { Name: "River Aftercare", Email: "accounts@example.test" },
+      To: [{ Name: "", Email: "user@example.test" }],
+      ReplyTo: [{ Name: "", Email: "hello@example.test" }],
+      Subject: "Test message",
+      Text: "Plain body",
+      HTML: "<p>HTML body</p>",
+    });
+
+    fetchMock.mockResolvedValueOnce(
+      new Response("mailbox secret token=abc", { status: 503 })
+    );
+    const unavailable = await sendTransactionalEmail(message, {
+      kind: "mailpit",
+    });
+    expect(unavailable).toEqual({ ok: false, code: "delivery_failed" });
+    expect(JSON.stringify(unavailable)).not.toMatch(/secret|token=|8025/i);
+    expect(getTransactionalEmailMemoryInbox()).toHaveLength(0);
+
+    fetchMock.mockRejectedValueOnce(
+      new Error("connect ECONNREFUSED 127.0.0.1:8025")
+    );
+    const refused = await sendTransactionalEmail(message, { kind: "mailpit" });
+    expect(refused).toEqual({ ok: false, code: "delivery_failed" });
+    expect(JSON.stringify(refused)).not.toMatch(/ECONNREFUSED|8025/);
+    expect(getTransactionalEmailMemoryInbox()).toHaveLength(0);
+  });
+
+  it("does not call Mailpit for an invalid message or while only reading config", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const invalid = await sendTransactionalEmail(
+      { ...message, to: "" },
+      { kind: "mailpit" }
+    );
+    expect(invalid).toEqual({ ok: false, code: "invalid_message" });
+
+    const config = getAuthEmailDeliveryConfig(developmentAuthEnv());
+    expect(config).toMatchObject({ transport: { kind: "mailpit" } });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(getTransactionalEmailMemoryInbox()).toHaveLength(0);
+  });
+
+  it("returns a controlled failure when the selected Mailpit transport cannot deliver", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("connect ECONNREFUSED 127.0.0.1:8025");
+      })
+    );
+
+    const config = getAuthEmailDeliveryConfig(developmentAuthEnv());
+    const result = await sendAuthTransactionalEmail(
+      {
+        to: "user@example.test",
+        subject: "Hello",
+        text: "Hello",
+        html: "<p>Hello</p>",
+      },
+      config
+    );
+
+    expect(result).toEqual({ ok: false, code: "delivery_failed" });
+    expect(JSON.stringify(result)).not.toMatch(/ECONNREFUSED|8025|token/i);
+    expect(getTransactionalEmailMemoryInbox()).toHaveLength(0);
+    expect(resendState.send).not.toHaveBeenCalled();
   });
 });
