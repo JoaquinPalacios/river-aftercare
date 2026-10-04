@@ -4,9 +4,14 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CARE_GUIDE_SLUG_MAX_LENGTH } from "@/lib/aftercare/slug-rules";
+import {
+  CARE_GUIDE_SLUG_MAX_LENGTH,
+  CARE_GUIDE_SLUG_MIN_LENGTH,
+} from "@/lib/aftercare/slug-rules";
+import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import { suggestGuideSlug } from "@/lib/clinics/slug-suggestion";
-import { createOperatorClinicSchema } from "@/lib/operator/create-operator-clinic";
+import { isSharedDemoHostnameLabel } from "@/lib/tenancy/shared-demo-hostname";
+import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
 
 const { actionMock } = vi.hoisted(() => ({
   actionMock: vi.fn(),
@@ -19,22 +24,20 @@ vi.mock("@/app/(staff)/(operator)/operator/actions", () => ({
 
 import { CreateClinicForm } from "@/app/(staff)/(operator)/operator/clinics/new/create-clinic-form";
 
-function fieldErrorsFromSchema(formData: FormData) {
-  const parsed = createOperatorClinicSchema.safeParse({
-    name: formData.get("name") ?? "",
-    slug: formData.get("slug") ?? "",
-  });
-  if (parsed.success) {
-    return null;
+function slugFieldError(slug: string): string | null {
+  if (slug.length < CARE_GUIDE_SLUG_MIN_LENGTH) {
+    return `Too small: expected string to have >=${CARE_GUIDE_SLUG_MIN_LENGTH} characters`;
   }
-  const fieldErrors: Record<string, string> = {};
-  for (const issue of parsed.error.issues) {
-    const field = issue.path[0];
-    if (typeof field === "string" && !fieldErrors[field]) {
-      fieldErrors[field] = issue.message;
-    }
+  if (slug.length > CARE_GUIDE_SLUG_MAX_LENGTH) {
+    return `Too big: expected string to have <=${CARE_GUIDE_SLUG_MAX_LENGTH} characters`;
   }
-  return fieldErrors;
+  if (isReservedTenantSlug(slug)) {
+    return "That hostname is reserved by the platform.";
+  }
+  if (isDemoTenant(slug) || isSharedDemoHostnameLabel(slug)) {
+    return "That hostname is reserved for the interactive demo.";
+  }
+  return null;
 }
 
 describe("create clinic slug", () => {
@@ -45,9 +48,12 @@ describe("create clinic slug", () => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
     actionMock.mockReset();
     actionMock.mockImplementation(async (_previous, formData: FormData) => {
-      const fieldErrors = fieldErrorsFromSchema(formData);
-      if (fieldErrors) {
-        return { error: "Please review the clinic details.", fieldErrors };
+      const slugError = slugFieldError(String(formData.get("slug") ?? ""));
+      if (slugError) {
+        return {
+          error: "Please review the clinic details.",
+          fieldErrors: { slug: slugError },
+        };
       }
       return {};
     });
@@ -146,6 +152,7 @@ describe("create clinic slug", () => {
 
   it("preserves a manual slug even when it matches the generated value", () => {
     setValue(name(), "Harbour Dental");
+    setValue(slug(), "harbour-dental-edited");
     setValue(slug(), "harbour-dental");
     setValue(name(), "Harbour Dental Plus");
     expect(slug().value).toBe("harbour-dental");
@@ -200,9 +207,12 @@ describe("create clinic slug", () => {
 
   it("keeps the operator's slug when the server reports a duplicate", async () => {
     actionMock.mockImplementation(async (_previous, formData: FormData) => {
-      const fieldErrors = fieldErrorsFromSchema(formData);
-      if (fieldErrors) {
-        return { error: "Please review the clinic details.", fieldErrors };
+      const slugError = slugFieldError(String(formData.get("slug") ?? ""));
+      if (slugError) {
+        return {
+          error: "Please review the clinic details.",
+          fieldErrors: { slug: slugError },
+        };
       }
       if (formData.get("slug") === "harbour-dental") {
         return { error: "That tenant slug is already in use." };
