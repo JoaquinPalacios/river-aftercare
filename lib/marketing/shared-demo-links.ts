@@ -134,21 +134,16 @@ export function chiropracticDemoExampleHref(
 }
 
 /**
- * Validates the reserved Cosmetic & Aesthetic variable. Marketing does not
- * call this until that sample and public guide are published.
+ * Cosmetic & Aesthetic marketing links to the Superficial Chemical Peel guide.
+ * The shared hostname is used only when its exact URL is configured.
  */
-export function configuredCosmeticAestheticDemoHref(
+export function cosmeticAestheticDemoExampleHref(
   env: MarketingDemoEnv = process.env
 ): string | null {
   return exactVerifiedGuideHref(
     readDemoEnv(env, RIVER_AFTERCARE_DEMO_COSMETIC_AESTHETIC_URL_ENV),
     SHARED_DEMO_COSMETIC_GUIDE_URL
   );
-}
-
-/** The cosmetic demonstration stays unpublished on marketing pages. */
-export function cosmeticAestheticDemoExampleHref(): null {
-  return null;
 }
 
 function extractionHref(legacyDemoHref: string): string {

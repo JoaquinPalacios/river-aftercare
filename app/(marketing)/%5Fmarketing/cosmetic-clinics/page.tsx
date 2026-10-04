@@ -1,5 +1,6 @@
 import { MarketingVerticalLanding } from "@/app/(marketing)/components/marketing-vertical-landing";
 import { marketingConfiguredPublicLinks } from "@/lib/marketing/configured-public-links";
+import { cosmeticAestheticDemoExampleHref } from "@/lib/marketing/shared-demo-links";
 import { VERTICAL_LANDINGS } from "@/lib/marketing/vertical-landing";
 import {
   generateMarketingMetadata,
@@ -20,6 +21,7 @@ export default async function MarketingCosmeticClinicsPage() {
       content={VERTICAL_LANDINGS["/cosmetic-clinics"]}
       staffHref={staffHref}
       demoHref={demoHref}
+      exampleHref={cosmeticAestheticDemoExampleHref()}
       jsonLd={jsonLd}
     />
   );
