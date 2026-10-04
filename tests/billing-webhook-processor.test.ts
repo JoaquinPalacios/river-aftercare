@@ -596,6 +596,54 @@ describe("processVerifiedStripeEvent", () => {
     expect(db.entitlements.size).toBe(0);
   });
 
+  it("does not project a complimentary clinic into a paid subscription", async () => {
+    const db = createDb();
+    const stored = {
+      clinicId: "clinic_1",
+      commercialPlan: "ESSENTIAL",
+      commercialArrangement: "COMPLIMENTARY",
+      billingInterval: null,
+      billingStatus: BillingStatus.NOT_BILLED,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: null,
+    };
+    db.entitlements.set("clinic_1", stored);
+    const event = invoicePaidEvent();
+    event.id = "evt_complimentary_ignore";
+    const invoice = event.data.object as {
+      lines: {
+        data: Array<{ pricing: { price_details: { price: string } } }>;
+      };
+    };
+    invoice.lines.data[0].pricing.price_details.price = "price_not_configured";
+    const result = await processVerifiedStripeEvent(event, {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () =>
+          ({
+            ...activeSubscription,
+            items: {
+              ...activeSubscription.items,
+              data: [
+                {
+                  id: "si_1",
+                  price: { id: "price_not_configured" },
+                  current_period_start: 1_746_000_000,
+                  current_period_end: 1_748_600_000,
+                },
+              ],
+            },
+          }) as Stripe.Subscription,
+      },
+      env: BILLING_TEST_ENV,
+    });
+    expect(result.outcome).toBe("ignored");
+    expect(db.entitlements.get("clinic_1")).toEqual(stored);
+    expect(db.receipts.get(event.id)?.processingStatus).toBe(
+      StripeEventProcessingStatus.IGNORED
+    );
+  });
+
   it("fails closed for an unknown Price ID", async () => {
     const db = createDb();
     const event = invoicePaidEvent();

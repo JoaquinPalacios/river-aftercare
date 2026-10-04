@@ -1,9 +1,14 @@
 import "server-only";
 
-import { BillingStatus, EntitlementStatus } from "@prisma/client";
+import {
+  BillingStatus,
+  EntitlementStatus,
+  type CommercialArrangement,
+} from "@prisma/client";
 import { redirect } from "next/navigation";
 
 import type { ClinicMembershipContext } from "@/lib/auth/session";
+import { complimentaryProductStatus } from "@/lib/billing/complimentary-term";
 import { getPrisma } from "@/lib/prisma";
 
 /**
@@ -20,11 +25,24 @@ export type ClinicBillingAccessDb = {
       select?: {
         entitlementStatus?: boolean;
         billingStatus?: boolean;
+        commercialArrangement?: boolean;
+        complimentaryExpiresAt?: boolean;
       };
     }) => Promise<{
       entitlementStatus: EntitlementStatus;
       billingStatus?: BillingStatus | null;
+      commercialArrangement?: CommercialArrangement | null;
+      complimentaryExpiresAt?: Date | null;
     } | null>;
+    updateMany?: (args: {
+      where: {
+        clinicId: string;
+        commercialArrangement: "COMPLIMENTARY";
+        entitlementStatus: EntitlementStatus;
+        complimentaryExpiresAt: { lte: Date };
+      };
+      data: { entitlementStatus: EntitlementStatus };
+    }) => Promise<unknown>;
   };
 };
 
@@ -64,9 +82,11 @@ export type ClinicProductAccessDecision =
  * A billing clinic opens product routes only while entitlement is ACTIVE.
  * That includes a subscription Stripe is still retrying (PAST_DUE) and a
  * cancellation scheduled for the end of the paid period. PENDING,
- * RESTRICTED, and ENDED stay closed. Billing status chooses a recovery
- * page and never grants product access. Account billing routes are not
- * behind this gate. Operator support keeps its existing exemption.
+ * RESTRICTED, and ENDED stay closed. An expired complimentary grant is
+ * evaluated at request time and uses the same closed path. It does not
+ * fall back to the legacy row. Billing status chooses a recovery page and
+ * never grants product access. Account billing routes are not behind this
+ * gate. Operator support keeps its existing exemption.
  */
 export function decideClinicProductAccess(input: {
   membershipSource: "membership" | "operator_support";
@@ -108,15 +128,60 @@ function billingRecoveryPath(
   return BILLING_SETUP_PATH;
 }
 
+async function readEffectiveEntitlement(
+  clinicId: string,
+  db?: ClinicBillingAccessDb
+): Promise<{
+  entitlementStatus: EntitlementStatus | null;
+  billingStatus: BillingStatus | null;
+  hasRow: boolean;
+}> {
+  const database = billingAccessDb(db);
+  const now = new Date();
+  const row = await database.clinicEntitlement.findUnique({
+    where: { clinicId },
+    select: {
+      entitlementStatus: true,
+      billingStatus: true,
+      commercialArrangement: true,
+      complimentaryExpiresAt: true,
+    },
+  });
+  const entitlementStatus = complimentaryProductStatus({
+    entitlementStatus: row?.entitlementStatus ?? null,
+    commercialArrangement: row?.commercialArrangement,
+    complimentaryExpiresAt: row?.complimentaryExpiresAt,
+    now,
+  });
+  if (
+    row &&
+    entitlementStatus === EntitlementStatus.ENDED &&
+    row.entitlementStatus === EntitlementStatus.ACTIVE &&
+    typeof database.clinicEntitlement.updateMany === "function"
+  ) {
+    await database.clinicEntitlement.updateMany({
+      where: {
+        clinicId,
+        commercialArrangement: "COMPLIMENTARY",
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        complimentaryExpiresAt: { lte: now },
+      },
+      data: { entitlementStatus: EntitlementStatus.ENDED },
+    });
+  }
+  return {
+    entitlementStatus,
+    billingStatus: row?.billingStatus ?? null,
+    hasRow: Boolean(row),
+  };
+}
+
 export async function clinicEntitlementIsActive(
   clinicId: string,
   db?: ClinicBillingAccessDb
 ): Promise<boolean> {
-  const row = await billingAccessDb(db).clinicEntitlement.findUnique({
-    where: { clinicId },
-    select: { entitlementStatus: true },
-  });
-  return row?.entitlementStatus === EntitlementStatus.ACTIVE;
+  const row = await readEffectiveEntitlement(clinicId, db);
+  return row.entitlementStatus === EntitlementStatus.ACTIVE;
 }
 
 export async function readClinicBillingAccess(
@@ -134,20 +199,17 @@ export async function readClinicBillingAccess(
     };
   }
 
-  const row = await billingAccessDb(db).clinicEntitlement.findUnique({
-    where: { clinicId: membership.clinic.id },
-    select: { entitlementStatus: true, billingStatus: true },
-  });
+  const row = await readEffectiveEntitlement(membership.clinic.id, db);
 
   const decision = decideClinicProductAccess({
     membershipSource: "membership",
-    entitlementStatus: row?.entitlementStatus ?? null,
-    billingStatus: row?.billingStatus ?? null,
+    entitlementStatus: row.entitlementStatus,
+    billingStatus: row.billingStatus,
   });
 
   return {
     ...decision,
-    billingHref: row ? BILLING_STATUS_PATH : null,
+    billingHref: row.hasRow ? BILLING_STATUS_PATH : null,
   };
 }
 

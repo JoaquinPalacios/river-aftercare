@@ -108,24 +108,25 @@ enum PracticeSectionProvenance {
 }
 
 model Clinic {
-  id                       String                          @id @default(cuid())
-  name                     String
-  slug                     String                          @unique
-  memberships              ClinicMembership[]
-  profile                  ClinicProfile?
-  billingProfile           ClinicBillingProfile?
-  entitlement              ClinicEntitlement?
-  legalAcceptances         LegalAcceptance[]
-  practiceGuides           PracticeGuide[]
-  accountTokens            AccountToken[]
-  downgradePreparation     ClinicDowngradePreparation?
-  sites                    ClinicSite[]
-  sourceAccountSplits      ClinicAccountSplitPreparation[] @relation("AccountSplitSource")
-  destinationAccountSplits ClinicAccountSplitPreparation[] @relation("AccountSplitDestination")
-  billingPriceChanges      BillingPriceChange[]
-  billingNoticeDeliveries  BillingNoticeDelivery[]
-  createdAt                DateTime                        @default(now())
-  updatedAt                DateTime                        @updatedAt
+  id                        String                           @id @default(cuid())
+  name                      String
+  slug                      String                           @unique
+  memberships               ClinicMembership[]
+  profile                   ClinicProfile?
+  billingProfile            ClinicBillingProfile?
+  entitlement               ClinicEntitlement?
+  legalAcceptances          LegalAcceptance[]
+  practiceGuides            PracticeGuide[]
+  accountTokens             AccountToken[]
+  downgradePreparation      ClinicDowngradePreparation?
+  sites                     ClinicSite[]
+  sourceAccountSplits       ClinicAccountSplitPreparation[]  @relation("AccountSplitSource")
+  destinationAccountSplits  ClinicAccountSplitPreparation[]  @relation("AccountSplitDestination")
+  billingPriceChanges       BillingPriceChange[]
+  billingNoticeDeliveries   BillingNoticeDelivery[]
+  complimentaryAccessEvents ClinicComplimentaryAccessEvent[]
+  createdAt                 DateTime                         @default(now())
+  updatedAt                 DateTime                         @updatedAt
 }
 
 model User {
@@ -153,6 +154,7 @@ model User {
   recordedGuideTemplateReviews    GuideTemplateRevision[]            @relation("GuideTemplateRevisionReviewRecorder")
   publishedGuideTemplateRevisions GuideTemplateRevision[]            @relation("GuideTemplateRevisionPublisher")
   deactivatedGuideTemplates       GuideTemplate[]                    @relation("GuideTemplateDeactivatedBy")
+  complimentaryAccessEvents       ClinicComplimentaryAccessEvent[]
   createdAt                       DateTime                           @default(now())
   updatedAt                       DateTime                           @updatedAt
 }
@@ -804,6 +806,22 @@ enum BillingStatus {
   UNPAID
   CANCEL_AT_PERIOD_END
   ENDED
+  /// No Stripe billing lifecycle. Complimentary access uses this value.
+  /// It is not an active, unpaid, past-due, or ended subscription.
+  NOT_BILLED
+}
+
+/// How the clinic holds its functional plan.
+/// PAID is the Stripe commercial path, including an offer that is not paid yet.
+/// COMPLIMENTARY is an operator grant with no Stripe subscription.
+enum CommercialArrangement {
+  PAID
+  COMPLIMENTARY
+}
+
+enum ComplimentaryAccessEventKind {
+  GRANT
+  EXTENSION
 }
 
 /// River product authorization derived from billing.
@@ -1181,9 +1199,13 @@ model ClinicBillingProfile {
 /// PENDING: Phase 2 pre-payment gate for a clinic prepared for paid onboarding.
 /// ACTIVE: product access is open.
 /// RESTRICTED / ENDED: preserved for a later enforcement phase. Not a lockout.
+/// commercialArrangement separates a Stripe commercial path from complimentary
+/// access. Complimentary expiry is complimentaryExpiresAt. Null means
+/// indefinite. Request-time evaluation closes product access after that
+/// instant. It does not delete the clinic or restore legacy access.
 model ClinicEntitlement {
-  id                                  String            @id @default(cuid())
-  clinicId                            String            @unique
+  id                                  String                @id @default(cuid())
+  clinicId                            String                @unique
   commercialPlan                      CommercialPlan?
   billingInterval                     BillingInterval?
   billingStatus                       BillingStatus
@@ -1192,7 +1214,7 @@ model ClinicEntitlement {
   currentPeriodStart                  DateTime?
   currentPeriodEnd                    DateTime?
   paidThrough                         DateTime?
-  cancelAtPeriodEnd                   Boolean           @default(false)
+  cancelAtPeriodEnd                   Boolean               @default(false)
   subscriptionEndedAt                 DateTime?
   /// Calculated only when a subscription actually ends. Not set on
   /// cancel-at-period-end while the period is still paid.
@@ -1201,20 +1223,20 @@ model ClinicEntitlement {
   lastProjectedAt                     DateTime?
   /// Persistent operator-granted additions. Effective allowance is the plan
   /// base plus these values. They do not change Stripe or commercialPlan.
-  extraTeamMemberAllowance            Int               @default(0)
-  extraCustomGuideAllowance           Int               @default(0)
-  extraTemplateAdaptationAllowance    Int               @default(0)
+  extraTeamMemberAllowance            Int                   @default(0)
+  extraCustomGuideAllowance           Int                   @default(0)
+  extraTemplateAdaptationAllowance    Int                   @default(0)
   /// Materialized ClinicSite capacity, including the included site.
   /// Existing rows default to 1 (Essential-compatible). For a configured
   /// ACTIVE Group account, group capacity persistence is the writer.
   /// A missing entitlement row does not grant unlimited sites.
-  siteAllowance                       Int               @default(1)
+  siteAllowance                       Int                   @default(1)
   /// Total active ClinicLocation capacity for this account, across every site.
   /// Existing rows default to 1 (Essential-compatible). Not a per-site cap.
   /// For a configured ACTIVE Group or Practice account this is the materialized
   /// total written by capacity persistence. It is not typed as a raw total.
   /// A missing entitlement row does not grant unlimited locations.
-  locationAllowance                   Int               @default(1)
+  locationAllowance                   Int                   @default(1)
   /// Stripe-purchased Group Additional Site quantity.
   /// Null: this Group account still uses the stored site and location totals.
   /// Zero: configured with no paid Additional Site bundle.
@@ -1229,10 +1251,10 @@ model ClinicEntitlement {
   /// Complimentary Clinic Site capacity above the Group formula.
   /// Practice does not gain Clinic Sites from this value.
   /// Does not create a Stripe item and does not charge or refund.
-  extraSiteAllowance                  Int               @default(0)
+  extraSiteAllowance                  Int                   @default(0)
   /// Complimentary Location capacity for Practice and Group.
   /// One shared delta. It does not create a Stripe item and does not charge or refund.
-  extraLocationAllowance              Int               @default(0)
+  extraLocationAllowance              Int                   @default(0)
   /// Additional Site quantity prepared on an offer. Not capacity.
   offeredAdditionalSiteQuantity       Int?
   /// Additional Site quantity waiting for a later effective time. Not capacity yet.
@@ -1245,12 +1267,45 @@ model ClinicEntitlement {
   /// When scheduledCommercialPlan becomes effective. The current paid-period
   /// end. Not a cancellation date.
   scheduledPlanEffectiveAt            DateTime?
-  clinic                              Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  createdAt                           DateTime          @default(now())
-  updatedAt                           DateTime          @updatedAt
+  /// PAID for every existing row. COMPLIMENTARY is an operator grant.
+  /// Stripe projection must not treat COMPLIMENTARY as a paid subscription.
+  commercialArrangement               CommercialArrangement @default(PAID)
+  /// End of complimentary access. Null with COMPLIMENTARY means indefinite.
+  /// Ignored for PAID rows. Not a Stripe period end and not paidThrough.
+  complimentaryExpiresAt              DateTime?
+  /// Optional operator review date. Not an expiry and not a charge date.
+  commercialReviewAt                  DateTime?
+  clinic                              Clinic                @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  createdAt                           DateTime              @default(now())
+  updatedAt                           DateTime              @updatedAt
 
   @@index([billingStatus])
   @@index([entitlementStatus])
+}
+
+/// Append-only record of a complimentary grant or extension.
+/// The clinic, its sites, guides, and memberships are not copied here.
+model ClinicComplimentaryAccessEvent {
+  id                 String                       @id @default(cuid())
+  clinicId           String
+  actorUserId        String
+  kind               ComplimentaryAccessEventKind
+  commercialPlan     CommercialPlan
+  /// Null when there was no previous expiry. previousIndefinite distinguishes
+  /// a first grant from an indefinite arrangement.
+  previousExpiresAt  DateTime?
+  previousIndefinite Boolean                      @default(false)
+  /// Null when the new arrangement is indefinite.
+  expiresAt          DateTime?
+  indefinite         Boolean                      @default(false)
+  reason             String                       @db.VarChar(1000)
+  commercialReviewAt DateTime?
+  createdAt          DateTime                     @default(now())
+  clinic             Clinic                       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  actor              User                         @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([clinicId, createdAt])
+  @@index([actorUserId])
 }
 
 /// Immutable Terms acceptance and Privacy acknowledgement.

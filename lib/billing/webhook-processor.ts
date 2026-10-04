@@ -152,6 +152,7 @@ function localFromRow(
     billingInterval: LocalEntitlementSnapshot["billingInterval"];
     billingStatus: BillingStatus;
     entitlementStatus: EntitlementStatus;
+    commercialArrangement?: LocalEntitlementSnapshot["commercialArrangement"];
     stripePriceId: string | null;
     currentPeriodStart: Date | null;
     currentPeriodEnd: Date | null;
@@ -169,6 +170,7 @@ function localFromRow(
     billingInterval: row.billingInterval,
     billingStatus: row.billingStatus,
     entitlementStatus: row.entitlementStatus,
+    commercialArrangement: row.commercialArrangement,
     stripePriceId: row.stripePriceId,
     currentPeriodStart: row.currentPeriodStart,
     currentPeriodEnd: row.currentPeriodEnd,
@@ -573,6 +575,24 @@ export async function processVerifiedStripeEvent(
       })
     : null;
 
+  const previousSnapshot = localFromRow(previousRow);
+  if (previousSnapshot?.commercialArrangement === "COMPLIMENTARY") {
+    await mark(StripeEventProcessingStatus.IGNORED, null, identity.clinicId);
+    logStripeBilling({
+      event: "stripe_webhook_ignored",
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+      reason: "complimentary_access",
+    });
+    return {
+      outcome: "ignored",
+      clinicId: identity.clinicId,
+      stripeEventId,
+      eventType,
+    };
+  }
+
   const catalog = identity.clinicId
     ? resolveWebhookSubscriptionCatalog({
         subscriptionItems: authoritativeSubscription
@@ -637,7 +657,7 @@ export async function processVerifiedStripeEvent(
 
   const projection = projectEntitlement({
     eventType,
-    previous: localFromRow(previousRow),
+    previous: previousSnapshot,
     clinicId: identity.clinicId,
     stripeCustomerId: snapshot.stripeCustomerId,
     stripeSubscriptionId: snapshot.stripeSubscriptionId,
@@ -684,6 +704,23 @@ export async function processVerifiedStripeEvent(
     });
     return {
       outcome: "unknown_price",
+      clinicId: identity.clinicId,
+      stripeEventId,
+      eventType,
+    };
+  }
+
+  if (projection.kind === "complimentary_unchanged") {
+    await mark(StripeEventProcessingStatus.IGNORED, null, identity.clinicId);
+    logStripeBilling({
+      event: "stripe_webhook_ignored",
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+      reason: "complimentary_access",
+    });
+    return {
+      outcome: "ignored",
       clinicId: identity.clinicId,
       stripeEventId,
       eventType,
@@ -1053,6 +1090,26 @@ async function applySubscriptionScheduleEvent(input: {
   const entitlement = await input.db.clinicEntitlement.findUnique({
     where: { clinicId: profile.clinicId },
   });
+  if (entitlement?.commercialArrangement === "COMPLIMENTARY") {
+    await input.mark(
+      StripeEventProcessingStatus.IGNORED,
+      null,
+      profile.clinicId
+    );
+    logStripeBilling({
+      event: "stripe_webhook_ignored",
+      stripeEventId,
+      eventType,
+      clinicId: profile.clinicId,
+      reason: "complimentary_access",
+    });
+    return {
+      outcome: "ignored",
+      clinicId: profile.clinicId,
+      stripeEventId,
+      eventType,
+    };
+  }
   let practicePriceId: string | null = null;
   let essentialPriceId: string | null = null;
   const interval = entitlement?.billingInterval;

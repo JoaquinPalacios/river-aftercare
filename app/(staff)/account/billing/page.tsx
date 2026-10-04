@@ -109,7 +109,9 @@ export default async function BillingStatusPage({
               </div>
               <div>
                 <dt className="text-staff-muted">Billing</dt>
-                <dd className="font-medium">{view.intervalLabel}</dd>
+                <dd className="font-medium">
+                  {view.complimentary ? "Complimentary" : view.intervalLabel}
+                </dd>
               </div>
               <div>
                 <dt className="text-staff-muted">Status</dt>
@@ -127,25 +129,27 @@ export default async function BillingStatusPage({
                           : "warning"
                     }
                   >
-                    {presentation.kind === "active" &&
-                    presentation.attention === "cancel_scheduled"
-                      ? "Scheduled to end"
+                    {view.complimentary
+                      ? view.complimentary.accessLabel
                       : presentation.kind === "active" &&
-                          presentation.attention === "past_due" &&
-                          showCommercialDetail
-                        ? "Payment issue"
-                        : presentation.kind === "active"
-                          ? "Active"
-                          : presentation.kind === "processing"
-                            ? "Payment processing"
-                            : presentation.kind === "restricted" &&
-                                showCommercialDetail
-                              ? "Unpaid"
-                              : presentation.kind === "restricted"
-                                ? "Billing"
-                                : presentation.kind === "inactive"
-                                  ? "Ended"
-                                  : view.billingLabel}
+                          presentation.attention === "cancel_scheduled"
+                        ? "Scheduled to end"
+                        : presentation.kind === "active" &&
+                            presentation.attention === "past_due" &&
+                            showCommercialDetail
+                          ? "Payment issue"
+                          : presentation.kind === "active"
+                            ? "Active"
+                            : presentation.kind === "processing"
+                              ? "Payment processing"
+                              : presentation.kind === "restricted" &&
+                                  showCommercialDetail
+                                ? "Unpaid"
+                                : presentation.kind === "restricted"
+                                  ? "Billing"
+                                  : presentation.kind === "inactive"
+                                    ? "Ended"
+                                    : view.billingLabel}
                   </span>
                 </dd>
               </div>
@@ -302,7 +306,32 @@ export default async function BillingStatusPage({
             </div>
           ) : null}
           <div className="max-w-xl">
+            {view.complimentary && showCommercialDetail ? (
+              <p className="mt-4 text-sm" role="status">
+                {view.complimentary.productAccess
+                  ? `Complimentary ${view.complimentary.planLabel} access is ${view.complimentary.expiresLabel === "Indefinite" ? "indefinite" : `open until ${view.complimentary.expiresLabel}`}.`
+                  : `Complimentary ${view.complimentary.planLabel} access ended on ${view.complimentary.expiresLabel}. Clinic editing is unavailable. Published patient guides stay available.`}
+                {view.complimentary.reviewLabel
+                  ? ` Commercial review ${view.complimentary.reviewLabel}.`
+                  : ""}
+              </p>
+            ) : null}
+            {view.complimentary && !showCommercialDetail ? (
+              <p className="mt-4 text-sm text-staff-muted" role="status">
+                Your account administrator manages complimentary access for this
+                clinic.
+              </p>
+            ) : null}
+            {view.complimentary && !view.complimentary.productAccess ? (
+              <a
+                href={context.contactHref}
+                className="mt-3 inline-flex text-sm font-medium text-staff-brand"
+              >
+                Contact River Aftercare
+              </a>
+            ) : null}
             {presentation.kind === "active" &&
+            !view.complimentary &&
             !presentation.attention &&
             presentation.assistedSetup ? (
               <p className="mt-4 text-sm" role="status">
@@ -322,7 +351,7 @@ export default async function BillingStatusPage({
                 Your account administrator manages billing for this clinic.
               </p>
             ) : null}
-            {presentation.kind === "inactive" ? (
+            {presentation.kind === "inactive" && !view.complimentary ? (
               <p className="mt-4 text-sm text-staff-muted" role="status">
                 {ENDED_BILLING_MESSAGE}
                 {view.publicGuideRetentionLabel

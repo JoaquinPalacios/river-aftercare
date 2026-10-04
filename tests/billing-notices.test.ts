@@ -331,6 +331,22 @@ describe("billing notice decisions", () => {
     ]);
   });
 
+  it("does not treat complimentary access as a paid renewal or payment issue", () => {
+    const result = evaluate({
+      subscription: {
+        commercialArrangement: "COMPLIMENTARY",
+        billingStatus: "PAST_DUE",
+        entitlementStatus: "ACTIVE",
+        billingInterval: "YEARLY",
+        stripeSubscriptionId: "sub_notice",
+      },
+    });
+    expect(result.emails).toEqual([]);
+    expect(result.overviewNotices).toEqual([]);
+    expect(result.page.annualReminder).toBeNull();
+    expect(result.page.paymentRecovery).toBeNull();
+  });
+
   it("shows one past-due notice for a Group account", () => {
     const result = evaluate({
       subscription: {

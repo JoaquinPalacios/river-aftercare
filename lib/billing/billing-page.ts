@@ -8,6 +8,7 @@ import {
   businessNumberKindFromSaved,
   type BusinessNumberKind,
 } from "@/lib/billing/business-number-kind";
+import { persistExpiredComplimentaryAccess } from "@/lib/billing/complimentary-access";
 import { assessCommercialOfferRevision } from "@/lib/billing/prepare-offer";
 import { clinicSupportsCustomerPortal } from "@/lib/billing/customer-portal";
 import { assessOperatorPlanUpgrade } from "@/lib/billing/plan-change";
@@ -91,11 +92,13 @@ export type OperatorBillingPanel = {
   } | null;
   canRevise: boolean;
   reviseBlockedReason: string | null;
+  commercialArrangement: "PAID" | "COMPLIMENTARY" | null;
 };
 
 export async function loadOperatorBillingPanel(
   clinicId: string
 ): Promise<OperatorBillingPanel> {
+  await persistExpiredComplimentaryAccess(clinicId);
   const entitlement = await getPrisma().clinicEntitlement.findUnique({
     where: { clinicId },
   });
@@ -113,6 +116,7 @@ export async function loadOperatorBillingPanel(
     entitlementStatus: entitlement?.entitlementStatus ?? null,
     billingStatus: entitlement?.billingStatus ?? null,
     stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
+    commercialArrangement: entitlement?.commercialArrangement ?? null,
   });
   const planChange = assessOperatorPlanUpgrade(
     {
@@ -170,7 +174,9 @@ export async function loadOperatorBillingPanel(
     effectiveAt: entitlement?.scheduledPlanEffectiveAt ?? null,
     cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
   });
-  const showDowngrade = entitlement?.commercialPlan === "PRACTICE";
+  const complimentary = entitlement?.commercialArrangement === "COMPLIMENTARY";
+  const showDowngrade =
+    entitlement?.commercialPlan === "PRACTICE" && !complimentary;
   const planChangeVisible = planChange.ok || showDowngrade;
   const periodDate =
     entitlement?.paidThrough ?? entitlement?.currentPeriodEnd ?? null;
@@ -197,7 +203,9 @@ export async function loadOperatorBillingPanel(
       entitlement?.offeredAdditionalSiteQuantity ?? null,
     interval,
     planLabel: commercialPlanLabel(entitlement?.commercialPlan ?? null),
-    intervalLabel: billingIntervalLabel(entitlement?.billingInterval ?? null),
+    intervalLabel: complimentary
+      ? "Complimentary"
+      : billingIntervalLabel(entitlement?.billingInterval ?? null),
     entitlementLabel: entitlementStateLabel(
       entitlement?.entitlementStatus ?? null
     ),
@@ -262,6 +270,7 @@ export async function loadOperatorBillingPanel(
           domainMessage: revision.message,
           planChangeVisible,
         }),
+    commercialArrangement: entitlement?.commercialArrangement ?? null,
   };
 }
 
@@ -297,6 +306,13 @@ export type ClinicBillingView = {
     abn: string;
     acn: string;
   } | null;
+  complimentary: {
+    planLabel: string;
+    accessLabel: "Active" | "Ended";
+    productAccess: boolean;
+    expiresLabel: string;
+    reviewLabel: string | null;
+  } | null;
 };
 
 async function loadClinicBillingRecord(clinicId: string) {
@@ -314,6 +330,7 @@ async function loadClinicBillingRecord(clinicId: string) {
 export async function loadClinicBillingView(
   clinicId: string
 ): Promise<ClinicBillingView | null> {
+  await persistExpiredComplimentaryAccess(clinicId);
   const clinic = await loadClinicBillingRecord(clinicId);
   if (!clinic) {
     return null;
@@ -395,29 +412,71 @@ export async function loadClinicBillingView(
       effectiveAt: entitlement?.scheduledPlanEffectiveAt ?? null,
       cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
     }),
-    commercialDetail: noticeEvaluation?.page ?? null,
+    commercialDetail:
+      entitlement?.commercialArrangement === "COMPLIMENTARY"
+        ? null
+        : (noticeEvaluation?.page ?? null),
     guideSelection:
-      entitlement?.commercialPlan === "PRACTICE"
-        ? await loadClinicGuideSelectionPanel(clinicId)
-        : null,
-    selfServeDowngrade: await loadSelfServeDowngrade({
-      clinicId,
-      commercialPlan: entitlement?.commercialPlan ?? null,
-      billingInterval: entitlement?.billingInterval ?? null,
-      entitlementStatus: entitlement?.entitlementStatus ?? null,
-      billingStatus: entitlement?.billingStatus ?? null,
-      cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
-      scheduledCommercialPlan: entitlement?.scheduledCommercialPlan ?? null,
-      stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
-      stripeSubscriptionScheduleId:
-        profile?.stripeSubscriptionScheduleId ?? null,
-      stripePlanDowngradeAttemptId:
-        profile?.stripePlanDowngradeAttemptId ?? null,
-      stripeCheckoutSessionId: profile?.stripeCheckoutSessionId ?? null,
-      paidThrough: entitlement?.paidThrough ?? null,
-      currentPeriodEnd: entitlement?.currentPeriodEnd ?? null,
-    }),
+      entitlement?.commercialArrangement === "COMPLIMENTARY"
+        ? null
+        : entitlement?.commercialPlan === "PRACTICE"
+          ? await loadClinicGuideSelectionPanel(clinicId)
+          : null,
+    selfServeDowngrade:
+      entitlement?.commercialArrangement === "COMPLIMENTARY"
+        ? null
+        : await loadSelfServeDowngrade({
+            clinicId,
+            commercialPlan: entitlement?.commercialPlan ?? null,
+            billingInterval: entitlement?.billingInterval ?? null,
+            entitlementStatus: entitlement?.entitlementStatus ?? null,
+            billingStatus: entitlement?.billingStatus ?? null,
+            cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
+            scheduledCommercialPlan:
+              entitlement?.scheduledCommercialPlan ?? null,
+            stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
+            stripeSubscriptionScheduleId:
+              profile?.stripeSubscriptionScheduleId ?? null,
+            stripePlanDowngradeAttemptId:
+              profile?.stripePlanDowngradeAttemptId ?? null,
+            stripeCheckoutSessionId: profile?.stripeCheckoutSessionId ?? null,
+            paidThrough: entitlement?.paidThrough ?? null,
+            currentPeriodEnd: entitlement?.currentPeriodEnd ?? null,
+          }),
     identity,
+    complimentary: complimentaryBillingSummary(entitlement),
+  };
+}
+
+function complimentaryBillingSummary(
+  entitlement: {
+    commercialArrangement: "PAID" | "COMPLIMENTARY";
+    commercialPlan: "ESSENTIAL" | "PRACTICE" | "GROUP" | null;
+    entitlementStatus: EntitlementStatus;
+    complimentaryExpiresAt: Date | null;
+    commercialReviewAt: Date | null;
+  } | null
+): ClinicBillingView["complimentary"] {
+  if (entitlement?.commercialArrangement !== "COMPLIMENTARY") {
+    return null;
+  }
+  const plan =
+    entitlement.commercialPlan === "ESSENTIAL" ||
+    entitlement.commercialPlan === "PRACTICE"
+      ? entitlement.commercialPlan
+      : null;
+  const productAccess =
+    entitlement.entitlementStatus === EntitlementStatus.ACTIVE;
+  return {
+    planLabel: commercialPlanLabel(plan),
+    accessLabel: productAccess ? "Active" : "Ended",
+    productAccess,
+    expiresLabel: entitlement.complimentaryExpiresAt
+      ? formatBillingDate(entitlement.complimentaryExpiresAt)
+      : "Indefinite",
+    reviewLabel: entitlement.commercialReviewAt
+      ? formatBillingDate(entitlement.commercialReviewAt)
+      : null,
   };
 }
 

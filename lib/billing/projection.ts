@@ -24,6 +24,11 @@ export type LocalEntitlementSnapshot = {
   billingInterval: BillingInterval | null;
   billingStatus: BillingStatus;
   entitlementStatus: EntitlementStatus;
+  /**
+   * Absent means the historical paid path. COMPLIMENTARY is never projected
+   * into a Stripe subscription by this function.
+   */
+  commercialArrangement?: "PAID" | "COMPLIMENTARY";
   stripePriceId: string | null;
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
@@ -68,6 +73,9 @@ export type EntitlementProjectionResult =
   | {
       kind: "apply";
       entitlement: LocalEntitlementSnapshot;
+    }
+  | {
+      kind: "complimentary_unchanged";
     };
 
 function addUtcDays(date: Date, days: number): Date {
@@ -262,6 +270,10 @@ export function projectEntitlement(
       kind: "unmapped_clinic",
       diagnostic: "Stripe object is not linked to a known River clinic.",
     };
+  }
+
+  if (input.previous?.commercialArrangement === "COMPLIMENTARY") {
+    return { kind: "complimentary_unchanged" };
   }
 
   if (input.unknownPrice) {

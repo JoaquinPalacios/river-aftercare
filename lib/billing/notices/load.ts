@@ -152,6 +152,7 @@ function toCandidate(clinic: LoadedClinic, env: Env): BillingNoticeCandidate {
     entitlementStatus: (entitlement?.entitlementStatus ??
       null) as EntitlementStatus | null,
     billingStatus: (entitlement?.billingStatus ?? null) as BillingStatus | null,
+    commercialArrangement: entitlement?.commercialArrangement ?? null,
     commercialPlan: plan,
     billingInterval: interval,
     stripePriceId: entitlement?.stripePriceId ?? null,

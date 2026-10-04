@@ -200,6 +200,7 @@ export type LockedCheckoutState = {
   billingInterval: BillingIntervalCode | null;
   billingStatus: BillingStatus | null;
   entitlementStatus: EntitlementStatus | null;
+  commercialArrangement?: "PAID" | "COMPLIMENTARY" | null;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   stripeCheckoutSessionId: string | null;
@@ -423,6 +424,10 @@ export async function executeClinicCheckout(input: {
     }
     return { ok: false, code };
   };
+
+  if (state.commercialArrangement === "COMPLIMENTARY") {
+    return failure("already_active", "complimentary_access");
+  }
 
   if (
     state.entitlementStatus === EntitlementStatus.ACTIVE ||
@@ -822,6 +827,7 @@ export async function createClinicCheckout(input: {
             billingInterval: entitlement?.billingInterval ?? null,
             billingStatus: entitlement?.billingStatus ?? null,
             entitlementStatus: entitlement?.entitlementStatus ?? null,
+            commercialArrangement: entitlement?.commercialArrangement ?? null,
             stripeCustomerId: profile?.stripeCustomerId ?? null,
             stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
             stripeCheckoutSessionId: profile?.stripeCheckoutSessionId ?? null,

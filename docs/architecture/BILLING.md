@@ -140,11 +140,37 @@ Webhook events added: `subscription_schedule.updated`, `.released`, `.completed`
 
 Migration `20260923200000_add_scheduled_plan_downgrade` is additive and must not be rewritten. Migration `20260923220000_add_downgrade_guide_selection` adds preparation, keep-selection rows, and the guide retention timestamps. Migration `20260924010000_add_plan_downgrade_attempt` adds `stripePlanDowngradeAttemptId`. Do not apply these migrations to production from this change. Do not change live Stripe configuration. The schedule action does not depend on a webhook arriving before it reports success. Webhooks still project later changes, and they retire the attempt id when that lifecycle has ended.
 
+### Complimentary collaborations
+
+Essential and Practice are functional plans. Complimentary and paid are commercial arrangements. There is no Free plan and no synthetic Stripe subscription.
+
+`ClinicEntitlement.commercialArrangement` is `PAID` for every existing row. An operator grant sets `COMPLIMENTARY`, `billingStatus` `NOT_BILLED`, and `entitlementStatus` `ACTIVE`. `complimentaryExpiresAt` is the end of access. Null means indefinite. `commercialReviewAt` is an optional review date, not an expiry and not a charge date. `ClinicComplimentaryAccessEvent` records the operator, timestamp, previous expiry, new expiry, and reason for each grant and extension.
+
+An extension keeps the same clinic, sites, locations, guides, memberships, and branding. It does not change the functional plan. Six and 12 months are added to the later of now and a still-future expiry. A custom date is the end of that Sydney calendar day and must be later than that baseline. A dated extension cannot replace an indefinite grant. Ending an indefinite collaboration is not implemented.
+
+Request-time evaluation closes product access when a complimentary expiry is due. It sets `entitlementStatus` `ENDED` and does not start a job. The clinic, its content, and its memberships stay. `publicGuideRetentionUntil`, `subscriptionEndedAt`, and `cancelAtPeriodEnd` stay unset, so already-published patient guides stay public until a later retention policy says otherwise. Expiry is not a Stripe cancellation. The administrator still reaches `/account/billing`. A missing entitlement row stays the legacy open path. Paid rows are unchanged.
+
+Grants and extensions take `clinic-account-structure:{clinicId}` and compare-and-set the entitlement row. They are refused while a paid Stripe subscription is current, Checkout is in progress, or an account split is open on the source or destination. A complimentary row cannot satisfy a split destination’s paid billing-readiness check. Checkout and operator offer revision refuse complimentary clinics, including after expiry. Stripe webhooks for a complimentary clinic are ignored before price catalogue failures, so a later negotiated Price cannot be mistaken for a paid projection.
+
+Migration `20261004120000_add_complimentary_access` is additive. Do not apply it to production from this change. Production rollout stays migration-first: merge, expect the schema gate to fail, a human runs `pnpm prod:db:status`, `pnpm prod:db:migrate --apply`, and `pnpm prod:db:verify`, then redeploy the same SHA.
+
+#### Next PR: negotiated price and paid conversion
+
+Keep `commercialArrangement` as the boundary. Do not infer it from `billingStatus` or `entitlementStatus`.
+
+- Store the agreed amount on the conversion that creates the Stripe Price, not as a speculative column on `ClinicEntitlement`. Examples such as A$49/month or A$499/year are later Prices. They are not coupons and not a Free plan.
+- Start conversion from the complimentary row under the same account-structure lock. Refuse a current paid subscription, an open Checkout session, and an open split.
+- Only a trusted `invoice.paid` may set `commercialArrangement` to `PAID`, write the paid billing status, and clear `complimentaryExpiresAt`. Until that event, `projectEntitlement` stays `complimentary_unchanged`.
+- Leave `paidThrough` and `currentPeriodEnd` as Stripe period fields. Do not drive annual notices or split readiness from `complimentaryExpiresAt`.
+- Destination billing readiness stays unpaid until the arrangement is `PAID` and the existing paid checks pass.
+- A later paid cancellation is what starts `publicGuideRetentionUntil`. Complimentary expiry does not.
+
 ### Not yet present
 
 - Monthly ↔ annual interval changes
 - Per-seat billing, extra-seat prices, or subscription quantities other than the Group Additional Site quantity model below
 - Self-service Essential → Practice upgrade, refunds, coupons, trials
+- Customer-specific negotiated prices and complimentary-to-paid conversion. The integration points are in Complimentary collaborations above. This change does not add Prices, coupons, Checkout changes, or payment automation.
 - Post-activation Group quantity changes, Group subscription mutation, and Group capacity increase or decrease APIs
 - Practice → Group and Group → Practice billing mutation
 - Production / live Stripe configuration

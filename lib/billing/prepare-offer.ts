@@ -44,7 +44,17 @@ export function assessCommercialOfferRevision(input: {
   entitlementStatus: EntitlementStatus | null;
   billingStatus: BillingStatus | null;
   stripeSubscriptionId: string | null;
+  commercialArrangement?: "PAID" | "COMPLIMENTARY" | null;
 }): OfferRevision {
+  if (input.commercialArrangement === "COMPLIMENTARY") {
+    return {
+      ok: false,
+      code: "already_active",
+      message:
+        "This clinic has complimentary access. Extend that agreement. Paid conversion is a later step.",
+    };
+  }
+
   if (
     input.entitlementStatus === EntitlementStatus.ACTIVE ||
     (input.billingStatus && ACTIVE_BILLING.has(input.billingStatus))
@@ -145,6 +155,7 @@ export async function prepareClinicCommercialOffer(
       billingInterval: true,
       billingStatus: true,
       entitlementStatus: true,
+      commercialArrangement: true,
       offeredAdditionalSiteQuantity: true,
     },
   });
@@ -160,6 +171,7 @@ export async function prepareClinicCommercialOffer(
     entitlementStatus: existing?.entitlementStatus ?? null,
     billingStatus: existing?.billingStatus ?? null,
     stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
+    commercialArrangement: existing?.commercialArrangement ?? null,
   });
   if (!revision.ok) {
     return revision;
@@ -212,6 +224,7 @@ export async function prepareClinicCommercialOffer(
         select: {
           billingStatus: true,
           entitlementStatus: true,
+          commercialArrangement: true,
         },
       });
       const currentProfile = await writer.clinicBillingProfile.findUnique({
@@ -222,6 +235,8 @@ export async function prepareClinicCommercialOffer(
         entitlementStatus: currentEntitlement?.entitlementStatus ?? null,
         billingStatus: currentEntitlement?.billingStatus ?? null,
         stripeSubscriptionId: currentProfile?.stripeSubscriptionId ?? null,
+        commercialArrangement:
+          currentEntitlement?.commercialArrangement ?? null,
       });
       if (!currentRevision.ok) {
         return { ok: false as const, revision: currentRevision };

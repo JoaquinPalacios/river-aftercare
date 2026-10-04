@@ -3,6 +3,7 @@ import "server-only";
 import type {
   BillingInterval,
   BillingStatus,
+  CommercialArrangement,
   CommercialPlan,
   EntitlementStatus,
   Prisma,
@@ -34,6 +35,7 @@ export type SplitDestinationCommercialState = {
   extraTeamMemberAllowance: number;
   extraCustomGuideAllowance: number;
   extraTemplateAdaptationAllowance: number;
+  commercialArrangement: CommercialArrangement;
 };
 
 export async function readSplitDestinationCommercialState(
@@ -58,6 +60,7 @@ export async function readSplitDestinationCommercialState(
       extraTeamMemberAllowance: true,
       extraCustomGuideAllowance: true,
       extraTemplateAdaptationAllowance: true,
+      commercialArrangement: true,
     },
   });
   if (!row) {
@@ -81,6 +84,7 @@ export async function readSplitDestinationCommercialState(
     extraTeamMemberAllowance: row.extraTeamMemberAllowance,
     extraCustomGuideAllowance: row.extraCustomGuideAllowance,
     extraTemplateAdaptationAllowance: row.extraTemplateAdaptationAllowance,
+    commercialArrangement: row.commercialArrangement,
   };
 }
 
