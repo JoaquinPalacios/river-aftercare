@@ -6,11 +6,49 @@ export const PASSWORD_RESET_PAGE_PATH = "/reset-password";
 export const ACCEPT_INVITATION_PAGE_PATH = "/accept-invitation";
 export const CONFIRM_EMAIL_CHANGE_PAGE_PATH = "/confirm-email-change";
 
+/** `pnpm dev` listens here. Playwright overrides it via `CARE_GUIDE_METADATA_BASE`. */
+const LOCAL_DEVELOPMENT_PORT = "3000";
+
+function isLocalRootDomain(root: string): boolean {
+  return root === "localhost" || root.endsWith(".localhost");
+}
+
+function isDeployedVercelEnvironment(env: NodeJS.ProcessEnv): boolean {
+  return env.VERCEL_ENV === "production" || env.VERCEL_ENV === "preview";
+}
+
+function configuredLocalDevelopmentPort(env: NodeJS.ProcessEnv): string | null {
+  const configured = env.CARE_GUIDE_METADATA_BASE?.trim();
+  if (!configured) {
+    return null;
+  }
+
+  try {
+    const origin = new URL(configured);
+    const localHost =
+      origin.hostname === "localhost" || origin.hostname.endsWith(".localhost");
+    if (!localHost || !origin.port) {
+      return null;
+    }
+    return origin.port;
+  } catch {
+    return null;
+  }
+}
+
+function staffAppPort(root: string, env: NodeJS.ProcessEnv): string {
+  if (!isLocalRootDomain(root) || isDeployedVercelEnvironment(env)) {
+    return "";
+  }
+
+  return configuredLocalDevelopmentPort(env) ?? LOCAL_DEVELOPMENT_PORT;
+}
+
 export function staffAppOrigin(env: NodeJS.ProcessEnv = process.env): string {
   const root = getRootDomain(env);
-  const protocol =
-    root === "localhost" || root.endsWith(".localhost") ? "http" : "https";
-  return `${protocol}://app.${root}`;
+  const protocol = isLocalRootDomain(root) ? "http" : "https";
+  const port = staffAppPort(root, env);
+  return `${protocol}://app.${root}${port ? `:${port}` : ""}`;
 }
 
 export function isStaffAppHost(

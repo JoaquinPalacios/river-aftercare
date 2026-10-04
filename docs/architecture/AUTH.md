@@ -179,7 +179,7 @@ Timing: unknown users skip Resend. Residual timing differences exist and are not
 
 Subject: `Reset your River Aftercare password`. Body includes a one-time link that expires in 30 minutes, ignore-if-unsolicited copy, and optional reply guidance. Plain text + escaped HTML. No password, hash, session, token hash, or clinic/patient data.
 
-Reset URL origin is `staffAppOrigin()` from `CARE_GUIDE_ROOT_DOMAIN` (`https://app.<root>` in production). Host / `x-forwarded-host` are not used to build the link.
+Reset URL origin is `staffAppOrigin()` from `CARE_GUIDE_ROOT_DOMAIN` (`https://app.<root>` in production and on Vercel preview, with no port). Local development uses `http://app.localhost:3000` unless `CARE_GUIDE_METADATA_BASE` sets another local port. `PORT` is not read. Host / `x-forwarded-host` are not used to build the link.
 
 The raw token travels in a **URL fragment**:
 
@@ -307,7 +307,7 @@ Product invitations still refuse a second clinic (“already belongs to another 
 
 `composeInvitationEmail` + `sendAuthTransactionalEmail`. Recipient is persisted `User.email`. From/Reply-To from auth config. Subject: `Set up your River Aftercare account`. Clinic name and role are escaped. 7-day expiry. The recipient chooses their own password. No temporary password, token hash, or PHI.
 
-URL origin is `staffAppOrigin()`. Fragment:
+URL origin is `staffAppOrigin()` (local `http://app.localhost:3000` by default). Fragment:
 
 `https://app.riveraftercare.com.au/accept-invitation#token=<RAW_TOKEN>`
 
