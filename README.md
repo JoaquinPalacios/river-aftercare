@@ -90,6 +90,8 @@ Local login credentials come from `LOCAL_<ROLE>_EMAIL` and `LOCAL_<ROLE>_PASSWOR
 
 `/contact` is a clinic enquiry form. Delivery uses server-only `CONTACT_EMAIL_TO` / `CONTACT_EMAIL_FROM` plus Resend, with Cloudflare Turnstile verified on the server. `.env.example` uses fake local values and Cloudflare dummy Turnstile keys. If delivery is not configured, the form does not pretend the enquiry was sent. Production mailbox: `contact@riveraftercare.com.au`. See [docs/architecture/MARKETING-CONTACT.md](docs/architecture/MARKETING-CONTACT.md).
 
+Invitation and password-reset mail stay in memory unless you opt in to a local Mailpit inbox. That inbox is not required for `pnpm dev` or tests. See [docs/development/LOCAL-MAILPIT.md](docs/development/LOCAL-MAILPIT.md).
+
 You can start editing `app/(marketing)/%5Fmarketing/page.tsx` or `app/(staff)/page.tsx`; the page auto-updates as you edit.
 
 Staff surfaces use Tailwind. Patient tenant routes use CSS Modules and server-rendered CSS custom properties — see [docs/architecture/PERFORMANCE.md](docs/architecture/PERFORMANCE.md).

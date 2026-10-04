@@ -11,6 +11,8 @@ import { isVercelProduction } from "@/lib/runtime/vercel-production";
 
 export const AUTH_EMAIL_FROM_ENV = "AUTH_EMAIL_FROM";
 export const AUTH_EMAIL_REPLY_TO_ENV = "AUTH_EMAIL_REPLY_TO";
+export const AUTH_EMAIL_TRANSPORT_ENV = "AUTH_EMAIL_TRANSPORT";
+export const AUTH_EMAIL_TRANSPORT_MAILPIT = "mailpit";
 
 type Env = Record<string, string | undefined>;
 
@@ -40,6 +42,21 @@ export function getAuthEmailReplyTo(env: Env = process.env): string | null {
     return null;
   }
   return parseMailboxAddress(raw);
+}
+
+function isAnyVercelEnvironment(env: Env): boolean {
+  if (env.VERCEL === "1") {
+    return true;
+  }
+  return Boolean(env.VERCEL_ENV?.trim());
+}
+
+function localMailpitRequested(env: Env): boolean {
+  const requested = env[AUTH_EMAIL_TRANSPORT_ENV]?.trim().toLowerCase();
+  if (requested !== AUTH_EMAIL_TRANSPORT_MAILPIT) {
+    return false;
+  }
+  return env.NODE_ENV === "development" && !isAnyVercelEnvironment(env);
 }
 
 export function getAuthEmailDeliveryConfig(
@@ -75,6 +92,15 @@ export function getAuthEmailDeliveryConfig(
       from,
       replyTo,
       transport: { kind: "resend", apiKey },
+    };
+  }
+
+  if (localMailpitRequested(env)) {
+    return {
+      ready: true,
+      from,
+      replyTo,
+      transport: { kind: "mailpit" },
     };
   }
 

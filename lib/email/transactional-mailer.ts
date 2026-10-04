@@ -6,6 +6,15 @@ import { parseEmailAddress, parseMailboxAddress } from "@/lib/email/mailbox";
 
 export const RESEND_SEND_TIMEOUT_MS = 8000;
 
+/**
+ * Mailpit HTTP send API (`POST /api/v1/send`).
+ * Confirmed against Mailpit v1.28 `server/apiv1/swaggerParams.go`:
+ * PascalCase `From`, `To`, `ReplyTo` (`Name` + `Email`), `Subject`, `Text`, `HTML`.
+ * The address is fixed loopback. It is not configurable.
+ */
+export const MAILPIT_SEND_URL = "http://127.0.0.1:8025/api/v1/send";
+export const MAILPIT_SEND_TIMEOUT_MS = 8000;
+
 export type TransactionalEmailMessage = {
   from: string;
   to: string;
@@ -17,7 +26,8 @@ export type TransactionalEmailMessage = {
 
 export type TransactionalEmailTransport =
   | { kind: "memory"; inbox?: TransactionalEmailMessage[] }
-  | { kind: "resend"; apiKey: string };
+  | { kind: "resend"; apiKey: string }
+  | { kind: "mailpit" };
 
 export type TransactionalEmailSendResult =
   | { ok: true }
@@ -131,6 +141,71 @@ async function sendWithResend({
   }
 }
 
+type MailpitAddress = {
+  Name: string;
+  Email: string;
+};
+
+function mailpitAddress(mailbox: string): MailpitAddress {
+  const named = mailbox.match(/^(.*)<([^<>]+)>$/);
+  if (!named) {
+    return { Name: "", Email: mailbox };
+  }
+  return {
+    Name: named[1]?.trim() ?? "",
+    Email: named[2]?.trim() ?? mailbox,
+  };
+}
+
+async function discardMailpitBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Status already decides the result. Do not surface the body.
+  }
+}
+
+async function sendWithMailpit(
+  message: TransactionalEmailMessage
+): Promise<TransactionalEmailSendResult> {
+  const payload: {
+    From: MailpitAddress;
+    To: MailpitAddress[];
+    ReplyTo?: MailpitAddress[];
+    Subject: string;
+    Text: string;
+    HTML: string;
+  } = {
+    From: mailpitAddress(message.from),
+    To: [mailpitAddress(message.to)],
+    Subject: message.subject,
+    Text: message.text,
+    HTML: message.html,
+  };
+  if (message.replyTo) {
+    payload.ReplyTo = [mailpitAddress(message.replyTo)];
+  }
+
+  const response = await fetch(MAILPIT_SEND_URL, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    redirect: "error",
+    cache: "no-store",
+    signal: AbortSignal.timeout(MAILPIT_SEND_TIMEOUT_MS),
+  });
+  await discardMailpitBody(response);
+
+  if (!response.ok) {
+    return { ok: false, code: "delivery_failed" };
+  }
+
+  return { ok: true };
+}
+
 export async function sendTransactionalEmail(
   message: TransactionalEmailMessage,
   transport: TransactionalEmailTransport,
@@ -145,6 +220,14 @@ export async function sendTransactionalEmail(
     const inbox = transport.inbox ?? defaultMemoryInbox;
     inbox.push({ ...safeMessage });
     return { ok: true };
+  }
+
+  if (transport.kind === "mailpit") {
+    try {
+      return await sendWithMailpit(safeMessage);
+    } catch {
+      return { ok: false, code: "delivery_failed" };
+    }
   }
 
   if (!transport.apiKey) {

@@ -128,6 +128,8 @@ describe("account lifecycle invitation boundary", () => {
       expect(source, file).not.toContain("RESEND_API_KEY");
       expect(source, file).not.toContain("AUTH_EMAIL_FROM");
       expect(source, file).not.toContain("AUTH_EMAIL_REPLY_TO");
+      expect(source, file).not.toContain("AUTH_EMAIL_TRANSPORT");
+      expect(source, file).not.toContain("127.0.0.1:8025");
       expect(source, file).not.toContain("generateAccountToken");
       expect(source, file).not.toContain("hashAccountToken");
       expect(source, file).not.toContain("account-token-service");
