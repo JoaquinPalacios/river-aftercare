@@ -52,6 +52,7 @@ export async function saveComplimentaryAccessAction(
   }
 
   revalidatePath(`/operator/clinics/${clinicId}`);
+  revalidatePath(`/operator/clinics/${clinicId}/setup`);
   revalidatePath("/account/billing");
   const plan = commercialPlanLabel(result.commercialPlan);
   return {

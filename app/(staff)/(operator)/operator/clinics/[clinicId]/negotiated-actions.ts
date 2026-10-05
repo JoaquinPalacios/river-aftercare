@@ -48,6 +48,7 @@ export async function saveNegotiatedOfferAction(
     return { error: result.error };
   }
   revalidatePath(`/operator/clinics/${clinicId}`);
+  revalidatePath(`/operator/clinics/${clinicId}/setup`);
   revalidatePath("/account/billing");
   return {
     success: "Negotiated price prepared. The clinic has not been charged.",
@@ -80,6 +81,7 @@ export async function withdrawNegotiatedOfferAction(
     return { error: result.error };
   }
   revalidatePath(`/operator/clinics/${clinicId}`);
+  revalidatePath(`/operator/clinics/${clinicId}/setup`);
   revalidatePath("/account/billing");
   return {
     success: "Negotiated price withdrawn. Complimentary access is unchanged.",

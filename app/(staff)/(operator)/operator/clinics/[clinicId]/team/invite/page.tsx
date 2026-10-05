@@ -8,6 +8,7 @@ import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
+import { assistedClinicNeedsCommercialSetup } from "@/lib/operator/clinic-onboarding";
 import { getOperatorClinic } from "@/lib/operator/get-operator-clinic";
 
 interface InviteUserPageProps {
@@ -21,9 +22,10 @@ export const metadata: Metadata = {
 export default async function InviteUserPage({ params }: InviteUserPageProps) {
   await requirePlatformOperator();
   const { clinicId } = await params;
-  const [clinic, allowance] = await Promise.all([
+  const [clinic, allowance, needsCommercialSetup] = await Promise.all([
     getOperatorClinic(clinicId),
     loadTeamAllowance(clinicId),
+    assistedClinicNeedsCommercialSetup(clinicId),
   ]);
   if (!clinic) {
     notFound();
@@ -54,16 +56,34 @@ export default async function InviteUserPage({ params }: InviteUserPageProps) {
           their own password. Access becomes active only after they accept.
         </p>
       </header>
-      <InviteUserForm
-        clinicId={clinicId}
-        atLimit={allowance.atLimit}
-        usageLabel={allowance.usageLabel}
-        limitMessage={
-          allowance.planLimit
-            ? `This clinic is using all ${allowance.planLimit} included team members.`
-            : null
-        }
-      />
+      {needsCommercialSetup ? (
+        <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+          <h2 className="text-base font-semibold">
+            Commercial access required
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-staff-muted">
+            Set this clinic&apos;s commercial access before inviting someone.
+            Team remains the place for later administrators and staff.
+          </p>
+          <Link
+            href={`/operator/clinics/${clinicId}/setup`}
+            className="mt-3 inline-flex text-sm font-medium text-staff-brand"
+          >
+            Continue clinic setup
+          </Link>
+        </section>
+      ) : (
+        <InviteUserForm
+          clinicId={clinicId}
+          atLimit={allowance.atLimit}
+          usageLabel={allowance.usageLabel}
+          limitMessage={
+            allowance.planLimit
+              ? `This clinic is using all ${allowance.planLimit} included team members.`
+              : null
+          }
+        />
+      )}
       <p>
         <Link
           href={`/operator/clinics/${clinicId}/team`}

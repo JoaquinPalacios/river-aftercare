@@ -31,6 +31,10 @@ import {
 } from "@/lib/entitlements/locks";
 import { ENTITLEMENT_CODES } from "@/lib/entitlements/messages";
 import { publicPracticeName } from "@/lib/clinics/patient-profile";
+import {
+  COMMERCIAL_SETUP_REQUIRED_MESSAGE,
+  initialCommercialSetupIsValid,
+} from "@/lib/operator/clinic-onboarding";
 import { getPrisma } from "@/lib/prisma";
 
 export const ALREADY_MEMBER_MESSAGE =
@@ -54,6 +58,7 @@ export type InviteClinicUserErrorCode =
   | "invalid_email"
   | "invalid_role"
   | "clinic_not_found"
+  | "commercial_setup_required"
   | "already_member"
   | "other_clinic_member"
   | "platform_operator"
@@ -210,6 +215,13 @@ export async function inviteClinicUser(input: {
       select: {
         id: true,
         name: true,
+        assistedOnboarding: true,
+        entitlement: {
+          select: {
+            commercialPlan: true,
+            commercialArrangement: true,
+          },
+        },
         sites: {
           where: { isPrimary: true, active: true },
           select: { displayName: true, clinicId: true },
@@ -218,6 +230,15 @@ export async function inviteClinicUser(input: {
     });
     if (!clinic) {
       return { ok: false as const, code: "clinic_not_found" as const };
+    }
+    if (
+      clinic.assistedOnboarding &&
+      !initialCommercialSetupIsValid(clinic.entitlement)
+    ) {
+      return {
+        ok: false as const,
+        code: "commercial_setup_required" as const,
+      };
     }
 
     const existing = await tx.user.findUnique({
@@ -451,6 +472,7 @@ export async function inviteClinicUser(input: {
       string
     > = {
       clinic_not_found: CLINIC_NOT_FOUND_MESSAGE,
+      commercial_setup_required: COMMERCIAL_SETUP_REQUIRED_MESSAGE,
       already_member: ALREADY_MEMBER_MESSAGE,
       other_clinic_member: OTHER_CLINIC_MEMBER_MESSAGE,
       platform_operator: PLATFORM_OPERATOR_INVITE_MESSAGE,

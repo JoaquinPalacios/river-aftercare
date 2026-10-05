@@ -207,6 +207,32 @@ describe("pre-payment activation gate", () => {
     ).toEqual({ kind: "allow", reason: "operator_support" });
   });
 
+  it("does not put an assisted clinic with no entitlement on the legacy path", () => {
+    expect(
+      decideClinicProductAccess({
+        membershipSource: "membership",
+        entitlementStatus: null,
+        billingStatus: null,
+        assistedOnboarding: true,
+      })
+    ).toEqual({
+      kind: "billing_required",
+      reason: "not_active",
+      href: BILLING_SETUP_PATH,
+    });
+  });
+
+  it("keeps operator support open for an assisted clinic that is not commercially set up", () => {
+    expect(
+      decideClinicProductAccess({
+        membershipSource: "operator_support",
+        entitlementStatus: null,
+        billingStatus: null,
+        assistedOnboarding: true,
+      })
+    ).toEqual({ kind: "allow", reason: "operator_support" });
+  });
+
   it("keeps a historical clinic with no entitlement on the legacy path", async () => {
     const access = await readClinicBillingAccess(
       {
@@ -223,6 +249,25 @@ describe("pre-payment activation gate", () => {
       reason: "legacy",
       billingHref: null,
     });
+  });
+
+  it("closes product access for an assisted clinic until an entitlement exists", async () => {
+    const access = await readClinicBillingAccess(
+      {
+        clinic: { id: "clinic_assisted", name: "Assisted" },
+      },
+      {
+        clinicEntitlement: {
+          findUnique: async () => null,
+        },
+        clinic: {
+          findUnique: async () => ({ assistedOnboarding: true }),
+        },
+      } as never
+    );
+    expect(access.kind).toBe("billing_required");
+    expect(access.reason).not.toBe("legacy");
+    expect(access).toMatchObject({ href: BILLING_SETUP_PATH });
   });
 
   it("opens product access for active complimentary Essential or Practice", async () => {

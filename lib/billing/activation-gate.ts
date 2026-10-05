@@ -78,7 +78,9 @@ export type ClinicProductAccessDecision =
 /**
  * Product access gate.
  *
- * No entitlement row is the legacy compatibility path.
+ * No entitlement row is the legacy compatibility path for a historical clinic.
+ * A clinic created through assisted onboarding is not on that path until an
+ * explicit entitlement exists.
  * A billing clinic opens product routes only while entitlement is ACTIVE.
  * That includes a subscription Stripe is still retrying (PAST_DUE) and a
  * cancellation scheduled for the end of the paid period. PENDING,
@@ -92,12 +94,24 @@ export function decideClinicProductAccess(input: {
   membershipSource: "membership" | "operator_support";
   entitlementStatus: EntitlementStatus | null;
   billingStatus: BillingStatus | null;
+  /**
+   * Clinics created through assisted onboarding are not on the legacy path
+   * while they have no entitlement. Historical clinics leave this unset.
+   */
+  assistedOnboarding?: boolean;
 }): ClinicProductAccessDecision {
   if (input.membershipSource === "operator_support") {
     return { kind: "allow", reason: "operator_support" };
   }
 
   if (!input.entitlementStatus) {
+    if (input.assistedOnboarding) {
+      return {
+        kind: "billing_required",
+        reason: "not_active",
+        href: BILLING_SETUP_PATH,
+      };
+    }
     return { kind: "allow", reason: "legacy" };
   }
 
@@ -176,6 +190,34 @@ async function readEffectiveEntitlement(
   };
 }
 
+/**
+ * In-process test doubles that only stub clinicEntitlement stay on the
+ * historical path. Production Prisma includes clinic.findUnique.
+ */
+async function readAssistedOnboarding(
+  clinicId: string,
+  db: ClinicBillingAccessDb
+): Promise<boolean> {
+  const clinic = (
+    db as {
+      clinic?: {
+        findUnique?: (args: {
+          where: { id: string };
+          select: { assistedOnboarding: true };
+        }) => Promise<{ assistedOnboarding: boolean } | null>;
+      };
+    }
+  ).clinic;
+  if (typeof clinic?.findUnique !== "function") {
+    return false;
+  }
+  const row = await clinic.findUnique({
+    where: { id: clinicId },
+    select: { assistedOnboarding: true },
+  });
+  return row?.assistedOnboarding === true;
+}
+
 export async function clinicEntitlementIsActive(
   clinicId: string,
   db?: ClinicBillingAccessDb
@@ -200,11 +242,16 @@ export async function readClinicBillingAccess(
   }
 
   const row = await readEffectiveEntitlement(membership.clinic.id, db);
+  const assistedOnboarding = await readAssistedOnboarding(
+    membership.clinic.id,
+    billingAccessDb(db)
+  );
 
   const decision = decideClinicProductAccess({
     membershipSource: "membership",
     entitlementStatus: row.entitlementStatus,
     billingStatus: row.billingStatus,
+    assistedOnboarding,
   });
 
   return {

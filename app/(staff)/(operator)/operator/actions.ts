@@ -40,7 +40,7 @@ export async function createClinicAction(
 
   try {
     const created = await createOperatorClinic(parsed.data);
-    redirect(`/operator/clinics/${created.id}`);
+    redirect(`/operator/clinics/${created.id}/setup`);
   } catch (error) {
     if (
       typeof error === "object" &&

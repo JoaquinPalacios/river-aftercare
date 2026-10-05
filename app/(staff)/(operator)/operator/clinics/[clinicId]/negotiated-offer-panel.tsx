@@ -20,7 +20,10 @@ export function NegotiatedOfferPanel({
         : "the current plan";
 
   return (
-    <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+    <section
+      id="negotiated-price"
+      className="rounded-xl border border-staff-line bg-staff-panel p-5"
+    >
       <h2 className="text-base font-semibold">Negotiated price</h2>
       <p className="mt-2 text-sm leading-6 text-staff-muted">
         Prepare one paid price for this complimentary clinic. The clinic
