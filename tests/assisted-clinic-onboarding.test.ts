@@ -207,9 +207,16 @@ describeDb("assisted clinic onboarding in the database", () => {
     expect(onboardingProgress(status!).map((item) => item.label)).toEqual([
       "Clinic created",
       "Practice categories selected",
-      "Commercial access not configured",
-      "Administrator not invited",
-      "Not ready for clinic setup",
+      "Commercial arrangement",
+      "Administrator",
+      "Ready for clinic setup",
+    ]);
+    expect(onboardingProgress(status!).map((item) => item.complete)).toEqual([
+      true,
+      true,
+      false,
+      false,
+      false,
     ]);
 
     const access = await readClinicBillingAccess({
@@ -498,8 +505,10 @@ describeDb("assisted clinic onboarding in the database", () => {
     expect(expired?.readyForClinicSetup).toBe(false);
     expect(
       onboardingProgress(expired!).find((item) => item.id === "administrator")
-        ?.label
-    ).toBe("Administrator invitation expired");
+    ).toMatchObject({
+      label: "Administrator",
+      complete: false,
+    });
     expect(ownerHandoffSteps(expired!).join(" ")).toContain("Resend");
   });
 
