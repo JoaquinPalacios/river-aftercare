@@ -1,3 +1,5 @@
+import "server-only";
+
 import { formatAudCents } from "@/lib/clinics/group-commercial";
 import {
   endOfSydneyDay,
