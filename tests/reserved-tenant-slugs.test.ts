@@ -16,6 +16,7 @@ describe("reserved tenant slugs", () => {
     const parsed = createOperatorClinicSchema.safeParse({
       name: "Assets Clinic",
       slug: "assets",
+      serviceCategories: ["DENTAL"],
     });
     expect(parsed.success).toBe(false);
     if (parsed.success) {
@@ -36,6 +37,7 @@ describe("reserved tenant slugs", () => {
     const parsed = createOperatorClinicSchema.safeParse({
       name: "Not The Demo",
       slug: "demodental",
+      serviceCategories: ["DENTAL"],
     });
     expect(parsed.success).toBe(false);
     if (parsed.success) {

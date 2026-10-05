@@ -1063,12 +1063,15 @@ describeDb("multi-location foundation database", () => {
     const created = await createOperatorClinic({
       name: "Operator Dental",
       slug: "mlfnd-operator",
+      serviceCategories: ["DENTAL"],
     });
     const clinic = await prisma().clinic.findUniqueOrThrow({
       where: { id: created.id },
       include: {
         profile: true,
-        sites: { include: { locations: true } },
+        sites: {
+          include: { locations: true, serviceCategories: true },
+        },
       },
     });
     expect(clinic.slug).toBe("mlfnd-operator");
@@ -1090,6 +1093,9 @@ describeDb("multi-location foundation database", () => {
       phone: null,
       displayName: "Operator Dental",
     });
+    expect(
+      clinic.sites[0]?.serviceCategories.map((row) => row.serviceCategory)
+    ).toEqual(["DENTAL"]);
 
     const holder = await createClinic(
       `${PREFIX}holder`,
@@ -1109,11 +1115,17 @@ describeDb("multi-location foundation database", () => {
       createOperatorClinic({
         name: "Should Roll Back",
         slug: "mlfnd-taken",
+        serviceCategories: ["PHYSIOTHERAPY", "DENTAL"],
       })
     ).rejects.toBeInstanceOf(ClinicPortalError);
     expect(
       await prisma().clinic.findUnique({ where: { slug: "mlfnd-taken" } })
     ).toBeNull();
+    expect(
+      await prisma().clinicSiteServiceCategory.count({
+        where: { clinicSite: { slug: "mlfnd-taken" } },
+      })
+    ).toBe(0);
 
     await prisma().$executeRaw`
       CREATE OR REPLACE FUNCTION mlfnd_reject_location()
@@ -1138,6 +1150,7 @@ describeDb("multi-location foundation database", () => {
       createOperatorClinic({
         name: "MLFND ROLLBACK",
         slug: "mlfnd-rollback",
+        serviceCategories: ["DENTAL", "COSMETIC_AESTHETIC"],
       })
     ).rejects.toThrow(/mlfnd forced location failure/);
     expect(
@@ -1148,6 +1161,11 @@ describeDb("multi-location foundation database", () => {
         where: { slug: "mlfnd-rollback" },
       })
     ).toBeNull();
+    expect(
+      await prisma().clinicSiteServiceCategory.count({
+        where: { clinicSite: { slug: "mlfnd-rollback" } },
+      })
+    ).toBe(0);
   });
 
   it("builds the demo hierarchy from the seed helper", async () => {

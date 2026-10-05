@@ -79,6 +79,7 @@ test.describe("clinic publish attestation and demo sample governance", () => {
     await page.goto(staffUrl("/operator/clinics/new"), { waitUntil: "load" });
     await page.getByLabel("Practice name").fill("Should Not Claim Demo");
     await page.getByLabel("Tenant slug").fill("demodental");
+    await page.getByRole("checkbox", { name: "Dental" }).check();
     await page.getByRole("button", { name: "Create clinic" }).click();
     await expect(
       page.getByText("That hostname is reserved for the interactive demo.")

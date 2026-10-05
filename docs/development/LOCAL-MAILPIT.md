@@ -50,7 +50,7 @@ If Mailpit is selected and is not running, delivery returns `delivery_failed`. T
 ## Invite an administrator
 
 1. Sign in at [http://app.localhost:3000/login](http://app.localhost:3000/login) as the local operator (`LOCAL_OPERATOR_EMAIL` / `LOCAL_OPERATOR_PASSWORD`).
-2. Open **All Clinics** → **Create clinic**. Choose a practice name and a tenant slug other than `demodental`.
+2. Open **All Clinics** → **Create clinic**. Choose a practice name, at least one practice category, and a tenant slug other than `demodental`.
 3. Open that clinic’s **Team** → **Invite user**. Enter a name and an email address you can recognise in Mailpit, and choose **Administrator**.
 4. In [http://localhost:8025](http://localhost:8025), open the new message. The setup link is `http://app.localhost:3000/accept-invitation#token=…`. Use the link in the message. The token is only in that fragment. Copy the plain-text URL when the HTML link drops it.
 5. Complete the password form on `app.localhost`. Sign in with that new email and password.

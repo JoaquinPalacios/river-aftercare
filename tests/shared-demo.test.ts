@@ -270,6 +270,7 @@ describe("shared designated demo", () => {
       const parsed = createOperatorClinicSchema.safeParse({
         name: "Not the demo",
         slug,
+        serviceCategories: ["DENTAL"],
       });
       expect(parsed.success).toBe(false);
     }

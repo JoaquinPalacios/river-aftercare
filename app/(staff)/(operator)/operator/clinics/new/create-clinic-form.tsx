@@ -6,6 +6,7 @@ import {
   createClinicAction,
   type OperatorActionState,
 } from "@/app/(staff)/(operator)/operator/actions";
+import { ServiceCategoryFields } from "@/app/(staff)/(clinic-portal)/practice/sites/service-category-fields";
 import { suggestGuideSlug } from "@/lib/clinics/slug-suggestion";
 
 const initial: OperatorActionState = {};
@@ -80,6 +81,13 @@ export function CreateClinicForm() {
           </p>
         ) : null}
       </div>
+      <ServiceCategoryFields
+        selected={[]}
+        disabled={pending}
+        legend="Practice categories"
+        description="Choose every category this clinic provides. At least one is required. A multidisciplinary clinic can select more than one."
+        error={state.fieldErrors?.serviceCategories}
+      />
       {state.error ? (
         <p className="text-sm text-red-600" role="alert">
           {state.error}

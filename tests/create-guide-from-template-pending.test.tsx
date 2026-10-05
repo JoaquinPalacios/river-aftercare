@@ -261,4 +261,34 @@ describe("create guide from template pending state", () => {
     expect(templateButton(container, HOME_EXERCISE).disabled).toBe(false);
     expect(templateButton(container, EXTRACTION).disabled).toBe(false);
   });
+
+  it("says when a selected category has no eligible template and keeps custom creation", async () => {
+    await act(async () => {
+      root.render(
+        <CreateGuideForm
+          templates={[]}
+          isDemoTenant={false}
+          templatesNeedServiceCategories={false}
+          serviceCategories={["CHIROPRACTIC"]}
+          allowance={allowance}
+          contactHref="/contact"
+        />
+      );
+    });
+
+    expect(container.textContent).toContain(
+      "No published templates are available yet."
+    );
+    expect(container.textContent).not.toContain(
+      "Assign a service to at least one site"
+    );
+    const custom = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Create custom guide"
+    );
+    expect(custom?.disabled).toBe(false);
+    expect(
+      container.querySelector<HTMLSelectElement>("#serviceCategory")?.value
+    ).toBe("");
+    expect(container.textContent).toContain("Chiropractic");
+  });
 });

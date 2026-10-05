@@ -205,6 +205,57 @@ describe("create clinic slug", () => {
     expect(slug().value).not.toBe("admin-site");
   });
 
+  it("offers every practice category and submits the selected ones with the generated slug", async () => {
+    const boxes = [
+      ...container.querySelectorAll<HTMLInputElement>(
+        'input[name="serviceCategories"]'
+      ),
+    ];
+    expect(boxes.map((box) => box.value)).toEqual([
+      "DENTAL",
+      "PHYSIOTHERAPY",
+      "CHIROPRACTIC",
+      "COSMETIC_AESTHETIC",
+    ]);
+    expect(boxes.every((box) => box.checked)).toBe(false);
+    expect(container.textContent).toContain("Practice categories");
+    expect(container.textContent).toContain("At least one is required.");
+
+    setValue(name(), "Harbour Dental");
+    act(() => {
+      boxes[0]?.click();
+      boxes[3]?.click();
+    });
+    await submit();
+
+    const formData = actionMock.mock.calls.at(-1)?.[1] as FormData;
+    expect(formData.get("slug")).toBe("harbour-dental");
+    expect(formData.getAll("serviceCategories")).toEqual([
+      "DENTAL",
+      "COSMETIC_AESTHETIC",
+    ]);
+    expect(container.textContent).not.toContain(
+      "Select at least one practice category."
+    );
+  });
+
+  it("shows the required-category error from the server", async () => {
+    actionMock.mockImplementation(async () => ({
+      error: "Please review the clinic details.",
+      fieldErrors: {
+        serviceCategories: "Select at least one practice category.",
+      },
+    }));
+    setValue(name(), "Harbour Dental");
+    await submit();
+    expect(
+      container.querySelector("#service-categories-error")?.textContent
+    ).toBe("Select at least one practice category.");
+    expect(
+      container.querySelector("fieldset")?.getAttribute("aria-invalid")
+    ).toBe("true");
+  });
+
   it("keeps the operator's slug when the server reports a duplicate", async () => {
     actionMock.mockImplementation(async (_previous, formData: FormData) => {
       const slugError = slugFieldError(String(formData.get("slug") ?? ""));
