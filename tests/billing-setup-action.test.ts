@@ -33,6 +33,9 @@ vi.mock("@/lib/auth/require-clinic-admin", () => ({
 vi.mock("@/lib/prisma", () => ({
   getPrisma: () => ({
     $transaction: transactionMock,
+    clinicNegotiatedOffer: {
+      findFirst: async () => null,
+    },
   }),
 }));
 

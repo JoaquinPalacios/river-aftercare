@@ -67,7 +67,10 @@ export type CheckoutFailureCode =
   | "identity_incomplete"
   | "checkout_already_completed"
   | "checkout_unavailable"
-  | "checkout_failed";
+  | "checkout_failed"
+  | "negotiated_not_ready"
+  | "negotiated_terms_required"
+  | "split_in_progress";
 
 export type CheckoutActorDecision =
   | { ok: true; clinicId: string }
@@ -116,6 +119,12 @@ export function checkoutFailureMessage(code: CheckoutFailureCode): string {
       return "Payment has already been submitted.";
     case "checkout_failed":
       return "We couldn't open secure payment. Your details have been saved. Please try again.";
+    case "negotiated_not_ready":
+      return "This negotiated price is not open for payment yet.";
+    case "negotiated_terms_required":
+      return "Accept the negotiated commercial terms before continuing.";
+    case "split_in_progress":
+      return "An account split is open for this clinic. Finish or cancel it before payment.";
   }
 }
 

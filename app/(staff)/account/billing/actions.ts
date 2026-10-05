@@ -25,6 +25,10 @@ import {
   checkoutFailureMessage,
   createClinicCheckout,
 } from "@/lib/billing/checkout";
+import {
+  loadOpenNegotiatedOfferSummary,
+  startNegotiatedCheckout,
+} from "@/lib/billing/negotiated-offer";
 import { checkoutReturnUrls } from "@/lib/billing/checkout-origin";
 import { logStripeBilling } from "@/lib/billing/log";
 import { checkoutFailureLogFields } from "@/lib/billing/stripe-error-log";
@@ -126,12 +130,22 @@ export async function continueToSecurePaymentAction(
   });
 
   try {
-    const checkout = await createClinicCheckout({
-      clinicId: actor.clinicId,
-      userId: session.user.id,
-      successUrl,
-      cancelUrl,
-    });
+    const negotiated = await loadOpenNegotiatedOfferSummary(actor.clinicId);
+    const checkout = negotiated
+      ? await startNegotiatedCheckout({
+          clinicId: actor.clinicId,
+          userId: session.user.id,
+          acceptNegotiatedTerms:
+            formData.get("acceptNegotiatedTerms") === "yes",
+          successUrl,
+          cancelUrl,
+        })
+      : await createClinicCheckout({
+          clinicId: actor.clinicId,
+          userId: session.user.id,
+          successUrl,
+          cancelUrl,
+        });
     if (!checkout.ok) {
       if (checkout.code === "checkout_already_completed") {
         redirect(BILLING_COMPLETE_PATH);

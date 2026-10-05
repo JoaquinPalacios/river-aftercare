@@ -150,27 +150,36 @@ An extension keeps the same clinic, sites, locations, guides, memberships, and b
 
 Request-time evaluation closes product access when a complimentary expiry is due. It sets `entitlementStatus` `ENDED` and does not start a job. The clinic, its content, and its memberships stay. `publicGuideRetentionUntil`, `subscriptionEndedAt`, and `cancelAtPeriodEnd` stay unset, so already-published patient guides stay public until a later retention policy says otherwise. Expiry is not a Stripe cancellation. The administrator still reaches `/account/billing`. A missing entitlement row stays the legacy open path. Paid rows are unchanged.
 
-Grants and extensions take `clinic-account-structure:{clinicId}` and compare-and-set the entitlement row. They are refused while a paid Stripe subscription is current, Checkout is in progress, or an account split is open on the source or destination. A complimentary row cannot satisfy a split destination’s paid billing-readiness check. Checkout and operator offer revision refuse complimentary clinics, including after expiry. Stripe webhooks re-read `commercialArrangement` under that same lock immediately before an entitlement write. A complimentary row is not changed: plan, status, period, retention, and complimentary audit history stay as the grant left them, and the receipt is `IGNORED` so Stripe does not retry it as a failure. A subscription-schedule release is refused under the lock before the Stripe call, and that call stays outside the database transaction. A later negotiated Price cannot be mistaken for a paid projection.
+Grants and extensions take `clinic-account-structure:{clinicId}` and compare-and-set the entitlement row. They are refused while a paid Stripe subscription is current, Checkout is in progress, an account split is open on the source or destination, or a negotiated offer is open. A complimentary row cannot satisfy a split destination’s paid billing-readiness check. The standard offer and standard Checkout refuse complimentary clinics, including after expiry. Stripe webhooks re-read `commercialArrangement` under that same lock immediately before an entitlement write. A complimentary row is not changed unless a trusted `invoice.paid` matches an open negotiated offer. Otherwise the receipt is `IGNORED` so Stripe does not retry it as a failure. A subscription-schedule release is refused under the lock before the Stripe call, and that call stays outside the database transaction.
 
 Migration `20261004120000_add_complimentary_access` is additive. Do not apply it to production from this change. Production rollout stays migration-first: merge, expect the schema gate to fail, a human runs `pnpm prod:db:status`, `pnpm prod:db:migrate --apply`, and `pnpm prod:db:verify`, then redeploy the same SHA.
 
-#### Next PR: negotiated price and paid conversion
+#### Negotiated price and paid conversion
 
-Keep `commercialArrangement` as the boundary. Do not infer it from `billingStatus` or `entitlementStatus`.
+`commercialArrangement` stays the boundary. It is not inferred from `billingStatus` or `entitlementStatus`.
 
-- Store the agreed amount on the conversion that creates the Stripe Price, not as a speculative column on `ClinicEntitlement`. Examples such as A$49/month or A$499/year are later Prices. They are not coupons and not a Free plan.
-- Start conversion from the complimentary row under the same account-structure lock. Refuse a current paid subscription, an open Checkout session, and an open split.
-- Only a trusted `invoice.paid` may set `commercialArrangement` to `PAID`, write the paid billing status, and clear `complimentaryExpiresAt`. Until that event, `projectEntitlement` stays `complimentary_unchanged`.
-- Leave `paidThrough` and `currentPeriodEnd` as Stripe period fields. Do not drive annual notices or split readiness from `complimentaryExpiresAt`.
-- Destination billing readiness stays unpaid until the arrangement is `PAID` and the existing paid checks pass.
-- A later paid cancellation is what starts `publicGuideRetentionUntil`. Complimentary expiry does not.
+`ClinicNegotiatedOffer` stores the agreed AUD cents, interval, start, tax treatment (`NO_GST`), and commercial terms. The functional plan stays the complimentary Essential or Practice plan. There is no extra plan, coupon, or Free plan. A partial unique index allows one `PREPARED` or `CHECKOUT_OPEN` row per clinic. Replacing a prepared offer withdraws the previous row. Converted and withdrawn rows stay.
+
+An operator prepares the offer. Checkout creates or reuses one Stripe Price on the same product as that plan and interval, keyed by `river-negotiated-{clinicId}-{plan}-{interval}-{amountCents}`. The database transaction is not held across the Stripe request. Checkout uses the persisted amount. Browser-supplied prices and Stripe metadata do not authorise the charge. The clinic administrator accepts the current Terms and the negotiated terms. An operator does not pay.
+
+`CUSTOMER_INITIATED` opens Checkout immediately. `AGREED_DATE` keeps Checkout closed until the start of that Sydney day and does not create a subscription or charge on that date. Complimentary expiry does not charge the clinic.
+
+The negotiated price is indefinite. Checkout does not set `cancel_at`. The subscription stays on that Price until a later explicit commercial change or cancellation. It is not moved onto the catalogue price. A fixed-term negotiated rate, including how a billing cycle and proration would end on a chosen Sydney day, is a later feature.
+
+Only a trusted `invoice.paid` whose retrieved subscription is `active` converts the clinic. The subscription must have one quantity-1 item whose Price id, product, currency (`aud`), interval, and unit amount match the open offer. `invoice.amount_paid` can be lower when Stripe applies a credit or customer balance; that still converts. A different Price, product, currency, interval, quantity, or unit amount does not convert. That mismatch is stored as `FAILED` so Stripe retries it, and the subscription id is remembered when Stripe sent one. An operator can withdraw that offer: a subscription that does not match the offer is canceled outside the database transaction, the local subscription id is cleared, and complimentary access can be extended or a replacement offer prepared. A subscription that still matches the offer is left in place until payment confirmation. `checkout.session.completed` may store the subscription id so a second subscription cannot start, and it does not by itself set `PAID`. A canceled or `incomplete_expired` payment failure clears that id and returns `CHECKOUT_OPEN` to `PREPARED`. Duplicate receipts stay duplicate.
+
+`paidThrough` and `currentPeriodEnd` stay Stripe period fields. Annual notices and split readiness do not read `complimentaryExpiresAt`. Destination billing readiness stays unpaid until the arrangement is `PAID` and the existing paid checks pass. A later paid cancellation is what starts `publicGuideRetentionUntil`. Complimentary expiry does not.
+
+An open offer blocks complimentary grant or extension, standard Checkout, and account-split preparation and execution. The clinic, sites, locations, branding, staff, guides, and published revisions are not rewritten by the conversion.
+
+Migration `20261005130000_add_negotiated_offer` is additive. Do not apply it to production from this change. Production rollout stays migration-first: merge, expect the schema gate to fail, a human runs `pnpm prod:db:status`, `pnpm prod:db:migrate --apply`, and `pnpm prod:db:verify`, then redeploy the same SHA. No Stripe objects are created by the migration.
 
 ### Not yet present
 
 - Monthly ↔ annual interval changes
 - Per-seat billing, extra-seat prices, or subscription quantities other than the Group Additional Site quantity model below
 - Self-service Essential → Practice upgrade, refunds, coupons, trials
-- Customer-specific negotiated prices and complimentary-to-paid conversion. The integration points are in Complimentary collaborations above. This change does not add Prices, coupons, Checkout changes, or payment automation.
+- Fixed-term negotiated pricing. This release is indefinite only. A later version needs an explicit billing-cycle and proration policy before a negotiated subscription can end on a chosen date. There is no automatic move onto the catalogue price.
 - Post-activation Group quantity changes, Group subscription mutation, and Group capacity increase or decrease APIs
 - Practice → Group and Group → Practice billing mutation
 - Production / live Stripe configuration

@@ -34,6 +34,7 @@ import { executeLocationToNewAccountCutover } from "@/lib/account-split/location
 import { executeSiteToExistingGroupCutover } from "@/lib/account-split/site-to-existing-group-execute";
 import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
 import { readAccountCapacityFacts } from "@/lib/billing/group-capacity-gate";
+import { assertNoOpenNegotiatedOffer } from "@/lib/billing/negotiated-offer";
 import { readSplitDestinationCommercialState } from "@/lib/billing/split-destination-access";
 import { effectiveSiteLocationAllowance } from "@/lib/clinics/site-location-allowance";
 import {
@@ -209,6 +210,10 @@ export async function executeClinicAccountSplit(input: {
       }
       if (input.hooks?.afterLocks) {
         await input.hooks.afterLocks();
+      }
+      await assertNoOpenNegotiatedOffer(tx, head.sourceClinicId);
+      if (head.destinationClinicId) {
+        await assertNoOpenNegotiatedOffer(tx, head.destinationClinicId);
       }
 
       const snapshot = await loadAccountSplitSnapshot(head.id, tx);

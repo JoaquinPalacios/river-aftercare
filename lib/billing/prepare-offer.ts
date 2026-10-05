@@ -51,7 +51,7 @@ export function assessCommercialOfferRevision(input: {
       ok: false,
       code: "already_active",
       message:
-        "This clinic has complimentary access. Extend that agreement. Paid conversion is a later step.",
+        "This clinic has complimentary access. Prepare a negotiated price to convert it. The standard offer stays closed.",
     };
   }
 

@@ -9,6 +9,10 @@ import {
   type BusinessNumberKind,
 } from "@/lib/billing/business-number-kind";
 import { persistExpiredComplimentaryAccess } from "@/lib/billing/complimentary-access";
+import {
+  loadOpenNegotiatedOfferSummary,
+  type ClinicNegotiatedOfferSummary,
+} from "@/lib/billing/negotiated-offer";
 import { assessCommercialOfferRevision } from "@/lib/billing/prepare-offer";
 import { clinicSupportsCustomerPortal } from "@/lib/billing/customer-portal";
 import { assessOperatorPlanUpgrade } from "@/lib/billing/plan-change";
@@ -313,6 +317,7 @@ export type ClinicBillingView = {
     expiresLabel: string;
     reviewLabel: string | null;
   } | null;
+  negotiatedOffer: ClinicNegotiatedOfferSummary | null;
 };
 
 async function loadClinicBillingRecord(clinicId: string) {
@@ -445,6 +450,7 @@ export async function loadClinicBillingView(
           }),
     identity,
     complimentary: complimentaryBillingSummary(entitlement),
+    negotiatedOffer: await loadOpenNegotiatedOfferSummary(clinicId),
   };
 }
 

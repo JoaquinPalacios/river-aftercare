@@ -268,6 +268,10 @@ function createDb() {
       findUnique: async ({ where: { id } }: { where: { id: string } }) =>
         clinics.get(id) ?? null,
     },
+    clinicNegotiatedOffer: {
+      findFirst: async () => null,
+      updateMany: async () => ({ count: 0 }),
+    },
     clinicBillingProfile: {
       findUnique: async ({
         where,

@@ -58,6 +58,11 @@ export type EntitlementProjectionInput = {
   currentPeriodEnd: Date | null;
   invoiceIsPaid: boolean;
   now?: Date;
+  /**
+   * Set only after a persisted negotiated offer matches the retrieved
+   * subscription. Stripe metadata is not this flag.
+   */
+  negotiatedConversion?: boolean;
 };
 
 export type EntitlementProjectionResult =
@@ -272,7 +277,17 @@ export function projectEntitlement(
     };
   }
 
-  if (input.previous?.commercialArrangement === "COMPLIMENTARY") {
+  const convertingComplimentary =
+    input.previous?.commercialArrangement === "COMPLIMENTARY" &&
+    input.negotiatedConversion === true &&
+    input.eventType === "invoice.paid" &&
+    input.invoiceIsPaid &&
+    !input.unknownPrice &&
+    input.mappedPrice !== null;
+  if (
+    input.previous?.commercialArrangement === "COMPLIMENTARY" &&
+    !convertingComplimentary
+  ) {
     return { kind: "complimentary_unchanged" };
   }
 
@@ -356,6 +371,9 @@ export function projectEntitlement(
       subscriptionStatus === "incomplete_expired" ||
       subscriptionStatus === "unpaid"
     ) {
+      if (convertingComplimentary) {
+        return { kind: "complimentary_unchanged" };
+      }
       if (subscriptionStatus === "unpaid") {
         return {
           kind: "apply",
@@ -371,15 +389,21 @@ export function projectEntitlement(
       subscriptionStatus === "incomplete" ||
       subscriptionStatus === "paused"
     ) {
+      if (convertingComplimentary) {
+        return { kind: "complimentary_unchanged" };
+      }
       return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
     }
     const billingStatus = input.cancelAtPeriodEnd
       ? BillingStatus.CANCEL_AT_PERIOD_END
       : BillingStatus.ACTIVE;
-    return {
-      kind: "apply",
-      entitlement: activeSnapshot(previous, input, billingStatus),
-    };
+    return negotiatedConversionResult(
+      {
+        kind: "apply",
+        entitlement: activeSnapshot(previous, input, billingStatus),
+      },
+      convertingComplimentary
+    );
   }
 
   if (
@@ -434,8 +458,33 @@ export function projectEntitlement(
     return keepEstablished(previous, input);
   }
 
-  if (previous) {
-    return { kind: "apply", entitlement: previous };
+  const result: EntitlementProjectionResult = previous
+    ? { kind: "apply", entitlement: previous }
+    : { kind: "apply", entitlement: pendingSnapshot(previous, input) };
+  return negotiatedConversionResult(result, convertingComplimentary);
+}
+
+function negotiatedConversionResult(
+  result: EntitlementProjectionResult,
+  converting: boolean
+): EntitlementProjectionResult {
+  if (!converting || result.kind !== "apply") {
+    return result;
   }
-  return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
+  if (result.entitlement.entitlementStatus !== EntitlementStatus.ACTIVE) {
+    return { kind: "complimentary_unchanged" };
+  }
+  if (
+    result.entitlement.billingStatus !== BillingStatus.ACTIVE &&
+    result.entitlement.billingStatus !== BillingStatus.CANCEL_AT_PERIOD_END
+  ) {
+    return { kind: "complimentary_unchanged" };
+  }
+  return {
+    kind: "apply",
+    entitlement: {
+      ...result.entitlement,
+      commercialArrangement: "PAID",
+    },
+  };
 }
