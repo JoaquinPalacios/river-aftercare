@@ -101,8 +101,8 @@ export function CreateClinicForm() {
         {pending ? "Creating…" : "Create clinic"}
       </button>
       <p className="text-sm text-staff-muted">
-        After creating the clinic, invite users from Team. They choose their own
-        password.
+        The next page sets commercial access and invites the first
+        administrator. They choose their own password.
       </p>
     </form>
   );
