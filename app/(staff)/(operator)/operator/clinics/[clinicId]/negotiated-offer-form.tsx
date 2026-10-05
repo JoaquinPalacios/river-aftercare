@@ -91,45 +91,14 @@ export function NegotiatedOfferForm({
         />
         <p className="text-sm text-staff-muted">
           Required for an agreed date. Checkout stays closed until that Sydney
-          day. Nothing is charged automatically.
+          day. Nothing is charged automatically. Complimentary expiry does not
+          start a charge.
         </p>
       </div>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium">Special rate</legend>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="radio"
-            name="rateExpiryPolicy"
-            value="INDEFINITE"
-            defaultChecked
-            required
-          />
-          Continues until a later written change
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="radio"
-            name="rateExpiryPolicy"
-            value="CANCEL_WHEN_RATE_ENDS"
-          />
-          Subscription ends when the special rate ends
-        </label>
-      </fieldset>
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium" htmlFor="rateEndDate">
-          Special-rate end date
-        </label>
-        <input
-          id="rateEndDate"
-          name="rateEndDate"
-          type="date"
-          className="staffField"
-        />
-        <p className="text-sm text-staff-muted">
-          Required when the subscription ends with the special rate. The price
-          does not rise to the standard rate.
-        </p>
-      </div>
+      <p className="text-sm text-staff-muted">
+        The negotiated price continues until a later written change or
+        cancellation. It does not increase to the standard price.
+      </p>
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium" htmlFor="commercialTerms">
           Agreed commercial terms

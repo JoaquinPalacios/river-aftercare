@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  endOfSydneyDay,
-  startOfSydneyDay,
-} from "@/lib/billing/complimentary-term";
+import { startOfSydneyDay } from "@/lib/billing/complimentary-term";
 import {
   decideComplimentaryStripeEvent,
   formatNegotiatedPrice,
@@ -12,6 +9,7 @@ import {
   negotiatedPriceLookupKey,
   parseAudAmountToCents,
   parseNegotiatedOfferInput,
+  type NegotiatedSubscriptionItem,
   STRIPE_AUD_MAXIMUM_CHARGE_CENTS,
   STRIPE_AUD_MINIMUM_CHARGE_CENTS,
 } from "@/lib/billing/negotiated-terms";
@@ -55,14 +53,12 @@ describe("negotiated price parsing", () => {
     expect(parseAudAmountToCents("-49").ok).toBe(false);
   });
 
-  it("keeps an indefinite rate separate from an agreed start date", () => {
+  it("keeps an agreed start date separate from complimentary expiry", () => {
     const indefinite = parseNegotiatedOfferInput(
       {
         amount: "49",
         startMode: "CUSTOMER_INITIATED",
         billingStartDate: "",
-        rateExpiryPolicy: "INDEFINITE",
-        rateEndDate: "",
         commercialTerms: "A$49 per month while the collaboration continues.",
       },
       NOW
@@ -73,8 +69,6 @@ describe("negotiated price parsing", () => {
         amountCents: 4900,
         startMode: "CUSTOMER_INITIATED",
         billingStartsAt: null,
-        rateExpiryPolicy: "INDEFINITE",
-        rateExpiresAt: null,
       },
     });
 
@@ -83,9 +77,7 @@ describe("negotiated price parsing", () => {
         amount: "499",
         startMode: "AGREED_DATE",
         billingStartDate: "2026-11-01",
-        rateExpiryPolicy: "CANCEL_WHEN_RATE_ENDS",
-        rateEndDate: "2027-10-31",
-        commercialTerms: "Annual rate ends with the subscription.",
+        commercialTerms: "Annual price from the agreed Sydney day.",
       },
       NOW
     );
@@ -94,8 +86,6 @@ describe("negotiated price parsing", () => {
       return;
     }
     expect(dated.terms.billingStartsAt).toEqual(startOfSydneyDay(2026, 11, 1));
-    expect(dated.terms.rateExpiresAt).toEqual(endOfSydneyDay(2027, 10, 31));
-    expect(dated.terms.rateExpiresAt).not.toEqual(dated.terms.billingStartsAt);
   });
 
   it("builds stable Stripe idempotency keys from the persisted offer", () => {
@@ -124,55 +114,61 @@ describe("complimentary Stripe decisions", () => {
     id: "offer_1",
     status: "CHECKOUT_OPEN" as const,
     stripePriceId: "price_neg_49",
+    stripeProductId: "prod_neg",
     amountCents: 4900,
     commercialPlan: "ESSENTIAL" as const,
     billingInterval: "MONTHLY" as const,
   };
-  const item = {
+  const item: NegotiatedSubscriptionItem = {
     priceId: "price_neg_49",
     quantity: 1,
     unitAmountCents: 4900,
+    currency: "aud",
+    productId: "prod_neg",
+    interval: "month",
+  };
+  const paid = {
+    eventType: "invoice.paid",
+    invoiceIsPaid: true,
+    subscriptionStatus: "active",
+    subscriptionId: "sub_1",
+    customerId: "cus_1",
+    offer,
   };
 
-  it("converts only a paid invoice that matches the persisted price", () => {
+  it("converts a paid invoice that matches the persisted price", () => {
     expect(
-      decideComplimentaryStripeEvent({
-        eventType: "invoice.paid",
-        invoiceIsPaid: true,
-        subscriptionStatus: "active",
-        subscriptionId: "sub_1",
-        customerId: "cus_1",
-        items: [item],
-        invoiceAmountPaid: 4900,
-        offer,
-      })
-    ).toMatchObject({ action: "convert", offerId: "offer_1" });
+      decideComplimentaryStripeEvent({ ...paid, items: [item] })
+    ).toMatchObject({
+      action: "convert",
+      offerId: "offer_1",
+      stripePriceId: "price_neg_49",
+    });
   });
 
-  it("does not convert a mismatched, unpaid, or withdrawn offer", () => {
-    expect(
-      decideComplimentaryStripeEvent({
-        eventType: "invoice.paid",
-        invoiceIsPaid: true,
-        subscriptionStatus: "active",
+  it("retries a paid invoice whose Price, amount, quantity, currency, or composition does not match", () => {
+    const cases: NegotiatedSubscriptionItem[][] = [
+      [{ ...item, priceId: "price_other" }],
+      [{ ...item, unitAmountCents: 7900 }],
+      [{ ...item, quantity: 2 }],
+      [{ ...item, currency: "usd" }],
+      [{ ...item, productId: "prod_other" }],
+      [{ ...item, interval: "year" }],
+      [item, { ...item, priceId: "price_extra" }],
+    ];
+    for (const items of cases) {
+      expect(decideComplimentaryStripeEvent({ ...paid, items })).toMatchObject({
+        action: "retry",
+        reason: "negotiated_price_mismatch",
+        rememberSubscription: true,
         subscriptionId: "sub_1",
-        customerId: "cus_1",
-        items: [{ ...item, unitAmountCents: 7900 }],
-        invoiceAmountPaid: 7900,
-        offer,
-      }).action
-    ).toBe("ignore");
+      });
+    }
+  });
+
+  it("does not convert when there is no open offer", () => {
     expect(
-      decideComplimentaryStripeEvent({
-        eventType: "invoice.paid",
-        invoiceIsPaid: true,
-        subscriptionStatus: "active",
-        subscriptionId: "sub_1",
-        customerId: "cus_1",
-        items: [item],
-        invoiceAmountPaid: 4900,
-        offer: null,
-      })
+      decideComplimentaryStripeEvent({ ...paid, items: [item], offer: null })
     ).toEqual({ action: "ignore", reason: "complimentary_access" });
     expect(
       decideComplimentaryStripeEvent({
@@ -182,10 +178,29 @@ describe("complimentary Stripe decisions", () => {
         subscriptionId: "sub_1",
         customerId: "cus_1",
         items: [item],
-        invoiceAmountPaid: null,
         offer,
       })
     ).toEqual({ action: "ignore", reason: "complimentary_access" });
+  });
+
+  it("retries when the subscription Price cannot be verified", () => {
+    expect(
+      decideComplimentaryStripeEvent({ ...paid, items: [] })
+    ).toMatchObject({
+      action: "retry",
+      reason: "subscription_not_retrieved",
+      rememberSubscription: false,
+    });
+    expect(
+      decideComplimentaryStripeEvent({
+        ...paid,
+        items: [{ ...item, currency: null }],
+      })
+    ).toMatchObject({
+      action: "retry",
+      reason: "negotiated_terms_unverified",
+      rememberSubscription: false,
+    });
   });
 
   it("remembers Checkout and clears only a canceled or expired subscription", () => {
@@ -197,7 +212,6 @@ describe("complimentary Stripe decisions", () => {
         subscriptionId: "sub_1",
         customerId: "cus_1",
         items: [item],
-        invoiceAmountPaid: null,
         offer,
       })
     ).toEqual({
@@ -213,7 +227,6 @@ describe("complimentary Stripe decisions", () => {
         subscriptionId: "sub_1",
         customerId: "cus_1",
         items: [item],
-        invoiceAmountPaid: null,
         offer,
       })
     ).toEqual({ action: "clear_failed_subscription", subscriptionId: "sub_1" });
@@ -225,7 +238,6 @@ describe("complimentary Stripe decisions", () => {
         subscriptionId: "sub_1",
         customerId: "cus_1",
         items: [item],
-        invoiceAmountPaid: null,
         offer,
       })
     ).toEqual({ action: "ignore", reason: "complimentary_access" });

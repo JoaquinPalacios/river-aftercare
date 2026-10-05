@@ -2,7 +2,6 @@ import "server-only";
 
 import { formatAudCents } from "@/lib/clinics/group-commercial";
 import {
-  endOfSydneyDay,
   parseSydneyCalendarDate,
   startOfSydneyDay,
 } from "@/lib/billing/complimentary-term";
@@ -23,16 +22,14 @@ export const NEGOTIATED_START_MODES = [
   "CUSTOMER_INITIATED",
   "AGREED_DATE",
 ] as const;
-export const NEGOTIATED_RATE_POLICIES = [
-  "INDEFINITE",
-  "CANCEL_WHEN_RATE_ENDS",
-] as const;
 
 export type NegotiatedStartMode = (typeof NEGOTIATED_START_MODES)[number];
-export type NegotiatedRateExpiryPolicy =
-  (typeof NEGOTIATED_RATE_POLICIES)[number];
 export type NegotiatedPlan = "ESSENTIAL" | "PRACTICE";
 export type NegotiatedInterval = "MONTHLY" | "YEARLY";
+
+/** Shown to operators and clinic administrators. There is no fixed end date. */
+export const NEGOTIATED_PRICE_CONTINUES =
+  "The negotiated price continues until a later written change or cancellation. It does not increase to the standard price.";
 
 const HORIZON_MS = 10 * 366 * 24 * 60 * 60 * 1000;
 
@@ -40,8 +37,6 @@ export type ParsedNegotiatedTerms = {
   amountCents: number;
   startMode: NegotiatedStartMode;
   billingStartsAt: Date | null;
-  rateExpiryPolicy: NegotiatedRateExpiryPolicy;
-  rateExpiresAt: Date | null;
   commercialTerms: string;
 };
 
@@ -91,15 +86,6 @@ export function parseNegotiatedStartMode(
   return null;
 }
 
-export function parseNegotiatedRatePolicy(
-  value: unknown
-): NegotiatedRateExpiryPolicy | null {
-  if (value === "INDEFINITE" || value === "CANCEL_WHEN_RATE_ENDS") {
-    return value;
-  }
-  return null;
-}
-
 export function parseNegotiatedInterval(
   value: unknown
 ): NegotiatedInterval | null {
@@ -133,8 +119,6 @@ export function parseNegotiatedOfferInput(
     amount: unknown;
     startMode: unknown;
     billingStartDate: unknown;
-    rateExpiryPolicy: unknown;
-    rateEndDate: unknown;
     commercialTerms: unknown;
   },
   now: Date
@@ -146,13 +130,6 @@ export function parseNegotiatedOfferInput(
   const startMode = parseNegotiatedStartMode(input.startMode);
   if (!startMode) {
     return { ok: false, error: "Choose when payment can start." };
-  }
-  const rateExpiryPolicy = parseNegotiatedRatePolicy(input.rateExpiryPolicy);
-  if (!rateExpiryPolicy) {
-    return {
-      ok: false,
-      error: "Choose what happens when the special rate ends.",
-    };
   }
   const text = parseNegotiatedTermsText(input.commercialTerms);
   if (!text.ok) {
@@ -184,33 +161,12 @@ export function parseNegotiatedOfferInput(
     }
   }
 
-  let rateExpiresAt: Date | null = null;
-  if (rateExpiryPolicy === "CANCEL_WHEN_RATE_ENDS") {
-    const parsed = parseSydneyCalendarDate(input.rateEndDate);
-    if (!parsed) {
-      return { ok: false, error: "Choose the date the special rate ends." };
-    }
-    rateExpiresAt = endOfSydneyDay(parsed.year, parsed.month, parsed.day);
-    const earliest = billingStartsAt ?? now;
-    if (rateExpiresAt.getTime() <= earliest.getTime()) {
-      return {
-        ok: false,
-        error: "The special rate must end after payment can start.",
-      };
-    }
-    if (rateExpiresAt.getTime() > now.getTime() + HORIZON_MS) {
-      return { ok: false, error: "Choose an end date within 10 years." };
-    }
-  }
-
   return {
     ok: true,
     terms: {
       amountCents: amount.amountCents,
       startMode,
       billingStartsAt,
-      rateExpiryPolicy,
-      rateExpiresAt,
       commercialTerms: text.commercialTerms,
     },
   };
@@ -263,6 +219,17 @@ export type NegotiatedSubscriptionItem = {
   priceId: string;
   quantity: number;
   unitAmountCents: number | null;
+  currency: string | null;
+  productId: string | null;
+  interval: "month" | "year" | null;
+};
+
+type NegotiatedPriceShape = {
+  id?: string | null;
+  unit_amount?: number | null;
+  currency?: string | null;
+  product?: string | { id?: string | null } | null;
+  recurring?: { interval?: string | null } | null;
 };
 
 export function subscriptionItemsForNegotiatedMatch(
@@ -270,8 +237,7 @@ export function subscriptionItemsForNegotiatedMatch(
     items?: {
       data?: Array<{
         quantity?: number | null;
-        price?:
-          string | { id?: string | null; unit_amount?: number | null } | null;
+        price?: string | NegotiatedPriceShape | null;
       }>;
     } | null;
   } | null
@@ -286,38 +252,89 @@ export function subscriptionItemsForNegotiatedMatch(
       typeof price.unit_amount === "number"
         ? price.unit_amount
         : null;
+    const currency =
+      price && typeof price !== "string" && price.currency
+        ? price.currency.trim().toLowerCase()
+        : null;
+    const productId = productIdFromNegotiatedPrice(price);
+    const recurring =
+      price && typeof price !== "string" ? price.recurring?.interval : null;
+    const interval =
+      recurring === "month" || recurring === "year" ? recurring : null;
     const quantity =
       item.quantity === null || item.quantity === undefined ? 1 : item.quantity;
-    return { priceId, quantity, unitAmountCents: unitAmount };
+    return {
+      priceId,
+      quantity,
+      unitAmountCents: unitAmount,
+      currency,
+      productId,
+      interval,
+    };
   });
 }
 
+function productIdFromNegotiatedPrice(
+  price: string | NegotiatedPriceShape | null | undefined
+): string | null {
+  if (!price || typeof price === "string") {
+    return null;
+  }
+  if (typeof price.product === "string" && price.product.trim()) {
+    return price.product.trim();
+  }
+  if (price.product && typeof price.product === "object" && price.product.id) {
+    return price.product.id.trim() || null;
+  }
+  return null;
+}
+
+export type NegotiatedChargeVerdict =
+  { verdict: "match" } | { verdict: "incomplete" } | { verdict: "mismatch" };
+
+/**
+ * The persisted Price, product, currency, interval, quantity and unit amount
+ * authorise the conversion. `invoice.amount_paid` is settlement, not the price:
+ * a customer balance or credit can change it without changing the offer.
+ */
 export function negotiatedChargeMatchesOffer(input: {
   amountCents: number;
   stripePriceId: string;
+  stripeProductId: string | null;
+  billingInterval: NegotiatedInterval;
   items: readonly NegotiatedSubscriptionItem[];
-  invoiceAmountPaid: number | null;
-}): boolean {
+}): NegotiatedChargeVerdict {
+  if (input.items.length === 0) {
+    return { verdict: "incomplete" };
+  }
   if (input.items.length !== 1) {
-    return false;
+    return { verdict: "mismatch" };
   }
   const item = input.items[0];
-  if (!item || item.quantity !== 1 || item.priceId !== input.stripePriceId) {
-    return false;
+  if (!item || !item.priceId || !input.stripePriceId) {
+    return { verdict: "incomplete" };
+  }
+  if (item.priceId !== input.stripePriceId || item.quantity !== 1) {
+    return { verdict: "mismatch" };
   }
   if (
-    item.unitAmountCents !== null &&
-    item.unitAmountCents !== input.amountCents
+    item.unitAmountCents === null ||
+    item.currency === null ||
+    item.interval === null ||
+    item.productId === null ||
+    !input.stripeProductId
   ) {
-    return false;
+    return { verdict: "incomplete" };
   }
   if (
-    input.invoiceAmountPaid !== null &&
-    input.invoiceAmountPaid !== input.amountCents
+    item.unitAmountCents !== input.amountCents ||
+    item.currency !== NEGOTIATED_CURRENCY ||
+    item.interval !== stripeRecurringInterval(input.billingInterval) ||
+    item.productId !== input.stripeProductId
   ) {
-    return false;
+    return { verdict: "mismatch" };
   }
-  return true;
+  return { verdict: "match" };
 }
 
 export function negotiatedOfferPayable(input: {
@@ -337,16 +354,6 @@ export function negotiatedOfferPayable(input: {
   return { payable: true, waitingForStart: false };
 }
 
-export function negotiatedRatePolicyLabel(input: {
-  rateExpiryPolicy: NegotiatedRateExpiryPolicy;
-  rateExpiresLabel: string | null;
-}): string {
-  if (input.rateExpiryPolicy === "INDEFINITE") {
-    return "The negotiated price continues until a later written change. It does not increase to the standard price.";
-  }
-  return `The subscription ends at ${input.rateExpiresLabel ?? "the agreed date"}. The price does not increase to the standard price.`;
-}
-
 export function formatNegotiatedPrice(
   amountCents: number,
   interval: NegotiatedInterval
@@ -358,17 +365,27 @@ export type PersistedNegotiatedOffer = {
   id: string;
   status: "PREPARED" | "CHECKOUT_OPEN" | "CONVERTED" | "WITHDRAWN";
   stripePriceId: string | null;
+  stripeProductId: string | null;
   amountCents: number;
   commercialPlan: NegotiatedPlan;
   billingInterval: NegotiatedInterval;
 };
 
+export type NegotiatedRetryReason =
+  | "subscription_not_retrieved"
+  | "negotiated_terms_unverified"
+  | "negotiated_price_mismatch";
+
 export type ComplimentaryStripeDecision =
+  | { action: "ignore"; reason: "complimentary_access" }
   | {
-      action: "ignore";
-      reason: "complimentary_access" | "negotiated_price_mismatch";
+      action: "retry";
+      reason: NegotiatedRetryReason;
+      diagnostic: string;
+      rememberSubscription: boolean;
+      subscriptionId: string | null;
+      customerId: string | null;
     }
-  | { action: "retry" }
   | {
       action: "convert";
       offerId: string;
@@ -383,10 +400,37 @@ export type ComplimentaryStripeDecision =
     }
   | { action: "clear_failed_subscription"; subscriptionId: string };
 
+const RETRY_DIAGNOSTIC: Record<NegotiatedRetryReason, string> = {
+  subscription_not_retrieved: "Negotiated subscription could not be retrieved.",
+  negotiated_terms_unverified:
+    "Negotiated subscription terms could not be verified.",
+  negotiated_price_mismatch:
+    "Negotiated subscription does not match the open offer.",
+};
+
+function retryDecision(
+  reason: NegotiatedRetryReason,
+  input: {
+    subscriptionId: string | null;
+    customerId: string | null;
+    rememberSubscription: boolean;
+  }
+): ComplimentaryStripeDecision {
+  return {
+    action: "retry",
+    reason,
+    diagnostic: RETRY_DIAGNOSTIC[reason],
+    rememberSubscription: input.rememberSubscription,
+    subscriptionId: input.subscriptionId,
+    customerId: input.customerId,
+  };
+}
+
 /**
  * Complimentary rows stay complimentary until a paid invoice matches the
- * persisted offer. Checkout completion and payment failure do not activate
- * paid access and do not change the price.
+ * persisted Price. Checkout completion and payment failure do not activate
+ * paid access. A commercial mismatch is retryable and keeps the subscription
+ * id so an operator can withdraw it. It is not marked ignored.
  */
 export function decideComplimentaryStripeEvent(input: {
   eventType: string;
@@ -395,68 +439,70 @@ export function decideComplimentaryStripeEvent(input: {
   subscriptionId: string | null;
   customerId: string | null;
   items: readonly NegotiatedSubscriptionItem[];
-  invoiceAmountPaid: number | null;
   offer: PersistedNegotiatedOffer | null;
 }): ComplimentaryStripeDecision {
   const offer = input.offer;
   const open =
-    offer &&
-    (offer.status === "PREPARED" || offer.status === "CHECKOUT_OPEN") &&
-    offer.stripePriceId;
-  if (
-    input.eventType === "invoice.paid" &&
-    input.invoiceIsPaid &&
-    open &&
-    input.items.length === 0
-  ) {
-    return { action: "retry" };
-  }
-  const matches =
-    open &&
-    negotiatedChargeMatchesOffer({
+    offer && (offer.status === "PREPARED" || offer.status === "CHECKOUT_OPEN");
+  const paidInvoice = input.eventType === "invoice.paid" && input.invoiceIsPaid;
+  const checkoutCompleted =
+    input.eventType === "checkout.session.completed" ||
+    input.eventType === "checkout.session.async_payment_succeeded";
+
+  if (open && (paidInvoice || checkoutCompleted)) {
+    const verdict = negotiatedChargeMatchesOffer({
       amountCents: offer.amountCents,
-      stripePriceId: offer.stripePriceId!,
-      items: input.items,
-      invoiceAmountPaid:
-        input.eventType === "invoice.paid" ? input.invoiceAmountPaid : null,
-    });
-
-  if (
-    input.eventType === "invoice.paid" &&
-    input.invoiceIsPaid &&
-    input.subscriptionStatus === "active" &&
-    matches &&
-    offer?.stripePriceId
-  ) {
-    return {
-      action: "convert",
-      offerId: offer.id,
-      commercialPlan: offer.commercialPlan,
+      stripePriceId: offer.stripePriceId ?? "",
+      stripeProductId: offer.stripeProductId,
       billingInterval: offer.billingInterval,
-      stripePriceId: offer.stripePriceId,
-    };
-  }
-
-  if (
-    input.eventType === "invoice.paid" &&
-    input.invoiceIsPaid &&
-    open &&
-    !matches
-  ) {
-    return { action: "ignore", reason: "negotiated_price_mismatch" };
-  }
-
-  if (
-    (input.eventType === "checkout.session.completed" ||
-      input.eventType === "checkout.session.async_payment_succeeded") &&
-    input.subscriptionId &&
-    matches
-  ) {
-    return {
-      action: "remember_subscription",
-      subscriptionId: input.subscriptionId,
-      customerId: input.customerId,
-    };
+      items: input.items,
+    });
+    if (verdict.verdict === "incomplete") {
+      return retryDecision(
+        input.items.length === 0
+          ? "subscription_not_retrieved"
+          : "negotiated_terms_unverified",
+        {
+          subscriptionId: input.subscriptionId,
+          customerId: input.customerId,
+          rememberSubscription: false,
+        }
+      );
+    }
+    if (verdict.verdict === "mismatch") {
+      return retryDecision("negotiated_price_mismatch", {
+        subscriptionId: input.subscriptionId,
+        customerId: input.customerId,
+        rememberSubscription: Boolean(input.subscriptionId),
+      });
+    }
+    if (
+      paidInvoice &&
+      input.subscriptionStatus === "active" &&
+      offer.stripePriceId
+    ) {
+      return {
+        action: "convert",
+        offerId: offer.id,
+        commercialPlan: offer.commercialPlan,
+        billingInterval: offer.billingInterval,
+        stripePriceId: offer.stripePriceId,
+      };
+    }
+    if (paidInvoice) {
+      return retryDecision("negotiated_terms_unverified", {
+        subscriptionId: input.subscriptionId,
+        customerId: input.customerId,
+        rememberSubscription: false,
+      });
+    }
+    if (input.subscriptionId) {
+      return {
+        action: "remember_subscription",
+        subscriptionId: input.subscriptionId,
+        customerId: input.customerId,
+      };
+    }
   }
 
   const failed =
@@ -480,7 +526,6 @@ export function decideComplimentaryStripeEvent(input: {
 export function negotiatedCatalogFromOffer(input: {
   offer: PersistedNegotiatedOffer | null;
   items: readonly NegotiatedSubscriptionItem[];
-  invoiceAmountPaid: number | null;
 }): {
   commercialPlan: NegotiatedPlan;
   billingInterval: NegotiatedInterval;
@@ -498,12 +543,13 @@ export function negotiatedCatalogFromOffer(input: {
     return null;
   }
   if (
-    !negotiatedChargeMatchesOffer({
+    negotiatedChargeMatchesOffer({
       amountCents: offer.amountCents,
       stripePriceId: offer.stripePriceId,
+      stripeProductId: offer.stripeProductId,
+      billingInterval: offer.billingInterval,
       items: input.items,
-      invoiceAmountPaid: input.invoiceAmountPaid,
-    })
+    }).verdict !== "match"
   ) {
     return null;
   }

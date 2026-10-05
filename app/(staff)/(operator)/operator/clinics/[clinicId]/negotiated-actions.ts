@@ -42,8 +42,6 @@ export async function saveNegotiatedOfferAction(
     amount: formData.get("amount"),
     startMode: formData.get("startMode"),
     billingStartDate: formData.get("billingStartDate"),
-    rateExpiryPolicy: formData.get("rateExpiryPolicy"),
-    rateEndDate: formData.get("rateEndDate"),
     commercialTerms: formData.get("commercialTerms"),
   });
   if (!result.ok) {

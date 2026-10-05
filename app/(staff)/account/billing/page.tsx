@@ -373,9 +373,9 @@ export default async function BillingStatusPage({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-staff-muted">Special rate</dt>
+                    <dt className="text-staff-muted">Price term</dt>
                     <dd className="font-medium">
-                      {view.negotiatedOffer.expiryLabel}
+                      Continues until a later written change
                     </dd>
                   </div>
                 </dl>

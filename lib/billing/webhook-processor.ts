@@ -45,7 +45,7 @@ import {
 } from "@/lib/billing/price-map";
 import {
   findNegotiatedOfferForPrice,
-  invoiceAmountPaidFromEvent,
+  findOpenNegotiatedOffer,
 } from "@/lib/billing/negotiated-offer";
 import {
   decideComplimentaryStripeEvent,
@@ -456,6 +456,49 @@ async function applyProjection(options: {
   });
 }
 
+async function linkRememberedSubscription(
+  db: BillingDb,
+  input: {
+    clinicId: string;
+    subscriptionId: string;
+    customerId: string | null;
+  }
+): Promise<"processed" | "ignored" | "conflict"> {
+  return db.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, input.clinicId);
+    const locked = await tx.clinicEntitlement.findUnique({
+      where: { clinicId: input.clinicId },
+      select: { commercialArrangement: true },
+    });
+    if (locked?.commercialArrangement !== "COMPLIMENTARY") {
+      return "ignored" as const;
+    }
+    const profile = await tx.clinicBillingProfile.findUnique({
+      where: { clinicId: input.clinicId },
+      select: { stripeSubscriptionId: true },
+    });
+    if (
+      profile?.stripeSubscriptionId &&
+      profile.stripeSubscriptionId !== input.subscriptionId
+    ) {
+      return "conflict" as const;
+    }
+    await tx.clinicBillingProfile.upsert({
+      where: { clinicId: input.clinicId },
+      create: {
+        clinicId: input.clinicId,
+        stripeCustomerId: input.customerId,
+        stripeSubscriptionId: input.subscriptionId,
+      },
+      update: {
+        ...(input.customerId ? { stripeCustomerId: input.customerId } : {}),
+        stripeSubscriptionId: input.subscriptionId,
+      },
+    });
+    return "processed" as const;
+  });
+}
+
 export async function processVerifiedStripeEvent(
   event: Stripe.Event,
   options?: StripeEventOptions
@@ -626,12 +669,15 @@ export async function processVerifiedStripeEvent(
   const negotiatedPriceId =
     negotiatedItems.find((item) => item.priceId)?.priceId ??
     snapshot.stripePriceId;
+  const openNegotiatedOffer = identity.clinicId
+    ? await findOpenNegotiatedOffer(db, identity.clinicId)
+    : null;
   const negotiatedOffer = identity.clinicId
-    ? await findNegotiatedOfferForPrice(
+    ? ((await findNegotiatedOfferForPrice(
         db,
         identity.clinicId,
         negotiatedPriceId
-      )
+      )) ?? openNegotiatedOffer)
     : null;
   let negotiatedConversion: {
     offerId: string;
@@ -648,16 +694,50 @@ export async function processVerifiedStripeEvent(
       subscriptionId: snapshot.stripeSubscriptionId,
       customerId: snapshot.stripeCustomerId,
       items: negotiatedItems,
-      invoiceAmountPaid: invoiceAmountPaidFromEvent(event),
-      offer: negotiatedOffer,
+      offer: openNegotiatedOffer,
     });
     if (decision.action === "retry") {
-      await mark(
-        StripeEventProcessingStatus.FAILED,
-        "Negotiated subscription could not be retrieved.",
+      if (
+        decision.rememberSubscription &&
+        decision.subscriptionId &&
         identity.clinicId
-      );
-      throw new Error("Negotiated subscription could not be retrieved.");
+      ) {
+        const linked = await linkRememberedSubscription(db, {
+          clinicId: identity.clinicId,
+          subscriptionId: decision.subscriptionId,
+          customerId: decision.customerId,
+        });
+        if (linked === "conflict") {
+          await mark(
+            StripeEventProcessingStatus.FAILED,
+            "A different Stripe subscription is already linked to this clinic.",
+            identity.clinicId
+          );
+          return {
+            outcome: "unmapped_clinic",
+            clinicId: identity.clinicId,
+            stripeEventId,
+            eventType,
+          };
+        }
+        if (linked === "ignored") {
+          // The arrangement changed while this event was in flight.
+        } else {
+          await mark(
+            StripeEventProcessingStatus.FAILED,
+            decision.diagnostic,
+            identity.clinicId
+          );
+          throw new Error(decision.diagnostic);
+        }
+      } else {
+        await mark(
+          StripeEventProcessingStatus.FAILED,
+          decision.diagnostic,
+          identity.clinicId
+        );
+        throw new Error(decision.diagnostic);
+      }
     }
     if (decision.action === "convert") {
       negotiatedConversion = {
@@ -771,14 +851,8 @@ export async function processVerifiedStripeEvent(
         stripeEventId,
         eventType,
       };
-    } else {
-      await mark(
-        StripeEventProcessingStatus.IGNORED,
-        decision.reason === "negotiated_price_mismatch"
-          ? "Negotiated price did not match the paid invoice."
-          : null,
-        identity.clinicId
-      );
+    } else if (decision.action === "ignore") {
+      await mark(StripeEventProcessingStatus.IGNORED, null, identity.clinicId);
       logStripeBilling({
         event: "stripe_webhook_ignored",
         stripeEventId,
@@ -816,7 +890,6 @@ export async function processVerifiedStripeEvent(
       ? negotiatedCatalogFromOffer({
           offer: negotiatedOffer,
           items: negotiatedItems,
-          invoiceAmountPaid: invoiceAmountPaidFromEvent(event),
         })
       : null);
   const catalog = negotiatedMapped

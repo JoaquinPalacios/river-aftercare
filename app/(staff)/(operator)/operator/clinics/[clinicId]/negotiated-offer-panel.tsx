@@ -45,8 +45,8 @@ export function NegotiatedOfferPanel({
                   <dd>{offer.startLabel}</dd>
                 </div>
                 <div>
-                  <dt className="text-staff-muted">Special rate</dt>
-                  <dd>{offer.expiryLabel}</dd>
+                  <dt className="text-staff-muted">Price term</dt>
+                  <dd>Continues until a later written change</dd>
                 </div>
                 <div>
                   <dt className="text-staff-muted">Status</dt>

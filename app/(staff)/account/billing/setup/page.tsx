@@ -75,7 +75,6 @@ export default async function BillingSetupPage({
           detailLines={[
             view.negotiatedOffer.taxLabel,
             `Payment from ${view.negotiatedOffer.startLabel}.`,
-            `Special rate ${view.negotiatedOffer.expiryLabel}.`,
             view.negotiatedOffer.policyLabel,
           ]}
           capacityNote={null}

@@ -9,9 +9,6 @@ CREATE TYPE "NegotiatedOfferStatus" AS ENUM ('PREPARED', 'CHECKOUT_OPEN', 'CONVE
 CREATE TYPE "NegotiatedStartMode" AS ENUM ('CUSTOMER_INITIATED', 'AGREED_DATE');
 
 -- CreateEnum
-CREATE TYPE "NegotiatedRateExpiryPolicy" AS ENUM ('INDEFINITE', 'CANCEL_WHEN_RATE_ENDS');
-
--- CreateEnum
 CREATE TYPE "NegotiatedTaxTreatment" AS ENUM ('NO_GST');
 
 -- CreateTable
@@ -26,8 +23,6 @@ CREATE TABLE "ClinicNegotiatedOffer" (
     "taxTreatment" "NegotiatedTaxTreatment" NOT NULL DEFAULT 'NO_GST',
     "startMode" "NegotiatedStartMode" NOT NULL,
     "billingStartsAt" TIMESTAMP(3),
-    "rateExpiryPolicy" "NegotiatedRateExpiryPolicy" NOT NULL,
-    "rateExpiresAt" TIMESTAMP(3),
     "commercialTerms" VARCHAR(2000) NOT NULL,
     "status" "NegotiatedOfferStatus" NOT NULL,
     "stripePriceId" TEXT,

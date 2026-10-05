@@ -50,8 +50,6 @@ function offerInput(clinicId: string, overrides: Record<string, unknown> = {}) {
     amount: "49.00",
     startMode: "CUSTOMER_INITIATED",
     billingStartDate: "",
-    rateExpiryPolicy: "INDEFINITE",
-    rateEndDate: "",
     commercialTerms: "A$49 per month. The price does not increase.",
     now: NOW,
     ...overrides,
@@ -255,8 +253,6 @@ describe("negotiated offers", () => {
       taxTreatment: "NO_GST",
       startMode: "CUSTOMER_INITIATED",
       billingStartsAt: null,
-      rateExpiryPolicy: "INDEFINITE",
-      rateExpiresAt: null,
     });
     expect(row.stripePriceId).toBeNull();
 
@@ -267,9 +263,7 @@ describe("negotiated offers", () => {
       amount: "A$499",
       startMode: "AGREED_DATE",
       billingStartDate: "2026-11-02",
-      rateExpiryPolicy: "CANCEL_WHEN_RATE_ENDS",
-      rateEndDate: "2027-11-01",
-      commercialTerms: "A$499 for the first year, then the subscription ends.",
+      commercialTerms: "A$499 per year until a later written change.",
     });
     expect(yearly.ok).toBe(true);
     const annualRow = await prisma.clinicNegotiatedOffer.findFirstOrThrow({
@@ -279,13 +273,8 @@ describe("negotiated offers", () => {
       commercialPlan: "PRACTICE",
       billingInterval: "YEARLY",
       amountCents: 49900,
-      rateExpiryPolicy: "CANCEL_WHEN_RATE_ENDS",
     });
     expect(annualRow.billingStartsAt).not.toBeNull();
-    expect(annualRow.rateExpiresAt).not.toBeNull();
-    expect(annualRow.rateExpiresAt?.getTime()).toBeGreaterThan(
-      annualRow.billingStartsAt?.getTime() ?? 0
-    );
     const entitlement = await prisma.clinicEntitlement.findUniqueOrThrow({
       where: { clinicId: annual.id },
     });
@@ -474,16 +463,13 @@ describe("negotiated offers", () => {
     });
     const prepared = await prepareNegotiatedOffer(
       offerInput(clinic.id, {
-        rateExpiryPolicy: "CANCEL_WHEN_RATE_ENDS",
-        rateEndDate: "2027-10-05",
-        commercialTerms: "Ends on the agreed date without a price increase.",
+        commercialTerms: "A$49 per month until a later written change.",
       })
     );
     expect(prepared.ok).toBe(true);
 
     const calls: Array<{
-      unitAmount?: number;
-      cancelAt?: number;
+      subscriptionKeys: string[];
       key?: string;
     }> = [];
     let sessionSeq = 0;
@@ -494,8 +480,7 @@ describe("negotiated offers", () => {
     const stripe = fakeCheckoutStripe({
       onCreate(params, options) {
         calls.push({
-          unitAmount: undefined,
-          cancelAt: params.subscription_data.cancel_at,
+          subscriptionKeys: Object.keys(params.subscription_data),
           key: options?.idempotencyKey,
         });
         sessionSeq += 1;
@@ -546,7 +531,7 @@ describe("negotiated offers", () => {
     expect(priced.amountCents).toBe(4900);
     expect(priced.stripePriceId).toBe("price_created_4900");
     expect(stripe.createdPrices).toEqual([4900]);
-    expect(calls[0]?.cancelAt).toBeTypeOf("number");
+    expect(calls[0]?.subscriptionKeys).toEqual(["metadata"]);
 
     sessions.get("cs_neg_1")!.status = "expired";
     const retried = await startNegotiatedCheckout({
@@ -629,7 +614,11 @@ describe("negotiated offers", () => {
     }
     await prisma.clinicNegotiatedOffer.update({
       where: { id: prepared.offerId },
-      data: { stripePriceId: "price_neg_db_49", status: "CHECKOUT_OPEN" },
+      data: {
+        stripePriceId: "price_neg_db_49",
+        stripeProductId: "prod_neg",
+        status: "CHECKOUT_OPEN",
+      },
     });
     const before = await prisma.clinicEntitlement.findUniqueOrThrow({
       where: { clinicId: clinic.id },
@@ -742,6 +731,92 @@ describe("negotiated offers", () => {
       billingStatus: BillingStatus.NOT_BILLED,
     });
   });
+
+  it("withdraws a remembered subscription that does not match the offer", async () => {
+    const clinic = await complimentaryClinic("recover", "ESSENTIAL");
+    const prepared = await prepareNegotiatedOffer(offerInput(clinic.id));
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) {
+      return;
+    }
+    await prisma.clinicNegotiatedOffer.update({
+      where: { id: prepared.offerId },
+      data: {
+        status: "CHECKOUT_OPEN",
+        stripePriceId: "price_neg_49",
+        stripeProductId: "prod_neg",
+      },
+    });
+    await prisma.clinicBillingProfile.create({
+      data: {
+        clinicId: clinic.id,
+        stripeSubscriptionId: id("sub-recover"),
+      },
+    });
+    const canceled: string[] = [];
+    const matchingHold = await withdrawNegotiatedOffer({
+      clinicId: clinic.id,
+      actorUserId: id("operator"),
+      actorPlatformRole: PlatformRole.OPERATOR,
+      now: NOW,
+      stripe: subscriptionPort({
+        priceId: "price_neg_49",
+        unitAmount: 4900,
+        onCancel(subscriptionId) {
+          canceled.push(subscriptionId);
+        },
+      }),
+    });
+    expect(matchingHold).toEqual({
+      ok: false,
+      error:
+        "This subscription matches the negotiated price. Wait for payment confirmation before withdrawing the offer.",
+    });
+    expect(canceled).toEqual([]);
+
+    const withdrawn = await withdrawNegotiatedOffer({
+      clinicId: clinic.id,
+      actorUserId: id("operator"),
+      actorPlatformRole: PlatformRole.OPERATOR,
+      now: NOW,
+      stripe: subscriptionPort({
+        priceId: "price_other",
+        unitAmount: 7900,
+        onCancel(subscriptionId) {
+          canceled.push(subscriptionId);
+        },
+      }),
+    });
+    expect(withdrawn).toEqual({ ok: true });
+    expect(canceled).toEqual([id("sub-recover")]);
+    expect(
+      await prisma.clinicNegotiatedOffer.findUnique({
+        where: { id: prepared.offerId },
+      })
+    ).toMatchObject({ status: "WITHDRAWN" });
+    expect(
+      await prisma.clinicBillingProfile.findUnique({
+        where: { clinicId: clinic.id },
+      })
+    ).toMatchObject({ stripeSubscriptionId: null });
+    const extended = await extendComplimentaryAccess({
+      actorUserId: id("operator"),
+      actorPlatformRole: PlatformRole.OPERATOR,
+      clinicId: clinic.id,
+      duration: "TWELVE_MONTHS",
+      reason: "Continue after the unused offer",
+      now: NOW,
+    });
+    expect(extended.ok).toBe(true);
+    expect(
+      await prisma.clinicEntitlement.findUnique({
+        where: { clinicId: clinic.id },
+      })
+    ).toMatchObject({
+      commercialArrangement: "COMPLIMENTARY",
+      billingStatus: BillingStatus.NOT_BILLED,
+    });
+  });
 });
 
 function negotiatedPaidEvent(input: {
@@ -815,7 +890,13 @@ function negotiatedSubscription(input: {
         {
           id: "si_1",
           quantity: 1,
-          price: { id: input.priceId, unit_amount: input.unitAmount },
+          price: {
+            id: input.priceId,
+            unit_amount: input.unitAmount,
+            currency: "aud",
+            product: "prod_neg",
+            recurring: { interval: "month" },
+          },
           current_period_start: 1_746_000_000,
           current_period_end: 1_748_600_000,
         },
@@ -826,11 +907,71 @@ function negotiatedSubscription(input: {
   } as unknown as Stripe.Subscription;
 }
 
+function subscriptionPort(input: {
+  priceId: string;
+  unitAmount: number;
+  onCancel: (subscriptionId: string) => void;
+}): NegotiatedStripePort {
+  return {
+    prices: {
+      retrieve: async () => {
+        throw new Error("price retrieve was not expected");
+      },
+      list: async () => ({ data: [] }),
+      create: async () => {
+        throw new Error("price create was not expected");
+      },
+    },
+    customers: {
+      create: async () => ({ id: "cus_recover", metadata: {} }),
+      update: async () => ({ id: "cus_recover", metadata: {} }),
+    },
+    checkout: {
+      sessions: {
+        create: async () => {
+          throw new Error("checkout create was not expected");
+        },
+        retrieve: async (sessionId) => ({
+          id: sessionId,
+          url: null,
+          status: "expired",
+          line_items: { data: [] },
+        }),
+        expire: async () => ({}),
+      },
+    },
+    subscriptions: {
+      retrieve: async (subscriptionId) => ({
+        id: subscriptionId,
+        status: "active",
+        items: {
+          data: [
+            {
+              quantity: 1,
+              price: {
+                id: input.priceId,
+                unit_amount: input.unitAmount,
+                currency: "aud",
+                product: "prod_neg",
+                recurring: { interval: "month" },
+              },
+            },
+          ],
+        },
+      }),
+      cancel: async (subscriptionId) => {
+        input.onCancel(subscriptionId);
+        return { id: subscriptionId, status: "canceled" };
+      },
+    },
+  };
+}
+
 function fakeCheckoutStripe(input: {
   onCreate?: (
     params: {
       line_items: Array<{ price: string; quantity: number }>;
-      subscription_data: { cancel_at?: number };
+      subscription_data: { metadata: Record<string, string> };
     },
     options?: { idempotencyKey?: string }
   ) => { id: string; url: string; status: string; priceId: string };

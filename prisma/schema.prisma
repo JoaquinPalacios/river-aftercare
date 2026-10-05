@@ -844,13 +844,6 @@ enum NegotiatedStartMode {
   AGREED_DATE
 }
 
-/// What happens when a special rate reaches its end. Neither policy changes
-/// the subscription onto a higher price.
-enum NegotiatedRateExpiryPolicy {
-  INDEFINITE
-  CANCEL_WHEN_RATE_ENDS
-}
-
 /// River Aftercare is not registered for GST. The stored amount is the
 /// amount Stripe charges. Stripe Tax stays off.
 enum NegotiatedTaxTreatment {
@@ -1345,6 +1338,7 @@ model ClinicComplimentaryAccessEvent {
 /// The functional plan stays Essential or Practice. The amount is integer
 /// AUD cents. A Stripe Price is stored only after it is created for Checkout.
 /// Withdrawn and converted rows stay so the agreement remains readable.
+/// The paid rate continues until a later written change or cancellation.
 /// Open uniqueness is ClinicNegotiatedOffer_one_open_per_clinic_key.
 model ClinicNegotiatedOffer {
   id                   String                     @id @default(cuid())
@@ -1360,10 +1354,6 @@ model ClinicNegotiatedOffer {
   /// Earliest Sydney instant the administrator may open Checkout.
   /// Null when the administrator may start immediately.
   billingStartsAt      DateTime?
-  rateExpiryPolicy     NegotiatedRateExpiryPolicy
-  /// End of the special rate. Null when the rate is indefinite.
-  /// Not complimentaryExpiresAt and not a Stripe period end.
-  rateExpiresAt        DateTime?
   commercialTerms      String                     @db.VarChar(2000)
   status               NegotiatedOfferStatus
   stripePriceId        String?

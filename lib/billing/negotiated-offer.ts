@@ -25,16 +25,18 @@ import {
 import { logStripeBilling } from "@/lib/billing/log";
 import {
   formatNegotiatedPrice,
+  negotiatedChargeMatchesOffer,
   negotiatedCheckoutIdempotencyKey,
   negotiatedOfferPayable,
   negotiatedPriceIdempotencyKey,
   negotiatedPriceLookupKey,
-  negotiatedRatePolicyLabel,
   NEGOTIATED_CURRENCY,
+  NEGOTIATED_PRICE_CONTINUES,
   NEGOTIATED_TAX_LABEL,
   parseNegotiatedInterval,
   parseNegotiatedOfferInput,
   stripeRecurringInterval,
+  subscriptionItemsForNegotiatedMatch,
   type NegotiatedInterval,
   type NegotiatedPlan,
   type PersistedNegotiatedOffer,
@@ -74,6 +76,9 @@ const SPLIT_BLOCK =
 const SUBSCRIPTION_BLOCK =
   "This clinic already has a Stripe subscription. A negotiated price cannot start a second one.";
 
+const MATCHING_SUBSCRIPTION_HOLD =
+  "This subscription matches the negotiated price. Wait for payment confirmation before withdrawing the offer.";
+
 const CHECKOUT_BLOCK =
   "Checkout is open for this negotiated price. Withdraw it before preparing a different price.";
 
@@ -95,8 +100,6 @@ type PersistedOfferRow = {
   taxTreatment: "NO_GST";
   startMode: "CUSTOMER_INITIATED" | "AGREED_DATE";
   billingStartsAt: Date | null;
-  rateExpiryPolicy: "INDEFINITE" | "CANCEL_WHEN_RATE_ENDS";
-  rateExpiresAt: Date | null;
   commercialTerms: string;
   status: "PREPARED" | "CHECKOUT_OPEN" | "CONVERTED" | "WITHDRAWN";
   stripePriceId: string | null;
@@ -182,8 +185,6 @@ export type NegotiatedStripePort = {
           metadata: Record<string, string>;
           subscription_data: {
             metadata: Record<string, string>;
-            cancel_at?: number;
-            proration_behavior?: "none";
           };
           payment_method_types: Array<
             (typeof CHECKOUT_PAYMENT_METHOD_TYPES)[number]
@@ -209,6 +210,31 @@ export type NegotiatedStripePort = {
       }>;
       expire(id: string): Promise<unknown>;
     };
+  };
+  subscriptions?: {
+    retrieve(
+      id: string,
+      params?: { expand?: string[] }
+    ): Promise<{
+      id: string;
+      status: string | null;
+      items?: {
+        data?: Array<{
+          quantity?: number | null;
+          price?:
+            | string
+            | {
+                id?: string | null;
+                unit_amount?: number | null;
+                currency?: string | null;
+                product?: string | { id?: string | null } | null;
+                recurring?: { interval?: string | null } | null;
+              }
+            | null;
+        }>;
+      } | null;
+    }>;
+    cancel(id: string): Promise<{ id: string; status: string | null }>;
   };
 };
 
@@ -401,10 +427,54 @@ export async function findNegotiatedOfferForPrice(
   ) {
     return null;
   }
+  return toPersistedOffer(row);
+}
+
+export async function findOpenNegotiatedOffer(
+  db: Pick<Prisma.TransactionClient, "clinicNegotiatedOffer">,
+  clinicId: string
+): Promise<PersistedNegotiatedOffer | null> {
+  const row = await db.clinicNegotiatedOffer.findFirst({
+    where: {
+      clinicId,
+      status: { in: [...OPEN_OFFER_STATUSES] },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  if (
+    !row ||
+    (row.commercialPlan !== "ESSENTIAL" && row.commercialPlan !== "PRACTICE") ||
+    (row.status !== "PREPARED" && row.status !== "CHECKOUT_OPEN")
+  ) {
+    return null;
+  }
+  return toPersistedOffer(row);
+}
+
+function toPersistedOffer(row: {
+  id: string;
+  status: string;
+  stripePriceId: string | null;
+  stripeProductId: string | null;
+  amountCents: number;
+  commercialPlan: string;
+  billingInterval: string;
+}): PersistedNegotiatedOffer | null {
+  if (
+    (row.commercialPlan !== "ESSENTIAL" && row.commercialPlan !== "PRACTICE") ||
+    (row.billingInterval !== "MONTHLY" && row.billingInterval !== "YEARLY") ||
+    (row.status !== "PREPARED" &&
+      row.status !== "CHECKOUT_OPEN" &&
+      row.status !== "CONVERTED" &&
+      row.status !== "WITHDRAWN")
+  ) {
+    return null;
+  }
   return {
     id: row.id,
     status: row.status,
     stripePriceId: row.stripePriceId,
+    stripeProductId: row.stripeProductId,
     amountCents: row.amountCents,
     commercialPlan: row.commercialPlan,
     billingInterval: row.billingInterval,
@@ -427,8 +497,6 @@ export async function prepareNegotiatedOffer(
     amount: unknown;
     startMode: unknown;
     billingStartDate: unknown;
-    rateExpiryPolicy: unknown;
-    rateEndDate: unknown;
     commercialTerms: unknown;
     now?: Date;
   },
@@ -450,8 +518,6 @@ export async function prepareNegotiatedOffer(
       amount: input.amount,
       startMode: input.startMode,
       billingStartDate: input.billingStartDate,
-      rateExpiryPolicy: input.rateExpiryPolicy,
-      rateEndDate: input.rateEndDate,
       commercialTerms: input.commercialTerms,
     },
     now
@@ -528,8 +594,6 @@ export async function prepareNegotiatedOffer(
           taxTreatment: "NO_GST",
           startMode: parsed.terms.startMode,
           billingStartsAt: parsed.terms.billingStartsAt,
-          rateExpiryPolicy: parsed.terms.rateExpiryPolicy,
-          rateExpiresAt: parsed.terms.rateExpiresAt,
           commercialTerms: parsed.terms.commercialTerms,
           status: "PREPARED",
         },
@@ -589,8 +653,67 @@ export async function withdrawNegotiatedOffer(
       stripeCheckoutSessionId: true,
     },
   });
+  let clearSubscriptionId: string | null = null;
   if (profile?.stripeSubscriptionId) {
-    return { ok: false, error: SUBSCRIPTION_BLOCK };
+    const subscriptions = input.stripe?.subscriptions;
+    if (!subscriptions) {
+      return {
+        ok: false,
+        error:
+          "Secure payment isn't available right now, so the linked subscription cannot be checked.",
+      };
+    }
+    let subscription: Awaited<ReturnType<typeof subscriptions.retrieve>>;
+    try {
+      subscription = await subscriptions.retrieve(
+        profile.stripeSubscriptionId,
+        { expand: ["items.data.price"] }
+      );
+    } catch {
+      return {
+        ok: false,
+        error:
+          "The linked subscription could not be checked. The offer was left unchanged.",
+      };
+    }
+    const verdict = negotiatedChargeMatchesOffer({
+      amountCents: preview.amountCents,
+      stripePriceId: preview.stripePriceId ?? "",
+      stripeProductId: preview.stripeProductId,
+      billingInterval: preview.billingInterval,
+      items: subscriptionItemsForNegotiatedMatch(subscription),
+    });
+    const stillCollecting =
+      subscription.status === "active" ||
+      subscription.status === "trialing" ||
+      subscription.status === "past_due" ||
+      subscription.status === "incomplete" ||
+      subscription.status === "paused";
+    if (verdict.verdict === "match" && stillCollecting) {
+      return { ok: false, error: MATCHING_SUBSCRIPTION_HOLD };
+    }
+    if (verdict.verdict === "incomplete" && stillCollecting) {
+      return {
+        ok: false,
+        error:
+          "The linked subscription could not be checked. The offer was left unchanged.",
+      };
+    }
+    if (
+      subscription.status !== "canceled" &&
+      subscription.status !== "incomplete_expired"
+    ) {
+      try {
+        await subscriptions.cancel(profile.stripeSubscriptionId);
+      } catch {
+        return {
+          ok: false,
+          error:
+            "The linked subscription could not be canceled. The offer was left unchanged.",
+        };
+      }
+    }
+    clearSubscriptionId = profile.stripeSubscriptionId;
   }
   if (profile?.stripeCheckoutSessionId) {
     const stripe = input.stripe;
@@ -636,11 +759,32 @@ export async function withdrawNegotiatedOffer(
         error: "There is no open negotiated price to withdraw.",
       };
     }
+    const lockedEntitlement = await tx.clinicEntitlement.findUnique({
+      where: { clinicId: input.clinicId },
+      select: { commercialArrangement: true },
+    });
+    if (lockedEntitlement?.commercialArrangement !== "COMPLIMENTARY") {
+      return {
+        ok: false as const,
+        error: "This clinic is already paid. The offer was left unchanged.",
+      };
+    }
     const lockedProfile = await tx.clinicBillingProfile.findUnique({
       where: { clinicId: input.clinicId },
       select: { stripeSubscriptionId: true },
     });
-    if (lockedProfile?.stripeSubscriptionId) {
+    if (
+      clearSubscriptionId &&
+      lockedProfile?.stripeSubscriptionId &&
+      lockedProfile.stripeSubscriptionId !== clearSubscriptionId
+    ) {
+      return {
+        ok: false as const,
+        error:
+          "A different Stripe subscription is linked to this clinic. The offer was left unchanged.",
+      };
+    }
+    if (!clearSubscriptionId && lockedProfile?.stripeSubscriptionId) {
       return { ok: false as const, error: SUBSCRIPTION_BLOCK };
     }
     await tx.clinicNegotiatedOffer.update({
@@ -650,7 +794,10 @@ export async function withdrawNegotiatedOffer(
     if (lockedProfile) {
       await tx.clinicBillingProfile.update({
         where: { clinicId: input.clinicId },
-        data: { stripeCheckoutSessionId: null },
+        data: {
+          stripeCheckoutSessionId: null,
+          ...(clearSubscriptionId ? { stripeSubscriptionId: null } : {}),
+        },
       });
     }
     return { ok: true as const };
@@ -670,7 +817,6 @@ export type NegotiatedOfferPanel = {
     priceLabel: string;
     taxLabel: string;
     startLabel: string;
-    expiryLabel: string;
     policyLabel: string;
     terms: string;
     open: boolean;
@@ -722,9 +868,6 @@ export async function loadNegotiatedOfferPanel(
       ) {
         return [];
       }
-      const expiryLabel = offer.rateExpiresAt
-        ? formatBillingDate(offer.rateExpiresAt)
-        : "Indefinite";
       return [
         {
           id: offer.id,
@@ -741,11 +884,7 @@ export async function loadNegotiatedOfferPanel(
             offer.startMode === "AGREED_DATE" && offer.billingStartsAt
               ? formatBillingDate(offer.billingStartsAt)
               : "When the administrator pays",
-          expiryLabel,
-          policyLabel: negotiatedRatePolicyLabel({
-            rateExpiryPolicy: offer.rateExpiryPolicy,
-            rateExpiresLabel: offer.rateExpiresAt ? expiryLabel : null,
-          }),
+          policyLabel: NEGOTIATED_PRICE_CONTINUES,
           terms: offer.commercialTerms,
           open: offer.status === "PREPARED" || offer.status === "CHECKOUT_OPEN",
         },
@@ -762,7 +901,6 @@ export type ClinicNegotiatedOfferSummary = {
   priceLabel: string;
   taxLabel: string;
   startLabel: string;
-  expiryLabel: string;
   policyLabel: string;
   terms: string;
   payable: boolean;
@@ -794,9 +932,6 @@ export async function loadOpenNegotiatedOfferSummary(
     billingStartsAt: offer.billingStartsAt,
     now,
   });
-  const expiryLabel = offer.rateExpiresAt
-    ? formatBillingDate(offer.rateExpiresAt)
-    : "Indefinite";
   return {
     id: offer.id,
     status: offer.status,
@@ -808,11 +943,7 @@ export async function loadOpenNegotiatedOfferSummary(
       offer.startMode === "AGREED_DATE" && offer.billingStartsAt
         ? formatBillingDate(offer.billingStartsAt)
         : "When you pay",
-    expiryLabel,
-    policyLabel: negotiatedRatePolicyLabel({
-      rateExpiryPolicy: offer.rateExpiryPolicy,
-      rateExpiresLabel: offer.rateExpiresAt ? expiryLabel : null,
-    }),
+    policyLabel: NEGOTIATED_PRICE_CONTINUES,
     terms: offer.commercialTerms,
     payable: timing.payable,
     waitingForStart: timing.waitingForStart,
@@ -917,12 +1048,6 @@ export async function startNegotiatedCheckout(input: {
       now,
     });
     if (!timing.payable) {
-      return { ok: false as const, code: "negotiated_not_ready" as const };
-    }
-    if (
-      offer.rateExpiryPolicy === "CANCEL_WHEN_RATE_ENDS" &&
-      (!offer.rateExpiresAt || offer.rateExpiresAt.getTime() <= now.getTime())
-    ) {
       return { ok: false as const, code: "negotiated_not_ready" as const };
     }
     const profile = await tx.clinicBillingProfile.findUnique({
@@ -1116,11 +1241,6 @@ export async function startNegotiatedCheckout(input: {
   }
 
   const lineItems = [{ price: ensured.priceId, quantity: 1 }];
-  const cancelAt =
-    snapshot.offer.rateExpiryPolicy === "CANCEL_WHEN_RATE_ENDS" &&
-    snapshot.offer.rateExpiresAt
-      ? Math.floor(snapshot.offer.rateExpiresAt.getTime() / 1000)
-      : null;
   const metadata = { [RIVER_CLINIC_ID_METADATA_KEY]: input.clinicId };
 
   const openSession = async (
@@ -1137,9 +1257,6 @@ export async function startNegotiatedCheckout(input: {
         metadata,
         subscription_data: {
           metadata,
-          ...(cancelAt
-            ? { cancel_at: cancelAt, proration_behavior: "none" as const }
-            : {}),
         },
         payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
         wallet_options: { link: { display: "never" } },
@@ -1287,15 +1404,4 @@ export async function startNegotiatedCheckout(input: {
     }
     return { ok: false, code: "checkout_failed" };
   }
-}
-
-export function invoiceAmountPaidFromEvent(event: {
-  type?: string;
-  data?: { object?: { object?: string; amount_paid?: number | null } };
-}): number | null {
-  const object = event.data?.object;
-  if (object?.object !== "invoice" || typeof object.amount_paid !== "number") {
-    return null;
-  }
-  return object.amount_paid;
 }

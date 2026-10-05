@@ -482,8 +482,9 @@ export function BillingSetupForm({
               className="text-sm leading-6"
             >
               I accept these negotiated commercial terms and authorise payment
-              at the price shown. The price will not increase to the standard
-              rate.
+              at the price shown. The price continues until a later written
+              change or cancellation and does not increase to the standard
+              price.
             </label>
           </div>
         </div>
