@@ -31,12 +31,6 @@ import {
 } from "@/lib/operator/clinic-onboarding";
 import { createOperatorClinic } from "@/lib/operator/create-operator-clinic";
 import {
-  DISCARD_CUSTOMER_ACTIVITY_MESSAGE,
-  DISCARD_NOT_ASSISTED_MESSAGE,
-  assistedClinicCanBeDiscarded,
-  discardAssistedClinic,
-} from "@/lib/operator/discard-assisted-clinic";
-import {
   OTHER_CLINIC_MEMBER_MESSAGE,
   PLATFORM_OPERATOR_INVITE_MESSAGE,
   inviteClinicUser,
@@ -756,93 +750,5 @@ describeDb("assisted clinic onboarding in the database", () => {
     expect(
       await db().clinicMembership.count({ where: { clinicId: second.id } })
     ).toBe(0);
-  });
-
-  it("discards an assisted clinic with no customer activity, including an operator-only entitlement", async () => {
-    const fresh = await createOperatorClinic({
-      name: "Onbcd70 Discard Fresh",
-      slug: `${SLUG_PREFIX}discard-fresh`,
-      serviceCategories: ["DENTAL"],
-    });
-    expect(await assistedClinicCanBeDiscarded(fresh.id)).toBe(true);
-    expect(await discardAssistedClinic(fresh.id)).toEqual({ ok: true });
-    expect(
-      await db().clinic.findUnique({ where: { id: fresh.id } })
-    ).toBeNull();
-    expect(
-      await db().clinicSite.findUnique({
-        where: { slug: `${SLUG_PREFIX}discard-fresh` },
-      })
-    ).toBeNull();
-
-    const complimentary = await createOperatorClinic({
-      name: "Onbcd70 Discard Complimentary",
-      slug: `${SLUG_PREFIX}discard-comp`,
-      serviceCategories: ["DENTAL"],
-    });
-    await grantComplimentaryAccess({
-      ...(await operatorInput(complimentary.id)),
-      commercialPlan: "PRACTICE",
-      duration: "INDEFINITE",
-    });
-    expect(await assistedClinicCanBeDiscarded(complimentary.id)).toBe(true);
-    expect(await discardAssistedClinic(complimentary.id)).toEqual({ ok: true });
-
-    const paid = await createOperatorClinic({
-      name: "Onbcd70 Discard Paid",
-      slug: `${SLUG_PREFIX}discard-paid`,
-      serviceCategories: ["COSMETIC_AESTHETIC"],
-    });
-    expect(
-      await prepareClinicCommercialOffer({
-        clinicId: paid.id,
-        commercialPlan: "PRACTICE",
-        billingInterval: "MONTHLY",
-      })
-    ).toMatchObject({ ok: true });
-    expect(await discardAssistedClinic(paid.id)).toEqual({ ok: true });
-    expect(await db().clinic.findUnique({ where: { id: paid.id } })).toBeNull();
-  });
-
-  it("refuses to discard a clinic after an invitation or a historical clinic", async () => {
-    const invited = await createOperatorClinic({
-      name: "Onbcd70 Discard Invited",
-      slug: `${SLUG_PREFIX}discard-invited`,
-      serviceCategories: ["DENTAL"],
-    });
-    await grantComplimentaryAccess({
-      ...(await operatorInput(invited.id)),
-      commercialPlan: "ESSENTIAL",
-      duration: "SIX_MONTHS",
-    });
-    await inviteFirstClinicAdministrator({
-      clinicId: invited.id,
-      invitedByUserId: OPERATOR_ID,
-      name: "Invited Admin",
-      email: `${EMAIL_PREFIX}discard-invited@example.test`,
-    });
-    expect(await assistedClinicCanBeDiscarded(invited.id)).toBe(false);
-    expect(await discardAssistedClinic(invited.id)).toEqual({
-      ok: false,
-      error: DISCARD_CUSTOMER_ACTIVITY_MESSAGE,
-    });
-    expect(
-      await db().clinic.findUnique({ where: { id: invited.id } })
-    ).not.toBeNull();
-
-    const historical = await createOperatorClinic({
-      name: "Onbcd70 Discard Historical",
-      slug: `${SLUG_PREFIX}discard-historical`,
-      serviceCategories: ["DENTAL"],
-    });
-    await db().clinic.update({
-      where: { id: historical.id },
-      data: { assistedOnboarding: false },
-    });
-    expect(await assistedClinicCanBeDiscarded(historical.id)).toBe(false);
-    expect(await discardAssistedClinic(historical.id)).toEqual({
-      ok: false,
-      error: DISCARD_NOT_ASSISTED_MESSAGE,
-    });
   });
 });

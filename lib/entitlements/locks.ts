@@ -16,7 +16,9 @@ import type { Prisma } from "@prisma/client";
  *
  * Preparation transactions keep `clinic-account-split` and do not take the
  * structure lock. Split execution takes structure locks first, then the
- * preparation lock. PostgreSQL transaction advisory locks are re-entrant,
+ * preparation lock. Discard of an assisted clinic follows that same order
+ * for the clinic being removed: structure, then `clinic-account-split` for
+ * that clinic only. PostgreSQL transaction advisory locks are re-entrant,
  * so a helper may request the structure lock again inside a transaction
  * that already holds it.
  *

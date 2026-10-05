@@ -20,7 +20,7 @@ import {
   onboardingProgress,
   ownerHandoffSteps,
 } from "@/lib/operator/clinic-onboarding";
-import { assistedClinicCanBeDiscarded } from "@/lib/operator/discard-assisted-clinic";
+import { canDiscardAssistedClinic } from "@/lib/operator/discard-assisted-clinic";
 
 interface ClinicSetupPageProps {
   params: Promise<{ clinicId: string }>;
@@ -47,7 +47,7 @@ export default async function ClinicSetupPage({
       : null;
   const progress = onboardingProgress(onboarding);
   const canDiscard = onboarding.assistedOnboarding
-    ? await assistedClinicCanBeDiscarded(clinicId)
+    ? await canDiscardAssistedClinic(clinicId)
     : false;
   const showHandoff =
     onboarding.assistedOnboarding &&
@@ -266,6 +266,7 @@ export default async function ClinicSetupPage({
       {onboarding.assistedOnboarding ? (
         <OnboardingExit
           clinicId={onboarding.clinicId}
+          clinicName={onboarding.clinicName}
           canDiscard={canDiscard}
         />
       ) : null}

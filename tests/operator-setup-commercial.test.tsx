@@ -135,8 +135,14 @@ describe("operator commercial arrangement", () => {
     ).toBe("Monthly");
   });
 
-  it("offers exit and discard, and withholds discard after customer activity", () => {
-    render(<OnboardingExit clinicId="clinic_1" canDiscard />);
+  it("offers exit, and discard only while the clinic is still pristine", () => {
+    render(
+      <OnboardingExit
+        clinicId="clinic_1"
+        clinicName="Test Clinic Prod"
+        canDiscard
+      />
+    );
     const exit = container.querySelector("a");
     expect(exit?.textContent).toBe("Exit setup");
     expect(exit?.getAttribute("href")).toBe("/operator/clinics/clinic_1");
@@ -145,16 +151,26 @@ describe("operator commercial arrangement", () => {
       (button) => button.textContent === "Discard this clinic"
     );
     expect(discard?.disabled).toBe(false);
+    expect(container.textContent).toContain("Discard Test Clinic Prod");
     expect(container.textContent).toContain(
-      "Only available while this clinic has no customer activity."
+      "This permanently removes Test Clinic Prod and frees the tenant address. It cannot be undone."
     );
 
     act(() => {
-      root.render(<OnboardingExit clinicId="clinic_1" canDiscard={false} />);
+      root.render(
+        <OnboardingExit
+          clinicId="clinic_1"
+          clinicName="Test Clinic Prod"
+          canDiscard={false}
+        />
+      );
     });
-    const blocked = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "Discard this clinic"
-    );
-    expect(blocked?.disabled).toBe(true);
+    expect(
+      Array.from(container.querySelectorAll("button")).some(
+        (button) => button.textContent === "Discard this clinic"
+      )
+    ).toBe(false);
+    expect(container.textContent).toContain("Exit setup");
+    expect(container.textContent).toContain("Your progress is saved.");
   });
 });
