@@ -147,14 +147,6 @@ export function onboardingProgress(
   snapshot: ClinicOnboardingSnapshot
 ): OnboardingProgressItem[] {
   const categoriesSelected = snapshot.serviceCategories.length > 0;
-  const administratorLabel =
-    snapshot.administrator.state === "not_invited"
-      ? "Administrator not invited"
-      : snapshot.administrator.state === "accepted"
-        ? "Administrator joined"
-        : snapshot.administrator.invitationStatus === "expired"
-          ? "Administrator invitation expired"
-          : "Administrator invited";
   const administratorComplete =
     snapshot.administrator.state === "accepted" ||
     (snapshot.administrator.state === "invited" &&
@@ -163,28 +155,22 @@ export function onboardingProgress(
     { id: "clinic", label: "Clinic created", complete: true },
     {
       id: "categories",
-      label: categoriesSelected
-        ? "Practice categories selected"
-        : "Practice categories not selected",
+      label: "Practice categories selected",
       complete: categoriesSelected,
     },
     {
       id: "commercial",
-      label: snapshot.commercial.configured
-        ? "Commercial access configured"
-        : "Commercial access not configured",
+      label: "Commercial arrangement",
       complete: snapshot.commercial.configured,
     },
     {
       id: "administrator",
-      label: administratorLabel,
+      label: "Administrator",
       complete: administratorComplete,
     },
     {
       id: "ready",
-      label: snapshot.readyForClinicSetup
-        ? "Ready for clinic setup"
-        : "Not ready for clinic setup",
+      label: "Ready for clinic setup",
       complete: snapshot.readyForClinicSetup,
     },
   ];

@@ -2,10 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { prepareClinicCommercialOffer } from "@/lib/billing/prepare-offer";
+import { discardAssistedClinic } from "@/lib/operator/discard-assisted-clinic";
 import { INVITATION_DELIVERY_FAILED_MESSAGE } from "@/lib/operator/invite-clinic-user";
 import { inviteFirstClinicAdministrator } from "@/lib/operator/invite-first-clinic-administrator";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
@@ -79,7 +80,35 @@ export async function prepareOnboardingStandardOfferAction(
     return { error: prepared.message };
   }
   revalidateOnboarding(clinicId);
-  return { success: "Standard paid offer prepared." };
+  return {
+    success: "Paid plan prepared. The clinic authorises payment later.",
+  };
+}
+
+export async function discardAssistedClinicAction(
+  _previous: OnboardingActionState,
+  formData: FormData
+): Promise<OnboardingActionState> {
+  await requireOperatorOnStaffHost();
+  const clinicId = clinicIdFromForm(formData);
+  if (!clinicId) {
+    notFound();
+  }
+  try {
+    const result = await discardAssistedClinic(clinicId);
+    if (!result.ok) {
+      return { error: result.error };
+    }
+    revalidatePath("/operator/clinics");
+    revalidatePath(`/operator/clinics/${clinicId}`);
+    revalidatePath(`/operator/clinics/${clinicId}/setup`);
+    redirect("/operator/clinics");
+  } catch (error) {
+    if (isNextControlFlow(error)) {
+      throw error;
+    }
+    return { error: "Could not discard this clinic." };
+  }
 }
 
 export async function inviteFirstClinicAdministratorAction(
