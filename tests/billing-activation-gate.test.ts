@@ -7,6 +7,7 @@ import {
   BILLING_SETUP_PATH,
   BILLING_STATUS_PATH,
   decideClinicProductAccess,
+  readClinicBillingAccess,
 } from "@/lib/billing/activation-gate";
 import { projectEntitlement } from "@/lib/billing/projection";
 import { emptyEntitlement } from "@/tests/helpers/billing";
@@ -204,5 +205,77 @@ describe("pre-payment activation gate", () => {
         billingStatus: BillingStatus.OFFER_PREPARED,
       })
     ).toEqual({ kind: "allow", reason: "operator_support" });
+  });
+
+  it("keeps a historical clinic with no entitlement on the legacy path", async () => {
+    const access = await readClinicBillingAccess(
+      {
+        clinic: { id: "clinic_legacy", name: "Legacy" },
+      },
+      {
+        clinicEntitlement: {
+          findUnique: async () => null,
+        },
+      }
+    );
+    expect(access).toEqual({
+      kind: "allow",
+      reason: "legacy",
+      billingHref: null,
+    });
+  });
+
+  it("opens product access for active complimentary Essential or Practice", async () => {
+    const access = await readClinicBillingAccess(
+      {
+        clinic: { id: "clinic_comp", name: "Collaboration" },
+      },
+      {
+        clinicEntitlement: {
+          findUnique: async () => ({
+            entitlementStatus: EntitlementStatus.ACTIVE,
+            billingStatus: BillingStatus.NOT_BILLED,
+            commercialArrangement: "COMPLIMENTARY",
+            complimentaryExpiresAt: new Date("2099-01-01T00:00:00.000Z"),
+          }),
+        },
+      }
+    );
+    expect(access).toMatchObject({
+      kind: "allow",
+      reason: "active",
+      billingHref: BILLING_STATUS_PATH,
+    });
+  });
+
+  it("closes expired complimentary access without restoring legacy access", async () => {
+    const updates: unknown[] = [];
+    const access = await readClinicBillingAccess(
+      {
+        clinic: { id: "clinic_expired", name: "Expired" },
+      },
+      {
+        clinicEntitlement: {
+          findUnique: async () => ({
+            entitlementStatus: EntitlementStatus.ACTIVE,
+            billingStatus: BillingStatus.NOT_BILLED,
+            commercialArrangement: "COMPLIMENTARY",
+            complimentaryExpiresAt: new Date("2020-01-01T00:00:00.000Z"),
+          }),
+          updateMany: async (args) => {
+            updates.push(args);
+            return { count: 1 };
+          },
+        },
+      }
+    );
+    expect(access).toEqual({
+      kind: "billing_required",
+      reason: "not_active",
+      href: BILLING_STATUS_PATH,
+      billingHref: BILLING_STATUS_PATH,
+    });
+    expect(access.reason).not.toBe("legacy");
+    expect(updates).toHaveLength(1);
   });
 });

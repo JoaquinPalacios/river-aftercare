@@ -1,6 +1,7 @@
 import type {
   BillingInterval,
   BillingStatus,
+  CommercialArrangement,
   ClinicAccountSplitOperationKind,
   ClinicAccountSplitSiteDecisionKind,
   ClinicAccountSplitStatus,
@@ -413,6 +414,7 @@ export type AccountSplitSnapshot = {
       extraTeamMemberAllowance: number;
       extraCustomGuideAllowance: number;
       extraTemplateAdaptationAllowance: number;
+      commercialArrangement?: CommercialArrangement;
     } | null;
     memberships: Array<{
       userId: string;
@@ -1570,6 +1572,12 @@ export function classifyDestinationBilling(input: {
   const entitlement = input.entitlement;
   if (!entitlement || !input.plan) {
     return { phase: "not_started" };
+  }
+  if (entitlement.commercialArrangement === "COMPLIMENTARY") {
+    return {
+      phase: "not_ready",
+      reasons: ["Complimentary access cannot satisfy paid billing readiness."],
+    };
   }
   if (
     entitlement.access === "PENDING" ||

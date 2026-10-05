@@ -237,6 +237,8 @@ export function billingStateLabel(status: BillingStatus | null): string {
       return "Unpaid";
     case BillingStatus.ENDED:
       return "Ended";
+    case BillingStatus.NOT_BILLED:
+      return "Complimentary";
     default:
       return "Not started";
   }

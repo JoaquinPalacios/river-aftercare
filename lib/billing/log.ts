@@ -30,6 +30,8 @@ export type StripeBillingLogEvent =
       event: "stripe_webhook_ignored";
       stripeEventId: string;
       eventType: string;
+      clinicId?: string | null;
+      reason?: string;
     }
   | {
       event: "stripe_webhook_unknown_price";

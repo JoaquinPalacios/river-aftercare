@@ -555,6 +555,39 @@ describe("entitlement projection", () => {
     );
   });
 
+  it("leaves a complimentary entitlement unchanged, including an unknown Price", () => {
+    const previous = {
+      ...emptyEntitlement({
+        commercialPlan: "PRACTICE",
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        billingStatus: BillingStatus.NOT_BILLED,
+      }),
+      commercialArrangement: "COMPLIMENTARY" as const,
+    };
+    expect(
+      project({
+        previous,
+        unknownPrice: true,
+        stripePriceId: "price_negotiated_later",
+        mappedPrice: null,
+      })
+    ).toEqual({ kind: "complimentary_unchanged" });
+    expect(project({ previous }).kind).toBe("complimentary_unchanged");
+  });
+
+  it("still projects a paid subscription that has no complimentary arrangement", () => {
+    const paid = project({
+      previous: emptyEntitlement({
+        commercialPlan: "ESSENTIAL",
+        billingInterval: "MONTHLY",
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        billingStatus: BillingStatus.ACTIVE,
+      }),
+      invoiceIsPaid: true,
+    });
+    expect(paid.kind).toBe("apply");
+  });
+
   it("fails closed for an unknown clinic or unknown Price ID", () => {
     expect(project({ clinicId: null }).kind).toBe("unmapped_clinic");
     expect(

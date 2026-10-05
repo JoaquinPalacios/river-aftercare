@@ -152,6 +152,7 @@ function localFromRow(
     billingInterval: LocalEntitlementSnapshot["billingInterval"];
     billingStatus: BillingStatus;
     entitlementStatus: EntitlementStatus;
+    commercialArrangement?: LocalEntitlementSnapshot["commercialArrangement"];
     stripePriceId: string | null;
     currentPeriodStart: Date | null;
     currentPeriodEnd: Date | null;
@@ -169,6 +170,7 @@ function localFromRow(
     billingInterval: row.billingInterval,
     billingStatus: row.billingStatus,
     entitlementStatus: row.entitlementStatus,
+    commercialArrangement: row.commercialArrangement,
     stripePriceId: row.stripePriceId,
     currentPeriodStart: row.currentPeriodStart,
     currentPeriodEnd: row.currentPeriodEnd,
@@ -263,6 +265,24 @@ function storedAllowance(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isInteger(value)
     ? value
     : fallback;
+}
+
+/**
+ * Reads the commercial arrangement while holding the account-structure lock,
+ * then commits so the lock is not held across a Stripe request.
+ */
+async function lockedCommercialArrangement(
+  db: BillingDb,
+  clinicId: string
+): Promise<"PAID" | "COMPLIMENTARY" | null> {
+  return db.$transaction(async (tx) => {
+    await lockClinicAccountStructure(tx, clinicId);
+    const row = await tx.clinicEntitlement.findUnique({
+      where: { clinicId },
+      select: { commercialArrangement: true },
+    });
+    return row?.commercialArrangement ?? null;
+  });
 }
 
 async function applyProjection(options: {
@@ -503,6 +523,7 @@ export async function processVerifiedStripeEvent(
       db,
       env,
       mark,
+      receiptId: receipt.id,
       downgradeStripe: options?.downgradeStripe,
     });
   }
@@ -573,6 +594,24 @@ export async function processVerifiedStripeEvent(
       })
     : null;
 
+  const previousSnapshot = localFromRow(previousRow);
+  if (previousSnapshot?.commercialArrangement === "COMPLIMENTARY") {
+    await mark(StripeEventProcessingStatus.IGNORED, null, identity.clinicId);
+    logStripeBilling({
+      event: "stripe_webhook_ignored",
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+      reason: "complimentary_access",
+    });
+    return {
+      outcome: "ignored",
+      clinicId: identity.clinicId,
+      stripeEventId,
+      eventType,
+    };
+  }
+
   const catalog = identity.clinicId
     ? resolveWebhookSubscriptionCatalog({
         subscriptionItems: authoritativeSubscription
@@ -637,7 +676,7 @@ export async function processVerifiedStripeEvent(
 
   const projection = projectEntitlement({
     eventType,
-    previous: localFromRow(previousRow),
+    previous: previousSnapshot,
     clinicId: identity.clinicId,
     stripeCustomerId: snapshot.stripeCustomerId,
     stripeSubscriptionId: snapshot.stripeSubscriptionId,
@@ -684,6 +723,23 @@ export async function processVerifiedStripeEvent(
     });
     return {
       outcome: "unknown_price",
+      clinicId: identity.clinicId,
+      stripeEventId,
+      eventType,
+    };
+  }
+
+  if (projection.kind === "complimentary_unchanged") {
+    await mark(StripeEventProcessingStatus.IGNORED, null, identity.clinicId);
+    logStripeBilling({
+      event: "stripe_webhook_ignored",
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+      reason: "complimentary_access",
+    });
+    return {
+      outcome: "ignored",
       clinicId: identity.clinicId,
       stripeEventId,
       eventType,
@@ -796,6 +852,26 @@ export async function processVerifiedStripeEvent(
     cancelAtPeriodEnd: cancelNow,
   });
   if (releaseForCancellation || releaseAfterReversal) {
+    const arrangementNow = await lockedCommercialArrangement(
+      db,
+      identity.clinicId!
+    );
+    if (arrangementNow === "COMPLIMENTARY") {
+      await mark(StripeEventProcessingStatus.IGNORED, null, identity.clinicId);
+      logStripeBilling({
+        event: "stripe_webhook_ignored",
+        stripeEventId,
+        eventType,
+        clinicId: identity.clinicId,
+        reason: "complimentary_access",
+      });
+      return {
+        outcome: "ignored",
+        clinicId: identity.clinicId,
+        stripeEventId,
+        eventType,
+      };
+    }
     const port =
       options?.downgradeStripe === undefined
         ? downgradeStripePort(getStripeClient(env))
@@ -842,9 +918,26 @@ export async function processVerifiedStripeEvent(
     (projection.entitlement.commercialPlan === "ESSENTIAL" &&
       previousRow?.commercialPlan === "PRACTICE");
 
+  let writeResult: "ignored" | "processed" = "processed";
   try {
-    await db.$transaction(async (tx) => {
+    writeResult = await db.$transaction(async (tx) => {
       await lockClinicAccountStructure(tx, identity.clinicId!);
+      const lockedEntitlement = await tx.clinicEntitlement.findUnique({
+        where: { clinicId: identity.clinicId! },
+        select: { commercialArrangement: true },
+      });
+      if (lockedEntitlement?.commercialArrangement === "COMPLIMENTARY") {
+        await tx.stripeEventReceipt.update({
+          where: { id: receipt.id },
+          data: {
+            processingStatus: StripeEventProcessingStatus.IGNORED,
+            failureText: null,
+            clinicId: identity.clinicId,
+            processedAt: new Date(),
+          },
+        });
+        return "ignored" as const;
+      }
       await applyProjection({
         db: tx as unknown as BillingDb,
         clinicId: identity.clinicId!,
@@ -889,6 +982,7 @@ export async function processVerifiedStripeEvent(
           processedAt: new Date(),
         },
       });
+      return "processed" as const;
     });
   } catch (error) {
     const diagnostic = isUniqueViolation(error)
@@ -915,6 +1009,22 @@ export async function processVerifiedStripeEvent(
       };
     }
     throw error;
+  }
+
+  if (writeResult === "ignored") {
+    logStripeBilling({
+      event: "stripe_webhook_ignored",
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+      reason: "complimentary_access",
+    });
+    return {
+      outcome: "ignored",
+      clinicId: identity.clinicId,
+      stripeEventId,
+      eventType,
+    };
   }
 
   if (identity.clinicId && locationProjection.action === "preserve_legacy") {
@@ -972,6 +1082,7 @@ async function applySubscriptionScheduleEvent(input: {
   db: BillingDb;
   env: Record<string, string | undefined>;
   downgradeStripe: PlanDowngradeStripePort | null | undefined;
+  receiptId: string;
   mark: (
     processingStatus: StripeEventProcessingStatus,
     failureText: string | null,
@@ -1053,6 +1164,26 @@ async function applySubscriptionScheduleEvent(input: {
   const entitlement = await input.db.clinicEntitlement.findUnique({
     where: { clinicId: profile.clinicId },
   });
+  if (entitlement?.commercialArrangement === "COMPLIMENTARY") {
+    await input.mark(
+      StripeEventProcessingStatus.IGNORED,
+      null,
+      profile.clinicId
+    );
+    logStripeBilling({
+      event: "stripe_webhook_ignored",
+      stripeEventId,
+      eventType,
+      clinicId: profile.clinicId,
+      reason: "complimentary_access",
+    });
+    return {
+      outcome: "ignored",
+      clinicId: profile.clinicId,
+      stripeEventId,
+      eventType,
+    };
+  }
   let practicePriceId: string | null = null;
   let essentialPriceId: string | null = null;
   const interval = entitlement?.billingInterval;
@@ -1104,6 +1235,30 @@ async function applySubscriptionScheduleEvent(input: {
   }
 
   if (decision.action === "cancellation_supersedes") {
+    const arrangementNow = await lockedCommercialArrangement(
+      input.db,
+      profile.clinicId
+    );
+    if (arrangementNow === "COMPLIMENTARY") {
+      await input.mark(
+        StripeEventProcessingStatus.IGNORED,
+        null,
+        profile.clinicId
+      );
+      logStripeBilling({
+        event: "stripe_webhook_ignored",
+        stripeEventId,
+        eventType,
+        clinicId: profile.clinicId,
+        reason: "complimentary_access",
+      });
+      return {
+        outcome: "ignored",
+        clinicId: profile.clinicId,
+        stripeEventId,
+        eventType,
+      };
+    }
     const port =
       input.downgradeStripe === undefined
         ? downgradeStripePort(getStripeClient(input.env))
@@ -1158,9 +1313,25 @@ async function applySubscriptionScheduleEvent(input: {
     };
   }
 
-  await input.db.$transaction(async (tx) => {
+  const scheduleWrite = await input.db.$transaction(async (tx) => {
     await lockClinicAccountStructure(tx, profile.clinicId);
     const transaction = tx as unknown as BillingDb;
+    const lockedEntitlement = await transaction.clinicEntitlement.findUnique({
+      where: { clinicId: profile.clinicId },
+      select: { commercialArrangement: true },
+    });
+    if (lockedEntitlement?.commercialArrangement === "COMPLIMENTARY") {
+      await transaction.stripeEventReceipt.update({
+        where: { id: input.receiptId },
+        data: {
+          processingStatus: StripeEventProcessingStatus.IGNORED,
+          failureText: null,
+          clinicId: profile.clinicId,
+          processedAt: new Date(),
+        },
+      });
+      return "ignored" as const;
+    }
     if (clearSchedule || dropScheduled) {
       await transaction.clinicBillingProfile.update({
         where: { clinicId: profile.clinicId },
@@ -1187,7 +1358,23 @@ async function applySubscriptionScheduleEvent(input: {
         },
       });
     }
+    return "processed" as const;
   });
+  if (scheduleWrite === "ignored") {
+    logStripeBilling({
+      event: "stripe_webhook_ignored",
+      stripeEventId,
+      eventType,
+      clinicId: profile.clinicId,
+      reason: "complimentary_access",
+    });
+    return {
+      outcome: "ignored",
+      clinicId: profile.clinicId,
+      stripeEventId,
+      eventType,
+    };
+  }
   await input.mark(
     StripeEventProcessingStatus.PROCESSED,
     null,

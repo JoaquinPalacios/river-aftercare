@@ -165,7 +165,12 @@ describe("savePracticeSettingsAction", () => {
     });
     expect(billingDb.clinicEntitlement.findUnique).toHaveBeenCalledWith({
       where: { clinicId: "clinic_1" },
-      select: { entitlementStatus: true, billingStatus: true },
+      select: {
+        entitlementStatus: true,
+        billingStatus: true,
+        commercialArrangement: true,
+        complimentaryExpiresAt: true,
+      },
     });
     expect(redirectMock).not.toHaveBeenCalled();
   });

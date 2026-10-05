@@ -46,6 +46,20 @@ export async function findOpenAccountSplitPreparation(
   });
 }
 
+/** An open preparation that names this clinic as source or destination. */
+export async function findOpenAccountSplitInvolvingClinic(
+  clinicId: string,
+  db: Db = getPrisma()
+) {
+  return db.clinicAccountSplitPreparation.findFirst({
+    where: {
+      status: { in: [...OPEN_STATUSES] },
+      OR: [{ sourceClinicId: clinicId }, { destinationClinicId: clinicId }],
+    },
+    select: { id: true, status: true, operationKind: true },
+  });
+}
+
 export async function findLatestCompletedAccountSplit(
   sourceClinicId: string,
   db: Db = getPrisma()

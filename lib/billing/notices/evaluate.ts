@@ -435,6 +435,9 @@ const UNPAID_RECOVERY_INSTRUCTIONS =
 function paymentIssue(
   subscription: BillingNoticeSubscription
 ): OverviewBillingNotice | null {
+  if (subscription.commercialArrangement === "COMPLIMENTARY") {
+    return null;
+  }
   const pastDue =
     subscription.billingStatus === "PAST_DUE" &&
     subscription.entitlementStatus !== "RESTRICTED";
@@ -616,6 +619,9 @@ function annualRenewalReady(input: {
   body: string;
 } | null {
   const subscription = input.subscription;
+  if (subscription.commercialArrangement === "COMPLIMENTARY") {
+    return null;
+  }
   if (
     subscription.entitlementStatus !== "ACTIVE" ||
     (subscription.billingStatus !== "ACTIVE" &&

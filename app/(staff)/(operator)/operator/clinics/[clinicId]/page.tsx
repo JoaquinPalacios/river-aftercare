@@ -6,12 +6,14 @@ import { notFound } from "next/navigation";
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { AllowanceExtrasForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/allowance-extras-form";
+import { ComplimentaryAccessPanel } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/complimentary-access-panel";
 import { PrepareBillingForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/prepare-billing-form";
 import { UpgradePlanForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/upgrade-plan-form";
 import { ManageClinicWorkspaceButton } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/manage-clinic-workspace-button";
 import { startOperatorClinicSupportAction } from "@/app/(staff)/(operator)/operator/support-actions";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { loadOperatorBillingPanel } from "@/lib/billing/billing-page";
+import { loadComplimentaryAccessView } from "@/lib/billing/complimentary-access";
 import { formatBillingDate } from "@/lib/billing/billing-presentation";
 import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
 import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
@@ -46,6 +48,7 @@ export default async function OperatorClinicDetailPage({
   }
   const [
     billing,
+    complimentaryAccess,
     teamAllowance,
     guideAllowance,
     siteCapacity,
@@ -53,6 +56,7 @@ export default async function OperatorClinicDetailPage({
     eligibleLocations,
   ] = await Promise.all([
     loadOperatorBillingPanel(clinic.id),
+    loadComplimentaryAccessView(clinic.id),
     loadTeamAllowance(clinic.id),
     loadGuideAllowance(clinic.id),
     loadOperatorSiteLocationCapacity(clinic.id),
@@ -214,6 +218,13 @@ export default async function OperatorClinicDetailPage({
           </ul>
         )}
       </section>
+
+      {complimentaryAccess ? (
+        <ComplimentaryAccessPanel
+          clinicId={clinic.id}
+          access={complimentaryAccess}
+        />
+      ) : null}
 
       <PrepareBillingForm
         clinicId={clinic.id}

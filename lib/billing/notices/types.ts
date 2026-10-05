@@ -14,7 +14,8 @@ export type BillingNoticeBillingStatus =
   | "PAST_DUE"
   | "UNPAID"
   | "CANCEL_AT_PERIOD_END"
-  | "ENDED";
+  | "ENDED"
+  | "NOT_BILLED";
 
 /**
  * Local subscription facts. Dates come from the Stripe projection.
@@ -23,6 +24,8 @@ export type BillingNoticeBillingStatus =
 export type BillingNoticeSubscription = {
   entitlementStatus: BillingNoticeEntitlementStatus | null;
   billingStatus: BillingNoticeBillingStatus | null;
+  /** Complimentary grants are excluded from paid renewal and payment notices. */
+  commercialArrangement?: "PAID" | "COMPLIMENTARY" | null;
   commercialPlan: BillingNoticePlan | null;
   billingInterval: BillingNoticeInterval | null;
   stripePriceId: string | null;

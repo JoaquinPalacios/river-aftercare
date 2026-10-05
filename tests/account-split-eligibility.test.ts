@@ -152,6 +152,22 @@ describe("account split eligibility", () => {
         activeLocations: 3,
       }).phase
     ).toBe("not_ready");
+    expect(
+      classifyDestinationBilling({
+        entitlement: {
+          ...destination,
+          commercialArrangement: "COMPLIMENTARY",
+          billingStatus: "ACTIVE",
+          access: "ACTIVE",
+        },
+        plan: "PRACTICE",
+        interval: "MONTHLY",
+        activeLocations: 1,
+      })
+    ).toEqual({
+      phase: "not_ready",
+      reasons: ["Complimentary access cannot satisfy paid billing readiness."],
+    });
   });
 
   it("rejects an Essential split and a non-operator even when the UI is bypassed", async () => {
