@@ -186,6 +186,22 @@ function sharedCommercialBlock(input: {
   return null;
 }
 
+function complimentaryLocationAllowance(
+  plan: ComplimentaryPlan,
+  extraLocationAllowance: number | null | undefined
+): number {
+  if (plan !== "PRACTICE") {
+    return 1;
+  }
+  const extra =
+    typeof extraLocationAllowance === "number" &&
+    Number.isInteger(extraLocationAllowance) &&
+    extraLocationAllowance > 0
+      ? extraLocationAllowance
+      : 0;
+  return 1 + extra;
+}
+
 function grantBlock(
   context: Awaited<ReturnType<typeof readContext>>
 ): string | null {
@@ -318,8 +334,13 @@ export async function grantComplimentaryAccess(
       offeredAdditionalSiteQuantity: null,
       scheduledAdditionalSiteQuantity: null,
       scheduledCapacityEffectiveAt: null,
+      purchasedAdditionalSiteQuantity: null,
+      purchasedAdditionalLocationQuantity: null,
       siteAllowance: 1,
-      locationAllowance: 1,
+      locationAllowance: complimentaryLocationAllowance(
+        plan,
+        context.entitlement?.extraLocationAllowance
+      ),
     };
     if (context.entitlement) {
       const updated = await tx.clinicEntitlement.updateMany({

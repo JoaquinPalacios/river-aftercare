@@ -15,9 +15,13 @@ import {
   loadComplimentaryAccessView,
   persistExpiredComplimentaryAccess,
 } from "@/lib/billing/complimentary-access";
-import { addUtcMonths } from "@/lib/billing/complimentary-term";
+import { addSydneyCalendarMonths } from "@/lib/billing/complimentary-term";
 import { readClinicBillingAccess } from "@/lib/billing/activation-gate";
 import { publishedPatientGuidesRemainPublic } from "@/lib/billing/public-guide-access";
+import {
+  readAccountSiteLocationAllowance,
+  reserveSiteLocationCapacity,
+} from "@/lib/clinics/site-location-capacity";
 import { reserveTeamPlace } from "@/lib/entitlements/capacity";
 import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
 import {
@@ -133,7 +137,7 @@ describe("complimentary access", () => {
       ok: true,
       commercialPlan: "ESSENTIAL",
       indefinite: false,
-      expiresAt: addUtcMonths(NOW, 6),
+      expiresAt: addSydneyCalendarMonths(NOW, 6),
     });
 
     const practice = await createClinic("practice");
@@ -145,7 +149,7 @@ describe("complimentary access", () => {
     expect(twelve).toMatchObject({
       ok: true,
       commercialPlan: "PRACTICE",
-      expiresAt: addUtcMonths(NOW, 12),
+      expiresAt: addSydneyCalendarMonths(NOW, 12),
     });
 
     const customClinic = await createClinic("custom");
@@ -304,7 +308,7 @@ describe("complimentary access", () => {
     expect(before).toMatchObject({
       ok: true,
       commercialPlan: "ESSENTIAL",
-      expiresAt: addUtcMonths(addUtcMonths(NOW, 6), 6),
+      expiresAt: addSydneyCalendarMonths(addSydneyCalendarMonths(NOW, 6), 6),
     });
 
     await prisma.clinicEntitlement.update({
@@ -341,7 +345,7 @@ describe("complimentary access", () => {
     });
     expect(after).toMatchObject({
       ok: true,
-      expiresAt: addUtcMonths(NOW, 6),
+      expiresAt: addSydneyCalendarMonths(NOW, 6),
     });
     const restored = await prisma.clinicEntitlement.findUniqueOrThrow({
       where: { clinicId: clinic.id },
@@ -388,7 +392,7 @@ describe("complimentary access", () => {
     });
     expect(again).toMatchObject({
       ok: true,
-      expiresAt: addUtcMonths(addUtcMonths(NOW, 6), 12),
+      expiresAt: addSydneyCalendarMonths(addSydneyCalendarMonths(NOW, 6), 12),
     });
     const view = await loadComplimentaryAccessView(clinic.id, NOW);
     expect(view?.events.map((event) => event.kindLabel)).toEqual([
@@ -479,7 +483,10 @@ describe("complimentary access", () => {
     });
     expect(row.commercialArrangement).toBe("COMPLIMENTARY");
     expect(row.complimentaryExpiresAt?.toISOString()).toBe(
-      addUtcMonths(addUtcMonths(addUtcMonths(NOW, 6), 6), 6).toISOString()
+      addSydneyCalendarMonths(
+        addSydneyCalendarMonths(addSydneyCalendarMonths(NOW, 6), 6),
+        6
+      ).toISOString()
     );
     expect(
       await prisma.clinicComplimentaryAccessEvent.count({
@@ -638,5 +645,198 @@ describe("complimentary access", () => {
         select: { stripeSubscriptionId: true },
       })
     ).toEqual({ stripeSubscriptionId: id("sub-ended") });
+  });
+
+  it("clears purchased site and location quantities and keeps operator extras", async () => {
+    const practice = await createClinic("prac-qty");
+    const practiceSite = await prisma.clinicSite.create({
+      data: {
+        clinicId: practice.id,
+        name: "Practice",
+        slug: "comp-prac-qty",
+        displayName: "Practice",
+        isPrimary: true,
+        primaryColor: "#112233",
+      },
+    });
+    const practiceLocations = await Promise.all(
+      [
+        { name: "Root", slug: null, primary: true, root: true },
+        { name: "North", slug: "north", primary: false, root: false },
+        { name: "South", slug: "south", primary: false, root: false },
+      ].map((location) =>
+        prisma.clinicLocation.create({
+          data: {
+            clinicSiteId: practiceSite.id,
+            clinicId: practice.id,
+            name: location.name,
+            slug: location.slug,
+            displayName: location.name,
+            isPrimary: location.primary,
+            servesSiteRoot: location.root,
+            active: true,
+          },
+        })
+      )
+    );
+    const practiceGuide = await prisma.practiceGuide.create({
+      data: {
+        clinicId: practice.id,
+        title: "After a filling",
+        publicSlug: "comp-prac-filling",
+        status: PracticeGuideStatus.PUBLISHED,
+        isEnabled: true,
+        publishedAt: NOW,
+      },
+    });
+    await prisma.clinicEntitlement.create({
+      data: {
+        clinicId: practice.id,
+        commercialPlan: "PRACTICE",
+        billingInterval: "YEARLY",
+        billingStatus: BillingStatus.ENDED,
+        entitlementStatus: EntitlementStatus.ENDED,
+        purchasedAdditionalLocationQuantity: 2,
+        extraLocationAllowance: 1,
+        extraTeamMemberAllowance: 2,
+        siteAllowance: 1,
+        locationAllowance: 4,
+      },
+    });
+    const practiceGrant = await grantComplimentaryAccess({
+      ...operatorInput(practice.id),
+      commercialPlan: "PRACTICE",
+      duration: "INDEFINITE",
+    });
+    expect(practiceGrant.ok).toBe(true);
+    const practiceRow = await prisma.clinicEntitlement.findUniqueOrThrow({
+      where: { clinicId: practice.id },
+    });
+    expect(practiceRow).toMatchObject({
+      commercialPlan: "PRACTICE",
+      commercialArrangement: "COMPLIMENTARY",
+      purchasedAdditionalLocationQuantity: null,
+      purchasedAdditionalSiteQuantity: null,
+      extraLocationAllowance: 1,
+      extraTeamMemberAllowance: 2,
+      siteAllowance: 1,
+      locationAllowance: 2,
+    });
+    expect(
+      await readAccountSiteLocationAllowance(prisma, practice.id)
+    ).toMatchObject({
+      siteAllowance: 1,
+      locationAllowance: 2,
+      purchasedAdditionalLocationQuantity: null,
+      extraLocationAllowance: 1,
+    });
+    expect(
+      await prisma.clinicLocation.count({ where: { clinicId: practice.id } })
+    ).toBe(practiceLocations.length);
+    expect(
+      await prisma.practiceGuide.findUnique({
+        where: { id: practiceGuide.id },
+        select: { status: true, clinicId: true },
+      })
+    ).toEqual({
+      status: PracticeGuideStatus.PUBLISHED,
+      clinicId: practice.id,
+    });
+    const blockedLocation = await prisma.$transaction((tx) =>
+      reserveSiteLocationCapacity(tx, {
+        clinicId: practice.id,
+        additionalSites: 0,
+        additionalLocations: 1,
+      })
+    );
+    expect(blockedLocation.ok).toBe(false);
+    if (!blockedLocation.ok) {
+      expect(blockedLocation.code).toBe("location_capacity");
+    }
+
+    const group = await createClinic("group-qty");
+    const groupSites = await Promise.all(
+      ["comp-group-a", "comp-group-b"].map((slug, index) =>
+        prisma.clinicSite.create({
+          data: {
+            clinicId: group.id,
+            name: slug,
+            slug,
+            displayName: slug,
+            isPrimary: index === 0,
+            primaryColor: "#445566",
+          },
+        })
+      )
+    );
+    await prisma.clinicLocation.create({
+      data: {
+        clinicSiteId: groupSites[0].id,
+        clinicId: group.id,
+        name: "Group root",
+        slug: null,
+        displayName: "Group root",
+        isPrimary: true,
+        servesSiteRoot: true,
+        active: true,
+      },
+    });
+    await prisma.clinicEntitlement.create({
+      data: {
+        clinicId: group.id,
+        commercialPlan: "GROUP",
+        billingInterval: "YEARLY",
+        billingStatus: BillingStatus.ENDED,
+        entitlementStatus: EntitlementStatus.ENDED,
+        purchasedAdditionalSiteQuantity: 2,
+        extraSiteAllowance: 1,
+        extraLocationAllowance: 1,
+        siteAllowance: 5,
+        locationAllowance: 8,
+      },
+    });
+    const groupGrant = await grantComplimentaryAccess({
+      ...operatorInput(group.id),
+      commercialPlan: "PRACTICE",
+      duration: "TWELVE_MONTHS",
+    });
+    expect(groupGrant.ok).toBe(true);
+    const groupRow = await prisma.clinicEntitlement.findUniqueOrThrow({
+      where: { clinicId: group.id },
+    });
+    expect(groupRow).toMatchObject({
+      commercialPlan: "PRACTICE",
+      commercialArrangement: "COMPLIMENTARY",
+      purchasedAdditionalSiteQuantity: null,
+      purchasedAdditionalLocationQuantity: null,
+      extraSiteAllowance: 1,
+      extraLocationAllowance: 1,
+      siteAllowance: 1,
+      locationAllowance: 2,
+    });
+    expect(
+      await readAccountSiteLocationAllowance(prisma, group.id)
+    ).toMatchObject({
+      commercialPlan: "PRACTICE",
+      siteAllowance: 1,
+      locationAllowance: 2,
+      purchasedAdditionalSiteQuantity: null,
+      extraSiteAllowance: 1,
+      extraLocationAllowance: 1,
+    });
+    expect(
+      await prisma.clinicSite.count({ where: { clinicId: group.id } })
+    ).toBe(2);
+    const blockedSite = await prisma.$transaction((tx) =>
+      reserveSiteLocationCapacity(tx, {
+        clinicId: group.id,
+        additionalSites: 1,
+        additionalLocations: 0,
+      })
+    );
+    expect(blockedSite.ok).toBe(false);
+    if (!blockedSite.ok) {
+      expect(blockedSite.code).toBe("site_capacity");
+    }
   });
 });

@@ -225,10 +225,83 @@ export type ComplimentaryTerm = {
   indefinite: boolean;
 };
 
+function sydneyCivilParts(instant: Date): {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+  millisecond: number;
+} {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: SYDNEY,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(instant);
+  const read = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value);
+  let hour = read("hour");
+  if (hour === 24) {
+    hour = 0;
+  }
+  return {
+    year: read("year"),
+    month: read("month"),
+    day: read("day"),
+    hour,
+    minute: read("minute"),
+    second: read("second"),
+    millisecond: instant.getMilliseconds(),
+  };
+}
+
+function addCalendarMonths(
+  year: number,
+  month: number,
+  day: number,
+  months: number
+): { year: number; month: number; day: number } {
+  const index = year * 12 + (month - 1) + months;
+  const nextYear = Math.floor(index / 12);
+  const nextMonth = (index % 12) + 1;
+  const lastDay = new Date(Date.UTC(nextYear, nextMonth, 0)).getUTCDate();
+  return {
+    year: nextYear,
+    month: nextMonth,
+    day: Math.min(day, lastDay),
+  };
+}
+
+/**
+ * Adds calendar months in Australia/Sydney and keeps the Sydney time of day.
+ * A short month clamps to its last civil date. The result is the same
+ * Sydney civil date a person would reach by counting months on a Sydney calendar.
+ */
+export function addSydneyCalendarMonths(instant: Date, months: number): Date {
+  const civil = sydneyCivilParts(instant);
+  const next = addCalendarMonths(civil.year, civil.month, civil.day, months);
+  return sydneyLocalToUtc(
+    next.year,
+    next.month,
+    next.day,
+    civil.hour,
+    civil.minute,
+    civil.second,
+    civil.millisecond
+  );
+}
+
 /**
  * The next complimentary expiry.
  *
- * Six and 12 months are added to the later of now and a current future expiry.
+ * Six and 12 months are Sydney calendar months added to the later of now and
+ * a current future expiry, keeping that baseline's Sydney time of day.
  * A custom date is an absolute Sydney end date and must be later than that
  * same instant. Indefinite access has no expiry. A dated extension cannot
  * replace an indefinite agreement.
@@ -260,7 +333,7 @@ export function nextComplimentaryExpiry(input: {
     return {
       ok: true,
       term: {
-        expiresAt: addUtcMonths(baseline, months),
+        expiresAt: addSydneyCalendarMonths(baseline, months),
         indefinite: false,
       },
     };

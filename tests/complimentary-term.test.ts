@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { executeClinicCheckout } from "@/lib/billing/checkout";
 import {
+  addSydneyCalendarMonths,
   addUtcMonths,
   complimentaryProductStatus,
   endOfSydneyDay,
@@ -16,6 +17,15 @@ import { assessCommercialOfferRevision } from "@/lib/billing/prepare-offer";
 import { patientGuidesRemainPublic } from "@/lib/billing/public-guide-access";
 
 const NOW = new Date("2026-10-04T00:00:00.000Z");
+
+function sydneyCivilDate(instant: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(instant);
+}
 
 describe("complimentary term", () => {
   it("adds six and 12 months from now, and clamps a month end", () => {
@@ -42,8 +52,120 @@ describe("complimentary term", () => {
     );
   });
 
+  it("keeps six- and 12-month expiries on the Sydney civil date across daylight saving", () => {
+    const afterSpringForward = new Date("2026-10-04T13:30:00.000Z");
+    expect(sydneyCivilDate(afterSpringForward)).toBe("2026-10-05");
+    const six = nextComplimentaryExpiry({
+      duration: "SIX_MONTHS",
+      now: afterSpringForward,
+      currentExpiresAt: null,
+      currentIndefinite: false,
+    });
+    expect(six).toEqual({
+      ok: true,
+      term: {
+        expiresAt: new Date("2027-04-04T14:30:00.000Z"),
+        indefinite: false,
+      },
+    });
+    if (six.ok) {
+      expect(sydneyCivilDate(six.term.expiresAt!)).toBe("2027-04-05");
+    }
+    const twelve = nextComplimentaryExpiry({
+      duration: "TWELVE_MONTHS",
+      now: afterSpringForward,
+      currentExpiresAt: null,
+      currentIndefinite: false,
+    });
+    expect(twelve).toEqual({
+      ok: true,
+      term: {
+        expiresAt: new Date("2027-10-04T13:30:00.000Z"),
+        indefinite: false,
+      },
+    });
+    if (twelve.ok) {
+      expect(sydneyCivilDate(twelve.term.expiresAt!)).toBe("2027-10-05");
+    }
+
+    const beforeSpringForward = new Date("2026-10-03T15:30:00.000Z");
+    expect(sydneyCivilDate(beforeSpringForward)).toBe("2026-10-04");
+    const acrossBothTransitions = nextComplimentaryExpiry({
+      duration: "SIX_MONTHS",
+      now: beforeSpringForward,
+      currentExpiresAt: null,
+      currentIndefinite: false,
+    });
+    expect(acrossBothTransitions).toEqual({
+      ok: true,
+      term: {
+        expiresAt: new Date("2027-04-03T14:30:00.000Z"),
+        indefinite: false,
+      },
+    });
+    if (acrossBothTransitions.ok) {
+      expect(sydneyCivilDate(acrossBothTransitions.term.expiresAt!)).toBe(
+        "2027-04-04"
+      );
+    }
+
+    const monthEnd = new Date("2026-08-31T13:30:00.000Z");
+    expect(sydneyCivilDate(monthEnd)).toBe("2026-08-31");
+    const clamped = nextComplimentaryExpiry({
+      duration: "SIX_MONTHS",
+      now: monthEnd,
+      currentExpiresAt: null,
+      currentIndefinite: false,
+    });
+    expect(clamped).toEqual({
+      ok: true,
+      term: {
+        expiresAt: new Date("2027-02-28T12:30:00.000Z"),
+        indefinite: false,
+      },
+    });
+    if (clamped.ok) {
+      expect(sydneyCivilDate(clamped.term.expiresAt!)).toBe("2027-02-28");
+    }
+
+    const first = addSydneyCalendarMonths(afterSpringForward, 6);
+    const second = addSydneyCalendarMonths(first, 6);
+    expect(sydneyCivilDate(first)).toBe("2027-04-05");
+    expect(sydneyCivilDate(second)).toBe("2027-10-05");
+    const extended = nextComplimentaryExpiry({
+      duration: "SIX_MONTHS",
+      now: afterSpringForward,
+      currentExpiresAt: first,
+      currentIndefinite: false,
+    });
+    expect(extended).toEqual({
+      ok: true,
+      term: { expiresAt: second, indefinite: false },
+    });
+    expect(
+      nextComplimentaryExpiry({
+        duration: "CUSTOM",
+        now: afterSpringForward,
+        currentExpiresAt: null,
+        currentIndefinite: false,
+        customExpiresAt: endOfSydneyDay(2027, 6, 15),
+      })
+    ).toEqual({
+      ok: true,
+      term: { expiresAt: endOfSydneyDay(2027, 6, 15), indefinite: false },
+    });
+    expect(
+      nextComplimentaryExpiry({
+        duration: "INDEFINITE",
+        now: afterSpringForward,
+        currentExpiresAt: first,
+        currentIndefinite: false,
+      })
+    ).toEqual({ ok: true, term: { expiresAt: null, indefinite: true } });
+  });
+
   it("stacks a dated extension on remaining time and refuses to bound an indefinite grant", () => {
-    const current = addUtcMonths(NOW, 6);
+    const current = addSydneyCalendarMonths(NOW, 6);
     const stacked = nextComplimentaryExpiry({
       duration: "TWELVE_MONTHS",
       now: NOW,
@@ -52,7 +174,10 @@ describe("complimentary term", () => {
     });
     expect(stacked).toEqual({
       ok: true,
-      term: { expiresAt: addUtcMonths(current, 12), indefinite: false },
+      term: {
+        expiresAt: addSydneyCalendarMonths(current, 12),
+        indefinite: false,
+      },
     });
     const bounded = nextComplimentaryExpiry({
       duration: "SIX_MONTHS",
@@ -82,7 +207,7 @@ describe("complimentary term", () => {
     });
     expect(extended).toEqual({
       ok: true,
-      term: { expiresAt: addUtcMonths(NOW, 6), indefinite: false },
+      term: { expiresAt: addSydneyCalendarMonths(NOW, 6), indefinite: false },
     });
   });
 

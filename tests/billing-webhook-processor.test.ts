@@ -644,6 +644,240 @@ describe("processVerifiedStripeEvent", () => {
     );
   });
 
+  it("does not let an in-flight Stripe event overwrite a complimentary grant", async () => {
+    const grant = {
+      clinicId: "clinic_1",
+      commercialPlan: "PRACTICE",
+      commercialArrangement: "COMPLIMENTARY",
+      billingInterval: null,
+      billingStatus: BillingStatus.NOT_BILLED,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: null,
+      currentPeriodStart: null,
+      currentPeriodEnd: null,
+      paidThrough: null,
+      cancelAtPeriodEnd: false,
+      subscriptionEndedAt: null,
+      publicGuideRetentionUntil: null,
+      complimentaryExpiresAt: new Date("2027-04-05T13:59:59.999Z"),
+      lastStripeEventId: "operator_grant",
+      purchasedAdditionalLocationQuantity: null,
+      purchasedAdditionalSiteQuantity: null,
+      extraLocationAllowance: 1,
+      locationAllowance: 2,
+      siteAllowance: 1,
+    };
+    const endedPaid = {
+      clinicId: "clinic_1",
+      commercialPlan: "PRACTICE",
+      commercialArrangement: "PAID",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.ENDED,
+      entitlementStatus: EntitlementStatus.ENDED,
+      stripePriceId: "price_test_practice_monthly",
+      cancelAtPeriodEnd: false,
+      publicGuideRetentionUntil: null,
+      purchasedAdditionalLocationQuantity: 2,
+      locationAllowance: 3,
+      siteAllowance: 1,
+    };
+
+    async function runRace(input: {
+      event: Stripe.Event;
+      previous: Record<string, unknown> | null;
+      subscription?: Stripe.Subscription;
+    }) {
+      const db = createDb();
+      if (input.previous) {
+        db.entitlements.set("clinic_1", input.previous);
+      }
+      db.guides.set("guide_1", {
+        id: "guide_1",
+        clinicId: "clinic_1",
+        origin: "CUSTOM",
+        status: "PUBLISHED",
+        isEnabled: true,
+        downgradeRetainedAt: null,
+        downgradeRetentionUntil: null,
+      });
+      const original = db.clinicEntitlement.findUnique.bind(
+        db.clinicEntitlement
+      );
+      let reads = 0;
+      db.clinicEntitlement.findUnique = async (args: {
+        where: { clinicId: string };
+      }) => {
+        const row = await original(args);
+        reads += 1;
+        if (reads === 1) {
+          db.entitlements.set("clinic_1", { ...grant });
+        }
+        return row;
+      };
+      const releases: unknown[] = [];
+      const result = await processVerifiedStripeEvent(input.event, {
+        prisma: db,
+        reader: {
+          retrieveSubscription: async () =>
+            input.subscription ?? activeSubscription,
+        },
+        env: BILLING_TEST_ENV,
+        downgradeStripe: {
+          subscriptions: { retrieve: async () => ({}) },
+          subscriptionSchedules: {
+            retrieve: async () => {
+              releases.push("retrieve");
+              return {
+                id: "sub_sched_1",
+                status: "active",
+                subscriptionId: "sub_1",
+                releasedSubscriptionId: null,
+              };
+            },
+            release: async () => {
+              releases.push("release");
+              return {
+                id: "sub_sched_1",
+                status: "released",
+                subscriptionId: null,
+                releasedSubscriptionId: "sub_1",
+              };
+            },
+            update: async () => {
+              releases.push("update");
+              throw new Error("schedule update must not run");
+            },
+            create: async () => {
+              throw new Error("schedule create must not run");
+            },
+          },
+        } as unknown as import("@/lib/billing/plan-downgrade").PlanDowngradeStripePort,
+      });
+      expect(result.outcome).toBe("ignored");
+      expect(db.entitlements.get("clinic_1")).toEqual({ ...grant });
+      expect(db.guides.get("guide_1")).toMatchObject({
+        downgradeRetainedAt: null,
+      });
+      expect(releases).toEqual([]);
+      expect(db.receipts.get(input.event.id)?.processingStatus).toBe(
+        StripeEventProcessingStatus.IGNORED
+      );
+      const duplicate = await processVerifiedStripeEvent(input.event, {
+        prisma: db,
+        reader: {
+          retrieveSubscription: async () =>
+            input.subscription ?? activeSubscription,
+        },
+        env: BILLING_TEST_ENV,
+      });
+      expect(duplicate.outcome).toBe("duplicate");
+      expect(db.entitlements.get("clinic_1")).toEqual({ ...grant });
+      return db;
+    }
+
+    const invoice = invoicePaidEvent();
+    invoice.id = "evt_race_invoice";
+    await runRace({ event: invoice, previous: endedPaid });
+
+    const checkout = checkoutCompletedEvent();
+    checkout.id = "evt_race_checkout";
+    await runRace({ event: checkout, previous: null });
+
+    const deleted = {
+      ...invoicePaidEvent(),
+      id: "evt_race_deleted",
+      type: "customer.subscription.deleted",
+      data: {
+        object: {
+          ...activeSubscription,
+          status: "canceled",
+          cancel_at_period_end: false,
+        },
+      },
+    } as Stripe.Event;
+    await runRace({
+      event: deleted,
+      previous: endedPaid,
+      subscription: {
+        ...activeSubscription,
+        status: "canceled",
+      } as Stripe.Subscription,
+    });
+
+    const db = createDb();
+    seedPracticeDowngrade(db);
+    db.profiles.set("clinic_1", {
+      clinicId: "clinic_1",
+      stripeCustomerId: "cus_1",
+      stripeSubscriptionId: "sub_1",
+      stripeSubscriptionScheduleId: "sub_sched_1",
+      stripePlanDowngradeAttemptId: "attempt-1",
+    });
+    const original = db.clinicEntitlement.findUnique.bind(db.clinicEntitlement);
+    let reads = 0;
+    db.clinicEntitlement.findUnique = async (args: {
+      where: { clinicId: string };
+    }) => {
+      const row = await original(args);
+      reads += 1;
+      if (reads === 1) {
+        db.entitlements.set("clinic_1", { ...grant });
+      }
+      return row;
+    };
+    const releases: string[] = [];
+    const cancelled = subscriptionWith({
+      priceId: "price_test_practice_monthly",
+      cancelAtPeriodEnd: true,
+    });
+    const result = await processVerifiedStripeEvent(
+      subscriptionEvent({ id: "evt_race_cancel", subscription: cancelled }),
+      {
+        prisma: db,
+        reader: { retrieveSubscription: async () => cancelled },
+        env: BILLING_TEST_ENV,
+        downgradeStripe: {
+          subscriptions: { retrieve: async () => ({}) },
+          subscriptionSchedules: {
+            retrieve: async () => {
+              releases.push("retrieve");
+              return {
+                id: "sub_sched_1",
+                status: "active",
+                subscriptionId: "sub_1",
+                releasedSubscriptionId: null,
+              };
+            },
+            release: async () => {
+              releases.push("release");
+              return {
+                id: "sub_sched_1",
+                status: "released",
+                subscriptionId: null,
+                releasedSubscriptionId: "sub_1",
+              };
+            },
+            update: async () => {
+              throw new Error("schedule update must not run");
+            },
+            create: async () => {
+              throw new Error("schedule create must not run");
+            },
+          },
+        } as unknown as import("@/lib/billing/plan-downgrade").PlanDowngradeStripePort,
+      }
+    );
+    expect(result.outcome).toBe("ignored");
+    expect(releases).toEqual([]);
+    expect(db.entitlements.get("clinic_1")).toEqual({ ...grant });
+    expect(db.profiles.get("clinic_1")?.stripeSubscriptionScheduleId).toBe(
+      "sub_sched_1"
+    );
+    expect(db.receipts.get("evt_race_cancel")?.processingStatus).toBe(
+      StripeEventProcessingStatus.IGNORED
+    );
+  });
+
   it("fails closed for an unknown Price ID", async () => {
     const db = createDb();
     const event = invoicePaidEvent();
