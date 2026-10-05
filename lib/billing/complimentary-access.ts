@@ -35,6 +35,8 @@ const PAID_BILLING_STATUSES = new Set<BillingStatus>([
 const SPLIT_BLOCK =
   "An account split is open for this clinic. Finish or cancel it before changing complimentary access.";
 const CHECKOUT_BLOCK = "Checkout is in progress for this clinic.";
+const NEGOTIATED_BLOCK =
+  "A negotiated price is open for this clinic. Withdraw it before changing complimentary access.";
 const PAID_BLOCK = "This clinic has a paid Stripe subscription.";
 const EXTEND_INSTEAD =
   "This clinic already has complimentary access. Extend that agreement.";
@@ -144,19 +146,27 @@ function parsedMutation(
 }
 
 async function readContext(tx: Db, clinicId: string) {
-  const [clinic, openSplit, profile, entitlement] = await Promise.all([
-    tx.clinic.findUnique({ where: { id: clinicId }, select: { id: true } }),
-    findOpenAccountSplitInvolvingClinic(clinicId, tx),
-    tx.clinicBillingProfile.findUnique({
-      where: { clinicId },
-      select: {
-        stripeSubscriptionId: true,
-        stripeCheckoutSessionId: true,
-      },
-    }),
-    tx.clinicEntitlement.findUnique({ where: { clinicId } }),
-  ]);
-  return { clinic, openSplit, profile, entitlement };
+  const [clinic, openSplit, profile, entitlement, openNegotiatedOffer] =
+    await Promise.all([
+      tx.clinic.findUnique({ where: { id: clinicId }, select: { id: true } }),
+      findOpenAccountSplitInvolvingClinic(clinicId, tx),
+      tx.clinicBillingProfile.findUnique({
+        where: { clinicId },
+        select: {
+          stripeSubscriptionId: true,
+          stripeCheckoutSessionId: true,
+        },
+      }),
+      tx.clinicEntitlement.findUnique({ where: { clinicId } }),
+      tx.clinicNegotiatedOffer.findFirst({
+        where: {
+          clinicId,
+          status: { in: ["PREPARED", "CHECKOUT_OPEN"] },
+        },
+        select: { id: true },
+      }),
+    ]);
+  return { clinic, openSplit, profile, entitlement, openNegotiatedOffer };
 }
 
 function sharedCommercialBlock(input: {
@@ -170,9 +180,13 @@ function sharedCommercialBlock(input: {
     billingStatus: BillingStatus;
     commercialArrangement: "PAID" | "COMPLIMENTARY";
   } | null;
+  openNegotiatedOffer: { id: string } | null;
 }): string | null {
   if (!input.clinic) {
     return "Clinic not found.";
+  }
+  if (input.openNegotiatedOffer) {
+    return NEGOTIATED_BLOCK;
   }
   if (input.openSplit) {
     return SPLIT_BLOCK;

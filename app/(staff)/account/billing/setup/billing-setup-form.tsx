@@ -45,6 +45,7 @@ export function BillingSetupForm({
   regions,
   defaults,
   cancelMessage,
+  negotiatedTerms = null,
 }: {
   clinicName: string;
   planName: string;
@@ -58,6 +59,7 @@ export function BillingSetupForm({
   regions: readonly RegionOption[];
   defaults: BillingSetupFormValues;
   cancelMessage: string | null;
+  negotiatedTerms?: { terms: string; policyLabel: string } | null;
 }) {
   const [state, action, pending] = useActionState(
     continueToSecurePaymentAction,
@@ -461,6 +463,31 @@ export function BillingSetupForm({
         </div>
         <FieldError id={termsErrorId} message={shownError("termsAccepted")} />
       </div>
+      {negotiatedTerms ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm leading-6">{negotiatedTerms.terms}</p>
+          <p className="text-sm leading-6 text-staff-muted">
+            {negotiatedTerms.policyLabel}
+          </p>
+          <div className="flex items-start gap-3">
+            <input
+              id="acceptNegotiatedTerms"
+              name="acceptNegotiatedTerms"
+              type="checkbox"
+              value="yes"
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--staff-brand)]"
+            />
+            <label
+              htmlFor="acceptNegotiatedTerms"
+              className="text-sm leading-6"
+            >
+              I accept these negotiated commercial terms and authorise payment
+              at the price shown. The price will not increase to the standard
+              rate.
+            </label>
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-3" data-billing-payment-action>
         {paymentError ? (

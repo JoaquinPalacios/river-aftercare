@@ -47,6 +47,63 @@ export default async function BillingSetupPage({
           Billing for this clinic is arranged with River Aftercare. No online
           payment is required from this page.
         </p>
+      ) : view.negotiatedOffer?.waitingForStart ? (
+        <section
+          className="rounded-xl border border-staff-line bg-staff-panel p-5"
+          role="status"
+        >
+          <h2 className="text-lg font-semibold">
+            {view.negotiatedOffer.planLabel}
+          </h2>
+          <p className="mt-2 text-sm">
+            {view.negotiatedOffer.priceLabel}. {view.negotiatedOffer.taxLabel}.
+          </p>
+          <p className="mt-2 text-sm">
+            Payment opens on {view.negotiatedOffer.startLabel}. Complimentary
+            access does not start a charge on its own.
+          </p>
+          <p className="mt-2 text-sm text-staff-muted">
+            {view.negotiatedOffer.policyLabel}
+          </p>
+        </section>
+      ) : view.negotiatedOffer?.payable && membership.role === "ADMIN" ? (
+        <BillingSetupForm
+          clinicName={view.clinicName}
+          planName={view.negotiatedOffer.planLabel}
+          priceLabel={view.negotiatedOffer.priceLabel}
+          annualNote={null}
+          detailLines={[
+            view.negotiatedOffer.taxLabel,
+            `Payment from ${view.negotiatedOffer.startLabel}.`,
+            `Special rate ${view.negotiatedOffer.expiryLabel}.`,
+            view.negotiatedOffer.policyLabel,
+          ]}
+          capacityNote={null}
+          contactHref={context.contactHref}
+          termsHref={context.termsHref}
+          privacyHref={context.privacyHref}
+          regions={AU_REGION_OPTIONS}
+          cancelMessage={cancelMessage}
+          negotiatedTerms={{
+            terms: view.negotiatedOffer.terms,
+            policyLabel: view.negotiatedOffer.policyLabel,
+          }}
+          defaults={{
+            legalEntityName: view.identity?.legalEntityName ?? "",
+            tradingName: view.identity?.tradingName ?? view.clinicName,
+            billingContactName: view.identity?.billingContactName ?? "",
+            billingEmail: view.identity?.billingEmail ?? "",
+            addressLine1: view.identity?.addressLine1 ?? "",
+            addressLine2: view.identity?.addressLine2 ?? "",
+            city: view.identity?.city ?? "",
+            region: view.identity?.region ?? "",
+            postalCode: view.identity?.postalCode ?? "",
+            country: view.identity?.country || "AU",
+            businessNumberKind: view.identity?.businessNumberKind ?? "none",
+            abn: view.identity?.abn ?? "",
+            acn: view.identity?.acn ?? "",
+          }}
+        />
       ) : view.presentation.kind === "active" ? (
         <ActiveBilling view={view} />
       ) : view.presentation.kind === "inactive" ? (

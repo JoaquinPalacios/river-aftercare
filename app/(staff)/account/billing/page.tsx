@@ -330,6 +330,77 @@ export default async function BillingStatusPage({
                 Contact River Aftercare
               </a>
             ) : null}
+            {showCommercialDetail && view.negotiatedOffer ? (
+              <div className="mt-4 border-t border-staff-line pt-4 text-sm">
+                <h3 className="font-semibold">Negotiated price</h3>
+                <dl className="mt-3 grid gap-2">
+                  <div>
+                    <dt className="text-staff-muted">Plan</dt>
+                    <dd className="font-medium">
+                      {view.negotiatedOffer.planLabel}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-staff-muted">Billing</dt>
+                    <dd className="font-medium">
+                      {view.negotiatedOffer.intervalLabel}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-staff-muted">Price</dt>
+                    <dd className="font-medium">
+                      {view.negotiatedOffer.priceLabel}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-staff-muted">Tax</dt>
+                    <dd className="font-medium">
+                      {view.negotiatedOffer.taxLabel}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-staff-muted">Offer</dt>
+                    <dd className="font-medium">
+                      {view.negotiatedOffer.status === "CHECKOUT_OPEN"
+                        ? "Checkout open"
+                        : "Prepared"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-staff-muted">Payment from</dt>
+                    <dd className="font-medium">
+                      {view.negotiatedOffer.startLabel}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-staff-muted">Special rate</dt>
+                    <dd className="font-medium">
+                      {view.negotiatedOffer.expiryLabel}
+                    </dd>
+                  </div>
+                </dl>
+                <p className="mt-3">{view.negotiatedOffer.policyLabel}</p>
+                <p className="mt-2 text-staff-muted">
+                  {view.negotiatedOffer.terms}
+                </p>
+                {view.negotiatedOffer.waitingForStart ? (
+                  <p className="mt-3" role="status">
+                    Payment stays closed until {view.negotiatedOffer.startLabel}
+                    . Complimentary access does not start a charge on its own.
+                  </p>
+                ) : null}
+                {view.negotiatedOffer.payable &&
+                context.membership?.role === "ADMIN" &&
+                context.membership.source !== "operator_support" ? (
+                  <Link
+                    href={BILLING_SETUP_PATH}
+                    className="staffBtn staffBtnPrimary mt-4 inline-flex h-11 items-center"
+                  >
+                    Review and pay
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
             {presentation.kind === "active" &&
             !view.complimentary &&
             !presentation.attention &&

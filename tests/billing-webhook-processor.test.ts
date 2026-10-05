@@ -34,13 +34,51 @@ function createDb() {
       stripeSubscriptionId: string | null;
       stripeSubscriptionScheduleId: string | null;
       stripePlanDowngradeAttemptId: string | null;
+      stripeCheckoutSessionId?: string | null;
     }
   >();
   const entitlements = new Map<string, Record<string, unknown>>();
   const receipts = new Map<string, Receipt>();
   const guides = new Map<string, Record<string, unknown>>();
   const preparations = new Map<string, Record<string, unknown>>();
+  const offers = new Map<string, Record<string, unknown>>();
   let receiptSeq = 0;
+  let offerSeq = 0;
+
+  function offerMatches(
+    row: Record<string, unknown>,
+    where: Record<string, unknown> | undefined
+  ) {
+    if (!where) {
+      return true;
+    }
+    if (typeof where.id === "string" && row.id !== where.id) {
+      return false;
+    }
+    if (typeof where.clinicId === "string" && row.clinicId !== where.clinicId) {
+      return false;
+    }
+    if (
+      typeof where.stripePriceId === "string" &&
+      row.stripePriceId !== where.stripePriceId
+    ) {
+      return false;
+    }
+    const status = where.status;
+    if (typeof status === "string" && row.status !== status) {
+      return false;
+    }
+    if (
+      status &&
+      typeof status === "object" &&
+      "in" in status &&
+      Array.isArray(status.in) &&
+      !status.in.includes(row.status)
+    ) {
+      return false;
+    }
+    return true;
+  }
 
   const db: any = {
     clinic: {
@@ -272,6 +310,66 @@ function createDb() {
         return { count };
       },
     },
+    clinicNegotiatedOffer: {
+      findFirst: async ({ where }: { where?: Record<string, unknown> }) => {
+        const matches = [...offers.values()].filter((row) =>
+          offerMatches(row, where)
+        );
+        const createdTime = (value: unknown) => {
+          const time =
+            value instanceof Date
+              ? value.getTime()
+              : new Date(String(value ?? 0)).getTime();
+          return Number.isNaN(time) ? 0 : time;
+        };
+        matches.sort(
+          (left, right) =>
+            createdTime(right.createdAt) - createdTime(left.createdAt)
+        );
+        return matches[0] ?? null;
+      },
+      findMany: async () => [...offers.values()],
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        const row = {
+          id: data.id ?? `offer_${++offerSeq}`,
+          createdAt: new Date().toISOString(),
+          ...data,
+        };
+        offers.set(String(row.id), row);
+        return row;
+      },
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { id: string };
+        data: Record<string, unknown>;
+      }) => {
+        const current = offers.get(where.id);
+        if (!current) {
+          throw new Error("missing offer");
+        }
+        Object.assign(current, data);
+        return current;
+      },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: Record<string, unknown>;
+        data: Record<string, unknown>;
+      }) => {
+        let count = 0;
+        for (const row of offers.values()) {
+          if (!offerMatches(row, where)) {
+            continue;
+          }
+          Object.assign(row, data);
+          count += 1;
+        }
+        return { count };
+      },
+    },
     clinicDowngradePreparation: {
       findUnique: async ({ where }: { where: { clinicId: string } }) =>
         preparations.get(where.clinicId) ?? null,
@@ -291,6 +389,7 @@ function createDb() {
     receipts,
     guides,
     preparations,
+    offers,
   };
 
   return db;
@@ -1910,5 +2009,291 @@ describe("processVerifiedStripeEvent", () => {
     });
     expect(db.guides.get("guide_excess")?.downgradeRetainedAt).toBeNull();
     expect(db.guides.get("guide_keep_1")?.downgradeRetainedAt).toBeNull();
+  });
+
+  function negotiatedSubscription(priceId: string, unitAmount: number) {
+    return {
+      ...activeSubscription,
+      items: {
+        ...activeSubscription.items,
+        data: [
+          {
+            id: "si_neg",
+            quantity: 1,
+            price: { id: priceId, unit_amount: unitAmount },
+            current_period_start: 1_746_000_000,
+            current_period_end: 1_748_600_000,
+          },
+        ],
+      },
+    } as unknown as Stripe.Subscription;
+  }
+
+  function negotiatedInvoice(input: {
+    id: string;
+    priceId: string;
+    amountPaid: number;
+  }): Stripe.Event {
+    const event = invoicePaidEvent();
+    event.id = input.id;
+    const invoice = event.data.object as {
+      amount_paid?: number;
+      lines: { data: Array<{ pricing: { price_details: { price: string } } }> };
+    };
+    invoice.amount_paid = input.amountPaid;
+    invoice.lines.data[0].pricing.price_details.price = input.priceId;
+    return event;
+  }
+
+  it("converts a complimentary clinic when the paid invoice matches the negotiated price", async () => {
+    const db = createDb();
+    const guide = {
+      id: "guide_keep",
+      clinicId: "clinic_1",
+      title: "After extraction",
+      origin: "CUSTOM",
+      status: "PUBLISHED",
+      isEnabled: true,
+      downgradeRetainedAt: null,
+    };
+    db.guides.set(guide.id, guide);
+    db.entitlements.set("clinic_1", {
+      clinicId: "clinic_1",
+      commercialPlan: "ESSENTIAL",
+      commercialArrangement: "COMPLIMENTARY",
+      billingInterval: null,
+      billingStatus: BillingStatus.NOT_BILLED,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: null,
+      complimentaryExpiresAt: new Date("2027-04-05T12:59:59.999Z"),
+      commercialReviewAt: new Date("2027-01-01T00:00:00.000Z"),
+      siteAllowance: 1,
+      locationAllowance: 1,
+    });
+    db.offers.set("offer_49", {
+      id: "offer_49",
+      clinicId: "clinic_1",
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      amountCents: 4900,
+      status: "CHECKOUT_OPEN",
+      stripePriceId: "price_neg_49",
+      createdAt: new Date("2026-10-05T00:00:00.000Z"),
+    });
+    const event = negotiatedInvoice({
+      id: "evt_neg_paid",
+      priceId: "price_neg_49",
+      amountPaid: 4900,
+    });
+    const result = await processVerifiedStripeEvent(event, {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () =>
+          negotiatedSubscription("price_neg_49", 4900),
+      },
+      env: BILLING_TEST_ENV,
+    });
+    expect(result.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      clinicId: "clinic_1",
+      commercialPlan: "ESSENTIAL",
+      commercialArrangement: "PAID",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: "price_neg_49",
+      complimentaryExpiresAt: null,
+      commercialReviewAt: null,
+      siteAllowance: 1,
+      locationAllowance: 1,
+    });
+    expect(db.offers.get("offer_49")).toMatchObject({ status: "CONVERTED" });
+    expect(db.guides.get("guide_keep")).toMatchObject({
+      title: "After extraction",
+      status: "PUBLISHED",
+      downgradeRetainedAt: null,
+    });
+    const replay = await processVerifiedStripeEvent(event, {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () =>
+          negotiatedSubscription("price_neg_49", 4900),
+      },
+      env: BILLING_TEST_ENV,
+    });
+    expect(replay.outcome).toBe("duplicate");
+    expect(db.offers.get("offer_49")?.status).toBe("CONVERTED");
+  });
+
+  it("keeps complimentary access when the paid amount does not match the negotiated price", async () => {
+    const db = createDb();
+    const stored = {
+      clinicId: "clinic_1",
+      commercialPlan: "PRACTICE",
+      commercialArrangement: "COMPLIMENTARY",
+      billingStatus: BillingStatus.NOT_BILLED,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      complimentaryExpiresAt: new Date("2027-04-05T12:59:59.999Z"),
+    };
+    db.entitlements.set("clinic_1", stored);
+    db.offers.set("offer_499", {
+      id: "offer_499",
+      clinicId: "clinic_1",
+      commercialPlan: "PRACTICE",
+      billingInterval: "YEARLY",
+      amountCents: 49900,
+      status: "PREPARED",
+      stripePriceId: "price_neg_499",
+      createdAt: new Date("2026-10-05T00:00:00.000Z"),
+    });
+    const event = negotiatedInvoice({
+      id: "evt_neg_mismatch",
+      priceId: "price_neg_499",
+      amountPaid: 449000,
+    });
+    const result = await processVerifiedStripeEvent(event, {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () =>
+          negotiatedSubscription("price_neg_499", 49900),
+      },
+      env: BILLING_TEST_ENV,
+    });
+    expect(result.outcome).toBe("ignored");
+    expect(db.entitlements.get("clinic_1")).toEqual(stored);
+    expect(db.offers.get("offer_499")?.status).toBe("PREPARED");
+    expect(db.receipts.get(event.id)?.failureText).toBe(
+      "Negotiated price did not match the paid invoice."
+    );
+  });
+
+  it("remembers Checkout before invoice.paid and still converts only once", async () => {
+    const db = createDb();
+    db.entitlements.set("clinic_1", {
+      clinicId: "clinic_1",
+      commercialPlan: "ESSENTIAL",
+      commercialArrangement: "COMPLIMENTARY",
+      billingStatus: BillingStatus.NOT_BILLED,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      complimentaryExpiresAt: new Date("2027-04-05T12:59:59.999Z"),
+    });
+    db.offers.set("offer_order", {
+      id: "offer_order",
+      clinicId: "clinic_1",
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      amountCents: 4900,
+      status: "CHECKOUT_OPEN",
+      stripePriceId: "price_neg_49",
+      createdAt: new Date("2026-10-05T00:00:00.000Z"),
+    });
+    const checkout = checkoutCompletedEvent();
+    checkout.id = "evt_neg_checkout_first";
+    const remembered = await processVerifiedStripeEvent(checkout, {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () =>
+          negotiatedSubscription("price_neg_49", 4900),
+      },
+      env: BILLING_TEST_ENV,
+    });
+    expect(remembered.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialArrangement: "COMPLIMENTARY",
+      billingStatus: BillingStatus.NOT_BILLED,
+    });
+    expect(db.profiles.get("clinic_1")?.stripeSubscriptionId).toBe("sub_1");
+    const paid = await processVerifiedStripeEvent(
+      negotiatedInvoice({
+        id: "evt_neg_invoice_second",
+        priceId: "price_neg_49",
+        amountPaid: 4900,
+      }),
+      {
+        prisma: db,
+        reader: {
+          retrieveSubscription: async () =>
+            negotiatedSubscription("price_neg_49", 4900),
+        },
+        env: BILLING_TEST_ENV,
+      }
+    );
+    expect(paid.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialArrangement: "PAID",
+      complimentaryExpiresAt: null,
+    });
+    expect(db.offers.get("offer_order")?.status).toBe("CONVERTED");
+  });
+
+  it("clears a canceled negotiated subscription without starting paid access", async () => {
+    const db = createDb();
+    db.entitlements.set("clinic_1", {
+      clinicId: "clinic_1",
+      commercialPlan: "ESSENTIAL",
+      commercialArrangement: "COMPLIMENTARY",
+      billingStatus: BillingStatus.NOT_BILLED,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+    });
+    db.profiles.set("clinic_1", {
+      clinicId: "clinic_1",
+      stripeCustomerId: "cus_1",
+      stripeSubscriptionId: "sub_1",
+      stripeSubscriptionScheduleId: null,
+      stripePlanDowngradeAttemptId: null,
+      stripeCheckoutSessionId: "cs_abandoned",
+    });
+    db.offers.set("offer_fail", {
+      id: "offer_fail",
+      clinicId: "clinic_1",
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      amountCents: 4900,
+      status: "CHECKOUT_OPEN",
+      stripePriceId: "price_neg_49",
+      createdAt: new Date("2026-10-05T00:00:00.000Z"),
+    });
+    const openFailure = invoicePaidEvent();
+    openFailure.id = "evt_neg_failed_open";
+    openFailure.type = "invoice.payment_failed";
+    (openFailure.data.object as { status?: string }).status = "open";
+    const ignored = await processVerifiedStripeEvent(openFailure, {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () =>
+          negotiatedSubscription("price_neg_49", 4900),
+      },
+      env: BILLING_TEST_ENV,
+    });
+    expect(ignored.outcome).toBe("ignored");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialArrangement: "COMPLIMENTARY",
+      billingStatus: BillingStatus.NOT_BILLED,
+    });
+    expect(db.offers.get("offer_fail")?.status).toBe("CHECKOUT_OPEN");
+
+    const canceledEvent = invoicePaidEvent();
+    canceledEvent.id = "evt_neg_failed_canceled";
+    canceledEvent.type = "invoice.payment_failed";
+    (canceledEvent.data.object as { status?: string }).status = "open";
+    const cleared = await processVerifiedStripeEvent(canceledEvent, {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () =>
+          ({
+            ...negotiatedSubscription("price_neg_49", 4900),
+            status: "canceled",
+          }) as Stripe.Subscription,
+      },
+      env: BILLING_TEST_ENV,
+    });
+    expect(cleared.outcome).toBe("processed");
+    expect(db.profiles.get("clinic_1")?.stripeSubscriptionId).toBeNull();
+    expect(db.profiles.get("clinic_1")?.stripeCheckoutSessionId).toBeNull();
+    expect(db.offers.get("offer_fail")?.status).toBe("PREPARED");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialArrangement: "COMPLIMENTARY",
+      billingStatus: BillingStatus.NOT_BILLED,
+    });
   });
 });

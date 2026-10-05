@@ -31,6 +31,7 @@ import {
 import { existingGroupMoveConfirmationPhrase } from "@/lib/account-split/site-to-existing-group-policy";
 import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
 import { recordAccountSplitEvent } from "@/lib/account-split/events";
+import { assertNoOpenNegotiatedOffer } from "@/lib/billing/negotiated-offer";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { getPrisma } from "@/lib/prisma";
 
@@ -63,6 +64,7 @@ export async function createAccountSplitPreparation(input: {
           "forbidden"
         );
       }
+      await assertNoOpenNegotiatedOffer(tx, input.sourceClinicId);
       const clinic = await tx.clinic.findUnique({
         where: { id: input.sourceClinicId },
         select: {
@@ -654,6 +656,7 @@ export async function createLocationToNewAccountPreparation(input: {
           "forbidden"
         );
       }
+      await assertNoOpenNegotiatedOffer(tx, input.sourceClinicId);
       const clinic = await tx.clinic.findUnique({
         where: { id: input.sourceClinicId },
         select: {
@@ -1050,6 +1053,7 @@ export async function createSiteToExistingGroupPreparation(input: {
     return await getPrisma().$transaction(async (tx) => {
       await lockAccountSplit(tx, input.sourceClinicId);
       await assertOperator(tx, input.operatorUserId);
+      await assertNoOpenNegotiatedOffer(tx, input.sourceClinicId);
       const clinic = await tx.clinic.findUnique({
         where: { id: input.sourceClinicId },
         select: {

@@ -125,6 +125,7 @@ model Clinic {
   billingPriceChanges       BillingPriceChange[]
   billingNoticeDeliveries   BillingNoticeDelivery[]
   complimentaryAccessEvents ClinicComplimentaryAccessEvent[]
+  negotiatedOffers          ClinicNegotiatedOffer[]
   createdAt                 DateTime                         @default(now())
   updatedAt                 DateTime                         @updatedAt
 }
@@ -155,6 +156,8 @@ model User {
   publishedGuideTemplateRevisions GuideTemplateRevision[]            @relation("GuideTemplateRevisionPublisher")
   deactivatedGuideTemplates       GuideTemplate[]                    @relation("GuideTemplateDeactivatedBy")
   complimentaryAccessEvents       ClinicComplimentaryAccessEvent[]
+  preparedNegotiatedOffers        ClinicNegotiatedOffer[]            @relation("NegotiatedOfferPreparedBy")
+  acceptedNegotiatedOffers        ClinicNegotiatedOffer[]            @relation("NegotiatedOfferAcceptedBy")
   createdAt                       DateTime                           @default(now())
   updatedAt                       DateTime                           @updatedAt
 }
@@ -824,6 +827,36 @@ enum ComplimentaryAccessEventKind {
   EXTENSION
 }
 
+/// One prepared conversion from complimentary access to a paid subscription.
+/// PREPARED and CHECKOUT_OPEN are the only open states. A partial unique
+/// index keeps one open offer per clinic. Prisma cannot express that index.
+enum NegotiatedOfferStatus {
+  PREPARED
+  CHECKOUT_OPEN
+  CONVERTED
+  WITHDRAWN
+}
+
+/// When the administrator may authorise Checkout. An agreed date does not
+/// create a subscription or charge by itself.
+enum NegotiatedStartMode {
+  CUSTOMER_INITIATED
+  AGREED_DATE
+}
+
+/// What happens when a special rate reaches its end. Neither policy changes
+/// the subscription onto a higher price.
+enum NegotiatedRateExpiryPolicy {
+  INDEFINITE
+  CANCEL_WHEN_RATE_ENDS
+}
+
+/// River Aftercare is not registered for GST. The stored amount is the
+/// amount Stripe charges. Stripe Tax stays off.
+enum NegotiatedTaxTreatment {
+  NO_GST
+}
+
 /// River product authorization derived from billing.
 /// PENDING is the Phase 2 pre-payment activation gate for clinics explicitly
 /// placed into billing onboarding. RESTRICTED and ENDED are not enforced yet.
@@ -1306,6 +1339,48 @@ model ClinicComplimentaryAccessEvent {
 
   @@index([clinicId, createdAt])
   @@index([actorUserId])
+}
+
+/// Agreed commercial terms for one complimentary Essential or Practice clinic.
+/// The functional plan stays Essential or Practice. The amount is integer
+/// AUD cents. A Stripe Price is stored only after it is created for Checkout.
+/// Withdrawn and converted rows stay so the agreement remains readable.
+/// Open uniqueness is ClinicNegotiatedOffer_one_open_per_clinic_key.
+model ClinicNegotiatedOffer {
+  id                   String                     @id @default(cuid())
+  clinicId             String
+  preparedByUserId     String
+  commercialPlan       CommercialPlan
+  billingInterval      BillingInterval
+  /// AUD cents. Not a Stripe secret and not a card number.
+  amountCents          Int
+  currency             String                     @default("aud")
+  taxTreatment         NegotiatedTaxTreatment     @default(NO_GST)
+  startMode            NegotiatedStartMode
+  /// Earliest Sydney instant the administrator may open Checkout.
+  /// Null when the administrator may start immediately.
+  billingStartsAt      DateTime?
+  rateExpiryPolicy     NegotiatedRateExpiryPolicy
+  /// End of the special rate. Null when the rate is indefinite.
+  /// Not complimentaryExpiresAt and not a Stripe period end.
+  rateExpiresAt        DateTime?
+  commercialTerms      String                     @db.VarChar(2000)
+  status               NegotiatedOfferStatus
+  stripePriceId        String?
+  stripeProductId      String?
+  acceptedByUserId     String?
+  acceptedAt           DateTime?
+  convertedAt          DateTime?
+  withdrawnAt          DateTime?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  clinic               Clinic                     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  preparedBy           User                       @relation("NegotiatedOfferPreparedBy", fields: [preparedByUserId], references: [id], onDelete: Restrict)
+  acceptedBy           User?                      @relation("NegotiatedOfferAcceptedBy", fields: [acceptedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([clinicId, status])
+  @@index([stripePriceId])
+  @@index([preparedByUserId])
 }
 
 /// Immutable Terms acceptance and Privacy acknowledgement.

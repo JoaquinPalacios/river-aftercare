@@ -44,6 +44,15 @@ import {
   StripePriceMappingError,
 } from "@/lib/billing/price-map";
 import {
+  findNegotiatedOfferForPrice,
+  invoiceAmountPaidFromEvent,
+} from "@/lib/billing/negotiated-offer";
+import {
+  decideComplimentaryStripeEvent,
+  negotiatedCatalogFromOffer,
+  subscriptionItemsForNegotiatedMatch,
+} from "@/lib/billing/negotiated-terms";
+import {
   projectEntitlement,
   type LocalEntitlementSnapshot,
 } from "@/lib/billing/projection";
@@ -85,6 +94,7 @@ type BillingDb = Pick<
   | "clinic"
   | "clinicBillingProfile"
   | "clinicEntitlement"
+  | "clinicNegotiatedOffer"
   | "stripeEventReceipt"
   | "$transaction"
 >;
@@ -297,6 +307,7 @@ async function applyProjection(options: {
   retireDowngradeAttempt: boolean;
   practiceAdditionalLocationQuantity?: number;
   groupAdditionalSiteQuantity?: number;
+  negotiatedConversion?: boolean;
 }): Promise<void> {
   const { db, clinicId, snapshot, entitlement, stripeEventId } = options;
   const now = new Date();
@@ -406,6 +417,13 @@ async function applyProjection(options: {
       lastProjectedAt: now,
       scheduledCommercialPlan: options.scheduledCommercialPlan,
       scheduledPlanEffectiveAt: options.scheduledPlanEffectiveAt,
+      ...(options.negotiatedConversion
+        ? {
+            commercialArrangement: "PAID" as const,
+            complimentaryExpiresAt: null,
+            commercialReviewAt: null,
+          }
+        : {}),
       ...practiceCapacityWrite,
       ...groupCapacityWrite,
     },
@@ -425,6 +443,13 @@ async function applyProjection(options: {
       lastProjectedAt: now,
       scheduledCommercialPlan: options.scheduledCommercialPlan,
       scheduledPlanEffectiveAt: options.scheduledPlanEffectiveAt,
+      ...(options.negotiatedConversion
+        ? {
+            commercialArrangement: "PAID" as const,
+            complimentaryExpiresAt: null,
+            commercialReviewAt: null,
+          }
+        : {}),
       ...practiceCapacityWrite,
       ...groupCapacityWrite,
     },
@@ -595,24 +620,182 @@ export async function processVerifiedStripeEvent(
     : null;
 
   const previousSnapshot = localFromRow(previousRow);
+  const negotiatedItems = subscriptionItemsForNegotiatedMatch(
+    authoritativeSubscription
+  );
+  const negotiatedPriceId =
+    negotiatedItems.find((item) => item.priceId)?.priceId ??
+    snapshot.stripePriceId;
+  const negotiatedOffer = identity.clinicId
+    ? await findNegotiatedOfferForPrice(
+        db,
+        identity.clinicId,
+        negotiatedPriceId
+      )
+    : null;
+  let negotiatedConversion: {
+    offerId: string;
+    commercialPlan: "ESSENTIAL" | "PRACTICE";
+    billingInterval: "MONTHLY" | "YEARLY";
+    stripePriceId: string;
+  } | null = null;
+
   if (previousSnapshot?.commercialArrangement === "COMPLIMENTARY") {
-    await mark(StripeEventProcessingStatus.IGNORED, null, identity.clinicId);
-    logStripeBilling({
-      event: "stripe_webhook_ignored",
-      stripeEventId,
+    const decision = decideComplimentaryStripeEvent({
       eventType,
-      clinicId: identity.clinicId,
-      reason: "complimentary_access",
+      invoiceIsPaid: snapshot.invoiceIsPaid,
+      subscriptionStatus: snapshot.subscriptionStatus,
+      subscriptionId: snapshot.stripeSubscriptionId,
+      customerId: snapshot.stripeCustomerId,
+      items: negotiatedItems,
+      invoiceAmountPaid: invoiceAmountPaidFromEvent(event),
+      offer: negotiatedOffer,
     });
-    return {
-      outcome: "ignored",
-      clinicId: identity.clinicId,
-      stripeEventId,
-      eventType,
-    };
+    if (decision.action === "retry") {
+      await mark(
+        StripeEventProcessingStatus.FAILED,
+        "Negotiated subscription could not be retrieved.",
+        identity.clinicId
+      );
+      throw new Error("Negotiated subscription could not be retrieved.");
+    }
+    if (decision.action === "convert") {
+      negotiatedConversion = {
+        offerId: decision.offerId,
+        commercialPlan: decision.commercialPlan,
+        billingInterval: decision.billingInterval,
+        stripePriceId: decision.stripePriceId,
+      };
+    } else if (
+      decision.action === "remember_subscription" ||
+      decision.action === "clear_failed_subscription"
+    ) {
+      const lifecycle = await db.$transaction(async (tx) => {
+        await lockClinicAccountStructure(tx, identity.clinicId!);
+        const locked = await tx.clinicEntitlement.findUnique({
+          where: { clinicId: identity.clinicId! },
+          select: { commercialArrangement: true },
+        });
+        if (locked?.commercialArrangement !== "COMPLIMENTARY") {
+          return "ignored" as const;
+        }
+        if (decision.action === "remember_subscription") {
+          const profile = await tx.clinicBillingProfile.findUnique({
+            where: { clinicId: identity.clinicId! },
+            select: { stripeSubscriptionId: true },
+          });
+          if (
+            profile?.stripeSubscriptionId &&
+            profile.stripeSubscriptionId !== decision.subscriptionId
+          ) {
+            return "conflict" as const;
+          }
+          await tx.clinicBillingProfile.upsert({
+            where: { clinicId: identity.clinicId! },
+            create: {
+              clinicId: identity.clinicId!,
+              stripeCustomerId: decision.customerId,
+              stripeSubscriptionId: decision.subscriptionId,
+            },
+            update: {
+              ...(decision.customerId
+                ? { stripeCustomerId: decision.customerId }
+                : {}),
+              stripeSubscriptionId: decision.subscriptionId,
+            },
+          });
+          return "processed" as const;
+        }
+        const profile = await tx.clinicBillingProfile.findUnique({
+          where: { clinicId: identity.clinicId! },
+          select: { stripeSubscriptionId: true },
+        });
+        if (profile?.stripeSubscriptionId === decision.subscriptionId) {
+          await tx.clinicBillingProfile.update({
+            where: { clinicId: identity.clinicId! },
+            data: {
+              stripeSubscriptionId: null,
+              stripeCheckoutSessionId: null,
+            },
+          });
+        }
+        await tx.clinicNegotiatedOffer.updateMany({
+          where: {
+            clinicId: identity.clinicId!,
+            status: "CHECKOUT_OPEN",
+          },
+          data: { status: "PREPARED" },
+        });
+        return "processed" as const;
+      });
+      if (lifecycle === "conflict") {
+        await mark(
+          StripeEventProcessingStatus.FAILED,
+          "A different Stripe subscription is already linked to this clinic.",
+          identity.clinicId
+        );
+        return {
+          outcome: "unmapped_clinic",
+          clinicId: identity.clinicId,
+          stripeEventId,
+          eventType,
+        };
+      }
+      await mark(
+        lifecycle === "ignored"
+          ? StripeEventProcessingStatus.IGNORED
+          : StripeEventProcessingStatus.PROCESSED,
+        null,
+        identity.clinicId
+      );
+      if (lifecycle === "ignored") {
+        logStripeBilling({
+          event: "stripe_webhook_ignored",
+          stripeEventId,
+          eventType,
+          clinicId: identity.clinicId,
+          reason: "complimentary_access",
+        });
+      } else if (identity.clinicId) {
+        logStripeBilling({
+          event: "stripe_webhook_processed",
+          stripeEventId,
+          eventType,
+          clinicId: identity.clinicId,
+          outcome: decision.action,
+        });
+      }
+      return {
+        outcome: lifecycle === "ignored" ? "ignored" : "processed",
+        clinicId: identity.clinicId,
+        stripeEventId,
+        eventType,
+      };
+    } else {
+      await mark(
+        StripeEventProcessingStatus.IGNORED,
+        decision.reason === "negotiated_price_mismatch"
+          ? "Negotiated price did not match the paid invoice."
+          : null,
+        identity.clinicId
+      );
+      logStripeBilling({
+        event: "stripe_webhook_ignored",
+        stripeEventId,
+        eventType,
+        clinicId: identity.clinicId,
+        reason: decision.reason,
+      });
+      return {
+        outcome: "ignored",
+        clinicId: identity.clinicId,
+        stripeEventId,
+        eventType,
+      };
+    }
   }
 
-  const catalog = identity.clinicId
+  const resolvedCatalog = identity.clinicId
     ? resolveWebhookSubscriptionCatalog({
         subscriptionItems: authoritativeSubscription
           ? subscriptionItemShapes(authoritativeSubscription)
@@ -627,6 +810,27 @@ export async function processVerifiedStripeEvent(
         env,
       })
     : null;
+  const negotiatedMapped =
+    negotiatedConversion ??
+    (resolvedCatalog?.kind === "unknown_price"
+      ? negotiatedCatalogFromOffer({
+          offer: negotiatedOffer,
+          items: negotiatedItems,
+          invoiceAmountPaid: invoiceAmountPaidFromEvent(event),
+        })
+      : null);
+  const catalog = negotiatedMapped
+    ? {
+        kind: "project" as const,
+        mappedPrice: {
+          plan: negotiatedMapped.commercialPlan,
+          interval: negotiatedMapped.billingInterval,
+        },
+        stripePriceId: negotiatedMapped.stripePriceId,
+        practiceAdditionalLocationQuantity: null,
+        groupAdditionalSiteQuantity: null,
+      }
+    : resolvedCatalog;
 
   if (catalog?.kind === "practice_shape") {
     const diagnostic = `Practice subscription shape is invalid (${catalog.reason}).`;
@@ -691,6 +895,7 @@ export async function processVerifiedStripeEvent(
     currentPeriodStart: snapshot.currentPeriodStart,
     currentPeriodEnd: snapshot.currentPeriodEnd,
     invoiceIsPaid: snapshot.invoiceIsPaid,
+    negotiatedConversion: negotiatedConversion !== null,
   });
 
   if (projection.kind === "unmapped_clinic") {
@@ -926,7 +1131,13 @@ export async function processVerifiedStripeEvent(
         where: { clinicId: identity.clinicId! },
         select: { commercialArrangement: true },
       });
-      if (lockedEntitlement?.commercialArrangement === "COMPLIMENTARY") {
+      const converting =
+        negotiatedConversion !== null &&
+        lockedEntitlement?.commercialArrangement === "COMPLIMENTARY";
+      if (
+        lockedEntitlement?.commercialArrangement === "COMPLIMENTARY" &&
+        !converting
+      ) {
         await tx.stripeEventReceipt.update({
           where: { id: receipt.id },
           data: {
@@ -937,6 +1148,29 @@ export async function processVerifiedStripeEvent(
           },
         });
         return "ignored" as const;
+      }
+      if (converting && negotiatedConversion) {
+        const freshOffer = await tx.clinicNegotiatedOffer.findFirst({
+          where: { id: negotiatedConversion.offerId },
+        });
+        if (
+          !freshOffer ||
+          freshOffer.clinicId !== identity.clinicId ||
+          freshOffer.stripePriceId !== negotiatedConversion.stripePriceId ||
+          (freshOffer.status !== "PREPARED" &&
+            freshOffer.status !== "CHECKOUT_OPEN")
+        ) {
+          await tx.stripeEventReceipt.update({
+            where: { id: receipt.id },
+            data: {
+              processingStatus: StripeEventProcessingStatus.IGNORED,
+              failureText: "Negotiated offer was no longer open.",
+              clinicId: identity.clinicId,
+              processedAt: new Date(),
+            },
+          });
+          return "ignored" as const;
+        }
       }
       await applyProjection({
         db: tx as unknown as BillingDb,
@@ -956,7 +1190,23 @@ export async function processVerifiedStripeEvent(
         ...(siteProjection.action === "project"
           ? { groupAdditionalSiteQuantity: siteProjection.quantity }
           : {}),
+        negotiatedConversion: converting,
       });
+      if (converting && negotiatedConversion) {
+        await tx.clinicNegotiatedOffer.updateMany({
+          where: {
+            id: negotiatedConversion.offerId,
+            clinicId: identity.clinicId!,
+            status: { in: ["PREPARED", "CHECKOUT_OPEN"] },
+            stripePriceId: negotiatedConversion.stripePriceId,
+          },
+          data: { status: "CONVERTED", convertedAt: new Date() },
+        });
+        await tx.clinicBillingProfile.update({
+          where: { clinicId: identity.clinicId! },
+          data: { stripeCheckoutSessionId: null },
+        });
+      }
       await applyDowngradeGuideTransition({
         db: tx,
         clinicId: identity.clinicId!,

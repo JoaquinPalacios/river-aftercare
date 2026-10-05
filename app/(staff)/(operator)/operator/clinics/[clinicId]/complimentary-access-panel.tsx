@@ -4,9 +4,11 @@ import type { ComplimentaryAccessView } from "@/lib/billing/complimentary-access
 export function ComplimentaryAccessPanel({
   clinicId,
   access,
+  formBlockedReason,
 }: {
   clinicId: string;
   access: ComplimentaryAccessView;
+  formBlockedReason?: string | null;
 }) {
   return (
     <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
@@ -65,12 +67,16 @@ export function ComplimentaryAccessPanel({
           </ul>
         </div>
       ) : null}
-      <ComplimentaryAccessForm
-        key={`${access.mode}-${access.events.length}`}
-        clinicId={clinicId}
-        mode={access.mode}
-        plan={access.plan}
-      />
+      {formBlockedReason ? (
+        <p className="mt-4 text-sm text-staff-muted">{formBlockedReason}</p>
+      ) : (
+        <ComplimentaryAccessForm
+          key={`${access.mode}-${access.events.length}`}
+          clinicId={clinicId}
+          mode={access.mode}
+          plan={access.plan}
+        />
+      )}
     </section>
   );
 }

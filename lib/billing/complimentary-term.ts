@@ -159,6 +159,23 @@ export function endOfSydneyDay(year: number, month: number, day: number): Date {
   return sydneyLocalToUtc(year, month, day, 23, 59, 59, 999);
 }
 
+export function startOfSydneyDay(
+  year: number,
+  month: number,
+  day: number
+): Date {
+  return sydneyLocalToUtc(year, month, day, 0, 0, 0, 0);
+}
+
+export function parseSydneyCalendarDate(
+  value: unknown
+): { year: number; month: number; day: number } | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  return parseIsoDate(value.trim());
+}
+
 export function sydneyNoon(year: number, month: number, day: number): Date {
   return sydneyLocalToUtc(year, month, day, 12, 0, 0, 0);
 }
