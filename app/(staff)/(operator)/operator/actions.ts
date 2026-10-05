@@ -22,6 +22,9 @@ export async function createClinicAction(
   const parsed = createOperatorClinicSchema.safeParse({
     name: formData.get("name") ?? "",
     slug: formData.get("slug") ?? "",
+    serviceCategories: formData
+      .getAll("serviceCategories")
+      .filter((value): value is string => typeof value === "string"),
   });
 
   if (!parsed.success) {

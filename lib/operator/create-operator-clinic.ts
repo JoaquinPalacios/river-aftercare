@@ -2,6 +2,10 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
+import {
+  SERVICE_CATEGORIES,
+  uniqueServiceCategories,
+} from "@/lib/aftercare/service-category";
 import { isSharedDemoHostnameLabel } from "@/lib/tenancy/shared-demo-hostname";
 import { careGuideSlugSchema } from "@/lib/aftercare/slug";
 import {
@@ -16,6 +20,21 @@ import { getPrisma } from "@/lib/prisma";
 export const DEMO_TENANT_SLUG_RESERVED_MESSAGE =
   "That hostname is reserved for the interactive demo.";
 
+export const OPERATOR_CLINIC_CATEGORY_REQUIRED_MESSAGE =
+  "Select at least one practice category.";
+
+export const OPERATOR_CLINIC_CATEGORY_INVALID_MESSAGE =
+  "Choose a supported practice category.";
+
+export const operatorClinicServiceCategoriesSchema = z
+  .array(
+    z.enum(SERVICE_CATEGORIES, {
+      error: OPERATOR_CLINIC_CATEGORY_INVALID_MESSAGE,
+    })
+  )
+  .min(1, OPERATOR_CLINIC_CATEGORY_REQUIRED_MESSAGE)
+  .transform((value) => uniqueServiceCategories(value));
+
 export const createOperatorClinicSchema = z.object({
   name: z.string().trim().min(1, "Enter the practice name.").max(80),
   slug: careGuideSlugSchema
@@ -28,6 +47,7 @@ export const createOperatorClinicSchema = z.object({
         message: DEMO_TENANT_SLUG_RESERVED_MESSAGE,
       }
     ),
+  serviceCategories: operatorClinicServiceCategoriesSchema,
 });
 
 export type CreateOperatorClinicInput = z.infer<
@@ -46,6 +66,14 @@ export async function createOperatorClinic(
       isDemoTenant(values.slug) || isSharedDemoHostnameLabel(values.slug)
         ? DEMO_TENANT_SLUG_RESERVED_MESSAGE
         : "That hostname is reserved by the platform.",
+      "invalid"
+    );
+  }
+
+  const serviceCategories = uniqueServiceCategories(values.serviceCategories);
+  if (serviceCategories.length === 0) {
+    throw new ClinicPortalError(
+      OPERATOR_CLINIC_CATEGORY_REQUIRED_MESSAGE,
       "invalid"
     );
   }
@@ -90,6 +118,13 @@ export async function createOperatorClinic(
           profile,
         }),
         select: { id: true },
+      });
+      await tx.clinicSiteServiceCategory.createMany({
+        data: serviceCategories.map((serviceCategory) => ({
+          clinicSiteId: site.id,
+          clinicId: clinic.id,
+          serviceCategory,
+        })),
       });
       await tx.clinicLocation.create({
         data: rootClinicLocationData({

@@ -28,8 +28,8 @@ export default async function CreateClinicPage() {
           Create clinic
         </h1>
         <p className="mt-2 text-sm text-staff-muted">
-          Minimal identity only. Invite clinic users from Team after the clinic
-          exists.
+          Set the practice name, tenant address, and practice categories. Invite
+          clinic users from Team after the clinic exists.
         </p>
       </header>
       <CreateClinicForm />

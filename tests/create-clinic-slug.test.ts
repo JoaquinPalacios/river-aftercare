@@ -23,6 +23,7 @@ function slugIssue(slug: string) {
   const parsed = createOperatorClinicSchema.safeParse({
     name: "Harbour Dental",
     slug,
+    serviceCategories: ["DENTAL"],
   });
   expect(parsed.success).toBe(false);
   if (parsed.success) {
@@ -40,6 +41,7 @@ describe("create clinic slug validation", () => {
     const parsed = createOperatorClinicSchema.safeParse({
       name: "Harbour Dental",
       slug,
+      serviceCategories: ["DENTAL"],
     });
     expect(parsed.success).toBe(true);
     if (!parsed.success) {
@@ -64,6 +66,7 @@ describe("create clinic slug validation", () => {
       createOperatorClinicSchema.safeParse({
         name: "Harbour Dental Aftercare Instructions For New Patients Today",
         slug: generated,
+        serviceCategories: ["DENTAL"],
       }).success
     ).toBe(true);
   });
@@ -105,10 +108,17 @@ describeDb("create clinic from a generated slug", () => {
 
     await prisma.clinic.deleteMany({ where: { slug } });
 
-    const created = await createOperatorClinic({ name, slug });
+    const created = await createOperatorClinic({
+      name,
+      slug,
+      serviceCategories: ["DENTAL"],
+    });
     const clinic = await prisma.clinic.findUniqueOrThrow({
       where: { id: created.id },
-      include: { sites: true, profile: true },
+      include: {
+        sites: { include: { serviceCategories: true } },
+        profile: true,
+      },
     });
     expect(clinic.slug).toBe(slug);
     expect(clinic.name).toBe(name);
@@ -120,14 +130,19 @@ describeDb("create clinic from a generated slug", () => {
       displayName: name,
       isPrimary: true,
     });
+    expect(
+      clinic.sites[0]?.serviceCategories.map((row) => row.serviceCategory)
+    ).toEqual(["DENTAL"]);
 
-    await expect(createOperatorClinic({ name, slug })).rejects.toMatchObject({
+    await expect(
+      createOperatorClinic({ name, slug, serviceCategories: ["DENTAL"] })
+    ).rejects.toMatchObject({
       message: "That tenant slug is already in use.",
       code: "conflict",
     });
-    await expect(createOperatorClinic({ name, slug })).rejects.toBeInstanceOf(
-      ClinicPortalError
-    );
+    await expect(
+      createOperatorClinic({ name, slug, serviceCategories: ["DENTAL"] })
+    ).rejects.toBeInstanceOf(ClinicPortalError);
     expect(await prisma.clinic.count({ where: { slug } })).toBe(1);
     expect(
       await prisma.clinic.findUnique({ where: { slug: `${slug}-2` } })
