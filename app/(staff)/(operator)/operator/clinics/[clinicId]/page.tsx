@@ -120,6 +120,12 @@ export default async function OperatorClinicDetailPage({
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           {clinic.displayName}
         </h1>
+        <Link
+          href={`/operator/clinics/${clinic.id}/setup`}
+          className="mt-3 inline-flex text-sm font-medium text-staff-brand"
+        >
+          Clinic setup
+        </Link>
         <p className="mt-2 text-sm text-staff-muted">
           {clinic.name} · {clinic.slug}
         </p>

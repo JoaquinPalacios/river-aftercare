@@ -126,6 +126,11 @@ model Clinic {
   billingNoticeDeliveries   BillingNoticeDelivery[]
   complimentaryAccessEvents ClinicComplimentaryAccessEvent[]
   negotiatedOffers          ClinicNegotiatedOffer[]
+  /// True when this clinic was created through assisted operator onboarding.
+  /// Historical rows stay false. A false row with no entitlement remains on
+  /// the legacy path. A true row is not ready, and is not legacy, until an
+  /// explicit commercial setup exists.
+  assistedOnboarding        Boolean                          @default(false)
   createdAt                 DateTime                         @default(now())
   updatedAt                 DateTime                         @updatedAt
 }

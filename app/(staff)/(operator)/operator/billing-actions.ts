@@ -86,6 +86,7 @@ export async function prepareClinicBillingAction(
   }
 
   revalidatePath(`/operator/clinics/${clinicId}`);
+  revalidatePath(`/operator/clinics/${clinicId}/setup`);
   return { success: "Billing offer prepared." };
 }
 

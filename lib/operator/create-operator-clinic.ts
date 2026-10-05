@@ -103,6 +103,7 @@ export async function createOperatorClinic(
         data: {
           name: values.name,
           slug: values.slug,
+          assistedOnboarding: true,
           profile: {
             create: profile,
           },

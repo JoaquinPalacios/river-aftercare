@@ -53,6 +53,7 @@ function clinicIdFromForm(formData: FormData): string {
 
 function revalidateTeam(clinicId: string) {
   revalidatePath(`/operator/clinics/${clinicId}`);
+  revalidatePath(`/operator/clinics/${clinicId}/setup`);
   revalidatePath(`/operator/clinics/${clinicId}/team`);
   revalidatePath(`/operator/clinics/${clinicId}/team/invite`);
 }
