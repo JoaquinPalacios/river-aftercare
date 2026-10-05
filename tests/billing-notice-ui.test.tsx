@@ -151,6 +151,7 @@ describe("billing notice presentation", () => {
       patientSiteHref: null,
       publishedGuideCount: 2,
       draftGuideCount: 1,
+      assistedOnboarding: false,
       setup: [],
     });
     vi.mocked(requireStaffSession).mockResolvedValue({

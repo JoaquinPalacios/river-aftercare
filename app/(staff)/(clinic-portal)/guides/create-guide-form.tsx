@@ -193,7 +193,10 @@ export function CreateGuideForm({
         )}
       </section>
 
-      <section className="rounded-xl border border-staff-line bg-staff-panel p-5 shadow-sm">
+      <section
+        id="custom-guide"
+        className="rounded-xl border border-staff-line bg-staff-panel p-5 shadow-sm"
+      >
         <h2 className="text-base font-semibold tracking-tight">
           Create a custom guide
         </h2>
