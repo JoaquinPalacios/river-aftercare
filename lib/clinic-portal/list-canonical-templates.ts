@@ -26,6 +26,65 @@ export interface CanonicalGuideTemplateList {
   templates: CanonicalGuideTemplateOption[];
 }
 
+export interface CanonicalTemplateCandidate {
+  id: string;
+  slug: string;
+  title: string;
+  serviceCategory: ServiceCategory;
+  isSample: boolean;
+  revisions: Array<{
+    id: string;
+    version: number;
+    status: GuideRevisionStatus | string;
+  }>;
+}
+
+/**
+ * Production eligibility for one clinic. A template is listed only when its
+ * category is on an active site, its latest published revision is production
+ * (or the designated demo sample), and unpublished revisions are ignored.
+ */
+export function filterEligibleCanonicalTemplates(input: {
+  clinicSlug: string;
+  serviceCategories: readonly ServiceCategory[];
+  templates: readonly CanonicalTemplateCandidate[];
+  enabledIds?: ReadonlySet<string>;
+}): CanonicalGuideTemplateOption[] {
+  const categories = uniqueServiceCategories(input.serviceCategories);
+  const enabledIds = input.enabledIds ?? new Set<string>();
+  return input.templates.flatMap((template) => {
+    if (!categories.includes(template.serviceCategory)) {
+      return [];
+    }
+    const classified = classifyCanonicalTemplate({
+      isSample: template.isSample,
+      revisions: template.revisions,
+    });
+    if (
+      !clinicCanUseCanonicalTemplate({
+        clinicSlug: input.clinicSlug,
+        serviceCategory: template.serviceCategory,
+        templateSlug: template.slug,
+        availability: classified.availability,
+      }) ||
+      !classified.availability ||
+      !classified.eligibleRevisionId
+    ) {
+      return [];
+    }
+    return [
+      {
+        id: template.id,
+        slug: template.slug,
+        title: template.title,
+        serviceCategory: template.serviceCategory,
+        availability: classified.availability,
+        alreadyEnabled: enabledIds.has(template.id),
+      },
+    ];
+  });
+}
+
 export async function listCanonicalGuideTemplates(
   clinicId: string
 ): Promise<CanonicalGuideTemplateList> {
@@ -99,37 +158,11 @@ export async function listCanonicalGuideTemplates(
     isDemoTenant: demoTenant,
     serviceCategories: categories,
     templatesNeedServiceCategories: false,
-    templates: templates.flatMap((template) => {
-      if (!categories.includes(template.serviceCategory)) {
-        return [];
-      }
-      const classified = classifyCanonicalTemplate({
-        isSample: template.isSample,
-        revisions: template.revisions,
-      });
-      if (
-        !clinicCanUseCanonicalTemplate({
-          clinicSlug: clinic.slug,
-          serviceCategory: template.serviceCategory,
-          templateSlug: template.slug,
-          availability: classified.availability,
-        }) ||
-        !classified.availability ||
-        !classified.eligibleRevisionId
-      ) {
-        return [];
-      }
-
-      return [
-        {
-          id: template.id,
-          slug: template.slug,
-          title: template.title,
-          serviceCategory: template.serviceCategory,
-          availability: classified.availability,
-          alreadyEnabled: enabledIds.has(template.id),
-        },
-      ];
+    templates: filterEligibleCanonicalTemplates({
+      clinicSlug: clinic.slug,
+      serviceCategories: categories,
+      templates,
+      enabledIds,
     }),
   };
 }

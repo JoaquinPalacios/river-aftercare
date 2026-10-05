@@ -20,6 +20,7 @@ export interface ClinicPortalOverview {
   patientSiteHref: string | null;
   publishedGuideCount: number;
   draftGuideCount: number;
+  assistedOnboarding: boolean;
   setup: ClinicSetupCheck[];
 }
 
@@ -30,6 +31,7 @@ export const getClinicPortalOverview = cache(
       select: {
         id: true,
         name: true,
+        assistedOnboarding: true,
         practiceGuides: {
           select: {
             status: true,
@@ -106,6 +108,7 @@ export const getClinicPortalOverview = cache(
           : null,
       publishedGuideCount,
       draftGuideCount,
+      assistedOnboarding: clinic.assistedOnboarding === true,
       setup: clinicSetupChecks({
         displayName: site?.displayName ?? null,
         logoUrl: site?.logoUrl ?? null,
