@@ -1,14 +1,17 @@
 import { ComplimentaryAccessForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/complimentary-access-form";
 import type { ComplimentaryAccessView } from "@/lib/billing/complimentary-access";
+import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
 
 export function ComplimentaryAccessPanel({
   clinicId,
   access,
   formBlockedReason,
+  editsLocked = false,
 }: {
   clinicId: string;
   access: ComplimentaryAccessView;
   formBlockedReason?: string | null;
+  editsLocked?: boolean;
 }) {
   return (
     <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
@@ -69,6 +72,10 @@ export function ComplimentaryAccessPanel({
       ) : null}
       {formBlockedReason ? (
         <p className="mt-4 text-sm text-staff-muted">{formBlockedReason}</p>
+      ) : editsLocked ? (
+        <p className="mt-4 text-sm text-staff-muted">
+          {INACTIVE_CLINIC_EDIT_NOTE}
+        </p>
       ) : (
         <ComplimentaryAccessForm
           key={`${access.mode}-${access.events.length}`}

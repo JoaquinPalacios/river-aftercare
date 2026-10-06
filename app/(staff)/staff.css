@@ -646,6 +646,109 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
   }
 }
 
+.permanentDeleteDialog .staffDialogBody {
+  padding: 0.9rem 1.5rem 0;
+}
+
+.permanentDeleteConfirm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 0;
+  padding: 1.15rem 1.5rem 0.15rem;
+}
+
+.permanentDeleteInstruction {
+  margin: 0;
+  color: var(--staff-ink);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.permanentDeleteCopy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.permanentDeleteCopyName,
+.permanentDeleteCopyIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  margin: 0;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.375rem;
+  background: var(--staff-canvas);
+  color: var(--staff-ink);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.permanentDeleteCopyName {
+  padding: 0.2rem 0.65rem;
+  font-weight: 600;
+}
+
+.permanentDeleteCopyIcon {
+  width: 2rem;
+  padding: 0;
+}
+
+.permanentDeleteCopyName:focus-visible,
+.permanentDeleteCopyIcon:focus-visible {
+  outline: 2px solid var(--staff-brand);
+  outline-offset: 2px;
+}
+
+.permanentDeleteCopied {
+  min-height: 1.25rem;
+  color: var(--staff-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.permanentDeleteField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.permanentDeleteDialog .staffDialogActions {
+  gap: 0.75rem;
+  margin-top: 1.35rem;
+  padding: 1.15rem 1.5rem 1.35rem;
+}
+
+.operatorClinicRecord {
+  border: 1px solid var(--staff-line);
+  border-radius: 0.75rem;
+  background: var(--staff-panel);
+}
+
+.operatorClinicRecord > summary {
+  cursor: pointer;
+  padding: 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.operatorClinicRecord[open] > summary {
+  padding-bottom: 0.35rem;
+}
+
+.operatorClinicRecordBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.35rem 1.25rem 1.25rem;
+}
+
 .templateDuplicate {
   display: flex;
   min-width: 0;

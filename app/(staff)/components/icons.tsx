@@ -90,6 +90,27 @@ export function PrinterIcon({ className }: { className?: string }) {
   );
 }
 
+export function CopyIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="5.25" y="5.25" width="8" height="8" rx="1.25" />
+      <path d="M10.75 5.25V3.5A1.25 1.25 0 0 0 9.5 2.25h-6A1.25 1.25 0 0 0 2.25 3.5v6A1.25 1.25 0 0 0 3.5 10.75H5.25" />
+    </svg>
+  );
+}
+
 export function BackArrowIcon({ className }: { className?: string }) {
   return (
     <svg

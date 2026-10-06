@@ -3,13 +3,16 @@ import {
   WithdrawNegotiatedOfferForm,
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/negotiated-offer-form";
 import type { NegotiatedOfferPanel as NegotiatedOfferPanelData } from "@/lib/billing/negotiated-offer";
+import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
 
 export function NegotiatedOfferPanel({
   clinicId,
   panel,
+  editsLocked = false,
 }: {
   clinicId: string;
   panel: NegotiatedOfferPanelData;
+  editsLocked?: boolean;
 }) {
   const open = panel.offers.some((offer) => offer.open);
   const planLabel =
@@ -70,7 +73,12 @@ export function NegotiatedOfferPanel({
         <p className="mt-4 text-sm text-staff-muted">{panel.blockedReason}</p>
       ) : null}
       {open ? <WithdrawNegotiatedOfferForm clinicId={clinicId} /> : null}
-      {panel.canPrepare ? (
+      {panel.canPrepare && editsLocked ? (
+        <p className="mt-4 text-sm text-staff-muted">
+          {INACTIVE_CLINIC_EDIT_NOTE}
+        </p>
+      ) : null}
+      {panel.canPrepare && !editsLocked ? (
         <NegotiatedOfferForm clinicId={clinicId} planLabel={planLabel} />
       ) : null}
     </section>

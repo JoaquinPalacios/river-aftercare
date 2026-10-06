@@ -35,6 +35,7 @@ import {
   findOpenAccountSplitPreparation,
 } from "@/lib/account-split/snapshot";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
 import { redirectIfClinicPermanentlyDeleted } from "@/lib/operator/redirect-permanently-deleted-clinic";
 import { getPrisma } from "@/lib/prisma";
 
@@ -58,6 +59,7 @@ export default async function AccountSplitPreparationPage({
       id: true,
       name: true,
       slug: true,
+      deactivatedAt: true,
       entitlement: { select: { commercialPlan: true } },
       sites: {
         orderBy: { createdAt: "asc" },
@@ -76,6 +78,51 @@ export default async function AccountSplitPreparationPage({
   }
 
   const openHead = await findOpenAccountSplitPreparation(clinic.id);
+  if (clinic.deactivatedAt) {
+    return (
+      <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-6">
+        <header>
+          <PortalBreadcrumb
+            items={[
+              { href: "/operator/clinics", label: "All Clinics" },
+              {
+                href: `/operator/clinics/${clinic.id}`,
+                label: clinic.name,
+              },
+              { label: "Account split" },
+            ]}
+          />
+          <h1 className="mt-4 text-2xl font-semibold tracking-tight">
+            Account split
+          </h1>
+          <p className="mt-2 text-sm text-staff-muted">
+            {INACTIVE_CLINIC_EDIT_NOTE}
+          </p>
+        </header>
+        {openHead ? (
+          <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+            <h2 className="text-base font-semibold">Open preparation</h2>
+            <p className="mt-2 text-sm text-staff-muted">
+              Cancelling this preparation does not delete split history.
+            </p>
+            <CancelSplitPreparationForm
+              sourceClinicId={clinic.id}
+              preparationId={openHead.id}
+            />
+          </section>
+        ) : null}
+        <p>
+          <Link
+            href={`/operator/clinics/${clinic.id}`}
+            className="staffBtn staffBtnQuiet gap-1 px-0"
+          >
+            <BackArrowIcon />
+            Clinic details
+          </Link>
+        </p>
+      </div>
+    );
+  }
   const sourcePlan = clinic.entitlement?.commercialPlan ?? null;
   if (
     openHead?.operationKind === "LOCATION_TO_NEW_ACCOUNT" ||
