@@ -53,11 +53,21 @@ function permanentlyDeletedLogoResponse(): NextResponse {
 async function clinicBrandingIsPermanentlyDeleted(
   clinicId: string
 ): Promise<boolean> {
-  const clinic = await getPrisma().clinic.findUnique({
-    where: { id: clinicId },
-    select: { permanentlyDeletedAt: true },
-  });
-  return clinic?.permanentlyDeletedAt != null;
+  if (!process.env.DATABASE_URL) {
+    return false;
+  }
+  try {
+    const clinic = await getPrisma().clinic.findUnique({
+      where: { id: clinicId },
+      select: { permanentlyDeletedAt: true },
+    });
+    return clinic?.permanentlyDeletedAt != null;
+  } catch (error) {
+    console.warn("[clinic-assets]", "deleted_clinic_branding_check_failed", {
+      class: clinicAssetErrorClass(error),
+    });
+    return false;
+  }
 }
 
 function clinicLogoResponse(input: {

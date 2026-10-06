@@ -238,7 +238,7 @@ describe("public clinic branding asset route", () => {
     );
   });
 
-  it("does not implement object listing", () => {
+  it("does not list objects from the public branding route", () => {
     const adapter = readFileSync(
       "lib/clinic-assets/r2-clinic-asset-storage.ts",
       "utf8"
@@ -247,9 +247,10 @@ describe("public clinic branding asset route", () => {
       "app/clinics/[clinicId]/branding/[filename]/route.ts",
       "utf8"
     );
-    expect(adapter).not.toMatch(/ListObjects/);
     expect(publicRoute).not.toMatch(/ListObjects/);
     expect(publicRoute).not.toMatch(/listLogo/);
+    expect(adapter).toContain("Prefix: prefix");
+    expect(adapter).toContain("clinics/${clinicId}/branding/");
   });
 });
 

@@ -10,7 +10,6 @@ import {
   type S3ClientConfig,
 } from "@aws-sdk/client-s3";
 
-import { isOwnedClinicBrandingKey } from "@/lib/clinic-assets/clinic-logo";
 import type { ClinicAssetStorage } from "@/lib/clinic-assets/clinic-asset-storage";
 import {
   CLINIC_ASSET_CACHE_CONTROL,
@@ -202,7 +201,11 @@ export function createR2ClinicAssetStorage(options?: {
           })
         );
         for (const object of result.Contents ?? []) {
-          if (object.Key && isOwnedClinicBrandingKey(clinicId, object.Key)) {
+          if (
+            object.Key &&
+            object.Key.startsWith(prefix) &&
+            !object.Key.includes("..")
+          ) {
             keys.push(object.Key);
           }
         }
