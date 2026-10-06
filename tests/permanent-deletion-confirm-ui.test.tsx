@@ -93,4 +93,19 @@ describe("permanent deletion copy control", () => {
     expect(input?.disabled).toBe(false);
     expect(input?.value).toBe("partial");
   });
+
+  it("reports failure when the clipboard does not respond", async () => {
+    writeText.mockImplementation(() => new Promise(() => undefined));
+    renderFields("partial");
+    const input = container.querySelector("input");
+    await act(async () => {
+      copyButtons()[0]?.click();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+    });
+    expect(container.textContent).toContain("Copy unavailable");
+    expect(input?.disabled).toBe(false);
+    expect(input?.value).toBe("partial");
+  });
 });
