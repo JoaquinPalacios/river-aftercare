@@ -29,15 +29,26 @@ export function PermanentDeletionConfirmFields({
   }, []);
 
   async function copyClinicName() {
+    const writeText = navigator.clipboard?.writeText?.bind(navigator.clipboard);
+    let timeout: number | null = null;
     try {
-      if (!navigator.clipboard?.writeText) {
+      if (!writeText) {
         setCopyState("failed");
       } else {
-        await navigator.clipboard.writeText(clinicName);
-        setCopyState("copied");
+        const result = await Promise.race([
+          writeText(clinicName).then(() => "copied" as const),
+          new Promise<"timeout">((resolve) => {
+            timeout = window.setTimeout(() => resolve("timeout"), 1000);
+          }),
+        ]);
+        setCopyState(result === "copied" ? "copied" : "failed");
       }
     } catch {
       setCopyState("failed");
+    } finally {
+      if (timeout != null) {
+        window.clearTimeout(timeout);
+      }
     }
     if (resetTimer.current != null) {
       window.clearTimeout(resetTimer.current);

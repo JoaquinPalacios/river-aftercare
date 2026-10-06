@@ -707,8 +707,9 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
 
 .permanentDeleteCopied {
   min-height: 1.25rem;
-  color: var(--staff-muted);
+  color: var(--staff-ink);
   font-size: 0.8125rem;
+  font-weight: 600;
 }
 
 .permanentDeleteField {
