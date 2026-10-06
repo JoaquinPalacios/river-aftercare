@@ -305,7 +305,7 @@ describeDb("permanent clinic deletion", () => {
     await expectBlocked(created.id, "active");
   });
 
-  it("requires the clinic name or slug before it retires anything", async () => {
+  it("requires the clinic name before it retires anything", async () => {
     const created = await fresh(`${PREFIX}confirm`, "Pdel Confirm");
     await deactivate(created.id);
     const refused = await permanentlyDeleteClinic({
@@ -319,6 +319,55 @@ describeDb("permanent clinic deletion", () => {
       error: PERMANENT_DELETION_MESSAGES.confirmation,
     });
     await expectStillOperational(created.id);
+  });
+
+  it("accepts the clinic display name and refuses a slug or site slug", async () => {
+    const name = "Pdel Name Only";
+    const slug = `${PREFIX}nameonly`;
+    const siteSlug = `${PREFIX}nameonly-west`;
+    const created = await fresh(slug, name);
+    await db().clinicSite.create({
+      data: {
+        clinicId: created.id,
+        name: "West",
+        slug: siteSlug,
+        displayName: "West",
+        active: true,
+        isPrimary: false,
+      },
+    });
+    await db().clinicSite.updateMany({
+      where: { clinicId: created.id, isPrimary: true },
+      data: { displayName: "Test Clinic Prod" },
+    });
+    await deactivate(created.id);
+    const eligibility = await canPermanentlyDeleteClinic(created.id, {
+      storage: memoryStorage(),
+    });
+    expect(eligibility.eligible).toBe(true);
+    expect(eligibility.blockers).toEqual([]);
+
+    for (const confirmation of [slug, siteSlug, name, "test clinic prod"]) {
+      const refused = await permanentlyDeleteClinic({
+        clinicId: created.id,
+        operatorUserId: OPERATOR_ID,
+        confirmation,
+        storage: memoryStorage(),
+      });
+      expect(refused).toMatchObject({
+        ok: false,
+        error: PERMANENT_DELETION_MESSAGES.confirmation,
+      });
+      await expectStillOperational(created.id);
+    }
+
+    const deleted = await permanentlyDeleteClinic({
+      clinicId: created.id,
+      operatorUserId: OPERATOR_ID,
+      confirmation: "  Test Clinic Prod  ",
+      storage: memoryStorage(),
+    });
+    expect(deleted.ok).toBe(true);
   });
 
   it("refuses the designated demo clinic", async () => {
@@ -556,7 +605,7 @@ describeDb("permanent clinic deletion", () => {
     const deleted = await permanentlyDeleteClinic({
       clinicId,
       operatorUserId: OPERATOR_ID,
-      confirmation: slug,
+      confirmation: name,
       storage: memoryStorage(),
     });
     expect(deleted.ok).toBe(true);
@@ -1489,6 +1538,95 @@ describeDb("permanent clinic deletion", () => {
     ).toBeNull();
   });
 
+  it("hides inactive setup forms and keeps negotiated withdrawal", async () => {
+    const created = await fresh(`${PREFIX}offboard`, "Pdel Offboard Dental");
+    await grantComplimentaryAccess({
+      actorUserId: OPERATOR_ID,
+      actorPlatformRole: PlatformRole.OPERATOR,
+      clinicId: created.id,
+      commercialPlan: "ESSENTIAL",
+      duration: "SIX_MONTHS",
+      reason: "Offboarding UI fixture.",
+      now: new Date("2026-10-01T00:00:00.000Z"),
+    });
+    await db().clinicNegotiatedOffer.create({
+      data: {
+        clinicId: created.id,
+        preparedByUserId: OPERATOR_ID,
+        commercialPlan: "ESSENTIAL",
+        billingInterval: "MONTHLY",
+        amountCents: 4900,
+        startMode: "CUSTOMER_INITIATED",
+        commercialTerms: "Open offer stays withdrawable while inactive.",
+        status: "PREPARED",
+      },
+    });
+    await deactivate(created.id);
+    const inactiveHtml = renderToStaticMarkup(
+      await OperatorClinicDetailPage({
+        params: Promise.resolve({ clinicId: created.id }),
+      })
+    );
+    expect(inactiveHtml).toContain("Withdraw negotiated price");
+    expect(inactiveHtml).not.toContain('id="negotiatedAmount"');
+    expect(inactiveHtml).not.toContain("Prepare billing");
+    expect(inactiveHtml).toContain("Reactivate clinic to edit.");
+    const eligibility = await canPermanentlyDeleteClinic(created.id, {
+      storage: memoryStorage(),
+    });
+    expect(eligibility.eligible).toBe(false);
+    expect(eligibility.blockers.map((blocker) => blocker.code)).toContain(
+      "negotiated_offer"
+    );
+  });
+
+  it("does not offer split creation for an inactive clinic", async () => {
+    const created = await fresh(`${PREFIX}splitui`, "Pdel Split Ui");
+    await db().clinicEntitlement.create({
+      data: {
+        clinicId: created.id,
+        commercialPlan: "GROUP",
+        billingInterval: "MONTHLY",
+        entitlementStatus: "ACTIVE",
+        billingStatus: "NOT_BILLED",
+        commercialArrangement: "COMPLIMENTARY",
+      },
+    });
+    await db().clinicSite.create({
+      data: {
+        clinicId: created.id,
+        name: "Second",
+        slug: `${PREFIX}splitui2`,
+        displayName: "Second",
+        active: true,
+        isPrimary: false,
+      },
+    });
+    await deactivate(created.id);
+    const inactiveHtml = renderToStaticMarkup(
+      await OperatorClinicDetailPage({
+        params: Promise.resolve({ clinicId: created.id }),
+      })
+    );
+    expect(inactiveHtml).not.toContain("Prepare Clinic Site split");
+    expect(inactiveHtml).toContain("Reactivate clinic to edit.");
+
+    expect(
+      await reactivateClinic({
+        clinicId: created.id,
+        operatorUserId: OPERATOR_ID,
+      })
+    ).toEqual({ ok: true });
+    const activeHtml = renderToStaticMarkup(
+      await OperatorClinicDetailPage({
+        params: Promise.resolve({ clinicId: created.id }),
+      })
+    );
+    expect(activeHtml).toContain("Prepare Clinic Site split");
+    expect(activeHtml).not.toContain("<details");
+    expect(activeHtml).not.toContain("Reactivate clinic to edit.");
+  });
+
   it("shows deletion only for an eligible inactive clinic and a retired history view", async () => {
     const name = "Pdel Visible Dental";
     const created = await fresh(`${PREFIX}visible`, name);
@@ -1498,6 +1636,13 @@ describeDb("permanent clinic deletion", () => {
       })
     );
     expect(activeHtml).not.toContain("Danger zone");
+    expect(activeHtml).not.toContain("<details");
+    expect(activeHtml).not.toContain("Reactivate clinic to edit.");
+    expect(activeHtml).toContain("Clinic setup");
+    expect(activeHtml).toContain("Prepare billing");
+    expect(activeHtml).toContain('name="duration"');
+    expect(activeHtml).toContain("Manage clinic workspace");
+    expect(activeHtml).toContain(">Branding</h2>");
 
     await deactivate(created.id);
     const inactiveHtml = renderToStaticMarkup(
@@ -1516,6 +1661,26 @@ describeDb("permanent clinic deletion", () => {
       "The tenant address is permanently retired and cannot be reused."
     );
     expect(inactiveHtml).toContain('name="confirmation"');
+    expect(inactiveHtml).toContain(`Type ${name} to confirm`);
+    expect(inactiveHtml).toContain('aria-label="Copy clinic name"');
+    expect(inactiveHtml).toContain(`>${name}<`);
+    expect(inactiveHtml).not.toContain(`Type ${name} or`);
+    expect(inactiveHtml).toContain("<details");
+    expect(inactiveHtml).not.toMatch(/<details[^>]*\sopen[\s>]/);
+    expect(inactiveHtml.indexOf("Clinic status")).toBeLessThan(
+      inactiveHtml.indexOf("Danger zone")
+    );
+    expect(inactiveHtml.indexOf("Danger zone")).toBeLessThan(
+      inactiveHtml.indexOf("<details")
+    );
+    expect(inactiveHtml).toContain("Reactivate clinic to edit.");
+    expect(inactiveHtml).not.toContain("Prepare billing");
+    expect(inactiveHtml).not.toContain('name="duration"');
+    expect(inactiveHtml).not.toContain('id="negotiatedAmount"');
+    expect(inactiveHtml).not.toContain("Manage clinic workspace");
+    expect(inactiveHtml).not.toContain("Clinic setup");
+    expect(inactiveHtml).toContain("Deactivate site");
+    expect(inactiveHtml).toContain("Open team");
 
     await db().clinicEntitlement.create({
       data: {

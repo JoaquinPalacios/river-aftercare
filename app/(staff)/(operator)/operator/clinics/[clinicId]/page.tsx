@@ -21,6 +21,10 @@ import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
 import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import { ClinicStatusSection } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/clinic-status-section";
+import {
+  OperatorClinicRecord,
+  OperatorClinicRecordGroup,
+} from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/operator-clinic-record";
 import { PermanentDeletionSection } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/permanent-deletion-section";
 import { PermanentlyDeletedClinic } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/permanently-deleted-clinic";
 import { canPermanentlyDeleteClinic } from "@/lib/clinics/permanent-clinic-deletion";
@@ -34,6 +38,7 @@ import { getPrisma } from "@/lib/prisma";
 import { loadOperatorSiteLocationCapacity } from "@/lib/operator/update-site-location-allowance";
 import { clinicTypefaceLabel } from "@/lib/branding/clinic-typeface";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
 
 interface OperatorClinicPageProps {
   params: Promise<{ clinicId: string }>;
@@ -97,10 +102,10 @@ export default async function OperatorClinicDetailPage({
       />
     );
   }
-  const deletionEligibility =
-    clinic.deactivatedAt != null
-      ? await canPermanentlyDeleteClinic(clinic.id)
-      : null;
+  const inactive = clinic.deactivatedAt != null;
+  const deletionEligibility = inactive
+    ? await canPermanentlyDeleteClinic(clinic.id)
+    : null;
   const showPermanentDeletion =
     deletionEligibility != null &&
     !deletionEligibility.blockers.some((blocker) => blocker.code === "demo");
@@ -176,12 +181,14 @@ export default async function OperatorClinicDetailPage({
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           {clinic.displayName}
         </h1>
-        <Link
-          href={`/operator/clinics/${clinic.id}/setup`}
-          className="mt-3 inline-flex text-sm font-medium text-staff-brand"
-        >
-          Clinic setup
-        </Link>
+        {inactive ? null : (
+          <Link
+            href={`/operator/clinics/${clinic.id}/setup`}
+            className="mt-3 inline-flex text-sm font-medium text-staff-brand"
+          >
+            Clinic setup
+          </Link>
+        )}
         <p className="mt-2 text-sm text-staff-muted">
           {clinic.name} · {clinic.slug}
         </p>
@@ -200,7 +207,7 @@ export default async function OperatorClinicDetailPage({
 
       <ClinicStatusSection
         clinicId={clinic.id}
-        inactive={clinic.deactivatedAt != null}
+        inactive={inactive}
         deactivatedLabel={
           clinic.deactivatedAt
             ? new Intl.DateTimeFormat("en-GB", {
@@ -214,15 +221,18 @@ export default async function OperatorClinicDetailPage({
       {showPermanentDeletion && deletionEligibility ? (
         <PermanentDeletionSection
           clinicId={clinic.id}
-          clinicName={clinic.name}
-          clinicSlug={clinic.accountSlug}
+          clinicName={clinic.displayName}
           eligible={deletionEligibility.eligible}
           blockers={deletionEligibility.blockers}
         />
       ) : null}
 
-      <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
-        <h2 className="text-base font-semibold">Branding</h2>
+      <OperatorClinicRecord title="Branding" collapsed={inactive}>
+        {inactive ? (
+          <p className="text-sm text-staff-muted">
+            {INACTIVE_CLINIC_EDIT_NOTE}
+          </p>
+        ) : null}
         <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-staff-muted">Primary</dt>
@@ -268,10 +278,14 @@ export default async function OperatorClinicDetailPage({
             <dd>{clinic.branding.themeMode ?? "Not set"}</dd>
           </div>
         </dl>
-      </section>
+      </OperatorClinicRecord>
 
-      <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
-        <h2 className="text-base font-semibold">Contact / emergency</h2>
+      <OperatorClinicRecord title="Contact / emergency" collapsed={inactive}>
+        {inactive ? (
+          <p className="text-sm text-staff-muted">
+            {INACTIVE_CLINIC_EDIT_NOTE}
+          </p>
+        ) : null}
         <p className="mt-2 text-sm">
           Phone: {clinic.contact.phone ?? "Not set"}
         </p>
@@ -284,10 +298,9 @@ export default async function OperatorClinicDetailPage({
             ? "Configured"
             : "Needs attention"}
         </p>
-      </section>
+      </OperatorClinicRecord>
 
-      <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
-        <h2 className="text-base font-semibold">Guides</h2>
+      <OperatorClinicRecord title="Guides" collapsed={inactive}>
         {clinic.guides.length === 0 ? (
           <p className="mt-2 text-sm text-staff-muted">No guides yet.</p>
         ) : (
@@ -306,157 +319,191 @@ export default async function OperatorClinicDetailPage({
             ))}
           </ul>
         )}
-      </section>
+      </OperatorClinicRecord>
 
-      {complimentaryAccess ? (
-        <ComplimentaryAccessPanel
+      <OperatorClinicRecordGroup
+        title="Commercial / billing"
+        collapsed={inactive}
+      >
+        {complimentaryAccess ? (
+          <ComplimentaryAccessPanel
+            clinicId={clinic.id}
+            access={complimentaryAccess}
+            editsLocked={inactive}
+            formBlockedReason={
+              negotiatedOffers?.offers.some((offer) => offer.open)
+                ? "A negotiated price is open for this clinic. Withdraw it before changing complimentary access."
+                : null
+            }
+          />
+        ) : null}
+
+        {negotiatedOffers ? (
+          <NegotiatedOfferPanel
+            clinicId={clinic.id}
+            panel={negotiatedOffers}
+            editsLocked={inactive}
+          />
+        ) : null}
+
+        <PrepareBillingForm
           clinicId={clinic.id}
-          access={complimentaryAccess}
-          formBlockedReason={
-            negotiatedOffers?.offers.some((offer) => offer.open)
-              ? "A negotiated price is open for this clinic. Withdraw it before changing complimentary access."
-              : null
-          }
+          plan={billing.plan}
+          interval={billing.interval}
+          offeredAdditionalSiteQuantity={billing.offeredAdditionalSiteQuantity}
+          canRevise={billing.canRevise}
+          blockedReason={billing.reviseBlockedReason}
+          planLabel={billing.planLabel}
+          intervalLabel={billing.intervalLabel}
+          entitlementLabel={billing.entitlementLabel}
+          billingLabel={billing.billingLabel}
+          customerLinked={billing.customerLinked}
+          subscriptionLinked={billing.subscriptionLinked}
+          paidThroughLabel={billing.paidThroughLabel}
+          cancellationScheduled={billing.cancellationScheduled}
+          cancellationDateLabel={billing.cancellationDateLabel}
+          commercialNotice={billing.commercialNotice}
+          editsLocked={inactive}
         />
-      ) : null}
 
-      {negotiatedOffers ? (
-        <NegotiatedOfferPanel clinicId={clinic.id} panel={negotiatedOffers} />
-      ) : null}
-
-      <PrepareBillingForm
-        clinicId={clinic.id}
-        plan={billing.plan}
-        interval={billing.interval}
-        offeredAdditionalSiteQuantity={billing.offeredAdditionalSiteQuantity}
-        canRevise={billing.canRevise}
-        blockedReason={billing.reviseBlockedReason}
-        planLabel={billing.planLabel}
-        intervalLabel={billing.intervalLabel}
-        entitlementLabel={billing.entitlementLabel}
-        billingLabel={billing.billingLabel}
-        customerLinked={billing.customerLinked}
-        subscriptionLinked={billing.subscriptionLinked}
-        paidThroughLabel={billing.paidThroughLabel}
-        cancellationScheduled={billing.cancellationScheduled}
-        cancellationDateLabel={billing.cancellationDateLabel}
-        commercialNotice={billing.commercialNotice}
-      />
-
-      <UpgradePlanForm
-        clinicId={clinic.id}
-        canUpgradeToPractice={billing.canUpgradeToPractice}
-        showDowngrade={billing.showDowngrade}
-        downgradeEffectiveLabel={billing.downgradeEffectiveLabel}
-        downgradeBlockedReason={billing.downgradeBlockedReason}
-        openDowngradeAttemptId={billing.openDowngradeAttemptId}
-        scheduledPlanChange={billing.scheduledPlanChange}
-        downgradeReadiness={billing.downgradeReadiness}
-        guidePreparation={billing.guidePreparation}
-      />
-
-      {(billing.plan === "ESSENTIAL" || billing.plan === "PRACTICE") &&
-      teamAllowance.baseLimit !== null &&
-      teamAllowance.extraAllowance !== null &&
-      guideAllowance.customGuides.baseLimit !== null &&
-      guideAllowance.customGuides.extraAllowance !== null &&
-      guideAllowance.adaptedTemplates.baseLimit !== null &&
-      guideAllowance.adaptedTemplates.extraAllowance !== null &&
-      guideAllowance.combinedGuides.baseLimit !== null ? (
-        <AllowanceExtrasForm
+        <UpgradePlanForm
           clinicId={clinic.id}
-          planName={billing.plan === "ESSENTIAL" ? "Essential" : "Practice"}
-          team={{
-            used: teamAllowance.occupiedPlaces,
-            base: teamAllowance.baseLimit,
-            extra: teamAllowance.extraAllowance,
-          }}
-          customGuides={{
-            used: guideAllowance.customGuides.used,
-            base: guideAllowance.customGuides.baseLimit,
-            extra: guideAllowance.customGuides.extraAllowance,
-          }}
-          adaptedTemplates={{
-            used: guideAllowance.adaptedTemplates.used,
-            base: guideAllowance.adaptedTemplates.baseLimit,
-            extra: guideAllowance.adaptedTemplates.extraAllowance,
-          }}
-          combinedGuides={{
-            used: guideAllowance.combinedGuides.used,
-            base: guideAllowance.combinedGuides.baseLimit,
-          }}
+          canUpgradeToPractice={billing.canUpgradeToPractice}
+          showDowngrade={billing.showDowngrade}
+          downgradeEffectiveLabel={billing.downgradeEffectiveLabel}
+          downgradeBlockedReason={billing.downgradeBlockedReason}
+          openDowngradeAttemptId={billing.openDowngradeAttemptId}
+          scheduledPlanChange={billing.scheduledPlanChange}
+          downgradeReadiness={billing.downgradeReadiness}
+          guidePreparation={billing.guidePreparation}
         />
-      ) : null}
 
-      <SiteLocationCapacityForm
-        clinicId={clinic.id}
-        plan={siteCapacity.allowance.commercialPlan}
-        siteAllowance={siteCapacity.allowance.siteAllowance}
-        locationAllowance={siteCapacity.allowance.locationAllowance}
-        activeSites={siteCapacity.usage.activeSites}
-        activeLocations={siteCapacity.usage.activeLocations}
-        sites={siteCapacity.sites}
-        groupCapacity={siteCapacity.groupCapacity}
-        practiceCapacity={siteCapacity.practiceCapacity}
-      />
+        {(billing.plan === "ESSENTIAL" || billing.plan === "PRACTICE") &&
+        teamAllowance.baseLimit !== null &&
+        teamAllowance.extraAllowance !== null &&
+        guideAllowance.customGuides.baseLimit !== null &&
+        guideAllowance.customGuides.extraAllowance !== null &&
+        guideAllowance.adaptedTemplates.baseLimit !== null &&
+        guideAllowance.adaptedTemplates.extraAllowance !== null &&
+        guideAllowance.combinedGuides.baseLimit !== null ? (
+          <AllowanceExtrasForm
+            clinicId={clinic.id}
+            planName={billing.plan === "ESSENTIAL" ? "Essential" : "Practice"}
+            team={{
+              used: teamAllowance.occupiedPlaces,
+              base: teamAllowance.baseLimit,
+              extra: teamAllowance.extraAllowance,
+            }}
+            customGuides={{
+              used: guideAllowance.customGuides.used,
+              base: guideAllowance.customGuides.baseLimit,
+              extra: guideAllowance.customGuides.extraAllowance,
+            }}
+            adaptedTemplates={{
+              used: guideAllowance.adaptedTemplates.used,
+              base: guideAllowance.adaptedTemplates.baseLimit,
+              extra: guideAllowance.adaptedTemplates.extraAllowance,
+            }}
+            combinedGuides={{
+              used: guideAllowance.combinedGuides.used,
+              base: guideAllowance.combinedGuides.baseLimit,
+            }}
+          />
+        ) : null}
+      </OperatorClinicRecordGroup>
 
-      {splitAction.available ? (
-        <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
-          <h2 className="text-base font-semibold">Clinic Site split</h2>
-          <p className="mt-2 text-sm text-staff-muted">
-            Move one Clinic Site from this Group Account onto a new Account. The
-            destination plan is Essential or Practice. This does not change the
-            source subscription, and it does not move a Location by itself.
-          </p>
-          <Link
-            href={`/operator/clinics/${clinic.id}/split`}
-            className="mt-3 inline-flex text-sm font-medium text-staff-brand"
-          >
-            Prepare Clinic Site split
-          </Link>
-        </section>
-      ) : null}
+      <OperatorClinicRecordGroup
+        title="Sites and locations"
+        collapsed={inactive}
+      >
+        <SiteLocationCapacityForm
+          clinicId={clinic.id}
+          plan={siteCapacity.allowance.commercialPlan}
+          siteAllowance={siteCapacity.allowance.siteAllowance}
+          locationAllowance={siteCapacity.allowance.locationAllowance}
+          activeSites={siteCapacity.usage.activeSites}
+          activeLocations={siteCapacity.usage.activeLocations}
+          sites={siteCapacity.sites}
+          groupCapacity={siteCapacity.groupCapacity}
+          practiceCapacity={siteCapacity.practiceCapacity}
+        />
 
-      {existingGroupMoveAction.available ? (
-        <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
-          <h2 className="text-base font-semibold">
-            Move site to existing Group
-          </h2>
-          <p className="mt-2 text-sm text-staff-muted">
-            Move one whole Clinic Site into a different Group Account that
-            already exists. The source Group keeps at least one Clinic Site.
-            Public addresses stay the same, and neither subscription changes.
-          </p>
-          <Link
-            href={`/operator/clinics/${clinic.id}/split#move-site`}
-            className="mt-3 inline-flex text-sm font-medium text-staff-brand"
-          >
-            Prepare site move
-          </Link>
-        </section>
-      ) : null}
+        {splitAction.available ? (
+          <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+            <h2 className="text-base font-semibold">Clinic Site split</h2>
+            <p className="mt-2 text-sm text-staff-muted">
+              Move one Clinic Site from this Group Account onto a new Account.
+              The destination plan is Essential or Practice. This does not
+              change the source subscription, and it does not move a Location by
+              itself.
+            </p>
+            {inactive ? (
+              <p className="mt-3 text-sm text-staff-muted">
+                {INACTIVE_CLINIC_EDIT_NOTE}
+              </p>
+            ) : (
+              <Link
+                href={`/operator/clinics/${clinic.id}/split`}
+                className="mt-3 inline-flex text-sm font-medium text-staff-brand"
+              >
+                Prepare Clinic Site split
+              </Link>
+            )}
+          </section>
+        ) : null}
 
-      {locationMoveAction.available ? (
-        <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
-          <h2 className="text-base font-semibold">
-            Move location to new account
-          </h2>
-          <p className="mt-2 text-sm text-staff-muted">
-            Move one non-root location from this Practice Account onto a new
-            Essential or Practice Account. The root location stays. Purchased
-            location capacity is not reduced.
-          </p>
-          <Link
-            href={`/operator/clinics/${clinic.id}/split`}
-            className="mt-3 inline-flex text-sm font-medium text-staff-brand"
-          >
-            Prepare location move
-          </Link>
-        </section>
-      ) : null}
+        {existingGroupMoveAction.available ? (
+          <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+            <h2 className="text-base font-semibold">
+              Move site to existing Group
+            </h2>
+            <p className="mt-2 text-sm text-staff-muted">
+              Move one whole Clinic Site into a different Group Account that
+              already exists. The source Group keeps at least one Clinic Site.
+              Public addresses stay the same, and neither subscription changes.
+            </p>
+            {inactive ? (
+              <p className="mt-3 text-sm text-staff-muted">
+                {INACTIVE_CLINIC_EDIT_NOTE}
+              </p>
+            ) : (
+              <Link
+                href={`/operator/clinics/${clinic.id}/split#move-site`}
+                className="mt-3 inline-flex text-sm font-medium text-staff-brand"
+              >
+                Prepare site move
+              </Link>
+            )}
+          </section>
+        ) : null}
 
-      <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
-        <h2 className="text-base font-semibold">Team</h2>
+        {locationMoveAction.available ? (
+          <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+            <h2 className="text-base font-semibold">
+              Move location to new account
+            </h2>
+            <p className="mt-2 text-sm text-staff-muted">
+              Move one non-root location from this Practice Account onto a new
+              Essential or Practice Account. The root location stays. Purchased
+              location capacity is not reduced.
+            </p>
+            {inactive ? (
+              <p className="mt-3 text-sm text-staff-muted">
+                {INACTIVE_CLINIC_EDIT_NOTE}
+              </p>
+            ) : (
+              <Link
+                href={`/operator/clinics/${clinic.id}/split`}
+                className="mt-3 inline-flex text-sm font-medium text-staff-brand"
+              >
+                Prepare location move
+              </Link>
+            )}
+          </section>
+        ) : null}
+      </OperatorClinicRecordGroup>
+
+      <OperatorClinicRecord title="Team" collapsed={inactive}>
         <p className="mt-2 text-sm text-staff-muted">
           Manage who can access this clinic.
         </p>
@@ -471,11 +518,17 @@ export default async function OperatorClinicDetailPage({
         >
           Open team
         </Link>
-        <form action={startOperatorClinicSupportAction} className="mt-4">
-          <input type="hidden" name="clinicId" value={clinic.id} />
-          <ManageClinicWorkspaceButton />
-        </form>
-      </section>
+        {inactive ? (
+          <p className="mt-4 text-sm text-staff-muted">
+            {INACTIVE_CLINIC_EDIT_NOTE}
+          </p>
+        ) : (
+          <form action={startOperatorClinicSupportAction} className="mt-4">
+            <input type="hidden" name="clinicId" value={clinic.id} />
+            <ManageClinicWorkspaceButton />
+          </form>
+        )}
+      </OperatorClinicRecord>
 
       <p>
         <Link

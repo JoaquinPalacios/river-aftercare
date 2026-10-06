@@ -9,6 +9,7 @@ import {
 } from "@prisma/client";
 
 import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
+import { publicPracticeName } from "@/lib/clinics/patient-profile";
 import { lockAccountSplits } from "@/lib/account-split/locks";
 import type { ClinicAssetStorage } from "@/lib/clinic-assets/clinic-asset-storage";
 import {
@@ -67,8 +68,7 @@ export const PERMANENT_DELETION_MESSAGES = {
     "A location redirect still uses one of this clinic's sites.",
   storage:
     "Branding files are stored for this clinic, and file storage is not configured.",
-  confirmation:
-    "Type the clinic name or tenant address to confirm permanent deletion.",
+  confirmation: "Type the clinic name to confirm permanent deletion.",
   operator: "Only a platform operator can permanently delete a clinic.",
   cleanup:
     "Clinic permanently deleted. Some branding files could not be removed. Retry branding cleanup.",
@@ -131,6 +131,9 @@ const clinicSelect = {
     select: {
       id: true,
       slug: true,
+      displayName: true,
+      isPrimary: true,
+      active: true,
       logoUrl: true,
       darkLogoUrl: true,
       faviconUrl: true,
@@ -173,19 +176,45 @@ function isDesignatedDemoClinic(clinic: {
   );
 }
 
+/**
+ * The name the operator must type. This is the same public practice name
+ * shown on the clinic page: the active primary site display name, or the
+ * account name when that site has none. Account and site slugs are not
+ * accepted. Comparison is case-sensitive after trimming the typed value.
+ */
+export function permanentDeletionConfirmationName(clinic: {
+  name: string;
+  sites?: readonly {
+    displayName?: string | null;
+    isPrimary?: boolean;
+    active?: boolean;
+  }[];
+}): string {
+  const primary = clinic.sites?.find(
+    (site) => site.isPrimary === true && site.active !== false
+  );
+  return publicPracticeName({
+    siteDisplayName: primary?.displayName,
+    accountName: clinic.name,
+  });
+}
+
 export function confirmationMatchesClinic(
-  clinic: { name: string; slug: string; sites?: readonly { slug: string }[] },
+  clinic: {
+    name: string;
+    sites?: readonly {
+      displayName?: string | null;
+      isPrimary?: boolean;
+      active?: boolean;
+    }[];
+  },
   confirmation: string
 ): boolean {
   const typed = confirmation.trim();
   if (typed.length === 0) {
     return false;
   }
-  return (
-    typed === clinic.name ||
-    typed === clinic.slug ||
-    (clinic.sites?.some((site) => site.slug === typed) ?? false)
-  );
+  return typed === permanentDeletionConfirmationName(clinic);
 }
 
 function ownedBrandingKeys(clinic: ClinicRow): string[] {

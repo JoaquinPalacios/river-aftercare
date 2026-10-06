@@ -10,6 +10,7 @@ import {
   groupOfferQuote,
   parseOfferedAdditionalSiteQuantity,
 } from "@/lib/clinics/group-commercial";
+import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
 
 const initial: PrepareBillingActionState = {};
 
@@ -30,6 +31,7 @@ export function PrepareBillingForm({
   cancellationScheduled,
   cancellationDateLabel,
   commercialNotice = null,
+  editsLocked = false,
 }: {
   clinicId: string;
   plan: "ESSENTIAL" | "PRACTICE" | "GROUP" | null;
@@ -47,6 +49,7 @@ export function PrepareBillingForm({
   cancellationScheduled: "Yes" | "No";
   cancellationDateLabel: string | null;
   commercialNotice?: string | null;
+  editsLocked?: boolean;
 }) {
   const [state, action, pending] = useActionState(
     prepareClinicBillingAction,
@@ -123,7 +126,7 @@ export function PrepareBillingForm({
         ) : null}
       </dl>
 
-      {canRevise ? (
+      {canRevise && !editsLocked ? (
         <form
           key={`${plan ?? "none"}-${interval ?? "none"}-${offeredAdditionalSiteQuantity ?? "none"}`}
           action={action}
@@ -233,7 +236,7 @@ export function PrepareBillingForm({
         </form>
       ) : (
         <p className="mt-4 text-sm text-staff-muted" role="status">
-          {blockedReason}
+          {editsLocked && canRevise ? INACTIVE_CLINIC_EDIT_NOTE : blockedReason}
         </p>
       )}
     </section>

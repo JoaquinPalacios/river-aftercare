@@ -7,15 +7,18 @@ import {
   resendClinicInvitationAction,
   type ClinicTeamActionState,
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/team/actions";
+import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
 
 const initial: ClinicTeamActionState = {};
 
 export function OnboardingInvitationActions({
   clinicId,
   userId,
+  allowResend = true,
 }: {
   clinicId: string;
   userId: string;
+  allowResend?: boolean;
 }) {
   const [resendState, resendAction, resending] = useActionState(
     resendClinicInvitationAction,
@@ -28,17 +31,21 @@ export function OnboardingInvitationActions({
 
   return (
     <div className="mt-4 flex flex-col gap-3">
-      <form action={resendAction}>
-        <input type="hidden" name="clinicId" value={clinicId} />
-        <input type="hidden" name="userId" value={userId} />
-        <button
-          type="submit"
-          className="staffBtn staffBtnSecondary h-11"
-          disabled={resending || cancelling}
-        >
-          {resending ? "Sending…" : "Resend invitation"}
-        </button>
-      </form>
+      {allowResend ? (
+        <form action={resendAction}>
+          <input type="hidden" name="clinicId" value={clinicId} />
+          <input type="hidden" name="userId" value={userId} />
+          <button
+            type="submit"
+            className="staffBtn staffBtnSecondary h-11"
+            disabled={resending || cancelling}
+          >
+            {resending ? "Sending…" : "Resend invitation"}
+          </button>
+        </form>
+      ) : (
+        <p className="text-sm text-staff-muted">{INACTIVE_CLINIC_EDIT_NOTE}</p>
+      )}
       {resendState.error ? (
         <p className="text-sm text-red-600" role="alert">
           {resendState.error}
