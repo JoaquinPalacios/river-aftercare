@@ -8,6 +8,7 @@ import {
 
 import {
   lockAccountSplit,
+  lockAccountSplits,
   lockAccountSplitShellSlug,
 } from "@/lib/account-split/locks";
 import { assessPreparedAccountStructure } from "@/lib/account-split/assess";
@@ -32,6 +33,11 @@ import { existingGroupMoveConfirmationPhrase } from "@/lib/account-split/site-to
 import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
 import { recordAccountSplitEvent } from "@/lib/account-split/events";
 import { assertNoOpenNegotiatedOffer } from "@/lib/billing/negotiated-offer";
+import {
+  assertClinicActive,
+  CLINIC_INACTIVE_MESSAGE,
+} from "@/lib/clinics/clinic-activity";
+import { lockClinicAccountStructures } from "@/lib/entitlements/locks";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { getPrisma } from "@/lib/prisma";
 
@@ -64,6 +70,7 @@ export async function createAccountSplitPreparation(input: {
           "forbidden"
         );
       }
+      await assertClinicActive(tx, input.sourceClinicId);
       await assertNoOpenNegotiatedOffer(tx, input.sourceClinicId);
       const clinic = await tx.clinic.findUnique({
         where: { id: input.sourceClinicId },
@@ -656,6 +663,7 @@ export async function createLocationToNewAccountPreparation(input: {
           "forbidden"
         );
       }
+      await assertClinicActive(tx, input.sourceClinicId);
       await assertNoOpenNegotiatedOffer(tx, input.sourceClinicId);
       const clinic = await tx.clinic.findUnique({
         where: { id: input.sourceClinicId },
@@ -1053,6 +1061,7 @@ export async function createSiteToExistingGroupPreparation(input: {
     return await getPrisma().$transaction(async (tx) => {
       await lockAccountSplit(tx, input.sourceClinicId);
       await assertOperator(tx, input.operatorUserId);
+      await assertClinicActive(tx, input.sourceClinicId);
       await assertNoOpenNegotiatedOffer(tx, input.sourceClinicId);
       const clinic = await tx.clinic.findUnique({
         where: { id: input.sourceClinicId },
@@ -1180,18 +1189,65 @@ export async function createSiteToExistingGroupPreparation(input: {
 export async function selectExistingGroupDestination(input: {
   preparationId: string;
   destinationClinicId: string;
+  /**
+   * Test seam. Runs after both accounts' structure and split locks are held
+   * and before the destination is re-read or written.
+   */
+  afterLocks?: () => Promise<void> | void;
 }): Promise<void> {
   try {
-    await getPrisma().$transaction(async (tx) => {
+    const selectDestination = async (
+      tx: Prisma.TransactionClient
+    ): Promise<void> => {
       const preparation = await loadExistingGroupPreparation(
         tx,
         input.preparationId
       );
-      await lockAccountSplit(tx, preparation.sourceClinicId);
+      if (input.destinationClinicId === preparation.sourceClinicId) {
+        throw new ClinicPortalError(
+          "Choose a different Group Account.",
+          "invalid"
+        );
+      }
+      // Structure locks for every account, sorted, then split locks sorted.
+      // Deactivation and execution use that same order, so neither can
+      // commit a destination the other has not re-read.
+      await lockClinicAccountStructures(tx, [
+        preparation.sourceClinicId,
+        input.destinationClinicId,
+      ]);
+      await lockAccountSplits(tx, [
+        preparation.sourceClinicId,
+        input.destinationClinicId,
+      ]);
+      if (input.afterLocks) {
+        await input.afterLocks();
+      }
+
       const fresh = await loadExistingGroupPreparation(tx, preparation.id);
       if (input.destinationClinicId === fresh.sourceClinicId) {
         throw new ClinicPortalError(
           "Choose a different Group Account.",
+          "invalid"
+        );
+      }
+      const source = await tx.clinic.findUnique({
+        where: { id: fresh.sourceClinicId },
+        select: {
+          id: true,
+          deactivatedAt: true,
+          entitlement: { select: { commercialPlan: true } },
+        },
+      });
+      if (!source) {
+        throw new ClinicPortalError("That account was not found.", "not_found");
+      }
+      if (source.deactivatedAt) {
+        throw new ClinicPortalError(CLINIC_INACTIVE_MESSAGE, "conflict");
+      }
+      if (source.entitlement?.commercialPlan !== "GROUP") {
+        throw new ClinicPortalError(
+          "This move starts from a Group Account.",
           "invalid"
         );
       }
@@ -1200,6 +1256,7 @@ export async function selectExistingGroupDestination(input: {
         select: {
           id: true,
           slug: true,
+          deactivatedAt: true,
           entitlement: {
             select: { commercialPlan: true, billingInterval: true },
           },
@@ -1207,6 +1264,12 @@ export async function selectExistingGroupDestination(input: {
       });
       if (!destination) {
         throw new ClinicPortalError("That account was not found.", "not_found");
+      }
+      if (destination.deactivatedAt) {
+        throw new ClinicPortalError(
+          "Reactivate that clinic before choosing it as a destination.",
+          "conflict"
+        );
       }
       if (isSplitShellCompatibilitySlug(destination.slug)) {
         throw new ClinicPortalError(
@@ -1224,6 +1287,23 @@ export async function selectExistingGroupDestination(input: {
           "invalid"
         );
       }
+      const conflicting = await tx.clinicAccountSplitPreparation.findFirst({
+        where: {
+          id: { not: fresh.id },
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+          OR: [
+            { sourceClinicId: destination.id },
+            { destinationClinicId: destination.id },
+          ],
+        },
+        select: { id: true },
+      });
+      if (conflicting) {
+        throw new ClinicPortalError(
+          "The destination Account already has another open structural preparation.",
+          "conflict"
+        );
+      }
       const changed = fresh.destinationClinicId !== destination.id;
       await tx.clinicAccountSplitPreparation.update({
         where: { id: fresh.id },
@@ -1236,7 +1316,15 @@ export async function selectExistingGroupDestination(input: {
           ...(changed ? { preparationRevision: { increment: 1 } } : {}),
         },
       });
-    });
+    };
+    if (input.afterLocks) {
+      await getPrisma().$transaction(selectDestination, {
+        maxWait: 10_000,
+        timeout: 20_000,
+      });
+    } else {
+      await getPrisma().$transaction(selectDestination);
+    }
   } catch (error) {
     throw mapKnownConflict(error);
   }

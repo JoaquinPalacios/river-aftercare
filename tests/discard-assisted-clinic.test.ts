@@ -134,6 +134,12 @@ describe("discard assisted clinic authorization and lock order", () => {
         "export async function selectExistingGroupDestination"
       )
     );
+    expect(selection.indexOf("lockClinicAccountStructures")).toBeLessThan(
+      selection.indexOf("lockAccountSplits")
+    );
+    expect(selection.indexOf("lockAccountSplits")).toBeLessThan(
+      selection.indexOf("clinic.findUnique")
+    );
     expect(selection.indexOf('commercialPlan !== "GROUP"')).toBeLessThan(
       selection.indexOf("clinicAccountSplitPreparation.update")
     );

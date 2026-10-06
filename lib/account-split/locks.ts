@@ -20,6 +20,20 @@ export async function lockAccountSplit(
 }
 
 /**
+ * Locks every distinct account-split key in ascending clinic id order.
+ * Callers that also need structure locks must take those first.
+ */
+export async function lockAccountSplits(
+  tx: Prisma.TransactionClient,
+  clinicIds: readonly string[]
+): Promise<void> {
+  const ordered = [...new Set(clinicIds)].sort();
+  for (const clinicId of ordered) {
+    await lockAccountSplit(tx, clinicId);
+  }
+}
+
+/**
  * Serializes compatibility-slug allocation so two shells cannot reserve the
  * same Clinic.slug. Distinct from the per-account preparation lock.
  */

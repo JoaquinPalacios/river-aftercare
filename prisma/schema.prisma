@@ -126,6 +126,11 @@ model Clinic {
   billingNoticeDeliveries   BillingNoticeDelivery[]
   complimentaryAccessEvents ClinicComplimentaryAccessEvent[]
   negotiatedOffers          ClinicNegotiatedOffer[]
+  /// Set while the clinic account is reversibly deactivated. Null means active.
+  /// Child sites, locations, guides, memberships, and billing rows stay as they are.
+  deactivatedAt             DateTime?
+  deactivatedByUserId       String?
+  deactivatedBy             User?                            @relation("ClinicDeactivatedBy", fields: [deactivatedByUserId], references: [id], onDelete: SetNull)
   /// True when this clinic was created through assisted operator onboarding.
   /// Historical rows stay false. A false row with no entitlement remains on
   /// the legacy path. A true row is not ready, and is not legacy, until an
@@ -133,6 +138,8 @@ model Clinic {
   assistedOnboarding        Boolean                          @default(false)
   createdAt                 DateTime                         @default(now())
   updatedAt                 DateTime                         @updatedAt
+
+  @@index([deactivatedByUserId])
 }
 
 model User {
@@ -163,6 +170,7 @@ model User {
   complimentaryAccessEvents       ClinicComplimentaryAccessEvent[]
   preparedNegotiatedOffers        ClinicNegotiatedOffer[]            @relation("NegotiatedOfferPreparedBy")
   acceptedNegotiatedOffers        ClinicNegotiatedOffer[]            @relation("NegotiatedOfferAcceptedBy")
+  deactivatedClinics              Clinic[]                           @relation("ClinicDeactivatedBy")
   createdAt                       DateTime                           @default(now())
   updatedAt                       DateTime                           @updatedAt
 }

@@ -14,11 +14,15 @@ import type { Prisma } from "@prisma/client";
  * 3. User and token locks after the account locks: `clinic-invite-email`,
  *    `clinic-access`, then `account-token`.
  *
- * Preparation transactions keep `clinic-account-split` and do not take the
- * structure lock. Split execution takes structure locks first, then the
- * preparation lock. Discard of an assisted clinic follows that same order
- * for the clinic being removed: structure, then `clinic-account-split` for
- * that clinic only. PostgreSQL transaction advisory locks are re-entrant,
+ * Preparation create, shell creation, and readiness transitions keep
+ * `clinic-account-split` and do not take the structure lock. Attaching an
+ * already-existing destination is different: structure locks for the source
+ * and destination, sorted, then split locks for those same clinics, sorted.
+ * Split execution takes structure locks first, then the split locks. Discard
+ * and clinic deactivation follow that same order for the one clinic they
+ * change: structure, then `clinic-account-split`. Do not take a structure
+ * lock after a split lock. PostgreSQL transaction advisory locks are
+ * re-entrant,
  * so a helper may request the structure lock again inside a transaction
  * that already holds it.
  *

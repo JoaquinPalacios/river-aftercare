@@ -17,6 +17,7 @@ import {
   CLINIC_NOT_FOUND_MESSAGE,
   INVITATION_NOT_PENDING_MESSAGE,
 } from "@/lib/operator/invite-clinic-user";
+import { CLINIC_INACTIVE_MESSAGE } from "@/lib/clinics/clinic-activity";
 import { publicPracticeName } from "@/lib/clinics/patient-profile";
 import { getPrisma } from "@/lib/prisma";
 
@@ -75,6 +76,7 @@ export async function resendClinicInvitation(input: {
       select: {
         id: true,
         name: true,
+        deactivatedAt: true,
         sites: {
           where: { isPrimary: true, active: true },
           select: { displayName: true, clinicId: true },
@@ -83,6 +85,9 @@ export async function resendClinicInvitation(input: {
     });
     if (!clinic) {
       return { ok: false as const, error: CLINIC_NOT_FOUND_MESSAGE };
+    }
+    if (clinic.deactivatedAt) {
+      return { ok: false as const, error: CLINIC_INACTIVE_MESSAGE };
     }
 
     const user = await tx.user.findUnique({

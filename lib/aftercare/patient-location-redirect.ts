@@ -108,7 +108,8 @@ export function destinationPathForRetiredLocation(
  * An active public tenant still prefers an enabled root guide and an active
  * location. An inactive source site is not loaded as a public tenant. It can
  * only match an exact redirect, and the destination must still pass public
- * site policy. The href uses the destination ClinicSite slug. It never copies
+ * site policy. A deactivated clinic does not redirect. The href uses the
+ * destination ClinicSite slug. It never copies
  * a query string or a caller-supplied destination.
  */
 export async function resolveRetiredLocationRedirectForTenant(input: {
@@ -129,9 +130,18 @@ export async function resolveRetiredLocationRedirectForTenant(input: {
 
   const sourceSite = await getPrisma().clinicSite.findUnique({
     where: { slug: input.tenantSlug },
-    select: { id: true, slug: true, clinicId: true },
+    select: {
+      id: true,
+      slug: true,
+      clinicId: true,
+      clinic: { select: { deactivatedAt: true } },
+    },
   });
-  if (!sourceSite || sourceSite.slug !== input.tenantSlug) {
+  if (
+    !sourceSite ||
+    sourceSite.slug !== input.tenantSlug ||
+    sourceSite.clinic.deactivatedAt
+  ) {
     return null;
   }
 

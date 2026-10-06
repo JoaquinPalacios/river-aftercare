@@ -8,6 +8,7 @@ import {
   type Env,
 } from "@/lib/billing/env";
 import { logStripeBilling } from "@/lib/billing/log";
+import { clinicIsInactive } from "@/lib/clinics/clinic-activity";
 import { getPrisma } from "@/lib/prisma";
 import { getStripeClient } from "@/lib/billing/stripe-client";
 import { isStripePortalConfigurationId } from "@/lib/billing/stripe-mode";
@@ -331,13 +332,14 @@ export async function openCustomerPortalForClinic(input: {
   const clinic = await getPrisma().clinic.findUnique({
     where: { id: input.clinicId },
     select: {
+      deactivatedAt: true,
       billingProfile: { select: { stripeCustomerId: true } },
       entitlement: {
         select: { billingStatus: true, entitlementStatus: true },
       },
     },
   });
-  if (!clinic) {
+  if (!clinic || clinicIsInactive(clinic.deactivatedAt)) {
     return { ok: false, code: "portal_unavailable" };
   }
   const stripeCustomerId = clinic.billingProfile?.stripeCustomerId ?? null;

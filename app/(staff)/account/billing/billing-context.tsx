@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { readClinicBillingAccess } from "@/lib/billing/activation-gate";
 import { requireAuthenticatedUser } from "@/lib/auth/require-authenticated-user";
 import {
   getAuthContext,
@@ -29,6 +30,12 @@ export async function loadBillingPageContext(): Promise<BillingPageContext> {
   } catch (error) {
     if (!(error instanceof MultipleClinicMembershipsError)) {
       throw error;
+    }
+  }
+  if (membership && membership.source !== "operator_support") {
+    const access = await readClinicBillingAccess(membership);
+    if (access.kind === "clinic_inactive") {
+      notFound();
     }
   }
   const links = await marketingPublicLinks();

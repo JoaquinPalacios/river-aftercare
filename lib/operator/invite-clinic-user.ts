@@ -30,6 +30,7 @@ import {
   lockClinicTeamCapacity,
 } from "@/lib/entitlements/locks";
 import { ENTITLEMENT_CODES } from "@/lib/entitlements/messages";
+import { CLINIC_INACTIVE_MESSAGE } from "@/lib/clinics/clinic-activity";
 import { publicPracticeName } from "@/lib/clinics/patient-profile";
 import {
   COMMERCIAL_SETUP_REQUIRED_MESSAGE,
@@ -58,6 +59,7 @@ export type InviteClinicUserErrorCode =
   | "invalid_email"
   | "invalid_role"
   | "clinic_not_found"
+  | "clinic_inactive"
   | "commercial_setup_required"
   | "already_member"
   | "other_clinic_member"
@@ -216,6 +218,7 @@ export async function inviteClinicUser(input: {
         id: true,
         name: true,
         assistedOnboarding: true,
+        deactivatedAt: true,
         entitlement: {
           select: {
             commercialPlan: true,
@@ -230,6 +233,9 @@ export async function inviteClinicUser(input: {
     });
     if (!clinic) {
       return { ok: false as const, code: "clinic_not_found" as const };
+    }
+    if (clinic.deactivatedAt) {
+      return { ok: false as const, code: "clinic_inactive" as const };
     }
     if (
       clinic.assistedOnboarding &&
@@ -472,6 +478,7 @@ export async function inviteClinicUser(input: {
       string
     > = {
       clinic_not_found: CLINIC_NOT_FOUND_MESSAGE,
+      clinic_inactive: CLINIC_INACTIVE_MESSAGE,
       commercial_setup_required: COMMERCIAL_SETUP_REQUIRED_MESSAGE,
       already_member: ALREADY_MEMBER_MESSAGE,
       other_clinic_member: OTHER_CLINIC_MEMBER_MESSAGE,

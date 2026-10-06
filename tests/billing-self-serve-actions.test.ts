@@ -32,6 +32,14 @@ vi.mock("@/lib/auth/require-clinic-admin", () => ({
   requireClinicAdmin: requireClinicAdminMock,
 }));
 
+vi.mock("@/lib/prisma", () => ({
+  getPrisma: () => ({
+    clinic: {
+      findUnique: async () => ({ deactivatedAt: null }),
+    },
+  }),
+}));
+
 vi.mock("@/lib/entitlements/downgrade-selection", () => ({
   beginClinicPlanDowngrade: beginMock,
   confirmClinicDowngradeSelection: vi.fn(),

@@ -10,6 +10,7 @@ import {
 import { deleteDatabaseSessionsForUser } from "@/lib/auth/session";
 import {
   lockAccountSplit,
+  lockAccountSplits,
   lockAccountSplitShellSlug,
 } from "@/lib/account-split/locks";
 import {
@@ -59,7 +60,7 @@ import { getPrisma } from "@/lib/prisma";
  *
  * Lock order inside the single transaction:
  * 1. `clinic-account-structure` for source and destination, sorted by clinic id
- * 2. `clinic-account-split:{sourceClinicId}`
+ * 2. `clinic-account-split` for the clinics this operation locks, sorted by clinic id
  * 3. Reload, then recompute readiness
  * 4. `clinic-account-split-shell-slug` only when compatibility slugs must be parked
  * 5. `clinic-team-capacity` for both accounts, sorted, only when memberships move
@@ -198,13 +199,10 @@ export async function executeClinicAccountSplit(input: {
         head.operationKind === "LOCATION_TO_NEW_ACCOUNT" ||
         head.operationKind === "SITE_TO_EXISTING_GROUP"
       ) {
-        const splitIds = [
+        await lockAccountSplits(tx, [
           head.sourceClinicId,
           head.destinationClinicId!,
-        ].sort();
-        for (const clinicId of splitIds) {
-          await lockAccountSplit(tx, clinicId);
-        }
+        ]);
       } else {
         await lockAccountSplit(tx, head.sourceClinicId);
       }

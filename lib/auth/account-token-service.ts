@@ -22,6 +22,7 @@ import {
   lockClinicTeamCapacity,
 } from "@/lib/entitlements/locks";
 import { parseEmailAddress } from "@/lib/email/mailbox";
+import { clinicIsInactive } from "@/lib/clinics/clinic-activity";
 import { getPrisma } from "@/lib/prisma";
 
 type AccountTokenClient = PrismaClient | Prisma.TransactionClient;
@@ -474,6 +475,13 @@ export async function createInvitationToken(input: {
     input.userId,
     input.clinicId,
     async (tx) => {
+      const clinic = await tx.clinic.findUnique({
+        where: { id: input.clinicId },
+        select: { deactivatedAt: true },
+      });
+      if (clinicIsInactive(clinic?.deactivatedAt)) {
+        throw new AccountTokenError("invalid_invitation");
+      }
       await revokeOutstandingInvitationTokens(
         tx,
         input.userId,
@@ -537,6 +545,14 @@ export async function completeInvitation(input: {
       tx,
       `account-token:${AccountTokenType.INVITATION}:${existing.userId}:${existing.clinicId}`
     );
+
+    const clinicActivity = await tx.clinic.findUnique({
+      where: { id: existing.clinicId },
+      select: { deactivatedAt: true },
+    });
+    if (clinicIsInactive(clinicActivity?.deactivatedAt)) {
+      return { ok: false, reason: "revoked" };
+    }
 
     const latest = await tx.accountToken.findUnique({
       where: { id: existing.id },
@@ -656,7 +672,7 @@ export async function inspectInvitation(
     }),
     prisma.clinic.findUnique({
       where: { id: lookedUp.token.clinicId },
-      select: { id: true },
+      select: { id: true, deactivatedAt: true },
     }),
     prisma.clinicMembership.count({
       where: { userId: lookedUp.token.userId },
@@ -664,6 +680,7 @@ export async function inspectInvitation(
   ]);
 
   if (
+    clinicIsInactive(clinic?.deactivatedAt) ||
     invitationAcceptanceIsStale({
       user,
       clinic,

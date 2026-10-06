@@ -13,6 +13,7 @@ export interface OperatorClinicListItem {
   publishedGuideCount: number;
   setupLabel: string;
   updatedAt: Date;
+  inactive: boolean;
 }
 
 export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
@@ -23,6 +24,7 @@ export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
       name: true,
       slug: true,
       updatedAt: true,
+      deactivatedAt: true,
       sites: {
         where: { isPrimary: true, active: true },
         select: {
@@ -94,6 +96,7 @@ export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
       guideCount: clinic.practiceGuides.length,
       publishedGuideCount,
       setupLabel: needsAttention ? "Needs attention" : "Configured",
+      inactive: clinic.deactivatedAt != null,
       updatedAt:
         [site?.updatedAt, location?.updatedAt, clinic.updatedAt]
           .filter((date): date is Date => Boolean(date))
@@ -101,6 +104,15 @@ export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
         clinic.updatedAt,
     };
   });
+}
+
+export function selectOperatorClinicActivity<T extends { inactive: boolean }>(
+  clinics: readonly T[],
+  activity: "active" | "inactive"
+): T[] {
+  return clinics.filter((clinic) =>
+    activity === "inactive" ? clinic.inactive : !clinic.inactive
+  );
 }
 
 export { summarizeOperatorClinics } from "@/lib/operator/summarize-operator-clinics";

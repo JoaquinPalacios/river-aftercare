@@ -52,6 +52,7 @@ export interface OperatorClinicDetail {
     active: boolean;
   }>;
   updatedAt: Date;
+  deactivatedAt: Date | null;
 }
 
 export async function getOperatorClinic(
@@ -64,6 +65,7 @@ export async function getOperatorClinic(
       name: true,
       slug: true,
       updatedAt: true,
+      deactivatedAt: true,
       sites: {
         where: { isPrimary: true, active: true },
         select: {
@@ -200,6 +202,7 @@ export async function getOperatorClinic(
       publishedGuideCount,
     }),
     guides: clinic.practiceGuides,
+    deactivatedAt: clinic.deactivatedAt,
     members: clinic.memberships.map((membership) => ({
       id: membership.id,
       role: membership.role,

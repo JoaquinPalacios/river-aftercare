@@ -15,6 +15,7 @@ import type {
   LocationDetailsInput,
   SiteBrandingInput,
 } from "@/lib/clinics/site-location-schemas";
+import { assertClinicActive } from "@/lib/clinics/clinic-activity";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
@@ -78,6 +79,7 @@ export async function createClinicSiteWithRootLocation(input: {
   try {
     return await getPrisma().$transaction(async (tx) => {
       await lockClinicAccountStructure(tx, input.clinicId);
+      await assertClinicActive(tx, input.clinicId);
       const reserved = await reserveSiteLocationCapacity(tx, {
         clinicId: input.clinicId,
         additionalSites: 1,
@@ -149,6 +151,7 @@ export async function createClinicLocation(input: {
   try {
     return await getPrisma().$transaction(async (tx) => {
       await lockClinicAccountStructure(tx, input.clinicId);
+      await assertClinicActive(tx, input.clinicId);
       const site = await requireOwnedSite(tx, input.clinicId, input.siteId);
       if (!site.active) {
         throw new ClinicPortalError(

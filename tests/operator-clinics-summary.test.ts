@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { selectOperatorClinicActivity } from "@/lib/operator/list-operator-clinics";
 import { summarizeOperatorClinics } from "@/lib/operator/summarize-operator-clinics";
 
 describe("operator clinic summary", () => {
@@ -19,6 +20,33 @@ describe("operator clinic summary", () => {
       totalClinics: 2,
       configuredClinics: 1,
       publishedGuides: 1,
+      needsAttention: 1,
+    });
+  });
+
+  it("keeps inactive clinics out of the operational summary", () => {
+    const clinics = [
+      {
+        id: "active",
+        inactive: false,
+        publishedGuideCount: 2,
+        setupLabel: "Needs attention",
+      },
+      {
+        id: "inactive",
+        inactive: true,
+        publishedGuideCount: 4,
+        setupLabel: "Configured",
+      },
+    ];
+    const active = selectOperatorClinicActivity(clinics, "active");
+    const inactive = selectOperatorClinicActivity(clinics, "inactive");
+    expect(active.map((clinic) => clinic.id)).toEqual(["active"]);
+    expect(inactive.map((clinic) => clinic.id)).toEqual(["inactive"]);
+    expect(summarizeOperatorClinics(active)).toEqual({
+      totalClinics: 1,
+      configuredClinics: 0,
+      publishedGuides: 2,
       needsAttention: 1,
     });
   });

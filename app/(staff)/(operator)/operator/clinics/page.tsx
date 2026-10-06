@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
-import { listOperatorClinics } from "@/lib/operator/list-operator-clinics";
+import {
+  listOperatorClinics,
+  selectOperatorClinicActivity,
+} from "@/lib/operator/list-operator-clinics";
 import { summarizeOperatorClinics } from "@/lib/operator/summarize-operator-clinics";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
@@ -10,10 +13,21 @@ export const metadata: Metadata = {
   title: `All Clinics · ${PRODUCT_NAME}`,
 };
 
-export default async function OperatorClinicsPage() {
+export default async function OperatorClinicsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ activity?: string }>;
+}) {
   await requirePlatformOperator();
+  const params = await searchParams;
+  const activity = params.activity === "inactive" ? "inactive" : "active";
   const clinics = await listOperatorClinics();
-  const summary = summarizeOperatorClinics(clinics);
+  const activeClinics = selectOperatorClinicActivity(clinics, "active");
+  const visible =
+    activity === "inactive"
+      ? selectOperatorClinicActivity(clinics, "inactive")
+      : activeClinics;
+  const summary = summarizeOperatorClinics(activeClinics);
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
@@ -34,6 +48,23 @@ export default async function OperatorClinicsPage() {
         </Link>
       </header>
 
+      <nav className="flex gap-4 text-sm" aria-label="Clinic activity">
+        <Link
+          href="/operator/clinics"
+          className="font-medium text-staff-brand"
+          aria-current={activity === "active" ? "page" : undefined}
+        >
+          Active
+        </Link>
+        <Link
+          href="/operator/clinics?activity=inactive"
+          className="font-medium text-staff-brand"
+          aria-current={activity === "inactive" ? "page" : undefined}
+        >
+          Inactive
+        </Link>
+      </nav>
+
       <dl className="staffOperatorSummary">
         <div className="staffOperatorStat">
           <dt>Total clinics</dt>
@@ -53,9 +84,11 @@ export default async function OperatorClinicsPage() {
         </div>
       </dl>
 
-      {clinics.length === 0 ? (
+      {visible.length === 0 ? (
         <p className="rounded-xl border border-dashed border-staff-line bg-staff-panel px-5 py-8 text-sm text-staff-muted">
-          No clinics are registered yet.
+          {activity === "inactive"
+            ? "No inactive clinics."
+            : "No active clinics."}
         </p>
       ) : (
         <div className="staffOperatorTableWrap">
@@ -67,12 +100,13 @@ export default async function OperatorClinicsPage() {
                 <th className="px-4 py-3 font-medium">Tenant</th>
                 <th className="px-4 py-3 font-medium">Guides</th>
                 <th className="px-4 py-3 font-medium">Published</th>
+                <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Setup</th>
                 <th className="px-4 py-3 font-medium">Updated</th>
               </tr>
             </thead>
             <tbody>
-              {clinics.map((clinic) => (
+              {visible.map((clinic) => (
                 <tr
                   key={clinic.id}
                   className="staffOperatorRow border-b border-staff-line last:border-0"
@@ -91,6 +125,14 @@ export default async function OperatorClinicsPage() {
                   <td className="px-4 py-3 text-staff-muted">{clinic.slug}</td>
                   <td className="px-4 py-3">{clinic.guideCount}</td>
                   <td className="px-4 py-3">{clinic.publishedGuideCount}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className="staffStatusPill"
+                      data-tone={clinic.inactive ? "warning" : "success"}
+                    >
+                      {clinic.inactive ? "Inactive" : "Active"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className="staffStatusPill"

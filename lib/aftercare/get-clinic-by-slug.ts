@@ -48,6 +48,7 @@ const patientSiteSelect = {
     select: {
       id: true,
       name: true,
+      deactivatedAt: true,
     },
   },
   locations: {
@@ -95,7 +96,7 @@ type PatientSiteRow = {
   themeMode: ClinicThemeMode;
   allowPatientThemeToggle: boolean;
   showCareGuideAttribution: boolean;
-  clinic: { id: string; name: string } | null;
+  clinic: { id: string; name: string; deactivatedAt: Date | null } | null;
   locations: Array<{
     id: string;
     clinicId: string;
@@ -115,7 +116,12 @@ type PatientSiteRow = {
 };
 
 function tenantFromSite(site: PatientSiteRow): ClinicBySlugRecord | null {
-  if (!site.active || !site.clinic || site.clinic.id !== site.clinicId) {
+  if (
+    !site.active ||
+    !site.clinic ||
+    site.clinic.id !== site.clinicId ||
+    site.clinic.deactivatedAt
+  ) {
     return null;
   }
 

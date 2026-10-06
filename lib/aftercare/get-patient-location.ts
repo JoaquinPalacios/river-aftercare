@@ -80,7 +80,7 @@ export async function getPatientLocation(input: {
       themeMode: true,
       allowPatientThemeToggle: true,
       showCareGuideAttribution: true,
-      clinic: { select: { id: true, name: true } },
+      clinic: { select: { id: true, name: true, deactivatedAt: true } },
       locations: {
         where: {
           slug: input.locationSlug,
@@ -97,6 +97,7 @@ export async function getPatientLocation(input: {
   if (
     !site?.active ||
     !site.clinic ||
+    site.clinic.deactivatedAt ||
     site.clinic.id !== site.clinicId ||
     !location ||
     location.clinicId !== site.clinicId ||
