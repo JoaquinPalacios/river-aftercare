@@ -407,7 +407,9 @@ describeDb("permanent clinic deletion", () => {
     const slug = `${PREFIX}main`;
     const created = await fresh(slug, name);
     const clinicId = created.id;
-    const templateCount = await db().guideTemplate.count();
+    const templateIds = (
+      await db().guideTemplate.findMany({ select: { id: true } })
+    ).map((template) => template.id);
     const granted = await grantComplimentaryAccess({
       actorUserId: OPERATOR_ID,
       actorPlatformRole: PlatformRole.OPERATOR,
@@ -672,7 +674,9 @@ describeDb("permanent clinic deletion", () => {
     expect(
       await db().clinicDowngradePreparation.count({ where: { clinicId } })
     ).toBe(0);
-    expect(await db().guideTemplate.count()).toBe(templateCount);
+    expect(
+      await db().guideTemplate.count({ where: { id: { in: templateIds } } })
+    ).toBe(templateIds.length);
     const profile = await db().clinicProfile.findUniqueOrThrow({
       where: { clinicId },
     });
