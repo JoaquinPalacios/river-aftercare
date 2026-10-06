@@ -18,6 +18,7 @@ export function ConfirmDialog({
   alternateLabel,
   onAlternate,
   children,
+  className,
   onCancel,
   onConfirm,
 }: {
@@ -36,6 +37,7 @@ export function ConfirmDialog({
   alternateLabel?: string;
   onAlternate?: () => void;
   children?: ReactNode;
+  className?: string;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -108,7 +110,7 @@ export function ConfirmDialog({
   return (
     <dialog
       ref={dialogRef}
-      className="staffDialog"
+      className={className ? `staffDialog ${className}` : "staffDialog"}
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
       aria-busy={busy || undefined}

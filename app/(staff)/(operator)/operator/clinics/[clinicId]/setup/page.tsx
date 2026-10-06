@@ -14,6 +14,8 @@ import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { redirectIfClinicPermanentlyDeleted } from "@/lib/operator/redirect-permanently-deleted-clinic";
 import { loadNegotiatedOfferPanel } from "@/lib/billing/negotiated-offer";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
+import { getPrisma } from "@/lib/prisma";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import {
   administratorStatusLabel,
@@ -37,10 +39,17 @@ export default async function ClinicSetupPage({
   await requirePlatformOperator();
   const { clinicId } = await params;
   await redirectIfClinicPermanentlyDeleted(clinicId);
-  const onboarding = await loadClinicOnboarding(clinicId);
+  const [onboarding, activity] = await Promise.all([
+    loadClinicOnboarding(clinicId),
+    getPrisma().clinic.findUnique({
+      where: { id: clinicId },
+      select: { deactivatedAt: true },
+    }),
+  ]);
   if (!onboarding) {
     notFound();
   }
+  const inactive = activity?.deactivatedAt != null;
 
   const negotiatedPanel =
     onboarding.commercial.configured &&
@@ -128,7 +137,16 @@ export default async function ClinicSetupPage({
           )}
         </section>
       ) : onboarding.assistedOnboarding ? (
-        <OnboardingCommercialArrangement clinicId={onboarding.clinicId} />
+        inactive ? (
+          <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
+            <h2 className="text-base font-semibold">Commercial arrangement</h2>
+            <p className="mt-2 text-sm text-staff-muted">
+              {INACTIVE_CLINIC_EDIT_NOTE}
+            </p>
+          </section>
+        ) : (
+          <OnboardingCommercialArrangement clinicId={onboarding.clinicId} />
+        )
       ) : (
         <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
           <h2 className="text-base font-semibold">Commercial arrangement</h2>
@@ -150,6 +168,7 @@ export default async function ClinicSetupPage({
         <NegotiatedOfferPanel
           clinicId={onboarding.clinicId}
           panel={negotiatedPanel}
+          editsLocked={inactive}
         />
       ) : null}
 
@@ -162,7 +181,13 @@ export default async function ClinicSetupPage({
             Invite the first clinic administrator. Later administrators and
             staff are managed on Team.
           </p>
-          <OnboardingAdminForm clinicId={onboarding.clinicId} />
+          {inactive ? (
+            <p className="mt-4 text-sm text-staff-muted">
+              {INACTIVE_CLINIC_EDIT_NOTE}
+            </p>
+          ) : (
+            <OnboardingAdminForm clinicId={onboarding.clinicId} />
+          )}
         </section>
       ) : null}
 
@@ -250,6 +275,7 @@ export default async function ClinicSetupPage({
             <OnboardingInvitationActions
               clinicId={onboarding.clinicId}
               userId={onboarding.administrator.userId}
+              allowResend={!inactive}
             />
           ) : null}
           <p className="mt-4 text-sm text-staff-muted">

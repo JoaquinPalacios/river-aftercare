@@ -7,7 +7,9 @@ import { TeamStatusBanner } from "@/app/(staff)/(operator)/operator/clinics/[cli
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
+import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
 import { redirectIfClinicPermanentlyDeleted } from "@/lib/operator/redirect-permanently-deleted-clinic";
+import { getPrisma } from "@/lib/prisma";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { teamStatusMessage } from "@/lib/operator/clinic-team-status";
 import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
@@ -34,10 +36,15 @@ export default async function ClinicTeamPage({
   await redirectIfClinicPermanentlyDeleted(clinicId);
   const paramsStatus = searchParams ? await searchParams : {};
   const statusCopy = teamStatusMessage(paramsStatus.status);
-  const [team, allowance] = await Promise.all([
+  const [team, allowance, activity] = await Promise.all([
     listClinicTeam(clinicId),
     loadTeamAllowance(clinicId),
+    getPrisma().clinic.findUnique({
+      where: { id: clinicId },
+      select: { deactivatedAt: true },
+    }),
   ]);
+  const inactive = activity?.deactivatedAt != null;
   if (!team) {
     notFound();
   }
@@ -76,18 +83,25 @@ export default async function ClinicTeamPage({
             </div>
           ) : null}
         </div>
-        <Link
-          href={`/operator/clinics/${clinicId}/team/invite`}
-          className="staffBtn staffBtnPrimary"
-        >
-          Invite user
-        </Link>
+        {inactive ? (
+          <p className="text-sm text-staff-muted">
+            {INACTIVE_CLINIC_EDIT_NOTE}
+          </p>
+        ) : (
+          <Link
+            href={`/operator/clinics/${clinicId}/team/invite`}
+            className="staffBtn staffBtnPrimary"
+          >
+            Invite user
+          </Link>
+        )}
       </header>
       {statusCopy ? <TeamStatusBanner message={statusCopy} /> : null}
       <ClinicTeamTable
         clinicId={clinicId}
         clinicName={team.clinicName}
         rows={team.rows}
+        invitationsLocked={inactive}
       />
       <p>
         <Link

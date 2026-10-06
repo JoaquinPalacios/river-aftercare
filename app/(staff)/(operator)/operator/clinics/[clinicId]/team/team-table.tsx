@@ -25,6 +25,7 @@ import type {
 } from "@/lib/operator/list-clinic-team";
 import { CLINIC_MEMBERSHIP_ROLE } from "@/lib/clinic-portal/membership-role";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
 
 const empty: ClinicTeamActionState = {};
 const REMOVE_PENDING_STATUS = "Removing clinic access. Please wait.";
@@ -75,10 +76,12 @@ export function ClinicTeamTable({
   clinicId,
   clinicName,
   rows,
+  invitationsLocked = false,
 }: {
   clinicId: string;
   clinicName: string;
   rows: ClinicTeamRow[];
+  invitationsLocked?: boolean;
 }) {
   const router = useRouter();
   const reactId = useId().replace(/:/g, "");
@@ -306,17 +309,31 @@ export function ClinicTeamTable({
                     </OverflowMenu>
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      <form action={resendAction}>
-                        <input type="hidden" name="clinicId" value={clinicId} />
-                        <input type="hidden" name="userId" value={row.userId} />
-                        <button
-                          type="submit"
-                          disabled={pending}
-                          className="staffBtn staffBtnSecondary"
-                        >
-                          {resending ? "Sending…" : "Resend invitation"}
-                        </button>
-                      </form>
+                      {invitationsLocked ? (
+                        <p className="text-sm text-staff-muted">
+                          {INACTIVE_CLINIC_EDIT_NOTE}
+                        </p>
+                      ) : (
+                        <form action={resendAction}>
+                          <input
+                            type="hidden"
+                            name="clinicId"
+                            value={clinicId}
+                          />
+                          <input
+                            type="hidden"
+                            name="userId"
+                            value={row.userId}
+                          />
+                          <button
+                            type="submit"
+                            disabled={pending}
+                            className="staffBtn staffBtnSecondary"
+                          >
+                            {resending ? "Sending…" : "Resend invitation"}
+                          </button>
+                        </form>
+                      )}
                       <form action={cancelAction}>
                         <input type="hidden" name="clinicId" value={clinicId} />
                         <input type="hidden" name="userId" value={row.userId} />

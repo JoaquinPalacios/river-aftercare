@@ -7,19 +7,18 @@ import {
   permanentlyDeleteOperatorClinicAction,
   type ClinicStatusActionState,
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/clinic-lifecycle-actions";
+import { PermanentDeletionConfirmFields } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/permanent-deletion-confirm-fields";
 
 const initialState: ClinicStatusActionState = {};
 
 export function PermanentDeletionSection({
   clinicId,
   clinicName,
-  clinicSlug,
   eligible,
   blockers,
 }: {
   clinicId: string;
   clinicName: string;
-  clinicSlug: string;
   eligible: boolean;
   blockers: readonly { code: string; message: string }[];
 }) {
@@ -30,8 +29,7 @@ export function PermanentDeletionSection({
   const [open, setOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
-  const confirmed =
-    confirmation.trim() === clinicName || confirmation.trim() === clinicSlug;
+  const confirmed = confirmation.trim() === clinicName;
 
   return (
     <section className="rounded-xl border border-red-200 bg-staff-panel p-5">
@@ -74,6 +72,7 @@ export function PermanentDeletionSection({
           ) : null}
           <ConfirmDialog
             open={open}
+            className="permanentDeleteDialog"
             title="Permanently delete this clinic?"
             description="This is irreversible. Customer and staff access is removed. Operational clinic content is removed. Billing and legal audit records are retained. The tenant address is permanently retired and cannot be reused."
             cancelLabel="Cancel"
@@ -87,15 +86,11 @@ export function PermanentDeletionSection({
               formRef.current?.requestSubmit();
             }}
           >
-            <label className="mt-4 block text-sm">
-              Type {clinicName} or {clinicSlug} to confirm
-              <input
-                className="mt-2 h-11 w-full rounded-md border border-staff-line bg-staff-panel px-3 text-sm"
-                value={confirmation}
-                onChange={(event) => setConfirmation(event.target.value)}
-                autoComplete="off"
-              />
-            </label>
+            <PermanentDeletionConfirmFields
+              clinicName={clinicName}
+              confirmation={confirmation}
+              onConfirmationChange={setConfirmation}
+            />
           </ConfirmDialog>
         </form>
       ) : null}
