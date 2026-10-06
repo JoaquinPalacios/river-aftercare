@@ -37,6 +37,10 @@ import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
 import { readAccountCapacityFacts } from "@/lib/billing/group-capacity-gate";
 import { assertNoOpenNegotiatedOffer } from "@/lib/billing/negotiated-offer";
 import { readSplitDestinationCommercialState } from "@/lib/billing/split-destination-access";
+import {
+  lockAndAssertTenantSlugsAvailable,
+  lockTenantSlugs,
+} from "@/lib/clinics/retired-tenant-slug";
 import { effectiveSiteLocationAllowance } from "@/lib/clinics/site-location-allowance";
 import {
   mapHomeCareInstructions,
@@ -63,8 +67,9 @@ import { getPrisma } from "@/lib/prisma";
  * 2. `clinic-account-split` for the clinics this operation locks, sorted by clinic id
  * 3. Reload, then recompute readiness
  * 4. `clinic-account-split-shell-slug` only when compatibility slugs must be parked
- * 5. `clinic-team-capacity` for both accounts, sorted, only when memberships move
- * 6. `clinic-access:{userId}` for each moved user, sorted by user id
+ * 5. `tenant-slug` for every slug this transaction publishes, sorted, after the shell lock when that lock is taken
+ * 6. `clinic-team-capacity` for both accounts, sorted, only when memberships move
+ * 7. `clinic-access:{userId}` for each moved user, sorted by user id
  *
  * Structure locks are held before the reload, so concurrent account mutations
  * wait. Narrower locks are taken after that reload and immediately before the
@@ -1142,6 +1147,35 @@ export async function writeCompatibilitySlugs(
     destinationTarget: string;
   }
 ): Promise<boolean> {
+  const preview = await loadSlugRows(tx, input);
+  if (
+    preview[0].slug === input.sourceTarget &&
+    preview[1].slug === input.destinationTarget
+  ) {
+    return false;
+  }
+
+  const previewNeedsPark =
+    preview[0].slug === input.destinationTarget &&
+    preview[0].slug !== input.sourceTarget &&
+    preview[1].slug === input.sourceTarget &&
+    preview[1].slug !== input.destinationTarget;
+  const shellCandidates = previewNeedsPark
+    ? Array.from({ length: 8 }, () => generateSplitShellSlug())
+    : [];
+  if (previewNeedsPark) {
+    await lockAccountSplitShellSlug(tx);
+  }
+  await lockTenantSlugs(tx, [
+    input.sourceTarget,
+    input.destinationTarget,
+    ...shellCandidates,
+  ]);
+  await lockAndAssertTenantSlugsAvailable(tx, [
+    input.sourceTarget,
+    input.destinationTarget,
+  ]);
+
   const [source, destination] = await loadSlugRows(tx, input);
   if (
     source.slug === input.sourceTarget &&
@@ -1158,11 +1192,13 @@ export async function writeCompatibilitySlugs(
     destination.slug !== input.destinationTarget;
 
   if (sourceHoldsDestinationTarget && destinationHoldsSourceTarget) {
-    await lockAccountSplitShellSlug(tx);
-    const parked = await allocateSplitShellSlug(
-      tx,
-      Array.from({ length: 8 }, () => generateSplitShellSlug())
-    );
+    if (!previewNeedsPark) {
+      throw new ClinicPortalError(
+        "That compatibility address is already used by another account.",
+        "conflict"
+      );
+    }
+    const parked = await allocateSplitShellSlug(tx, shellCandidates);
     if (!isSplitShellCompatibilitySlug(parked)) {
       throw new ClinicPortalError(
         "Could not reserve a destination account slug.",

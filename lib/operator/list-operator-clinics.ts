@@ -14,6 +14,7 @@ export interface OperatorClinicListItem {
   setupLabel: string;
   updatedAt: Date;
   inactive: boolean;
+  permanentlyDeleted: boolean;
 }
 
 export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
@@ -25,6 +26,7 @@ export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
       slug: true,
       updatedAt: true,
       deactivatedAt: true,
+      permanentlyDeletedAt: true,
       sites: {
         where: { isPrimary: true, active: true },
         select: {
@@ -96,7 +98,9 @@ export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
       guideCount: clinic.practiceGuides.length,
       publishedGuideCount,
       setupLabel: needsAttention ? "Needs attention" : "Configured",
-      inactive: clinic.deactivatedAt != null,
+      inactive:
+        clinic.deactivatedAt != null && clinic.permanentlyDeletedAt == null,
+      permanentlyDeleted: clinic.permanentlyDeletedAt != null,
       updatedAt:
         [site?.updatedAt, location?.updatedAt, clinic.updatedAt]
           .filter((date): date is Date => Boolean(date))
@@ -106,13 +110,21 @@ export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
   });
 }
 
-export function selectOperatorClinicActivity<T extends { inactive: boolean }>(
-  clinics: readonly T[],
-  activity: "active" | "inactive"
-): T[] {
-  return clinics.filter((clinic) =>
-    activity === "inactive" ? clinic.inactive : !clinic.inactive
-  );
+export type OperatorClinicActivity = "active" | "inactive" | "retired";
+
+export function selectOperatorClinicActivity<
+  T extends { inactive: boolean; permanentlyDeleted?: boolean },
+>(clinics: readonly T[], activity: OperatorClinicActivity): T[] {
+  return clinics.filter((clinic) => {
+    const retired = clinic.permanentlyDeleted === true;
+    if (activity === "retired") {
+      return retired;
+    }
+    if (retired) {
+      return false;
+    }
+    return activity === "inactive" ? clinic.inactive : !clinic.inactive;
+  });
 }
 
 export { summarizeOperatorClinics } from "@/lib/operator/summarize-operator-clinics";

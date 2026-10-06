@@ -1,6 +1,16 @@
 import { readFileSync } from "node:fs";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const findClinicRetirement = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/prisma", () => ({
+  getPrisma: () => ({
+    clinic: {
+      findUnique: findClinicRetirement,
+    },
+  }),
+}));
 
 import {
   GET as getPublicClinicLogo,
@@ -33,6 +43,10 @@ const previous = {
   origin: process.env.CLINIC_ASSET_PUBLIC_ORIGIN,
   access: process.env.R2_ACCESS_KEY_ID,
   secret: process.env.R2_SECRET_ACCESS_KEY,
+  databaseUrl: process.env.DATABASE_URL,
+  nodeEnv: process.env.NODE_ENV,
+  vercel: process.env.VERCEL,
+  vercelEnv: process.env.VERCEL_ENV,
 };
 
 function restoreEnv(): void {
@@ -41,6 +55,10 @@ function restoreEnv(): void {
     CLINIC_ASSET_PUBLIC_ORIGIN: previous.origin,
     R2_ACCESS_KEY_ID: previous.access,
     R2_SECRET_ACCESS_KEY: previous.secret,
+    DATABASE_URL: previous.databaseUrl,
+    NODE_ENV: previous.nodeEnv,
+    VERCEL: previous.vercel,
+    VERCEL_ENV: previous.vercelEnv,
   })) {
     if (value === undefined) {
       delete process.env[key];
@@ -98,6 +116,8 @@ async function expectGenericNotFound(response: Response): Promise<void> {
 
 describe("public clinic branding asset route", () => {
   beforeEach(async () => {
+    findClinicRetirement.mockReset();
+    findClinicRetirement.mockResolvedValue(null);
     process.env.CLINIC_ASSET_STORAGE_DRIVER = "memory";
     process.env.CLINIC_ASSET_PUBLIC_ORIGIN = ASSET_ORIGIN;
     process.env.R2_ACCESS_KEY_ID = ACCESS_KEY;
@@ -238,7 +258,90 @@ describe("public clinic branding asset route", () => {
     );
   });
 
-  it("does not implement object listing", () => {
+  it("does not serve branding for a permanently deleted clinic", async () => {
+    process.env.DATABASE_URL = "postgresql://127.0.0.1:5432/care_guide";
+    findClinicRetirement.mockResolvedValue({
+      permanentlyDeletedAt: new Date("2026-10-06T00:00:00.000Z"),
+    });
+
+    const response = await getPublicClinicLogo(
+      publicRequest(PUBLIC_URL, { host: "assets.example.test" }),
+      publicContext()
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe("");
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("content-type") ?? "").not.toMatch(/image\//);
+  });
+
+  it("fails closed when the retirement lookup throws", async () => {
+    process.env.DATABASE_URL = "postgresql://127.0.0.1:5432/care_guide";
+    findClinicRetirement.mockRejectedValue(new Error("database unavailable"));
+
+    const response = await getPublicClinicLogo(
+      publicRequest(PUBLIC_URL, { host: "assets.example.test" }),
+      publicContext()
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe("");
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("content-type") ?? "").not.toMatch(/image\//);
+  });
+
+  it("still serves branding when the clinic is active", async () => {
+    process.env.DATABASE_URL = "postgresql://127.0.0.1:5432/care_guide";
+    findClinicRetirement.mockResolvedValue({ permanentlyDeletedAt: null });
+
+    const response = await getPublicClinicLogo(
+      publicRequest(PUBLIC_URL, { host: "assets.example.test" }),
+      publicContext()
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("image/png");
+  });
+
+  it("fails closed on Vercel when the database is unset", async () => {
+    delete process.env.DATABASE_URL;
+    process.env.VERCEL_ENV = "production";
+
+    const response = await getPublicClinicLogo(
+      publicRequest(PUBLIC_URL, { host: "assets.example.test" }),
+      publicContext()
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(findClinicRetirement).not.toHaveBeenCalled();
+  });
+
+  it("leaves static demo and platform marks outside the clinic branding lookup", () => {
+    const demo = readFileSync("public/demo/riverside-mark.svg", "utf8");
+    const platform = readFileSync(
+      "public/brand/river-aftercare-logo.svg",
+      "utf8"
+    );
+    const routes = [
+      readFileSync(
+        "app/clinics/[clinicId]/branding/[filename]/route.ts",
+        "utf8"
+      ),
+      readFileSync(
+        "app/clinic-branding/[clinicId]/[filename]/route.ts",
+        "utf8"
+      ),
+    ].join("\n");
+
+    expect(demo).toContain("<svg");
+    expect(platform).toContain("<svg");
+    expect(routes).not.toContain("public/demo");
+    expect(routes).not.toContain("public/brand");
+    expect(routes).not.toContain("riverside-mark");
+  });
+
+  it("does not list objects from the public branding route", () => {
     const adapter = readFileSync(
       "lib/clinic-assets/r2-clinic-asset-storage.ts",
       "utf8"
@@ -247,14 +350,17 @@ describe("public clinic branding asset route", () => {
       "app/clinics/[clinicId]/branding/[filename]/route.ts",
       "utf8"
     );
-    expect(adapter).not.toMatch(/ListObjects/);
     expect(publicRoute).not.toMatch(/ListObjects/);
     expect(publicRoute).not.toMatch(/listLogo/);
+    expect(adapter).toContain("Prefix: prefix");
+    expect(adapter).toContain("clinics/${clinicId}/branding/");
   });
 });
 
 describe("fallback /clinic-branding route", () => {
   beforeEach(async () => {
+    findClinicRetirement.mockReset();
+    findClinicRetirement.mockResolvedValue(null);
     process.env.CLINIC_ASSET_STORAGE_DRIVER = "memory";
     delete process.env.CLINIC_ASSET_PUBLIC_ORIGIN;
     process.env.R2_ACCESS_KEY_ID = ACCESS_KEY;

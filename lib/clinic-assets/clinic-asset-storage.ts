@@ -31,5 +31,10 @@ export interface ClinicAssetStorage {
     clinicId: string;
     storageKey: string;
   }): Promise<ClinicLogoHeadResult | null>;
+  /**
+   * Keys currently stored under `clinics/<clinicId>/branding/`.
+   * Only keys owned by that clinic are returned.
+   */
+  listOwnedBrandingKeys(clinicId: string): Promise<string[]>;
   getPublicLogoUrl(input: { clinicId: string; storageKey: string }): string;
 }

@@ -30,6 +30,7 @@ const discardSelect = {
   name: true,
   slug: true,
   assistedOnboarding: true,
+  permanentlyDeletedAt: true,
   profile: true,
   memberships: { select: { id: true }, take: 1 },
   accountTokens: { select: { id: true }, take: 1 },
@@ -145,6 +146,9 @@ function creationProfile(clinicName: string) {
  */
 export function isPristineAssistedCreation(snapshot: DiscardSnapshot): boolean {
   const { clinic } = snapshot;
+  if (clinic.permanentlyDeletedAt) {
+    return false;
+  }
   if (!clinic.assistedOnboarding || !clinic.profile) {
     return false;
   }

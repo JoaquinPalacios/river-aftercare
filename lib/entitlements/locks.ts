@@ -18,10 +18,16 @@ import type { Prisma } from "@prisma/client";
  * `clinic-account-split` and do not take the structure lock. Attaching an
  * already-existing destination is different: structure locks for the source
  * and destination, sorted, then split locks for those same clinics, sorted.
- * Split execution takes structure locks first, then the split locks. Discard
- * and clinic deactivation follow that same order for the one clinic they
- * change: structure, then `clinic-account-split`. Do not take a structure
- * lock after a split lock. PostgreSQL transaction advisory locks are
+ * Split execution takes structure locks first, then the split locks. Discard,
+ * clinic deactivation, and permanent clinic deletion follow that same order:
+ * structure, then `clinic-account-split`. Permanent deletion locks every
+ * clinic named by split history that involves the retiring clinic, re-reads
+ * eligibility, then takes `tenant-slug` locks and re-checks that no other
+ * account owns those slugs before inserting tombstones. Split shell
+ * allocation and compatibility slug writes take `tenant-slug` after structure
+ * and split locks, and after `clinic-account-split-shell-slug` when that lock
+ * is used. Do not take a structure or split lock after a tenant-slug lock.
+ * Do not take a structure lock after a split lock. PostgreSQL transaction advisory locks are
  * re-entrant,
  * so a helper may request the structure lock again inside a transaction
  * that already holds it.

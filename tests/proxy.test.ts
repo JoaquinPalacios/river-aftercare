@@ -1,9 +1,13 @@
 import { NextRequest } from "next/server";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { config, proxy } from "@/proxy";
 import { PUBLIC_PATIENT_PATH_HEADER } from "@/lib/tenancy/public-patient-path";
 import { proxyMatcherMatches } from "./helpers/proxy-matcher";
+
+vi.mock("@/lib/tenancy/retired-tenant-proxy", () => ({
+  retiredTenantProxyResponse: vi.fn(async () => null),
+}));
 
 function requestFor(
   url: string,
@@ -25,14 +29,14 @@ function rewrittenUrl(response: Response): URL | null {
   return rewrite ? new URL(rewrite) : null;
 }
 
-describe("proxy", () => {
+describe("proxy", async () => {
   const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (previousRoot === undefined) {
       delete process.env.CARE_GUIDE_ROOT_DOMAIN;
     } else {
@@ -40,16 +44,18 @@ describe("proxy", () => {
     }
   });
 
-  it("rewrites the shared demo hostname label without aliasing it in the proxy", () => {
-    const response = proxy(requestFor("http://demo.localhost:3000/extraction"));
-    expect(rewrittenUrl(response)?.pathname).toBe("/_sites/demo/extraction");
-    expect(proxy(requestFor("http://demo.localhost:3000/login")).status).toBe(
-      404
+  it("rewrites the shared demo hostname label without aliasing it in the proxy", async () => {
+    const response = await proxy(
+      requestFor("http://demo.localhost:3000/extraction")
     );
+    expect(rewrittenUrl(response)?.pathname).toBe("/_sites/demo/extraction");
+    expect(
+      (await proxy(requestFor("http://demo.localhost:3000/login"))).status
+    ).toBe(404);
   });
 
-  it("does not rewrite an unknown host to the shared demo", () => {
-    const response = proxy(
+  it("does not rewrite an unknown host to the shared demo", async () => {
+    const response = await proxy(
       requestFor("http://not-the-shared-demo.localhost:3000/extraction")
     );
     expect(rewrittenUrl(response)?.pathname).toBe(
@@ -57,8 +63,8 @@ describe("proxy", () => {
     );
   });
 
-  it("rewrites a tenant host to /_sites/<slug>/...", () => {
-    const response = proxy(
+  it("rewrites a tenant host to /_sites/<slug>/...", async () => {
+    const response = await proxy(
       requestFor("http://demodental.localhost:3000/extraction", {
         [PUBLIC_PATIENT_PATH_HEADER]: "https://evil.example/phish",
       })
@@ -73,8 +79,8 @@ describe("proxy", () => {
     ).toBeNull();
   });
 
-  it("preserves the query string on tenant rewrites", () => {
-    const response = proxy(
+  it("preserves the query string on tenant rewrites", async () => {
+    const response = await proxy(
       requestFor("http://demodental.localhost:3000/extraction?ref=qr")
     );
     const rewritten = rewrittenUrl(response);
@@ -82,96 +88,104 @@ describe("proxy", () => {
     expect(rewritten?.search).toBe("?ref=qr");
   });
 
-  it("rewrites the apex homepage to /_marketing", () => {
-    const response = proxy(requestFor("http://localhost:3000/"));
+  it("rewrites the apex homepage to /_marketing", async () => {
+    const response = await proxy(requestFor("http://localhost:3000/"));
     const rewritten = rewrittenUrl(response);
     expect(response.status).toBe(200);
     expect(rewritten?.pathname).toBe("/_marketing");
   });
 
-  it("blocks staff paths on the marketing host", () => {
-    expect(proxy(requestFor("http://localhost:3000/login")).status).toBe(404);
+  it("blocks staff paths on the marketing host", async () => {
     expect(
-      proxy(requestFor("http://localhost:3000/api/auth/login")).status
-    ).toBe(404);
-    expect(proxy(requestFor("http://localhost:3000/api/ui-theme")).status).toBe(
-      404
-    );
-    expect(proxy(requestFor("http://localhost:3000/dashboard")).status).toBe(
-      404
-    );
-    expect(proxy(requestFor("http://localhost:3000/sessions/new")).status).toBe(
-      404
-    );
-    expect(
-      proxy(requestFor("http://localhost:3000/forgot-password")).status
+      (await proxy(requestFor("http://localhost:3000/login"))).status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://localhost:3000/reset-password")).status
+      (await proxy(requestFor("http://localhost:3000/api/auth/login"))).status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://localhost:3000/account/security")).status
+      (await proxy(requestFor("http://localhost:3000/api/ui-theme"))).status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://localhost:3000/accept-invitation")).status
+      (await proxy(requestFor("http://localhost:3000/dashboard"))).status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://localhost:3000/confirm-email-change")).status
+      (await proxy(requestFor("http://localhost:3000/sessions/new"))).status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://localhost:3000/operator/clinics")).status
+      (await proxy(requestFor("http://localhost:3000/forgot-password"))).status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://localhost:3000/api/cron/other")).status
+      (await proxy(requestFor("http://localhost:3000/reset-password"))).status
+    ).toBe(404);
+    expect(
+      (await proxy(requestFor("http://localhost:3000/account/security"))).status
+    ).toBe(404);
+    expect(
+      (await proxy(requestFor("http://localhost:3000/accept-invitation")))
+        .status
+    ).toBe(404);
+    expect(
+      (await proxy(requestFor("http://localhost:3000/confirm-email-change")))
+        .status
+    ).toBe(404);
+    expect(
+      (await proxy(requestFor("http://localhost:3000/operator/clinics"))).status
+    ).toBe(404);
+    expect(
+      (await proxy(requestFor("http://localhost:3000/api/cron/other"))).status
     ).toBe(404);
   });
 
-  it("allows the billing notice cron on the marketing host and blocks it on a patient host", () => {
-    const marketing = proxy(
+  it("allows the billing notice cron on the marketing host and blocks it on a patient host", async () => {
+    const marketing = await proxy(
       requestFor("http://localhost:3000/api/cron/billing-notices")
     );
     expect(marketing.status).toBe(200);
     expect(rewrittenUrl(marketing)).toBeNull();
 
-    const staff = proxy(
+    const staff = await proxy(
       requestFor("http://app.localhost:3000/api/cron/billing-notices")
     );
     expect(staff.status).toBe(200);
     expect(rewrittenUrl(staff)).toBeNull();
 
     expect(
-      proxy(
-        requestFor("http://demodental.localhost:3000/api/cron/billing-notices")
+      (
+        await proxy(
+          requestFor(
+            "http://demodental.localhost:3000/api/cron/billing-notices"
+          )
+        )
       ).status
     ).toBe(404);
   });
 
-  it("rewrites marketing pricing, contact, about, privacy, terms, and clinic pages to /_marketing/...", () => {
-    const pricing = proxy(requestFor("http://localhost:3000/pricing"));
+  it("rewrites marketing pricing, contact, about, privacy, terms, and clinic pages to /_marketing/...", async () => {
+    const pricing = await proxy(requestFor("http://localhost:3000/pricing"));
     expect(pricing.status).toBe(200);
     expect(rewrittenUrl(pricing)?.pathname).toBe("/_marketing/pricing");
 
-    const contact = proxy(requestFor("http://localhost:3000/contact"));
+    const contact = await proxy(requestFor("http://localhost:3000/contact"));
     expect(contact.status).toBe(200);
     expect(rewrittenUrl(contact)?.pathname).toBe("/_marketing/contact");
 
-    const about = proxy(requestFor("http://localhost:3000/about"));
+    const about = await proxy(requestFor("http://localhost:3000/about"));
     expect(about.status).toBe(200);
     expect(rewrittenUrl(about)?.pathname).toBe("/_marketing/about");
 
-    const privacy = proxy(requestFor("http://localhost:3000/privacy"));
+    const privacy = await proxy(requestFor("http://localhost:3000/privacy"));
     expect(privacy.status).toBe(200);
     expect(rewrittenUrl(privacy)?.pathname).toBe("/_marketing/privacy");
 
-    const terms = proxy(requestFor("http://localhost:3000/terms"));
+    const terms = await proxy(requestFor("http://localhost:3000/terms"));
     expect(terms.status).toBe(200);
     expect(rewrittenUrl(terms)?.pathname).toBe("/_marketing/terms");
 
-    const dental = proxy(requestFor("http://localhost:3000/dental"));
+    const dental = await proxy(requestFor("http://localhost:3000/dental"));
     expect(dental.status).toBe(200);
     expect(rewrittenUrl(dental)?.pathname).toBe("/_marketing/dental");
 
-    const physiotherapy = proxy(
+    const physiotherapy = await proxy(
       requestFor("http://localhost:3000/physiotherapy")
     );
     expect(physiotherapy.status).toBe(200);
@@ -179,7 +193,7 @@ describe("proxy", () => {
       "/_marketing/physiotherapy"
     );
 
-    const chiropractic = proxy(
+    const chiropractic = await proxy(
       requestFor("http://localhost:3000/chiropractic")
     );
     expect(chiropractic.status).toBe(200);
@@ -187,7 +201,7 @@ describe("proxy", () => {
       "/_marketing/chiropractic"
     );
 
-    const cosmetic = proxy(
+    const cosmetic = await proxy(
       requestFor("http://localhost:3000/cosmetic-clinics")
     );
     expect(cosmetic.status).toBe(200);
@@ -195,49 +209,55 @@ describe("proxy", () => {
       "/_marketing/cosmetic-clinics"
     );
 
-    const clinics = proxy(requestFor("http://localhost:3000/clinics"));
+    const clinics = await proxy(requestFor("http://localhost:3000/clinics"));
     expect(clinics.status).toBe(200);
     expect(rewrittenUrl(clinics)?.pathname).toBe("/_marketing/clinics");
   });
 
-  it("lets sitemap, robots, and llms.txt pass through on the marketing host", () => {
-    const sitemap = proxy(requestFor("http://localhost:3000/sitemap.xml"));
+  it("lets sitemap, robots, and llms.txt pass through on the marketing host", async () => {
+    const sitemap = await proxy(
+      requestFor("http://localhost:3000/sitemap.xml")
+    );
     expect(sitemap.status).toBe(200);
     expect(rewrittenUrl(sitemap)).toBeNull();
 
-    const robots = proxy(requestFor("http://localhost:3000/robots.txt"));
+    const robots = await proxy(requestFor("http://localhost:3000/robots.txt"));
     expect(robots.status).toBe(200);
     expect(rewrittenUrl(robots)).toBeNull();
 
-    const llms = proxy(requestFor("http://localhost:3000/llms.txt"));
+    const llms = await proxy(requestFor("http://localhost:3000/llms.txt"));
     expect(llms.status).toBe(200);
     expect(rewrittenUrl(llms)).toBeNull();
   });
 
-  it("does not rewrite tenant /pricing or /contact to marketing", () => {
-    const pricing = proxy(
+  it("does not rewrite tenant /pricing or /contact to marketing", async () => {
+    const pricing = await proxy(
       requestFor("http://demodental.localhost:3000/pricing")
     );
     expect(rewrittenUrl(pricing)?.pathname).toBe("/_sites/demodental/pricing");
 
-    const contact = proxy(
+    const contact = await proxy(
       requestFor("http://demodental.localhost:3000/contact")
     );
     expect(rewrittenUrl(contact)?.pathname).toBe("/_sites/demodental/contact");
   });
 
-  it("does not rewrite staff /pricing or /contact to marketing", () => {
-    const pricing = proxy(requestFor("http://app.localhost:3000/pricing"));
+  it("does not rewrite staff /pricing or /contact to marketing", async () => {
+    const pricing = await proxy(
+      requestFor("http://app.localhost:3000/pricing")
+    );
     expect(pricing.status).toBe(200);
     expect(rewrittenUrl(pricing)).toBeNull();
 
-    const contact = proxy(requestFor("http://app.localhost:3000/contact"));
+    const contact = await proxy(
+      requestFor("http://app.localhost:3000/contact")
+    );
     expect(contact.status).toBe(200);
     expect(rewrittenUrl(contact)).toBeNull();
   });
 
-  it("rewrites unknown marketing pages so Next.js can render a branded 404", () => {
-    const response = proxy(
+  it("rewrites unknown marketing pages so Next.js can render a branded 404", async () => {
+    const response = await proxy(
       requestFor("http://localhost:3000/this-does-not-exist")
     );
     expect(response.status).toBe(200);
@@ -246,103 +266,120 @@ describe("proxy", () => {
     );
   });
 
-  it("lets the app staff host reach /api/health and blocks it elsewhere", () => {
-    const staff = proxy(requestFor("http://app.localhost:3000/api/health"));
+  it("lets the app staff host reach /api/health and blocks it elsewhere", async () => {
+    const staff = await proxy(
+      requestFor("http://app.localhost:3000/api/health")
+    );
     expect(staff.status).toBe(200);
     expect(rewrittenUrl(staff)).toBeNull();
 
-    expect(proxy(requestFor("http://localhost:3000/api/health")).status).toBe(
-      404
-    );
     expect(
-      proxy(requestFor("http://demodental.localhost:3000/api/health")).status
+      (await proxy(requestFor("http://localhost:3000/api/health"))).status
+    ).toBe(404);
+    expect(
+      (await proxy(requestFor("http://demodental.localhost:3000/api/health")))
+        .status
     ).toBe(404);
   });
 
-  it("lets the app staff host reach /api/stripe/webhook and blocks it elsewhere", () => {
-    const staff = proxy(
+  it("lets the app staff host reach /api/stripe/webhook and blocks it elsewhere", async () => {
+    const staff = await proxy(
       requestFor("http://app.localhost:3000/api/stripe/webhook")
     );
     expect(staff.status).toBe(200);
     expect(rewrittenUrl(staff)).toBeNull();
 
     expect(
-      proxy(requestFor("http://localhost:3000/api/stripe/webhook")).status
+      (await proxy(requestFor("http://localhost:3000/api/stripe/webhook")))
+        .status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://demodental.localhost:3000/api/stripe/webhook"))
-        .status
+      (
+        await proxy(
+          requestFor("http://demodental.localhost:3000/api/stripe/webhook")
+        )
+      ).status
     ).toBe(404);
   });
 
-  it("lets the app staff host pass through", () => {
-    const response = proxy(requestFor("http://app.localhost:3000/login"));
+  it("lets the app staff host pass through", async () => {
+    const response = await proxy(requestFor("http://app.localhost:3000/login"));
     expect(response.status).toBe(200);
     expect(rewrittenUrl(response)).toBeNull();
 
-    const loginApi = proxy(
+    const loginApi = await proxy(
       requestFor("http://app.localhost:3000/api/auth/login")
     );
     expect(loginApi.status).toBe(200);
     expect(rewrittenUrl(loginApi)).toBeNull();
 
-    const themeSync = proxy(
+    const themeSync = await proxy(
       requestFor("http://app.localhost:3000/api/ui-theme?preference=dark")
     );
     expect(themeSync.status).toBe(200);
     expect(rewrittenUrl(themeSync)).toBeNull();
 
     expect(
-      proxy(requestFor("http://app.localhost:3000/forgot-password")).status
+      (await proxy(requestFor("http://app.localhost:3000/forgot-password")))
+        .status
     ).toBe(200);
     expect(
-      proxy(requestFor("http://app.localhost:3000/reset-password")).status
+      (await proxy(requestFor("http://app.localhost:3000/reset-password")))
+        .status
     ).toBe(200);
     expect(
-      proxy(requestFor("http://app.localhost:3000/account/security")).status
+      (await proxy(requestFor("http://app.localhost:3000/account/security")))
+        .status
     ).toBe(200);
     expect(
-      proxy(requestFor("http://app.localhost:3000/accept-invitation")).status
+      (await proxy(requestFor("http://app.localhost:3000/accept-invitation")))
+        .status
     ).toBe(200);
     expect(
-      proxy(requestFor("http://app.localhost:3000/confirm-email-change")).status
+      (
+        await proxy(
+          requestFor("http://app.localhost:3000/confirm-email-change")
+        )
+      ).status
     ).toBe(200);
     expect(
-      proxy(requestFor("http://app.localhost:3000/operator/clinics")).status
+      (await proxy(requestFor("http://app.localhost:3000/operator/clinics")))
+        .status
     ).toBe(200);
   });
 
-  it("lets the app staff homepage pass through", () => {
-    const response = proxy(requestFor("http://app.localhost:3000/"));
+  it("lets the app staff homepage pass through", async () => {
+    const response = await proxy(requestFor("http://app.localhost:3000/"));
     expect(response.status).toBe(200);
     expect(rewrittenUrl(response)).toBeNull();
   });
 
-  it("blocks direct /_sites access on the marketing host", () => {
-    const response = proxy(
+  it("blocks direct /_sites access on the marketing host", async () => {
+    const response = await proxy(
       requestFor("http://localhost:3000/_sites/demodental/extraction")
     );
     expect(response.status).toBe(404);
     expect(rewrittenUrl(response)).toBeNull();
   });
 
-  it("blocks direct /_marketing access on every public host", () => {
-    expect(proxy(requestFor("http://localhost:3000/_marketing")).status).toBe(
-      404
-    );
+  it("blocks direct /_marketing access on every public host", async () => {
     expect(
-      proxy(requestFor("http://app.localhost:3000/_marketing")).status
+      (await proxy(requestFor("http://localhost:3000/_marketing"))).status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://demodental.localhost:3000/_marketing")).status
+      (await proxy(requestFor("http://app.localhost:3000/_marketing"))).status
     ).toBe(404);
-    expect(proxy(requestFor("http://localhost:3000/%5Fmarketing")).status).toBe(
-      404
-    );
+    expect(
+      (await proxy(requestFor("http://demodental.localhost:3000/_marketing")))
+        .status
+    ).toBe(404);
+    expect(
+      (await proxy(requestFor("http://localhost:3000/%5Fmarketing"))).status
+    ).toBe(404);
   });
 
-  it("blocks /_sites on a tenant host without revealing the namespace", () => {
-    const response = proxy(
+  it("blocks /_sites on a tenant host without revealing the namespace", async () => {
+    const response = await proxy(
       requestFor(
         "http://demodental.localhost:3000/_sites/demodental/extraction"
       )
@@ -352,90 +389,124 @@ describe("proxy", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
-  it("blocks tenant /login", () => {
-    const response = proxy(
+  it("blocks tenant /login", async () => {
+    const response = await proxy(
       requestFor("http://demodental.localhost:3000/login")
     );
     expect(response.status).toBe(404);
     expect(
-      proxy(requestFor("http://demodental.localhost:3000/api/auth/login"))
+      (
+        await proxy(
+          requestFor("http://demodental.localhost:3000/api/auth/login")
+        )
+      ).status
+    ).toBe(404);
+    expect(
+      (await proxy(requestFor("http://demodental.localhost:3000/api/ui-theme")))
         .status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://demodental.localhost:3000/api/ui-theme")).status
+      (
+        await proxy(
+          requestFor("http://demodental.localhost:3000/forgot-password")
+        )
+      ).status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://demodental.localhost:3000/forgot-password"))
+      (
+        await proxy(
+          requestFor("http://demodental.localhost:3000/reset-password")
+        )
+      ).status
+    ).toBe(404);
+    expect(
+      (
+        await proxy(
+          requestFor("http://demodental.localhost:3000/account/security")
+        )
+      ).status
+    ).toBe(404);
+    expect(
+      (
+        await proxy(
+          requestFor("http://demodental.localhost:3000/accept-invitation")
+        )
+      ).status
+    ).toBe(404);
+    expect(
+      (
+        await proxy(
+          requestFor("http://demodental.localhost:3000/confirm-email-change")
+        )
+      ).status
+    ).toBe(404);
+    expect(
+      (
+        await proxy(
+          requestFor("http://demodental.localhost:3000/operator/clinics")
+        )
+      ).status
+    ).toBe(404);
+  });
+
+  it("blocks tenant /dashboard and /guides", async () => {
+    expect(
+      (await proxy(requestFor("http://demodental.localhost:3000/dashboard")))
         .status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://demodental.localhost:3000/reset-password"))
-        .status
-    ).toBe(404);
-    expect(
-      proxy(requestFor("http://demodental.localhost:3000/account/security"))
-        .status
-    ).toBe(404);
-    expect(
-      proxy(requestFor("http://demodental.localhost:3000/accept-invitation"))
-        .status
-    ).toBe(404);
-    expect(
-      proxy(requestFor("http://demodental.localhost:3000/confirm-email-change"))
-        .status
-    ).toBe(404);
-    expect(
-      proxy(requestFor("http://demodental.localhost:3000/operator/clinics"))
+      (await proxy(requestFor("http://demodental.localhost:3000/guides")))
         .status
     ).toBe(404);
   });
 
-  it("blocks tenant /dashboard and /guides", () => {
-    expect(
-      proxy(requestFor("http://demodental.localhost:3000/dashboard")).status
-    ).toBe(404);
-    expect(
-      proxy(requestFor("http://demodental.localhost:3000/guides")).status
-    ).toBe(404);
-  });
-
-  it("blocks tenant /display/<token>", () => {
-    const response = proxy(
+  it("blocks tenant /display/<token>", async () => {
+    const response = await proxy(
       requestFor("http://demodental.localhost:3000/display/abc123")
     );
     expect(response.status).toBe(404);
   });
 
-  it("blocks tenant /session and /sessions paths", () => {
+  it("blocks tenant /session and /sessions paths", async () => {
     expect(
-      proxy(requestFor("http://demodental.localhost:3000/sessions/new")).status
+      (await proxy(requestFor("http://demodental.localhost:3000/sessions/new")))
+        .status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://demodental.localhost:3000/session/abc/control"))
-        .status
+      (
+        await proxy(
+          requestFor("http://demodental.localhost:3000/session/abc/control")
+        )
+      ).status
     ).toBe(404);
   });
 
-  it("blocks encoded /_sites access", () => {
-    const response = proxy(
+  it("blocks encoded /_sites access", async () => {
+    const response = await proxy(
       requestFor("http://app.localhost:3000/%5Fsites/demodental/extraction")
     );
     expect(response.status).toBe(404);
   });
 
-  it("blocks tenant staff routes after resolving parent-path segments", () => {
+  it("blocks tenant staff routes after resolving parent-path segments", async () => {
     expect(
-      proxy(requestFor("http://demodental.localhost:3000/../../../dashboard"))
-        .status
+      (
+        await proxy(
+          requestFor("http://demodental.localhost:3000/../../../dashboard")
+        )
+      ).status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://demodental.localhost:3000/extraction/../login"))
-        .status
+      (
+        await proxy(
+          requestFor("http://demodental.localhost:3000/extraction/../login")
+        )
+      ).status
     ).toBe(404);
   });
 
-  it("rewrites tenant paths after resolving parent-path segments", () => {
-    const response = proxy(
+  it("rewrites tenant paths after resolving parent-path segments", async () => {
+    const response = await proxy(
       requestFor("http://demodental.localhost:3000/foo/../extraction")
     );
     expect(rewrittenUrl(response)?.pathname).toBe(
@@ -443,8 +514,8 @@ describe("proxy", () => {
     );
   });
 
-  it("does not trust a forged tenant header", () => {
-    const response = proxy(
+  it("does not trust a forged tenant header", async () => {
+    const response = await proxy(
       requestFor("http://unknown.localhost:3000/extraction", {
         "x-care-guide-tenant": "demodental",
         "x-tenant": "demodental",
@@ -454,30 +525,33 @@ describe("proxy", () => {
     expect(rewritten?.pathname).toBe("/_sites/unknown/extraction");
   });
 
-  it("returns 404 for unrelated and suffix-spoof hosts", () => {
-    expect(proxy(requestFor("http://evil.example/extraction")).status).toBe(
-      404
-    );
+  it("returns 404 for unrelated and suffix-spoof hosts", async () => {
     expect(
-      proxy(requestFor("http://demodental.localhost.evil.example/extraction"))
-        .status
+      (await proxy(requestFor("http://evil.example/extraction"))).status
+    ).toBe(404);
+    expect(
+      (
+        await proxy(
+          requestFor("http://demodental.localhost.evil.example/extraction")
+        )
+      ).status
     ).toBe(404);
   });
 
-  it("does not treat assets as a tenant host", () => {
-    const homepage = proxy(requestFor("http://assets.localhost:3000/"));
+  it("does not treat assets as a tenant host", async () => {
+    const homepage = await proxy(requestFor("http://assets.localhost:3000/"));
     expect(homepage.status).toBe(404);
     expect(rewrittenUrl(homepage)).toBeNull();
 
-    const otherPath = proxy(
+    const otherPath = await proxy(
       requestFor("http://assets.localhost:3000/extraction")
     );
     expect(otherPath.status).toBe(404);
     expect(rewrittenUrl(otherPath)).toBeNull();
   });
 
-  it("lets the reserved assets host serve exact platform SEO object paths", () => {
-    const response = proxy(
+  it("lets the reserved assets host serve exact platform SEO object paths", async () => {
+    const response = await proxy(
       requestFor(
         "http://assets.localhost:3000/platform/seo/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
       )
@@ -486,20 +560,22 @@ describe("proxy", () => {
     expect(rewrittenUrl(response)).toBeNull();
   });
 
-  it("does not list platform SEO prefixes on the assets host", () => {
+  it("does not list platform SEO prefixes on the assets host", async () => {
     expect(
-      proxy(requestFor("http://assets.localhost:3000/platform")).status
+      (await proxy(requestFor("http://assets.localhost:3000/platform"))).status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://assets.localhost:3000/platform/seo")).status
+      (await proxy(requestFor("http://assets.localhost:3000/platform/seo")))
+        .status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://assets.localhost:3000/platform/seo/")).status
+      (await proxy(requestFor("http://assets.localhost:3000/platform/seo/")))
+        .status
     ).toBe(404);
   });
 
-  it("lets the reserved assets host serve exact branding object paths", () => {
-    const response = proxy(
+  it("lets the reserved assets host serve exact branding object paths", async () => {
+    const response = await proxy(
       requestFor(
         "http://assets.localhost:3000/clinics/clinic_a/branding/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
       )
@@ -508,36 +584,43 @@ describe("proxy", () => {
     expect(rewrittenUrl(response)).toBeNull();
   });
 
-  it("does not list branding prefixes on the assets host", () => {
+  it("does not list branding prefixes on the assets host", async () => {
     expect(
-      proxy(requestFor("http://assets.localhost:3000/clinics")).status
+      (await proxy(requestFor("http://assets.localhost:3000/clinics"))).status
     ).toBe(404);
     expect(
-      proxy(requestFor("http://assets.localhost:3000/clinics/clinic_a")).status
+      (await proxy(requestFor("http://assets.localhost:3000/clinics/clinic_a")))
+        .status
     ).toBe(404);
     expect(
-      proxy(
-        requestFor("http://assets.localhost:3000/clinics/clinic_a/branding")
+      (
+        await proxy(
+          requestFor("http://assets.localhost:3000/clinics/clinic_a/branding")
+        )
       ).status
     ).toBe(404);
     expect(
-      proxy(
-        requestFor("http://assets.localhost:3000/clinics/clinic_a/branding/")
-      ).status
-    ).toBe(404);
-  });
-
-  it("still 404s branding paths on other reserved hosts", () => {
-    expect(
-      proxy(
-        requestFor(
-          "http://cdn.localhost:3000/clinics/clinic_a/branding/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
+      (
+        await proxy(
+          requestFor("http://assets.localhost:3000/clinics/clinic_a/branding/")
         )
       ).status
     ).toBe(404);
   });
 
-  it("excludes framework static assets from the matcher", () => {
+  it("still 404s branding paths on other reserved hosts", async () => {
+    expect(
+      (
+        await proxy(
+          requestFor(
+            "http://cdn.localhost:3000/clinics/clinic_a/branding/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png"
+          )
+        )
+      ).status
+    ).toBe(404);
+  });
+
+  it("excludes framework static assets from the matcher", async () => {
     const matchers = Array.isArray(config.matcher)
       ? config.matcher
       : [config.matcher];
@@ -550,7 +633,7 @@ describe("proxy", () => {
     expect(source).toContain("webmanifest");
   });
 
-  it("does not run hostname proxy for public static file extensions", () => {
+  it("does not run hostname proxy for public static file extensions", async () => {
     expect(proxyMatcherMatches("/_next/static/chunks/main.js")).toBe(false);
     expect(proxyMatcherMatches("/_next/image")).toBe(false);
     expect(proxyMatcherMatches("/favicon.ico")).toBe(false);
@@ -577,7 +660,7 @@ describe("proxy", () => {
     ).toBe(false);
   });
 
-  it("still matches application routes, including names with dots that are not static files", () => {
+  it("still matches application routes, including names with dots that are not static files", async () => {
     expect(proxyMatcherMatches("/")).toBe(true);
     expect(proxyMatcherMatches("/extraction")).toBe(true);
     expect(proxyMatcherMatches("/login")).toBe(true);
@@ -588,22 +671,22 @@ describe("proxy", () => {
     expect(proxyMatcherMatches("/foo.bar")).toBe(true);
   });
 
-  it("would rewrite webmanifest on marketing and tenant hosts if the matcher ran", () => {
-    const marketing = proxy(
+  it("would rewrite webmanifest on marketing and tenant hosts if the matcher ran", async () => {
+    const marketing = await proxy(
       requestFor("http://localhost:3000/favicons/site.webmanifest")
     );
     expect(rewrittenUrl(marketing)?.pathname).toBe(
       "/_marketing/favicons/site.webmanifest"
     );
 
-    const tenant = proxy(
+    const tenant = await proxy(
       requestFor("http://demodental.localhost:3000/favicons/site.webmanifest")
     );
     expect(rewrittenUrl(tenant)?.pathname).toBe(
       "/_sites/demodental/favicons/site.webmanifest"
     );
 
-    const staff = proxy(
+    const staff = await proxy(
       requestFor("http://app.localhost:3000/favicons/site.webmanifest")
     );
     expect(staff.status).toBe(200);

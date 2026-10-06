@@ -1,3 +1,4 @@
+import { isOwnedClinicBrandingKey } from "@/lib/clinic-assets/clinic-logo";
 import type {
   ClinicAssetStorage,
   ClinicLogoReadResult,
@@ -55,6 +56,14 @@ export function createMemoryClinicAssetStorage(): ClinicAssetStorage {
       return {
         contentLength: stored.bytes.byteLength,
       };
+    },
+
+    async listOwnedBrandingKeys(clinicId) {
+      const prefix = `clinics/${clinicId}/branding/`;
+      return [...store.keys()].filter(
+        (key) =>
+          isOwnedClinicBrandingKey(clinicId, key) && key.startsWith(prefix)
+      );
     },
 
     getPublicLogoUrl(input) {

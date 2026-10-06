@@ -35,6 +35,7 @@ import {
   findOpenAccountSplitPreparation,
 } from "@/lib/account-split/snapshot";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { redirectIfClinicPermanentlyDeleted } from "@/lib/operator/redirect-permanently-deleted-clinic";
 import { getPrisma } from "@/lib/prisma";
 
 interface SplitPageProps {
@@ -50,6 +51,7 @@ export default async function AccountSplitPreparationPage({
 }: SplitPageProps) {
   await requireAccountSplitOperator();
   const { clinicId } = await params;
+  await redirectIfClinicPermanentlyDeleted(clinicId);
   const clinic = await getPrisma().clinic.findUnique({
     where: { id: clinicId },
     select: {

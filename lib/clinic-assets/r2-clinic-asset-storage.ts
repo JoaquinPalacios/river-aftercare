@@ -4,6 +4,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
   type S3ClientConfig,
@@ -185,6 +186,34 @@ export function createR2ClinicAssetStorage(options?: {
         });
         return null;
       }
+    },
+
+    async listOwnedBrandingKeys(clinicId) {
+      const prefix = `clinics/${clinicId}/branding/`;
+      const keys: string[] = [];
+      let continuationToken: string | undefined;
+      do {
+        const result = await client.send(
+          new ListObjectsV2Command({
+            Bucket: config.bucket,
+            Prefix: prefix,
+            ContinuationToken: continuationToken,
+          })
+        );
+        for (const object of result.Contents ?? []) {
+          if (
+            object.Key &&
+            object.Key.startsWith(prefix) &&
+            !object.Key.includes("..")
+          ) {
+            keys.push(object.Key);
+          }
+        }
+        continuationToken = result.IsTruncated
+          ? result.NextContinuationToken
+          : undefined;
+      } while (continuationToken);
+      return keys;
     },
 
     getPublicLogoUrl(input) {

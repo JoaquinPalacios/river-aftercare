@@ -12,6 +12,8 @@ import {
 } from "@/lib/clinic-assets/config";
 import { clinicAssetErrorClass } from "@/lib/clinic-assets/errors";
 import { getClinicAssetStorage } from "@/lib/clinic-assets/get-clinic-asset-storage";
+import { RETIRED_TENANT_CACHE_CONTROL } from "@/lib/aftercare/retired-tenant-http";
+import { getPrisma } from "@/lib/prisma";
 
 export const CLINIC_LOGO_RESPONSE_HEADERS = {
   "X-Content-Type-Options": "nosniff",
@@ -36,6 +38,56 @@ function clinicLogoContentType(mimeType: string): string {
 
 export function emptyClinicLogoResponse(): NextResponse {
   return new NextResponse(null, { status: 404 });
+}
+
+function permanentlyDeletedLogoResponse(): NextResponse {
+  return new NextResponse(null, {
+    status: 404,
+    headers: {
+      "Cache-Control": RETIRED_TENANT_CACHE_CONTROL,
+      "X-Robots-Tag": "noindex",
+    },
+  });
+}
+
+/**
+ * Unit tests and local `next dev` can serve a clinic logo without a database.
+ * Production and any Vercel runtime cannot. A lookup error also refuses the
+ * object so a permanently deleted clinic is not served by accident.
+ */
+function clinicBrandingLookupMaySkipDatabase(): boolean {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    !process.env.VERCEL &&
+    !process.env.VERCEL_ENV &&
+    !process.env.DATABASE_URL
+  );
+}
+
+async function clinicOwnedBrandingIsUnavailable(
+  clinicId: string
+): Promise<boolean> {
+  if (clinicBrandingLookupMaySkipDatabase()) {
+    return false;
+  }
+  if (!process.env.DATABASE_URL) {
+    console.warn("[clinic-assets]", "deleted_clinic_branding_check_failed", {
+      class: "missing_database",
+    });
+    return true;
+  }
+  try {
+    const clinic = await getPrisma().clinic.findUnique({
+      where: { id: clinicId },
+      select: { permanentlyDeletedAt: true },
+    });
+    return clinic?.permanentlyDeletedAt != null;
+  } catch (error) {
+    console.warn("[clinic-assets]", "deleted_clinic_branding_check_failed", {
+      class: clinicAssetErrorClass(error),
+    });
+    return true;
+  }
 }
 
 function clinicLogoResponse(input: {
@@ -142,6 +194,10 @@ export async function serveClinicLogo(input: {
       )
     ) {
       return emptyClinicLogoResponse();
+    }
+
+    if (await clinicOwnedBrandingIsUnavailable(input.clinicId)) {
+      return permanentlyDeletedLogoResponse();
     }
 
     const headers =

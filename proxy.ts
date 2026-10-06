@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { isClinicBrandingPublicPath } from "@/lib/clinic-assets/clinic-logo";
+import { retiredTenantProxyResponse } from "@/lib/tenancy/retired-tenant-proxy";
 import { isPlatformSeoPublicPath } from "@/lib/platform-assets/platform-seo-image";
 import { parseHostname } from "@/lib/tenancy/parse-hostname";
 import {
@@ -46,7 +47,7 @@ function tenantRewriteHeaders(request: NextRequest): Headers {
   return headers;
 }
 
-export function proxy(request: NextRequest): NextResponse {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   const pathname = normalizePathname(request.nextUrl.pathname);
 
   if (isInternalAppPath(pathname)) {
@@ -102,6 +103,19 @@ export function proxy(request: NextRequest): NextResponse {
 
   if (isStaffPath(pathname) || pathname === BILLING_NOTICE_CRON_PATH) {
     return notFound();
+  }
+
+  if (classification.kind === "tenant") {
+    try {
+      const retired = await retiredTenantProxyResponse(classification.slug);
+      if (retired) {
+        return retired;
+      }
+    } catch (error) {
+      console.warn("[tenancy] retired_tenant_lookup_failed", {
+        name: error instanceof Error ? error.name : "Error",
+      });
+    }
   }
 
   const url = request.nextUrl.clone();

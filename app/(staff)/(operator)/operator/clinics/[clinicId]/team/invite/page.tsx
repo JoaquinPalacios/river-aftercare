@@ -6,6 +6,7 @@ import { InviteUserForm } from "@/app/(staff)/(operator)/operator/clinics/[clini
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
+import { redirectIfClinicPermanentlyDeleted } from "@/lib/operator/redirect-permanently-deleted-clinic";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
 import { assistedClinicNeedsCommercialSetup } from "@/lib/operator/clinic-onboarding";
@@ -22,6 +23,7 @@ export const metadata: Metadata = {
 export default async function InviteUserPage({ params }: InviteUserPageProps) {
   await requirePlatformOperator();
   const { clinicId } = await params;
+  await redirectIfClinicPermanentlyDeleted(clinicId);
   const [clinic, allowance, needsCommercialSetup] = await Promise.all([
     getOperatorClinic(clinicId),
     loadTeamAllowance(clinicId),

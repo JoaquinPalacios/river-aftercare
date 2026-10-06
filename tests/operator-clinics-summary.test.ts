@@ -43,6 +43,31 @@ describe("operator clinic summary", () => {
     const inactive = selectOperatorClinicActivity(clinics, "inactive");
     expect(active.map((clinic) => clinic.id)).toEqual(["active"]);
     expect(inactive.map((clinic) => clinic.id)).toEqual(["inactive"]);
+    const withRetired = [
+      ...clinics,
+      {
+        id: "retired",
+        inactive: false,
+        permanentlyDeleted: true,
+        publishedGuideCount: 9,
+        setupLabel: "Configured",
+      },
+    ];
+    expect(
+      selectOperatorClinicActivity(withRetired, "active").map(
+        (clinic) => clinic.id
+      )
+    ).toEqual(["active"]);
+    expect(
+      selectOperatorClinicActivity(withRetired, "inactive").map(
+        (clinic) => clinic.id
+      )
+    ).toEqual(["inactive"]);
+    expect(
+      selectOperatorClinicActivity(withRetired, "retired").map(
+        (clinic) => clinic.id
+      )
+    ).toEqual(["retired"]);
     expect(summarizeOperatorClinics(active)).toEqual({
       totalClinics: 1,
       configuredClinics: 0,

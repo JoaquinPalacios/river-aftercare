@@ -31,9 +31,9 @@ export async function startOperatorClinicSupportAction(formData: FormData) {
 
   const clinic = await getPrisma().clinic.findUnique({
     where: { id: clinicId },
-    select: { id: true },
+    select: { id: true, permanentlyDeletedAt: true },
   });
-  if (!clinic) {
+  if (!clinic || clinic.permanentlyDeletedAt) {
     notFound();
   }
 
