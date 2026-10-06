@@ -37,13 +37,23 @@ export async function deactivateClinic(input: {
   clinicId: string;
   operatorUserId: string;
   now?: Date;
+  /**
+   * Test seam. Runs after this clinic's structure lock and split lock,
+   * before the open-split re-read and the deactivation write.
+   */
+  afterLocks?: () => Promise<void> | void;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const now = input.now ?? new Date();
-  return getPrisma().$transaction(async (tx) => {
+  const deactivate = async (
+    tx: Parameters<typeof lockClinicAccountStructure>[0]
+  ): Promise<{ ok: true } | { ok: false; error: string }> => {
     await lockClinicAccountStructure(tx, input.clinicId);
     await lockAccountSplit(tx, input.clinicId);
+    if (input.afterLocks) {
+      await input.afterLocks();
+    }
     if (!(await operatorMayChangeClinicStatus(input.operatorUserId, tx))) {
-      return { ok: false, error: CLINIC_STATUS_OPERATOR_MESSAGE };
+      return { ok: false as const, error: CLINIC_STATUS_OPERATOR_MESSAGE };
     }
 
     const clinic = await tx.clinic.findUnique({
@@ -80,7 +90,14 @@ export async function deactivateClinic(input: {
     });
 
     return { ok: true };
-  });
+  };
+  if (input.afterLocks) {
+    return getPrisma().$transaction(deactivate, {
+      maxWait: 10_000,
+      timeout: 20_000,
+    });
+  }
+  return getPrisma().$transaction(deactivate);
 }
 
 /**

@@ -264,7 +264,8 @@ function refusal(
  *
  * A pristine clinic cannot become a split destination under the current
  * rules: `selectExistingGroupDestination` requires a Group entitlement, and
- * that entitlement write takes this structure lock. New destination shells
+ * that selection locks this clinic's structure lock before its split lock.
+ * New destination shells
  * are created with `assistedOnboarding` false. Source preparation inserts
  * take this same split lock and also require a Group account with more than
  * one site, or a Practice non-root location, so they cannot land on a

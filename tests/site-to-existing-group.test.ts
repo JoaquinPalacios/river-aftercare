@@ -53,6 +53,11 @@ import {
   resetClinicAssetStorageCache,
 } from "@/lib/clinic-assets/get-clinic-asset-storage";
 import { resetMemoryClinicAssetStorage } from "@/lib/clinic-assets/memory-clinic-asset-storage";
+import {
+  CLINIC_DEACTIVATION_SPLIT_MESSAGE,
+  deactivateClinic,
+} from "@/lib/clinics/clinic-deactivation";
+import { clinicAccountStructureLockKey } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 
 const PREFIX = "stg_";
@@ -67,6 +72,30 @@ function deferred() {
     resolve = done;
   });
   return { promise, resolve };
+}
+
+async function waitForAdvisoryWaiter(lockKey: string): Promise<void> {
+  const started = Date.now();
+  while (Date.now() - started < 8_000) {
+    const rows = await getPrisma().$queryRaw<
+      Array<{ granted: number; waiting: number }>
+    >`
+      SELECT
+        COALESCE(SUM(CASE WHEN l.granted THEN 1 ELSE 0 END), 0)::int AS granted,
+        COALESCE(SUM(CASE WHEN NOT l.granted THEN 1 ELSE 0 END), 0)::int AS waiting
+      FROM pg_locks l
+      WHERE l.locktype = 'advisory'
+        AND l.objsubid = 1
+        AND ((l.classid::bigint << 32) | l.objid::bigint) = hashtext(${lockKey})::bigint
+    `;
+    const granted = Number(rows[0]?.granted ?? 0);
+    const waiting = Number(rows[0]?.waiting ?? 0);
+    if (granted >= 1 && waiting >= 1) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error(`No session was waiting on ${lockKey}.`);
 }
 
 async function cleanup() {
@@ -2127,6 +2156,140 @@ describe("move site to existing group", () => {
       })
     ).not.toBeNull();
   });
+
+  it("lets destination selection or destination deactivation win, and never both", async () => {
+    const selectionFirstSource = await seedGroup("selwin");
+    const selectionFirstDestination = await seedGroup("selwind", {
+      sites: [{ key: "home", primary: true }],
+    });
+    const selectionFirstId = await openMove({ source: selectionFirstSource });
+    const selectionRelease = deferred();
+    const selectionHolding = deferred();
+    const selection = selectExistingGroupDestination({
+      preparationId: selectionFirstId,
+      destinationClinicId: selectionFirstDestination.clinicId,
+      afterLocks: async () => {
+        selectionHolding.resolve();
+        await selectionRelease.promise;
+      },
+    });
+    await selectionHolding.promise;
+    const selectionDeactivation = deactivateClinic({
+      clinicId: selectionFirstDestination.clinicId,
+      operatorUserId: selectionFirstDestination.operatorId,
+    });
+    await waitForAdvisoryWaiter(
+      clinicAccountStructureLockKey(selectionFirstDestination.clinicId)
+    );
+    selectionRelease.resolve();
+    await selection;
+    expect(await selectionDeactivation).toEqual({
+      ok: false,
+      error: CLINIC_DEACTIVATION_SPLIT_MESSAGE,
+    });
+    expect(
+      await db().clinicAccountSplitPreparation.findUnique({
+        where: { id: selectionFirstId },
+        select: { destinationClinicId: true, status: true },
+      })
+    ).toMatchObject({
+      destinationClinicId: selectionFirstDestination.clinicId,
+    });
+    expect(
+      await db().clinic.findUnique({
+        where: { id: selectionFirstDestination.clinicId },
+        select: { deactivatedAt: true },
+      })
+    ).toEqual({ deactivatedAt: null });
+
+    const deactivationFirstSource = await seedGroup("deactwin");
+    const deactivationFirstDestination = await seedGroup("deactwind", {
+      sites: [{ key: "home", primary: true }],
+    });
+    const deactivationFirstId = await openMove({
+      source: deactivationFirstSource,
+    });
+    const deactivationRelease = deferred();
+    const deactivationHolding = deferred();
+    const deactivation = deactivateClinic({
+      clinicId: deactivationFirstDestination.clinicId,
+      operatorUserId: deactivationFirstDestination.operatorId,
+      afterLocks: async () => {
+        deactivationHolding.resolve();
+        await deactivationRelease.promise;
+      },
+    });
+    await deactivationHolding.promise;
+    const refusedSelection = selectExistingGroupDestination({
+      preparationId: deactivationFirstId,
+      destinationClinicId: deactivationFirstDestination.clinicId,
+    });
+    await waitForAdvisoryWaiter(
+      clinicAccountStructureLockKey(deactivationFirstDestination.clinicId)
+    );
+    deactivationRelease.resolve();
+    expect(await deactivation).toEqual({ ok: true });
+    await expect(refusedSelection).rejects.toThrow(
+      /Reactivate that clinic before choosing it as a destination/
+    );
+    expect(
+      await db().clinicAccountSplitPreparation.findUnique({
+        where: { id: deactivationFirstId },
+        select: { destinationClinicId: true },
+      })
+    ).toEqual({ destinationClinicId: null });
+    expect(
+      await db().clinic.findUnique({
+        where: { id: deactivationFirstDestination.clinicId },
+        select: { deactivatedAt: true },
+      })
+    ).toMatchObject({ deactivatedAt: expect.any(Date) });
+
+    const racedSource = await seedGroup("bothwin");
+    const racedDestination = await seedGroup("bothwind", {
+      sites: [{ key: "home", primary: true }],
+    });
+    const racedId = await openMove({ source: racedSource });
+    const [racedSelection, racedDeactivation] = await Promise.all([
+      selectExistingGroupDestination({
+        preparationId: racedId,
+        destinationClinicId: racedDestination.clinicId,
+      }).then(
+        () => ({ ok: true as const }),
+        (error: unknown) => error
+      ),
+      deactivateClinic({
+        clinicId: racedDestination.clinicId,
+        operatorUserId: racedDestination.operatorId,
+      }),
+    ]);
+    const selectionWon =
+      typeof racedSelection === "object" &&
+      racedSelection !== null &&
+      "ok" in racedSelection &&
+      racedSelection.ok === true;
+    expect(selectionWon && racedDeactivation.ok).toBe(false);
+    const racedRow = await db().clinic.findUniqueOrThrow({
+      where: { id: racedDestination.clinicId },
+      select: { deactivatedAt: true },
+    });
+    const racedPreparation =
+      await db().clinicAccountSplitPreparation.findUniqueOrThrow({
+        where: { id: racedId },
+        select: { destinationClinicId: true },
+      });
+    if (selectionWon) {
+      expect(racedDeactivation.ok).toBe(false);
+      expect(racedPreparation.destinationClinicId).toBe(
+        racedDestination.clinicId
+      );
+      expect(racedRow.deactivatedAt).toBeNull();
+    } else {
+      expect(racedDeactivation.ok).toBe(true);
+      expect(racedPreparation.destinationClinicId).toBeNull();
+      expect(racedRow.deactivatedAt).not.toBeNull();
+    }
+  }, 20_000);
 
   it("does not enable a new Group destination or Group Checkout", () => {
     const actions = readFileSync(

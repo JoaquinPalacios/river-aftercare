@@ -852,6 +852,50 @@ describeDb("reversible clinic deactivation", () => {
     ).toEqual({ deactivatedAt: null });
   });
 
+  it("refuses deactivation when an open split names the clinic as destination", async () => {
+    const source = await fresh(`${PREFIX}src-open`, "Cdea Open Source");
+    const destination = await fresh(`${PREFIX}dst-open`, "Cdea Open Dest");
+    const sourceSite = await db().clinicSite.findFirstOrThrow({
+      where: { clinicId: source.id, isPrimary: true },
+    });
+    await db().clinicAccountSplitPreparation.create({
+      data: {
+        sourceClinicId: source.id,
+        destinationClinicId: destination.id,
+        keptClinicSiteId: sourceSite.id,
+        destinationPlan: CommercialPlan.GROUP,
+        destinationBillingInterval: BillingInterval.MONTHLY,
+        preparedByUserId: OPERATOR_ID,
+        status: "DESTINATION_READY",
+        operationKind: "SITE_TO_EXISTING_GROUP",
+      },
+    });
+    expect(
+      await deactivateClinic({
+        clinicId: destination.id,
+        operatorUserId: OPERATOR_ID,
+      })
+    ).toEqual({ ok: false, error: CLINIC_DEACTIVATION_SPLIT_MESSAGE });
+    expect(
+      await deactivateClinic({
+        clinicId: source.id,
+        operatorUserId: OPERATOR_ID,
+      })
+    ).toEqual({ ok: false, error: CLINIC_DEACTIVATION_SPLIT_MESSAGE });
+    expect(
+      await db().clinic.findUnique({
+        where: { id: destination.id },
+        select: { deactivatedAt: true },
+      })
+    ).toEqual({ deactivatedAt: null });
+    expect(
+      await db().clinic.findUnique({
+        where: { id: source.id },
+        select: { deactivatedAt: true },
+      })
+    ).toEqual({ deactivatedAt: null });
+  });
+
   it("still discards a pristine clinic and refuses a deactivated real clinic", async () => {
     const pristine = await fresh(`${PREFIX}pristine`, "Cdea Pristine");
     expect(await discardAssistedClinic(pristine.id)).toEqual({ ok: true });

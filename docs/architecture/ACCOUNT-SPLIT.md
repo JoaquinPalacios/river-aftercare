@@ -137,6 +137,8 @@ Reads, page rendering, dry-run preview, patient GETs, marketing pages, and email
 
 Preparation create, site decisions, staff selections, shell creation, cancel, and readiness recalculation keep `clinic-account-split:{clinicId}`. They do not take the structure lock. Saving site decisions may rename the destination shell under that preparation lock. Shell slug allocation still takes `clinic-account-split-shell-slug`.
 
+`selectExistingGroupDestination` is the exception. It attaches a clinic that already exists, so it locks `clinic-account-structure` for the source and that destination, sorted by clinic id, then `clinic-account-split` for those same clinics, sorted. It re-reads both clinics and the open preparation after those locks. New destination shells stay on the preparation lock only.
+
 ### Lock order
 
 Every participating mutation uses this order. Skip a lock the mutation does not need. Do not invert the ones it does take.
@@ -159,7 +161,7 @@ One PostgreSQL transaction does the cutover:
 
 1. Load the source and destination ids.
 2. Acquire both `clinic-account-structure` locks in sorted clinic id order.
-3. Acquire `clinic-account-split:{sourceClinicId}`.
+3. Acquire `clinic-account-split` for the source, and also for the destination when the operation is `LOCATION_TO_NEW_ACCOUNT` or `SITE_TO_EXISTING_GROUP`. Several split locks are sorted by clinic id.
 4. Reload the preparation and recompute readiness with the same rules as the dry run.
 5. Reject a wrong confirmation with no writes.
 6. If the preparation was `READY_TO_EXECUTE` and the recomputation is no longer ready, store the earlier status from the preparation state machine and stop. No Site, guide, placement, or membership write is kept.
@@ -252,7 +254,7 @@ Both commands are read-only. They print `Affected completed splits: N` only afte
 
 `SITE_TO_EXISTING_GROUP` moves one active Clinic Site, and every Clinic Location on it, from a Group Account into a different Group Account that already exists. The operator selects that destination. This operation does not create a Clinic, Clinic Profile, placeholder Site, Stripe Customer, Checkout Session, or subscription.
 
-The source Group must keep at least one other active Clinic Site. Essential and Practice cannot start or receive this move. The same Account cannot be both sides. An inactive Site, a Site owned by another Account, and a split-shell slug are rejected.
+The source Group must keep at least one other active Clinic Site. Essential and Practice cannot start or receive this move. The same Account cannot be both sides. An inactive Site, a Site owned by another Account, and a split-shell slug are rejected. Choosing the existing destination locks both accounts' structure locks, then both split locks, in clinic-id order, and re-reads the destination before writing `destinationClinicId`. A deactivated destination is refused. An open preparation that already names that clinic blocks deactivation.
 
 If the moving Site is not primary, the current source primary stays primary. If it is primary, the operator chooses the active Site that becomes the source primary. The destination must already have exactly one active primary Clinic Site. The incoming Site is stored with `isPrimary` false. The destination Account and Clinic Profile continue to represent that existing primary Site.
 
