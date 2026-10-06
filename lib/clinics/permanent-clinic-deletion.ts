@@ -9,7 +9,6 @@ import {
 } from "@prisma/client";
 
 import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
-import { findOpenAccountSplitInvolvingClinic } from "@/lib/account-split/snapshot";
 import { lockAccountSplits } from "@/lib/account-split/locks";
 import type { ClinicAssetStorage } from "@/lib/clinic-assets/clinic-asset-storage";
 import {
@@ -46,8 +45,8 @@ export const PERMANENT_DELETION_MESSAGES = {
   active: "Deactivate the clinic before permanently deleting it.",
   already_deleted: "This clinic is already permanently deleted.",
   demo: "The shared demo clinic cannot be permanently deleted.",
-  open_split:
-    "Finish or cancel the open account split before permanently deleting this clinic.",
+  split_history:
+    "This clinic has account-split history that must be retained, so it cannot be permanently deleted.",
   negotiated_offer:
     "Withdraw the open negotiated offer before permanently deleting this clinic.",
   checkout_session:
@@ -65,8 +64,6 @@ export const PERMANENT_DELETION_MESSAGES = {
     "A billing notice is still waiting to be sent for this clinic.",
   location_redirect:
     "A location redirect still uses one of this clinic's sites.",
-  split_guide_map:
-    "An account split still maps this clinic's guides or revisions.",
   storage:
     "Branding files are stored for this clinic, and file storage is not configured.",
   confirmation:
@@ -211,6 +208,56 @@ function ownedBrandingKeys(clinic: ClinicRow): string[] {
   return [...keys];
 }
 
+function accountSplitInvolvementWhere(
+  clinicId: string
+): Prisma.ClinicAccountSplitPreparationWhereInput {
+  const guideOwnedByClinic = {
+    OR: [
+      { sourcePracticeGuide: { clinicId } },
+      { destinationPracticeGuide: { clinicId } },
+      {
+        revisions: {
+          some: {
+            OR: [
+              { sourceRevision: { practiceGuide: { clinicId } } },
+              { destinationRevision: { practiceGuide: { clinicId } } },
+            ],
+          },
+        },
+      },
+    ],
+  };
+  return {
+    OR: [
+      { sourceClinicId: clinicId },
+      { destinationClinicId: clinicId },
+      { keptClinicSite: { clinicId } },
+      { sourceLocation: { clinicId } },
+      { siteDecisions: { some: { clinicSite: { clinicId } } } },
+      {
+        events: {
+          some: {
+            OR: [
+              { sourceClinicId: clinicId },
+              { destinationClinicId: clinicId },
+            ],
+          },
+        },
+      },
+      { guideMaps: { some: guideOwnedByClinic } },
+    ],
+  };
+}
+
+function brandingKeyBelongsToClinic(
+  clinicId: string,
+  storageKey: string
+): boolean {
+  return (
+    isOwnedClinicBrandingKey(clinicId, storageKey) && !storageKey.includes("..")
+  );
+}
+
 function resolveStorage(storage: StorageChoice): ClinicAssetStorage | null {
   if (storage === undefined) {
     return getClinicAssetStorage();
@@ -255,9 +302,12 @@ async function readEligibility(
     blockers.push(blocker("demo"));
   }
 
-  const openSplit = await findOpenAccountSplitInvolvingClinic(clinic.id, db);
-  if (openSplit) {
-    blockers.push(blocker("open_split"));
+  const splitHistory = await db.clinicAccountSplitPreparation.findFirst({
+    where: accountSplitInvolvementWhere(clinic.id),
+    select: { id: true },
+  });
+  if (splitHistory) {
+    blockers.push(blocker("split_history"));
   }
 
   const openOffer = await db.clinicNegotiatedOffer.findFirst({
@@ -328,33 +378,6 @@ async function readEligibility(
     blockers.push(blocker("location_redirect"));
   }
 
-  const sourceGuide = await db.clinicAccountSplitGuideMap.findFirst({
-    where: { sourcePracticeGuide: { clinicId: clinic.id } },
-    select: { id: true },
-  });
-  const destinationGuide = await db.clinicAccountSplitGuideMap.findFirst({
-    where: { destinationPracticeGuide: { clinicId: clinic.id } },
-    select: { id: true },
-  });
-  const sourceRevision = await db.clinicAccountSplitRevisionMap.findFirst({
-    where: { sourceRevision: { practiceGuide: { clinicId: clinic.id } } },
-    select: { id: true },
-  });
-  const destinationRevision = await db.clinicAccountSplitRevisionMap.findFirst({
-    where: {
-      destinationRevision: { practiceGuide: { clinicId: clinic.id } },
-    },
-    select: { id: true },
-  });
-  if (
-    sourceGuide ||
-    destinationGuide ||
-    sourceRevision ||
-    destinationRevision
-  ) {
-    blockers.push(blocker("split_guide_map"));
-  }
-
   const ownedKeys = ownedBrandingKeys(clinic);
   if (ownedKeys.length > 0 && !storage) {
     blockers.push(blocker("storage"));
@@ -384,25 +407,26 @@ export async function canPermanentlyDeleteClinic(
 
 async function relatedClinicIds(db: Db, clinicId: string): Promise<string[]> {
   const splits = await db.clinicAccountSplitPreparation.findMany({
-    where: {
-      status: {
-        in: [
-          "DRAFT",
-          "DESTINATION_READY",
-          "AWAITING_PAYMENT",
-          "BILLING_READY",
-          "READY_TO_EXECUTE",
-        ],
+    where: accountSplitInvolvementWhere(clinicId),
+    select: {
+      sourceClinicId: true,
+      destinationClinicId: true,
+      events: {
+        select: { sourceClinicId: true, destinationClinicId: true },
       },
-      OR: [{ sourceClinicId: clinicId }, { destinationClinicId: clinicId }],
     },
-    select: { sourceClinicId: true, destinationClinicId: true },
   });
   const ids = new Set<string>([clinicId]);
   for (const split of splits) {
     ids.add(split.sourceClinicId);
     if (split.destinationClinicId) {
       ids.add(split.destinationClinicId);
+    }
+    for (const event of split.events) {
+      ids.add(event.sourceClinicId);
+      if (event.destinationClinicId) {
+        ids.add(event.destinationClinicId);
+      }
     }
   }
   return [...ids];
@@ -446,12 +470,6 @@ async function retireClinic(
   await tx.practiceGuide.updateMany({
     where: { copiedFromPracticeGuide: { clinicId: clinic.id } },
     data: { copiedFromPracticeGuideId: null },
-  });
-  await tx.clinicAccountSplitPreparation.deleteMany({
-    where: {
-      sourceClinicId: clinic.id,
-      status: { in: ["COMPLETED", "CANCELLED"] },
-    },
   });
   await tx.practiceGuidePlacement.deleteMany({
     where: { clinicId: clinic.id },
@@ -536,13 +554,17 @@ async function cleanupBranding(input: {
     };
   }
 
-  const keys = new Set(input.ownedKeys);
+  const keys = new Set(
+    input.ownedKeys.filter((key) =>
+      brandingKeyBelongsToClinic(input.clinicId, key)
+    )
+  );
   let listFailed = false;
   try {
     for (const key of await input.storage.listOwnedBrandingKeys(
       input.clinicId
     )) {
-      if (isOwnedClinicBrandingKey(input.clinicId, key)) {
+      if (brandingKeyBelongsToClinic(input.clinicId, key)) {
         keys.add(key);
       }
     }
@@ -553,6 +575,9 @@ async function cleanupBranding(input: {
   const deletedKeys: string[] = [];
   const failedKeys: string[] = [];
   for (const storageKey of keys) {
+    if (!brandingKeyBelongsToClinic(input.clinicId, storageKey)) {
+      continue;
+    }
     try {
       await input.storage.deleteLogo({
         clinicId: input.clinicId,
@@ -570,10 +595,14 @@ async function cleanupBranding(input: {
  * Permanently retires one deactivated clinic.
  *
  * Lock order matches clinic deactivation and split destination selection:
- * 1. clinic-account-structure for this clinic and any open-split counterpart, sorted
+ * 1. clinic-account-structure for this clinic and every split-history
+ *    counterpart, sorted
  * 2. clinic-account-split for those same clinics, sorted
  * 3. re-read every eligibility condition
  * 4. tombstone slugs, then remove operational rows
+ *
+ * Any account-split involvement, in any status, blocks retirement. Split
+ * preparations, events, decisions, and guide or revision maps stay.
  *
  * Stripe is not called. Object storage runs only after the tombstone commits.
  */

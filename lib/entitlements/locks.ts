@@ -20,7 +20,8 @@ import type { Prisma } from "@prisma/client";
  * and destination, sorted, then split locks for those same clinics, sorted.
  * Split execution takes structure locks first, then the split locks. Discard,
  * clinic deactivation, and permanent clinic deletion follow that same order:
- * structure, then `clinic-account-split`. Permanent deletion then takes
+ * structure, then `clinic-account-split`. Permanent deletion locks every
+ * clinic named by split history that involves the retiring clinic, then takes
  * `tenant-slug` locks and re-reads eligibility before it writes. Do not take
  * a structure lock after a split lock. PostgreSQL transaction advisory locks are
  * re-entrant,

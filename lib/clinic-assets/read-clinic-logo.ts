@@ -50,11 +50,31 @@ function permanentlyDeletedLogoResponse(): NextResponse {
   });
 }
 
-async function clinicBrandingIsPermanentlyDeleted(
+/**
+ * Unit tests and local `next dev` can serve a clinic logo without a database.
+ * Production and any Vercel runtime cannot. A lookup error also refuses the
+ * object so a permanently deleted clinic is not served by accident.
+ */
+function clinicBrandingLookupMaySkipDatabase(): boolean {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    !process.env.VERCEL &&
+    !process.env.VERCEL_ENV &&
+    !process.env.DATABASE_URL
+  );
+}
+
+async function clinicOwnedBrandingIsUnavailable(
   clinicId: string
 ): Promise<boolean> {
-  if (!process.env.DATABASE_URL) {
+  if (clinicBrandingLookupMaySkipDatabase()) {
     return false;
+  }
+  if (!process.env.DATABASE_URL) {
+    console.warn("[clinic-assets]", "deleted_clinic_branding_check_failed", {
+      class: "missing_database",
+    });
+    return true;
   }
   try {
     const clinic = await getPrisma().clinic.findUnique({
@@ -66,7 +86,7 @@ async function clinicBrandingIsPermanentlyDeleted(
     console.warn("[clinic-assets]", "deleted_clinic_branding_check_failed", {
       class: clinicAssetErrorClass(error),
     });
-    return false;
+    return true;
   }
 }
 
@@ -176,7 +196,7 @@ export async function serveClinicLogo(input: {
       return emptyClinicLogoResponse();
     }
 
-    if (await clinicBrandingIsPermanentlyDeleted(input.clinicId)) {
+    if (await clinicOwnedBrandingIsUnavailable(input.clinicId)) {
       return permanentlyDeletedLogoResponse();
     }
 

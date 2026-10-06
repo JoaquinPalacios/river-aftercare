@@ -952,7 +952,7 @@ describeDb("permanent clinic deletion", () => {
         preparedByUserId: OPERATOR_ID,
       },
     });
-    await expectBlocked(source.id, "open_split");
+    await expectBlocked(source.id, "split_history");
 
     const kept = await siteId(destination.id);
     await db().clinicAccountSplitPreparation.create({
@@ -966,7 +966,7 @@ describeDb("permanent clinic deletion", () => {
         preparedByUserId: OPERATOR_ID,
       },
     });
-    await expectBlocked(source.id, "open_split");
+    await expectBlocked(source.id, "split_history");
   });
 
   it("blocks a location redirect and a split guide map without an open split", async () => {
@@ -1014,7 +1014,7 @@ describeDb("permanent clinic deletion", () => {
         sourcePracticeGuideId: guide.id,
       },
     });
-    await expectBlocked(source.id, "split_guide_map");
+    await expectBlocked(source.id, "split_history");
 
     const destinationGuide = await db().practiceGuide.create({
       data: {
@@ -1045,7 +1045,145 @@ describeDb("permanent clinic deletion", () => {
       },
     });
     await deactivate(destination.id);
-    await expectBlocked(destination.id, "split_guide_map");
+    await expectBlocked(destination.id, "split_history");
+  });
+
+  it("keeps completed and cancelled split history for both clinics", async () => {
+    async function retiredPair(label: string) {
+      const source = await fresh(`${PREFIX}${label}s`, `Pdel ${label} source`);
+      const destination = await fresh(
+        `${PREFIX}${label}d`,
+        `Pdel ${label} destination`
+      );
+      await deactivate(source.id);
+      await deactivate(destination.id);
+      return {
+        source,
+        destination,
+        keptClinicSiteId: await siteId(source.id),
+      };
+    }
+
+    async function preparation(input: {
+      sourceClinicId: string;
+      destinationClinicId?: string;
+      keptClinicSiteId: string;
+      status: "COMPLETED" | "CANCELLED";
+    }) {
+      return db().clinicAccountSplitPreparation.create({
+        data: {
+          sourceClinicId: input.sourceClinicId,
+          destinationClinicId: input.destinationClinicId,
+          keptClinicSiteId: input.keptClinicSiteId,
+          status: input.status,
+          destinationPlan: "ESSENTIAL",
+          destinationBillingInterval: "MONTHLY",
+          preparedByUserId: OPERATOR_ID,
+          executedAt:
+            input.status === "COMPLETED"
+              ? new Date("2026-10-02T00:00:00.000Z")
+              : null,
+          cancelledAt:
+            input.status === "CANCELLED"
+              ? new Date("2026-10-02T00:00:00.000Z")
+              : null,
+        },
+      });
+    }
+
+    const completedSource = await retiredPair("csrc");
+    const completedSourcePrep = await preparation({
+      sourceClinicId: completedSource.source.id,
+      destinationClinicId: completedSource.destination.id,
+      keptClinicSiteId: completedSource.keptClinicSiteId,
+      status: "COMPLETED",
+    });
+    const completedEvent = await db().clinicAccountSplitEvent.create({
+      data: {
+        preparationId: completedSourcePrep.id,
+        kind: "CUTOVER_COMPLETED",
+        sourceClinicId: completedSource.source.id,
+        destinationClinicId: completedSource.destination.id,
+      },
+    });
+    await expectBlocked(completedSource.source.id, "split_history");
+
+    const cancelledSource = await retiredPair("xsrc");
+    const cancelledSourcePrep = await preparation({
+      sourceClinicId: cancelledSource.source.id,
+      keptClinicSiteId: cancelledSource.keptClinicSiteId,
+      status: "CANCELLED",
+    });
+    await expectBlocked(cancelledSource.source.id, "split_history");
+
+    const completedDestination = await retiredPair("cdst");
+    const completedDestinationPrep = await preparation({
+      sourceClinicId: completedDestination.source.id,
+      destinationClinicId: completedDestination.destination.id,
+      keptClinicSiteId: completedDestination.keptClinicSiteId,
+      status: "COMPLETED",
+    });
+    await expectBlocked(completedDestination.destination.id, "split_history");
+
+    const cancelledDestination = await retiredPair("xdst");
+    const cancelledDestinationPrep = await preparation({
+      sourceClinicId: cancelledDestination.source.id,
+      destinationClinicId: cancelledDestination.destination.id,
+      keptClinicSiteId: cancelledDestination.keptClinicSiteId,
+      status: "CANCELLED",
+    });
+    await expectBlocked(cancelledDestination.destination.id, "split_history");
+
+    const blockedHtml = renderToStaticMarkup(
+      await OperatorClinicDetailPage({
+        params: Promise.resolve({ clinicId: cancelledSource.source.id }),
+      })
+    );
+    expect(blockedHtml).toContain(PERMANENT_DELETION_MESSAGES.split_history);
+    expect(blockedHtml).not.toContain('name="confirmation"');
+
+    const historyIds = [
+      completedSourcePrep.id,
+      cancelledSourcePrep.id,
+      completedDestinationPrep.id,
+      cancelledDestinationPrep.id,
+    ];
+    const before = await db().clinicAccountSplitPreparation.count({
+      where: { id: { in: historyIds } },
+    });
+    expect(before).toBe(4);
+
+    const unrelated = await fresh(`${PREFIX}nosplit`, "Pdel No Split");
+    await deactivate(unrelated.id);
+    const deleted = await permanentlyDeleteClinic({
+      clinicId: unrelated.id,
+      operatorUserId: OPERATOR_ID,
+      confirmation: "Pdel No Split",
+      storage: memoryStorage(),
+    });
+    expect(deleted.ok).toBe(true);
+    expect(
+      await db().clinicAccountSplitPreparation.count({
+        where: { id: { in: historyIds } },
+      })
+    ).toBe(4);
+    expect(
+      await db().clinicAccountSplitEvent.findUnique({
+        where: { id: completedEvent.id },
+      })
+    ).not.toBeNull();
+
+    const destinationStill = await db().clinic.findUniqueOrThrow({
+      where: { id: completedDestination.destination.id },
+      select: {
+        permanentlyDeletedAt: true,
+        destinationAccountSplits: { select: { id: true, status: true } },
+      },
+    });
+    expect(destinationStill.permanentlyDeletedAt).toBeNull();
+    expect(destinationStill.destinationAccountSplits).toEqual([
+      { id: completedDestinationPrep.id, status: "COMPLETED" },
+    ]);
   });
 
   it("removes owned branding and refuses when storage cannot", async () => {
@@ -1163,6 +1301,59 @@ describeDb("permanent clinic deletion", () => {
     expect(
       await failing.readLogo({ clinicId: other.id, storageKey: failingKey })
     ).toBeNull();
+    expect(
+      (
+        await db().clinic.findUniqueOrThrow({
+          where: { id: other.id },
+          select: { permanentlyDeletedAt: true },
+        })
+      ).permanentlyDeletedAt
+    ).not.toBeNull();
+
+    const neighbourKey = `clinics/${created.id}/branding/kept.png`;
+    await failing.uploadLogo({
+      clinicId: created.id,
+      storageKey: neighbourKey,
+      bytes: new Uint8Array([7]),
+      mimeType: "image/png",
+    });
+    const listedClinicIds: string[] = [];
+    const scoped: ClinicAssetStorage = {
+      ...failing,
+      async listOwnedBrandingKeys(clinicId) {
+        listedClinicIds.push(clinicId);
+        const keys = await failing.listOwnedBrandingKeys(clinicId);
+        return [
+          ...keys,
+          neighbourKey,
+          "clinics/other-clinic/branding/../logo.png",
+        ];
+      },
+    };
+    const again = await retryPermanentDeletionBrandingCleanup({
+      clinicId: other.id,
+      operatorUserId: OPERATOR_ID,
+      storage: scoped,
+    });
+    expect(again.ok).toBe(true);
+    if (again.ok) {
+      expect(again.storageCleanup.failedKeys).toEqual([]);
+      expect(again.storageCleanup.deletedKeys).toEqual([]);
+    }
+    expect(listedClinicIds).toEqual([other.id]);
+    expect(
+      await failing.readLogo({ clinicId: created.id, storageKey: neighbourKey })
+    ).not.toBeNull();
+    const closed = await serveClinicLogo({
+      request: new Request("http://assets.localhost/logo.png"),
+      clinicId: other.id,
+      filename: "logo.png",
+      method: "GET",
+      variant: "fallback",
+    });
+    expect(closed.status).toBe(404);
+    expect(closed.headers.get("cache-control")).toBe("private, no-store");
+    expect(await closed.text()).toBe("");
   });
 
   it("drops the tombstone write when a later blocker wins the lock", async () => {
@@ -1217,7 +1408,7 @@ describeDb("permanent clinic deletion", () => {
     expect(split.ok).toBe(false);
     if (!split.ok) {
       expect(split.blockers.map((blocker) => blocker.code)).toContain(
-        "open_split"
+        "split_history"
       );
     }
     await expectStillOperational(created.id);
