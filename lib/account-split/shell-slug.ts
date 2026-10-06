@@ -3,7 +3,11 @@ import { randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 
 import { isValidCareGuideSlug } from "@/lib/aftercare/slug-rules";
-import { tenantSlugIsRetired } from "@/lib/clinics/retired-tenant-slug";
+import {
+  lockTenantSlugs,
+  RETIRED_TENANT_SLUG_MESSAGE,
+  tenantSlugIsRetired,
+} from "@/lib/clinics/retired-tenant-slug";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
 
@@ -27,12 +31,18 @@ export async function allocateSplitShellSlug(
   tx: Prisma.TransactionClient,
   candidates: readonly string[]
 ): Promise<string> {
-  for (const slug of candidates) {
-    if (
-      !isSplitShellCompatibilitySlug(slug) ||
-      !isValidCareGuideSlug(slug) ||
-      isReservedTenantSlug(slug)
-    ) {
+  const usable = candidates.filter(
+    (slug) =>
+      isSplitShellCompatibilitySlug(slug) &&
+      isValidCareGuideSlug(slug) &&
+      !isReservedTenantSlug(slug)
+  );
+  await lockTenantSlugs(tx, usable);
+  let sawRetired = false;
+  let sawOccupied = false;
+  for (const slug of usable) {
+    if (await tenantSlugIsRetired(tx, slug)) {
+      sawRetired = true;
       continue;
     }
     const clinic = await tx.clinic.findUnique({
@@ -43,9 +53,13 @@ export async function allocateSplitShellSlug(
       where: { slug },
       select: { id: true },
     });
-    if (!clinic && !site && !(await tenantSlugIsRetired(tx, slug))) {
+    if (!clinic && !site) {
       return slug;
     }
+    sawOccupied = true;
+  }
+  if (sawRetired && !sawOccupied) {
+    throw new ClinicPortalError(RETIRED_TENANT_SLUG_MESSAGE, "conflict");
   }
   throw new ClinicPortalError(
     "Could not reserve a destination account slug.",

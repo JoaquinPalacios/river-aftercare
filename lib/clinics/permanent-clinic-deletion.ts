@@ -18,6 +18,7 @@ import {
 import { getClinicAssetStorage } from "@/lib/clinic-assets/get-clinic-asset-storage";
 import { lockClinicAccountStructures } from "@/lib/entitlements/locks";
 import { lockTenantSlugs } from "@/lib/clinics/retired-tenant-slug";
+import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { getPrisma } from "@/lib/prisma";
 
 /**
@@ -453,7 +454,30 @@ async function retireClinic(
   for (const site of clinic.sites) {
     slugs.add(site.slug);
   }
-  await lockTenantSlugs(tx, [...slugs]);
+  const orderedSlugs = [...slugs].sort();
+  await lockTenantSlugs(tx, orderedSlugs);
+  for (const slug of orderedSlugs) {
+    const siteOwner = await tx.clinicSite.findUnique({
+      where: { slug },
+      select: { clinicId: true },
+    });
+    if (siteOwner && siteOwner.clinicId !== clinic.id) {
+      throw new ClinicPortalError(
+        "This clinic's address changed during deletion. It was not deleted.",
+        "conflict"
+      );
+    }
+    const accountOwner = await tx.clinic.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (accountOwner && accountOwner.id !== clinic.id) {
+      throw new ClinicPortalError(
+        "This clinic's address changed during deletion. It was not deleted.",
+        "conflict"
+      );
+    }
+  }
   await tx.retiredTenantSlug.createMany({
     data: [...slugs].map((slug) => ({
       slug,
@@ -599,7 +623,8 @@ async function cleanupBranding(input: {
  *    counterpart, sorted
  * 2. clinic-account-split for those same clinics, sorted
  * 3. re-read every eligibility condition
- * 4. tombstone slugs, then remove operational rows
+ * 4. lock tenant slugs, re-check that no other account owns them, tombstone,
+ *    then remove operational rows
  *
  * Any account-split involvement, in any status, blocks retirement. Split
  * preparations, events, decisions, and guide or revision maps stay.
@@ -617,6 +642,11 @@ export async function permanentlyDeleteClinic(input: {
    * eligibility re-read. Production deletion does not pass it.
    */
   afterLocks?: () => Promise<void> | void;
+  /**
+   * Test seam. Runs after tenant-slug locks and tombstone inserts, before
+   * the transaction commits. Production deletion does not pass it.
+   */
+  afterSlugLocks?: () => Promise<void> | void;
 }): Promise<PermanentDeletionResult> {
   const now = input.now ?? new Date();
   const storage = resolveStorage(input.storage);
@@ -654,6 +684,9 @@ export async function permanentlyDeleteClinic(input: {
       }
 
       await retireClinic(tx, read.clinic, input.operatorUserId, now);
+      if (input.afterSlugLocks) {
+        await input.afterSlugLocks();
+      }
       return {
         ok: true as const,
         clinicId: read.clinic.id,

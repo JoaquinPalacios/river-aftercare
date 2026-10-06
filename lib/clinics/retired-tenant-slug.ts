@@ -29,6 +29,22 @@ export async function lockTenantSlugs(
   }
 }
 
+/**
+ * Lock every slug, then re-read RetiredTenantSlug before a publish.
+ * Callers that already hold structure or split locks take this after those
+ * locks. The advisory locks stay until the transaction commits.
+ */
+export async function lockAndAssertTenantSlugsAvailable(
+  tx: Prisma.TransactionClient,
+  slugs: readonly string[]
+): Promise<void> {
+  const ordered = [...new Set(slugs)].filter((slug) => slug.length > 0).sort();
+  await lockTenantSlugs(tx, ordered);
+  for (const slug of ordered) {
+    await assertTenantSlugNotRetired(tx, slug);
+  }
+}
+
 export async function tenantSlugIsRetired(
   db: SlugDb,
   slug: string

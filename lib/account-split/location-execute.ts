@@ -19,7 +19,10 @@ import type {
   CopiedRevision,
 } from "@/lib/account-split/execute";
 import { createClinicLocationRedirect } from "@/lib/clinics/location-redirect";
-import { assertTenantSlugNotRetired } from "@/lib/clinics/retired-tenant-slug";
+import {
+  assertTenantSlugNotRetired,
+  lockAndAssertTenantSlugsAvailable,
+} from "@/lib/clinics/retired-tenant-slug";
 import { copyClinicSiteServiceCategories } from "@/lib/clinics/site-service-categories";
 import {
   PRIVACY_ACKNOWLEDGEMENT_VERSION,
@@ -42,6 +45,65 @@ import {
  */
 
 type Tx = Prisma.TransactionClient;
+
+/**
+ * Issues one new public site hostname for a location move.
+ * The tenant-slug lock is held through the insert. Callers that already
+ * locked this slug keep that lock until commit.
+ */
+export async function publishLocationDestinationSite(
+  tx: Tx,
+  input: {
+    destinationClinicId: string;
+    slug: string;
+    name: string;
+    displayName: string;
+    logoUrl: string | null;
+    darkLogoUrl: string | null;
+    faviconUrl: string | null;
+    theme: {
+      primaryColor: string | null;
+      accentColor: string | null;
+      darkPrimaryColor: string | null;
+      darkAccentColor: string | null;
+      useCustomDarkBranding: boolean;
+      neutralColor: string | null;
+      radiusPreset: Prisma.ClinicSiteCreateInput["radiusPreset"];
+      typeface: Prisma.ClinicSiteCreateInput["typeface"];
+      instructionTerminology: Prisma.ClinicSiteCreateInput["instructionTerminology"];
+      themeMode: Prisma.ClinicSiteCreateInput["themeMode"];
+      allowPatientThemeToggle: boolean;
+      showCareGuideAttribution: boolean;
+    };
+  }
+): Promise<{ id: string; slug: string }> {
+  await lockAndAssertTenantSlugsAvailable(tx, [input.slug]);
+  const slugStillTaken = await tx.clinicSite.findUnique({
+    where: { slug: input.slug },
+    select: { id: true },
+  });
+  if (slugStillTaken) {
+    throw new ClinicPortalError(
+      "That destination Clinic Site address is already in use.",
+      "conflict"
+    );
+  }
+  return tx.clinicSite.create({
+    data: {
+      clinicId: input.destinationClinicId,
+      name: input.name,
+      slug: input.slug,
+      displayName: input.displayName,
+      active: true,
+      isPrimary: true,
+      logoUrl: input.logoUrl,
+      darkLogoUrl: input.darkLogoUrl,
+      faviconUrl: input.faviconUrl,
+      ...input.theme,
+    },
+    select: { id: true, slug: true },
+  });
+}
 
 type CutoverOutcome =
   | { kind: "completed"; result: AccountSplitExecutionResult }
@@ -289,6 +351,10 @@ export async function executeLocationToNewAccountCutover(
     sourceTarget: sourcePrimary.slug,
     destinationTarget: destinationSlug,
   });
+  await lockAndAssertTenantSlugsAvailable(tx, [
+    sourcePrimary.slug,
+    destinationSlug,
+  ]);
   const slugTaken = await tx.clinicSite.findUnique({
     where: { slug: destinationSlug },
     select: { id: true },
@@ -409,20 +475,15 @@ export async function executeLocationToNewAccountCutover(
       "conflict"
     );
   }
-  const destinationSite = await tx.clinicSite.create({
-    data: {
-      clinicId: destinationId,
-      name: liveLocation.name,
-      slug: destinationSlug,
-      displayName: liveLocation.displayName,
-      active: true,
-      isPrimary: true,
-      logoUrl: branding.values.logoUrl,
-      darkLogoUrl: branding.values.darkLogoUrl,
-      faviconUrl: branding.values.faviconUrl,
-      ...theme,
-    },
-    select: { id: true, slug: true },
+  const destinationSite = await publishLocationDestinationSite(tx, {
+    destinationClinicId: destinationId,
+    slug: destinationSlug,
+    name: liveLocation.name,
+    displayName: liveLocation.displayName,
+    logoUrl: branding.values.logoUrl,
+    darkLogoUrl: branding.values.darkLogoUrl,
+    faviconUrl: branding.values.faviconUrl,
+    theme,
   });
   await copyClinicSiteServiceCategories(tx, {
     sourceClinicId: snapshot.source.id,
