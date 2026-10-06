@@ -11,6 +11,7 @@ import { OnboardingInvitationActions } from "@/app/(staff)/(operator)/operator/c
 import { OnboardingProgressList } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/setup/onboarding-progress";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
+import { redirectIfClinicPermanentlyDeleted } from "@/lib/operator/redirect-permanently-deleted-clinic";
 import { loadNegotiatedOfferPanel } from "@/lib/billing/negotiated-offer";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
@@ -35,6 +36,7 @@ export default async function ClinicSetupPage({
 }: ClinicSetupPageProps) {
   await requirePlatformOperator();
   const { clinicId } = await params;
+  await redirectIfClinicPermanentlyDeleted(clinicId);
   const onboarding = await loadClinicOnboarding(clinicId);
   if (!onboarding) {
     notFound();

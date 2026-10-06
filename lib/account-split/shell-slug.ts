@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 
 import { isValidCareGuideSlug } from "@/lib/aftercare/slug-rules";
+import { tenantSlugIsRetired } from "@/lib/clinics/retired-tenant-slug";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
 
@@ -42,7 +43,7 @@ export async function allocateSplitShellSlug(
       where: { slug },
       select: { id: true },
     });
-    if (!clinic && !site) {
+    if (!clinic && !site && !(await tenantSlugIsRetired(tx, slug))) {
       return slug;
     }
   }

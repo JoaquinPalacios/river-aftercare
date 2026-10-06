@@ -19,6 +19,7 @@ import type {
   CopiedRevision,
 } from "@/lib/account-split/execute";
 import { createClinicLocationRedirect } from "@/lib/clinics/location-redirect";
+import { assertTenantSlugNotRetired } from "@/lib/clinics/retired-tenant-slug";
 import { copyClinicSiteServiceCategories } from "@/lib/clinics/site-service-categories";
 import {
   PRIVACY_ACKNOWLEDGEMENT_VERSION,
@@ -298,6 +299,7 @@ export async function executeLocationToNewAccountCutover(
       "conflict"
     );
   }
+  await assertTenantSlugNotRetired(tx, destinationSlug);
 
   input.steps.assertExclusiveStaffSelections(snapshot);
 

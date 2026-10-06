@@ -26,13 +26,14 @@ export async function readOperatorSupportClinic(): Promise<{
     select: {
       id: true,
       name: true,
+      permanentlyDeletedAt: true,
       sites: {
         where: { isPrimary: true, active: true },
         select: { displayName: true, clinicId: true },
       },
     },
   });
-  if (!clinic) {
+  if (!clinic || clinic.permanentlyDeletedAt) {
     return null;
   }
 

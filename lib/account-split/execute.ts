@@ -37,6 +37,7 @@ import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
 import { readAccountCapacityFacts } from "@/lib/billing/group-capacity-gate";
 import { assertNoOpenNegotiatedOffer } from "@/lib/billing/negotiated-offer";
 import { readSplitDestinationCommercialState } from "@/lib/billing/split-destination-access";
+import { assertTenantSlugNotRetired } from "@/lib/clinics/retired-tenant-slug";
 import { effectiveSiteLocationAllowance } from "@/lib/clinics/site-location-allowance";
 import {
   mapHomeCareInstructions,
@@ -1149,6 +1150,8 @@ export async function writeCompatibilitySlugs(
   ) {
     return false;
   }
+  await assertTenantSlugNotRetired(tx, input.sourceTarget);
+  await assertTenantSlugNotRetired(tx, input.destinationTarget);
 
   const sourceHoldsDestinationTarget =
     source.slug === input.destinationTarget &&

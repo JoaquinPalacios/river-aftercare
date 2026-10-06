@@ -6,6 +6,10 @@ import { brandingFromProfile } from "@/lib/clinics/primary-site-location.mjs";
 import { isUniqueConstraintError } from "@/lib/clinics/prisma-errors";
 import { reserveSiteLocationCapacity } from "@/lib/clinics/site-location-capacity";
 import {
+  assertTenantSlugNotRetired,
+  lockTenantSlugs,
+} from "@/lib/clinics/retired-tenant-slug";
+import {
   assertLocationSlugAvailable,
   assertSiteSlug,
 } from "@/lib/clinics/slug-collisions";
@@ -80,6 +84,8 @@ export async function createClinicSiteWithRootLocation(input: {
     return await getPrisma().$transaction(async (tx) => {
       await lockClinicAccountStructure(tx, input.clinicId);
       await assertClinicActive(tx, input.clinicId);
+      await lockTenantSlugs(tx, [input.values.siteSlug]);
+      await assertTenantSlugNotRetired(tx, input.values.siteSlug);
       const reserved = await reserveSiteLocationCapacity(tx, {
         clinicId: input.clinicId,
         additionalSites: 1,

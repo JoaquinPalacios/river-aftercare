@@ -13,6 +13,10 @@ import {
   rootClinicLocationData,
 } from "@/lib/clinics/primary-site-location.mjs";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import {
+  assertTenantSlugNotRetired,
+  lockTenantSlugs,
+} from "@/lib/clinics/retired-tenant-slug";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
 import { getPrisma } from "@/lib/prisma";
@@ -82,6 +86,8 @@ export async function createOperatorClinic(
 
   try {
     return await getPrisma().$transaction(async (tx) => {
+      await lockTenantSlugs(tx, [values.slug]);
+      await assertTenantSlugNotRetired(tx, values.slug);
       const [clinicTaken, siteTaken] = await Promise.all([
         tx.clinic.findUnique({
           where: { slug: values.slug },

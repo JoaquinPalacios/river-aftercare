@@ -1,5 +1,6 @@
 import {
   mkdir,
+  readdir,
   readFile,
   realpath,
   rm,
@@ -227,6 +228,31 @@ export function createFilesystemClinicAssetStorage(options?: {
         }
         throw error;
       }
+    },
+
+    async listOwnedBrandingKeys(clinicId) {
+      const prefix = `clinics/${clinicId}/branding`;
+      const directory = resolveClinicAssetFilesystemPath(root, prefix);
+      if (!directory) {
+        return [];
+      }
+      let names: string[];
+      try {
+        names = await readdir(/*turbopackIgnore: true*/ directory);
+      } catch (error) {
+        if (
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          error.code === "ENOENT"
+        ) {
+          return [];
+        }
+        throw error;
+      }
+      return names
+        .map((name) => `${prefix}/${name}`)
+        .filter((key) => isOwnedClinicBrandingKey(clinicId, key));
     },
 
     getPublicLogoUrl(input) {

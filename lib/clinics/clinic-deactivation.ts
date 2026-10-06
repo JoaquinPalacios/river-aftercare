@@ -4,6 +4,7 @@ import { AccountTokenType, PlatformRole } from "@prisma/client";
 
 import { findOpenAccountSplitInvolvingClinic } from "@/lib/account-split/snapshot";
 import { lockAccountSplit } from "@/lib/account-split/locks";
+import { CLINIC_PERMANENTLY_DELETED_REACTIVATE_MESSAGE } from "@/lib/clinics/permanent-clinic-deletion";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 
@@ -116,10 +117,16 @@ export async function reactivateClinic(input: {
 
     const clinic = await tx.clinic.findUnique({
       where: { id: input.clinicId },
-      select: { id: true, deactivatedAt: true },
+      select: { id: true, deactivatedAt: true, permanentlyDeletedAt: true },
     });
     if (!clinic) {
       return { ok: false, error: CLINIC_STATUS_NOT_FOUND_MESSAGE };
+    }
+    if (clinic.permanentlyDeletedAt) {
+      return {
+        ok: false,
+        error: CLINIC_PERMANENTLY_DELETED_REACTIVATE_MESSAGE,
+      };
     }
 
     if (clinic.deactivatedAt) {

@@ -37,6 +37,7 @@ import {
   assertClinicActive,
   CLINIC_INACTIVE_MESSAGE,
 } from "@/lib/clinics/clinic-activity";
+import { assertTenantSlugNotRetired } from "@/lib/clinics/retired-tenant-slug";
 import { lockClinicAccountStructures } from "@/lib/entitlements/locks";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { getPrisma } from "@/lib/prisma";
@@ -1016,6 +1017,7 @@ async function assertConfirmedDestinationSlugAvailable(
     destinationClinicId: string | null;
   }
 ): Promise<void> {
+  await assertTenantSlugNotRetired(tx, input.slug);
   const site = await tx.clinicSite.findUnique({
     where: { slug: input.slug },
     select: { id: true },

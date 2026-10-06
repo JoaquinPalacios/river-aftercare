@@ -21,6 +21,9 @@ import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
 import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import { ClinicStatusSection } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/clinic-status-section";
+import { PermanentDeletionSection } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/permanent-deletion-section";
+import { PermanentlyDeletedClinic } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/permanently-deleted-clinic";
+import { canPermanentlyDeleteClinic } from "@/lib/clinics/permanent-clinic-deletion";
 import { SiteLocationCapacityForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/site-location-capacity-form";
 import { getOperatorClinic } from "@/lib/operator/get-operator-clinic";
 import { supportedLocationToNewAccountAction } from "@/lib/account-split/location-policy";
@@ -34,6 +37,7 @@ import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 interface OperatorClinicPageProps {
   params: Promise<{ clinicId: string }>;
+  searchParams?: Promise<{ cleanup?: string | string[] }>;
 }
 
 export const metadata: Metadata = {
@@ -42,6 +46,7 @@ export const metadata: Metadata = {
 
 export default async function OperatorClinicDetailPage({
   params,
+  searchParams,
 }: OperatorClinicPageProps) {
   await requirePlatformOperator();
   const { clinicId } = await params;
@@ -49,6 +54,56 @@ export default async function OperatorClinicDetailPage({
   if (!clinic) {
     notFound();
   }
+  if (clinic.permanentlyDeletedAt) {
+    const query = searchParams ? await searchParams : {};
+    const cleanup = Array.isArray(query.cleanup)
+      ? query.cleanup[0]
+      : query.cleanup;
+    const history = await getPrisma().clinic.findUnique({
+      where: { id: clinic.id },
+      select: {
+        entitlement: {
+          select: { billingStatus: true, commercialPlan: true },
+        },
+        billingProfile: { select: { stripeCustomerId: true } },
+        _count: {
+          select: {
+            legalAcceptances: true,
+            complimentaryAccessEvents: true,
+            negotiatedOffers: true,
+          },
+        },
+      },
+    });
+    return (
+      <PermanentlyDeletedClinic
+        clinicId={clinic.id}
+        clinicName={clinic.name}
+        clinicSlug={clinic.accountSlug}
+        deletedLabel={new Intl.DateTimeFormat("en-GB", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(clinic.permanentlyDeletedAt)}
+        deletedByLabel={clinic.permanentlyDeletedByLabel}
+        billingStatus={history?.entitlement?.billingStatus ?? null}
+        commercialPlan={history?.entitlement?.commercialPlan ?? null}
+        stripeCustomerRetained={Boolean(
+          history?.billingProfile?.stripeCustomerId
+        )}
+        legalAcceptanceCount={history?._count.legalAcceptances ?? 0}
+        complimentaryEventCount={history?._count.complimentaryAccessEvents ?? 0}
+        negotiatedOfferCount={history?._count.negotiatedOffers ?? 0}
+        cleanupRetry={cleanup === "retry"}
+      />
+    );
+  }
+  const deletionEligibility =
+    clinic.deactivatedAt != null
+      ? await canPermanentlyDeleteClinic(clinic.id)
+      : null;
+  const showPermanentDeletion =
+    deletionEligibility != null &&
+    !deletionEligibility.blockers.some((blocker) => blocker.code === "demo");
   const [
     billing,
     complimentaryAccess,
@@ -155,6 +210,16 @@ export default async function OperatorClinicDetailPage({
             : null
         }
       />
+
+      {showPermanentDeletion && deletionEligibility ? (
+        <PermanentDeletionSection
+          clinicId={clinic.id}
+          clinicName={clinic.name}
+          clinicSlug={clinic.accountSlug}
+          eligible={deletionEligibility.eligible}
+          blockers={deletionEligibility.blockers}
+        />
+      ) : null}
 
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
         <h2 className="text-base font-semibold">Branding</h2>

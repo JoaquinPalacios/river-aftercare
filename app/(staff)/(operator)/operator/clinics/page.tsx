@@ -20,13 +20,15 @@ export default async function OperatorClinicsPage({
 }) {
   await requirePlatformOperator();
   const params = await searchParams;
-  const activity = params.activity === "inactive" ? "inactive" : "active";
+  const activity =
+    params.activity === "inactive"
+      ? "inactive"
+      : params.activity === "retired"
+        ? "retired"
+        : "active";
   const clinics = await listOperatorClinics();
   const activeClinics = selectOperatorClinicActivity(clinics, "active");
-  const visible =
-    activity === "inactive"
-      ? selectOperatorClinicActivity(clinics, "inactive")
-      : activeClinics;
+  const visible = selectOperatorClinicActivity(clinics, activity);
   const summary = summarizeOperatorClinics(activeClinics);
 
   return (
@@ -63,6 +65,13 @@ export default async function OperatorClinicsPage({
         >
           Inactive
         </Link>
+        <Link
+          href="/operator/clinics?activity=retired"
+          className="font-medium text-staff-brand"
+          aria-current={activity === "retired" ? "page" : undefined}
+        >
+          Retired
+        </Link>
       </nav>
 
       <dl className="staffOperatorSummary">
@@ -88,7 +97,9 @@ export default async function OperatorClinicsPage({
         <p className="rounded-xl border border-dashed border-staff-line bg-staff-panel px-5 py-8 text-sm text-staff-muted">
           {activity === "inactive"
             ? "No inactive clinics."
-            : "No active clinics."}
+            : activity === "retired"
+              ? "No permanently deleted clinics."
+              : "No active clinics."}
         </p>
       ) : (
         <div className="staffOperatorTableWrap">
@@ -128,9 +139,19 @@ export default async function OperatorClinicsPage({
                   <td className="px-4 py-3">
                     <span
                       className="staffStatusPill"
-                      data-tone={clinic.inactive ? "warning" : "success"}
+                      data-tone={
+                        clinic.permanentlyDeleted
+                          ? "inactive"
+                          : clinic.inactive
+                            ? "warning"
+                            : "success"
+                      }
                     >
-                      {clinic.inactive ? "Inactive" : "Active"}
+                      {clinic.permanentlyDeleted
+                        ? "Permanently deleted"
+                        : clinic.inactive
+                          ? "Inactive"
+                          : "Active"}
                     </span>
                   </td>
                   <td className="px-4 py-3">

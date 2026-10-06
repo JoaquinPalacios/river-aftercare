@@ -1,9 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 
 import { NextRequest } from "next/server";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { proxy } from "@/proxy";
+
+vi.mock("@/lib/tenancy/retired-tenant-proxy", () => ({
+  retiredTenantProxyResponse: vi.fn(async () => null),
+}));
 
 const REMOVED_ROUTE_FILES = [
   "app/(staff)/sessions/new/page.tsx",
@@ -30,14 +34,14 @@ function requestFor(url: string): NextRequest {
   });
 }
 
-describe("removed chairside routes", () => {
+describe("removed chairside routes", async () => {
   const previousRoot = process.env.CARE_GUIDE_ROOT_DOMAIN;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (previousRoot === undefined) {
       delete process.env.CARE_GUIDE_ROOT_DOMAIN;
     } else {
@@ -45,31 +49,32 @@ describe("removed chairside routes", () => {
     }
   });
 
-  it("does not keep chairside route modules or realtime libraries", () => {
+  it("does not keep chairside route modules or realtime libraries", async () => {
     for (const file of REMOVED_ROUTE_FILES) {
       expect(existsSync(file), file).toBe(false);
     }
   });
 
-  it("returns 404 for legacy URLs on marketing and tenant hosts", () => {
+  it("returns 404 for legacy URLs on marketing and tenant hosts", async () => {
     for (const pathname of LEGACY_PATHS) {
       expect(
-        proxy(requestFor(`http://localhost:3000${pathname}`)).status,
+        (await proxy(requestFor(`http://localhost:3000${pathname}`))).status,
         `marketing ${pathname}`
       ).toBe(404);
       expect(
-        proxy(requestFor(`http://demodental.localhost:3000${pathname}`)).status,
+        (await proxy(requestFor(`http://demodental.localhost:3000${pathname}`)))
+          .status,
         `tenant ${pathname}`
       ).toBe(404);
     }
   });
 
-  it("does not rewrite legacy staff-host URLs into another product surface", () => {
+  it("does not rewrite legacy staff-host URLs into another product surface", async () => {
     const catchAll = readFileSync("app/(staff)/[...slug]/page.tsx", "utf8");
     expect(catchAll).toContain("notFound()");
 
     for (const pathname of LEGACY_PATHS) {
-      const response = proxy(
+      const response = await proxy(
         requestFor(`http://app.localhost:3000${pathname}`)
       );
       expect(response.status, pathname).toBe(200);
@@ -78,7 +83,7 @@ describe("removed chairside routes", () => {
     }
   });
 
-  it("does not document Supabase as an application dependency", () => {
+  it("does not document Supabase as an application dependency", async () => {
     const pkg = readFileSync("package.json", "utf8");
     const example = readFileSync(".env.example", "utf8");
     expect(pkg).not.toContain("@supabase/supabase-js");

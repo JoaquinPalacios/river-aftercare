@@ -131,6 +131,13 @@ model Clinic {
   deactivatedAt             DateTime?
   deactivatedByUserId       String?
   deactivatedBy             User?                            @relation("ClinicDeactivatedBy", fields: [deactivatedByUserId], references: [id], onDelete: SetNull)
+  /// Set when the clinic is permanently retired. The row stays as a tombstone.
+  /// Operational sites, guides, and memberships are removed. Billing, legal,
+  /// and audit rows stay. A set value can never return to active.
+  permanentlyDeletedAt      DateTime?
+  permanentlyDeletedByUserId String?
+  permanentlyDeletedBy      User?                            @relation("ClinicPermanentlyDeletedBy", fields: [permanentlyDeletedByUserId], references: [id], onDelete: SetNull)
+  retiredTenantSlugs        RetiredTenantSlug[]
   /// True when this clinic was created through assisted operator onboarding.
   /// Historical rows stay false. A false row with no entitlement remains on
   /// the legacy path. A true row is not ready, and is not legacy, until an
@@ -140,6 +147,20 @@ model Clinic {
   updatedAt                 DateTime                         @updatedAt
 
   @@index([deactivatedByUserId])
+  @@index([permanentlyDeletedByUserId])
+}
+
+/// A tenant hostname that belonged to a permanently deleted clinic.
+/// The slug can never be issued again. `formerClinicId` keeps the tombstone.
+/// This is separate from the fixed `RESERVED_TENANT_SLUGS` list.
+model RetiredTenantSlug {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  formerClinicId String
+  retiredAt      DateTime @default(now())
+  formerClinic   Clinic   @relation(fields: [formerClinicId], references: [id], onDelete: Restrict)
+
+  @@index([formerClinicId])
 }
 
 model User {
@@ -171,6 +192,7 @@ model User {
   preparedNegotiatedOffers        ClinicNegotiatedOffer[]            @relation("NegotiatedOfferPreparedBy")
   acceptedNegotiatedOffers        ClinicNegotiatedOffer[]            @relation("NegotiatedOfferAcceptedBy")
   deactivatedClinics              Clinic[]                           @relation("ClinicDeactivatedBy")
+  permanentlyDeletedClinics       Clinic[]                           @relation("ClinicPermanentlyDeletedBy")
   createdAt                       DateTime                           @default(now())
   updatedAt                       DateTime                           @updatedAt
 }

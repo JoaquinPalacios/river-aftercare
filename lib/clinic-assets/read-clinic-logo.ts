@@ -12,6 +12,8 @@ import {
 } from "@/lib/clinic-assets/config";
 import { clinicAssetErrorClass } from "@/lib/clinic-assets/errors";
 import { getClinicAssetStorage } from "@/lib/clinic-assets/get-clinic-asset-storage";
+import { RETIRED_TENANT_CACHE_CONTROL } from "@/lib/aftercare/retired-tenant-http";
+import { getPrisma } from "@/lib/prisma";
 
 export const CLINIC_LOGO_RESPONSE_HEADERS = {
   "X-Content-Type-Options": "nosniff",
@@ -36,6 +38,26 @@ function clinicLogoContentType(mimeType: string): string {
 
 export function emptyClinicLogoResponse(): NextResponse {
   return new NextResponse(null, { status: 404 });
+}
+
+function permanentlyDeletedLogoResponse(): NextResponse {
+  return new NextResponse(null, {
+    status: 404,
+    headers: {
+      "Cache-Control": RETIRED_TENANT_CACHE_CONTROL,
+      "X-Robots-Tag": "noindex",
+    },
+  });
+}
+
+async function clinicBrandingIsPermanentlyDeleted(
+  clinicId: string
+): Promise<boolean> {
+  const clinic = await getPrisma().clinic.findUnique({
+    where: { id: clinicId },
+    select: { permanentlyDeletedAt: true },
+  });
+  return clinic?.permanentlyDeletedAt != null;
 }
 
 function clinicLogoResponse(input: {
@@ -142,6 +164,10 @@ export async function serveClinicLogo(input: {
       )
     ) {
       return emptyClinicLogoResponse();
+    }
+
+    if (await clinicBrandingIsPermanentlyDeleted(input.clinicId)) {
+      return permanentlyDeletedLogoResponse();
     }
 
     const headers =

@@ -9,6 +9,7 @@ export interface OperatorClinicDetail {
   name: string;
   displayName: string;
   slug: string;
+  accountSlug: string;
   branding: {
     logoUrl: string | null;
     darkLogoUrl: string | null;
@@ -53,6 +54,8 @@ export interface OperatorClinicDetail {
   }>;
   updatedAt: Date;
   deactivatedAt: Date | null;
+  permanentlyDeletedAt: Date | null;
+  permanentlyDeletedByLabel: string | null;
 }
 
 export async function getOperatorClinic(
@@ -66,6 +69,10 @@ export async function getOperatorClinic(
       slug: true,
       updatedAt: true,
       deactivatedAt: true,
+      permanentlyDeletedAt: true,
+      permanentlyDeletedBy: {
+        select: { name: true, email: true },
+      },
       sites: {
         where: { isPrimary: true, active: true },
         select: {
@@ -165,6 +172,7 @@ export async function getOperatorClinic(
       accountName: clinic.name,
     }),
     slug: publicSlug,
+    accountSlug: clinic.slug,
     branding: {
       logoUrl: site?.logoUrl ?? null,
       darkLogoUrl: site?.darkLogoUrl ?? null,
@@ -203,6 +211,11 @@ export async function getOperatorClinic(
     }),
     guides: clinic.practiceGuides,
     deactivatedAt: clinic.deactivatedAt,
+    permanentlyDeletedAt: clinic.permanentlyDeletedAt,
+    permanentlyDeletedByLabel:
+      clinic.permanentlyDeletedBy?.name ??
+      clinic.permanentlyDeletedBy?.email ??
+      null,
     members: clinic.memberships.map((membership) => ({
       id: membership.id,
       role: membership.role,

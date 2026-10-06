@@ -7,6 +7,7 @@ import { TeamStatusBanner } from "@/app/(staff)/(operator)/operator/clinics/[cli
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
+import { redirectIfClinicPermanentlyDeleted } from "@/lib/operator/redirect-permanently-deleted-clinic";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { teamStatusMessage } from "@/lib/operator/clinic-team-status";
 import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
@@ -30,6 +31,7 @@ export default async function ClinicTeamPage({
 }: ClinicTeamPageProps) {
   await requirePlatformOperator();
   const { clinicId } = await params;
+  await redirectIfClinicPermanentlyDeleted(clinicId);
   const paramsStatus = searchParams ? await searchParams : {};
   const statusCopy = teamStatusMessage(paramsStatus.status);
   const [team, allowance] = await Promise.all([
