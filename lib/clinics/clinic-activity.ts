@@ -51,7 +51,7 @@ export async function assertClinicActive(
 export async function notFoundIfClinicInactive(
   clinicId: string
 ): Promise<void> {
-  const db = getPrisma() as {
+  const db = getPrisma() as unknown as {
     clinic?: ClinicActivityReader["clinic"];
   };
   // Billing action doubles stub only the delegates they exercise.
