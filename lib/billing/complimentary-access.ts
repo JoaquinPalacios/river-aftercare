@@ -21,6 +21,10 @@ import {
   type ComplimentaryPlan,
   type ComplimentaryTerm,
 } from "@/lib/billing/complimentary-term";
+import {
+  CLINIC_INACTIVE_MESSAGE,
+  clinicIsInactive,
+} from "@/lib/clinics/clinic-activity";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
 
@@ -148,7 +152,10 @@ function parsedMutation(
 async function readContext(tx: Db, clinicId: string) {
   const [clinic, openSplit, profile, entitlement, openNegotiatedOffer] =
     await Promise.all([
-      tx.clinic.findUnique({ where: { id: clinicId }, select: { id: true } }),
+      tx.clinic.findUnique({
+        where: { id: clinicId },
+        select: { id: true, deactivatedAt: true },
+      }),
       findOpenAccountSplitInvolvingClinic(clinicId, tx),
       tx.clinicBillingProfile.findUnique({
         where: { clinicId },
@@ -170,7 +177,7 @@ async function readContext(tx: Db, clinicId: string) {
 }
 
 function sharedCommercialBlock(input: {
-  clinic: { id: string } | null;
+  clinic: { id: string; deactivatedAt?: Date | null } | null;
   openSplit: { id: string } | null;
   profile: {
     stripeSubscriptionId: string | null;
@@ -184,6 +191,9 @@ function sharedCommercialBlock(input: {
 }): string | null {
   if (!input.clinic) {
     return "Clinic not found.";
+  }
+  if (clinicIsInactive(input.clinic.deactivatedAt)) {
+    return CLINIC_INACTIVE_MESSAGE;
   }
   if (input.openNegotiatedOffer) {
     return NEGOTIATED_BLOCK;

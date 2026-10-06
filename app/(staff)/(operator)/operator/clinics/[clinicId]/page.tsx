@@ -20,6 +20,7 @@ import { formatBillingDate } from "@/lib/billing/billing-presentation";
 import { loadGuideAllowance } from "@/lib/entitlements/guide-usage";
 import { loadTeamAllowance } from "@/lib/entitlements/team-usage";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
+import { ClinicStatusSection } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/clinic-status-section";
 import { SiteLocationCapacityForm } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/site-location-capacity-form";
 import { getOperatorClinic } from "@/lib/operator/get-operator-clinic";
 import { supportedLocationToNewAccountAction } from "@/lib/account-split/location-policy";
@@ -141,6 +142,19 @@ export default async function OperatorClinicDetailPage({
           </a>
         ) : null}
       </header>
+
+      <ClinicStatusSection
+        clinicId={clinic.id}
+        inactive={clinic.deactivatedAt != null}
+        deactivatedLabel={
+          clinic.deactivatedAt
+            ? new Intl.DateTimeFormat("en-GB", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }).format(clinic.deactivatedAt)
+            : null
+        }
+      />
 
       <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
         <h2 className="text-base font-semibold">Branding</h2>

@@ -32,6 +32,7 @@ import { existingGroupMoveConfirmationPhrase } from "@/lib/account-split/site-to
 import { loadAccountSplitSnapshot } from "@/lib/account-split/snapshot";
 import { recordAccountSplitEvent } from "@/lib/account-split/events";
 import { assertNoOpenNegotiatedOffer } from "@/lib/billing/negotiated-offer";
+import { assertClinicActive } from "@/lib/clinics/clinic-activity";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { getPrisma } from "@/lib/prisma";
 
@@ -64,6 +65,7 @@ export async function createAccountSplitPreparation(input: {
           "forbidden"
         );
       }
+      await assertClinicActive(tx, input.sourceClinicId);
       await assertNoOpenNegotiatedOffer(tx, input.sourceClinicId);
       const clinic = await tx.clinic.findUnique({
         where: { id: input.sourceClinicId },
@@ -656,6 +658,7 @@ export async function createLocationToNewAccountPreparation(input: {
           "forbidden"
         );
       }
+      await assertClinicActive(tx, input.sourceClinicId);
       await assertNoOpenNegotiatedOffer(tx, input.sourceClinicId);
       const clinic = await tx.clinic.findUnique({
         where: { id: input.sourceClinicId },
@@ -1053,6 +1056,7 @@ export async function createSiteToExistingGroupPreparation(input: {
     return await getPrisma().$transaction(async (tx) => {
       await lockAccountSplit(tx, input.sourceClinicId);
       await assertOperator(tx, input.operatorUserId);
+      await assertClinicActive(tx, input.sourceClinicId);
       await assertNoOpenNegotiatedOffer(tx, input.sourceClinicId);
       const clinic = await tx.clinic.findUnique({
         where: { id: input.sourceClinicId },
@@ -1200,6 +1204,7 @@ export async function selectExistingGroupDestination(input: {
         select: {
           id: true,
           slug: true,
+          deactivatedAt: true,
           entitlement: {
             select: { commercialPlan: true, billingInterval: true },
           },
@@ -1207,6 +1212,12 @@ export async function selectExistingGroupDestination(input: {
       });
       if (!destination) {
         throw new ClinicPortalError("That account was not found.", "not_found");
+      }
+      if (destination.deactivatedAt) {
+        throw new ClinicPortalError(
+          "Reactivate that clinic before choosing it as a destination.",
+          "conflict"
+        );
       }
       if (isSplitShellCompatibilitySlug(destination.slug)) {
         throw new ClinicPortalError(

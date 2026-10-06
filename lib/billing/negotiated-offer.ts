@@ -9,6 +9,10 @@ import {
 
 import { findOpenAccountSplitInvolvingClinic } from "@/lib/account-split/snapshot";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
+import {
+  CLINIC_INACTIVE_MESSAGE,
+  clinicIsInactive,
+} from "@/lib/clinics/clinic-activity";
 import { formatBillingDate } from "@/lib/billing/billing-presentation";
 import {
   checkoutAttemptFromMetadata,
@@ -530,10 +534,13 @@ export async function prepareNegotiatedOffer(
     return await withStructureLock(db, input.clinicId, async (tx) => {
       const clinic = await tx.clinic.findUnique({
         where: { id: input.clinicId },
-        select: { id: true },
+        select: { id: true, deactivatedAt: true },
       });
       if (!clinic) {
         return { ok: false as const, error: "Clinic not found." };
+      }
+      if (clinicIsInactive(clinic.deactivatedAt)) {
+        return { ok: false as const, error: CLINIC_INACTIVE_MESSAGE };
       }
       const entitlement = await tx.clinicEntitlement.findUnique({
         where: { clinicId: input.clinicId },
@@ -1013,6 +1020,19 @@ export async function startNegotiatedCheckout(input: {
   if (!input.acceptNegotiatedTerms) {
     return { ok: false, code: "negotiated_terms_required" };
   }
+  if (typeof db.clinic?.findUnique === "function") {
+    const clinic = await db.clinic.findUnique({
+      where: { id: input.clinicId },
+      select: { deactivatedAt: true },
+    });
+    if (clinicIsInactive(clinic?.deactivatedAt)) {
+      return checkoutFailure(
+        input.clinicId,
+        "checkout_unavailable",
+        "clinic_inactive"
+      );
+    }
+  }
   const config = getStripeClientConfig(input.env);
   if (!input.stripe && !config.ready) {
     return checkoutFailure(
@@ -1026,6 +1046,15 @@ export async function startNegotiatedCheckout(input: {
     (getStripeClient(input.env) as unknown as NegotiatedStripePort);
 
   const locked = await withStructureLock(db, input.clinicId, async (tx) => {
+    if (typeof tx.clinic?.findUnique === "function") {
+      const clinic = await tx.clinic.findUnique({
+        where: { id: input.clinicId },
+        select: { deactivatedAt: true },
+      });
+      if (clinicIsInactive(clinic?.deactivatedAt)) {
+        return { ok: false as const, code: "checkout_unavailable" as const };
+      }
+    }
     const entitlement = await tx.clinicEntitlement.findUnique({
       where: { clinicId: input.clinicId },
     });

@@ -5,10 +5,11 @@ import {
   EntitlementStatus,
   type CommercialArrangement,
 } from "@prisma/client";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import type { ClinicMembershipContext } from "@/lib/auth/session";
 import { complimentaryProductStatus } from "@/lib/billing/complimentary-term";
+import { clinicIsInactive } from "@/lib/clinics/clinic-activity";
 import { getPrisma } from "@/lib/prisma";
 
 /**
@@ -73,6 +74,10 @@ export type ClinicProductAccessDecision =
       kind: "billing_required";
       reason: "not_active";
       href: BillingRecoveryPath;
+    }
+  | {
+      kind: "clinic_inactive";
+      reason: "clinic_inactive";
     };
 
 /**
@@ -87,8 +92,10 @@ export type ClinicProductAccessDecision =
  * RESTRICTED, and ENDED stay closed. An expired complimentary grant is
  * evaluated at request time and uses the same closed path. It does not
  * fall back to the legacy row. Billing status chooses a recovery page and
- * never grants product access. Account billing routes are not behind this
- * gate. Operator support keeps its existing exemption.
+ * never grants product access. Account billing routes are not behind the
+ * entitlement portion of this gate. A deactivated clinic closes product
+ * routes for clinic staff even when the entitlement is ACTIVE. Operator
+ * support keeps its existing exemption.
  */
 export function decideClinicProductAccess(input: {
   membershipSource: "membership" | "operator_support";
@@ -99,9 +106,18 @@ export function decideClinicProductAccess(input: {
    * while they have no entitlement. Historical clinics leave this unset.
    */
   assistedOnboarding?: boolean;
+  /**
+   * Clinic.deactivatedAt is set. Account lifecycle, not billing status.
+   * An active entitlement does not waive it.
+   */
+  clinicDeactivated?: boolean;
 }): ClinicProductAccessDecision {
   if (input.membershipSource === "operator_support") {
     return { kind: "allow", reason: "operator_support" };
+  }
+
+  if (input.clinicDeactivated) {
+    return { kind: "clinic_inactive", reason: "clinic_inactive" };
   }
 
   if (!input.entitlementStatus) {
@@ -194,28 +210,34 @@ async function readEffectiveEntitlement(
  * In-process test doubles that only stub clinicEntitlement stay on the
  * historical path. Production Prisma includes clinic.findUnique.
  */
-async function readAssistedOnboarding(
+async function readClinicLifecycle(
   clinicId: string,
   db: ClinicBillingAccessDb
-): Promise<boolean> {
+): Promise<{ assistedOnboarding: boolean; clinicDeactivated: boolean }> {
   const clinic = (
     db as {
       clinic?: {
         findUnique?: (args: {
           where: { id: string };
-          select: { assistedOnboarding: true };
-        }) => Promise<{ assistedOnboarding: boolean } | null>;
+          select: { assistedOnboarding: true; deactivatedAt: true };
+        }) => Promise<{
+          assistedOnboarding: boolean;
+          deactivatedAt: Date | null;
+        } | null>;
       };
     }
   ).clinic;
   if (typeof clinic?.findUnique !== "function") {
-    return false;
+    return { assistedOnboarding: false, clinicDeactivated: false };
   }
   const row = await clinic.findUnique({
     where: { id: clinicId },
-    select: { assistedOnboarding: true },
+    select: { assistedOnboarding: true, deactivatedAt: true },
   });
-  return row?.assistedOnboarding === true;
+  return {
+    assistedOnboarding: row?.assistedOnboarding === true,
+    clinicDeactivated: clinicIsInactive(row?.deactivatedAt),
+  };
 }
 
 export async function clinicEntitlementIsActive(
@@ -242,7 +264,7 @@ export async function readClinicBillingAccess(
   }
 
   const row = await readEffectiveEntitlement(membership.clinic.id, db);
-  const assistedOnboarding = await readAssistedOnboarding(
+  const lifecycle = await readClinicLifecycle(
     membership.clinic.id,
     billingAccessDb(db)
   );
@@ -251,7 +273,8 @@ export async function readClinicBillingAccess(
     membershipSource: "membership",
     entitlementStatus: row.entitlementStatus,
     billingStatus: row.billingStatus,
-    assistedOnboarding,
+    assistedOnboarding: lifecycle.assistedOnboarding,
+    clinicDeactivated: lifecycle.clinicDeactivated,
   });
 
   return {
@@ -265,6 +288,9 @@ export async function enforcePrePaymentActivationGate(
   db?: ClinicBillingAccessDb
 ): Promise<Awaited<ReturnType<typeof readClinicBillingAccess>>> {
   const access = await readClinicBillingAccess(membership, db);
+  if (access.kind === "clinic_inactive") {
+    notFound();
+  }
   if (access.kind === "billing_required") {
     redirect(access.href);
   }
@@ -276,5 +302,7 @@ export async function clinicProductApiBlocked(
   db?: ClinicBillingAccessDb
 ): Promise<boolean> {
   const access = await readClinicBillingAccess(membership, db);
-  return access.kind === "billing_required";
+  return (
+    access.kind === "billing_required" || access.kind === "clinic_inactive"
+  );
 }

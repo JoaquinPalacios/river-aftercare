@@ -323,4 +323,50 @@ describe("pre-payment activation gate", () => {
     expect(access.reason).not.toBe("legacy");
     expect(updates).toHaveLength(1);
   });
+
+  it("closes an active entitlement when the clinic is deactivated", () => {
+    expect(
+      decideClinicProductAccess({
+        membershipSource: "membership",
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        billingStatus: BillingStatus.ACTIVE,
+        clinicDeactivated: true,
+      })
+    ).toEqual({ kind: "clinic_inactive", reason: "clinic_inactive" });
+  });
+
+  it("keeps operator support available when the clinic is deactivated", () => {
+    expect(
+      decideClinicProductAccess({
+        membershipSource: "operator_support",
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        billingStatus: BillingStatus.ACTIVE,
+        clinicDeactivated: true,
+      })
+    ).toEqual({ kind: "allow", reason: "operator_support" });
+  });
+
+  it("reads clinic deactivation ahead of an active entitlement", async () => {
+    const access = await readClinicBillingAccess(
+      {
+        clinic: { id: "clinic_inactive", name: "Inactive" },
+        source: "membership",
+      },
+      {
+        clinicEntitlement: {
+          findUnique: async () => ({
+            entitlementStatus: EntitlementStatus.ACTIVE,
+            billingStatus: BillingStatus.ACTIVE,
+          }),
+        },
+        clinic: {
+          findUnique: async () => ({
+            assistedOnboarding: false,
+            deactivatedAt: new Date("2026-10-05T00:00:00.000Z"),
+          }),
+        },
+      } as never
+    );
+    expect(access.kind).toBe("clinic_inactive");
+  });
 });

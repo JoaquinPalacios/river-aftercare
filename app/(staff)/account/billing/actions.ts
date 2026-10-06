@@ -20,6 +20,7 @@ import {
   keepSelectionMessage,
 } from "@/lib/entitlements/downgrade-selection";
 import { BILLING_COMPLETE_PATH } from "@/lib/billing/activation-gate";
+import { notFoundIfClinicInactive } from "@/lib/clinics/clinic-activity";
 import {
   assertClinicCheckoutActor,
   checkoutFailureMessage,
@@ -97,6 +98,7 @@ export async function continueToSecurePaymentAction(
   }
 
   const session = await requireClinicAdmin();
+  await notFoundIfClinicInactive(session.clinicMembership.clinic.id);
   const form = billingIdentityFromForm(formData);
   const actor = assertClinicCheckoutActor({
     role: session.clinicMembership.role,
@@ -180,6 +182,7 @@ export async function openCustomerPortalAction(
   }
 
   const session = await requireClinicAdmin();
+  await notFoundIfClinicInactive(session.clinicMembership.clinic.id);
   const actor = assertClinicPortalActor({
     role: session.clinicMembership.role,
     membershipSource: session.clinicMembership.source ?? "membership",
@@ -228,6 +231,7 @@ export async function confirmDowngradeGuideSelectionAction(
   formData: FormData
 ): Promise<GuideSelectionActionState> {
   const session = await requireClinicAdmin();
+  await notFoundIfClinicInactive(session.clinicMembership.clinic.id);
   if (session.clinicMembership.source === "operator_support") {
     return { error: keepSelectionMessage("forbidden") };
   }
@@ -265,6 +269,7 @@ async function customerPlanActor(): Promise<
     notFound();
   }
   const session = await requireClinicAdmin();
+  await notFoundIfClinicInactive(session.clinicMembership.clinic.id);
   if (
     session.clinicMembership.source === "operator_support" ||
     session.clinicMembership.role !== "ADMIN"

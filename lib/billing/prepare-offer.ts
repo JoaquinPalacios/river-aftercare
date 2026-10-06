@@ -8,6 +8,10 @@ import {
   type PrismaClient,
 } from "@prisma/client";
 
+import {
+  CLINIC_INACTIVE_MESSAGE,
+  clinicIsInactive,
+} from "@/lib/clinics/clinic-activity";
 import { isOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import { logStripeBilling } from "@/lib/billing/log";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
@@ -148,6 +152,24 @@ export async function prepareClinicCommercialOffer(
     offeredAdditionalSiteQuantity = input.offeredAdditionalSiteQuantity;
   }
 
+  const clinicReader = db as {
+    clinic?: {
+      findUnique?: (args: {
+        where: { id: string };
+        select: { deactivatedAt: true };
+      }) => Promise<{ deactivatedAt: Date | null } | null>;
+    };
+  };
+  if (typeof clinicReader.clinic?.findUnique === "function") {
+    const clinic = await clinicReader.clinic.findUnique({
+      where: { id: input.clinicId },
+      select: { deactivatedAt: true },
+    });
+    if (clinicIsInactive(clinic?.deactivatedAt)) {
+      return { ok: false, message: CLINIC_INACTIVE_MESSAGE };
+    }
+  }
+
   const existing = await db.clinicEntitlement.findUnique({
     where: { clinicId: input.clinicId },
     select: {
@@ -240,6 +262,23 @@ export async function prepareClinicCommercialOffer(
       });
       if (!currentRevision.ok) {
         return { ok: false as const, revision: currentRevision };
+      }
+      const lockedClinic = writer as typeof clinicReader;
+      if (typeof lockedClinic.clinic?.findUnique === "function") {
+        const clinic = await lockedClinic.clinic.findUnique({
+          where: { id: input.clinicId },
+          select: { deactivatedAt: true },
+        });
+        if (clinicIsInactive(clinic?.deactivatedAt)) {
+          return {
+            ok: false as const,
+            revision: {
+              ok: false as const,
+              code: "billing_underway" as const,
+              message: CLINIC_INACTIVE_MESSAGE,
+            },
+          };
+        }
       }
       await writer.clinicEntitlement.upsert({
         where: { clinicId: input.clinicId },

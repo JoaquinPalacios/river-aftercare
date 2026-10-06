@@ -11,6 +11,7 @@ import {
   RIVER_CHECKOUT_ATTEMPT_METADATA_KEY,
   RIVER_CLINIC_ID_METADATA_KEY,
 } from "@/lib/billing/identity";
+import { clinicIsInactive } from "@/lib/clinics/clinic-activity";
 import { isOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import { checkoutReturnUrlIssue } from "@/lib/billing/checkout-origin";
 import { logStripeBilling } from "@/lib/billing/log";
@@ -755,6 +756,23 @@ export async function createClinicCheckout(input: {
   stripe?: CheckoutStripePort;
 }): Promise<CheckoutExecutionResult> {
   const db = input.db ?? getPrisma();
+  const clinicReader = db as {
+    clinic?: {
+      findUnique?: (args: {
+        where: { id: string };
+        select: { deactivatedAt: true };
+      }) => Promise<{ deactivatedAt: Date | null } | null>;
+    };
+  };
+  if (typeof clinicReader.clinic?.findUnique === "function") {
+    const clinic = await clinicReader.clinic.findUnique({
+      where: { id: input.clinicId },
+      select: { deactivatedAt: true },
+    });
+    if (clinicIsInactive(clinic?.deactivatedAt)) {
+      return { ok: false, code: "checkout_unavailable" };
+    }
+  }
   const config = getStripeClientConfig(input.env);
   if (!input.stripe && !config.ready) {
     logStripeBilling({
