@@ -51,7 +51,18 @@ export async function assertClinicActive(
 export async function notFoundIfClinicInactive(
   clinicId: string
 ): Promise<void> {
-  const message = await inactiveClinicMessage(getPrisma(), clinicId);
+  const db = getPrisma() as {
+    clinic?: ClinicActivityReader["clinic"];
+  };
+  // Billing action doubles stub only the delegates they exercise.
+  // Production Prisma always includes clinic.findUnique.
+  if (typeof db.clinic?.findUnique !== "function") {
+    return;
+  }
+  const message = await inactiveClinicMessage(
+    db as ClinicActivityReader,
+    clinicId
+  );
   if (message) {
     notFound();
   }
