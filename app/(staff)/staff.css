@@ -2807,6 +2807,66 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   cursor: not-allowed;
 }
 
+.staffActivityTabs {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.1875rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--staff-line) 40%, var(--staff-panel));
+}
+
+.staffActivityTab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.75rem;
+  padding: 0.15rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--staff-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--interaction-duration) var(--interaction-easing),
+    border-color var(--interaction-duration) var(--interaction-easing),
+    color var(--interaction-duration) var(--interaction-easing);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .staffActivityTab:hover {
+    border-color: var(--staff-line);
+    background: var(--staff-panel);
+    color: var(--staff-ink);
+  }
+
+  .staffActivityTab[aria-current="page"]:hover {
+    border-color: var(--staff-brand);
+    background: color-mix(in srgb, var(--staff-brand) 22%, var(--staff-panel));
+    color: var(--staff-brand);
+  }
+}
+
+.staffActivityTab:focus-visible {
+  outline: var(--interaction-focus-width) solid var(--staff-brand);
+  outline-offset: var(--interaction-focus-offset);
+}
+
+.staffActivityTab[aria-current="page"] {
+  border-color: var(--staff-brand);
+  background: color-mix(in srgb, var(--staff-brand) 16%, var(--staff-panel));
+  color: var(--staff-brand);
+  font-weight: 650;
+}
+
 .staffOperatorSummary {
   display: grid;
   min-width: 0;
