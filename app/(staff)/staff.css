@@ -1978,8 +1978,8 @@ textarea.staffField.staffAutosizeField {
 
 @media (hover: hover) and (pointer: fine) {
   .helpCategoryCard:not([aria-pressed="true"]):hover {
-    border-color: color-mix(in srgb, var(--staff-brand) 45%, var(--staff-line));
-    background: color-mix(in srgb, var(--staff-line) 55%, var(--staff-panel));
+    border-color: color-mix(in srgb, var(--staff-brand) 55%, var(--staff-line));
+    background: color-mix(in srgb, var(--staff-brand) 10%, var(--staff-panel));
   }
 }
 

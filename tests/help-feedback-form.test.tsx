@@ -98,7 +98,10 @@ describe("Help & feedback form", () => {
       "outline: var(--interaction-focus-width) solid var(--staff-brand);"
     );
     expect(css).toContain(
-      "border-color: color-mix(in srgb, var(--staff-brand) 45%, var(--staff-line));"
+      "border-color: color-mix(in srgb, var(--staff-brand) 55%, var(--staff-line));"
+    );
+    expect(css).toContain(
+      "background: color-mix(in srgb, var(--staff-brand) 10%, var(--staff-panel));"
     );
     const form = container.querySelector("form");
     expect(form?.className).toContain("helpFeedbackForm");
