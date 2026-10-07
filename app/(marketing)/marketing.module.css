@@ -5618,7 +5618,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 
   .phoneShell {
     width: 13.85rem;
-    transform: translateY(-1.5rem) rotate(-1.15deg);
+    transform: translateY(-1.5rem);
   }
 
   .phoneScreen {

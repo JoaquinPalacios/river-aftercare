@@ -96,6 +96,10 @@ describe("premium marketing UX contracts", () => {
     expect(html).toContain('type="radio"');
     expect(html).toContain('tabindex="-1"');
     expect(html).toMatch(/phoneShell[^>]*aria-hidden="true"/);
+    expect(styles).toMatch(
+      /\.phoneShell\s*\{[^}]*width:\s*13\.85rem;[^}]*transform:\s*translateY\(-1\.5rem\);/
+    );
+    expect(styles).not.toMatch(/\.phoneShell\s*\{[^}]*rotate\(/);
     expect(html).not.toContain('role="radiogroup"');
     expect(html).not.toContain("<button");
     expect(styles).toContain("user-select: none");
