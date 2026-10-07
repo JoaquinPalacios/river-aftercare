@@ -11,6 +11,7 @@ import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { reportSupportEmailFailure } from "@/lib/observability/report-server-exception";
 import {
   HELP_FEEDBACK_IMPORTANCE_LABELS,
+  containsEmailHeaderControl,
   helpFeedbackEnvironmentLabel,
   helpFeedbackSubject,
   sanitizeHelpHeaderValue,
@@ -210,6 +211,21 @@ export async function deliverHelpFeedback(
   },
   env: Env = process.env
 ): Promise<{ ok: true } | { ok: false }> {
+  const subjectText =
+    input.submission.category === "feature"
+      ? input.submission.goal
+      : input.submission.summary;
+  if (containsEmailHeaderControl(subjectText)) {
+    logHelpFeedbackFailure({
+      event: "help_feedback_delivery_failed",
+      clinicId: input.clinic.id,
+      category: input.submission.category,
+      failureCode: "invalid_message",
+    });
+    reportSupportEmailFailure("invalid_message");
+    return { ok: false };
+  }
+
   const config = getSupportFeedbackDeliveryConfig(env);
   if (!config.ready) {
     logHelpFeedbackFailure({

@@ -111,7 +111,7 @@ Missing `AUTH_EMAIL_FROM` must not break `pnpm build`. Auth delivery then return
 - Provider error details stay behind `{ ok: false, code: "delivery_failed" | "not_configured" | "invalid_message" }`
 - Contact continues to map those to the generic user-facing Contact copy
 - Production Sentry error tracking records sanitized operational events (`contact_email_delivery_failed`, `auth_email_delivery_failed`, `auth_email_not_configured`, `support_email_delivery_failed`, `support_email_not_configured`, `billing_notice_delivery_failed`, `billing_notice_not_configured`) without recipient, subject, body, token, or provider detail. Validation, Turnstile, and honeypot failures are not reported.
-- Help and feedback logs the clinic id, category, and failure code only. It does not log the summary, message, feature description, or user email.
+- Help and feedback logs the clinic id, category, and failure code only. It does not log the summary, message, feature description, or user email. A subject or feature goal containing CR, LF, or another ASCII header control character is rejected before `sendTransactionalEmail`. Message bodies may contain line breaks.
 - Billing-notice logs record the clinic id, notice kind, and failure code. They do not record the billing email or the message body. `BillingNoticeDelivery` stores the same non-sensitive receipt. A provider timeout is `FAILED`, not `SENT`.
 
 Invitation HTML templates live in `lib/email/invitation-mail.ts`. Password-reset templates are sent from `lib/email/password-reset-mail.ts`.

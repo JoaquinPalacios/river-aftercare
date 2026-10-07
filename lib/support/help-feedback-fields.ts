@@ -68,6 +68,12 @@ export type HelpFeedbackSubmission =
 
 const ORIGIN_PATH_PATTERN = /^\/[A-Za-z0-9._~/-]*$/;
 
+const EMAIL_HEADER_CONTROL = /[\u0000-\u001f\u007f]/;
+
+export function containsEmailHeaderControl(value: string): boolean {
+  return EMAIL_HEADER_CONTROL.test(value);
+}
+
 export function sanitizeHelpHeaderValue(value: string): string {
   return value
     .replace(/[\u0000-\u001f\u007f]+/g, " ")
@@ -99,18 +105,26 @@ export function sanitizeHelpOriginPath(
   return trimmed;
 }
 
+function subjectSummary(value: string): string | null {
+  if (containsEmailHeaderControl(value)) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
 export function helpFeedbackSubject(
   submission: HelpFeedbackSubmission
 ): string {
   if (submission.category === "feature") {
-    const summary = sanitizeHelpHeaderValue(submission.goal);
+    const summary = subjectSummary(submission.goal);
     return summary
       ? `[River Aftercare Feedback] Feature request — ${summary}`
       : "[River Aftercare Feedback] Feature request";
   }
 
   const label = submission.category === "problem" ? "Problem" : "Question";
-  const summary = sanitizeHelpHeaderValue(submission.summary);
+  const summary = subjectSummary(submission.summary);
   return summary
     ? `[River Aftercare Support] ${label} — ${summary}`
     : `[River Aftercare Support] ${label}`;
@@ -157,6 +171,7 @@ export const HELP_FEEDBACK_MESSAGES = {
   problem: "Describe the problem this would solve for your clinic.",
   importance: "Choose an importance, or leave it blank.",
   tooLong: "This value is too long.",
+  lineBreaks: "Enter this on a single line.",
 } as const;
 
 export interface HelpFeedbackFormInput {
@@ -183,9 +198,11 @@ export function helpFeedbackClientFieldErrors(
   }
 
   if (values.category === "feature") {
-    if (tooLong(values.goal, HELP_FEEDBACK_LIMITS.summary)) {
+    if (containsEmailHeaderControl(values.goal)) {
+      errors.goal = HELP_FEEDBACK_MESSAGES.lineBreaks;
+    } else if (tooLong(values.goal, HELP_FEEDBACK_LIMITS.summary)) {
       errors.goal = HELP_FEEDBACK_MESSAGES.tooLong;
-    } else if (!sanitizeHelpHeaderValue(values.goal)) {
+    } else if (!values.goal.trim()) {
       errors.goal = HELP_FEEDBACK_MESSAGES.goal;
     }
     if (tooLong(values.problem, HELP_FEEDBACK_LIMITS.message)) {
@@ -202,9 +219,11 @@ export function helpFeedbackClientFieldErrors(
     return errors;
   }
 
-  if (tooLong(values.summary, HELP_FEEDBACK_LIMITS.summary)) {
+  if (containsEmailHeaderControl(values.summary)) {
+    errors.summary = HELP_FEEDBACK_MESSAGES.lineBreaks;
+  } else if (tooLong(values.summary, HELP_FEEDBACK_LIMITS.summary)) {
     errors.summary = HELP_FEEDBACK_MESSAGES.tooLong;
-  } else if (!sanitizeHelpHeaderValue(values.summary)) {
+  } else if (!values.summary.trim()) {
     errors.summary = HELP_FEEDBACK_MESSAGES.summary;
   }
   if (tooLong(values.message, HELP_FEEDBACK_LIMITS.message)) {

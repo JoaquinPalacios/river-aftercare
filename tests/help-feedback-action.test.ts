@@ -58,12 +58,16 @@ const initialHelpFeedbackActionState: HelpFeedbackActionState = {
 };
 import {
   clearHelpFeedbackMemoryInbox,
+  deliverHelpFeedback,
   getHelpFeedbackMemoryInbox,
 } from "@/lib/support/help-feedback-mail";
 import {
   HELP_FEEDBACK_DELIVERY_FAILED,
   HELP_FEEDBACK_LIMITS,
+  HELP_FEEDBACK_MESSAGES,
   HELP_FEEDBACK_PATIENT_WARNING,
+  HELP_FEEDBACK_REVIEW_FIELDS,
+  helpFeedbackClientFieldErrors,
 } from "@/lib/support/help-feedback-fields";
 
 const SECRET = "do-not-log-patient-note-Zephyr-991";
@@ -329,11 +333,11 @@ describe("submitHelpFeedbackAction", () => {
     );
   });
 
-  it("drops an unsafe origin path and collapses header injection in the subject", async () => {
+  it("drops an unsafe origin path without changing a normal subject", async () => {
     const state = await submitHelpFeedbackAction(
       initialHelpFeedbackActionState,
       formData({
-        summary: "Save failed\r\nBcc: attacker@evil.test",
+        summary: "Save failed",
         originPath: "https://evil.test/phish",
         message: "The button stays disabled.",
       })
@@ -342,12 +346,164 @@ describe("submitHelpFeedbackAction", () => {
     expect(state.status).toBe("success");
     const message = getHelpFeedbackMemoryInbox()[0];
     expect(message?.subject).toBe(
-      "[River Aftercare Support] Problem — Save failed Bcc: attacker@evil.test"
+      "[River Aftercare Support] Problem — Save failed"
     );
-    expect(message?.subject).not.toMatch(/[\r\n]/);
     expect(message?.to).toBe("support@example.test");
     expect(message?.text).toContain("Page: Not provided");
-    expect(message).not.toHaveProperty("bcc");
+  });
+
+  it("mirrors the line-break rejection in the client field check", () => {
+    expect(
+      helpFeedbackClientFieldErrors({
+        category: "problem",
+        summary: "Save failed\r\nBcc: attacker@evil.test",
+        message: "The button stays disabled.",
+        goal: "",
+        problem: "",
+        importance: "",
+        originPath: "/guides",
+      }).summary
+    ).toBe(HELP_FEEDBACK_MESSAGES.lineBreaks);
+    expect(
+      helpFeedbackClientFieldErrors({
+        category: "feature",
+        summary: "",
+        message: "",
+        goal: "Export a guide\n",
+        problem: "Staff retype the same status.",
+        importance: "",
+        originPath: "",
+      }).goal
+    ).toBe(HELP_FEEDBACK_MESSAGES.lineBreaks);
+  });
+
+  it("rejects a summary that contains a carriage return", async () => {
+    const state = await submitHelpFeedbackAction(
+      initialHelpFeedbackActionState,
+      formData({ summary: "Save failed\r" })
+    );
+
+    expect(state.status).toBe("error");
+    if (state.status === "error") {
+      expect(state.fieldErrors?.summary).toBe(
+        HELP_FEEDBACK_MESSAGES.lineBreaks
+      );
+    }
+    expect(getHelpFeedbackMemoryInbox()).toHaveLength(0);
+  });
+
+  it("rejects a summary that contains a line feed", async () => {
+    const state = await submitHelpFeedbackAction(
+      initialHelpFeedbackActionState,
+      formData({ summary: "Save failed\n" })
+    );
+
+    expect(state.status).toBe("error");
+    if (state.status === "error") {
+      expect(state.fieldErrors?.summary).toBe(
+        HELP_FEEDBACK_MESSAGES.lineBreaks
+      );
+    }
+    expect(getHelpFeedbackMemoryInbox()).toHaveLength(0);
+  });
+
+  it("rejects a summary that contains another ASCII header control", async () => {
+    const state = await submitHelpFeedbackAction(
+      initialHelpFeedbackActionState,
+      formData({ summary: "Save failed\u007f" })
+    );
+
+    expect(state.status).toBe("error");
+    if (state.status === "error") {
+      expect(state.fieldErrors?.summary).toBe(
+        HELP_FEEDBACK_MESSAGES.lineBreaks
+      );
+    }
+    expect(getHelpFeedbackMemoryInbox()).toHaveLength(0);
+  });
+
+  it("does not send when the summary tries to append a header", async () => {
+    const state = await submitHelpFeedbackAction(
+      initialHelpFeedbackActionState,
+      formData({
+        summary: "Save failed\r\nBcc: attacker@evil.test",
+        message: "The button stays disabled.",
+      })
+    );
+
+    expect(state.status).toBe("error");
+    if (state.status === "error") {
+      expect(state.fieldErrors?.summary).toBe(
+        HELP_FEEDBACK_MESSAGES.lineBreaks
+      );
+      expect(state.error).toBe(HELP_FEEDBACK_REVIEW_FIELDS);
+    }
+    expect(getHelpFeedbackMemoryInbox()).toHaveLength(0);
+    expect(logs()).not.toContain("attacker@evil.test");
+    expect(logs()).not.toContain("Bcc:");
+  });
+
+  it("rejects a feature goal that contains a line feed", async () => {
+    const state = await submitHelpFeedbackAction(
+      initialHelpFeedbackActionState,
+      formData({
+        category: "feature",
+        goal: "Export a guide\nBcc: attacker@evil.test",
+        problem: "Staff retype the same status.",
+      })
+    );
+
+    expect(state.status).toBe("error");
+    if (state.status === "error") {
+      expect(state.fieldErrors?.goal).toBe(HELP_FEEDBACK_MESSAGES.lineBreaks);
+    }
+    expect(getHelpFeedbackMemoryInbox()).toHaveLength(0);
+    expect(logs()).not.toContain("attacker@evil.test");
+  });
+
+  it("keeps line breaks in the message body off the subject", async () => {
+    const state = await submitHelpFeedbackAction(
+      initialHelpFeedbackActionState,
+      formData({
+        summary: "Save failed",
+        message: "The button stays disabled.\nIt never enables.",
+      })
+    );
+
+    expect(state.status).toBe("success");
+    const message = getHelpFeedbackMemoryInbox()[0];
+    expect(message?.subject).toBe(
+      "[River Aftercare Support] Problem — Save failed"
+    );
+    expect(message?.subject).not.toMatch(/[\r\n\u0000-\u001f\u007f]/);
+    expect(message?.text).toContain(
+      "The button stays disabled.\nIt never enables."
+    );
+  });
+
+  it("does not send when delivery is given a subject with a line break", async () => {
+    const result = await deliverHelpFeedback({
+      submission: {
+        category: "problem",
+        summary: "Save failed\r\nBcc: attacker@evil.test",
+        message: "The button stays disabled.",
+        originPath: null,
+      },
+      clinic: { id: "clinic_riverside", name: "Riverside Dental" },
+      user: { name: "Ada Admin", email: "ada@riverside.example.test" },
+    });
+
+    expect(result).toEqual({ ok: false });
+    expect(getHelpFeedbackMemoryInbox()).toHaveLength(0);
+    expect(logs()).not.toContain("Save failed");
+    expect(logs()).not.toContain("Bcc:");
+    expect(logs()).not.toContain("attacker@evil.test");
+    expect(errorSpy).toHaveBeenCalledWith({
+      event: "help_feedback_delivery_failed",
+      clinicId: "clinic_riverside",
+      category: "problem",
+      failureCode: "invalid_message",
+    });
   });
 
   it("rejects a recipient that is not a single email address", async () => {

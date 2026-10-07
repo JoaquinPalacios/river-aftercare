@@ -4,8 +4,8 @@ import {
   HELP_FEEDBACK_CATEGORIES,
   HELP_FEEDBACK_LIMITS,
   HELP_FEEDBACK_MESSAGES,
+  containsEmailHeaderControl,
   isHelpFeedbackImportance,
-  sanitizeHelpHeaderValue,
   sanitizeHelpOriginPath,
   type HelpFeedbackField,
   type HelpFeedbackFieldErrors,
@@ -17,18 +17,12 @@ const helpFeedbackObjectSchema = z
     category: z.enum(HELP_FEEDBACK_CATEGORIES, {
       error: HELP_FEEDBACK_MESSAGES.category,
     }),
-    summary: z
-      .string()
-      .trim()
-      .max(HELP_FEEDBACK_LIMITS.summary, HELP_FEEDBACK_MESSAGES.tooLong),
+    summary: z.string(),
     message: z
       .string()
       .trim()
       .max(HELP_FEEDBACK_LIMITS.message, HELP_FEEDBACK_MESSAGES.tooLong),
-    goal: z
-      .string()
-      .trim()
-      .max(HELP_FEEDBACK_LIMITS.summary, HELP_FEEDBACK_MESSAGES.tooLong),
+    goal: z.string(),
     problem: z
       .string()
       .trim()
@@ -38,13 +32,12 @@ const helpFeedbackObjectSchema = z
   })
   .superRefine((value, context) => {
     if (value.category === "feature") {
-      if (!sanitizeHelpHeaderValue(value.goal)) {
-        context.addIssue({
-          code: "custom",
-          path: ["goal"],
-          message: HELP_FEEDBACK_MESSAGES.goal,
-        });
-      }
+      rejectSubjectField(
+        value.goal,
+        "goal",
+        HELP_FEEDBACK_MESSAGES.goal,
+        context
+      );
       if (!value.problem.trim()) {
         context.addIssue({
           code: "custom",
@@ -62,13 +55,12 @@ const helpFeedbackObjectSchema = z
       return;
     }
 
-    if (!sanitizeHelpHeaderValue(value.summary)) {
-      context.addIssue({
-        code: "custom",
-        path: ["summary"],
-        message: HELP_FEEDBACK_MESSAGES.summary,
-      });
-    }
+    rejectSubjectField(
+      value.summary,
+      "summary",
+      HELP_FEEDBACK_MESSAGES.summary,
+      context
+    );
     if (!value.message.trim()) {
       context.addIssue({
         code: "custom",
@@ -84,7 +76,7 @@ export const helpFeedbackSchema = helpFeedbackObjectSchema.transform(
     if (value.category === "feature") {
       return {
         category: "feature",
-        goal: value.goal,
+        goal: value.goal.trim(),
         problem: value.problem,
         importance: isHelpFeedbackImportance(value.importance)
           ? value.importance
@@ -94,7 +86,7 @@ export const helpFeedbackSchema = helpFeedbackObjectSchema.transform(
     }
     return {
       category: value.category,
-      summary: value.summary,
+      summary: value.summary.trim(),
       message: value.message,
       originPath,
     };
@@ -112,6 +104,38 @@ export function helpFeedbackFieldErrors(
     }
   }
   return fieldErrors;
+}
+
+function rejectSubjectField(
+  value: string,
+  field: "summary" | "goal",
+  emptyMessage: string,
+  context: z.RefinementCtx
+): void {
+  if (containsEmailHeaderControl(value)) {
+    context.addIssue({
+      code: "custom",
+      path: [field],
+      message: HELP_FEEDBACK_MESSAGES.lineBreaks,
+    });
+    return;
+  }
+  const trimmed = value.trim();
+  if (trimmed.length > HELP_FEEDBACK_LIMITS.summary) {
+    context.addIssue({
+      code: "custom",
+      path: [field],
+      message: HELP_FEEDBACK_MESSAGES.tooLong,
+    });
+    return;
+  }
+  if (!trimmed) {
+    context.addIssue({
+      code: "custom",
+      path: [field],
+      message: emptyMessage,
+    });
+  }
 }
 
 function isHelpFeedbackField(value: unknown): value is HelpFeedbackField {
