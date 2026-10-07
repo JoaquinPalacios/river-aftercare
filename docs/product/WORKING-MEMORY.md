@@ -9,7 +9,7 @@ Last updated: 2026-10-07 (Clinic lifecycle is Active, Inactive, and Archived. Ar
 
 ## Sitemap omits noindex marketing routes (2026-10-07)
 
-`buildMarketingSitemap` emits a `MARKETING_SEO_PATHS` entry only when `DEFAULT_MARKETING_PAGE_SEO[path].index` is true. `/privacy` and `/terms` stay `noindex, follow` (`DRAFT_LEGAL_ROBOTS`) and stay in `robots.txt` and `llms.txt`. Indexable routes keep the same canonical URL, `lastModified`, priority, and change frequency. The sitemap still does not read Prisma. An operator `MarketingPageSeo.index` override can disagree with that code default until the default itself changes.
+`buildMarketingSitemap` includes a route when `resolveMarketingSeo(...).robots.index` is true. `app/sitemap.ts` passes `loadAllMarketingPageSeo()`, so a stored `MarketingPageSeo.index` overrides the code default the same way page metadata does. A missing row or a failed read keeps the default, which leaves `/privacy` and `/terms` at `noindex, follow`. Those paths stay in `robots.txt` and `llms.txt`. Canonical URL, code-owned `lastModified`, priority, and change frequency are unchanged. The route does not set `dynamic` and does not call a request-time API, so `/sitemap.xml` stays a static prerender. Operator save already calls `revalidatePath("/sitemap.xml")`.
 
 ## Reversible clinic archive (2026-10-07)
 

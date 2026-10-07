@@ -30,6 +30,12 @@ When materially changing a public marketing page, update its sitemap lastModifie
 
 Omit `lastModified` rather than publishing a knowingly false timestamp. Do not invent millisecond precision.
 
+## Sitemap inclusion
+
+A route is included when `resolveMarketingSeo` reports `robots.index`. The sitemap route loads rows with `loadAllMarketingPageSeo()`, so a stored `MarketingPageSeo.index` overrides the code default in the same way page metadata does. A missing row or a failed read uses that default. `lastModified` still comes only from the code calendar date.
+
+`app/sitemap.ts` does not set a dynamic rendering option and does not call a request-time API. Next.js keeps this special route a static prerender. Operator SEO save already calls `revalidatePath("/sitemap.xml")`, which regenerates that prerender after an indexing change.
+
 ## Canonical URL policy
 
 Canonical URLs are **derived**, not operator-editable:
