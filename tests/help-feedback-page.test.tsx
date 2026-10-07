@@ -23,7 +23,6 @@ vi.mock("@/app/(staff)/account/help/actions", () => ({
 import { renderToStaticMarkup } from "react-dom/server";
 
 import HelpFeedbackPage from "@/app/(staff)/account/help/page";
-import { HELP_FEEDBACK_PATIENT_WARNING } from "@/lib/support/help-feedback-fields";
 
 describe("Help & feedback page", () => {
   beforeEach(() => {
@@ -42,7 +41,9 @@ describe("Help & feedback page", () => {
     expect(html).toContain("Ask a question");
     expect(html).toContain("Suggest a feature");
     expect(html).toContain("Choose an option to continue.");
-    expect(html).not.toContain(HELP_FEEDBACK_PATIENT_WARNING);
+    expect(html).not.toContain(
+      "Please do not include patient names, medical information, photos, or other patient-identifiable information in this message."
+    );
     expect(html).not.toContain("support@");
     expect(html).not.toContain("RIVER_AFTERCARE_SUPPORT_EMAIL");
     expect(html).not.toContain("https://evil.test");

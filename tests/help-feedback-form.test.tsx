@@ -16,9 +16,11 @@ import { HelpFeedbackForm } from "@/app/(staff)/account/help/help-feedback-form"
 import {
   HELP_FEEDBACK_DELIVERY_FAILED,
   HELP_FEEDBACK_FEATURE_ACKNOWLEDGEMENT,
-  HELP_FEEDBACK_PATIENT_WARNING,
   HELP_FEEDBACK_SENT_MESSAGE,
 } from "@/lib/support/help-feedback-fields";
+
+const REMOVED_PATIENT_WARNING =
+  "Please do not include patient names, medical information, photos, or other patient-identifiable information in this message.";
 
 describe("Help & feedback form", () => {
   let container: HTMLDivElement;
@@ -109,39 +111,35 @@ describe("Help & feedback form", () => {
     expect(form?.className).toContain("w-full");
   });
 
-  it("shows the patient-information warning beside a problem or question", async () => {
+  it("opens a problem or question without a patient-information warning", async () => {
     await renderForm();
     expect(container.textContent).toContain("Report a problem");
     expect(container.textContent).toContain("Ask a question");
     expect(container.textContent).toContain("Suggest a feature");
-    expect(container.textContent).not.toContain(HELP_FEEDBACK_PATIENT_WARNING);
+    expect(container.textContent).not.toContain(REMOVED_PATIENT_WARNING);
 
     await act(async () => {
       buttonNamed("Report a problem").click();
     });
-    expect(container.textContent).toContain(HELP_FEEDBACK_PATIENT_WARNING);
+    expect(container.textContent).not.toContain(REMOVED_PATIENT_WARNING);
+    expect(container.querySelector("[role='note']")).toBeNull();
     expect(container.querySelector('input[name="summary"]')).not.toBeNull();
     expect(
       (container.querySelector('input[name="originPath"]') as HTMLInputElement)
         .value
     ).toBe("/guides");
     expect(container.querySelector("textarea[name='message']")).not.toBeNull();
-    const notice = container.querySelector("[role='note']");
-    const message = container.querySelector("#help-message");
-    expect(notice?.compareDocumentPosition(message as Node)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING
-    );
 
     await act(async () => {
       buttonNamed("Ask a question").click();
     });
-    expect(container.textContent).toContain(HELP_FEEDBACK_PATIENT_WARNING);
+    expect(container.textContent).not.toContain(REMOVED_PATIENT_WARNING);
     expect(container.textContent).toContain(
       "A short summary of your question."
     );
   });
 
-  it("shows the same warning on a feature request and leaves importance optional", async () => {
+  it("opens a feature request without a patient-information warning and leaves importance optional", async () => {
     await renderForm();
     await act(async () => {
       buttonNamed("Suggest a feature").click();
@@ -153,7 +151,8 @@ describe("Help & feedback form", () => {
     expect(container.textContent).toContain(
       "What problem would this solve for your clinic?"
     );
-    expect(container.textContent).toContain(HELP_FEEDBACK_PATIENT_WARNING);
+    expect(container.textContent).not.toContain(REMOVED_PATIENT_WARNING);
+    expect(container.querySelector("[role='note']")).toBeNull();
     expect(container.textContent).toContain("Nice to have");
     expect(container.textContent).toContain("Important");
     expect(container.textContent).toContain("Very important");

@@ -12,7 +12,6 @@ import {
   HELP_FEEDBACK_IMPORTANCE,
   HELP_FEEDBACK_IMPORTANCE_LABELS,
   HELP_FEEDBACK_LIMITS,
-  HELP_FEEDBACK_PATIENT_WARNING,
   HELP_FEEDBACK_REVIEW_FIELDS,
   HELP_FEEDBACK_SENT_MESSAGE,
   helpFeedbackClientFieldErrors,
@@ -220,17 +219,6 @@ function HelpFeedbackRequestForm({
   );
 }
 
-function PatientInformationNotice() {
-  return (
-    <p
-      className="rounded-md border border-staff-line bg-staff-canvas px-3 py-2 text-sm text-staff-ink"
-      role="note"
-    >
-      {HELP_FEEDBACK_PATIENT_WARNING}
-    </p>
-  );
-}
-
 function MessageFields({
   category,
   summary,
@@ -273,7 +261,6 @@ function MessageFields({
         >
           Message
         </label>
-        <PatientInformationNotice />
         <textarea
           id="help-message"
           name="message"
@@ -336,7 +323,6 @@ function FeatureFields({
         >
           What problem would this solve for your clinic?
         </label>
-        <PatientInformationNotice />
         <textarea
           id="help-problem"
           name="problem"
