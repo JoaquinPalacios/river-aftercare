@@ -46,11 +46,9 @@ export const PERMANENT_DELETION_MESSAGES = {
   missing: "That clinic could not be found.",
   not_archived: "Archive the clinic before permanently deleting it.",
   already_deleted: "This clinic is already permanently deleted.",
-  retained_records:
-    "This clinic has billing or legal records that must be retained, so it cannot be permanently deleted.",
   demo: "The shared demo clinic cannot be permanently deleted.",
   split_history:
-    "This clinic has account-split history that must be retained, so it cannot be permanently deleted.",
+    "This clinic has account-split history that must be retained, so it cannot currently be permanently deleted.",
   negotiated_offer:
     "Withdraw the open negotiated offer before permanently deleting this clinic.",
   checkout_session:
@@ -398,10 +396,6 @@ async function readEligibility(
     blockers.push(blocker("billing_notice"));
   }
 
-  if (await clinicHasRetainedAudit(db, clinic.id)) {
-    blockers.push(blocker("retained_records"));
-  }
-
   const redirect = await db.clinicLocationRedirect.findFirst({
     where: {
       OR: [
@@ -467,70 +461,6 @@ async function relatedClinicIds(db: Db, clinicId: string): Promise<string[]> {
     }
   }
   return [...ids];
-}
-
-/**
- * Billing, legal, and commercial audit rows are foreign-keyed to Clinic.
- * Deleting the clinic would destroy them. This PR does not add a separate
- * store for that evidence, so those clinics stay archived.
- */
-async function clinicHasRetainedAudit(
-  db: Db,
-  clinicId: string
-): Promise<boolean> {
-  const [
-    legal,
-    billing,
-    entitlement,
-    complimentary,
-    offer,
-    price,
-    notice,
-    receipt,
-  ] = await Promise.all([
-    db.legalAcceptance.findFirst({
-      where: { clinicId },
-      select: { id: true },
-    }),
-    db.clinicBillingProfile.findFirst({
-      where: { clinicId },
-      select: { id: true },
-    }),
-    db.clinicEntitlement.findFirst({
-      where: { clinicId },
-      select: { id: true },
-    }),
-    db.clinicComplimentaryAccessEvent.findFirst({
-      where: { clinicId },
-      select: { id: true },
-    }),
-    db.clinicNegotiatedOffer.findFirst({
-      where: { clinicId },
-      select: { id: true },
-    }),
-    db.billingPriceChange.findFirst({
-      where: { clinicId },
-      select: { id: true },
-    }),
-    db.billingNoticeDelivery.findFirst({
-      where: { clinicId },
-      select: { id: true },
-    }),
-    db.stripeEventReceipt.findFirst({
-      where: { clinicId },
-      select: { id: true },
-    }),
-  ]);
-  return Boolean(
-    legal ||
-    billing ||
-    entitlement ||
-    complimentary ||
-    offer ||
-    price ||
-    notice ||
-    receipt
-  );
 }
 
 function refusal(
@@ -648,11 +578,16 @@ async function cleanupBranding(input: {
 /**
  * Permanently deletes one archived clinic.
  *
- * The clinic row and its clinic-owned data are removed. Retired tenant
- * hostnames remain so old patient links cannot be reassigned. Users and
- * Auth.js accounts stay. Billing, legal, and commercial audit rows block
- * deletion because they cannot be detached without destroying that evidence.
- * Legacy `permanentlyDeletedAt` tombstones are refused and are not reversible.
+ * The clinic row and its clinic-owned data are removed, including ended or
+ * not-billed entitlements, complimentary history, converted or withdrawn
+ * offers, a terminal billing profile, legal acceptances, finished price
+ * changes, sent or failed billing notices, and downgrade preparation.
+ * Stripe event receipts stay, keyed by Stripe event id, with their stored
+ * clinic id string. Retired tenant hostnames remain so old patient links
+ * cannot be reassigned. Users and Auth.js accounts stay. A future business
+ * retention policy could keep legal acceptances after the clinic is gone;
+ * that detached store is not implemented. Legacy `permanentlyDeletedAt`
+ * tombstones are refused and are not reversible.
  *
  * Lock order matches clinic deactivation and split destination selection:
  * 1. clinic-account-structure for this clinic and every split-history

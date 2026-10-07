@@ -972,11 +972,19 @@ export async function processVerifiedStripeEvent(
   });
 
   if (projection.kind === "unmapped_clinic") {
-    await mark(StripeEventProcessingStatus.FAILED, projection.diagnostic, null);
+    // The clinic and its billing profile are already gone, or the event never
+    // mapped. Ignore it so a later delivery of this event id is a duplicate.
+    // Real projection failures stay FAILED and can still return HTTP 500.
+    await mark(
+      StripeEventProcessingStatus.IGNORED,
+      projection.diagnostic,
+      null
+    );
     logStripeBilling({
-      event: "stripe_webhook_unknown_clinic",
+      event: "stripe_webhook_ignored",
       stripeEventId,
       eventType,
+      reason: "unmapped_clinic",
     });
     return {
       outcome: "unmapped_clinic",

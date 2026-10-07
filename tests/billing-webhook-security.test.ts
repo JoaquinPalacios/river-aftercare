@@ -222,6 +222,26 @@ describe("POST /api/stripe/webhook", () => {
     expect(body).not.toContain("whsec_");
   });
 
+  it("returns HTTP 200 when processing leaves a deleted clinic unmapped", async () => {
+    processMock.mockResolvedValue({
+      outcome: "unmapped_clinic",
+      clinicId: null,
+      stripeEventId: "evt_test_webhook_1",
+      eventType: "invoice.paid",
+    });
+    const payload = eventPayload("invoice.paid", {
+      object: "invoice",
+      id: "in_1",
+      status: "paid",
+      customer: "cus_1",
+    });
+    const response = await POST(
+      signedRequest(payload, BILLING_TEST_ENV.STRIPE_WEBHOOK_SECRET)
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ received: true });
+  });
+
   it("returns 500 without leaking internals when processing throws", async () => {
     processMock.mockRejectedValue(new Error("db exploded sk_test_secret"));
     const payload = eventPayload("invoice.paid", {

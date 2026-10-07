@@ -9,8 +9,10 @@ import {
   PlatformRole,
   PracticeGuideStatus,
   GuideRevisionStatus,
+  StripeEventProcessingStatus,
   type PrismaClient,
 } from "@prisma/client";
+import type Stripe from "stripe";
 import {
   afterAll,
   beforeAll,
@@ -35,6 +37,8 @@ import { createInvitationToken } from "@/lib/auth/account-token-service";
 import { readOperatorSupportClinic } from "@/lib/auth/operator-support-clinic";
 import { loadClinicAccess } from "@/lib/auth/clinic-authorization";
 import { grantComplimentaryAccess } from "@/lib/billing/complimentary-access";
+import { processVerifiedStripeEvent } from "@/lib/billing/webhook-processor";
+import { BILLING_TEST_ENV } from "./helpers/billing";
 import { CLINIC_PERMANENTLY_DELETED_REACTIVATE_MESSAGE } from "@/lib/clinics/permanent-clinic-deletion";
 import {
   canPermanentlyDeleteClinic,
@@ -263,6 +267,36 @@ async function expectStillOperational(clinicId: string): Promise<void> {
   );
   expect(
     await db().retiredTenantSlug.count({ where: { formerClinicId: clinicId } })
+  ).toBe(0);
+}
+
+async function expectHistoricalRowsGone(clinicId: string): Promise<void> {
+  expect(await db().clinic.findUnique({ where: { id: clinicId } })).toBeNull();
+  expect(await db().clinicProfile.count({ where: { clinicId } })).toBe(0);
+  expect(await db().clinicMembership.count({ where: { clinicId } })).toBe(0);
+  expect(await db().clinicEntitlement.count({ where: { clinicId } })).toBe(0);
+  expect(
+    await db().clinicComplimentaryAccessEvent.count({ where: { clinicId } })
+  ).toBe(0);
+  expect(await db().clinicNegotiatedOffer.count({ where: { clinicId } })).toBe(
+    0
+  );
+  expect(await db().clinicBillingProfile.count({ where: { clinicId } })).toBe(
+    0
+  );
+  expect(await db().legalAcceptance.count({ where: { clinicId } })).toBe(0);
+  expect(await db().billingPriceChange.count({ where: { clinicId } })).toBe(0);
+  expect(await db().billingNoticeDelivery.count({ where: { clinicId } })).toBe(
+    0
+  );
+  expect(
+    await db().clinicDowngradePreparation.count({ where: { clinicId } })
+  ).toBe(0);
+  expect(await db().practiceGuide.count({ where: { clinicId } })).toBe(0);
+  expect(await db().clinicSite.count({ where: { clinicId } })).toBe(0);
+  expect(await db().clinicLocation.count({ where: { clinicId } })).toBe(0);
+  expect(
+    await db().clinicSiteServiceCategory.count({ where: { clinicId } })
   ).toBe(0);
 }
 
@@ -827,6 +861,110 @@ describeDb("permanent clinic deletion", () => {
         },
       },
       {
+        slug: `${PREFIX}pastdue`,
+        code: "subscription",
+        prepare: async (clinicId) => {
+          await db().clinicEntitlement.update({
+            where: { clinicId },
+            data: { billingStatus: BillingStatus.PAST_DUE },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}unpaid`,
+        code: "subscription",
+        prepare: async (clinicId) => {
+          await db().clinicEntitlement.update({
+            where: { clinicId },
+            data: { billingStatus: BillingStatus.UNPAID },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}cancelst`,
+        code: "cancel_at_period_end",
+        prepare: async (clinicId) => {
+          await db().clinicEntitlement.update({
+            where: { clinicId },
+            data: {
+              billingStatus: BillingStatus.CANCEL_AT_PERIOD_END,
+              cancelAtPeriodEnd: false,
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}paypend`,
+        code: "commercial_transition",
+        prepare: async (clinicId) => {
+          await db().clinicEntitlement.update({
+            where: { clinicId },
+            data: {
+              billingStatus: BillingStatus.PAYMENT_PENDING,
+              cancelAtPeriodEnd: false,
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}plan`,
+        code: "commercial_transition",
+        prepare: async (clinicId) => {
+          await db().clinicEntitlement.update({
+            where: { clinicId },
+            data: {
+              billingStatus: BillingStatus.ENDED,
+              scheduledCommercialPlan: "ESSENTIAL",
+              cancelAtPeriodEnd: false,
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}capqty`,
+        code: "commercial_transition",
+        prepare: async (clinicId) => {
+          await db().clinicEntitlement.update({
+            where: { clinicId },
+            data: {
+              billingStatus: BillingStatus.ENDED,
+              scheduledAdditionalSiteQuantity: 1,
+              cancelAtPeriodEnd: false,
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}capeff`,
+        code: "commercial_transition",
+        prepare: async (clinicId) => {
+          await db().clinicEntitlement.update({
+            where: { clinicId },
+            data: {
+              billingStatus: BillingStatus.ENDED,
+              scheduledCapacityEffectiveAt: new Date(
+                "2026-12-01T00:00:00.000Z"
+              ),
+              cancelAtPeriodEnd: false,
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}planeff`,
+        code: "commercial_transition",
+        prepare: async (clinicId) => {
+          await db().clinicEntitlement.update({
+            where: { clinicId },
+            data: {
+              billingStatus: BillingStatus.ENDED,
+              scheduledPlanEffectiveAt: new Date("2026-12-01T00:00:00.000Z"),
+              cancelAtPeriodEnd: false,
+            },
+          });
+        },
+      },
+      {
         slug: `${PREFIX}cancel`,
         code: "cancel_at_period_end",
         prepare: async (clinicId) => {
@@ -897,6 +1035,24 @@ describeDb("permanent clinic deletion", () => {
         },
       },
       {
+        slug: `${PREFIX}open`,
+        code: "negotiated_offer",
+        prepare: async (clinicId) => {
+          await db().clinicNegotiatedOffer.create({
+            data: {
+              clinicId,
+              preparedByUserId: OPERATOR_ID,
+              commercialPlan: "ESSENTIAL",
+              billingInterval: "MONTHLY",
+              amountCents: 1000,
+              startMode: "CUSTOMER_INITIATED",
+              commercialTerms: "Checkout-open offer blocks deletion.",
+              status: "CHECKOUT_OPEN",
+            },
+          });
+        },
+      },
+      {
         slug: `${PREFIX}price`,
         code: "price_change",
         prepare: async (clinicId) => {
@@ -949,6 +1105,451 @@ describeDb("permanent clinic deletion", () => {
       await archiveForDeletion(created.id, entry.slug);
       await expectBlocked(created.id, entry.code);
     }
+  });
+
+  it("deletes archived clinics that only have settled commercial history", async () => {
+    const cases: Array<{
+      slug: string;
+      name: string;
+      prepare: (clinicId: string) => Promise<void>;
+      after?: (clinicId: string) => Promise<void>;
+    }> = [
+      {
+        slug: `${PREFIX}ended`,
+        name: "Pdel Ended",
+        prepare: async (clinicId) => {
+          await db().clinicEntitlement.create({
+            data: {
+              clinicId,
+              commercialPlan: "ESSENTIAL",
+              billingInterval: "MONTHLY",
+              billingStatus: BillingStatus.ENDED,
+              entitlementStatus: "ENDED",
+              commercialArrangement: "PAID",
+            },
+          });
+          const guide = await db().practiceGuide.create({
+            data: {
+              clinicId,
+              title: "Ended guide",
+              publicSlug: `${PREFIX}ended-guide`,
+              status: PracticeGuideStatus.DRAFT,
+              serviceCategory: "DENTAL",
+            },
+          });
+          await db().clinicDowngradePreparation.create({
+            data: {
+              clinicId,
+              targetPlan: "ESSENTIAL",
+              status: "AWAITING_SELECTION",
+              selections: { create: { practiceGuideId: guide.id } },
+            },
+          });
+        },
+        after: async (clinicId) => {
+          const retired = await db().retiredTenantSlug.findUnique({
+            where: { slug: `${PREFIX}ended` },
+          });
+          expect(retired?.formerClinicId).toBeNull();
+          const gone = await proxy(
+            new NextRequest(`http://${PREFIX}ended.localhost:3000/`, {
+              headers: { host: `${PREFIX}ended.localhost:3000` },
+            })
+          );
+          expect(gone.status).toBe(410);
+          await expect(
+            createOperatorClinic({
+              name: "Reuse ended",
+              slug: `${PREFIX}ended`,
+              serviceCategories: ["DENTAL"],
+            })
+          ).rejects.toThrow(RETIRED_TENANT_SLUG_MESSAGE);
+          expect(
+            await db().user.findUnique({ where: { id: OPERATOR_ID } })
+          ).not.toBeNull();
+          expect(clinicId).toBeTruthy();
+        },
+      },
+      {
+        slug: `${PREFIX}notbilled`,
+        name: "Pdel Not Billed",
+        prepare: async (clinicId) => {
+          await db().clinicEntitlement.create({
+            data: {
+              clinicId,
+              commercialPlan: "ESSENTIAL",
+              billingInterval: "MONTHLY",
+              billingStatus: BillingStatus.NOT_BILLED,
+              entitlementStatus: "ACTIVE",
+              commercialArrangement: "PAID",
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}offerprep`,
+        name: "Pdel Offer Prepared",
+        prepare: async (clinicId) => {
+          await db().clinicEntitlement.create({
+            data: {
+              clinicId,
+              commercialPlan: "ESSENTIAL",
+              billingInterval: "MONTHLY",
+              billingStatus: BillingStatus.OFFER_PREPARED,
+              entitlementStatus: "PENDING",
+              commercialArrangement: "PAID",
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}comp`,
+        name: "Pdel Complimentary",
+        prepare: async (clinicId) => {
+          const granted = await grantComplimentaryAccess({
+            actorUserId: OPERATOR_ID,
+            actorPlatformRole: PlatformRole.OPERATOR,
+            clinicId,
+            commercialPlan: "ESSENTIAL",
+            duration: "SIX_MONTHS",
+            reason: "Historical complimentary access.",
+            now: new Date("2026-10-01T00:00:00.000Z"),
+          });
+          expect(granted.ok).toBe(true);
+        },
+      },
+      {
+        slug: `${PREFIX}profile`,
+        name: "Pdel Profile",
+        prepare: async (clinicId) => {
+          await db().clinicBillingProfile.create({
+            data: {
+              clinicId,
+              stripeCustomerId: `${PREFIX}cus-settled`,
+              legalEntityName: "Pdel Profile Pty Ltd",
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}legal`,
+        name: "Pdel Legal",
+        prepare: async (clinicId) => {
+          const user = await db().user.create({
+            data: {
+              email: `${PREFIX}legal@example.com`,
+              platformRole: PlatformRole.NONE,
+            },
+          });
+          await db().legalAcceptance.create({
+            data: {
+              clinicId,
+              userId: user.id,
+              termsVersion: "2026-10-01",
+              privacyVersionAcknowledged: "2026-10-01",
+              source: "BILLING_CHECKOUT",
+            },
+          });
+        },
+        after: async () => {
+          expect(
+            await db().user.findUnique({
+              where: { email: `${PREFIX}legal@example.com` },
+            })
+          ).not.toBeNull();
+        },
+      },
+      {
+        slug: `${PREFIX}receipt`,
+        name: "Pdel Receipt",
+        prepare: async (clinicId) => {
+          await db().stripeEventReceipt.create({
+            data: {
+              stripeEventId: `${PREFIX}evt-kept`,
+              eventType: "invoice.paid",
+              processingStatus: StripeEventProcessingStatus.PROCESSED,
+              clinicId,
+              processedAt: new Date("2026-10-02T00:00:00.000Z"),
+            },
+          });
+        },
+        after: async (clinicId) => {
+          const receipt = await db().stripeEventReceipt.findUnique({
+            where: { stripeEventId: `${PREFIX}evt-kept` },
+          });
+          expect(receipt).toMatchObject({
+            processingStatus: StripeEventProcessingStatus.PROCESSED,
+            clinicId,
+            eventType: "invoice.paid",
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}converted`,
+        name: "Pdel Converted",
+        prepare: async (clinicId) => {
+          await db().clinicNegotiatedOffer.create({
+            data: {
+              clinicId,
+              preparedByUserId: OPERATOR_ID,
+              commercialPlan: "ESSENTIAL",
+              billingInterval: "MONTHLY",
+              amountCents: 4900,
+              startMode: "CUSTOMER_INITIATED",
+              commercialTerms: "Converted offer.",
+              status: "CONVERTED",
+              convertedAt: new Date("2026-10-02T00:00:00.000Z"),
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}withdrawn`,
+        name: "Pdel Withdrawn",
+        prepare: async (clinicId) => {
+          await db().clinicNegotiatedOffer.create({
+            data: {
+              clinicId,
+              preparedByUserId: OPERATOR_ID,
+              commercialPlan: "PRACTICE",
+              billingInterval: "YEARLY",
+              amountCents: 79000,
+              startMode: "CUSTOMER_INITIATED",
+              commercialTerms: "Withdrawn offer.",
+              status: "WITHDRAWN",
+              withdrawnAt: new Date("2026-10-02T00:00:00.000Z"),
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}cancelled`,
+        name: "Pdel Cancelled Price",
+        prepare: async (clinicId) => {
+          await db().billingPriceChange.create({
+            data: {
+              clinicId,
+              stripeSubscriptionId: `${PREFIX}sub-cancelled`,
+              stripeSubscriptionItemId: `${PREFIX}si-cancelled`,
+              affectedLabel: "Essential",
+              billingInterval: "MONTHLY",
+              currentAmountCents: 1000,
+              newAmountCents: 2000,
+              effectiveAt: new Date("2026-11-01T00:00:00.000Z"),
+              status: "CANCELLED",
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}superseded`,
+        name: "Pdel Superseded Price",
+        prepare: async (clinicId) => {
+          await db().billingPriceChange.create({
+            data: {
+              clinicId,
+              stripeSubscriptionId: `${PREFIX}sub-superseded`,
+              stripeSubscriptionItemId: `${PREFIX}si-superseded`,
+              affectedLabel: "Essential",
+              billingInterval: "MONTHLY",
+              currentAmountCents: 2000,
+              newAmountCents: 2500,
+              effectiveAt: new Date("2026-11-01T00:00:00.000Z"),
+              status: "SUPERSEDED",
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}sent`,
+        name: "Pdel Sent Notice",
+        prepare: async (clinicId) => {
+          await db().billingNoticeDelivery.create({
+            data: {
+              clinicId,
+              stripeSubscriptionId: `${PREFIX}sub-sent`,
+              kind: "ANNUAL_RENEWAL_REMINDER",
+              eventKey: `${PREFIX}sent`,
+              status: "SENT",
+              sentAt: new Date("2026-10-02T00:00:00.000Z"),
+            },
+          });
+        },
+      },
+      {
+        slug: `${PREFIX}failed`,
+        name: "Pdel Failed Notice",
+        prepare: async (clinicId) => {
+          await db().billingNoticeDelivery.create({
+            data: {
+              clinicId,
+              stripeSubscriptionId: `${PREFIX}sub-failed`,
+              kind: "PRICE_INCREASE_REMINDER",
+              eventKey: `${PREFIX}failed`,
+              status: "FAILED",
+              failureCode: "timeout",
+            },
+          });
+        },
+      },
+    ];
+
+    for (const entry of cases) {
+      const created = await fresh(entry.slug, entry.name);
+      await entry.prepare(created.id);
+      await deactivate(created.id);
+      await archiveForDeletion(created.id, entry.name);
+      const eligibility = await canPermanentlyDeleteClinic(created.id, {
+        storage: memoryStorage(),
+      });
+      expect(eligibility.eligible, entry.slug).toBe(true);
+      expect(eligibility.blockers, entry.slug).toEqual([]);
+      const deleted = await permanentlyDeleteClinic({
+        clinicId: created.id,
+        operatorUserId: OPERATOR_ID,
+        confirmation: entry.name,
+        storage: memoryStorage(),
+      });
+      expect(deleted.ok, entry.slug).toBe(true);
+      await expectHistoricalRowsGone(created.id);
+      if (entry.after) {
+        await entry.after(created.id);
+      }
+    }
+  });
+
+  it("ignores a late Stripe event after the clinic has been deleted", async () => {
+    const name = "Pdel Late Webhook";
+    const slug = `${PREFIX}late`;
+    const created = await fresh(slug, name);
+    const clinicId = created.id;
+    await db().clinicBillingProfile.create({
+      data: {
+        clinicId,
+        stripeCustomerId: `${PREFIX}cus-late`,
+      },
+    });
+    await db().stripeEventReceipt.create({
+      data: {
+        stripeEventId: `${PREFIX}evt-before`,
+        eventType: "invoice.paid",
+        processingStatus: StripeEventProcessingStatus.PROCESSED,
+        clinicId,
+        processedAt: new Date("2026-10-02T00:00:00.000Z"),
+      },
+    });
+    await deactivate(clinicId);
+    await archiveForDeletion(clinicId, name);
+    const deleted = await permanentlyDeleteClinic({
+      clinicId,
+      operatorUserId: OPERATOR_ID,
+      confirmation: name,
+      storage: memoryStorage(),
+    });
+    expect(deleted.ok).toBe(true);
+    expect(
+      await db().clinic.findUnique({ where: { id: clinicId } })
+    ).toBeNull();
+    expect(
+      await db().clinicBillingProfile.findUnique({ where: { clinicId } })
+    ).toBeNull();
+    expect(
+      await db().stripeEventReceipt.findUnique({
+        where: { stripeEventId: `${PREFIX}evt-before` },
+      })
+    ).toMatchObject({
+      processingStatus: StripeEventProcessingStatus.PROCESSED,
+      clinicId,
+    });
+
+    const clinicsBefore = await db().clinic.count();
+    const event = {
+      id: `${PREFIX}evt-late`,
+      object: "event",
+      api_version: null,
+      created: 1_747_000_000,
+      type: "invoice.paid",
+      livemode: false,
+      pending_webhooks: 1,
+      request: { id: null, idempotency_key: null },
+      data: {
+        object: {
+          id: `${PREFIX}in-late`,
+          object: "invoice",
+          status: "paid",
+          customer: `${PREFIX}cus-late`,
+          metadata: { clinicId },
+          parent: {
+            type: "subscription_details",
+            quote_details: null,
+            subscription_details: {
+              subscription: `${PREFIX}sub-late`,
+              metadata: { clinicId },
+            },
+          },
+          lines: {
+            object: "list",
+            data: [
+              {
+                id: `${PREFIX}il-late`,
+                object: "line_item",
+                pricing: {
+                  type: "price_details",
+                  price_details: {
+                    price: "price_test_essential_monthly",
+                    product: "prod_1",
+                  },
+                  unit_amount_decimal: "7900",
+                },
+              },
+            ],
+            has_more: false,
+            url: "/v1/invoices/in_late/lines",
+          },
+        },
+      },
+    } as unknown as Stripe.Event;
+
+    const first = await processVerifiedStripeEvent(event, {
+      reader: null,
+      env: BILLING_TEST_ENV,
+    });
+    expect(first).toMatchObject({
+      outcome: "unmapped_clinic",
+      clinicId: null,
+      stripeEventId: event.id,
+    });
+    expect(await db().clinic.count()).toBe(clinicsBefore);
+    expect(
+      await db().clinic.findUnique({ where: { id: clinicId } })
+    ).toBeNull();
+    expect(
+      await db().clinicBillingProfile.findUnique({
+        where: { stripeCustomerId: `${PREFIX}cus-late` },
+      })
+    ).toBeNull();
+    const lateReceipt = await db().stripeEventReceipt.findUnique({
+      where: { stripeEventId: event.id },
+    });
+    expect(lateReceipt).toMatchObject({
+      processingStatus: StripeEventProcessingStatus.IGNORED,
+      failureText: "Stripe object is not linked to a known River clinic.",
+    });
+
+    const second = await processVerifiedStripeEvent(event, {
+      reader: null,
+      env: BILLING_TEST_ENV,
+    });
+    expect(second).toMatchObject({
+      outcome: "duplicate",
+      stripeEventId: event.id,
+    });
+    expect(
+      await db().stripeEventReceipt.count({
+        where: { stripeEventId: event.id },
+      })
+    ).toBe(1);
+    expect(await db().clinic.count()).toBe(clinicsBefore);
   });
 
   it("blocks open splits, redirects, and guide maps", async () => {
@@ -1652,6 +2253,9 @@ describeDb("permanent clinic deletion", () => {
     );
     expect(blockedHtml).toContain("Danger zone");
     expect(blockedHtml).toContain(PERMANENT_DELETION_MESSAGES.subscription);
+    expect(blockedHtml).not.toContain(
+      "billing or legal records that must be retained"
+    );
     expect(blockedHtml).not.toContain('name="confirmation"');
     await db().clinicEntitlement.deleteMany({
       where: { clinicId: created.id },

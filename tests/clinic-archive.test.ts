@@ -678,10 +678,10 @@ describeDb("reversible clinic archive and terminal delete", () => {
     expect(activePage).toContain("Unarchive this clinic?");
     expect(activePage).toContain("Danger zone");
     expect(activePage).toContain("Delete clinic");
-    expect(activePage).toContain(
-      "This clinic has billing or legal records that must be retained, so it cannot be permanently deleted."
+    expect(activePage).toContain(">Delete permanently<");
+    expect(activePage).not.toContain(
+      "billing or legal records that must be retained"
     );
-    expect(activePage).not.toContain(">Delete permanently<");
     expect(activePage).toContain(
       "Former tenant addresses remain reserved so old patient links cannot be reassigned."
     );
@@ -1095,7 +1095,7 @@ describeDb("reversible clinic archive and terminal delete", () => {
     ).toEqual({ ok: false, error: CLINIC_STATUS_NOT_FOUND_MESSAGE });
   });
 
-  it("refuses deletion when billing or legal records must stay", async () => {
+  it("deletes legal acceptance history and still refuses a live subscription", async () => {
     const legal = await fresh(`${PREFIX}legal`, "Carc Legal");
     const user = await db().user.create({
       data: {
@@ -1119,18 +1119,16 @@ describeDb("reversible clinic archive and terminal delete", () => {
       confirmation: "Carc Legal",
       storage: null,
     });
-    expect(legalDelete).toMatchObject({
-      ok: false,
-      error: PERMANENT_DELETION_MESSAGES.retained_records,
-    });
+    expect(legalDelete.ok).toBe(true);
     expect(
       await db().clinic.findUnique({ where: { id: legal.id } })
-    ).toMatchObject({
-      archivedAt: expect.any(Date),
-    });
+    ).toBeNull();
     expect(
       await db().legalAcceptance.count({ where: { clinicId: legal.id } })
-    ).toBe(1);
+    ).toBe(0);
+    expect(
+      await db().user.findUnique({ where: { id: user.id } })
+    ).not.toBeNull();
 
     const paid = await fresh(`${PREFIX}paid`, "Carc Paid");
     await db().clinicEntitlement.create({
@@ -1151,14 +1149,17 @@ describeDb("reversible clinic archive and terminal delete", () => {
     });
     expect(paidDelete.ok).toBe(false);
     if (!paidDelete.ok) {
-      expect(paidDelete.blockers.map((blocker) => blocker.code)).toEqual(
-        expect.arrayContaining(["subscription", "retained_records"])
-      );
+      expect(paidDelete.blockers.map((blocker) => blocker.code)).toEqual([
+        "subscription",
+      ]);
       expect(paidDelete.error).toBe(PERMANENT_DELETION_MESSAGES.subscription);
     }
     expect(
       await db().clinic.findUnique({ where: { id: paid.id } })
     ).not.toBeNull();
+    expect(
+      await db().clinicEntitlement.count({ where: { clinicId: paid.id } })
+    ).toBe(1);
   });
 
   it("keeps a legacy destructive tombstone terminal and hidden", async () => {
