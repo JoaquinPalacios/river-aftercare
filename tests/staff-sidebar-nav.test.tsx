@@ -111,6 +111,60 @@ describe("staff sidebar navigation", () => {
     expect(currentHrefs(clinicNav())).toEqual(["/practice/sites"]);
   });
 
+  it("keeps View patient site and its external icon on one row", async () => {
+    nav.pathname = "/dashboard";
+    await act(async () => {
+      root.render(
+        <PortalChrome
+          displayName="Riverside Dental Demo"
+          userLabel="Ada Admin"
+          roleLabel="Clinic admin"
+          patientSiteHref="https://demo.localhost:3000"
+          canManagePractice
+          showProductNav
+          billingHref="/account/billing"
+        >
+          <p>Clinic content</p>
+        </PortalChrome>
+      );
+    });
+
+    const link = container.querySelector(
+      'a[data-tooltip="View patient site"]'
+    ) as HTMLAnchorElement;
+    expect(link).not.toBeNull();
+    expect(link.getAttribute("href")).toBe("https://demo.localhost:3000");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noreferrer");
+    expect(link.className).toContain("staffNavRow");
+    const label = link.querySelector(".staffNavExternalLabel");
+    const external = link.querySelector(".staffNavExternalIcon");
+    expect(label?.textContent).toContain("View patient site");
+    expect(label?.textContent).toContain("opens in a new tab");
+    expect(external).not.toBeNull();
+    expect(label?.contains(external)).toBe(false);
+    expect(
+      [...link.children].map(
+        (child) =>
+          child.getAttribute("data-nav-icon") ?? child.getAttribute("class")
+      )
+    ).toEqual([
+      "patient",
+      "staffNavLabel staffNavExternalLabel",
+      "staffNavExternalIcon",
+    ]);
+
+    const css = readFileSync("app/(staff)/staff.css", "utf8");
+    expect(css).toContain(
+      ".staffNavExternalLabel {\n  white-space: nowrap;\n}"
+    );
+    expect(css).toContain(".staffNavExternalIcon {\n  flex: 0 0 auto;\n}");
+    expect(css).toContain(
+      '.staffAppSidebar[data-collapsed="true"] .staffNavExternalIcon {\n    display: none;\n  }'
+    );
+    expect(css).toContain(".staffNavRow {\n  display: flex;");
+  });
+
   it("does not mark an unrelated clinic route as current", async () => {
     await renderClinic("/dashboard/extra");
     expect(currentHrefs(clinicNav())).toEqual([]);

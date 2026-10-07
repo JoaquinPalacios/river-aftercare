@@ -1951,6 +1951,61 @@ textarea.staffField.staffAutosizeField {
   text-underline-offset: 0.15em;
 }
 
+/* Selected is a solid brand border on the panel. Hover only changes an
+   unselected card. Focus-visible is the shared offset ring, so it stays
+   distinct from both the neutral card and the selected border. */
+.helpCategoryCard {
+  width: 100%;
+  margin: 0;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.75rem;
+  background: var(--staff-panel);
+  padding: 0.75rem 1rem;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  transition:
+    background-color var(--interaction-duration) var(--interaction-easing),
+    border-color var(--interaction-duration) var(--interaction-easing);
+}
+
+.helpCategoryCard[aria-pressed="true"] {
+  border-color: var(--staff-brand);
+  background: var(--staff-panel);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .helpCategoryCard:not([aria-pressed="true"]):hover {
+    border-color: color-mix(in srgb, var(--staff-brand) 55%, var(--staff-line));
+    background: color-mix(in srgb, var(--staff-brand) 10%, var(--staff-panel));
+  }
+}
+
+.helpCategoryCard:focus-visible {
+  outline: var(--interaction-focus-width) solid var(--staff-brand);
+  outline-offset: var(--interaction-focus-offset);
+}
+
+.helpFeedbackForm {
+  container-name: help-feedback;
+  container-type: inline-size;
+}
+
+/* One row of equal importance choices once the form itself is wide enough
+   for “Very important” to stay on one line. Narrower forms stack. This
+   overrides the two-column .staffChoiceOptions rule. */
+.helpImportanceOptions {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@container help-feedback (min-width: 32rem) {
+  .helpImportanceOptions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .staffSelect {
   appearance: none;
   -webkit-appearance: none;
@@ -3279,6 +3334,16 @@ html[data-theme-mode="dark"] .ptlBtn[aria-expanded="true"] {
   min-width: 0;
 }
 
+/* The external mark is a flex sibling of the label. An SVG inside the label
+   becomes its own line because preflight sets svg { display: block }. */
+.staffNavExternalLabel {
+  white-space: nowrap;
+}
+
+.staffNavExternalIcon {
+  flex: 0 0 auto;
+}
+
 .staffSidebarTools {
   display: none;
   padding: 0.65rem 0.75rem 0;
@@ -3830,6 +3895,10 @@ html[data-theme-mode="dark"]
     display: flex;
     justify-content: center;
     padding-inline: 0.5rem;
+  }
+
+  .staffAppSidebar[data-collapsed="true"] .staffNavExternalIcon {
+    display: none;
   }
 
   .staffAppSidebar[data-collapsed="true"] .staffNavLabel,

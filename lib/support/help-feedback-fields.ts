@@ -29,9 +29,6 @@ export const HELP_FEEDBACK_LIMITS = {
   originPath: 200,
 } as const;
 
-export const HELP_FEEDBACK_PATIENT_WARNING =
-  "Please do not include patient names, medical information, photos, or other patient-identifiable information in this message.";
-
 export const HELP_FEEDBACK_SENT_MESSAGE =
   "Thanks — your message has been sent to the River Aftercare team.";
 

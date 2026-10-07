@@ -65,7 +65,6 @@ import {
   HELP_FEEDBACK_DELIVERY_FAILED,
   HELP_FEEDBACK_LIMITS,
   HELP_FEEDBACK_MESSAGES,
-  HELP_FEEDBACK_PATIENT_WARNING,
   HELP_FEEDBACK_REVIEW_FIELDS,
   helpFeedbackClientFieldErrors,
 } from "@/lib/support/help-feedback-fields";
@@ -594,7 +593,6 @@ describe("submitHelpFeedbackAction", () => {
     });
     expect(getHelpFeedbackMemoryInbox()).toHaveLength(0);
     expect(logs()).not.toContain(SECRET);
-    expect(logs()).not.toContain(HELP_FEEDBACK_PATIENT_WARNING);
     expect(sentryState.captureEvent).toHaveBeenCalled();
     expect(JSON.stringify(sentryState.captureEvent.mock.calls)).toContain(
       "support_email_not_configured"
