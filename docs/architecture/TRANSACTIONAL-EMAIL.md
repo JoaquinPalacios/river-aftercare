@@ -1,6 +1,6 @@
 # Transactional email — shared transport
 
-River Aftercare sends application-generated email through one Resend account. Marketing Contact and account-lifecycle mail share **transport only**. They keep separate identities, configuration, and call sites.
+River Aftercare sends application-generated email through one Resend account. Marketing Contact and account-lifecycle mail share **transport only**. They keep separate identities, configuration, and call sites. Help and feedback uses the auth transport and From identity, and its own support recipient.
 
 There is no generic send-email HTTP route.
 
@@ -33,6 +33,14 @@ Billing notices (annual renewal, and a future price increase when a schedule exi
 Failed payment, invoice, and dunning mail
   → Stripe
   → River does not send a second email for the same event
+
+Help and feedback (signed-in clinic workspace)
+  → /account/help
+  → deliverHelpFeedback
+  → sendTransactionalEmail
+  → From AUTH_EMAIL_FROM
+  → To RIVER_AFTERCARE_SUPPORT_EMAIL
+  → Reply-To the signed-in User.email
 ```
 
 The verified Resend sending domain is `mail.riveraftercare.com.au`. Do not send from `riveraftercare.com.au` itself.
@@ -48,14 +56,14 @@ The verified Resend sending domain is `mail.riveraftercare.com.au`. Do not send 
 
 ## What stays separate
 
-| Concern              | Marketing Contact                                                | Auth email                                                                  | Billing notices                     |
-| -------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------- |
-| From                 | `CONTACT_EMAIL_FROM`                                             | `AUTH_EMAIL_FROM`                                                           | `AUTH_EMAIL_FROM`                   |
-| Recipient            | `CONTACT_EMAIL_TO` (inbox)                                       | the eligible User.email                                                     | `ClinicBillingProfile.billingEmail` |
-| Reply-To             | sanitised visitor email                                          | optional `AUTH_EMAIL_REPLY_TO`                                              | `AUTH_EMAIL_REPLY_TO` (required)    |
-| Transport selector   | `CONTACT_MAILER` (`memory` refused when `VERCEL_ENV=production`) | memory by default; optional local Mailpit; Resend only on Vercel production | same auth transport                 |
-| Turnstile / honeypot | yes                                                              | no                                                                          | no                                  |
-| Templates            | clinic enquiry composition                                       | password-reset, invitation, and email-change                                | `lib/email/billing-notice-mail.ts`  |
+| Concern              | Marketing Contact                                                | Auth email                                                                  | Billing notices                     | Help and feedback                   |
+| -------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------- | ----------------------------------- |
+| From                 | `CONTACT_EMAIL_FROM`                                             | `AUTH_EMAIL_FROM`                                                           | `AUTH_EMAIL_FROM`                   | `AUTH_EMAIL_FROM`                   |
+| Recipient            | `CONTACT_EMAIL_TO` (inbox)                                       | the eligible User.email                                                     | `ClinicBillingProfile.billingEmail` | `RIVER_AFTERCARE_SUPPORT_EMAIL`     |
+| Reply-To             | sanitised visitor email                                          | optional `AUTH_EMAIL_REPLY_TO`                                              | `AUTH_EMAIL_REPLY_TO` (required)    | signed-in `User.email`              |
+| Transport selector   | `CONTACT_MAILER` (`memory` refused when `VERCEL_ENV=production`) | memory by default; optional local Mailpit; Resend only on Vercel production | same auth transport                 | same auth transport                 |
+| Turnstile / honeypot | yes                                                              | no                                                                          | no                                  | no; authenticated clinic session    |
+| Templates            | clinic enquiry composition                                       | password-reset, invitation, and email-change                                | `lib/email/billing-notice-mail.ts`  | `lib/support/help-feedback-mail.ts` |
 
 Do not reuse Contact From/To for invitations or password reset. Do not reuse auth From for Contact.
 
@@ -65,16 +73,17 @@ Failed-payment and invoice email stay with Stripe. The dashboard past-due notice
 
 Server-only. Never prefix with `NEXT_PUBLIC_`. Never commit real keys.
 
-| Variable               | Used by                                              | Notes                                                                                                                                   |
-| ---------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `RESEND_API_KEY`       | Contact + future auth                                | Existing Vercel Production secret. Do not rotate from application PRs.                                                                  |
-| `CONTACT_EMAIL_FROM`   | Contact                                              | Envelope From.                                                                                                                          |
-| `CONTACT_EMAIL_TO`     | Contact                                              | Destination inbox.                                                                                                                      |
-| `CONTACT_MAILER`       | Contact                                              | `resend` (default) or `memory`. Memory refused in Vercel production.                                                                    |
-| `AUTH_EMAIL_FROM`      | Password-reset and invitation auth                   | Required only when auth delivery is invoked. Lazy; not a build-time requirement.                                                        |
-| `AUTH_EMAIL_REPLY_TO`  | Password-reset, invitation auth, and billing notices | Optional for auth. Required before a billing notice is sent.                                                                            |
-| `AUTH_EMAIL_TRANSPORT` | Auth mail, including billing notices                 | Optional. `mailpit` only when `NODE_ENV=development` and the process is not on Vercel. Unset uses memory. Ignored for Resend selection. |
-| `CRON_SECRET`          | `GET /api/cron/billing-notices`                      | Bearer secret for Vercel Cron. Not required locally.                                                                                    |
+| Variable                        | Used by                                                  | Notes                                                                                                                                      |
+| ------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `RESEND_API_KEY`                | Contact + future auth                                    | Existing Vercel Production secret. Do not rotate from application PRs.                                                                     |
+| `CONTACT_EMAIL_FROM`            | Contact                                                  | Envelope From.                                                                                                                             |
+| `CONTACT_EMAIL_TO`              | Contact                                                  | Destination inbox.                                                                                                                         |
+| `CONTACT_MAILER`                | Contact                                                  | `resend` (default) or `memory`. Memory refused in Vercel production.                                                                       |
+| `AUTH_EMAIL_FROM`               | Password-reset, invitation auth, and Help & feedback     | Required only when that delivery is invoked. Lazy; not a build-time requirement.                                                           |
+| `AUTH_EMAIL_REPLY_TO`           | Password-reset, invitation auth, and billing notices     | Optional for auth. Required before a billing notice is sent.                                                                               |
+| `AUTH_EMAIL_TRANSPORT`          | Auth mail, including billing notices and Help & feedback | Optional. `mailpit` only when `NODE_ENV=development` and the process is not on Vercel. Unset uses memory. Ignored for Resend selection.    |
+| `RIVER_AFTERCARE_SUPPORT_EMAIL` | Help and feedback                                        | Destination inbox for signed-in clinic problem, question, and feature messages. Not a form field. Missing or malformed values fail closed. |
+| `CRON_SECRET`                   | `GET /api/cron/billing-notices`                          | Bearer secret for Vercel Cron. Not required locally.                                                                                       |
 
 Intended Production auth values (configure in Vercel; not hardcoded defaults):
 
@@ -101,7 +110,8 @@ Missing `AUTH_EMAIL_FROM` must not break `pnpm build`. Auth delivery then return
 - No logging of raw tokens, reset/invite URLs, API keys, or message bodies
 - Provider error details stay behind `{ ok: false, code: "delivery_failed" | "not_configured" | "invalid_message" }`
 - Contact continues to map those to the generic user-facing Contact copy
-- Production Sentry error tracking records sanitized operational events (`contact_email_delivery_failed`, `auth_email_delivery_failed`, `auth_email_not_configured`, `billing_notice_delivery_failed`, `billing_notice_not_configured`) without recipient, subject, body, token, or provider detail. Validation, Turnstile, and honeypot failures are not reported.
+- Production Sentry error tracking records sanitized operational events (`contact_email_delivery_failed`, `auth_email_delivery_failed`, `auth_email_not_configured`, `support_email_delivery_failed`, `support_email_not_configured`, `billing_notice_delivery_failed`, `billing_notice_not_configured`) without recipient, subject, body, token, or provider detail. Validation, Turnstile, and honeypot failures are not reported.
+- Help and feedback logs the clinic id, category, and failure code only. It does not log the summary, message, feature description, or user email. A subject or feature goal containing CR, LF, or another ASCII header control character is rejected before `sendTransactionalEmail`. Message bodies may contain line breaks.
 - Billing-notice logs record the clinic id, notice kind, and failure code. They do not record the billing email or the message body. `BillingNoticeDelivery` stores the same non-sensitive receipt. A provider timeout is `FAILED`, not `SENT`.
 
 Invitation HTML templates live in `lib/email/invitation-mail.ts`. Password-reset templates are sent from `lib/email/password-reset-mail.ts`.

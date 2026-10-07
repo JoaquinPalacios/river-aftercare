@@ -9,6 +9,7 @@ export type StaffNavIconName =
   | "seo"
   | "account"
   | "billing"
+  | "help"
   | "sign-out"
   | "appearance"
   | "collapse"
@@ -111,6 +112,14 @@ function iconPath(name: StaffNavIconName) {
         <>
           <rect x="2.4" y="4" width="11.2" height="8" rx="1.2" />
           <path d="M2.4 7h11.2" />
+        </>
+      );
+    case "help":
+      return (
+        <>
+          <circle cx="8" cy="8" r="5.25" />
+          <path d="M6.4 6.3a1.6 1.6 0 0 1 3.1.6c0 1-1.5 1.2-1.5 2.2" />
+          <path d="M8 11.4h.01" />
         </>
       );
     case "sign-out":

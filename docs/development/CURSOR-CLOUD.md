@@ -133,16 +133,17 @@ Validate hostname-sensitive behaviour inside the VM with Playwright or with an e
 
 Cloud startup writes local, inert defaults:
 
-| Integration            | Cloud behaviour                                                            |
-| ---------------------- | -------------------------------------------------------------------------- |
-| Clinic assets          | `CLINIC_ASSET_STORAGE_DRIVER=filesystem` under `.data/clinic-assets`       |
-| Marketing contact mail | `CONTACT_MAILER=memory`                                                    |
-| Auth mail              | In memory, because this is not Vercel production                           |
-| Turnstile              | Published Cloudflare test keys already used by local development           |
-| Stripe                 | Unset. No live or test secret keys                                         |
-| Sentry                 | Unset                                                                      |
-| Vercel                 | `VERCEL_ENV` unset. `pnpm build` does not enter the production schema gate |
-| R2                     | Unset                                                                      |
+| Integration            | Cloud behaviour                                                                |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| Clinic assets          | `CLINIC_ASSET_STORAGE_DRIVER=filesystem` under `.data/clinic-assets`           |
+| Marketing contact mail | `CONTACT_MAILER=memory`                                                        |
+| Auth mail              | In memory, because this is not Vercel production                               |
+| Help and feedback mail | `RIVER_AFTERCARE_SUPPORT_EMAIL=support@example.test`, same in-memory transport |
+| Turnstile              | Published Cloudflare test keys already used by local development               |
+| Stripe                 | Unset. No live or test secret keys                                             |
+| Sentry                 | Unset                                                                          |
+| Vercel                 | `VERCEL_ENV` unset. `pnpm build` does not enter the production schema gate     |
+| R2                     | Unset                                                                          |
 
 Startup refuses `RESEND_API_KEY`, R2 credentials, Stripe secrets, and Sentry DSNs or auth tokens so a production credential cannot be used by mistake.
 

@@ -96,6 +96,7 @@ export function PortalChrome({
               userLabel={userLabel}
               roleLabel={roleLabel}
               billingHref={billingHref}
+              helpHref={helpHrefFor(pathname)}
             />
           </div>
         </div>
@@ -148,6 +149,7 @@ export function PortalChrome({
               userLabel={userLabel}
               roleLabel={roleLabel}
               billingHref={billingHref}
+              helpHref={helpHrefFor(pathname)}
             />
           </div>
         </header>
@@ -176,6 +178,10 @@ export function PortalChrome({
       </div>
     </div>
   );
+}
+
+function helpHrefFor(pathname: string): string {
+  return `/account/help?from=${encodeURIComponent(pathname)}`;
 }
 
 function PortalBrand({
