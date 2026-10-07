@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import {
+  ClinicActivityTabs,
+  operatorClinicListActivity,
+} from "@/app/(staff)/(operator)/operator/clinics/clinic-activity-tabs";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import {
   listOperatorClinics,
@@ -20,12 +24,7 @@ export default async function OperatorClinicsPage({
 }) {
   await requirePlatformOperator();
   const params = await searchParams;
-  const activity =
-    params.activity === "inactive"
-      ? "inactive"
-      : params.activity === "retired"
-        ? "retired"
-        : "active";
+  const activity = operatorClinicListActivity(params.activity);
   const clinics = await listOperatorClinics();
   const activeClinics = selectOperatorClinicActivity(clinics, "active");
   const visible = selectOperatorClinicActivity(clinics, activity);
@@ -50,29 +49,7 @@ export default async function OperatorClinicsPage({
         </Link>
       </header>
 
-      <nav className="flex gap-4 text-sm" aria-label="Clinic activity">
-        <Link
-          href="/operator/clinics"
-          className="font-medium text-staff-brand"
-          aria-current={activity === "active" ? "page" : undefined}
-        >
-          Active
-        </Link>
-        <Link
-          href="/operator/clinics?activity=inactive"
-          className="font-medium text-staff-brand"
-          aria-current={activity === "inactive" ? "page" : undefined}
-        >
-          Inactive
-        </Link>
-        <Link
-          href="/operator/clinics?activity=retired"
-          className="font-medium text-staff-brand"
-          aria-current={activity === "retired" ? "page" : undefined}
-        >
-          Retired
-        </Link>
-      </nav>
+      <ClinicActivityTabs activity={activity} />
 
       <dl className="staffOperatorSummary">
         <div className="staffOperatorStat">
