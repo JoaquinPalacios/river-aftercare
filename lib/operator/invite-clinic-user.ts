@@ -219,6 +219,7 @@ export async function inviteClinicUser(input: {
         name: true,
         assistedOnboarding: true,
         deactivatedAt: true,
+        archivedAt: true,
         entitlement: {
           select: {
             commercialPlan: true,
@@ -234,7 +235,7 @@ export async function inviteClinicUser(input: {
     if (!clinic) {
       return { ok: false as const, code: "clinic_not_found" as const };
     }
-    if (clinic.deactivatedAt) {
+    if (clinic.deactivatedAt || clinic.archivedAt) {
       return { ok: false as const, code: "clinic_inactive" as const };
     }
     if (

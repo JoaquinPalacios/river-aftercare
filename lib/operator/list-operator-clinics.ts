@@ -14,7 +14,8 @@ export interface OperatorClinicListItem {
   setupLabel: string;
   updatedAt: Date;
   inactive: boolean;
-  permanentlyDeleted: boolean;
+  archived: boolean;
+  legacyDeleted: boolean;
 }
 
 export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
@@ -26,6 +27,7 @@ export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
       slug: true,
       updatedAt: true,
       deactivatedAt: true,
+      archivedAt: true,
       permanentlyDeletedAt: true,
       sites: {
         where: { isPrimary: true, active: true },
@@ -99,8 +101,12 @@ export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
       publishedGuideCount,
       setupLabel: needsAttention ? "Needs attention" : "Configured",
       inactive:
-        clinic.deactivatedAt != null && clinic.permanentlyDeletedAt == null,
-      permanentlyDeleted: clinic.permanentlyDeletedAt != null,
+        clinic.deactivatedAt != null &&
+        clinic.archivedAt == null &&
+        clinic.permanentlyDeletedAt == null,
+      archived:
+        clinic.archivedAt != null && clinic.permanentlyDeletedAt == null,
+      legacyDeleted: clinic.permanentlyDeletedAt != null,
       updatedAt:
         [site?.updatedAt, location?.updatedAt, clinic.updatedAt]
           .filter((date): date is Date => Boolean(date))
@@ -110,17 +116,23 @@ export async function listOperatorClinics(): Promise<OperatorClinicListItem[]> {
   });
 }
 
-export type OperatorClinicActivity = "active" | "inactive" | "retired";
+export type OperatorClinicActivity = "active" | "inactive" | "archived";
 
 export function selectOperatorClinicActivity<
-  T extends { inactive: boolean; permanentlyDeleted?: boolean },
+  T extends {
+    inactive: boolean;
+    archived?: boolean;
+    legacyDeleted?: boolean;
+  },
 >(clinics: readonly T[], activity: OperatorClinicActivity): T[] {
   return clinics.filter((clinic) => {
-    const retired = clinic.permanentlyDeleted === true;
-    if (activity === "retired") {
-      return retired;
+    if (clinic.legacyDeleted) {
+      return false;
     }
-    if (retired) {
+    if (clinic.archived) {
+      return activity === "archived";
+    }
+    if (activity === "archived") {
       return false;
     }
     return activity === "inactive" ? clinic.inactive : !clinic.inactive;

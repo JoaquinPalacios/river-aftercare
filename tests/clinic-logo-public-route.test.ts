@@ -117,7 +117,7 @@ async function expectGenericNotFound(response: Response): Promise<void> {
 describe("public clinic branding asset route", () => {
   beforeEach(async () => {
     findClinicRetirement.mockReset();
-    findClinicRetirement.mockResolvedValue(null);
+    findClinicRetirement.mockResolvedValue({ permanentlyDeletedAt: null });
     process.env.CLINIC_ASSET_STORAGE_DRIVER = "memory";
     process.env.CLINIC_ASSET_PUBLIC_ORIGIN = ASSET_ORIGIN;
     process.env.R2_ACCESS_KEY_ID = ACCESS_KEY;
@@ -360,7 +360,7 @@ describe("public clinic branding asset route", () => {
 describe("fallback /clinic-branding route", () => {
   beforeEach(async () => {
     findClinicRetirement.mockReset();
-    findClinicRetirement.mockResolvedValue(null);
+    findClinicRetirement.mockResolvedValue({ permanentlyDeletedAt: null });
     process.env.CLINIC_ASSET_STORAGE_DRIVER = "memory";
     delete process.env.CLINIC_ASSET_PUBLIC_ORIGIN;
     process.env.R2_ACCESS_KEY_ID = ACCESS_KEY;

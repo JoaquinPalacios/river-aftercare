@@ -22,8 +22,9 @@ import {
   type ComplimentaryTerm,
 } from "@/lib/billing/complimentary-term";
 import {
+  CLINIC_ARCHIVED_MESSAGE,
   CLINIC_INACTIVE_MESSAGE,
-  clinicIsInactive,
+  clinicIsClosed,
 } from "@/lib/clinics/clinic-activity";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { getPrisma } from "@/lib/prisma";
@@ -154,7 +155,7 @@ async function readContext(tx: Db, clinicId: string) {
     await Promise.all([
       tx.clinic.findUnique({
         where: { id: clinicId },
-        select: { id: true, deactivatedAt: true },
+        select: { id: true, deactivatedAt: true, archivedAt: true },
       }),
       findOpenAccountSplitInvolvingClinic(clinicId, tx),
       tx.clinicBillingProfile.findUnique({
@@ -177,7 +178,11 @@ async function readContext(tx: Db, clinicId: string) {
 }
 
 function sharedCommercialBlock(input: {
-  clinic: { id: string; deactivatedAt?: Date | null } | null;
+  clinic: {
+    id: string;
+    deactivatedAt?: Date | null;
+    archivedAt?: Date | null;
+  } | null;
   openSplit: { id: string } | null;
   profile: {
     stripeSubscriptionId: string | null;
@@ -192,7 +197,10 @@ function sharedCommercialBlock(input: {
   if (!input.clinic) {
     return "Clinic not found.";
   }
-  if (clinicIsInactive(input.clinic.deactivatedAt)) {
+  if (input.clinic.archivedAt) {
+    return CLINIC_ARCHIVED_MESSAGE;
+  }
+  if (clinicIsClosed(input.clinic)) {
     return CLINIC_INACTIVE_MESSAGE;
   }
   if (input.openNegotiatedOffer) {

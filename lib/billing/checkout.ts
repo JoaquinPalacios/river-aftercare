@@ -11,7 +11,7 @@ import {
   RIVER_CHECKOUT_ATTEMPT_METADATA_KEY,
   RIVER_CLINIC_ID_METADATA_KEY,
 } from "@/lib/billing/identity";
-import { clinicIsInactive } from "@/lib/clinics/clinic-activity";
+import { clinicIsClosed } from "@/lib/clinics/clinic-activity";
 import { isOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import { checkoutReturnUrlIssue } from "@/lib/billing/checkout-origin";
 import { logStripeBilling } from "@/lib/billing/log";
@@ -760,16 +760,19 @@ export async function createClinicCheckout(input: {
     clinic?: {
       findUnique?: (args: {
         where: { id: string };
-        select: { deactivatedAt: true };
-      }) => Promise<{ deactivatedAt: Date | null } | null>;
+        select: { deactivatedAt: true; archivedAt: true };
+      }) => Promise<{
+        deactivatedAt: Date | null;
+        archivedAt?: Date | null;
+      } | null>;
     };
   };
   if (typeof clinicReader.clinic?.findUnique === "function") {
     const clinic = await clinicReader.clinic.findUnique({
       where: { id: input.clinicId },
-      select: { deactivatedAt: true },
+      select: { deactivatedAt: true, archivedAt: true },
     });
-    if (clinicIsInactive(clinic?.deactivatedAt)) {
+    if (clinicIsClosed(clinic)) {
       return { ok: false, code: "checkout_unavailable" };
     }
   }

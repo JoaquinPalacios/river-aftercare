@@ -35,7 +35,10 @@ import {
   findOpenAccountSplitPreparation,
 } from "@/lib/account-split/snapshot";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
-import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
+import {
+  ARCHIVED_CLINIC_EDIT_NOTE,
+  INACTIVE_CLINIC_EDIT_NOTE,
+} from "@/lib/clinics/inactive-clinic-copy";
 import { redirectIfClinicPermanentlyDeleted } from "@/lib/operator/redirect-permanently-deleted-clinic";
 import { getPrisma } from "@/lib/prisma";
 
@@ -60,6 +63,7 @@ export default async function AccountSplitPreparationPage({
       name: true,
       slug: true,
       deactivatedAt: true,
+      archivedAt: true,
       entitlement: { select: { commercialPlan: true } },
       sites: {
         orderBy: { createdAt: "asc" },
@@ -78,7 +82,7 @@ export default async function AccountSplitPreparationPage({
   }
 
   const openHead = await findOpenAccountSplitPreparation(clinic.id);
-  if (clinic.deactivatedAt) {
+  if (clinic.deactivatedAt || clinic.archivedAt) {
     return (
       <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-6">
         <header>
@@ -96,7 +100,9 @@ export default async function AccountSplitPreparationPage({
             Account split
           </h1>
           <p className="mt-2 text-sm text-staff-muted">
-            {INACTIVE_CLINIC_EDIT_NOTE}
+            {clinic.archivedAt
+              ? ARCHIVED_CLINIC_EDIT_NOTE
+              : INACTIVE_CLINIC_EDIT_NOTE}
           </p>
         </header>
         {openHead ? (

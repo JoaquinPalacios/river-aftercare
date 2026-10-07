@@ -759,13 +759,14 @@ describeDb("reversible clinic deactivation", () => {
     const listed = await listOperatorClinics();
     const active = selectOperatorClinicActivity(listed, "active");
     const inactive = selectOperatorClinicActivity(listed, "inactive");
-    const retired = selectOperatorClinicActivity(listed, "retired");
+    const archivedList = selectOperatorClinicActivity(listed, "archived");
     expect(active.some((clinic) => clinic.id === clinicId)).toBe(false);
     expect(inactive.some((clinic) => clinic.id === clinicId)).toBe(true);
-    expect(retired.some((clinic) => clinic.id === clinicId)).toBe(false);
+    expect(archivedList.some((clinic) => clinic.id === clinicId)).toBe(false);
     expect(summarizeOperatorClinics(active).totalClinics).toBe(active.length);
-    expect(listed.length).toBe(
-      active.length + inactive.length + retired.length
+    const visible = listed.filter((clinic) => !clinic.legacyDeleted);
+    expect(visible.length).toBe(
+      active.length + inactive.length + archivedList.length
     );
     const activePage = renderToStaticMarkup(
       await OperatorClinicsPage({

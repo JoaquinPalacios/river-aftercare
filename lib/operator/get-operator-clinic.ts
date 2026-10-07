@@ -54,6 +54,8 @@ export interface OperatorClinicDetail {
   }>;
   updatedAt: Date;
   deactivatedAt: Date | null;
+  archivedAt: Date | null;
+  archivedByLabel: string | null;
   permanentlyDeletedAt: Date | null;
   permanentlyDeletedByLabel: string | null;
 }
@@ -69,6 +71,10 @@ export async function getOperatorClinic(
       slug: true,
       updatedAt: true,
       deactivatedAt: true,
+      archivedAt: true,
+      archivedBy: {
+        select: { name: true, email: true },
+      },
       permanentlyDeletedAt: true,
       permanentlyDeletedBy: {
         select: { name: true, email: true },
@@ -211,6 +217,9 @@ export async function getOperatorClinic(
     }),
     guides: clinic.practiceGuides,
     deactivatedAt: clinic.deactivatedAt,
+    archivedAt: clinic.archivedAt,
+    archivedByLabel:
+      clinic.archivedBy?.name ?? clinic.archivedBy?.email ?? null,
     permanentlyDeletedAt: clinic.permanentlyDeletedAt,
     permanentlyDeletedByLabel:
       clinic.permanentlyDeletedBy?.name ??

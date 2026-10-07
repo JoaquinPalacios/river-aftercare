@@ -32,8 +32,12 @@ import { allocateSplitShellSlug } from "@/lib/account-split/shell-slug";
 import { hashPassword } from "@/lib/auth/password";
 import { createMemoryClinicAssetStorage } from "@/lib/clinic-assets/memory-clinic-asset-storage";
 import type { ClinicAssetStorage } from "@/lib/clinic-assets/clinic-asset-storage";
+import { archiveClinic } from "@/lib/clinics/clinic-archive";
 import { deactivateClinic } from "@/lib/clinics/clinic-deactivation";
-import { permanentlyDeleteClinic } from "@/lib/clinics/permanent-clinic-deletion";
+import {
+  permanentlyDeleteClinic,
+  permanentDeletionConfirmationName,
+} from "@/lib/clinics/permanent-clinic-deletion";
 import { RETIRED_TENANT_SLUG_MESSAGE } from "@/lib/clinics/retired-tenant-slug";
 import { createClinicSiteWithRootLocation } from "@/lib/clinics/site-location-mutations";
 import type { CreateSiteInput } from "@/lib/clinics/site-location-schemas";
@@ -173,6 +177,20 @@ async function deactivate(clinicId: string) {
     operatorUserId: OPERATOR_ID,
   });
   expect(result).toEqual({ ok: true });
+  const clinic = await db().clinic.findUniqueOrThrow({
+    where: { id: clinicId },
+    select: {
+      name: true,
+      sites: { select: { displayName: true, isPrimary: true, active: true } },
+    },
+  });
+  expect(
+    await archiveClinic({
+      clinicId,
+      operatorUserId: OPERATOR_ID,
+      confirmation: permanentDeletionConfirmationName(clinic),
+    })
+  ).toEqual({ ok: true });
 }
 
 async function addExtraSite(clinicId: string, slug: string) {
@@ -224,6 +242,12 @@ async function waitForWaiters(slug: string, minimum: number): Promise<void> {
 }
 
 async function holdTombstone(clinicId: string, name: string) {
+  const archived = await archiveClinic({
+    clinicId,
+    operatorUserId: OPERATOR_ID,
+    confirmation: name,
+  });
+  expect(archived).toEqual({ ok: true });
   const release = deferred();
   const holding = deferred();
   const done = permanentlyDeleteClinic({
@@ -249,12 +273,13 @@ async function holdTombstone(clinicId: string, name: string) {
   return { release: () => release.resolve(), done };
 }
 
-async function expectSlugOnlyRetired(slug: string, formerClinicId: string) {
+async function expectSlugOnlyRetired(slug: string, _formerClinicId: string) {
   const retired = await db().retiredTenantSlug.findUnique({
     where: { slug },
     select: { formerClinicId: true },
   });
-  expect(retired?.formerClinicId).toBe(formerClinicId);
+  expect(retired).not.toBeNull();
+  expect(retired?.formerClinicId).toBeNull();
   expect(await db().clinic.findUnique({ where: { slug } })).toBeNull();
   expect(await db().clinicSite.findUnique({ where: { slug } })).toBeNull();
 }
@@ -613,6 +638,13 @@ describeDb("retired tenant slug issuance races", () => {
     const clinic = await fresh(`${PREFIX}skip`, "Rslug Skip");
     await addExtraSite(clinic.id, retired);
     await deactivate(clinic.id);
+    expect(
+      await archiveClinic({
+        clinicId: clinic.id,
+        operatorUserId: OPERATOR_ID,
+        confirmation: "Rslug Skip",
+      })
+    ).toEqual({ ok: true });
     const deleted = await permanentlyDeleteClinic({
       clinicId: clinic.id,
       operatorUserId: OPERATOR_ID,
@@ -649,6 +681,13 @@ describeDb("retired tenant slug issuance races", () => {
     await addExtraSite(retiring.id, retiredSlug);
     await addExtraSite(retiring.id, retiredShell);
     await deactivate(retiring.id);
+    expect(
+      await archiveClinic({
+        clinicId: retiring.id,
+        operatorUserId: OPERATOR_ID,
+        confirmation: "Rslug Closed",
+      })
+    ).toEqual({ ok: true });
     const deleted = await permanentlyDeleteClinic({
       clinicId: retiring.id,
       operatorUserId: OPERATOR_ID,

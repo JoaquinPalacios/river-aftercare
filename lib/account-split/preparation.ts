@@ -35,6 +35,7 @@ import { recordAccountSplitEvent } from "@/lib/account-split/events";
 import { assertNoOpenNegotiatedOffer } from "@/lib/billing/negotiated-offer";
 import {
   assertClinicActive,
+  CLINIC_ARCHIVED_MESSAGE,
   CLINIC_INACTIVE_MESSAGE,
 } from "@/lib/clinics/clinic-activity";
 import { assertTenantSlugNotRetired } from "@/lib/clinics/retired-tenant-slug";
@@ -1238,14 +1239,18 @@ export async function selectExistingGroupDestination(input: {
         select: {
           id: true,
           deactivatedAt: true,
+          archivedAt: true,
           entitlement: { select: { commercialPlan: true } },
         },
       });
       if (!source) {
         throw new ClinicPortalError("That account was not found.", "not_found");
       }
-      if (source.deactivatedAt) {
-        throw new ClinicPortalError(CLINIC_INACTIVE_MESSAGE, "conflict");
+      if (source.deactivatedAt || source.archivedAt) {
+        throw new ClinicPortalError(
+          source.archivedAt ? CLINIC_ARCHIVED_MESSAGE : CLINIC_INACTIVE_MESSAGE,
+          "conflict"
+        );
       }
       if (source.entitlement?.commercialPlan !== "GROUP") {
         throw new ClinicPortalError(
@@ -1259,6 +1264,7 @@ export async function selectExistingGroupDestination(input: {
           id: true,
           slug: true,
           deactivatedAt: true,
+          archivedAt: true,
           entitlement: {
             select: { commercialPlan: true, billingInterval: true },
           },
@@ -1267,9 +1273,11 @@ export async function selectExistingGroupDestination(input: {
       if (!destination) {
         throw new ClinicPortalError("That account was not found.", "not_found");
       }
-      if (destination.deactivatedAt) {
+      if (destination.deactivatedAt || destination.archivedAt) {
         throw new ClinicPortalError(
-          "Reactivate that clinic before choosing it as a destination.",
+          destination.archivedAt
+            ? "Unarchive that clinic before choosing it as a destination."
+            : "Reactivate that clinic before choosing it as a destination.",
           "conflict"
         );
       }

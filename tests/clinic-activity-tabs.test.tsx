@@ -33,7 +33,7 @@ describe("clinic activity tabs", () => {
     expect(links.map((link) => link.label)).toEqual([
       "Active",
       "Inactive",
-      "Deleted",
+      "Archived",
     ]);
     expect(links.find((link) => link.current === "page")).toMatchObject({
       label: "Active",
@@ -51,23 +51,25 @@ describe("clinic activity tabs", () => {
     });
     expect(links.filter((link) => link.current === "page")).toHaveLength(1);
     expect(links.find((link) => link.label === "Active")?.current).toBeNull();
-    expect(links.find((link) => link.label === "Deleted")?.current).toBeNull();
+    expect(links.find((link) => link.label === "Archived")?.current).toBeNull();
   });
 
-  it("selects Deleted on the permanently deleted route", () => {
-    expect(operatorClinicListActivity("retired")).toBe("retired");
-    const links = activityLinks("retired");
-    expect(links.find((link) => link.label === "Deleted")).toMatchObject({
-      href: "/operator/clinics?activity=retired",
+  it("selects Archived on the archived route", () => {
+    expect(operatorClinicListActivity("archived")).toBe("archived");
+    const links = activityLinks("archived");
+    expect(links.find((link) => link.label === "Archived")).toMatchObject({
+      href: "/operator/clinics?activity=archived",
       current: "page",
       className: "staffActivityTab",
     });
     expect(links.filter((link) => link.current === "page")).toHaveLength(1);
+    expect(links.map((link) => link.label)).not.toContain("Deleted");
     expect(links.map((link) => link.label)).not.toContain("Retired");
   });
 
-  it("keeps the list filter named retired and the visible tab named Deleted", () => {
+  it("keeps unknown lifecycle filters on Active and preserves tab treatment", () => {
     expect(operatorClinicListActivity("deleted")).toBe("active");
+    expect(operatorClinicListActivity("retired")).toBe("active");
     const page = readFileSync(
       "app/(staff)/(operator)/operator/clinics/page.tsx",
       "utf8"

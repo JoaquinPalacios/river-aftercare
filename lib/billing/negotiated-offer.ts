@@ -10,8 +10,9 @@ import {
 import { findOpenAccountSplitInvolvingClinic } from "@/lib/account-split/snapshot";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import {
+  CLINIC_ARCHIVED_MESSAGE,
   CLINIC_INACTIVE_MESSAGE,
-  clinicIsInactive,
+  clinicIsClosed,
 } from "@/lib/clinics/clinic-activity";
 import { formatBillingDate } from "@/lib/billing/billing-presentation";
 import {
@@ -534,12 +535,15 @@ export async function prepareNegotiatedOffer(
     return await withStructureLock(db, input.clinicId, async (tx) => {
       const clinic = await tx.clinic.findUnique({
         where: { id: input.clinicId },
-        select: { id: true, deactivatedAt: true },
+        select: { id: true, deactivatedAt: true, archivedAt: true },
       });
       if (!clinic) {
         return { ok: false as const, error: "Clinic not found." };
       }
-      if (clinicIsInactive(clinic.deactivatedAt)) {
+      if (clinic.archivedAt) {
+        return { ok: false as const, error: CLINIC_ARCHIVED_MESSAGE };
+      }
+      if (clinicIsClosed(clinic)) {
         return { ok: false as const, error: CLINIC_INACTIVE_MESSAGE };
       }
       const entitlement = await tx.clinicEntitlement.findUnique({
@@ -1023,9 +1027,9 @@ export async function startNegotiatedCheckout(input: {
   if (typeof db.clinic?.findUnique === "function") {
     const clinic = await db.clinic.findUnique({
       where: { id: input.clinicId },
-      select: { deactivatedAt: true },
+      select: { deactivatedAt: true, archivedAt: true },
     });
-    if (clinicIsInactive(clinic?.deactivatedAt)) {
+    if (clinicIsClosed(clinic)) {
       return checkoutFailure(
         input.clinicId,
         "checkout_unavailable",
@@ -1049,9 +1053,9 @@ export async function startNegotiatedCheckout(input: {
     if (typeof tx.clinic?.findUnique === "function") {
       const clinic = await tx.clinic.findUnique({
         where: { id: input.clinicId },
-        select: { deactivatedAt: true },
+        select: { deactivatedAt: true, archivedAt: true },
       });
-      if (clinicIsInactive(clinic?.deactivatedAt)) {
+      if (clinicIsClosed(clinic)) {
         return { ok: false as const, code: "checkout_unavailable" as const };
       }
     }

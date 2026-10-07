@@ -38,7 +38,10 @@ import { getPrisma } from "@/lib/prisma";
 import { loadOperatorSiteLocationCapacity } from "@/lib/operator/update-site-location-allowance";
 import { clinicTypefaceLabel } from "@/lib/branding/clinic-typeface";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
-import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
+import {
+  ARCHIVED_CLINIC_EDIT_NOTE,
+  INACTIVE_CLINIC_EDIT_NOTE,
+} from "@/lib/clinics/inactive-clinic-copy";
 
 interface OperatorClinicPageProps {
   params: Promise<{ clinicId: string }>;
@@ -102,8 +105,14 @@ export default async function OperatorClinicDetailPage({
       />
     );
   }
-  const inactive = clinic.deactivatedAt != null;
-  const deletionEligibility = inactive
+  const archived =
+    clinic.archivedAt != null && clinic.permanentlyDeletedAt == null;
+  const inactive = clinic.deactivatedAt != null && !archived;
+  const closed = inactive || archived;
+  const editNote = archived
+    ? ARCHIVED_CLINIC_EDIT_NOTE
+    : INACTIVE_CLINIC_EDIT_NOTE;
+  const deletionEligibility = archived
     ? await canPermanentlyDeleteClinic(clinic.id)
     : null;
   const showPermanentDeletion =
@@ -181,7 +190,7 @@ export default async function OperatorClinicDetailPage({
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           {clinic.displayName}
         </h1>
-        {inactive ? null : (
+        {closed ? null : (
           <Link
             href={`/operator/clinics/${clinic.id}/setup`}
             className="mt-3 inline-flex text-sm font-medium text-staff-brand"
@@ -207,13 +216,22 @@ export default async function OperatorClinicDetailPage({
 
       <ClinicStatusSection
         clinicId={clinic.id}
-        inactive={inactive}
+        lifecycle={archived ? "archived" : inactive ? "inactive" : "active"}
+        clinicName={clinic.displayName}
         deactivatedLabel={
           clinic.deactivatedAt
             ? new Intl.DateTimeFormat("en-GB", {
                 dateStyle: "medium",
                 timeStyle: "short",
               }).format(clinic.deactivatedAt)
+            : null
+        }
+        archivedLabel={
+          clinic.archivedAt
+            ? new Intl.DateTimeFormat("en-GB", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }).format(clinic.archivedAt)
             : null
         }
       />
@@ -227,12 +245,8 @@ export default async function OperatorClinicDetailPage({
         />
       ) : null}
 
-      <OperatorClinicRecord title="Branding" collapsed={inactive}>
-        {inactive ? (
-          <p className="text-sm text-staff-muted">
-            {INACTIVE_CLINIC_EDIT_NOTE}
-          </p>
-        ) : null}
+      <OperatorClinicRecord title="Branding" collapsed={closed}>
+        {closed ? <p className="text-sm text-staff-muted">{editNote}</p> : null}
         <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-staff-muted">Primary</dt>
@@ -280,12 +294,8 @@ export default async function OperatorClinicDetailPage({
         </dl>
       </OperatorClinicRecord>
 
-      <OperatorClinicRecord title="Contact / emergency" collapsed={inactive}>
-        {inactive ? (
-          <p className="text-sm text-staff-muted">
-            {INACTIVE_CLINIC_EDIT_NOTE}
-          </p>
-        ) : null}
+      <OperatorClinicRecord title="Contact / emergency" collapsed={closed}>
+        {closed ? <p className="text-sm text-staff-muted">{editNote}</p> : null}
         <p className="mt-2 text-sm">
           Phone: {clinic.contact.phone ?? "Not set"}
         </p>
@@ -300,7 +310,7 @@ export default async function OperatorClinicDetailPage({
         </p>
       </OperatorClinicRecord>
 
-      <OperatorClinicRecord title="Guides" collapsed={inactive}>
+      <OperatorClinicRecord title="Guides" collapsed={closed}>
         {clinic.guides.length === 0 ? (
           <p className="mt-2 text-sm text-staff-muted">No guides yet.</p>
         ) : (
@@ -323,13 +333,14 @@ export default async function OperatorClinicDetailPage({
 
       <OperatorClinicRecordGroup
         title="Commercial / billing"
-        collapsed={inactive}
+        collapsed={closed}
       >
         {complimentaryAccess ? (
           <ComplimentaryAccessPanel
             clinicId={clinic.id}
             access={complimentaryAccess}
-            editsLocked={inactive}
+            editsLocked={closed}
+            lockedNote={editNote}
             formBlockedReason={
               negotiatedOffers?.offers.some((offer) => offer.open)
                 ? "A negotiated price is open for this clinic. Withdraw it before changing complimentary access."
@@ -342,7 +353,8 @@ export default async function OperatorClinicDetailPage({
           <NegotiatedOfferPanel
             clinicId={clinic.id}
             panel={negotiatedOffers}
-            editsLocked={inactive}
+            editsLocked={closed}
+            lockedNote={editNote}
           />
         ) : null}
 
@@ -363,7 +375,8 @@ export default async function OperatorClinicDetailPage({
           cancellationScheduled={billing.cancellationScheduled}
           cancellationDateLabel={billing.cancellationDateLabel}
           commercialNotice={billing.commercialNotice}
-          editsLocked={inactive}
+          editsLocked={closed}
+          lockedNote={editNote}
         />
 
         <UpgradePlanForm
@@ -412,10 +425,7 @@ export default async function OperatorClinicDetailPage({
         ) : null}
       </OperatorClinicRecordGroup>
 
-      <OperatorClinicRecordGroup
-        title="Sites and locations"
-        collapsed={inactive}
-      >
+      <OperatorClinicRecordGroup title="Sites and locations" collapsed={closed}>
         <SiteLocationCapacityForm
           clinicId={clinic.id}
           plan={siteCapacity.allowance.commercialPlan}
@@ -437,10 +447,8 @@ export default async function OperatorClinicDetailPage({
               change the source subscription, and it does not move a Location by
               itself.
             </p>
-            {inactive ? (
-              <p className="mt-3 text-sm text-staff-muted">
-                {INACTIVE_CLINIC_EDIT_NOTE}
-              </p>
+            {closed ? (
+              <p className="mt-3 text-sm text-staff-muted">{editNote}</p>
             ) : (
               <Link
                 href={`/operator/clinics/${clinic.id}/split`}
@@ -462,10 +470,8 @@ export default async function OperatorClinicDetailPage({
               already exists. The source Group keeps at least one Clinic Site.
               Public addresses stay the same, and neither subscription changes.
             </p>
-            {inactive ? (
-              <p className="mt-3 text-sm text-staff-muted">
-                {INACTIVE_CLINIC_EDIT_NOTE}
-              </p>
+            {closed ? (
+              <p className="mt-3 text-sm text-staff-muted">{editNote}</p>
             ) : (
               <Link
                 href={`/operator/clinics/${clinic.id}/split#move-site`}
@@ -487,10 +493,8 @@ export default async function OperatorClinicDetailPage({
               Essential or Practice Account. The root location stays. Purchased
               location capacity is not reduced.
             </p>
-            {inactive ? (
-              <p className="mt-3 text-sm text-staff-muted">
-                {INACTIVE_CLINIC_EDIT_NOTE}
-              </p>
+            {closed ? (
+              <p className="mt-3 text-sm text-staff-muted">{editNote}</p>
             ) : (
               <Link
                 href={`/operator/clinics/${clinic.id}/split`}
@@ -503,7 +507,7 @@ export default async function OperatorClinicDetailPage({
         ) : null}
       </OperatorClinicRecordGroup>
 
-      <OperatorClinicRecord title="Team" collapsed={inactive}>
+      <OperatorClinicRecord title="Team" collapsed={closed}>
         <p className="mt-2 text-sm text-staff-muted">
           Manage who can access this clinic.
         </p>
@@ -518,10 +522,8 @@ export default async function OperatorClinicDetailPage({
         >
           Open team
         </Link>
-        {inactive ? (
-          <p className="mt-4 text-sm text-staff-muted">
-            {INACTIVE_CLINIC_EDIT_NOTE}
-          </p>
+        {closed ? (
+          <p className="mt-4 text-sm text-staff-muted">{editNote}</p>
         ) : (
           <form action={startOperatorClinicSupportAction} className="mt-4">
             <input type="hidden" name="clinicId" value={clinic.id} />

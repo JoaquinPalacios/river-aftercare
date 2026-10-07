@@ -50,7 +50,7 @@ export function PermanentlyDeletedClinic({
         <PortalBreadcrumb
           items={[
             {
-              href: "/operator/clinics?activity=retired",
+              href: "/operator/clinics",
               label: "All Clinics",
             },
             { label: clinicName },
@@ -74,6 +74,11 @@ export function PermanentlyDeletedClinic({
           <p className="mt-1 text-sm text-staff-muted">By {deletedByLabel}</p>
         ) : null}
         <div className="mt-3 max-w-2xl space-y-2 text-sm text-staff-muted">
+          <p>
+            This clinic was permanently deleted under the previous lifecycle.
+            Its operational data is already gone. It cannot be archived,
+            unarchived, or reactivated.
+          </p>
           <p>This clinic cannot be reactivated.</p>
           <p>Customer and staff access has been removed.</p>
           <p>Operational clinic content has been removed.</p>
@@ -150,7 +155,7 @@ export function PermanentlyDeletedClinic({
 
       <p>
         <Link
-          href="/operator/clinics?activity=retired"
+          href="/operator/clinics"
           className="staffBtn staffBtnQuiet gap-1 px-0"
           aria-label="Back to all clinics"
         >

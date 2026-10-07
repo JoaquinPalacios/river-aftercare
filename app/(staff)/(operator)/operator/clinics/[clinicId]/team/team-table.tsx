@@ -77,11 +77,13 @@ export function ClinicTeamTable({
   clinicName,
   rows,
   invitationsLocked = false,
+  lockedNote = INACTIVE_CLINIC_EDIT_NOTE,
 }: {
   clinicId: string;
   clinicName: string;
   rows: ClinicTeamRow[];
   invitationsLocked?: boolean;
+  lockedNote?: string;
 }) {
   const router = useRouter();
   const reactId = useId().replace(/:/g, "");
@@ -310,9 +312,7 @@ export function ClinicTeamTable({
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {invitationsLocked ? (
-                        <p className="text-sm text-staff-muted">
-                          {INACTIVE_CLINIC_EDIT_NOTE}
-                        </p>
+                        <p className="text-sm text-staff-muted">{lockedNote}</p>
                       ) : (
                         <form action={resendAction}>
                           <input

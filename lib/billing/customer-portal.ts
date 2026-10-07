@@ -8,7 +8,7 @@ import {
   type Env,
 } from "@/lib/billing/env";
 import { logStripeBilling } from "@/lib/billing/log";
-import { clinicIsInactive } from "@/lib/clinics/clinic-activity";
+import { clinicIsClosed } from "@/lib/clinics/clinic-activity";
 import { getPrisma } from "@/lib/prisma";
 import { getStripeClient } from "@/lib/billing/stripe-client";
 import { isStripePortalConfigurationId } from "@/lib/billing/stripe-mode";
@@ -333,13 +333,14 @@ export async function openCustomerPortalForClinic(input: {
     where: { id: input.clinicId },
     select: {
       deactivatedAt: true,
+      archivedAt: true,
       billingProfile: { select: { stripeCustomerId: true } },
       entitlement: {
         select: { billingStatus: true, entitlementStatus: true },
       },
     },
   });
-  if (!clinic || clinicIsInactive(clinic.deactivatedAt)) {
+  if (!clinic || clinicIsClosed(clinic)) {
     return { ok: false, code: "portal_unavailable" };
   }
   const stripeCustomerId = clinic.billingProfile?.stripeCustomerId ?? null;
