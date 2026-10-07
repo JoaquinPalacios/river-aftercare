@@ -3,6 +3,9 @@
 -- Legacy permanentlyDeletedAt tombstones are not rewritten and are not Archive.
 -- A retired hostname may outlive the clinic row. Existing tombstones keep formerClinicId.
 -- Additive. Do not apply this migration to production from this change.
+-- river-aftercare:destructive-reviewed
+-- DROP CONSTRAINT only replaces RetiredTenantSlug_formerClinicId_fkey so the
+-- column can be null and ON DELETE SET NULL. No table, column, or row is removed.
 
 ALTER TABLE "Clinic" ADD COLUMN "archivedAt" TIMESTAMP(3);
 ALTER TABLE "Clinic" ADD COLUMN "archivedByUserId" TEXT;

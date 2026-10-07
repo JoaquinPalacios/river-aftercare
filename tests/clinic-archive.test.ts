@@ -713,9 +713,12 @@ describeDb("reversible clinic archive and terminal delete", () => {
       await OperatorClinicsPage({ searchParams: Promise.resolve({}) })
     );
     expect(activeList).not.toContain(name);
-    expect(activeList).toContain(
-      `<dd>${summarizeOperatorClinics(active).totalClinics}</dd>`
+    expect(activeList).not.toContain('data-tone="inactive">Archived');
+    const activeTotal = Number(
+      activeList.match(/Total clinics<\/dt><dd>(\d+)<\/dd>/)?.[1]
     );
+    const activeRows = [...activeList.matchAll(/>Active<\/span>/g)].length;
+    expect(activeTotal).toBe(activeRows);
     const inactiveList = renderToStaticMarkup(
       await OperatorClinicsPage({
         searchParams: Promise.resolve({ activity: "inactive" }),
