@@ -36,20 +36,10 @@ export function ClinicStatusSection({
     setOperatorClinicActiveAction,
     initialState
   );
-  const [archiveState, archiveAction, archivePending] = useActionState(
-    lifecycle === "archived"
-      ? unarchiveOperatorClinicAction
-      : archiveOperatorClinicAction,
-    initialState
-  );
   const [statusOpen, setStatusOpen] = useState(false);
-  const [archiveOpen, setArchiveOpen] = useState(false);
-  const [confirmation, setConfirmation] = useState("");
   const statusFormRef = useRef<HTMLFormElement>(null);
-  const archiveFormRef = useRef<HTMLFormElement>(null);
   const inactive = lifecycle === "inactive";
   const archived = lifecycle === "archived";
-  const confirmed = confirmation.trim() === clinicName;
   const statusLabel = archived ? "Archived" : inactive ? "Inactive" : "Active";
 
   return (
@@ -127,73 +117,146 @@ export function ClinicStatusSection({
           />
         </form>
       )}
-      <form ref={archiveFormRef} action={archiveAction} className="mt-4">
-        <input type="hidden" name="clinicId" value={clinicId} />
-        {archived ? null : (
-          <input type="hidden" name="confirmation" value={confirmation} />
-        )}
-        <button
-          type="button"
-          className="staffBtn staffBtnSecondary"
-          onClick={() => setArchiveOpen(true)}
-        >
-          {archived ? "Unarchive clinic" : "Archive clinic"}
-        </button>
-        {archiveState.error ? (
-          <p className="mt-2 text-sm text-red-700" role="alert">
-            {archiveState.error}
-          </p>
-        ) : null}
-        {archiveState.success ? (
-          <p className="mt-2 text-sm text-staff-muted" role="status">
-            {archiveState.success}
-          </p>
-        ) : null}
-        <ConfirmDialog
-          open={archiveOpen}
-          className={archived ? undefined : "permanentDeleteDialog"}
-          title={archived ? "Unarchive this clinic?" : "Archive this clinic?"}
-          description={
-            archived
-              ? "Unarchive returns this clinic to Inactive. Patient pages stay unavailable until you reactivate it. Invitations, sites, locations, guides, billing, and entitlements stay as they are. This does not call Stripe."
-              : ARCHIVE_DESCRIPTION
-          }
-          cancelLabel="Cancel"
-          confirmLabel={archived ? "Unarchive clinic" : "Archive clinic"}
-          confirmTone={archived ? "primary" : "danger"}
-          pending={archivePending}
-          confirmDisabled={archived ? false : !confirmed}
-          onCancel={() => setArchiveOpen(false)}
-          onConfirm={() => {
-            setArchiveOpen(false);
-            archiveFormRef.current?.requestSubmit();
-          }}
-        >
-          {archived ? null : (
-            <>
-              <p>{ARCHIVE_UNARCHIVE_NOTE}</p>
-              {lifecycle === "active" ? (
-                <p>
-                  Archiving an active clinic also makes it inactive. Billing may
-                  continue until you use the existing billing controls. This
-                  does not call Stripe.
-                </p>
-              ) : (
-                <p>
-                  This clinic is already inactive. Archiving keeps that state
-                  and preserves its data. This does not call Stripe or change
-                  billing.
-                </p>
-              )}
-              <PermanentDeletionConfirmFields
-                clinicName={clinicName}
-                confirmation={confirmation}
-                onConfirmationChange={setConfirmation}
-              />
-            </>
-          )}
-        </ConfirmDialog>
-      </form>
+      {archived ? (
+        <UnarchiveClinicForm clinicId={clinicId} />
+      ) : (
+        <ArchiveClinicForm
+          clinicId={clinicId}
+          lifecycle={lifecycle}
+          clinicName={clinicName}
+        />
+      )}
     </section>
+  );
+}
+
+/**
+ * Archive and unarchive each mount their own useActionState.
+ * One hook must not swap between those server actions: React stores the
+ * action from the first render and only replaces it in a passive effect
+ * when the next action is different. Returning to the original action
+ * skips that effect, so Archive after Unarchive would submit Unarchive.
+ */
+function ArchiveClinicForm({
+  clinicId,
+  lifecycle,
+  clinicName,
+}: {
+  clinicId: string;
+  lifecycle: "active" | "inactive";
+  clinicName: string;
+}) {
+  const [archiveState, archiveAction, archivePending] = useActionState(
+    archiveOperatorClinicAction,
+    initialState
+  );
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState("");
+  const archiveFormRef = useRef<HTMLFormElement>(null);
+  const confirmed = confirmation.trim() === clinicName;
+
+  return (
+    <form ref={archiveFormRef} action={archiveAction} className="mt-4">
+      <input type="hidden" name="clinicId" value={clinicId} />
+      <input type="hidden" name="confirmation" value={confirmation} />
+      <button
+        type="button"
+        className="staffBtn staffBtnSecondary"
+        onClick={() => setArchiveOpen(true)}
+      >
+        Archive clinic
+      </button>
+      {archiveState.error ? (
+        <p className="mt-2 text-sm text-red-700" role="alert">
+          {archiveState.error}
+        </p>
+      ) : null}
+      {archiveState.success ? (
+        <p className="mt-2 text-sm text-staff-muted" role="status">
+          {archiveState.success}
+        </p>
+      ) : null}
+      <ConfirmDialog
+        open={archiveOpen}
+        className="permanentDeleteDialog"
+        title="Archive this clinic?"
+        description={ARCHIVE_DESCRIPTION}
+        cancelLabel="Cancel"
+        confirmLabel="Archive clinic"
+        confirmTone="danger"
+        pending={archivePending}
+        confirmDisabled={!confirmed}
+        onCancel={() => setArchiveOpen(false)}
+        onConfirm={() => {
+          setArchiveOpen(false);
+          archiveFormRef.current?.requestSubmit();
+        }}
+      >
+        <p>{ARCHIVE_UNARCHIVE_NOTE}</p>
+        {lifecycle === "active" ? (
+          <p>
+            Archiving an active clinic also makes it inactive. Billing may
+            continue until you use the existing billing controls. This does not
+            call Stripe.
+          </p>
+        ) : (
+          <p>
+            This clinic is already inactive. Archiving keeps that state and
+            preserves its data. This does not call Stripe or change billing.
+          </p>
+        )}
+        <PermanentDeletionConfirmFields
+          clinicName={clinicName}
+          confirmation={confirmation}
+          onConfirmationChange={setConfirmation}
+        />
+      </ConfirmDialog>
+    </form>
+  );
+}
+
+function UnarchiveClinicForm({ clinicId }: { clinicId: string }) {
+  const [archiveState, archiveAction, archivePending] = useActionState(
+    unarchiveOperatorClinicAction,
+    initialState
+  );
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const archiveFormRef = useRef<HTMLFormElement>(null);
+
+  return (
+    <form ref={archiveFormRef} action={archiveAction} className="mt-4">
+      <input type="hidden" name="clinicId" value={clinicId} />
+      <button
+        type="button"
+        className="staffBtn staffBtnSecondary"
+        onClick={() => setArchiveOpen(true)}
+      >
+        Unarchive clinic
+      </button>
+      {archiveState.error ? (
+        <p className="mt-2 text-sm text-red-700" role="alert">
+          {archiveState.error}
+        </p>
+      ) : null}
+      {archiveState.success ? (
+        <p className="mt-2 text-sm text-staff-muted" role="status">
+          {archiveState.success}
+        </p>
+      ) : null}
+      <ConfirmDialog
+        open={archiveOpen}
+        title="Unarchive this clinic?"
+        description="Unarchive returns this clinic to Inactive. Patient pages stay unavailable until you reactivate it. Invitations, sites, locations, guides, billing, and entitlements stay as they are. This does not call Stripe."
+        cancelLabel="Cancel"
+        confirmLabel="Unarchive clinic"
+        confirmTone="primary"
+        pending={archivePending}
+        onCancel={() => setArchiveOpen(false)}
+        onConfirm={() => {
+          setArchiveOpen(false);
+          archiveFormRef.current?.requestSubmit();
+        }}
+      />
+    </form>
   );
 }
