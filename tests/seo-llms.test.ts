@@ -54,14 +54,16 @@ describe("marketing sitemap builder", () => {
       "http://localhost/pricing",
       "http://localhost/contact",
       "http://localhost/about",
-      "http://localhost/privacy",
-      "http://localhost/terms",
       "http://localhost/clinics",
       "http://localhost/dental",
       "http://localhost/physiotherapy",
       "http://localhost/chiropractic",
       "http://localhost/cosmetic-clinics",
     ]);
+    expect(entries.map((entry) => entry.url).join(" ")).not.toContain(
+      "/privacy"
+    );
+    expect(entries.map((entry) => entry.url).join(" ")).not.toContain("/terms");
     expect(new Set(entries.map((entry) => entry.url)).size).toBe(
       entries.length
     );

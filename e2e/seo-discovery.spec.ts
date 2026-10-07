@@ -188,8 +188,8 @@ test.describe("Phase 2B SEO and discovery", () => {
     });
     const sitemapBody = (await sitemap?.text()) ?? "";
     expect(sitemapBody).toContain("/about");
-    expect(sitemapBody).toContain("/privacy");
-    expect(sitemapBody).toContain("/terms");
+    expect(sitemapBody).not.toContain("/privacy");
+    expect(sitemapBody).not.toContain("/terms");
     expect(sitemapBody).toContain("/clinics");
     expect(sitemapBody).toContain("/dental");
     expect(sitemapBody).toContain("/physiotherapy");

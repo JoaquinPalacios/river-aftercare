@@ -1,6 +1,13 @@
 import { DEFAULT_MARKETING_PAGE_SEO } from "@/lib/seo/defaults";
-import { MARKETING_SEO_PATHS, type MarketingSeoPath } from "@/lib/seo/types";
-import { marketingCanonicalUrl } from "@/lib/seo/resolve-marketing-seo";
+import {
+  marketingCanonicalUrl,
+  resolveMarketingSeo,
+} from "@/lib/seo/resolve-marketing-seo";
+import {
+  MARKETING_SEO_PATHS,
+  type MarketingPageSeoInput,
+  type MarketingSeoPath,
+} from "@/lib/seo/types";
 
 const CALENDAR_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -32,8 +39,18 @@ export function configuredSitemapLastModified(
 export function buildMarketingSitemap(input: {
   origin: string;
   paths?: readonly MarketingSeoPath[];
+  /**
+   * Stored marketing rows, usually from `loadAllMarketingPageSeo()`.
+   * Omitted pages use the code default inside `resolveMarketingSeo`.
+   * `lastModified` stays on that code default either way.
+   */
+  pages?: readonly MarketingPageSeoInput[];
 }): MarketingSitemapEntry[] {
-  const paths = input.paths ?? MARKETING_SEO_PATHS;
+  const pagesByPath = new Map(input.pages?.map((page) => [page.path, page]));
+  const paths = (input.paths ?? MARKETING_SEO_PATHS).filter((path) => {
+    const page = pagesByPath.get(path);
+    return resolveMarketingSeo(page ? { path, page } : { path }).robots.index;
+  });
   return paths.map((path) => {
     const lastModified = configuredSitemapLastModified(path);
     return {

@@ -142,14 +142,14 @@ describe("launch SEO policy", () => {
         "http://localhost/pricing",
         "http://localhost/contact",
         "http://localhost/about",
-        "http://localhost/privacy",
-        "http://localhost/terms",
         "http://localhost/clinics",
         "http://localhost/dental",
         "http://localhost/physiotherapy",
         "http://localhost/chiropractic",
         "http://localhost/cosmetic-clinics",
       ]);
+      expect(urls.join(" ")).not.toContain("/privacy");
+      expect(urls.join(" ")).not.toContain("/terms");
       expect(urls.join(" ")).not.toContain("/dashboard");
       expect(urls.join(" ")).not.toContain("/guides");
       expect(urls.join(" ")).not.toContain("/operator");
