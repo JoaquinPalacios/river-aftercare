@@ -69,11 +69,7 @@ export function HelpFeedbackForm({
               key={option.id}
               type="button"
               aria-pressed={selected}
-              className={
-                selected
-                  ? "rounded-xl border border-staff-brand bg-staff-panel px-4 py-3 text-left"
-                  : "rounded-xl border border-staff-line bg-staff-panel px-4 py-3 text-left"
-              }
+              className="helpCategoryCard"
               onClick={() => setCategory(option.id)}
             >
               <span className="block text-sm font-medium text-staff-ink">
@@ -149,7 +145,7 @@ function HelpFeedbackRequestForm({
   return (
     <form
       action={action}
-      className="flex max-w-xl flex-col gap-5"
+      className="helpFeedbackForm flex w-full min-w-0 flex-col gap-5"
       onSubmit={onSubmit}
       noValidate
     >
@@ -366,7 +362,7 @@ function FeatureFields({
           Importance{" "}
           <span className="font-normal text-staff-muted">(optional)</span>
         </legend>
-        <div className="staffChoiceOptions">
+        <div className="staffChoiceOptions helpImportanceOptions">
           {HELP_FEEDBACK_IMPORTANCE.map((option) => (
             <label key={option} className="staffChoiceOption">
               <input

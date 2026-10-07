@@ -1,5 +1,7 @@
 /** @vitest-environment jsdom */
 
+import { readFileSync } from "node:fs";
+
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -67,6 +69,43 @@ describe("Help & feedback form", () => {
     });
   }
 
+  it("keeps category cards as pressed buttons with hover and keyboard focus", async () => {
+    await renderForm();
+    const names = ["Report a problem", "Ask a question", "Suggest a feature"];
+    const cards = names.map(buttonNamed);
+    const group = container.querySelector('[aria-label="What do you need?"]');
+    expect(group?.className).toContain("sm:grid-cols-3");
+    expect(group?.className).not.toMatch(/(?:^|\s)grid-cols-3(?:\s|$)/);
+
+    for (const card of cards) {
+      expect(card.type).toBe("button");
+      expect(card.getAttribute("aria-pressed")).toBe("false");
+      expect(card.classList.contains("helpCategoryCard")).toBe(true);
+    }
+
+    await act(async () => {
+      cards[1].click();
+    });
+    expect(cards[0].getAttribute("aria-pressed")).toBe("false");
+    expect(cards[1].getAttribute("aria-pressed")).toBe("true");
+    expect(cards[2].getAttribute("aria-pressed")).toBe("false");
+
+    const css = readFileSync("app/(staff)/staff.css", "utf8");
+    expect(css).toContain('.helpCategoryCard:not([aria-pressed="true"]):hover');
+    expect(css).toContain('.helpCategoryCard[aria-pressed="true"]');
+    expect(css).toContain(".helpCategoryCard:focus-visible");
+    expect(css).toContain(
+      "outline: var(--interaction-focus-width) solid var(--staff-brand);"
+    );
+    expect(css).toContain(
+      "border-color: color-mix(in srgb, var(--staff-brand) 45%, var(--staff-line));"
+    );
+    const form = container.querySelector("form");
+    expect(form?.className).toContain("helpFeedbackForm");
+    expect(form?.className).not.toContain("max-w-xl");
+    expect(form?.className).toContain("w-full");
+  });
+
   it("shows the patient-information warning beside a problem or question", async () => {
     await renderForm();
     expect(container.textContent).toContain("Report a problem");
@@ -125,6 +164,22 @@ describe("Help & feedback form", () => {
     expect(
       importance.every((input) => !(input as HTMLInputElement).checked)
     ).toBe(true);
+    expect(
+      importance.every((input) => (input as HTMLInputElement).type === "radio")
+    ).toBe(true);
+    const options = container.querySelector(".helpImportanceOptions");
+    expect(options).not.toBeNull();
+    expect(options?.classList.contains("staffChoiceOptions")).toBe(true);
+    const css = readFileSync("app/(staff)/staff.css", "utf8");
+    expect(css).toContain(
+      ".helpImportanceOptions {\n  grid-template-columns: minmax(0, 1fr);"
+    );
+    expect(css).toContain(
+      "@container help-feedback (min-width: 32rem) {\n  .helpImportanceOptions {\n    grid-template-columns: repeat(3, minmax(0, 1fr));"
+    );
+    expect(container.querySelector("form")?.className).toContain(
+      "helpFeedbackForm"
+    );
   });
 
   it("confirms a sent message and a feature request differently", async () => {

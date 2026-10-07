@@ -287,11 +287,11 @@ function PortalNav({
               data-tooltip="View patient site"
             >
               <StaffNavIcon name="patient" />
-              <span className="staffNavLabel">
+              <span className="staffNavLabel staffNavExternalLabel">
                 View patient site
                 <span className="sr-only"> (opens in a new tab)</span>
-                <ExternalLinkIcon className="ml-1" />
               </span>
+              <ExternalLinkIcon className="staffNavExternalIcon" />
             </a>
           </div>
         </>
