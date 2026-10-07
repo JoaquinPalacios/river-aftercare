@@ -11,14 +11,19 @@ export function StaffAccountPanel({
   userLabel,
   roleLabel,
   billingHref = null,
+  helpHref = null,
 }: {
   userLabel: string;
   roleLabel: string;
   billingHref?: string | null;
+  helpHref?: string | null;
 }) {
   const pathname = usePathname();
-  const { account: accountCurrent, billing: billingCurrent } =
-    staffAccountNavCurrent(pathname);
+  const {
+    account: accountCurrent,
+    billing: billingCurrent,
+    help: helpCurrent,
+  } = staffAccountNavCurrent(pathname);
 
   return (
     <div className="staffAccountBlock">
@@ -52,6 +57,17 @@ export function StaffAccountPanel({
         >
           <StaffNavIcon name="billing" />
           <span className="staffNavLabel">Billing</span>
+        </Link>
+      ) : null}
+      {helpHref ? (
+        <Link
+          href={helpHref}
+          className="staffNavRow"
+          data-tooltip="Help & feedback"
+          aria-current={helpCurrent ? "page" : undefined}
+        >
+          <StaffNavIcon name="help" />
+          <span className="staffNavLabel">Help & feedback</span>
         </Link>
       ) : null}
       <LogoutButton />

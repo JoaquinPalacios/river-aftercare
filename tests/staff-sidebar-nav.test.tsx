@@ -186,6 +186,20 @@ describe("staff sidebar navigation", () => {
       );
     });
     expect(currentHrefs(container)).toEqual(["/account"]);
+
+    nav.pathname = "/account/help";
+    await act(async () => {
+      root.render(
+        <StaffAccountPanel
+          userLabel="Ada Admin"
+          roleLabel="Clinic admin"
+          billingHref="/account/billing"
+          helpHref="/account/help"
+        />
+      );
+    });
+    expect(currentHrefs(container)).toEqual(["/account/help"]);
+    expect(container.textContent).toContain("Help & feedback");
   });
 
   it("collapses the desktop sidebar to icons and remembers the choice", async () => {
@@ -474,6 +488,29 @@ describe("staff sidebar navigation", () => {
     expect(document.documentElement.getAttribute("data-theme-mode")).toBe(
       "system"
     );
+  });
+
+  it("places Help & feedback in the clinic account group only", async () => {
+    await renderClinic("/guides/guide_1");
+    const help = container.querySelector(
+      'a[data-tooltip="Help & feedback"]'
+    ) as HTMLAnchorElement;
+    expect(help).not.toBeNull();
+    expect(help.getAttribute("href")).toBe(
+      "/account/help?from=%2Fguides%2Fguide_1"
+    );
+    expect(help.querySelector('[data-nav-icon="help"]')).toBeTruthy();
+    expect(clinicNav().textContent).not.toContain("Help & feedback");
+
+    nav.pathname = "/operator/clinics";
+    await act(async () => {
+      root.render(
+        <OperatorAccountChrome userLabel="River Operator">
+          <p>Operator content</p>
+        </OperatorAccountChrome>
+      );
+    });
+    expect(container.textContent).not.toContain("Help & feedback");
   });
 
   it("does not add a navigation spinner to sidebar primitives", () => {

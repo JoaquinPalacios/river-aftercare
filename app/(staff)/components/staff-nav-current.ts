@@ -25,11 +25,16 @@ export function isClinicPortalNavCurrent(
 export function staffAccountNavCurrent(pathname: string): {
   account: boolean;
   billing: boolean;
+  help: boolean;
 } {
   const billing = pathname.startsWith("/account/billing");
+  const help =
+    pathname === "/account/help" || pathname.startsWith("/account/help/");
   return {
     billing,
+    help,
     account:
-      pathname === "/account" || (pathname.startsWith("/account/") && !billing),
+      pathname === "/account" ||
+      (pathname.startsWith("/account/") && !billing && !help),
   };
 }

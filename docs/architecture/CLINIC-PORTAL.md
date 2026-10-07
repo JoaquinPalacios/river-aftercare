@@ -31,7 +31,7 @@ Preferences, separated by a divider, above account:
 
 - Appearance — System / Light / Dark for the **staff/operator shell**. Stored as `aftercare-guide-portal-theme` on this device. Does **not** change `ClinicProfile.themeMode` (patient presentation).
 
-Account/sign-out stay below Appearance. **Account** (`/account`) is a shared authenticated page for operator, clinic admin, and clinic staff (profile name/email plus change password). `/account/security` redirects to `/account#security`. Sign out uses the same full-row hit area as other sidebar utility rows (minimum 44px). It is account navigation, not a high-prominence destructive action.
+Account/sign-out stay below Appearance. **Account** (`/account`) is a shared authenticated page for operator, clinic admin, and clinic staff (profile name/email plus change password). `/account/security` redirects to `/account#security`. A clinic membership also shows **Help & feedback** (`/account/help`) in that account group, for a problem, a question, or a feature suggestion. It is not a primary section. Platform operators without a clinic membership do not see it. Sign out uses the same full-row hit area as other sidebar utility rows (minimum 44px). It is account navigation, not a high-prominence destructive action.
 
 ### User-facing role labels
 

@@ -58,6 +58,8 @@ export default defineConfig({
         process.env.CONTACT_EMAIL_FROM ??
         "River Aftercare <website@example.test>",
       CONTACT_MAILER: process.env.CONTACT_MAILER ?? "memory",
+      RIVER_AFTERCARE_SUPPORT_EMAIL:
+        process.env.RIVER_AFTERCARE_SUPPORT_EMAIL ?? "support@example.test",
       NEXT_PUBLIC_TURNSTILE_SITE_KEY:
         process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ??
         "1x00000000000000000000AA",

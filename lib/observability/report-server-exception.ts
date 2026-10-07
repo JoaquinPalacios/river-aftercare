@@ -14,6 +14,8 @@ export const OPERATIONAL_FAILURE_CODES = {
   CONTACT_EMAIL_DELIVERY_FAILED: "contact_email_delivery_failed",
   AUTH_EMAIL_DELIVERY_FAILED: "auth_email_delivery_failed",
   AUTH_EMAIL_NOT_CONFIGURED: "auth_email_not_configured",
+  SUPPORT_EMAIL_DELIVERY_FAILED: "support_email_delivery_failed",
+  SUPPORT_EMAIL_NOT_CONFIGURED: "support_email_not_configured",
   BILLING_NOTICE_DELIVERY_FAILED: "billing_notice_delivery_failed",
   BILLING_NOTICE_NOT_CONFIGURED: "billing_notice_not_configured",
   STRIPE_WEBHOOK_FAILED: "stripe_webhook_failed",
@@ -26,7 +28,11 @@ export type OperationalFailureCode =
   (typeof OPERATIONAL_FAILURE_CODES)[keyof typeof OPERATIONAL_FAILURE_CODES];
 
 export type OperationalFailureComponent =
-  "contact-email" | "auth-email" | "billing-notice" | "stripe-webhook";
+  | "contact-email"
+  | "auth-email"
+  | "billing-notice"
+  | "stripe-webhook"
+  | "support-email";
 
 export type OperationalFailureCodeValue =
   | "not_configured"
@@ -133,6 +139,20 @@ export function reportContactEmailFailure(
     OPERATIONAL_FAILURE_CODES.CONTACT_EMAIL_DELIVERY_FAILED,
     {
       component: "contact-email",
+      failure_code: reason,
+    }
+  );
+}
+
+export function reportSupportEmailFailure(
+  reason: OperationalFailureCodeValue
+): void {
+  reportOperationalFailure(
+    reason === "not_configured"
+      ? OPERATIONAL_FAILURE_CODES.SUPPORT_EMAIL_NOT_CONFIGURED
+      : OPERATIONAL_FAILURE_CODES.SUPPORT_EMAIL_DELIVERY_FAILED,
+    {
+      component: "support-email",
       failure_code: reason,
     }
   );
