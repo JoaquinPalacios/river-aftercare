@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { BrandingCleanupRetry } from "@/app/(staff)/(operator)/operator/clinics/branding-cleanup-retry";
 import {
   ClinicActivityTabs,
   operatorClinicListActivity,
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
 export default async function OperatorClinicsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ activity?: string }>;
+  searchParams: Promise<{ activity?: string; brandingCleanup?: string }>;
 }) {
   await requirePlatformOperator();
   const params = await searchParams;
@@ -51,6 +52,10 @@ export default async function OperatorClinicsPage({
 
       <ClinicActivityTabs activity={activity} />
 
+      {params.brandingCleanup ? (
+        <BrandingCleanupRetry clinicId={params.brandingCleanup} />
+      ) : null}
+
       <dl className="staffOperatorSummary">
         <div className="staffOperatorStat">
           <dt>Total clinics</dt>
@@ -74,8 +79,8 @@ export default async function OperatorClinicsPage({
         <p className="rounded-xl border border-dashed border-staff-line bg-staff-panel px-5 py-8 text-sm text-staff-muted">
           {activity === "inactive"
             ? "No inactive clinics."
-            : activity === "retired"
-              ? "No permanently deleted clinics."
+            : activity === "archived"
+              ? "No archived clinics."
               : "No active clinics."}
         </p>
       ) : (
@@ -117,15 +122,15 @@ export default async function OperatorClinicsPage({
                     <span
                       className="staffStatusPill"
                       data-tone={
-                        clinic.permanentlyDeleted
+                        clinic.archived
                           ? "inactive"
                           : clinic.inactive
                             ? "warning"
                             : "success"
                       }
                     >
-                      {clinic.permanentlyDeleted
-                        ? "Permanently deleted"
+                      {clinic.archived
+                        ? "Archived"
                         : clinic.inactive
                           ? "Inactive"
                           : "Active"}

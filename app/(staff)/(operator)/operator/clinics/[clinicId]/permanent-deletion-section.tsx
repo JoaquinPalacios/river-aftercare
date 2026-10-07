@@ -34,13 +34,13 @@ export function PermanentDeletionSection({
   return (
     <section className="rounded-xl border border-red-200 bg-staff-panel p-5">
       <h2 className="text-base font-semibold text-red-800">Danger zone</h2>
-      <h3 className="mt-3 text-sm font-semibold">Permanently delete clinic</h3>
+      <h3 className="mt-3 text-sm font-semibold">Delete clinic</h3>
       <div className="mt-3 max-w-2xl space-y-2 text-sm text-staff-muted">
-        <p>This is irreversible.</p>
-        <p>Customer and staff access is removed.</p>
-        <p>Operational clinic content is removed.</p>
-        <p>Billing and legal audit records are retained.</p>
-        <p>The tenant address is permanently retired and cannot be reused.</p>
+        <p>This cannot be undone.</p>
+        <p>
+          All clinic data will be permanently removed. Former tenant addresses
+          remain reserved so old patient links cannot be reassigned.
+        </p>
       </div>
       {blockers.length > 0 ? (
         <ul className="mt-4 max-w-2xl list-disc space-y-1 pl-5 text-sm text-red-800">
@@ -58,7 +58,7 @@ export function PermanentDeletionSection({
             className="staffBtn staffBtnDanger"
             onClick={() => setOpen(true)}
           >
-            Permanently delete clinic
+            Delete permanently
           </button>
           {state.error ? (
             <p className="mt-2 text-sm text-red-700" role="alert">
@@ -73,10 +73,10 @@ export function PermanentDeletionSection({
           <ConfirmDialog
             open={open}
             className="permanentDeleteDialog"
-            title="Permanently delete this clinic?"
-            description="This is irreversible. Customer and staff access is removed. Operational clinic content is removed. Billing and legal audit records are retained. The tenant address is permanently retired and cannot be reused."
+            title="Delete this archived clinic permanently?"
+            description="This cannot be undone."
             cancelLabel="Cancel"
-            confirmLabel="Permanently delete clinic"
+            confirmLabel="Delete permanently"
             confirmTone="danger"
             pending={pending}
             confirmDisabled={!confirmed}
@@ -86,6 +86,11 @@ export function PermanentDeletionSection({
               formRef.current?.requestSubmit();
             }}
           >
+            <p>
+              All clinic data will be permanently removed. Former tenant
+              addresses remain reserved so old patient links cannot be
+              reassigned.
+            </p>
             <PermanentDeletionConfirmFields
               clinicName={clinicName}
               confirmation={confirmation}

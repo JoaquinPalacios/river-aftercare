@@ -15,10 +15,12 @@ export function OnboardingInvitationActions({
   clinicId,
   userId,
   allowResend = true,
+  lockedNote = INACTIVE_CLINIC_EDIT_NOTE,
 }: {
   clinicId: string;
   userId: string;
   allowResend?: boolean;
+  lockedNote?: string;
 }) {
   const [resendState, resendAction, resending] = useActionState(
     resendClinicInvitationAction,
@@ -44,7 +46,7 @@ export function OnboardingInvitationActions({
           </button>
         </form>
       ) : (
-        <p className="text-sm text-staff-muted">{INACTIVE_CLINIC_EDIT_NOTE}</p>
+        <p className="text-sm text-staff-muted">{lockedNote}</p>
       )}
       {resendState.error ? (
         <p className="text-sm text-red-600" role="alert">

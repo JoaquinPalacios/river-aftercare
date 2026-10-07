@@ -131,9 +131,15 @@ model Clinic {
   deactivatedAt             DateTime?
   deactivatedByUserId       String?
   deactivatedBy             User?                            @relation("ClinicDeactivatedBy", fields: [deactivatedByUserId], references: [id], onDelete: SetNull)
-  /// Set when the clinic is permanently retired. The row stays as a tombstone.
-  /// Operational sites, guides, and memberships are removed. Billing, legal,
-  /// and audit rows stay. A set value can never return to active.
+  /// Set while the clinic is archived. Archive always implies inactive:
+  /// `deactivatedAt` is also set. Null means the clinic is not archived.
+  /// Operational rows stay so the clinic can be unarchived back to Inactive.
+  archivedAt                DateTime?
+  archivedByUserId          String?
+  archivedBy                User?                            @relation("ClinicArchivedBy", fields: [archivedByUserId], references: [id], onDelete: SetNull)
+  /// Legacy tombstone from the previous destructive retirement.
+  /// Operational rows for these clinics were already removed. This is not
+  /// reversible Archive. New deletion removes the clinic row instead.
   permanentlyDeletedAt      DateTime?
   permanentlyDeletedByUserId String?
   permanentlyDeletedBy      User?                            @relation("ClinicPermanentlyDeletedBy", fields: [permanentlyDeletedByUserId], references: [id], onDelete: SetNull)
@@ -147,18 +153,20 @@ model Clinic {
   updatedAt                 DateTime                         @updatedAt
 
   @@index([deactivatedByUserId])
+  @@index([archivedByUserId])
   @@index([permanentlyDeletedByUserId])
 }
 
 /// A tenant hostname that belonged to a permanently deleted clinic.
-/// The slug can never be issued again. `formerClinicId` keeps the tombstone.
+/// The slug can never be issued again. `formerClinicId` is null once the
+/// clinic row itself has been removed. Legacy tombstones still point here.
 /// This is separate from the fixed `RESERVED_TENANT_SLUGS` list.
 model RetiredTenantSlug {
   id             String   @id @default(cuid())
   slug           String   @unique
-  formerClinicId String
+  formerClinicId String?
   retiredAt      DateTime @default(now())
-  formerClinic   Clinic   @relation(fields: [formerClinicId], references: [id], onDelete: Restrict)
+  formerClinic   Clinic?  @relation(fields: [formerClinicId], references: [id], onDelete: SetNull)
 
   @@index([formerClinicId])
 }
@@ -192,6 +200,7 @@ model User {
   preparedNegotiatedOffers        ClinicNegotiatedOffer[]            @relation("NegotiatedOfferPreparedBy")
   acceptedNegotiatedOffers        ClinicNegotiatedOffer[]            @relation("NegotiatedOfferAcceptedBy")
   deactivatedClinics              Clinic[]                           @relation("ClinicDeactivatedBy")
+  archivedClinics                 Clinic[]                           @relation("ClinicArchivedBy")
   permanentlyDeletedClinics       Clinic[]                           @relation("ClinicPermanentlyDeletedBy")
   createdAt                       DateTime                           @default(now())
   updatedAt                       DateTime                           @updatedAt

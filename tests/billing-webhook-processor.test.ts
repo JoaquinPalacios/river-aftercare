@@ -1038,6 +1038,25 @@ describe("processVerifiedStripeEvent", () => {
     });
     expect(result.outcome).toBe("unmapped_clinic");
     expect(db.entitlements.size).toBe(0);
+    expect(db.receipts.get(event.id)).toMatchObject({
+      processingStatus: StripeEventProcessingStatus.IGNORED,
+      clinicId: null,
+      failureText: "Stripe object is not linked to a known River clinic.",
+    });
+    const duplicate = await processVerifiedStripeEvent(event, {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () =>
+          ({
+            ...activeSubscription,
+            metadata: { clinicId: "clinic_missing" },
+          }) as Stripe.Subscription,
+      },
+      env: BILLING_TEST_ENV,
+    });
+    expect(duplicate.outcome).toBe("duplicate");
+    expect(db.entitlements.size).toBe(0);
+    expect(db.receipts.size).toBe(1);
   });
 
   it("does not revoke ACTIVE entitlement on invoice.payment_failed during retry", async () => {

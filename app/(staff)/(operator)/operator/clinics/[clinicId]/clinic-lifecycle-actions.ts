@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
+import { archiveClinic, unarchiveClinic } from "@/lib/clinics/clinic-archive";
 import {
   deactivateClinic,
   reactivateClinic,
@@ -59,6 +60,45 @@ export async function setOperatorClinicActiveAction(
   };
 }
 
+export async function archiveOperatorClinicAction(
+  _previous: ClinicStatusActionState,
+  formData: FormData
+): Promise<ClinicStatusActionState> {
+  const { clinicId, operatorUserId } = await operatorClinicId(formData);
+  const confirmation = formData.get("confirmation");
+  const result = await archiveClinic({
+    clinicId,
+    operatorUserId,
+    confirmation: typeof confirmation === "string" ? confirmation : "",
+  });
+  if (!result.ok) {
+    return { error: result.error };
+  }
+  revalidatePath(`/operator/clinics/${clinicId}`);
+  revalidatePath("/operator/clinics");
+  return {
+    success:
+      "Clinic archived. It is inactive, its data is preserved, and it is off the active and inactive lists. Unarchive returns it to Inactive. Billing and Stripe are unchanged.",
+  };
+}
+
+export async function unarchiveOperatorClinicAction(
+  _previous: ClinicStatusActionState,
+  formData: FormData
+): Promise<ClinicStatusActionState> {
+  const { clinicId, operatorUserId } = await operatorClinicId(formData);
+  const result = await unarchiveClinic({ clinicId, operatorUserId });
+  if (!result.ok) {
+    return { error: result.error };
+  }
+  revalidatePath(`/operator/clinics/${clinicId}`);
+  revalidatePath("/operator/clinics");
+  return {
+    success:
+      "Clinic unarchived. It is Inactive. Reactivate it separately if it should operate again. Billing and Stripe are unchanged.",
+  };
+}
+
 export async function permanentlyDeleteOperatorClinicAction(
   _previous: ClinicStatusActionState,
   formData: FormData
@@ -73,12 +113,13 @@ export async function permanentlyDeleteOperatorClinicAction(
   if (!result.ok) {
     return { error: result.error };
   }
-  revalidatePath(`/operator/clinics/${clinicId}`);
   revalidatePath("/operator/clinics");
   if (brandingCleanupNeedsRetry(result.storageCleanup)) {
-    redirect(`/operator/clinics/${clinicId}?cleanup=retry`);
+    redirect(
+      `/operator/clinics?brandingCleanup=${encodeURIComponent(clinicId)}`
+    );
   }
-  return { success: PERMANENT_DELETION_MESSAGES.deleted };
+  redirect("/operator/clinics");
 }
 
 export async function retryPermanentDeletionBrandingAction(

@@ -32,6 +32,7 @@ export function PrepareBillingForm({
   cancellationDateLabel,
   commercialNotice = null,
   editsLocked = false,
+  lockedNote = INACTIVE_CLINIC_EDIT_NOTE,
 }: {
   clinicId: string;
   plan: "ESSENTIAL" | "PRACTICE" | "GROUP" | null;
@@ -50,6 +51,7 @@ export function PrepareBillingForm({
   cancellationDateLabel: string | null;
   commercialNotice?: string | null;
   editsLocked?: boolean;
+  lockedNote?: string;
 }) {
   const [state, action, pending] = useActionState(
     prepareClinicBillingAction,
@@ -236,7 +238,7 @@ export function PrepareBillingForm({
         </form>
       ) : (
         <p className="mt-4 text-sm text-staff-muted" role="status">
-          {editsLocked && canRevise ? INACTIVE_CLINIC_EDIT_NOTE : blockedReason}
+          {editsLocked && canRevise ? lockedNote : blockedReason}
         </p>
       )}
     </section>

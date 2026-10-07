@@ -134,13 +134,14 @@ export async function resolveRetiredLocationRedirectForTenant(input: {
       id: true,
       slug: true,
       clinicId: true,
-      clinic: { select: { deactivatedAt: true } },
+      clinic: { select: { deactivatedAt: true, archivedAt: true } },
     },
   });
   if (
     !sourceSite ||
     sourceSite.slug !== input.tenantSlug ||
-    sourceSite.clinic.deactivatedAt
+    sourceSite.clinic.deactivatedAt ||
+    sourceSite.clinic.archivedAt
   ) {
     return null;
   }

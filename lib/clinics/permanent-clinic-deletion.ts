@@ -44,11 +44,11 @@ export const CLINIC_PERMANENTLY_DELETED_REACTIVATE_MESSAGE =
 
 export const PERMANENT_DELETION_MESSAGES = {
   missing: "That clinic could not be found.",
-  active: "Deactivate the clinic before permanently deleting it.",
+  not_archived: "Archive the clinic before permanently deleting it.",
   already_deleted: "This clinic is already permanently deleted.",
   demo: "The shared demo clinic cannot be permanently deleted.",
   split_history:
-    "This clinic has account-split history that must be retained, so it cannot be permanently deleted.",
+    "This clinic has account-split history that must be retained, so it cannot currently be permanently deleted.",
   negotiated_offer:
     "Withdraw the open negotiated offer before permanently deleting this clinic.",
   checkout_session:
@@ -72,7 +72,8 @@ export const PERMANENT_DELETION_MESSAGES = {
   operator: "Only a platform operator can permanently delete a clinic.",
   cleanup:
     "Clinic permanently deleted. Some branding files could not be removed. Retry branding cleanup.",
-  deleted: "Clinic permanently deleted. The tenant address cannot be reused.",
+  deleted:
+    "Clinic permanently deleted. Former tenant addresses remain reserved and cannot be reused.",
 } as const;
 
 export type PermanentDeletionBlockerCode = Exclude<
@@ -118,6 +119,7 @@ const clinicSelect = {
   name: true,
   slug: true,
   deactivatedAt: true,
+  archivedAt: true,
   permanentlyDeletedAt: true,
   profile: {
     select: {
@@ -322,11 +324,10 @@ async function readEligibility(
   }
 
   const blockers: PermanentDeletionBlocker[] = [];
-  if (!clinic.deactivatedAt) {
-    blockers.push(blocker("active"));
-  }
   if (clinic.permanentlyDeletedAt) {
     blockers.push(blocker("already_deleted"));
+  } else if (!clinic.archivedAt) {
+    blockers.push(blocker("not_archived"));
   }
   if (isDesignatedDemoClinic(clinic)) {
     blockers.push(blocker("demo"));
@@ -476,7 +477,6 @@ function refusal(
 async function retireClinic(
   tx: Prisma.TransactionClient,
   clinic: ClinicRow,
-  operatorUserId: string,
   now: Date
 ): Promise<void> {
   const slugs = new Set<string>([clinic.slug]);
@@ -515,83 +515,14 @@ async function retireClinic(
     })),
   });
 
-  await tx.accountToken.deleteMany({ where: { clinicId: clinic.id } });
-  await tx.clinicMembership.deleteMany({ where: { clinicId: clinic.id } });
-  await tx.clinicDowngradePreparation.deleteMany({
-    where: { clinicId: clinic.id },
-  });
   await tx.practiceGuide.updateMany({
     where: { copiedFromPracticeGuide: { clinicId: clinic.id } },
     data: { copiedFromPracticeGuideId: null },
   });
-  await tx.practiceGuidePlacement.deleteMany({
-    where: { clinicId: clinic.id },
-  });
-  await tx.practiceGuideHomeCareInstruction.deleteMany({
-    where: {
-      section: { revision: { practiceGuide: { clinicId: clinic.id } } },
-    },
-  });
-  await tx.practiceGuideRevisionSection.deleteMany({
-    where: { revision: { practiceGuide: { clinicId: clinic.id } } },
-  });
-  await tx.practiceGuideRevision.deleteMany({
-    where: { practiceGuide: { clinicId: clinic.id } },
-  });
-  await tx.practiceGuideOverride.deleteMany({
-    where: { practiceGuide: { clinicId: clinic.id } },
-  });
-  await tx.practiceGuideAddition.deleteMany({
-    where: { practiceGuide: { clinicId: clinic.id } },
-  });
-  await tx.practiceGuide.deleteMany({ where: { clinicId: clinic.id } });
-  await tx.clinicSiteServiceCategory.deleteMany({
-    where: { clinicId: clinic.id },
-  });
-  await tx.clinicLocation.deleteMany({ where: { clinicId: clinic.id } });
-  await tx.clinicSite.deleteMany({ where: { clinicId: clinic.id } });
 
-  if (clinic.profile) {
-    await tx.clinicProfile.update({
-      where: { clinicId: clinic.id },
-      data: {
-        displayName: clinic.name,
-        phone: null,
-        addressLine1: null,
-        addressLine2: null,
-        city: null,
-        region: null,
-        postalCode: null,
-        country: null,
-        bookingUrl: null,
-        contactUrl: null,
-        contactEmail: null,
-        emergencyInstructions: null,
-        logoUrl: null,
-        darkLogoUrl: null,
-        faviconUrl: null,
-        primaryColor: null,
-        accentColor: null,
-        darkPrimaryColor: null,
-        darkAccentColor: null,
-        neutralColor: null,
-        useCustomDarkBranding: false,
-        typeface: null,
-        allowPatientThemeToggle: false,
-        radiusPreset: "MEDIUM",
-        themeMode: "SYSTEM",
-        instructionTerminology: "AFTERCARE",
-      },
-    });
-  }
-
-  await tx.clinic.update({
-    where: { id: clinic.id },
-    data: {
-      permanentlyDeletedAt: now,
-      permanentlyDeletedByUserId: operatorUserId,
-    },
-  });
+  // Removing the clinic cascades clinic-owned rows. Retired hostnames remain
+  // with formerClinicId cleared. Users and Auth.js accounts are not clinic-owned.
+  await tx.clinic.delete({ where: { id: clinic.id } });
 }
 
 async function cleanupBranding(input: {
@@ -645,20 +576,31 @@ async function cleanupBranding(input: {
 }
 
 /**
- * Permanently retires one deactivated clinic.
+ * Permanently deletes one archived clinic.
+ *
+ * The clinic row and its clinic-owned data are removed, including ended or
+ * not-billed entitlements, complimentary history, converted or withdrawn
+ * offers, a terminal billing profile, legal acceptances, finished price
+ * changes, sent or failed billing notices, and downgrade preparation.
+ * Stripe event receipts stay, keyed by Stripe event id, with their stored
+ * clinic id string. Retired tenant hostnames remain so old patient links
+ * cannot be reassigned. Users and Auth.js accounts stay. A future business
+ * retention policy could keep legal acceptances after the clinic is gone;
+ * that detached store is not implemented. Legacy `permanentlyDeletedAt`
+ * tombstones are refused and are not reversible.
  *
  * Lock order matches clinic deactivation and split destination selection:
  * 1. clinic-account-structure for this clinic and every split-history
  *    counterpart, sorted
  * 2. clinic-account-split for those same clinics, sorted
  * 3. re-read every eligibility condition
- * 4. lock tenant slugs, re-check that no other account owns them, tombstone,
- *    then remove operational rows
+ * 4. lock tenant slugs, re-check that no other account owns them, reserve
+ *    those hostnames, then delete the clinic row
  *
- * Any account-split involvement, in any status, blocks retirement. Split
+ * Any account-split involvement, in any status, blocks deletion. Split
  * preparations, events, decisions, and guide or revision maps stay.
  *
- * Stripe is not called. Object storage runs only after the tombstone commits.
+ * Stripe is not called. Object storage runs only after the delete commits.
  */
 export async function permanentlyDeleteClinic(input: {
   clinicId: string;
@@ -712,7 +654,7 @@ export async function permanentlyDeleteClinic(input: {
         };
       }
 
-      await retireClinic(tx, read.clinic, input.operatorUserId, now);
+      await retireClinic(tx, read.clinic, now);
       if (input.afterSlugLocks) {
         await input.afterSlugLocks();
       }
@@ -762,16 +704,13 @@ export async function retryPermanentDeletionBrandingCleanup(input: {
       where: { id: input.clinicId },
       select: { id: true, permanentlyDeletedAt: true },
     });
-    if (!clinic) {
-      return { ok: false as const, error: PERMANENT_DELETION_MESSAGES.missing };
-    }
-    if (!clinic.permanentlyDeletedAt) {
+    if (clinic && !clinic.permanentlyDeletedAt) {
       return {
         ok: false as const,
         error: "Branding cleanup is only available after permanent deletion.",
       };
     }
-    return { ok: true as const, clinicId: clinic.id };
+    return { ok: true as const, clinicId: input.clinicId };
   });
   if (!gate.ok) {
     return gate;

@@ -14,16 +14,16 @@ const TABS: readonly {
     label: "Inactive",
   },
   {
-    activity: "retired",
-    href: "/operator/clinics?activity=retired",
-    label: "Deleted",
+    activity: "archived",
+    href: "/operator/clinics?activity=archived",
+    label: "Archived",
   },
 ];
 
 export function operatorClinicListActivity(
   activity: string | undefined
 ): OperatorClinicActivity {
-  if (activity === "inactive" || activity === "retired") {
+  if (activity === "inactive" || activity === "archived") {
     return activity;
   }
   return "active";

@@ -81,7 +81,7 @@ async function clinicOwnedBrandingIsUnavailable(
       where: { id: clinicId },
       select: { permanentlyDeletedAt: true },
     });
-    return clinic?.permanentlyDeletedAt != null;
+    return !clinic || clinic.permanentlyDeletedAt != null;
   } catch (error) {
     console.warn("[clinic-assets]", "deleted_clinic_branding_check_failed", {
       class: clinicAssetErrorClass(error),

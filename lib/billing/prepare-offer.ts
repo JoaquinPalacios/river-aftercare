@@ -9,8 +9,9 @@ import {
 } from "@prisma/client";
 
 import {
+  CLINIC_ARCHIVED_MESSAGE,
   CLINIC_INACTIVE_MESSAGE,
-  clinicIsInactive,
+  clinicIsClosed,
 } from "@/lib/clinics/clinic-activity";
 import { isOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import { logStripeBilling } from "@/lib/billing/log";
@@ -156,16 +157,22 @@ export async function prepareClinicCommercialOffer(
     clinic?: {
       findUnique?: (args: {
         where: { id: string };
-        select: { deactivatedAt: true };
-      }) => Promise<{ deactivatedAt: Date | null } | null>;
+        select: { deactivatedAt: true; archivedAt: true };
+      }) => Promise<{
+        deactivatedAt: Date | null;
+        archivedAt?: Date | null;
+      } | null>;
     };
   };
   if (typeof clinicReader.clinic?.findUnique === "function") {
     const clinic = await clinicReader.clinic.findUnique({
       where: { id: input.clinicId },
-      select: { deactivatedAt: true },
+      select: { deactivatedAt: true, archivedAt: true },
     });
-    if (clinicIsInactive(clinic?.deactivatedAt)) {
+    if (clinic?.archivedAt) {
+      return { ok: false, message: CLINIC_ARCHIVED_MESSAGE };
+    }
+    if (clinicIsClosed(clinic)) {
       return { ok: false, message: CLINIC_INACTIVE_MESSAGE };
     }
   }
@@ -267,15 +274,17 @@ export async function prepareClinicCommercialOffer(
       if (typeof lockedClinic.clinic?.findUnique === "function") {
         const clinic = await lockedClinic.clinic.findUnique({
           where: { id: input.clinicId },
-          select: { deactivatedAt: true },
+          select: { deactivatedAt: true, archivedAt: true },
         });
-        if (clinicIsInactive(clinic?.deactivatedAt)) {
+        if (clinic?.archivedAt || clinicIsClosed(clinic)) {
           return {
             ok: false as const,
             revision: {
               ok: false as const,
               code: "billing_underway" as const,
-              message: CLINIC_INACTIVE_MESSAGE,
+              message: clinic?.archivedAt
+                ? CLINIC_ARCHIVED_MESSAGE
+                : CLINIC_INACTIVE_MESSAGE,
             },
           };
         }

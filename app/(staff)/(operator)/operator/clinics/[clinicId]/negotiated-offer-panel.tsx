@@ -9,10 +9,12 @@ export function NegotiatedOfferPanel({
   clinicId,
   panel,
   editsLocked = false,
+  lockedNote = INACTIVE_CLINIC_EDIT_NOTE,
 }: {
   clinicId: string;
   panel: NegotiatedOfferPanelData;
   editsLocked?: boolean;
+  lockedNote?: string;
 }) {
   const open = panel.offers.some((offer) => offer.open);
   const planLabel =
@@ -74,9 +76,7 @@ export function NegotiatedOfferPanel({
       ) : null}
       {open ? <WithdrawNegotiatedOfferForm clinicId={clinicId} /> : null}
       {panel.canPrepare && editsLocked ? (
-        <p className="mt-4 text-sm text-staff-muted">
-          {INACTIVE_CLINIC_EDIT_NOTE}
-        </p>
+        <p className="mt-4 text-sm text-staff-muted">{lockedNote}</p>
       ) : null}
       {panel.canPrepare && !editsLocked ? (
         <NegotiatedOfferForm clinicId={clinicId} planLabel={planLabel} />

@@ -14,7 +14,10 @@ import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { redirectIfClinicPermanentlyDeleted } from "@/lib/operator/redirect-permanently-deleted-clinic";
 import { loadNegotiatedOfferPanel } from "@/lib/billing/negotiated-offer";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
-import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
+import {
+  ARCHIVED_CLINIC_EDIT_NOTE,
+  INACTIVE_CLINIC_EDIT_NOTE,
+} from "@/lib/clinics/inactive-clinic-copy";
 import { getPrisma } from "@/lib/prisma";
 import { clinicPatientSiteUrl } from "@/lib/clinic-portal/patient-site-url";
 import {
@@ -43,13 +46,17 @@ export default async function ClinicSetupPage({
     loadClinicOnboarding(clinicId),
     getPrisma().clinic.findUnique({
       where: { id: clinicId },
-      select: { deactivatedAt: true },
+      select: { deactivatedAt: true, archivedAt: true },
     }),
   ]);
   if (!onboarding) {
     notFound();
   }
-  const inactive = activity?.deactivatedAt != null;
+  const inactive =
+    activity?.deactivatedAt != null || activity?.archivedAt != null;
+  const editNote = activity?.archivedAt
+    ? ARCHIVED_CLINIC_EDIT_NOTE
+    : INACTIVE_CLINIC_EDIT_NOTE;
 
   const negotiatedPanel =
     onboarding.commercial.configured &&
@@ -140,9 +147,7 @@ export default async function ClinicSetupPage({
         inactive ? (
           <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
             <h2 className="text-base font-semibold">Commercial arrangement</h2>
-            <p className="mt-2 text-sm text-staff-muted">
-              {INACTIVE_CLINIC_EDIT_NOTE}
-            </p>
+            <p className="mt-2 text-sm text-staff-muted">{editNote}</p>
           </section>
         ) : (
           <OnboardingCommercialArrangement clinicId={onboarding.clinicId} />
@@ -182,9 +187,7 @@ export default async function ClinicSetupPage({
             staff are managed on Team.
           </p>
           {inactive ? (
-            <p className="mt-4 text-sm text-staff-muted">
-              {INACTIVE_CLINIC_EDIT_NOTE}
-            </p>
+            <p className="mt-4 text-sm text-staff-muted">{editNote}</p>
           ) : (
             <OnboardingAdminForm clinicId={onboarding.clinicId} />
           )}
@@ -276,6 +279,7 @@ export default async function ClinicSetupPage({
               clinicId={onboarding.clinicId}
               userId={onboarding.administrator.userId}
               allowResend={!inactive}
+              lockedNote={editNote}
             />
           ) : null}
           <p className="mt-4 text-sm text-staff-muted">

@@ -9,7 +9,7 @@ import { notFound, redirect } from "next/navigation";
 
 import type { ClinicMembershipContext } from "@/lib/auth/session";
 import { complimentaryProductStatus } from "@/lib/billing/complimentary-term";
-import { clinicIsInactive } from "@/lib/clinics/clinic-activity";
+import { clinicIsClosed } from "@/lib/clinics/clinic-activity";
 import { getPrisma } from "@/lib/prisma";
 
 /**
@@ -107,8 +107,8 @@ export function decideClinicProductAccess(input: {
    */
   assistedOnboarding?: boolean;
   /**
-   * Clinic.deactivatedAt is set. Account lifecycle, not billing status.
-   * An active entitlement does not waive it.
+   * Clinic.deactivatedAt or Clinic.archivedAt is set. Account lifecycle,
+   * not billing status. An active entitlement does not waive it.
    */
   clinicDeactivated?: boolean;
 }): ClinicProductAccessDecision {
@@ -219,10 +219,15 @@ async function readClinicLifecycle(
       clinic?: {
         findUnique?: (args: {
           where: { id: string };
-          select: { assistedOnboarding: true; deactivatedAt: true };
+          select: {
+            assistedOnboarding: true;
+            deactivatedAt: true;
+            archivedAt: true;
+          };
         }) => Promise<{
           assistedOnboarding: boolean;
           deactivatedAt: Date | null;
+          archivedAt?: Date | null;
         } | null>;
       };
     }
@@ -232,11 +237,11 @@ async function readClinicLifecycle(
   }
   const row = await clinic.findUnique({
     where: { id: clinicId },
-    select: { assistedOnboarding: true, deactivatedAt: true },
+    select: { assistedOnboarding: true, deactivatedAt: true, archivedAt: true },
   });
   return {
     assistedOnboarding: row?.assistedOnboarding === true,
-    clinicDeactivated: clinicIsInactive(row?.deactivatedAt),
+    clinicDeactivated: clinicIsClosed(row),
   };
 }
 

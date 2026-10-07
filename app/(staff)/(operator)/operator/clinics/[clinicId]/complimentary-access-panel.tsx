@@ -7,11 +7,13 @@ export function ComplimentaryAccessPanel({
   access,
   formBlockedReason,
   editsLocked = false,
+  lockedNote = INACTIVE_CLINIC_EDIT_NOTE,
 }: {
   clinicId: string;
   access: ComplimentaryAccessView;
   formBlockedReason?: string | null;
   editsLocked?: boolean;
+  lockedNote?: string;
 }) {
   return (
     <section className="rounded-xl border border-staff-line bg-staff-panel p-5">
@@ -73,9 +75,7 @@ export function ComplimentaryAccessPanel({
       {formBlockedReason ? (
         <p className="mt-4 text-sm text-staff-muted">{formBlockedReason}</p>
       ) : editsLocked ? (
-        <p className="mt-4 text-sm text-staff-muted">
-          {INACTIVE_CLINIC_EDIT_NOTE}
-        </p>
+        <p className="mt-4 text-sm text-staff-muted">{lockedNote}</p>
       ) : (
         <ComplimentaryAccessForm
           key={`${access.mode}-${access.events.length}`}

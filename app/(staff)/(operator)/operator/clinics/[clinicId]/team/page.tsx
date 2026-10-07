@@ -7,7 +7,10 @@ import { TeamStatusBanner } from "@/app/(staff)/(operator)/operator/clinics/[cli
 import { BackArrowIcon } from "@/app/(staff)/components/icons";
 import { PortalBreadcrumb } from "@/app/(staff)/components/portal-breadcrumb";
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
-import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
+import {
+  ARCHIVED_CLINIC_EDIT_NOTE,
+  INACTIVE_CLINIC_EDIT_NOTE,
+} from "@/lib/clinics/inactive-clinic-copy";
 import { redirectIfClinicPermanentlyDeleted } from "@/lib/operator/redirect-permanently-deleted-clinic";
 import { getPrisma } from "@/lib/prisma";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -41,10 +44,14 @@ export default async function ClinicTeamPage({
     loadTeamAllowance(clinicId),
     getPrisma().clinic.findUnique({
       where: { id: clinicId },
-      select: { deactivatedAt: true },
+      select: { deactivatedAt: true, archivedAt: true },
     }),
   ]);
-  const inactive = activity?.deactivatedAt != null;
+  const inactive =
+    activity?.deactivatedAt != null || activity?.archivedAt != null;
+  const editNote = activity?.archivedAt
+    ? ARCHIVED_CLINIC_EDIT_NOTE
+    : INACTIVE_CLINIC_EDIT_NOTE;
   if (!team) {
     notFound();
   }
@@ -84,9 +91,7 @@ export default async function ClinicTeamPage({
           ) : null}
         </div>
         {inactive ? (
-          <p className="text-sm text-staff-muted">
-            {INACTIVE_CLINIC_EDIT_NOTE}
-          </p>
+          <p className="text-sm text-staff-muted">{editNote}</p>
         ) : (
           <Link
             href={`/operator/clinics/${clinicId}/team/invite`}
@@ -102,6 +107,7 @@ export default async function ClinicTeamPage({
         clinicName={team.clinicName}
         rows={team.rows}
         invitationsLocked={inactive}
+        lockedNote={editNote}
       />
       <p>
         <Link
