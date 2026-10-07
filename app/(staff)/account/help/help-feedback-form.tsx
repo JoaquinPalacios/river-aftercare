@@ -3,8 +3,8 @@
 import { useActionState, useState, type FormEvent } from "react";
 
 import {
-  initialHelpFeedbackActionState,
   submitHelpFeedbackAction,
+  type HelpFeedbackActionState,
 } from "@/app/(staff)/account/help/actions";
 import { PendingSubmitButton } from "@/app/(staff)/components/pending-submit-button";
 import {
@@ -21,6 +21,10 @@ import {
   type HelpFeedbackFieldErrors,
   type HelpFeedbackImportance,
 } from "@/lib/support/help-feedback-fields";
+
+const initialHelpFeedbackActionState: HelpFeedbackActionState = {
+  status: "idle",
+};
 
 const OPTIONS: Array<{
   id: HelpFeedbackCategory;

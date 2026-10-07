@@ -49,9 +49,13 @@ vi.mock("@/lib/auth/session", () => ({
 }));
 
 import {
-  initialHelpFeedbackActionState,
   submitHelpFeedbackAction,
+  type HelpFeedbackActionState,
 } from "@/app/(staff)/account/help/actions";
+
+const initialHelpFeedbackActionState: HelpFeedbackActionState = {
+  status: "idle",
+};
 import {
   clearHelpFeedbackMemoryInbox,
   getHelpFeedbackMemoryInbox,

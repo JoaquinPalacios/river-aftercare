@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const actionMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/app/(staff)/account/help/actions", () => ({
-  initialHelpFeedbackActionState: { status: "idle" },
   submitHelpFeedbackAction: actionMock,
 }));
 

@@ -17,7 +17,6 @@ vi.mock("@/lib/auth/require-staff-session", () => ({
 }));
 
 vi.mock("@/app/(staff)/account/help/actions", () => ({
-  initialHelpFeedbackActionState: { status: "idle" },
   submitHelpFeedbackAction: vi.fn(),
 }));
 

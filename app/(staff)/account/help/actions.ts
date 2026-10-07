@@ -29,10 +29,6 @@ export interface HelpFeedbackActionState {
   category?: HelpFeedbackCategory;
 }
 
-export const initialHelpFeedbackActionState: HelpFeedbackActionState = {
-  status: "idle",
-};
-
 function isNextControlFlow(error: unknown): boolean {
   return (
     typeof error === "object" &&
