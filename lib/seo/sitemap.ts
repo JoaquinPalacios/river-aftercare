@@ -33,7 +33,9 @@ export function buildMarketingSitemap(input: {
   origin: string;
   paths?: readonly MarketingSeoPath[];
 }): MarketingSitemapEntry[] {
-  const paths = input.paths ?? MARKETING_SEO_PATHS;
+  const paths = (input.paths ?? MARKETING_SEO_PATHS).filter(
+    (path) => DEFAULT_MARKETING_PAGE_SEO[path].index
+  );
   return paths.map((path) => {
     const lastModified = configuredSitemapLastModified(path);
     return {

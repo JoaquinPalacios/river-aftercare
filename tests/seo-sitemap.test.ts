@@ -24,6 +24,18 @@ const PUBLIC_PATHS = [
   "/cosmetic-clinics",
 ] as const;
 
+const INDEXABLE_SITEMAP_PATHS = [
+  "/",
+  "/pricing",
+  "/contact",
+  "/about",
+  "/clinics",
+  "/dental",
+  "/physiotherapy",
+  "/chiropractic",
+  "/cosmetic-clinics",
+] as const;
+
 function pathFromUrl(url: string): string {
   const parsed = new URL(url);
   return parsed.pathname === "" ? "/" : parsed.pathname;
@@ -41,15 +53,63 @@ describe("marketing sitemap lastmod", () => {
 
   it("lists every public marketing route from the canonical SEO config", () => {
     expect([...MARKETING_SEO_PATHS]).toEqual([...PUBLIC_PATHS]);
+  });
+
+  it("includes only marketing routes whose SEO metadata allows indexing", () => {
+    expect(
+      MARKETING_SEO_PATHS.filter(
+        (path) => DEFAULT_MARKETING_PAGE_SEO[path].index
+      )
+    ).toEqual([...INDEXABLE_SITEMAP_PATHS]);
+    expect(
+      MARKETING_SEO_PATHS.filter(
+        (path) => !DEFAULT_MARKETING_PAGE_SEO[path].index
+      )
+    ).toEqual(["/privacy", "/terms"]);
+
     const entries = buildMarketingSitemap({ origin: "http://localhost" });
     expect(entries.map((entry) => pathFromUrl(entry.url))).toEqual([
-      ...MARKETING_SEO_PATHS,
+      ...INDEXABLE_SITEMAP_PATHS,
     ]);
     expect(entries.map((entry) => entry.lastModified)).toEqual(
-      MARKETING_SEO_PATHS.map(
+      INDEXABLE_SITEMAP_PATHS.map(
         (path) => DEFAULT_MARKETING_PAGE_SEO[path].lastModified
       )
     );
+    expect(entries[0]).toMatchObject({
+      url: "http://localhost/",
+      changeFrequency: "weekly",
+      priority: 1,
+    });
+    for (const entry of entries.slice(1)) {
+      expect(entry.changeFrequency).toBe("monthly");
+      expect(entry.priority).toBe(0.8);
+    }
+
+    const explicit = buildMarketingSitemap({
+      origin: "https://riveraftercare.com.au",
+      paths: MARKETING_SEO_PATHS,
+    });
+    expect(explicit.map((entry) => pathFromUrl(entry.url))).toEqual([
+      ...INDEXABLE_SITEMAP_PATHS,
+    ]);
+    expect(explicit[0]).toEqual({
+      url: "https://riveraftercare.com.au/",
+      lastModified: DEFAULT_MARKETING_PAGE_SEO["/"].lastModified,
+      changeFrequency: "weekly",
+      priority: 1,
+    });
+    for (const path of INDEXABLE_SITEMAP_PATHS) {
+      if (path === "/") {
+        continue;
+      }
+      expect(explicit.find((entry) => entry.url.endsWith(path))).toEqual({
+        url: `https://riveraftercare.com.au${path}`,
+        lastModified: DEFAULT_MARKETING_PAGE_SEO[path].lastModified,
+        changeFrequency: "monthly",
+        priority: 0.8,
+      });
+    }
   });
 
   it("keeps lastModified stable across repeated generation and clock changes", () => {
@@ -89,7 +149,7 @@ describe("marketing sitemap lastmod", () => {
       new Date().getUTCMonth(),
       new Date().getUTCDate() + 1
     );
-    expect(entries).toHaveLength(MARKETING_SEO_PATHS.length);
+    expect(entries).toHaveLength(INDEXABLE_SITEMAP_PATHS.length);
     for (const entry of entries) {
       expect(entry.lastModified).toEqual(expect.any(String));
       expect(isSitemapLastModifiedDate(entry.lastModified ?? "")).toBe(true);
