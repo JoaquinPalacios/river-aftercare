@@ -10,7 +10,10 @@ import {
   resolveRetiredLocationRedirectHref,
   retiredLocationRedirectPathFromRest,
 } from "@/lib/aftercare/patient-location-redirect";
-import { instructionLabel } from "@/lib/aftercare/instruction-terminology";
+import {
+  instructionLabel,
+  patientGuideLede,
+} from "@/lib/aftercare/instruction-terminology";
 import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
 import {
   aftercarePageMetadata,
@@ -159,10 +162,11 @@ export default async function NestedLocationPage({
         </p>
         <h1 className={styles.title}>{document.title}</h1>
         <p className={styles.lede}>
-          Recovery information from {chrome.displayName}
-          {document.placeName ? ` at ${document.placeName}` : ""}. Read the
-          sections below in order, and contact the practice if you are unsure or
-          need help.
+          {patientGuideLede({
+            instructionsLabel: chrome.instructionsLabel,
+            practiceName: chrome.displayName,
+            placeName: document.placeName,
+          })}
         </p>
       </header>
       <GuideDocument sections={document.sections} />

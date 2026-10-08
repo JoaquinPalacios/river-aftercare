@@ -6,6 +6,7 @@ import { GuideDocument } from "@/app/(aftercare)/components/guide-document";
 import { PatientPage } from "@/app/(aftercare)/components/patient-page";
 import { StaffPreviewShell } from "@/app/(staff)/(guide-preview)/guides/[guideId]/preview/staff-preview-shell";
 import { getPrimaryPatientChrome } from "@/lib/aftercare/get-clinic-by-slug";
+import { patientGuideLede } from "@/lib/aftercare/instruction-terminology";
 import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import {
@@ -87,8 +88,10 @@ export default async function GuidePreviewPage({
               <p className={styles.kicker}>{chrome.instructionsLabel}</p>
               <h1 className={styles.title}>{guide.title}</h1>
               <p className={styles.lede}>
-                {guide.introduction?.trim() ||
-                  `Recovery information from ${chrome.displayName}. Read the sections below in order, and contact the practice if you are unsure or need help.`}
+                {patientGuideLede({
+                  instructionsLabel: chrome.instructionsLabel,
+                  practiceName: chrome.displayName,
+                })}
               </p>
             </header>
             <GuideDocument sections={guide.sections} />

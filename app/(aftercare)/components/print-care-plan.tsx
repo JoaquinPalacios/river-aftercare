@@ -3,6 +3,7 @@ import { PatientAftercareDisclaimer } from "@/app/(aftercare)/components/patient
 import { PoweredByAftercareGuide } from "@/app/(aftercare)/components/powered-by-aftercare-guide";
 import { PrintTrigger } from "@/app/(aftercare)/components/print-trigger";
 import { DEMO_PRINT_SAMPLE_NOTICE } from "@/lib/aftercare/demo-tenant";
+import { patientPrintLede } from "@/lib/aftercare/instruction-terminology";
 import { canRenderPatientAftercareDisclaimer } from "@/lib/aftercare/patient-aftercare-disclaimer";
 import {
   hasPracticeContact,
@@ -52,9 +53,10 @@ export function PrintableGuide({
         <p className={styles.kicker}>{instructionsLabel}</p>
         <h1 className={styles.title}>{procedureTitle}</h1>
         <p className={`${styles.lede} ${styles.printIntro}`}>
-          Recovery guide from {chrome.displayName}. Use your browser’s Print or
-          Save as PDF. This page uses the same recovery information as the web
-          guide.
+          {patientPrintLede({
+            instructionsLabel,
+            practiceName: chrome.displayName,
+          })}
         </p>
         <div className={styles.printActions}>
           <PrintTrigger label="Print / Save PDF" />

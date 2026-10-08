@@ -16,11 +16,11 @@ const FAQ_EXPECTATIONS = {
     ],
     answers: [
       "No. Patients open their aftercare page in the browser from a durable link or QR code. No River Aftercare app or patient login is required.",
-      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides.",
+      "Essential includes River Aftercare templates, up to 2 custom clinic guides and up to 2 editable River Aftercare templates, within 4 clinic-owned guides in total.",
       "River Aftercare Demo Clinic currently uses a Tooth Extraction sample guide. It is fictional and illustrative, and it is not clinically reviewed.",
       "Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details",
       "It is not currently a practice-management system, CRM, patient health record, messaging platform or clinical monitoring system.",
-      "Essential supports up to 2 active custom clinic guides. Practice supports up to 30 active custom clinic guides with broader creation and adaptation.",
+      "Pinned River Aftercare templates used as supplied do not count toward those limits.",
     ],
   },
   "/physiotherapy": {
@@ -35,7 +35,7 @@ const FAQ_EXPECTATIONS = {
     answers: [
       "It can publish clinic-approved written exercise, recovery and home-care guidance, but it does not currently track exercise completion, adherence or patient progress.",
       "No. Patients open their aftercare page in the browser from a durable link or QR code. No River Aftercare app or patient login is required.",
-      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides",
+      "Essential includes River Aftercare templates, up to 2 custom clinic guides and up to 2 editable River Aftercare templates, within 4 clinic-owned guides in total. Practice includes up to 30 custom clinic guides",
       "Published River Aftercare physiotherapy templates are available for a clinic to enable. They are separate from the River Aftercare Demo Clinic sample, Physiotherapy Home Exercise Plan, which is a demonstration and not a production template.",
       "Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details",
       "It does not currently replace a practice-management system, store patient health records, provide patient messaging or monitor exercise adherence.",
@@ -52,7 +52,7 @@ const FAQ_EXPECTATIONS = {
     ],
     answers: [
       "No. Patients open their aftercare page in the browser from a durable link or QR code. No River Aftercare app or patient login is required.",
-      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides",
+      "Essential includes River Aftercare templates, up to 2 custom clinic guides and up to 2 editable River Aftercare templates, within 4 clinic-owned guides in total. Practice includes up to 30 custom clinic guides",
       "No. River Aftercare provides patient aftercare publishing technology. The treating practice remains responsible for the clinical information and instructions it chooses to publish.",
       "Chiropractic template availability is confirmed during onboarding. If no suitable River Aftercare template is available, your practice can publish its own approved guidance within its plan.",
       "Patient pages can carry your logo, colours, curated typography, terminology and practice contact details",
@@ -70,7 +70,7 @@ const FAQ_EXPECTATIONS = {
     ],
     answers: [
       "No. Aftercare opens in the browser from a durable link or QR code. No River Aftercare app or patient login is required.",
-      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides",
+      "Essential includes River Aftercare templates, up to 2 custom clinic guides and up to 2 editable River Aftercare templates, within 4 clinic-owned guides in total. Practice includes up to 30 custom clinic guides",
       "No. River Aftercare publishes post-treatment guidance. It does not currently provide live clinical monitoring, treatment monitoring or emergency triage.",
       "Cosmetic and aesthetic template availability is confirmed during onboarding. If no suitable River Aftercare template is available, your clinic can publish its own approved aftercare within its plan.",
       "Patient or client pages can carry your logo, colours, curated typography, terminology and clinic contact details",
