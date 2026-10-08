@@ -248,3 +248,9 @@ No page found in this pass claims a cure rate, a time saving, a percentage, HIPA
 ## Shared copy checked before editing
 
 `PUBLIC_PLAN_ALLOWANCE_SUMMARY` is used by the four clinic pages and is derived from the same limits as the pricing cards. Pricing card bullets were not changed. Homepage “Assisted setup” was only the pillar point; the pricing cards and comparison table still say Assisted setup for Practice. Patient ledes go through one helper so the public page, print view, staff preview, and operator template preview stay aligned. The recovery-timeline heading “Recovery guide” was not changed, because that heading is the timeline section, not the whole guide.
+
+## Validation
+
+`pnpm lint` and `pnpm exec tsc -b` passed. `pnpm build` (Next.js 16.3.5) prerendered the marketing pages. Vitest: 2,529 passed. Four failures are this VM’s Node 22 CLI (`registerHooks` / `ERR_UNKNOWN_FILE_EXTENSION` on `.ts` imports) and the Stripe live-mode secret check. They do not assert the copy that changed. The copy suites, including the vertical landing, homepage, SEO, and patient lede tests, passed (63 tests in the affected files).
+
+Playwright on Node 24.21.0 (`/usr/local/bin/node`): 12 passed in `e2e/marketing-verticals.spec.ts` and `e2e/marketing-conversion.spec.ts` for the FAQ, contact, and pricing surfaces. The process then sat in teardown with the e2e server reparented, and that process was stopped. The default shell `node` is 22.14.0, which cannot seed Playwright. Clinic, operator, and patient routes were read from the components that own their copy and from the render tests. They were not walked in a signed-in browser in this pass.
