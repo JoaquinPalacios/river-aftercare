@@ -215,7 +215,7 @@ describe("clinic vertical landing pages", () => {
     );
     expect(dental).toContain("patient aftercare publishing software");
     expect(dental).toContain(
-      "where your plan allows, your clinic's approved instructions"
+      "where your plan allows, your clinic&#x27;s approved instructions"
     );
     const demoHtml = dental.slice(
       dental.indexOf('aria-labelledby="dental-demo"'),
