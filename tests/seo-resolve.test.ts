@@ -47,7 +47,7 @@ describe("marketing SEO resolution", () => {
     expect(pricing.title).toBe(
       "Patient Aftercare Software Pricing | River Aftercare"
     );
-    expect(contact.title).toBe("Book a Demo | River Aftercare");
+    expect(contact.title).toBe("Request a Demo | River Aftercare");
     expect(about.title).toBe(
       "About River Aftercare | Digital Patient Aftercare"
     );

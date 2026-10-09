@@ -133,6 +133,10 @@ describe("tenant homepage", () => {
 
     expect(html).toContain("Riverside Dental Demo");
     expect(html).toContain(">Post-treatment instructions<");
+    expect(html).toContain(
+      "Clear post-treatment instructions from Riverside Dental Demo."
+    );
+    expect(html).not.toContain("Clear recovery information");
     expect(html).not.toContain(
       "Riverside Dental Demo — Post-treatment instructions</h1>"
     );

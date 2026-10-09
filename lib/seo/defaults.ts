@@ -65,14 +65,14 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     lastModified: "2026-09-20",
   },
   "/contact": {
-    seoTitle: "Book a Demo | River Aftercare",
+    seoTitle: "Request a Demo | River Aftercare",
     metaDescription: `See how ${PRODUCT_NAME} helps clinics and practices deliver branded treatment and recovery guidance patients can reopen after their appointment.`,
     ogTitle: null,
     ogDescription: null,
     ogImagePath: null,
     index: INDEXABLE_ROBOTS.index,
     follow: INDEXABLE_ROBOTS.follow,
-    lastModified: "2026-09-16",
+    lastModified: "2026-10-09",
   },
   "/about": {
     seoTitle: "About River Aftercare | Digital Patient Aftercare",

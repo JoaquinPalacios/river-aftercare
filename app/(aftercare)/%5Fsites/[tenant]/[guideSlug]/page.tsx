@@ -7,10 +7,7 @@ import {
   DEMO_RECOVERY_FIXTURE,
   isDemoPatientExperienceEnabled,
 } from "@/lib/aftercare/demo-tenant";
-import {
-  demoPatientGuideLede,
-  demoPatientViewIds,
-} from "@/lib/aftercare/demo-patient-presentation";
+import { demoPatientViewIds } from "@/lib/aftercare/demo-patient-presentation";
 import {
   buildDemoTodayContent,
   resolveDemoRecoveryState,
@@ -20,7 +17,11 @@ import { getPublishedPracticeGuide } from "@/lib/aftercare/get-published-practic
 import { listPublishedLocationGuides } from "@/lib/aftercare/list-published-location-guides";
 import { resolveRetiredLocationRedirectHref } from "@/lib/aftercare/patient-location-redirect";
 import { GuideList } from "@/app/(aftercare)/components/guide-list";
-import { instructionLabel } from "@/lib/aftercare/instruction-terminology";
+import {
+  instructionLabel,
+  patientFacingGuideLede,
+  patientIndexLede,
+} from "@/lib/aftercare/instruction-terminology";
 import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
 import { timelineSectionsOf } from "@/lib/aftercare/section-body";
 import {
@@ -138,10 +139,11 @@ export default async function TenantGuidePage({
           <h1 className={styles.title}>{chrome.displayName}</h1>
           <p className={styles.kicker}>{locationHome.placeName}</p>
           <p className={styles.lede}>
-            Recovery information from {chrome.displayName} at{" "}
-            {locationHome.placeName}. Open a guide if you have just had
-            treatment, or return to this page whenever you need to check what to
-            do next.
+            {patientIndexLede({
+              instructionsLabel: chrome.instructionsLabel,
+              practiceName: chrome.displayName,
+              placeName: locationHome.placeName,
+            })}
           </p>
         </header>
         <GuideList
@@ -172,12 +174,11 @@ export default async function TenantGuidePage({
         <p className={styles.kicker}>{chrome.instructionsLabel}</p>
         <h1 className={styles.title}>{document.title}</h1>
         <p className={styles.lede}>
-          {demoEnabled
-            ? demoPatientGuideLede({
-                clinicName: chrome.displayName,
-                hasTimeline: recovery.hasTimeline,
-              })
-            : `Recovery information from ${chrome.displayName}. Read the sections below in order, and contact the practice if you are unsure or need help.`}
+          {patientFacingGuideLede({
+            clinicSlug: document.clinic.slug,
+            clinicName: chrome.displayName,
+            hasTimeline: recovery.hasTimeline,
+          })}
         </p>
       </header>
       {demoEnabled ? (

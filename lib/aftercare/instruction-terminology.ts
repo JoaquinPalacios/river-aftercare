@@ -1,3 +1,6 @@
+import { demoPatientGuideLede } from "@/lib/aftercare/demo-patient-presentation";
+import { isDemoPatientExperienceEnabled } from "@/lib/aftercare/demo-tenant";
+
 export const INSTRUCTION_TERMINOLOGY = [
   "AFTERCARE",
   "POST_TREATMENT",
@@ -46,4 +49,51 @@ export function practiceInstructionsTitle(
   value: string | null | undefined
 ): string {
   return `${practiceName} — ${instructionLabel(value)}`;
+}
+
+function placeSuffix(placeName?: string | null): string {
+  const place = placeName?.trim();
+  return place ? ` at ${place}` : "";
+}
+
+/** Patient index lede. Uses the clinic's chosen instructions label. */
+export function patientIndexLede(input: {
+  instructionsLabel: string;
+  practiceName: string;
+  placeName?: string | null;
+}): string {
+  return `Clear ${input.instructionsLabel.toLowerCase()} from ${input.practiceName}${placeSuffix(input.placeName)}. Open a guide if you have just had treatment, or return to this page whenever you need to check what to do next.`;
+}
+
+/**
+ * Print lede. Uses the clinic's chosen instructions label.
+ * The web guide lede is unchanged; this only stops calling every printout a recovery guide.
+ */
+export function patientPrintLede(input: {
+  instructionsLabel: string;
+  practiceName: string;
+}): string {
+  return `${input.instructionsLabel} from ${input.practiceName}. Use your browser’s Print or Save as PDF. This page uses the same information as the web guide.`;
+}
+
+/**
+ * Public guide lede shared by the patient page and staff preview.
+ * Demo guides keep their existing Today or home-care sentences.
+ * Ordinary guides keep the existing recovery sentence.
+ * The saved short introduction is not an input.
+ */
+export function patientFacingGuideLede(input: {
+  clinicSlug: string;
+  clinicName: string;
+  hasTimeline: boolean;
+  placeName?: string | null;
+}): string {
+  if (isDemoPatientExperienceEnabled(input.clinicSlug)) {
+    return demoPatientGuideLede({
+      clinicName: input.clinicName,
+      hasTimeline: input.hasTimeline,
+    });
+  }
+
+  return `Recovery information from ${input.clinicName}${placeSuffix(input.placeName)}. Read the sections below in order, and contact the practice if you are unsure or need help.`;
 }

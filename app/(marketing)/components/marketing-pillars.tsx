@@ -21,7 +21,7 @@ const PILLARS = [
     key: "operate",
     title: "Simple for your team",
     copy: "Publish approved guidance without rebuilding a page every time.",
-    points: ["Reusable guides", "Consistent presentation", "Assisted setup"],
+    points: ["Reusable guides", "Consistent presentation"],
   },
 ] as const;
 

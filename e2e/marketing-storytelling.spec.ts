@@ -1285,7 +1285,7 @@ test.describe("Phase 1F.11 story clarity", () => {
     expect(footerAfter.underline).toBe(footerAfter.color);
 
     const primary = page
-      .getByRole("link", { name: "View the dental demo" })
+      .getByRole("link", { name: "View the demo", exact: true })
       .first();
     const restPrimary = await primary.evaluate((element) => {
       const styles = getComputedStyle(element);
@@ -1431,7 +1431,7 @@ test.describe("Phase 1F.11 story clarity", () => {
 
     const hero = page.locator('[data-mk-chapter="hero"]');
     await expect(
-      hero.getByRole("link", { name: "View the dental demo" })
+      hero.getByRole("link", { name: "View the demo", exact: true })
     ).toBeVisible();
     await expect(hero.getByText("Tooth Extraction")).toBeVisible();
     await expect(

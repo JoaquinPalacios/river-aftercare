@@ -209,6 +209,12 @@ describe("tenant guide page", () => {
 
     expect(html).toContain("Tooth Extraction");
     expect(html).toContain("Post-treatment instructions");
+    expect(html).toContain(
+      "A demonstration of written home-care guidance from Riverside Dental Demo. This is not an individually prescribed plan."
+    );
+    expect(html).not.toContain(
+      "Recovery information from Riverside Dental Demo."
+    );
     expect(html).not.toContain("Tooth Extraction — Tooth Extraction");
     expect(html).toContain("Canonical intro for Riverside patients.");
     expect(html).toContain("The first day at Riverside Dental Demo");

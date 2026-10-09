@@ -124,7 +124,7 @@ test.describe("marketing + trust polish", () => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
     const canonical = page
-      .getByRole("link", { name: "View the dental demo" })
+      .getByRole("link", { name: "View the demo", exact: true })
       .first();
     await expect(canonical).toBeVisible();
     await page.mouse.move(0, 0);

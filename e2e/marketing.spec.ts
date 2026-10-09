@@ -76,7 +76,7 @@ test.describe("marketing homepage", () => {
       page.getByText("Patient aftercare for clinics and practices").first()
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "View the dental demo" }).first()
+      page.getByRole("link", { name: "View the demo", exact: true }).first()
     ).toBeVisible();
     await expect(page.getByText("Tooth Extraction").first()).toBeVisible();
     await expect(
@@ -98,7 +98,7 @@ test.describe("marketing homepage", () => {
       page.getByRole("heading", { name: "Prepare the right guidance" })
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "View the dental demo" }).first()
+      page.getByRole("link", { name: "View the demo", exact: true }).first()
     ).toHaveAttribute("href", tenantUrl(DEMO_TENANT_SLUG, "/"));
     await expect(
       page.getByRole("heading", { name: "Internal staff workspace" })
@@ -280,7 +280,7 @@ test.describe("marketing homepage", () => {
       ).toHaveCount(0);
 
       const primary = page
-        .getByRole("link", { name: "View the dental demo" })
+        .getByRole("link", { name: "View the demo", exact: true })
         .first();
       const primaryBg = await primary.evaluate(
         (element) => getComputedStyle(element).backgroundColor
@@ -546,7 +546,7 @@ test.describe("marketing homepage", () => {
     await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "light" });
     await page.reload({ waitUntil: "load" });
     const primary = page
-      .getByRole("link", { name: "View the dental demo" })
+      .getByRole("link", { name: "View the demo", exact: true })
       .first();
     await primary.hover();
     const reducedHover = await primary.evaluate(
@@ -564,7 +564,7 @@ test.describe("marketing homepage", () => {
     await waitForHeroReveal(page);
 
     const primary = page
-      .getByRole("link", { name: "View the dental demo" })
+      .getByRole("link", { name: "View the demo", exact: true })
       .first();
     const secondary = page
       .getByRole("link", { name: "See how it works" })
@@ -672,7 +672,7 @@ test.describe("marketing homepage", () => {
     }
 
     expect(focusedNames.join(" ")).toMatch(/Pricing/);
-    expect(focusedNames.join(" ")).toMatch(/View the dental demo/);
+    expect(focusedNames.join(" ")).toMatch(/View the demo/);
     expect(focusedNames.join(" ")).toMatch(/See how it works|Change colour/);
 
     await primary.focus();

@@ -1,4 +1,5 @@
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { PUBLIC_PLAN_ALLOWANCE_SUMMARY } from "@/lib/marketing/plans";
 
 import type { ClinicVerticalPath } from "@/lib/marketing/clinic-verticals";
 import {
@@ -225,7 +226,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
   guidance: {
     eyebrow: "Clinic-approved guidance",
     h2: "Start with an available guide, or bring your own clinic-approved aftercare.",
-    body: "Essential gives dental practices a simple branded setup with available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. In every case, your practice approves the clinical guidance it publishes.",
+    body: `${PUBLIC_PLAN_ALLOWANCE_SUMMARY} Your practice approves the clinical guidance it publishes.`,
     status: {
       label: "Current dental demo",
       value: "Tooth Extraction",
@@ -241,7 +242,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       },
       {
         title: "Adapt it to your practice",
-        body: "Add your branding, terminology and, where your plan allows, local instructions and supported section changes.",
+        body: "Add your branding, terminology, and your clinic's approved instructions.",
       },
       {
         title: "Publish it under your brand",
@@ -278,7 +279,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       {
         question: "Can our dental practice change or create the instructions?",
         answer:
-          "Yes, within your plan. Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Your practice remains responsible for approving the clinical guidance it publishes.",
+          "Yes, within your plan. Essential and Practice use the same editor. Your practice remains responsible for approving the clinical guidance it publishes.",
       },
       {
         question: "What dental templates are available?",
@@ -288,7 +289,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       {
         question: "Can River Aftercare match our dental practice branding?",
         answer:
-          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details, with Light and Dark presentation supported. Practice provides additional branding control.",
+          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details. Essential and Practice include the same branding controls, with Light, Dark and System presentation.",
       },
       {
         question: `Does ${PRODUCT_NAME} replace our practice-management system?`,
@@ -297,7 +298,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       {
         question: "How many custom aftercare guides can we publish?",
         answer:
-          "Essential supports up to 2 active custom clinic guides. Practice supports up to 30 active custom clinic guides with broader creation and adaptation.",
+          "Within your plan. The allowance is in the clinic-approved guidance section above.",
       },
     ],
   },
@@ -403,7 +404,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       label: "Current physiotherapy demo",
       value: "Home Exercise Plan",
     },
-    note: `Essential includes available ${PRODUCT_NAME} templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Published physiotherapy templates are available for a clinic to enable. The River Aftercare Demo Clinic Home Exercise Plan is a separate sample and is not one of those production templates. If none of the published templates fits, your clinic can publish its own approved guidance within its plan.`,
+    note: `${PUBLIC_PLAN_ALLOWANCE_SUMMARY} Published physiotherapy templates are available for a clinic to enable. The River Aftercare Demo Clinic Home Exercise Plan is a separate sample and is not one of those production templates. If none of the published templates fits, your clinic can publish its own approved guidance within its plan.`,
   },
   workflow: {
     h2: "Fit aftercare into the workflow you already have",
@@ -414,7 +415,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       },
       {
         title: "Adapt it to your clinic",
-        body: "Add your branding, terminology and, where your plan allows, local instructions and supported section changes.",
+        body: "Add your branding, terminology, and your clinic's approved instructions.",
       },
       {
         title: "Publish it under your brand",
@@ -475,7 +476,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       {
         question: "Can our clinic create or adapt its own recovery guidance?",
         answer:
-          "Yes, within your plan. Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Your clinic remains responsible for approving the clinical guidance it publishes.",
+          "Yes, within your plan. Essential and Practice use the same editor. Your clinic remains responsible for approving the clinical guidance it publishes.",
       },
       {
         question: "What physiotherapy templates are available?",
@@ -484,7 +485,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       {
         question: `Can ${PRODUCT_NAME} match our physiotherapy clinic branding?`,
         answer:
-          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details, with Light and Dark presentation supported. Practice provides additional branding control.",
+          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details. Essential and Practice include the same branding controls, with Light, Dark and System presentation.",
       },
       {
         question: `Does ${PRODUCT_NAME} replace our practice-management system or store patient health records?`,
@@ -591,7 +592,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
     ],
     boundary:
       "These are examples of guidance a practice may choose to publish. Clinical content remains practice-approved.",
-    note: `Essential includes available ${PRODUCT_NAME} templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Chiropractic template availability is confirmed during onboarding. If no suitable ${PRODUCT_NAME} template is available, your practice can publish its own approved guidance within its plan.`,
+    note: `${PUBLIC_PLAN_ALLOWANCE_SUMMARY} Chiropractic template availability is confirmed during onboarding. If no suitable ${PRODUCT_NAME} template is available, your practice can publish its own approved guidance within its plan.`,
   },
   workflow: {
     h2: "From clinic-approved guidance to a page patients can revisit",
@@ -602,7 +603,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       },
       {
         title: "Adapt it to your practice",
-        body: "Add your branding, terminology and, where your plan allows, local instructions and supported section changes.",
+        body: "Add your branding, terminology, and your clinic's approved instructions.",
       },
       {
         title: "Publish it under your brand",
@@ -648,7 +649,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
         question:
           "Can our practice create or adapt its own home-care guidance?",
         answer:
-          "Yes, within your plan. Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Your practice remains responsible for approving the clinical guidance it publishes.",
+          "Yes, within your plan. Essential and Practice use the same editor. Your practice remains responsible for approving the clinical guidance it publishes.",
       },
       {
         question: `Does ${PRODUCT_NAME} provide chiropractic treatment advice?`,
@@ -661,7 +662,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       {
         question: `Can ${PRODUCT_NAME} match our chiropractic practice branding?`,
         answer:
-          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and practice contact details, with Light and Dark presentation supported. Practice provides additional branding control.",
+          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and practice contact details. Essential and Practice include the same branding controls, with Light, Dark and System presentation.",
       },
       {
         question: `Does ${PRODUCT_NAME} replace our practice-management system or patient health record?`,
@@ -758,7 +759,7 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
     eyebrow: "Post-treatment experience",
     h2: "Build aftercare around the treatments your clinic provides",
     body: `Use an available ${PRODUCT_NAME} template where appropriate, or publish clinic-approved post-treatment guidance within the clinic's plan.`,
-    note: `Essential includes available ${PRODUCT_NAME} templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Cosmetic and aesthetic template availability is confirmed during onboarding. If no suitable ${PRODUCT_NAME} template is available, your clinic can publish its own approved aftercare within its plan.`,
+    note: `${PUBLIC_PLAN_ALLOWANCE_SUMMARY} Cosmetic and aesthetic template availability is confirmed during onboarding. If no suitable ${PRODUCT_NAME} template is available, your clinic can publish its own approved aftercare within its plan.`,
   },
   workflow: {
     h2: "From clinic-approved guidance to branded aftercare",
@@ -769,7 +770,7 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
       },
       {
         title: "Adapt it to your clinic",
-        body: "Add your branding, terminology and, where your plan allows, local instructions and supported section changes.",
+        body: "Add your branding, terminology, and your clinic's approved instructions.",
       },
       {
         title: "Publish it under your brand",
@@ -815,7 +816,7 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
         question:
           "Can our clinic create or adapt its own aftercare instructions?",
         answer:
-          "Yes, within your plan. Essential includes available River Aftercare templates and up to 2 active custom clinic guides. Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls. Your clinic remains responsible for approving the aftercare information it publishes.",
+          "Yes, within your plan. Essential and Practice use the same editor. Your clinic remains responsible for approving the aftercare information it publishes.",
       },
       {
         question: `Does ${PRODUCT_NAME} monitor patients after treatment?`,
@@ -828,7 +829,7 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
       {
         question: `Can ${PRODUCT_NAME} match our clinic branding?`,
         answer:
-          "Yes. Patient or client pages can carry your logo, colours, curated typography, terminology and clinic contact details, with Light and Dark presentation supported. Practice provides additional branding control.",
+          "Yes. Patient or client pages can carry your logo, colours, curated typography, terminology and clinic contact details. Essential and Practice include the same branding controls, with Light, Dark and System presentation.",
       },
       {
         question: `Does ${PRODUCT_NAME} replace our clinic-management software or patient health record?`,

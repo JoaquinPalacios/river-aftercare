@@ -687,7 +687,7 @@ test.describe("marketing conversion routes", () => {
   test("homepage conversion CTAs resolve", async ({ page }) => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await expect(
-      page.getByRole("link", { name: "View the dental demo" }).first()
+      page.getByRole("link", { name: "View the demo", exact: true }).first()
     ).toHaveAttribute("href", tenantUrl(DEMO_TENANT_SLUG, "/"));
     await expect(
       page.getByRole("link", { name: "See how it works" })
@@ -807,7 +807,7 @@ test.describe("marketing conversion routes", () => {
     await page.goto(marketingUrl("/contact"), {
       waitUntil: "domcontentloaded",
     });
-    await expect(page).toHaveTitle("Book a Demo | River Aftercare");
+    await expect(page).toHaveTitle("Request a Demo | River Aftercare");
   });
 
   for (const colorScheme of ["light", "dark"] as const) {

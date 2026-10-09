@@ -160,7 +160,7 @@ test.describe("clinic vertical acquisition pages", () => {
     const firstAnswer =
       "No. Patients open their aftercare page in the browser from a durable link or QR code. No River Aftercare app or patient login is required.";
     const secondAnswer =
-      "Yes, within your plan. Essential includes available River Aftercare templates and up to 2 active custom clinic guides.";
+      "Yes, within your plan. Essential and Practice use the same editor.";
 
     const first = page.locator("summary").filter({
       hasText: firstQuestion,

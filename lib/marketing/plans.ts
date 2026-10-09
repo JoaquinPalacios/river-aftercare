@@ -55,6 +55,9 @@ export function formatAudInclGst(amount: number): string {
   return `A$${amount.toLocaleString("en-AU")}`;
 }
 
+/** Concise public allowance. Use once per specialty page, not in every FAQ. */
+export const PUBLIC_PLAN_ALLOWANCE_SUMMARY = `Essential includes up to ${PLAN_PRICES.essential.customGuides} original custom guides, up to ${PLAN_PRICES.essential.editableTemplates} editable ${PRODUCT_NAME} templates, and up to ${PLAN_PRICES.essential.combinedClinicOwnedGuides} clinic-owned guides combined. Practice includes up to ${PLAN_PRICES.practice.customGuides} original custom guides, up to ${PLAN_PRICES.practice.editableTemplates} editable ${PRODUCT_NAME} templates, and up to ${PLAN_PRICES.practice.combinedClinicOwnedGuides} clinic-owned guides combined. Pinned ${PRODUCT_NAME} templates used as supplied do not count.`;
+
 const essentialMonthly = formatAudInclGst(
   PLAN_PRICES.essential.monthlyAudInclGst
 );
