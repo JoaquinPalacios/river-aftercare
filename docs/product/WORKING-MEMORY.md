@@ -19,6 +19,10 @@ Production probes from this US runner (`x-vercel-id` `iad1::syd1`) on 2026-10-08
 
 Vitest on this pass: 366 files, 2532 tests, 61.70s, all passed. No test was removed. Chairside route tests still guard URLs that must stay absent. There are no snapshots.
 
+## Homepage why-clinics benefits (2026-10-10)
+
+The three cards under “Why clinics use it” each list two benefits. Easy for patients to revisit is Durable link and Readable on a phone. Clinic contact nearby is not a benefit on that card. The patient-card illustration still shows the Call the practice chip and the demo URL. Looks like your clinic, Simple for your team, Controlled publishing, card layout, and patient contact behaviour are unchanged.
+
 ## Homepage storytelling polish (2026-10-10)
 
 From `64rem`, `.productGrid` keeps `grid-template-columns: 1.1fr 0.9fr` and sets `column-gap: 3rem`, matching `.brandGrid`. Below that breakpoint the Product column gap stays `2.2rem`. `.sectionTitle` is `max-width: 22ch` and `text-wrap: balance`. Homepage consumers are How it works, Why clinics use it, and the clinic-types heading (which also has `.workflowTitle` at `22ch`). The same class is used by pricing, the clinics hub, and vertical landing H2s. Vertical intros already set `max-width: 22ch`. `.aboutCopy .sectionTitle` stays `max-width: 18ch`. `.copy` uses `text-wrap: pretty`; `.lede` does not. The two homepage URL chips (How it works step 3 and the Easy for patients to revisit card) render `SHARED_DEMO_DENTAL_GUIDE_ILLUSTRATION` through `MarketingDemoUrl`, which is `SHARED_DEMO_DENTAL_GUIDE_URL` without the `https://` scheme: `demo.riveraftercare.com.au/extraction`. A `<wbr>` before the path lets the chip wrap when the card is narrow. That URL is `${SHARED_DEMO_PUBLIC_ORIGIN}/extraction` in `lib/marketing/shared-demo-links.ts`. Riverside Dental remains a generic brand illustration. No migration.
