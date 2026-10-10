@@ -1,8 +1,8 @@
 "use client";
 
+import { MarketingDemoUrl } from "@/app/(marketing)/components/marketing-demo-url";
 import { MarketingRevealCard } from "@/app/(marketing)/components/marketing-reveal";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
-import { SHARED_DEMO_DENTAL_GUIDE_ILLUSTRATION } from "@/lib/marketing/shared-demo-links";
 import { railRevealVariants } from "@/lib/marketing/reveal-variants";
 
 import styles from "../marketing.module.css";
@@ -117,9 +117,7 @@ function ProcessVisual({ kind }: { kind: (typeof STEPS)[number]["visual"] }) {
   if (kind === "link") {
     return (
       <div className={styles.microVisual} aria-hidden="true">
-        <span className={styles.urlStrip} translate="no">
-          {SHARED_DEMO_DENTAL_GUIDE_ILLUSTRATION}
-        </span>
+        <MarketingDemoUrl />
       </div>
     );
   }

@@ -92,10 +92,10 @@ describe("marketing homepage", () => {
     );
     expect(html).not.toContain("recovery information patients need");
     expect(html).not.toContain("No login, no feed");
-    expect(html).toContain("demo.riveraftercare.com.au/extraction");
-    expect(
-      html.match(/demo\.riveraftercare\.com\.au\/extraction/g)
-    ).toHaveLength(2);
+    expect(html.replace(/<wbr\s*\/?>/g, "")).toContain(
+      "demo.riveraftercare.com.au/extraction"
+    );
+    expect(html.match(/demo\.riveraftercare\.com\.au/g)).toHaveLength(2);
     expect(html).not.toContain("riverside.[your-domain]");
     expect(html).not.toContain("[your-domain]");
     expect(html).toContain("Call the practice →");

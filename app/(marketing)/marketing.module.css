@@ -2508,6 +2508,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 .microVisual {
   display: grid;
   gap: 0.32rem;
+  min-width: 0;
   pointer-events: none;
 }
 
@@ -2612,6 +2613,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 .urlStrip {
   display: inline-flex;
   max-width: 100%;
+  min-width: 0;
   min-height: 1.55rem;
   padding: 0.2rem 0.55rem;
   overflow: hidden;
@@ -2623,9 +2625,9 @@ html[data-theme-mode="dark"] .wordmarkName {
   font-size: 0.68rem;
   font-weight: 500;
   letter-spacing: -0.02em;
-  line-height: 1.2;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .timelineDot {
