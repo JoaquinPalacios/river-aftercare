@@ -624,7 +624,7 @@ test.describe("Phase 1F.11 story clarity", () => {
         (card) => card.querySelectorAll("li").length
       )
     );
-    expect(pointCounts).toEqual([2, 3, 3]);
+    expect(pointCounts).toEqual([2, 3, 2]);
     await expect(
       section.getByRole("heading", { name: "Controlled publishing" })
     ).toBeVisible();
