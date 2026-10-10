@@ -47,7 +47,7 @@ describe("marketing SEO resolution", () => {
     expect(pricing.title).toBe(
       "Patient Aftercare Software Pricing | River Aftercare"
     );
-    expect(contact.title).toBe("Book a Demo | River Aftercare");
+    expect(contact.title).toBe("Request a Demo | River Aftercare");
     expect(about.title).toBe(
       "About River Aftercare | Digital Patient Aftercare"
     );
@@ -250,7 +250,7 @@ describe("marketing SEO resolution", () => {
       description,
     });
     expect(DEFAULT_MARKETING_PAGE_SEO["/physiotherapy"].lastModified).toBe(
-      "2026-10-02"
+      "2026-10-08"
     );
   });
 
@@ -309,7 +309,7 @@ describe("marketing SEO resolution", () => {
       description,
     });
     expect(DEFAULT_MARKETING_PAGE_SEO["/chiropractic"].lastModified).toBe(
-      "2026-09-22"
+      "2026-10-08"
     );
   });
 
@@ -373,7 +373,7 @@ describe("marketing SEO resolution", () => {
       description,
     });
     expect(DEFAULT_MARKETING_PAGE_SEO["/cosmetic-clinics"].lastModified).toBe(
-      "2026-09-23"
+      "2026-10-08"
     );
   });
 

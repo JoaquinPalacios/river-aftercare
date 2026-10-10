@@ -8,6 +8,7 @@ import {
   instructionLabel,
   practiceInstructionsTitle,
 } from "@/lib/aftercare/instruction-terminology";
+import { patientIndexLede } from "@/lib/aftercare/instruction-terminology";
 import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
 import {
   aftercarePageMetadata,
@@ -69,9 +70,10 @@ export default async function TenantHomePage({ params }: TenantHomePageProps) {
         <h1 className={styles.title}>{chrome.displayName}</h1>
         <p className={styles.kicker}>{chrome.instructionsLabel}</p>
         <p className={styles.lede}>
-          Clear recovery information from {chrome.displayName}. Open a guide if
-          you have just had treatment, or return to this page whenever you need
-          to check what to do next.
+          {patientIndexLede({
+            instructionsLabel: chrome.instructionsLabel,
+            practiceName: chrome.displayName,
+          })}
         </p>
       </header>
       <GuideList

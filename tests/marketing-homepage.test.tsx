@@ -69,6 +69,8 @@ describe("marketing homepage", () => {
     );
     expect(html).toContain("Reusable guides");
     expect(html).toContain("Consistent presentation");
+    expect(html).toContain("Clinic-controlled publishing");
+    expect(html).not.toContain("Assisted setup");
     expect(html).not.toContain("not a generic platform shell");
     expect(html).not.toContain(
       "Keep approved content consistent across every published guide."

@@ -96,8 +96,8 @@ export default async function DesignatedDemoPreviewPage({
               <p className={styles.kicker}>{chrome.instructionsLabel}</p>
               <h1 className={styles.title}>Proposed demo guide</h1>
               <p className={styles.lede}>
-                Recovery information from {chrome.displayName}, composed from
-                sample revision {adoption.latestPublishedRevisionVersion}.
+                {chrome.instructionsLabel} from {chrome.displayName}, composed
+                from sample revision {adoption.latestPublishedRevisionVersion}.
               </p>
             </header>
             <GuideDocument sections={adoption.proposedSections} />

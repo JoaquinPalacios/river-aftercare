@@ -807,7 +807,7 @@ test.describe("marketing conversion routes", () => {
     await page.goto(marketingUrl("/contact"), {
       waitUntil: "domcontentloaded",
     });
-    await expect(page).toHaveTitle("Book a Demo | River Aftercare");
+    await expect(page).toHaveTitle("Request a Demo | River Aftercare");
   });
 
   for (const colorScheme of ["light", "dark"] as const) {

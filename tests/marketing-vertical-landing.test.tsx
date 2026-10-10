@@ -125,8 +125,11 @@ describe("clinic vertical landing pages", () => {
     expect(physio).not.toContain(
       'href="https://demophysio.riveraftercare.com.au'
     );
-    expect(physio).toContain("up to 2 active custom clinic guides");
-    expect(physio).toContain("up to 30 active custom guides");
+    expect(physio).toContain("up to 2 custom clinic guides");
+    expect(physio).toContain("within 40 clinic-owned guides in total");
+    expect(physio).not.toContain("active custom");
+    expect(physio).not.toContain("section controls");
+    expect(physio).not.toContain("additional branding control");
     expect(physio).not.toContain("adherence monitoring");
     expect(physio).not.toContain("home exercise programme app");
     expect(physio).not.toContain("video exercise");
@@ -137,8 +140,9 @@ describe("clinic vertical landing pages", () => {
     expect(chiro).toContain(
       "These are examples of guidance a practice may choose to publish. Clinical content remains practice-approved."
     );
-    expect(chiro).toContain("up to 2 active custom clinic guides");
-    expect(chiro).toContain("up to 30 active custom guides");
+    expect(chiro).toContain("up to 2 custom clinic guides");
+    expect(chiro).toContain("within 4 clinic-owned guides in total");
+    expect(chiro).not.toContain("active custom");
     expect(chiro).not.toContain(
       "No pre-built chiropractic template library is currently being advertised."
     );
@@ -190,8 +194,10 @@ describe("clinic vertical landing pages", () => {
     expect(dental).toContain(
       "Start with an available guide, or bring your own clinic-approved aftercare."
     );
-    expect(dental).toContain("up to 2 active custom clinic guides");
-    expect(dental).toContain("up to 30 active custom guides");
+    expect(dental).toContain("up to 2 custom clinic guides");
+    expect(dental).toContain("within 4 clinic-owned guides in total");
+    expect(dental).not.toContain("active custom");
+    expect(dental).not.toContain("additional branding control");
     expect(dental).toContain(
       "From approved instructions to a page patients can revisit"
     );
@@ -209,7 +215,7 @@ describe("clinic vertical landing pages", () => {
     );
     expect(dental).toContain("patient aftercare publishing software");
     expect(dental).toContain(
-      "where your plan allows, local instructions and supported section changes"
+      "where your plan allows, your clinic&#x27;s approved instructions"
     );
     const demoHtml = dental.slice(
       dental.indexOf('aria-labelledby="dental-demo"'),
@@ -285,10 +291,10 @@ describe("clinic vertical landing pages", () => {
       "River Aftercare publishes clinic-approved written guidance. It does not currently track exercise completion, adherence or patient progress."
     );
     expect(landing.guidance.note).toContain(
-      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides."
+      "Essential includes River Aftercare templates, up to 2 custom clinic guides and up to 2 editable River Aftercare templates, within 4 clinic-owned guides in total."
     );
     expect(landing.guidance.note).toContain(
-      "Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls."
+      "Practice includes up to 30 custom clinic guides and up to 30 editable River Aftercare templates, within 40 clinic-owned guides in total."
     );
     expect(landing.guidance.note).toContain(
       "Published physiotherapy templates are available for a clinic to enable."
@@ -416,10 +422,10 @@ describe("clinic vertical landing pages", () => {
       "These are examples of guidance a practice may choose to publish. Clinical content remains practice-approved."
     );
     expect(landing.guidance.note).toContain(
-      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides."
+      "Essential includes River Aftercare templates, up to 2 custom clinic guides and up to 2 editable River Aftercare templates, within 4 clinic-owned guides in total."
     );
     expect(landing.guidance.note).toContain(
-      "Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls."
+      "Practice includes up to 30 custom clinic guides and up to 30 editable River Aftercare templates, within 40 clinic-owned guides in total."
     );
     expect(landing.guidance.note).toContain(
       "Chiropractic template availability is confirmed during onboarding."
@@ -536,10 +542,10 @@ describe("clinic vertical landing pages", () => {
     );
     expect(landing.guidance.items).toBeUndefined();
     expect(landing.guidance.note).toContain(
-      "Essential includes available River Aftercare templates and up to 2 active custom clinic guides."
+      "Essential includes River Aftercare templates, up to 2 custom clinic guides and up to 2 editable River Aftercare templates, within 4 clinic-owned guides in total."
     );
     expect(landing.guidance.note).toContain(
-      "Practice supports up to 30 active custom guides, with broader creation and adaptation, local instructions and section controls."
+      "Practice includes up to 30 custom clinic guides and up to 30 editable River Aftercare templates, within 40 clinic-owned guides in total."
     );
     expect(landing.guidance.note).toContain(
       "Cosmetic and aesthetic template availability is confirmed during onboarding."

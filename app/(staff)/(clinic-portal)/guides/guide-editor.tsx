@@ -639,10 +639,14 @@ export function GuideEditor({
                   }
                   aria-describedby={
                     saveState.fieldErrors?.introduction
-                      ? "introduction-error"
-                      : undefined
+                      ? "introduction-note introduction-error"
+                      : "introduction-note"
                   }
                 />
+                <p id="introduction-note" className="text-sm text-staff-muted">
+                  For clinic reference. This text is not shown on the patient
+                  page.
+                </p>
                 <FieldError
                   id="introduction-error"
                   message={saveState.fieldErrors?.introduction}
