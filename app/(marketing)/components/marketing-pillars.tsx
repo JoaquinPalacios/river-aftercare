@@ -1,6 +1,7 @@
 "use client";
 
 import { MarketingRevealCard } from "@/app/(marketing)/components/marketing-reveal";
+import { SHARED_DEMO_DENTAL_GUIDE_ILLUSTRATION } from "@/lib/marketing/shared-demo-links";
 
 import styles from "../marketing.module.css";
 
@@ -150,7 +151,7 @@ function PillarVisual({ kind }: { kind: (typeof PILLARS)[number]["key"] }) {
         </span>
         <div className={styles.patientHints}>
           <span className={styles.urlStrip} translate="no">
-            riverside.[your-domain]/extraction
+            {SHARED_DEMO_DENTAL_GUIDE_ILLUSTRATION}
           </span>
           <span className={styles.contactChip}>Call the practice →</span>
         </div>

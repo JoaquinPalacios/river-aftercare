@@ -1335,6 +1335,10 @@ html[data-theme-mode="dark"] .wordmarkName {
   font-size: 1.08rem;
 }
 
+.copy {
+  text-wrap: pretty;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -2342,8 +2346,8 @@ html[data-theme-mode="dark"] .wordmarkName {
   font-size: clamp(1.7rem, 3.4vw, 2.6rem);
   letter-spacing: -0.04em;
   line-height: 1.15;
-  max-width: 18ch;
-  text-wrap: pretty;
+  max-width: 22ch;
+  text-wrap: balance;
 }
 
 .sectionTitle + .copy,
@@ -5593,6 +5597,7 @@ html[data-theme-mode="dark"] .wordmarkName {
     grid-template-columns: 1.1fr 0.9fr;
     grid-template-areas: "visual copy";
     align-items: center;
+    column-gap: 3rem;
   }
 
   .hero {

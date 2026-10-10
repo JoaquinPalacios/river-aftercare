@@ -17,6 +17,7 @@ import {
 import {
   dentalDemoGuideHref,
   exactVerifiedGuideHref,
+  SHARED_DEMO_DENTAL_GUIDE_ILLUSTRATION,
   SHARED_DEMO_DENTAL_GUIDE_URL,
   SHARED_DEMO_PHYSIO_GUIDE_URL,
 } from "@/lib/marketing/shared-demo-links";
@@ -277,6 +278,12 @@ describe("shared designated demo", () => {
   });
 
   it("publishes a live example only for the exact shared guide URL", () => {
+    expect(SHARED_DEMO_DENTAL_GUIDE_URL).toBe(
+      "https://demo.riveraftercare.com.au/extraction"
+    );
+    expect(SHARED_DEMO_DENTAL_GUIDE_ILLUSTRATION).toBe(
+      "demo.riveraftercare.com.au/extraction"
+    );
     expect(
       exactVerifiedGuideHref(
         "https://demo.riveraftercare.com.au/extraction",
