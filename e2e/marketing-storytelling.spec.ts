@@ -606,7 +606,8 @@ test.describe("Phase 1F.11 story clarity", () => {
       section.getByText("Give patients one clear place to return to")
     ).toBeVisible();
     await expect(section.getByText("Durable link")).toBeVisible();
-    await expect(section.getByText("Clinic contact nearby")).toBeVisible();
+    await expect(section.getByText("Readable on a phone")).toBeVisible();
+    await expect(section.getByText("Clinic contact nearby")).toHaveCount(0);
     await expect(
       section.getByText(
         "Publish approved guidance without rebuilding a page every time."
@@ -627,7 +628,7 @@ test.describe("Phase 1F.11 story clarity", () => {
         (card) => card.querySelectorAll("li").length
       )
     );
-    expect(pointCounts).toEqual([2, 3, 2]);
+    expect(pointCounts).toEqual([2, 2, 2]);
     await expect(
       section.getByRole("heading", { name: "Controlled publishing" })
     ).toBeVisible();

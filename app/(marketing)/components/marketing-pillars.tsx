@@ -16,7 +16,7 @@ const PILLARS = [
     key: "patients",
     title: "Easy for patients to revisit",
     copy: "Give patients one clear place to return to instead of relying on memory, paper or an old attachment.",
-    points: ["Durable link", "Readable on a phone", "Clinic contact nearby"],
+    points: ["Durable link", "Readable on a phone"],
   },
   {
     key: "operate",

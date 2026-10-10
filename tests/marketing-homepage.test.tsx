@@ -63,7 +63,8 @@ describe("marketing homepage", () => {
     expect(html).toContain("Clinic-first presentation");
     expect(html).toContain("Give patients one clear place to return to");
     expect(html).toContain("Durable link");
-    expect(html).toContain("Clinic contact nearby");
+    expect(html).toContain("Readable on a phone");
+    expect(html).not.toContain("Clinic contact nearby");
     expect(html).toContain(
       "Publish approved guidance without rebuilding a page every time."
     );
