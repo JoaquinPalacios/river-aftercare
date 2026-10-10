@@ -297,7 +297,7 @@ test.describe("public marketing host", () => {
       })
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "View the dental demo" }).first()
+      page.getByRole("link", { name: "View the demo", exact: true }).first()
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Internal staff workspace" })

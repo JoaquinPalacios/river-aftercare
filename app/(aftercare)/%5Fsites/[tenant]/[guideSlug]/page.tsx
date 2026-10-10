@@ -7,10 +7,7 @@ import {
   DEMO_RECOVERY_FIXTURE,
   isDemoPatientExperienceEnabled,
 } from "@/lib/aftercare/demo-tenant";
-import {
-  demoPatientGuideLede,
-  demoPatientViewIds,
-} from "@/lib/aftercare/demo-patient-presentation";
+import { demoPatientViewIds } from "@/lib/aftercare/demo-patient-presentation";
 import {
   buildDemoTodayContent,
   resolveDemoRecoveryState,
@@ -22,7 +19,7 @@ import { resolveRetiredLocationRedirectHref } from "@/lib/aftercare/patient-loca
 import { GuideList } from "@/app/(aftercare)/components/guide-list";
 import {
   instructionLabel,
-  patientGuideLede,
+  patientFacingGuideLede,
   patientIndexLede,
 } from "@/lib/aftercare/instruction-terminology";
 import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
@@ -177,15 +174,11 @@ export default async function TenantGuidePage({
         <p className={styles.kicker}>{chrome.instructionsLabel}</p>
         <h1 className={styles.title}>{document.title}</h1>
         <p className={styles.lede}>
-          {demoEnabled
-            ? demoPatientGuideLede({
-                clinicName: chrome.displayName,
-                hasTimeline: recovery.hasTimeline,
-              })
-            : patientGuideLede({
-                instructionsLabel: chrome.instructionsLabel,
-                practiceName: chrome.displayName,
-              })}
+          {patientFacingGuideLede({
+            clinicSlug: document.clinic.slug,
+            clinicName: chrome.displayName,
+            hasTimeline: recovery.hasTimeline,
+          })}
         </p>
       </header>
       {demoEnabled ? (

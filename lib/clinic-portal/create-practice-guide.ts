@@ -126,8 +126,8 @@ export async function createCustomPracticeGuide(input: {
           create: {
             key: "introduction",
             kind: "INTRODUCTION",
-            title: "Introduction",
-            body: "Add the guidance your patients should follow.",
+            title: "About this guide",
+            body: "Add the recovery information your patients should follow after this treatment.",
             sortOrder: 1,
             provenance: PracticeSectionProvenance.PRACTICE_CUSTOM,
           },

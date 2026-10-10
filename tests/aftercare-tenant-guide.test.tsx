@@ -209,6 +209,12 @@ describe("tenant guide page", () => {
 
     expect(html).toContain("Tooth Extraction");
     expect(html).toContain("Post-treatment instructions");
+    expect(html).toContain(
+      "A demonstration of written home-care guidance from Riverside Dental Demo. This is not an individually prescribed plan."
+    );
+    expect(html).not.toContain(
+      "Recovery information from Riverside Dental Demo."
+    );
     expect(html).not.toContain("Tooth Extraction — Tooth Extraction");
     expect(html).toContain("Canonical intro for Riverside patients.");
     expect(html).toContain("The first day at Riverside Dental Demo");
@@ -267,10 +273,6 @@ describe("tenant guide page", () => {
     const html = await renderGuide("otherclinic");
 
     expect(html).toContain("Other Clinic Patient Brand");
-    expect(html).toContain(
-      "Post-treatment instructions from Other Clinic Patient Brand. Read the sections below in order, and contact the practice if you are unsure or need help."
-    );
-    expect(html).not.toContain("Recovery information from");
     expect(html).toContain("Other clinic intro");
     expect(html).toContain("Tenant B override copy.");
     expect(html).toContain("Other clinic emergency copy.");

@@ -55,6 +55,9 @@ export function formatAudInclGst(amount: number): string {
   return `A$${amount.toLocaleString("en-AU")}`;
 }
 
+/** Concise public allowance. Use once per specialty page, not in every FAQ. */
+export const PUBLIC_PLAN_ALLOWANCE_SUMMARY = `Essential includes up to ${PLAN_PRICES.essential.customGuides} original custom guides, up to ${PLAN_PRICES.essential.editableTemplates} editable ${PRODUCT_NAME} templates, and up to ${PLAN_PRICES.essential.combinedClinicOwnedGuides} clinic-owned guides combined. Practice includes up to ${PLAN_PRICES.practice.customGuides} original custom guides, up to ${PLAN_PRICES.practice.editableTemplates} editable ${PRODUCT_NAME} templates, and up to ${PLAN_PRICES.practice.combinedClinicOwnedGuides} clinic-owned guides combined. Pinned ${PRODUCT_NAME} templates used as supplied do not count.`;
+
 const essentialMonthly = formatAudInclGst(
   PLAN_PRICES.essential.monthlyAudInclGst
 );
@@ -101,13 +104,6 @@ const ESSENTIAL_CARD_FEATURES = [
 ] as const;
 
 const PRACTICE_COMBINED_GUIDES_FEATURE = `Up to ${PLAN_PRICES.practice.combinedClinicOwnedGuides} clinic-owned guides across custom guides and edited ${PRODUCT_NAME} templates`;
-
-/**
- * Public allowance statement for clinic-type pages.
- * Matches the pricing comparison: quantity differs by plan; the editor does not.
- * Drafts and unpublished guides count. Pinned templates used as supplied do not.
- */
-export const PUBLIC_PLAN_ALLOWANCE_SUMMARY = `Essential includes ${PRODUCT_NAME} templates, up to ${PLAN_PRICES.essential.customGuides} custom clinic guides and up to ${PLAN_PRICES.essential.editableTemplates} editable ${PRODUCT_NAME} templates, within ${PLAN_PRICES.essential.combinedClinicOwnedGuides} clinic-owned guides in total. Practice includes up to ${PLAN_PRICES.practice.customGuides} custom clinic guides and up to ${PLAN_PRICES.practice.editableTemplates} editable ${PRODUCT_NAME} templates, within ${PLAN_PRICES.practice.combinedClinicOwnedGuides} clinic-owned guides in total.`;
 
 const PRACTICE_CARD_FEATURES = [
   "Everything in Essential",

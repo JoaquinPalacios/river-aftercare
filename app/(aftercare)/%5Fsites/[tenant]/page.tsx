@@ -6,9 +6,9 @@ import { PatientPage } from "@/app/(aftercare)/components/patient-page";
 import { listPublishedPracticeGuides } from "@/lib/aftercare/list-published-practice-guides";
 import {
   instructionLabel,
+  patientIndexLede,
   practiceInstructionsTitle,
 } from "@/lib/aftercare/instruction-terminology";
-import { patientIndexLede } from "@/lib/aftercare/instruction-terminology";
 import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
 import {
   aftercarePageMetadata,

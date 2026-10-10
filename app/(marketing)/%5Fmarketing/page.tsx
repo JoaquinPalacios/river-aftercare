@@ -112,7 +112,7 @@ export default async function MarketingHomePage() {
                         data-mk-hero-actions=""
                       >
                         <MarketingPrimaryAnchor href={demoHref}>
-                          View the dental demo
+                          View the demo
                         </MarketingPrimaryAnchor>
                         <Link
                           className={`${styles.button} ${styles.secondary}`}

@@ -181,6 +181,14 @@ describe("printable recovery guide", () => {
 
     expect(print).toContain("Tooth Extraction");
     expect(print).toContain("Riverside Dental Demo");
+    expect(print).toContain(
+      "Post-treatment instructions from Riverside Dental Demo."
+    );
+    expect(print).not.toContain("Recovery guide from");
+    expect(print).not.toContain("same recovery information");
+    expect(web).toContain(
+      "What matters today in your recovery from Riverside Dental Demo."
+    );
     expect(print).toContain("After your extraction");
     expect(print).toContain("Follow the stages in order.");
     expect(print).toContain("Immediate care");

@@ -6,8 +6,9 @@ import { GuideDocument } from "@/app/(aftercare)/components/guide-document";
 import { PatientPage } from "@/app/(aftercare)/components/patient-page";
 import { StaffPreviewShell } from "@/app/(staff)/(guide-preview)/guides/[guideId]/preview/staff-preview-shell";
 import { getPrimaryPatientChrome } from "@/lib/aftercare/get-clinic-by-slug";
-import { patientGuideLede } from "@/lib/aftercare/instruction-terminology";
+import { patientFacingGuideLede } from "@/lib/aftercare/instruction-terminology";
 import { resolvePracticeChrome } from "@/lib/aftercare/practice-chrome";
+import { timelineSectionsOf } from "@/lib/aftercare/section-body";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import {
   resolveAftercareTheme,
@@ -88,9 +89,10 @@ export default async function GuidePreviewPage({
               <p className={styles.kicker}>{chrome.instructionsLabel}</p>
               <h1 className={styles.title}>{guide.title}</h1>
               <p className={styles.lede}>
-                {patientGuideLede({
-                  instructionsLabel: chrome.instructionsLabel,
-                  practiceName: chrome.displayName,
+                {patientFacingGuideLede({
+                  clinicSlug: clinic.slug,
+                  clinicName: chrome.displayName,
+                  hasTimeline: timelineSectionsOf(guide.sections).length > 0,
                 })}
               </p>
             </header>

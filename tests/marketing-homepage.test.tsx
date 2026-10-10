@@ -69,8 +69,10 @@ describe("marketing homepage", () => {
     );
     expect(html).toContain("Reusable guides");
     expect(html).toContain("Consistent presentation");
-    expect(html).toContain("Clinic-controlled publishing");
     expect(html).not.toContain("Assisted setup");
+    expect(html).toContain("phoneSample");
+    expect(html).toContain(">Sample<");
+    expect(html).toContain("deviceSampleLabel");
     expect(html).not.toContain("not a generic platform shell");
     expect(html).not.toContain(
       "Keep approved content consistent across every published guide."
@@ -99,7 +101,8 @@ describe("marketing homepage", () => {
     expect(html).not.toMatch(/<a[^>]*>Tooth Extraction/);
     expect(html).not.toMatch(/<h[1-6][^>]*>Tooth Extraction/);
     expect(html).toContain("<ol");
-    expect(html).toContain("View the dental demo");
+    expect(html).toContain("View the demo");
+    expect(html).not.toContain("View the dental demo");
     expect(html).toContain("Request a demo");
     expect(html).toContain('href="/contact"');
     expect(html).toContain('href="/pricing"');
@@ -157,7 +160,8 @@ describe("marketing homepage", () => {
     expect(html).not.toContain("See what patients actually receive");
     expect(html).not.toContain("Clinic preview");
     expect(html).not.toContain("Open Riverside Dental Demo");
-    expect(html).toContain("View the dental demo");
+    expect(html).toContain("View the demo");
+    expect(html).not.toContain("View the dental demo");
     expect(html).toContain("Your clinic stays visible after the appointment.");
     expect(html).toContain("carry its own identity");
     expect(html).toContain("Your name");

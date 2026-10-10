@@ -250,7 +250,7 @@ describe("marketing SEO resolution", () => {
       description,
     });
     expect(DEFAULT_MARKETING_PAGE_SEO["/physiotherapy"].lastModified).toBe(
-      "2026-10-08"
+      "2026-10-02"
     );
   });
 
@@ -309,7 +309,7 @@ describe("marketing SEO resolution", () => {
       description,
     });
     expect(DEFAULT_MARKETING_PAGE_SEO["/chiropractic"].lastModified).toBe(
-      "2026-10-08"
+      "2026-09-22"
     );
   });
 
@@ -373,7 +373,7 @@ describe("marketing SEO resolution", () => {
       description,
     });
     expect(DEFAULT_MARKETING_PAGE_SEO["/cosmetic-clinics"].lastModified).toBe(
-      "2026-10-08"
+      "2026-09-23"
     );
   });
 

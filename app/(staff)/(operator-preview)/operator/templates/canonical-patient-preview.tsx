@@ -2,7 +2,6 @@ import { GuideDocument } from "@/app/(aftercare)/components/guide-document";
 import { PatientPage } from "@/app/(aftercare)/components/patient-page";
 import { StaffPreviewShell } from "@/app/(staff)/(guide-preview)/guides/[guideId]/preview/staff-preview-shell";
 import { editorSectionsToComposedGuide } from "@/lib/aftercare/editor-sections-to-document";
-import { patientGuideLede } from "@/lib/aftercare/instruction-terminology";
 import {
   resolveAftercareTheme,
   serializeAftercareThemeCss,
@@ -61,10 +60,9 @@ export function CanonicalPatientPreview({
             <p className={styles.kicker}>{chrome.instructionsLabel}</p>
             <h1 className={styles.title}>{templateTitle}</h1>
             <p className={styles.lede}>
-              {patientGuideLede({
-                instructionsLabel: chrome.instructionsLabel,
-                practiceName: chrome.displayName,
-              })}
+              Recovery information from {chrome.displayName}. Read the sections
+              below in order, and contact the practice if you are unsure or need
+              help.
             </p>
           </header>
           <GuideDocument sections={sections} />

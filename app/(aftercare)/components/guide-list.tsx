@@ -13,7 +13,7 @@ export function GuideList({
     return (
       <p className={styles.empty}>
         No {instructionsLabel.toLowerCase()} are published by this practice yet.
-        Contact the practice if you need them.
+        Contact the practice if you need recovery information after treatment.
       </p>
     );
   }

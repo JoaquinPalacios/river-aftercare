@@ -70,7 +70,10 @@ export function MarketingProductPreview() {
         </PhoneShell>
       </div>
       <div className={styles.deviceNote}>
-        <p className={styles.deviceNoteKicker}>Patient aftercare view</p>
+        <p className={styles.deviceNoteKicker}>
+          <span className={styles.deviceSampleLabel}>Sample</span>
+          Patient aftercare view
+        </p>
         <ul className={styles.deviceNotePoints}>
           <li>No login</li>
           <li>No app to install</li>
@@ -115,6 +118,7 @@ function PhoneScreen({ children }: { children: ReactNode }) {
 function ProductPreviewScreen() {
   return (
     <>
+      <p className={styles.phoneSample}>Sample</p>
       <div className={styles.phoneBrand}>
         <span className={styles.phoneMark} />
         {MARKETING_DEMO_CLINIC_NAME}

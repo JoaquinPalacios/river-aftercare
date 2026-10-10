@@ -242,7 +242,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       },
       {
         title: "Adapt it to your practice",
-        body: "Add your branding, terminology and, where your plan allows, your clinic's approved instructions.",
+        body: "Add your branding, terminology, and your clinic's approved instructions.",
       },
       {
         title: "Publish it under your brand",
@@ -278,7 +278,8 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       },
       {
         question: "Can our dental practice change or create the instructions?",
-        answer: `Yes, within your plan. ${PUBLIC_PLAN_ALLOWANCE_SUMMARY} Your practice remains responsible for approving the clinical guidance it publishes.`,
+        answer:
+          "Yes, within your plan. Essential and Practice use the same editor. Your practice remains responsible for approving the clinical guidance it publishes.",
       },
       {
         question: "What dental templates are available?",
@@ -288,7 +289,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       {
         question: "Can River Aftercare match our dental practice branding?",
         answer:
-          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details, with Light, Dark and System presentation included.",
+          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details. Essential and Practice include the same branding controls, with Light, Dark and System presentation.",
       },
       {
         question: `Does ${PRODUCT_NAME} replace our practice-management system?`,
@@ -296,7 +297,8 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       },
       {
         question: "How many custom aftercare guides can we publish?",
-        answer: `${PUBLIC_PLAN_ALLOWANCE_SUMMARY} Pinned ${PRODUCT_NAME} templates used as supplied do not count toward those limits.`,
+        answer:
+          "Within your plan. The allowance is in the clinic-approved guidance section above.",
       },
     ],
   },
@@ -413,7 +415,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       },
       {
         title: "Adapt it to your clinic",
-        body: "Add your branding, terminology and, where your plan allows, your clinic's approved instructions.",
+        body: "Add your branding, terminology, and your clinic's approved instructions.",
       },
       {
         title: "Publish it under your brand",
@@ -473,7 +475,8 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       },
       {
         question: "Can our clinic create or adapt its own recovery guidance?",
-        answer: `Yes, within your plan. ${PUBLIC_PLAN_ALLOWANCE_SUMMARY} Your clinic remains responsible for approving the clinical guidance it publishes.`,
+        answer:
+          "Yes, within your plan. Essential and Practice use the same editor. Your clinic remains responsible for approving the clinical guidance it publishes.",
       },
       {
         question: "What physiotherapy templates are available?",
@@ -482,7 +485,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
       {
         question: `Can ${PRODUCT_NAME} match our physiotherapy clinic branding?`,
         answer:
-          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details, with Light, Dark and System presentation included.",
+          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details. Essential and Practice include the same branding controls, with Light, Dark and System presentation.",
       },
       {
         question: `Does ${PRODUCT_NAME} replace our practice-management system or store patient health records?`,
@@ -600,7 +603,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       },
       {
         title: "Adapt it to your practice",
-        body: "Add your branding, terminology and, where your plan allows, your clinic's approved instructions.",
+        body: "Add your branding, terminology, and your clinic's approved instructions.",
       },
       {
         title: "Publish it under your brand",
@@ -645,7 +648,8 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       {
         question:
           "Can our practice create or adapt its own home-care guidance?",
-        answer: `Yes, within your plan. ${PUBLIC_PLAN_ALLOWANCE_SUMMARY} Your practice remains responsible for approving the clinical guidance it publishes.`,
+        answer:
+          "Yes, within your plan. Essential and Practice use the same editor. Your practice remains responsible for approving the clinical guidance it publishes.",
       },
       {
         question: `Does ${PRODUCT_NAME} provide chiropractic treatment advice?`,
@@ -658,7 +662,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       {
         question: `Can ${PRODUCT_NAME} match our chiropractic practice branding?`,
         answer:
-          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and practice contact details, with Light, Dark and System presentation included.",
+          "Yes. Patient pages can carry your logo, colours, curated typography, terminology and practice contact details. Essential and Practice include the same branding controls, with Light, Dark and System presentation.",
       },
       {
         question: `Does ${PRODUCT_NAME} replace our practice-management system or patient health record?`,
@@ -766,7 +770,7 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
       },
       {
         title: "Adapt it to your clinic",
-        body: "Add your branding, terminology and, where your plan allows, your clinic's approved instructions.",
+        body: "Add your branding, terminology, and your clinic's approved instructions.",
       },
       {
         title: "Publish it under your brand",
@@ -811,7 +815,8 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
       {
         question:
           "Can our clinic create or adapt its own aftercare instructions?",
-        answer: `Yes, within your plan. ${PUBLIC_PLAN_ALLOWANCE_SUMMARY} Your clinic remains responsible for approving the aftercare information it publishes.`,
+        answer:
+          "Yes, within your plan. Essential and Practice use the same editor. Your clinic remains responsible for approving the aftercare information it publishes.",
       },
       {
         question: `Does ${PRODUCT_NAME} monitor patients after treatment?`,
@@ -824,7 +829,7 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
       {
         question: `Can ${PRODUCT_NAME} match our clinic branding?`,
         answer:
-          "Yes. Patient or client pages can carry your logo, colours, curated typography, terminology and clinic contact details, with Light, Dark and System presentation included.",
+          "Yes. Patient or client pages can carry your logo, colours, curated typography, terminology and clinic contact details. Essential and Practice include the same branding controls, with Light, Dark and System presentation.",
       },
       {
         question: `Does ${PRODUCT_NAME} replace our clinic-management software or patient health record?`,
