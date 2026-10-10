@@ -1,5 +1,6 @@
 "use client";
 
+import { MarketingDemoUrl } from "@/app/(marketing)/components/marketing-demo-url";
 import { MarketingRevealCard } from "@/app/(marketing)/components/marketing-reveal";
 
 import styles from "../marketing.module.css";
@@ -149,9 +150,7 @@ function PillarVisual({ kind }: { kind: (typeof PILLARS)[number]["key"] }) {
           </span>
         </span>
         <div className={styles.patientHints}>
-          <span className={styles.urlStrip} translate="no">
-            riverside.[your-domain]/extraction
-          </span>
+          <MarketingDemoUrl />
           <span className={styles.contactChip}>Call the practice →</span>
         </div>
       </div>

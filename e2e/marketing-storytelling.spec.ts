@@ -330,6 +330,9 @@ test.describe("Phase 1F.11 story clarity", () => {
       section.getByRole("heading", { name: "Share by link or QR code" })
     ).toBeVisible();
     await expect(
+      section.getByText("demo.riveraftercare.com.au/extraction")
+    ).toBeVisible();
+    await expect(
       section.getByRole("heading", {
         name: "Patients return when they need it",
       })
@@ -632,7 +635,7 @@ test.describe("Phase 1F.11 story clarity", () => {
       section.getByText("Riverside Dental", { exact: true })
     ).toBeVisible();
     await expect(
-      section.getByText("riverside.[your-domain]/extraction")
+      section.getByText("demo.riveraftercare.com.au/extraction")
     ).toBeVisible();
     await expect(section.getByText("Call the practice →")).toBeVisible();
     await expect(

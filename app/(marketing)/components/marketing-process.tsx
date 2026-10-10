@@ -1,5 +1,6 @@
 "use client";
 
+import { MarketingDemoUrl } from "@/app/(marketing)/components/marketing-demo-url";
 import { MarketingRevealCard } from "@/app/(marketing)/components/marketing-reveal";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { railRevealVariants } from "@/lib/marketing/reveal-variants";
@@ -116,9 +117,7 @@ function ProcessVisual({ kind }: { kind: (typeof STEPS)[number]["visual"] }) {
   if (kind === "link") {
     return (
       <div className={styles.microVisual} aria-hidden="true">
-        <span className={styles.urlStrip} translate="no">
-          riverside.[your-domain]/extraction
-        </span>
+        <MarketingDemoUrl />
       </div>
     );
   }

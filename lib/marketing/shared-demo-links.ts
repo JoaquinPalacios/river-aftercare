@@ -8,6 +8,10 @@ import {
 
 export const SHARED_DEMO_DENTAL_GUIDE_URL = `${SHARED_DEMO_PUBLIC_ORIGIN}/extraction`;
 
+/** Scheme-less host and path for static marketing illustrations. Not a link. */
+export const SHARED_DEMO_DENTAL_GUIDE_ILLUSTRATION =
+  SHARED_DEMO_DENTAL_GUIDE_URL.replace(/^https:\/\//, "");
+
 export const SHARED_DEMO_PHYSIO_GUIDE_URL = `${SHARED_DEMO_PUBLIC_ORIGIN}/home-exercise-plan`;
 
 export const SHARED_DEMO_CHIRO_GUIDE_URL = `${SHARED_DEMO_PUBLIC_ORIGIN}/chiropractic-adjustment`;
