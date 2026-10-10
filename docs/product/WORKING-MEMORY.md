@@ -19,6 +19,10 @@ Production probes from this US runner (`x-vercel-id` `iad1::syd1`) on 2026-10-08
 
 Vitest on this pass: 366 files, 2532 tests, 61.70s, all passed. No test was removed. Chairside route tests still guard URLs that must stay absent. There are no snapshots.
 
+## Homepage product column (2026-10-10)
+
+From `64rem`, The Product and Brand flexibility are both left-visual / right-copy grids inside the shared `.inner` (`min(80rem, calc(100% - 2.5rem))`). The Product canvas is `width: 100%` with no max-width, so it already filled its grid area. That area was `0.9fr 1.1fr`, while Brand flexibility is `1.1fr 0.9fr`. At 1440px the Product visual was 560px and the brand card was 678px. The Product track is now the same `1.1fr 0.9fr` ratio. Brand flexibility, The Problem (`1.05fr 0.95fr`), and the stacked layout below `64rem` are unchanged. No other homepage section used `0.9fr 1.1fr`.
+
 ## Homepage hero phone (2026-10-07)
 
 The homepage hero device is upright. `MarketingProductPreview` is the only consumer of `.phoneShell` in `app/(marketing)/marketing.module.css`. From `64rem`, that shell keeps `width: 13.85rem` and `transform: translateY(-1.5rem)`. `rotate(-1.15deg)` was removed from that transform. From `90rem` the width is still `14.6rem` and the same raise still applies. Below `64rem` the shell has no transform. Size, shadow, frame image, and the floor shadow are unchanged. Other marketing pages and demo surfaces do not use this shell.

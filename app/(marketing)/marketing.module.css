@@ -5590,7 +5590,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   }
 
   .productGrid {
-    grid-template-columns: 0.9fr 1.1fr;
+    grid-template-columns: 1.1fr 0.9fr;
     grid-template-areas: "visual copy";
     align-items: center;
   }
