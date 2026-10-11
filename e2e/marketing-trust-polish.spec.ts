@@ -311,8 +311,7 @@ test.describe("marketing + trust polish", () => {
         .evaluate((element) =>
           Number.parseFloat(getComputedStyle(element).paddingTop)
         );
-      expect(legalPad).toBeGreaterThan(contactPad);
-      expect(legalPad).toBeLessThanOrEqual(128);
+      expect(legalPad).toBe(contactPad);
       const measure = await page
         .locator('[class*="legalCopy"]')
         .first()

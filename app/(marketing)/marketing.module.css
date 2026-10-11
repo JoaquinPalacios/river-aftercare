@@ -5954,7 +5954,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   }
 
   /* First band after a marketing hero, plus the homepage clinic-type showcase. */
-  main > .marketingSoft:first-of-type > .band:first-child:not(.legalArticle),
+  main > .marketingSoft:first-of-type > .band:first-child,
   main > .marketingShowcase.workflowShowcase > .band:first-child {
     padding-top: 7rem;
   }
