@@ -231,6 +231,34 @@ describe("marketing brand colour hierarchy", () => {
     expect(styles).not.toContain("color-mix(in srgb, #a6b8ff 11%, #0b0a12)");
   });
 
+  it("matches the inner-page glow fill to the soft chapter behind it", () => {
+    const masterSoft = styles.slice(
+      styles.indexOf('.page[data-brand-scope="master"] .marketingSoft')
+    );
+    expect(masterSoft).toContain(
+      "color-mix(in srgb, var(--mk-brand) 3.5%, var(--mk-soft))"
+    );
+    expect(masterSoft).toContain(
+      "color-mix(in srgb, var(--mk-cobalt) 5%, var(--mk-soft))"
+    );
+    expect(tokens).toMatch(/\.mkPageWaveFill\s*\{[^}]*fill:\s*currentColor;/);
+    expect(tokens).toContain('[data-brand-scope="master"] .mkPageWaveFill');
+    expect(tokens).toContain(
+      ".mkPageWaveInnerPage .mkPageWaveInner {\n  height: 2.15rem;\n}"
+    );
+    const sharedFill = tokens.slice(tokens.indexOf(".mkWaveFill,"));
+    expect(sharedFill.startsWith(".mkWaveFill,")).toBe(true);
+    expect(sharedFill).toContain(
+      "color-mix(in srgb, var(--mk-brand) 3.5%, var(--mk-soft))"
+    );
+    expect(sharedFill).toContain(
+      "color-mix(in srgb, var(--mk-cobalt) 5%, var(--mk-soft))"
+    );
+    expect(styles).toMatch(
+      /\.verticalSurfaceSoft\s*\{[^}]*background:\s*var\(--mk-soft\);/
+    );
+  });
+
   it("keeps atmosphere in CSS tokens rather than component hex values", () => {
     const experience = readFileSync(
       "app/(marketing)/components/marketing-experience.tsx",
