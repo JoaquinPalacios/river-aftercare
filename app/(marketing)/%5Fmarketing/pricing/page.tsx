@@ -186,7 +186,7 @@ export default async function MarketingPricingPage() {
             className={`${styles.band} ${styles.flowSection}`}
             aria-labelledby="onboarding-heading"
           >
-            <div className={styles.inner}>
+            <div className={`${styles.inner} ${styles.onboardingLayout}`}>
               <div className={styles.headingBlock}>
                 <MarketingRevealGroup>
                   <MarketingRevealItem delay={0}>
@@ -205,16 +205,15 @@ export default async function MarketingPricingPage() {
                   </MarketingRevealItem>
                 </MarketingRevealGroup>
               </div>
-              <MarketingNumberedSteps
-                className={styles.headingFollow}
-                items={ONBOARDING_STEPS}
-              />
-              <MarketingRevealCard
-                index={ONBOARDING_STEPS.length}
-                className={styles.headingFollow}
-              >
-                <p className={styles.copy}>{GUIDE_AVAILABILITY_NOTE}</p>
-              </MarketingRevealCard>
+              <div className={styles.onboardingSteps}>
+                <MarketingNumberedSteps items={ONBOARDING_STEPS} />
+                <MarketingRevealCard
+                  index={ONBOARDING_STEPS.length}
+                  className={styles.headingFollow}
+                >
+                  <p className={styles.copy}>{GUIDE_AVAILABILITY_NOTE}</p>
+                </MarketingRevealCard>
+              </div>
             </div>
           </section>
         </div>

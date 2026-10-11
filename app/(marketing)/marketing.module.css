@@ -1323,6 +1323,16 @@ html[data-theme-mode="dark"] .wordmarkName {
   background: var(--mk-sky);
 }
 
+.onboardingLayout {
+  display: grid;
+  align-items: start;
+  gap: var(--mk-heading-content-gap);
+}
+
+.onboardingSteps {
+  min-width: 0;
+}
+
 .heroEyebrow {
   margin-bottom: 1.25rem;
 }
@@ -2989,7 +2999,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 .ctaBlock {
   position: relative;
   z-index: 1;
-  padding: var(--mk-chapter-pad-y) 0 2.5rem;
+  padding: 6rem 0 2.5rem;
 }
 
 .closingCta {
@@ -5225,7 +5235,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .verticalCtaBlock {
-  padding: var(--mk-section-space-lg) 0 var(--mk-section-space-md);
+  padding-bottom: var(--mk-section-space-md);
 }
 
 .verticalCtaActions {
@@ -5520,10 +5530,6 @@ html[data-theme-mode="dark"] .wordmarkName {
 
   .workflowShowcase .headingFollow {
     margin-top: var(--mk-heading-content-gap);
-  }
-
-  .page[data-vertical] .ctaBlock {
-    padding-top: var(--mk-section-space-lg);
   }
 
   .verticalFaqBand .inner {
@@ -5945,6 +5951,26 @@ html[data-theme-mode="dark"] .wordmarkName {
   .contactPair {
     grid-template-columns: 1fr 1fr;
     align-items: stretch;
+  }
+
+  /* First band after a marketing hero, plus the homepage clinic-type showcase. */
+  main > .marketingSoft:first-of-type > .band:first-child,
+  main > .marketingShowcase.workflowShowcase > .band:first-child {
+    padding-top: 7rem;
+  }
+
+  .verticalHero + .verticalBand {
+    padding-top: 7rem;
+  }
+
+  .aboutOwnership,
+  .marketingSoft > .band.aboutScopeBand {
+    padding: 7rem 0;
+  }
+
+  .onboardingLayout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 2.75rem;
   }
 }
 

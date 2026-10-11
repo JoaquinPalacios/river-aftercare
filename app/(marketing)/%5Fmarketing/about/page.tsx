@@ -211,7 +211,7 @@ export default async function MarketingAboutPage() {
         </section>
 
         <div className={styles.marketingSoft} data-mk-chapter="soft">
-          <div className={styles.band}>
+          <div className={`${styles.band} ${styles.aboutScopeBand}`}>
             <div className={styles.inner}>
               <section
                 className={styles.aboutScope}

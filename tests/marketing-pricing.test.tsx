@@ -429,8 +429,14 @@ describe("marketing pricing page", () => {
     expect(at).toBeGreaterThan(-1);
     const around = html.slice(Math.max(0, at - 280), at);
     expect(around).toContain("mkReveal");
+    expect(html).toContain("onboardingLayout");
+    expect(html).toContain("onboardingSteps");
     expect(html).toContain("data-mk-numbered-steps");
-    expect(html.indexOf("data-mk-numbered-steps")).toBeLessThan(at);
+    const layoutAt = html.indexOf("onboardingLayout");
+    const stepsAt = html.indexOf("data-mk-numbered-steps");
+    expect(layoutAt).toBeGreaterThan(-1);
+    expect(stepsAt).toBeGreaterThan(layoutAt);
+    expect(stepsAt).toBeLessThan(at);
   });
 });
 

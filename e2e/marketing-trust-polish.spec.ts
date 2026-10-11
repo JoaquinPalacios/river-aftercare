@@ -265,15 +265,16 @@ test.describe("marketing + trust polish", () => {
       .evaluate((element) =>
         Number.parseFloat(getComputedStyle(element).paddingTop)
       );
+    expect(contactPad).toBe(112);
     expect(aboutPad).toBe(contactPad);
-    const notChapterPad = await page
+    const scopePad = await page
       .locator('[data-mk-chapter="soft"]')
       .nth(1)
       .locator(":scope > :first-child")
       .evaluate((element) =>
         Number.parseFloat(getComputedStyle(element).paddingTop)
       );
-    expect(notChapterPad).toBeGreaterThanOrEqual(64);
+    expect(scopePad).toBe(112);
     await page.screenshot({
       path: "test-results/artifacts/public-about-1440.png",
       fullPage: true,
