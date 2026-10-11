@@ -19,6 +19,16 @@ Production probes from this US runner (`x-vercel-id` `iad1::syd1`) on 2026-10-08
 
 Vitest on this pass: 366 files, 2532 tests, 61.70s, all passed. No test was removed. Chairside route tests still guard URLs that must stay absent. There are no snapshots.
 
+## Marketing section spacing (2026-10-11)
+
+Closing CTAs share `.ctaBlock` in `app/(marketing)/marketing.module.css`. Homepage and pricing use that class alone. About, the clinics hub, and vertical landings also use `.verticalCtaBlock`, which now only sets the bottom padding to `--mk-section-space-md`. Top padding is `6rem` from the shared rule, and `4rem` at `max-width: 47.99rem`. The old `.page[data-vertical] .ctaBlock` mobile override is gone, so dental, physiotherapy, chiropractic, and cosmetic use the same `4rem` mobile top. Bottom padding stays `2.5rem` on homepage and pricing.
+
+From `64rem`, the first `.band` in `main > .marketingSoft:first-of-type` uses `padding-top: 7rem`, except `.legalArticle`. That covers homepage The Problem, About What it is, pricing Plans, the clinics hub platform section, and contact. Homepage Built for different kinds of care is `main > .marketingShowcase.workflowShowcase > .band:first-child`, also `7rem`. Vertical problem sections are `.verticalHero + .verticalBand` with `padding-top: 7rem` and the existing `--mk-section-space-lg` bottom. Later chapter openers, including pricing notes and the clinics hub discovery and foundation sections, stay on `--mk-chapter-pad-y`. Privacy and Terms stay on that chapter rule too.
+
+About Clinic ownership is `.aboutOwnership` with `padding: 7rem 0` from `64rem`. Product scope padding is on `.band.aboutScopeBand`, same `7rem 0`, so the soft background still includes the padding. Below `64rem` those sections keep the previous padding. Inner gutters stay on `.inner`.
+
+Pricing Onboarding is `.onboardingLayout`: one column below `64rem`, then `minmax(0, 1fr) minmax(0, 1fr)` with `column-gap: 2.75rem`. The intro stays in `.headingBlock`. `.onboardingSteps` holds the numbered steps and the template-availability note, which still uses `.headingFollow`. Copy is unchanged.
+
 ## Homepage why-clinics benefits (2026-10-10)
 
 The three cards under “Why clinics use it” each list two benefits. Easy for patients to revisit is Durable link and Readable on a phone. Clinic contact nearby is not a benefit on that card. The patient-card illustration still shows the Call the practice chip and the demo URL. Looks like your clinic, Simple for your team, Controlled publishing, card layout, and patient contact behaviour are unchanged.

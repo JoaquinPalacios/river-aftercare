@@ -110,6 +110,10 @@ describe("marketing about page", () => {
     expect(marketingCss).toContain(
       "padding-top: var(--mk-chapter-pad-y-mobile)"
     );
+    expect(marketingCss).toContain("padding-top: 7rem");
+    expect(marketingCss).toContain("padding: 7rem 0");
+    expect(marketingCss).toContain(".aboutScopeBand");
+    expect(marketingCss).toContain("padding: 6rem 0 2.5rem");
     expect(marketingCss).toContain(".aboutEditorial");
     expect(marketingCss).toContain(".aboutValuePanel");
     expect(marketingCss).toContain(".aboutScopeGrid");
