@@ -5,16 +5,17 @@ import { describe, expect, it } from "vitest";
 const styles = readFileSync("app/(marketing)/marketing.module.css", "utf8");
 const tokens = readFileSync("app/(marketing)/marketing.css", "utf8");
 
-function blockAfter(source: string, marker: string): string {
+function mediaBlock(source: string, marker: string): string {
   const start = source.lastIndexOf(marker);
   expect(start).toBeGreaterThan(-1);
-  return source.slice(start);
+  const next = source.indexOf("\n@media", start + marker.length);
+  return next === -1 ? source.slice(start) : source.slice(start, next);
 }
 
 describe("marketing content spacing contract", () => {
   it("keeps the closing CTA on its own padding", () => {
     expect(styles).toMatch(/\.ctaBlock\s*\{[^}]*padding:\s*6rem 0 2\.5rem;/);
-    const mobile = blockAfter(styles, "@media (max-width: 47.99rem)");
+    const mobile = mediaBlock(styles, "@media (max-width: 47.99rem)");
     expect(mobile).toMatch(/\.ctaBlock\s*\{[^}]*padding-top:\s*4rem;/);
     expect(styles).toMatch(
       /\.verticalCtaBlock\s*\{[^}]*padding-bottom:\s*var\(--mk-section-space-md\);/
@@ -24,7 +25,7 @@ describe("marketing content spacing contract", () => {
   });
 
   it("uses one desktop rhythm and a wider homepage storytelling gap", () => {
-    const desktop = blockAfter(styles, "@media (min-width: 64rem)");
+    const desktop = mediaBlock(styles, "@media (min-width: 64rem)");
 
     expect(desktop).toContain("padding-bottom: var(--mk-content-space)");
     expect(desktop).toContain("padding-top: var(--mk-content-space)");
@@ -48,7 +49,7 @@ describe("marketing content spacing contract", () => {
   });
 
   it("gives mobile groups one separation and a different edge", () => {
-    const mobile = blockAfter(styles, "@media (max-width: 47.99rem)");
+    const mobile = mediaBlock(styles, "@media (max-width: 47.99rem)");
 
     expect(mobile).toContain("padding-bottom: var(--mk-content-space-mobile)");
     expect(mobile).toContain(
@@ -86,7 +87,7 @@ describe("marketing content spacing contract", () => {
   });
 
   it("raises inner-page heroes to the desktop minimum without shrinking pricing", () => {
-    const desktop = blockAfter(styles, "@media (min-width: 64rem)");
+    const desktop = mediaBlock(styles, "@media (min-width: 64rem)");
 
     expect(desktop).toContain(
       "padding-top: max(4rem, clamp(3.1rem, 5.4vw, 4.35rem))"
