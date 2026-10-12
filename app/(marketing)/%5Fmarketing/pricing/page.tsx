@@ -207,19 +207,22 @@ export default async function MarketingPricingPage() {
               </div>
               <div className={styles.onboardingSteps}>
                 <MarketingNumberedSteps items={ONBOARDING_STEPS} />
-                <MarketingRevealCard
-                  index={ONBOARDING_STEPS.length}
-                  className={styles.headingFollow}
-                >
-                  <p className={styles.copy}>{GUIDE_AVAILABILITY_NOTE}</p>
-                </MarketingRevealCard>
               </div>
+              <MarketingRevealCard
+                index={ONBOARDING_STEPS.length}
+                className={styles.onboardingNote}
+              >
+                <p className={styles.copy}>{GUIDE_AVAILABILITY_NOTE}</p>
+              </MarketingRevealCard>
             </div>
           </section>
         </div>
 
         <div className={styles.marketingShowcase} data-mk-chapter="showcase">
-          <section className={styles.band} aria-labelledby="notes-heading">
+          <section
+            className={`${styles.band} ${styles.pricingNotesBand}`}
+            aria-labelledby="notes-heading"
+          >
             <div className={styles.inner}>
               <div className={styles.headingBlock}>
                 <MarketingRevealGroup>
