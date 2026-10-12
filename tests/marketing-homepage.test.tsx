@@ -289,7 +289,10 @@ describe("marketing homepage", () => {
     expect(html).toContain('src="/brand/river-aftercare-isologo.svg"');
     expect(html).toContain('src="/marketing/iphone-frame.webp"');
     expect(html).toMatch(/fetch[Pp]riority="low"/);
-    expect(html.match(/<img\b/g)).toHaveLength(4);
+    expect(
+      html.match(/src="\/brand\/river-aftercare-logo\.svg"/g)
+    ).toHaveLength(2);
+    expect(html.match(/<img\b/g)).toHaveLength(5);
     expect(html).not.toContain("patient PIN");
     expect(html).not.toContain("treatment ID");
     expect(html).not.toContain("date of birth");
