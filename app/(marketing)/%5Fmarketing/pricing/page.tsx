@@ -219,10 +219,7 @@ export default async function MarketingPricingPage() {
         </div>
 
         <div className={styles.marketingShowcase} data-mk-chapter="showcase">
-          <section
-            className={`${styles.band} ${styles.pricingNotesBand}`}
-            aria-labelledby="notes-heading"
-          >
+          <section className={styles.band} aria-labelledby="notes-heading">
             <div className={styles.inner}>
               <div className={styles.headingBlock}>
                 <MarketingRevealGroup>

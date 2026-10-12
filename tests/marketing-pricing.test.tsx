@@ -72,7 +72,7 @@ describe("marketing pricing page", () => {
     expect(html).toContain("Clear pricing");
     expect(html).not.toContain("Clear pricing, assisted setup");
     expect(html).toContain("What these prices include");
-    expect(html).toContain("pricingNotesBand");
+    expect(html).not.toContain("pricingNotesBand");
     expect(html).not.toContain("laterList");
     expect(html).not.toContain("Coming after launch");
     expect(html).not.toContain("Commercial notes");
@@ -454,10 +454,9 @@ describe("marketing pricing page", () => {
     expect(desktop).toMatch(/max-width:\s*75ch/);
     expect(desktop).toContain("margin-inline: auto");
     expect(desktop).toContain("text-align: left");
-    expect(desktop).toContain(".marketingShowcase > .band.pricingNotesBand");
-    expect(desktop).toMatch(
-      /\.marketingShowcase > \.band\.pricingNotesBand,\s*\.marketingShowcase > \.band\.clinicsHubDiscovery\s*\{[^}]*padding-top:\s*7rem;[^}]*padding-bottom:\s*7rem;/
-    );
+    expect(desktop).toContain(".marketingShowcase > .band:first-child");
+    expect(desktop).toContain("padding-bottom: var(--mk-content-space)");
+    expect(desktop).not.toContain(".pricingNotesBand");
   });
 });
 

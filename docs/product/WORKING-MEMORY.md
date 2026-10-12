@@ -19,6 +19,18 @@ Production probes from this US runner (`x-vercel-id` `iad1::syd1`) on 2026-10-08
 
 Vitest on this pass: 366 files, 2532 tests, 61.70s, all passed. No test was removed. Chairside route tests still guard URLs that must stay absent. There are no snapshots.
 
+## Marketing spacing architecture (2026-10-12)
+
+Public marketing content between the hero and the closing CTA uses one rhythm. Desktop starts at `64rem`. Mobile is below `48rem`. Tablet (`48rem`–`63.99rem`) keeps the previous chapter scale: first band top `--mk-chapter-pad-y` (`6rem`), following bands add no top padding, non-last bottom `--mk-section-pad-bottom` (`8rem`), last bottom `--mk-section-pad-bottom-last` (`6rem`). Vertical bands, About ownership, and the About editorial gap stay on `--mk-section-space-lg` in that range.
+
+Desktop content space is `--mk-content-space` (`7rem`). The homepage soft chapter is the exception: first band top and the gap before the next band are `--mk-content-space-home` (`8rem`). The last band in that chapter still ends at `7rem`. A band's padding-bottom is the only separation; the next band's padding-top stays `0`. A single band is an independent section and gets `7rem` on both sides. Mobile separation is `--mk-content-space-mobile` (`3.5rem`). A shared group's first band is `--mk-content-group-edge-mobile` (`4rem`) unless it follows the hero, in which case the top is `3.5rem`. The group's last band ends at `4rem`. An only-child band is `3.5rem` on both sides. About “What it is” and “Who it is for” share one band; their gap is the editorial margin, and that band's mobile bottom stays the group edge (`4rem`).
+
+Inner-page heroes (page, vertical, clinics hub) use `padding-top: 3rem` below `48rem`. From `64rem` the top is at least `4rem`. Pricing keeps `max(4rem, clamp(3.1rem, 5.4vw, 4.35rem))` so the larger clamp is not compressed. Hero content bottom is at least `4rem` from `64rem` on `.pageHeroInner`, `.verticalHeroInner`, and `.clinicsHubHeroInner`. Below that, `--mk-hero-bottom-gap` stays. The homepage hero is unchanged. Glow separators are unchanged.
+
+Closing CTAs stay outside this rhythm: `.ctaBlock` is `6rem 0 2.5rem`, mobile top `4rem`, and `.verticalCtaBlock` only sets the bottom to `--mk-section-space-md`.
+
+Removed the inverted `--mk-section-pad-*` clamps, `--mk-chapter-pad-y-mobile`, `.band:first-of-type`, and the page-specific `7rem` rules for `.aboutScopeBand`, `.pricingNotesBand`, and `.clinicsHubPlatformBand`. Those three classes are gone. `.clinicsHubDiscovery` still paints `--mk-hero`. Specialty sections stay independent because soft, canvas, and showcase backgrounds differ in light and dark. Legal articles are one band; nested legal sections are document spacing. Status, 404, and error pages are not in this rhythm. No migration.
+
 ## Inner-page hero glow (2026-10-11)
 
 The separator under inner-page heroes is `MarketingPageHeroEdge` (`.mkPageWave` / `.mkPageWaveInner`, height `2.15rem`). Homepage uses the separate `MarketingWave` (`.mkWave`, `2.65rem`). Clinics hub has no glow separator.
@@ -26,6 +38,8 @@ The separator under inner-page heroes is `MarketingPageHeroEdge` (`.mkPageWave` 
 Master soft chapters (About, Pricing, Contact, Privacy, Terms) tint `.marketingSoft` with brand 3.5% in light and cobalt 5% in dark. The homepage fill already uses that mix. The inner-page fill is `currentColor` (`--mk-soft`) except under `[data-brand-scope="master"]`, where it shares the homepage mix. Vertical landings keep `currentColor` because `.verticalSurfaceSoft` is plain `--mk-soft`. The `2.15rem` height is the wave’s layout size; shrinking it only hid the mismatched band. PR #186 did not change this CSS.
 
 ## Marketing section spacing (2026-10-11)
+
+Superseded by Marketing spacing architecture (2026-10-12). The notes below describe the rules that consolidation replaced.
 
 Closing CTAs share `.ctaBlock` in `app/(marketing)/marketing.module.css`. Homepage and pricing use that class alone. About, the clinics hub, and vertical landings also use `.verticalCtaBlock`, which now only sets the bottom padding to `--mk-section-space-md`. Top padding is `6rem` from the shared rule, and `4rem` at `max-width: 47.99rem`. The old `.page[data-vertical] .ctaBlock` mobile override is gone, so dental, physiotherapy, chiropractic, and cosmetic use the same `4rem` mobile top. Bottom padding stays `2.5rem` on homepage and pricing.
 
