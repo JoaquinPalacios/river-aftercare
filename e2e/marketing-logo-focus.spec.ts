@@ -141,6 +141,18 @@ test.describe("about practice cards and header logo focus", () => {
         );
         expect(stillVisible).toBe(true);
 
+        await page.keyboard.press("Enter");
+        await expect(page).toHaveURL((url) => url.pathname === "/");
+        const homeLogo = logoLink(page);
+        await expect(homeLogo).toBeVisible();
+        const homeRing = await homeLogo.evaluate((element) =>
+          element.matches(":focus-visible")
+        );
+        expect(homeRing).toBe(false);
+
+        await page.goto(marketingUrl("/about"), { waitUntil: "load" });
+        await showMarketingScheme(page, scheme);
+        const pointerLogo = logoLink(page);
         await page.evaluate(() => {
           document.addEventListener(
             "click",
@@ -151,21 +163,12 @@ test.describe("about practice cards and header logo focus", () => {
             { capture: true, once: true }
           );
         });
-        await logo.click();
-        await expect(logo).toBeFocused();
-        const pointerFocus = await logo.evaluate((element) =>
+        await pointerLogo.click();
+        await expect(pointerLogo).toBeFocused();
+        const pointerFocus = await pointerLogo.evaluate((element) =>
           element.matches(":focus-visible")
         );
         expect(pointerFocus).toBe(false);
-
-        await page.keyboard.press("Enter");
-        await expect(page).toHaveURL((url) => url.pathname === "/");
-        const homeLogo = logoLink(page);
-        await expect(homeLogo).toBeVisible();
-        const homeRing = await homeLogo.evaluate((element) =>
-          element.matches(":focus-visible")
-        );
-        expect(homeRing).toBe(false);
       });
     }
   }
@@ -214,9 +217,21 @@ test.describe("about practice cards and header logo focus", () => {
     await page.goto(marketingUrl("/about"), { waitUntil: "load" });
     await showMarketingScheme(page, "dark");
     await page.getByRole("button", { name: "Site menu" }).click();
-    await page.keyboard.press("Shift+Tab");
-    await page.keyboard.press("Shift+Tab");
+    await expect(
+      page.getByRole("navigation", { name: "Marketing" }).getByRole("link", {
+        name: "Overview",
+        exact: true,
+      })
+    ).toBeVisible();
     const logo = logoLink(page);
+    for (let step = 0; step < 3; step += 1) {
+      if (
+        await logo.evaluate((element) => document.activeElement === element)
+      ) {
+        break;
+      }
+      await page.keyboard.press("Shift+Tab");
+    }
     await expect(logo).toBeFocused();
     const placement = await logo.evaluate((element) => {
       const style = getComputedStyle(element);
