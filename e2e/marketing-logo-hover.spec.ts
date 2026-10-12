@@ -85,6 +85,7 @@ test.describe("marketing header logo hover", () => {
           width,
           height: width < 800 ? 844 : 900,
         });
+        await page.mouse.move(8, 640);
         const before = await logoMetrics(page);
         expect(before.headerPosition, `${width}px header`).toBe("sticky");
         expect(before.headerHidden, `${width}px header`).toBe("false");
@@ -138,6 +139,9 @@ test.describe("marketing header logo hover", () => {
     expect(focus.outlineWidth).toBeGreaterThanOrEqual(2);
     expect(focus.markFilter).toContain("saturate");
 
+    await logo.evaluate((element) => {
+      if (element instanceof HTMLElement) element.blur();
+    });
     await page.evaluate(() => {
       document.addEventListener(
         "click",
@@ -169,25 +173,32 @@ test.describe("marketing header logo hover", () => {
     expect(hovered.markTransition).toBe("0s");
     expect(hovered.markTransform).toBe("none");
   });
+});
 
-  test("coarse pointers do not apply the symbol hover filter", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+test.describe("marketing header logo hover on a coarse pointer", () => {
+  test.use({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+    colorScheme: "dark",
+  });
+
+  test("does not apply the symbol hover filter", async ({ page }) => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
-    await showMarketingScheme(page, "dark");
-    const session = await page.context().newCDPSession(page);
-    await session.send("Emulation.setEmulatedMedia", {
-      features: [
-        { name: "hover", value: "none" },
-        { name: "pointer", value: "coarse" },
-      ],
+    await page.evaluate(() => {
+      try {
+        window.localStorage.setItem("aftercare-guide-marketing-theme", "dark");
+      } catch {
+        // Ignore storage failures in restricted contexts.
+      }
+      document.documentElement.setAttribute("data-theme-mode", "dark");
     });
     await logoLink(page).hover();
     const hovered = await logoMetrics(page);
     expect(hovered.markFilter).toBe("none");
     expect(hovered.logoFilter).toBe("none");
     expect(hovered.wordFilter).toBe("none");
+    expect(hovered.symbolOpacity).toBe("0");
     expect(
       await page.evaluate(
         () =>
