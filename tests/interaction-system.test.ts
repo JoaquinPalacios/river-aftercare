@@ -85,6 +85,45 @@ describe("interaction system", () => {
     expect(marketing).toContain("outline: 2px solid var(--mk-focus)");
   });
 
+  it("intensifies only the marketing header symbol on fine-pointer hover", () => {
+    const markRuleAt = marketingModule.indexOf(".wordmark:hover .mark");
+    expect(markRuleAt).toBeGreaterThan(-1);
+    const mediaAt = marketingModule.lastIndexOf(
+      "@media (hover: hover) and (pointer: fine)",
+      markRuleAt
+    );
+    expect(mediaAt).toBeGreaterThan(-1);
+    expect(marketingModule.slice(mediaAt, markRuleAt)).not.toContain(
+      "prefers-reduced-motion"
+    );
+    const markRule = marketingModule.slice(
+      markRuleAt,
+      marketingModule.indexOf("}", markRuleAt)
+    );
+    expect(markRule).toContain("filter: saturate(1.06) brightness(1.04)");
+    expect(markRule).not.toContain("transform");
+    expect(markRule).not.toContain("box-shadow");
+    expect(markRule).not.toContain("text-shadow");
+    expect(marketingModule).toContain(
+      "transition: filter 180ms cubic-bezier(0.22, 1, 0.36, 1)"
+    );
+    expect(marketingModule).toContain(
+      'html[data-theme-mode="dark"] .wordmark:hover .logoSymbol'
+    );
+    expect(marketingModule).toContain("clip-path: inset(0 82% 0 0)");
+    expect(marketingModule).toContain("opacity: 0");
+    expect(marketingModule).not.toMatch(/\.wordmark:hover \.logo\s*[,{]/);
+    expect(marketingModule).not.toMatch(/\.wordmark:hover\s*\{[^}]*filter/);
+    expect(marketingModule).not.toMatch(/\.wordmarkName[^{]*\{[^}]*filter/);
+    expect(marketingModule).not.toMatch(/\.footerMark:hover/);
+    const reduced =
+      marketingModule.match(
+        /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.logo \{[^}]*\}/
+      )?.[0] ?? "";
+    expect(reduced).toContain(".mark");
+    expect(reduced).toContain("transition: none");
+  });
+
   it("keeps focus-visible distinct from hover", () => {
     expect(marketingModule).toContain(".primary:focus-visible");
     expect(marketingModule).toContain(".secondary:focus-visible");

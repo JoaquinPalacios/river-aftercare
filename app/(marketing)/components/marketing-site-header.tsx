@@ -135,7 +135,10 @@ export function MarketingSiteHeader({
     >
       <div className={styles.topInner}>
         <Link className={styles.wordmark} href="/" aria-label={PRODUCT_NAME}>
-          <ProductLogo className={styles.logo} />
+          <span className={styles.logoFrame}>
+            <ProductLogo className={styles.logo} />
+            <ProductLogo className={`${styles.logo} ${styles.logoSymbol}`} />
+          </span>
           <span className={styles.wordmarkName}>
             <ProductMark className={styles.mark} />
             {PRODUCT_NAME}

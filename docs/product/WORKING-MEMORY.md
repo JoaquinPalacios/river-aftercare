@@ -19,6 +19,10 @@ Production probes from this US runner (`x-vercel-id` `iad1::syd1`) on 2026-10-08
 
 Vitest on this pass: 366 files, 2532 tests, 61.70s, all passed. No test was removed. Chairside route tests still guard URLs that must stay absent. There are no snapshots.
 
+## Marketing header logo hover (2026-10-12)
+
+The marketing header logo link is `.wordmark` in `marketing-site-header.tsx`. Light mode paints `.mark` (the isologo) beside the HTML wordmark. Dark mode paints `.logo` (the full lockup SVG) and hides `.wordmarkName`. Hover is only inside `@media (hover: hover) and (pointer: fine)`. The light symbol uses `filter: saturate(1.06) brightness(1.04)` with `transition: filter 180ms cubic-bezier(0.22, 1, 0.36, 1)`. `prefers-reduced-motion: reduce` sets that transition to `none` and keeps the filter. The dark lockup cannot be filtered as one image without also changing the wordmark, so a second copy (`.logoSymbol`) stays at `opacity: 0` until hover, then covers only the symbol with `clip-path: inset(0 82% 0 0)`. That edge sits in the clear gap between symbol ink (about 13%) and wordmark ink (about 23%). The wordmark copy is not filtered. Forced colours keeps `filter: none` and the symbol copy hidden. `.wordmark:focus-visible` is unchanged. Footer `.footerMark` is not included.
+
 ## About practice cards and header logo focus (2026-10-12)
 
 `.aboutClinicList` gap is `0.75rem` (12px at the default root). No breakpoint overrides that gap. Card padding, radius, borders, and the muted final row are unchanged. The marketing header logo link is `.wordmark` in `marketing-site-header.tsx`. Its keyboard ring comes from `.wordmark:focus-visible`: `2px solid var(--mk-focus)`, `outline-offset: 4px`, `border-radius: 0.25rem`. Forced colours uses `CanvasText`. The global marketing `:focus-visible` rule remains for other controls. The logo artwork, size, and header geometry are unchanged.
