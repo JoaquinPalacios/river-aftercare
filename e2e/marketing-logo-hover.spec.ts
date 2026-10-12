@@ -86,6 +86,12 @@ test.describe("marketing header logo hover", () => {
           height: width < 800 ? 844 : 900,
         });
         await page.mouse.move(8, 640);
+        await expect
+          .poll(async () => {
+            const metrics = await logoMetrics(page);
+            return `${metrics.markFilter}|${metrics.logoFilter}|${metrics.symbolOpacity}`;
+          })
+          .toBe("none|none|0");
         const before = await logoMetrics(page);
         expect(before.headerPosition, `${width}px header`).toBe("sticky");
         expect(before.headerHidden, `${width}px header`).toBe("false");
