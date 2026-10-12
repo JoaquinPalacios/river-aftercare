@@ -1333,6 +1333,11 @@ html[data-theme-mode="dark"] .wordmarkName {
   min-width: 0;
 }
 
+.onboardingNote {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
 .heroEyebrow {
   margin-bottom: 1.25rem;
 }
@@ -5968,9 +5973,27 @@ html[data-theme-mode="dark"] .wordmarkName {
     padding: 7rem 0;
   }
 
+  .marketingShowcase > .band.pricingNotesBand,
+  .marketingShowcase > .band.clinicsHubDiscovery {
+    padding-top: 7rem;
+    padding-bottom: 7rem;
+  }
+
+  /* Top padding is already 7rem from the first post-hero band. */
+  .marketingSoft > .band.clinicsHubPlatformBand {
+    padding-bottom: 7rem;
+  }
+
   .onboardingLayout {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     column-gap: 2.75rem;
+  }
+
+  .onboardingNote .copy {
+    width: min(75ch, 100%);
+    max-width: 75ch;
+    margin-inline: auto;
+    text-align: left;
   }
 }
 

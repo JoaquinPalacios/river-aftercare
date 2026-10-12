@@ -107,7 +107,10 @@ export function MarketingClinicsHub({
         </section>
 
         <div className={styles.marketingSoft} data-mk-chapter="soft">
-          <section className={styles.band} aria-labelledby="clinics-platform">
+          <section
+            className={`${styles.band} ${styles.clinicsHubPlatformBand}`}
+            aria-labelledby="clinics-platform"
+          >
             <div className={styles.inner}>
               <div className={styles.clinicsHubPlatform}>
                 <MarketingRevealGroup>

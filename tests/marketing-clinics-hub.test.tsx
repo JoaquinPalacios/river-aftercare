@@ -66,6 +66,7 @@ describe("clinics overview hub", () => {
     );
     expect(html).toContain(CLINICS_HUB_COPY.platform.body);
     expect(html).toContain("clinicsHubPlatform");
+    expect(html).toContain("clinicsHubPlatformBand");
     expect(html).toContain("clinicsHubPlatformIntro");
     expect(html).toContain("clinicsHubPlatformBody");
     expect(html).toContain("Dental practices");
@@ -157,6 +158,17 @@ describe("clinics overview hub", () => {
     expect(styles).toContain("var(--mk-heading-intro-gap)");
     expect(styles).toContain(".clinicsHubOtherFitList");
     expect(styles).not.toMatch(/\.clinicsHubOther\s*\{[^}]*max-width:\s*40rem/);
+    const desktop = styles.slice(
+      styles.lastIndexOf("@media (min-width: 64rem)")
+    );
+    expect(desktop).toContain(".marketingShowcase > .band.clinicsHubDiscovery");
+    expect(desktop).toContain(".marketingSoft > .band.clinicsHubPlatformBand");
+    expect(desktop).toMatch(
+      /\.marketingSoft > \.band\.clinicsHubPlatformBand\s*\{[^}]*padding-bottom:\s*7rem;/
+    );
+    expect(desktop).not.toMatch(
+      /\.marketingSoft > \.band\.clinicsHubPlatformBand\s*\{[^}]*padding-top:/
+    );
   });
 
   it("keeps For clinics as the directory label and Overview as the hub entry", () => {

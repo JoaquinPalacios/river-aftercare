@@ -72,6 +72,7 @@ describe("marketing pricing page", () => {
     expect(html).toContain("Clear pricing");
     expect(html).not.toContain("Clear pricing, assisted setup");
     expect(html).toContain("What these prices include");
+    expect(html).toContain("pricingNotesBand");
     expect(html).not.toContain("laterList");
     expect(html).not.toContain("Coming after launch");
     expect(html).not.toContain("Commercial notes");
@@ -431,12 +432,32 @@ describe("marketing pricing page", () => {
     expect(around).toContain("mkReveal");
     expect(html).toContain("onboardingLayout");
     expect(html).toContain("onboardingSteps");
+    expect(html).toContain("onboardingNote");
     expect(html).toContain("data-mk-numbered-steps");
     const layoutAt = html.indexOf("onboardingLayout");
     const stepsAt = html.indexOf("data-mk-numbered-steps");
+    const stepsEnd = html.indexOf("</ol>", stepsAt);
     expect(layoutAt).toBeGreaterThan(-1);
     expect(stepsAt).toBeGreaterThan(layoutAt);
-    expect(stepsAt).toBeLessThan(at);
+    expect(stepsEnd).toBeGreaterThan(stepsAt);
+    expect(stepsEnd).toBeLessThan(at);
+    expect(html.slice(stepsAt, stepsEnd)).not.toContain("onboardingNote");
+    expect(html.slice(stepsEnd, at)).toContain("onboardingNote");
+    const styles = readFileSync("app/(marketing)/marketing.module.css", "utf8");
+    expect(styles).toMatch(
+      /\.onboardingNote\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/
+    );
+    const desktop = styles.slice(
+      styles.lastIndexOf("@media (min-width: 64rem)")
+    );
+    expect(desktop).toContain(".onboardingNote .copy");
+    expect(desktop).toMatch(/max-width:\s*75ch/);
+    expect(desktop).toContain("margin-inline: auto");
+    expect(desktop).toContain("text-align: left");
+    expect(desktop).toContain(".marketingShowcase > .band.pricingNotesBand");
+    expect(desktop).toMatch(
+      /\.marketingShowcase > \.band\.pricingNotesBand,\s*\.marketingShowcase > \.band\.clinicsHubDiscovery\s*\{[^}]*padding-top:\s*7rem;[^}]*padding-bottom:\s*7rem;/
+    );
   });
 });
 
