@@ -338,6 +338,63 @@ test.describe("marketing + trust polish", () => {
     await expectNoSeriousAxeViolations(page);
   });
 
+  test("inner-page glow fill matches the section it meets", async ({
+    page,
+  }) => {
+    async function waveBoundary(pathname: string, scheme: "light" | "dark") {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(marketingUrl(pathname), { waitUntil: "load" });
+      await showMarketingScheme(page, scheme);
+      return page.evaluate(() => {
+        const wave = document.querySelector(".mkPageWave");
+        const fill = document.querySelector(".mkPageWaveFill");
+        const inner = document.querySelector(".mkPageWaveInner");
+        const next = wave?.parentElement?.nextElementSibling ?? null;
+        const band = next?.firstElementChild ?? null;
+        if (!wave || !fill || !inner || !next || !band) {
+          return null;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context) {
+          return null;
+        }
+        const rgb = (color: string) => {
+          context.clearRect(0, 0, 1, 1);
+          context.fillStyle = "#000";
+          context.fillStyle = color;
+          context.fillRect(0, 0, 1, 1);
+          const [red, green, blue] = context.getImageData(0, 0, 1, 1).data;
+          return `${red},${green},${blue}`;
+        };
+        const fillColor = getComputedStyle(fill).fill;
+        const nextColor = getComputedStyle(next).backgroundColor;
+        return {
+          fill: rgb(fillColor),
+          next: rgb(nextColor),
+          height: getComputedStyle(inner).height,
+          paddingTop: getComputedStyle(band).paddingTop,
+        };
+      });
+    }
+
+    for (const scheme of ["light", "dark"] as const) {
+      const about = await waveBoundary("/about", scheme);
+      expect(about, `${scheme} about boundary`).not.toBeNull();
+      expect(about!.fill, `${scheme} about fill`).toBe(about!.next);
+      expect(Number.parseFloat(about!.height)).toBeCloseTo(34.39, 1);
+      expect(about!.paddingTop).toBe("112px");
+
+      const dental = await waveBoundary("/dental", scheme);
+      expect(dental, `${scheme} dental boundary`).not.toBeNull();
+      expect(dental!.fill, `${scheme} dental fill`).toBe(dental!.next);
+      expect(Number.parseFloat(dental!.height)).toBeCloseTo(34.39, 1);
+      expect(dental!.fill).not.toBe(about!.fill);
+    }
+  });
+
   test("marketing trust surfaces do not overflow across launch viewports", async ({
     page,
   }) => {

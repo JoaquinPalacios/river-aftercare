@@ -478,17 +478,6 @@ html[data-mk-motion="enhance"] .mkReveal[data-mk-pending][data-mk-preview] {
   height: 2.65rem;
 }
 
-.mkWaveFill {
-  fill: var(
-      --lightningcss-light,
-      color-mix(in srgb, var(--mk-brand) 3.5%, var(--mk-soft))
-    )
-    var(
-      --lightningcss-dark,
-      color-mix(in srgb, var(--mk-cobalt) 5%, var(--mk-soft))
-    );
-}
-
 .mkWaveGlow {
   stroke-width: 6.5;
   opacity: var(--mk-wave-glow-opacity);
@@ -521,6 +510,20 @@ html[data-mk-motion="enhance"] .mkReveal[data-mk-pending][data-mk-preview] {
 
 .mkPageWaveFill {
   fill: currentColor;
+}
+
+/* Master soft chapters tint --mk-soft. Match that paint or a warm strip
+   sits under the glow. Vertical pages keep currentColor (--mk-soft). */
+.mkWaveFill,
+[data-brand-scope="master"] .mkPageWaveFill {
+  fill: var(
+      --lightningcss-light,
+      color-mix(in srgb, var(--mk-brand) 3.5%, var(--mk-soft))
+    )
+    var(
+      --lightningcss-dark,
+      color-mix(in srgb, var(--mk-cobalt) 5%, var(--mk-soft))
+    );
 }
 
 .mkPageWaveGlow {

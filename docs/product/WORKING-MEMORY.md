@@ -19,6 +19,12 @@ Production probes from this US runner (`x-vercel-id` `iad1::syd1`) on 2026-10-08
 
 Vitest on this pass: 366 files, 2532 tests, 61.70s, all passed. No test was removed. Chairside route tests still guard URLs that must stay absent. There are no snapshots.
 
+## Inner-page hero glow (2026-10-11)
+
+The separator under inner-page heroes is `MarketingPageHeroEdge` (`.mkPageWave` / `.mkPageWaveInner`, height `2.15rem`). Homepage uses the separate `MarketingWave` (`.mkWave`, `2.65rem`). Clinics hub has no glow separator.
+
+Master soft chapters (About, Pricing, Contact, Privacy, Terms) tint `.marketingSoft` with brand 3.5% in light and cobalt 5% in dark. The homepage fill already uses that mix. The inner-page fill is `currentColor` (`--mk-soft`) except under `[data-brand-scope="master"]`, where it shares the homepage mix. Vertical landings keep `currentColor` because `.verticalSurfaceSoft` is plain `--mk-soft`. The `2.15rem` height is the wave’s layout size; shrinking it only hid the mismatched band. PR #186 did not change this CSS.
+
 ## Marketing section spacing (2026-10-11)
 
 Closing CTAs share `.ctaBlock` in `app/(marketing)/marketing.module.css`. Homepage and pricing use that class alone. About, the clinics hub, and vertical landings also use `.verticalCtaBlock`, which now only sets the bottom padding to `--mk-section-space-md`. Top padding is `6rem` from the shared rule, and `4rem` at `max-width: 47.99rem`. The old `.page[data-vertical] .ctaBlock` mobile override is gone, so dental, physiotherapy, chiropractic, and cosmetic use the same `4rem` mobile top. Bottom padding stays `2.5rem` on homepage and pricing.
