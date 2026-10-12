@@ -92,14 +92,11 @@
   --mk-wave-glow-opacity: light-dark(0.3, 0.52);
   --mk-interact-duration: var(--interaction-duration);
   --mk-interact-ease: var(--interaction-easing);
-  /* Tablet band rhythm, 48rem–63.99rem. Mobile and desktop contracts replace it. */
-  --mk-section-pad-bottom: 8rem;
-  --mk-section-pad-bottom-last: 6rem;
-  --mk-chapter-pad-y: 6rem;
   /* Content rhythm between the hero and the closing CTA.
-     Desktop from 64rem. Mobile below 48rem. Homepage desktop
-     storytelling uses the wider space. Group edges are the
-     mobile start (when it does not follow a hero) and end. */
+     Desktop from 64rem. Below 64rem, including tablet, uses the
+     mobile space. Homepage desktop storytelling uses the wider
+     space. Group edges are the start, unless that section follows
+     a hero, and the end. */
   --mk-content-space: 7rem;
   --mk-content-space-home: 8rem;
   --mk-content-space-mobile: 3.5rem;

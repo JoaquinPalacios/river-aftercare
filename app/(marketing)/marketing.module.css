@@ -2069,22 +2069,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   letter-spacing: -0.01em;
 }
 
-/* Tablet spacing owner: a band's padding-bottom is the only gap before
-   the next band in the same chapter. The next band does not add padding-top.
-   Mobile and desktop replace these values. Closing CTAs are not bands. */
-.band {
-  padding-bottom: var(--mk-section-pad-bottom);
-}
-
-.band:last-of-type {
-  padding-bottom: var(--mk-section-pad-bottom-last);
-}
-
-.marketingSoft > .band:first-child,
-.marketingShowcase > .band:first-child {
-  padding-top: var(--mk-chapter-pad-y);
-}
-
 .problemTitle {
   margin: 0;
   font-size: clamp(1.8rem, 4vw, 3rem);
@@ -4513,10 +4497,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   background: var(--mk-brand);
 }
 
-.verticalBand {
-  padding: var(--mk-section-space-lg) 0;
-}
-
 .verticalSurfaceSoft {
   background: var(--mk-soft);
   color: var(--mk-ink);
@@ -5303,10 +5283,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   grid-area: module;
 }
 
-.aboutEditorial + .aboutEditorial {
-  margin-top: var(--mk-section-space-lg);
-}
-
 .aboutCopy {
   min-width: 0;
   max-width: 40rem;
@@ -5400,7 +5376,6 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .aboutOwnership {
-  padding: var(--mk-section-space-lg) 0;
   background: light-dark(
     color-mix(in srgb, var(--mk-brand) 6%, var(--mk-hero)),
     color-mix(in srgb, var(--mk-cobalt) 12%, var(--mk-hero))
@@ -5523,6 +5498,56 @@ html[data-theme-mode="dark"] .wordmarkName {
     padding-top: 3rem;
   }
 
+  .workflowShowcase::before {
+    opacity: light-dark(0.36, 0.52);
+  }
+
+  .workflowShowcase .headingFollow {
+    margin-top: var(--mk-heading-content-gap);
+  }
+
+  .verticalFaqBand .inner {
+    max-width: min(80rem, calc(100% - 2rem));
+  }
+
+  .verticalHero::before,
+  .pageHeroPricing::before,
+  .pageHeroContact::before {
+    opacity: 0.7;
+  }
+
+  .heroActions {
+    width: 100%;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+
+  .heroActions > * {
+    width: 100%;
+  }
+
+  .productGrid {
+    row-gap: 1rem;
+  }
+
+  .productInputs {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .productPlus {
+    justify-self: center;
+  }
+
+  .phoneScreen {
+    padding: 1.4rem 0.68rem 0.75rem;
+  }
+}
+
+/* Content rhythm below 64rem, including tablet. Desktop replaces it.
+   Heroes, navigation, and the closing CTA keep their own breakpoints. */
+@media (max-width: 63.99rem) {
   /* Separation is one padding-bottom. The following band has no padding-top. */
   .marketingSoft > .band,
   .marketingShowcase > .band {
@@ -5568,52 +5593,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   .verticalBand,
   .aboutOwnership {
     padding: var(--mk-content-space-mobile) 0;
-  }
-
-  .workflowShowcase::before {
-    opacity: light-dark(0.36, 0.52);
-  }
-
-  .workflowShowcase .headingFollow {
-    margin-top: var(--mk-heading-content-gap);
-  }
-
-  .verticalFaqBand .inner {
-    max-width: min(80rem, calc(100% - 2rem));
-  }
-
-  .verticalHero::before,
-  .pageHeroPricing::before,
-  .pageHeroContact::before {
-    opacity: 0.7;
-  }
-
-  .heroActions {
-    width: 100%;
-    flex-direction: column;
-    flex-wrap: nowrap;
-    align-items: stretch;
-  }
-
-  .heroActions > * {
-    width: 100%;
-  }
-
-  .productGrid {
-    row-gap: 1rem;
-  }
-
-  .productInputs {
-    grid-template-columns: 1fr;
-    justify-items: stretch;
-  }
-
-  .productPlus {
-    justify-self: center;
-  }
-
-  .phoneScreen {
-    padding: 1.4rem 0.68rem 0.75rem;
   }
 }
 

@@ -231,15 +231,69 @@ test.describe("marketing content spacing", () => {
     await expectNoHorizontalOverflow(page);
   });
 
-  test("tablet keeps the previous chapter scale", async ({ page }) => {
-    await page.setViewportSize({ width: 768, height: 1024 });
+  test("content rhythm holds below 1024 and desktop storytelling starts at 1024", async ({
+    page,
+  }) => {
+    for (const width of [767, 768, 1023] as const) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(marketingUrl("/"), { waitUntil: "load" });
+      await showMarketingScheme(page, "light");
+      const problem = await bandBox(page, "problem-heading");
+      const brand = await bandBox(page, "brand-heading");
+      const clinicTypes = await bandBox(page, "clinic-types-heading");
+      expect(problem.paddingTop, `${width} problem top`).toBeCloseTo(56, 0);
+      expect(problem.contentGap, `${width} storytelling gap`).toBeCloseTo(
+        56,
+        0
+      );
+      expect(problem.nextPaddingTop, `${width} next top`).toBe(0);
+      expect(brand.paddingBottom, `${width} brand bottom`).toBeCloseTo(64, 0);
+      expect(clinicTypes.paddingTop, `${width} clinic types`).toBeCloseTo(
+        56,
+        0
+      );
+      expect(
+        clinicTypes.paddingBottom,
+        `${width} clinic types bottom`
+      ).toBeCloseTo(56, 0);
+      expect(
+        (await bandBox(page, "closing-heading")).paddingTop,
+        `${width} homepage CTA`
+      ).toBeCloseTo(width < 768 ? 64 : 96, 0);
+
+      await page.goto(marketingUrl("/clinics"), { waitUntil: "load" });
+      await showMarketingScheme(page, "light");
+      const foundation = await bandBox(page, "clinics-foundation");
+      const other = await bandBox(page, "clinics-other");
+      const platform = await bandBox(page, "clinics-platform");
+      expect(platform.paddingTop, `${width} platform`).toBeCloseTo(56, 0);
+      expect(platform.paddingBottom, `${width} platform bottom`).toBeCloseTo(
+        56,
+        0
+      );
+      expect(foundation.paddingTop, `${width} foundation`).toBeCloseTo(64, 0);
+      expect(foundation.contentGap, `${width} clinics gap`).toBeCloseTo(56, 0);
+      expect(other.paddingBottom, `${width} clinics edge`).toBeCloseTo(64, 0);
+      expect(
+        (await bandBox(page, "clinics-cta")).paddingTop,
+        `${width} clinics CTA`
+      ).toBeCloseTo(width < 768 ? 64 : 96, 0);
+
+      await page.goto(marketingUrl("/dental"), { waitUntil: "load" });
+      await showMarketingScheme(page, "light");
+      const dental = await bandBox(page, "dental-problem");
+      expect(dental.paddingTop, `${width} dental`).toBeCloseTo(56, 0);
+      expect(dental.paddingBottom, `${width} dental bottom`).toBeCloseTo(56, 0);
+    }
+
+    await page.setViewportSize({ width: 1024, height: 800 });
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await showMarketingScheme(page, "light");
-    const problem = await bandBox(page, "problem-heading");
-    const brand = await bandBox(page, "brand-heading");
-    expect(problem.paddingTop).toBeCloseTo(96, 0);
-    expect(problem.contentGap).toBeCloseTo(128, 0);
-    expect(brand.paddingBottom).toBeCloseTo(96, 0);
+    const desktopProblem = await bandBox(page, "problem-heading");
+    const desktopBrand = await bandBox(page, "brand-heading");
+    expect(desktopProblem.paddingTop).toBeCloseTo(128, 0);
+    expect(desktopProblem.contentGap).toBeCloseTo(128, 0);
+    expect(desktopBrand.paddingBottom).toBeCloseTo(112, 0);
     expect((await bandBox(page, "closing-heading")).paddingTop).toBeCloseTo(
       96,
       0

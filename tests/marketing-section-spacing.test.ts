@@ -48,42 +48,62 @@ describe("marketing content spacing contract", () => {
     expect(desktop).not.toMatch(/\.ctaBlock\s*\{[^}]*padding/);
   });
 
-  it("gives mobile groups one separation and a different edge", () => {
-    const mobile = mediaBlock(styles, "@media (max-width: 47.99rem)");
+  it("uses the mobile content rhythm below 64rem, including tablet", () => {
+    const belowDesktop = mediaBlock(styles, "@media (max-width: 63.99rem)");
+    const phoneOnly = mediaBlock(styles, "@media (max-width: 47.99rem)");
 
-    expect(mobile).toContain("padding-bottom: var(--mk-content-space-mobile)");
-    expect(mobile).toContain(
+    expect(belowDesktop).toContain(
+      "padding-bottom: var(--mk-content-space-mobile)"
+    );
+    expect(belowDesktop).toContain(
       "padding-bottom: var(--mk-content-group-edge-mobile)"
     );
-    expect(mobile).toContain(
+    expect(belowDesktop).toContain(
       "padding-top: var(--mk-content-group-edge-mobile)"
     );
-    expect(mobile).toContain(":only-child");
-    expect(mobile).toContain(
+    expect(belowDesktop).toContain(":only-child");
+    expect(belowDesktop).toContain(
+      "main > .hero + .marketingSoft > .band:first-child"
+    );
+    expect(belowDesktop).toContain(
       "main > .pageHero + .marketingSoft > .band:first-child"
     );
-    expect(mobile).toContain(
+    expect(belowDesktop).toContain(
       "main > .clinicsHubHero + .marketingSoft > .band:first-child"
     );
-    expect(mobile).toContain("padding-top: var(--mk-content-space-mobile)");
-    expect(mobile).toContain(
+    expect(belowDesktop).toContain(
+      "padding-top: var(--mk-content-space-mobile)"
+    );
+    expect(belowDesktop).toContain(
       ".marketingSoft > .band:has(> .inner > .aboutEditorial + .aboutEditorial)"
     );
-    expect(mobile).toContain(".verticalBand");
-    expect(mobile).toContain("padding-top: 3rem");
-    expect(mobile).not.toContain("padding-top: var(--mk-content-space-home)");
+    expect(belowDesktop).toContain(".aboutEditorial + .aboutEditorial");
+    expect(belowDesktop).toContain(
+      "margin-top: var(--mk-content-space-mobile)"
+    );
+    expect(belowDesktop).toContain(".verticalBand");
+    expect(belowDesktop).toContain(".aboutOwnership");
+    expect(belowDesktop).not.toContain(
+      "padding-top: var(--mk-content-space-home)"
+    );
+    expect(belowDesktop).not.toMatch(/\.ctaBlock\s*\{[^}]*padding/);
+    expect(belowDesktop).not.toContain(".phoneShell");
+    expect(belowDesktop).not.toContain("padding-top: 3rem");
+
+    expect(phoneOnly).toContain("padding-top: 3rem");
+    expect(phoneOnly).toMatch(/\.ctaBlock\s*\{[^}]*padding-top:\s*4rem;/);
+    expect(phoneOnly).not.toContain("--mk-content-space-mobile");
+    expect(styles).not.toContain(".band:first-of-type");
+    expect(styles).not.toContain(".band:last-of-type");
   });
 
-  it("keeps tablet band padding on the previous chapter scale", () => {
-    expect(tokens).toContain("--mk-chapter-pad-y: 6rem");
-    expect(tokens).toContain("--mk-section-pad-bottom: 8rem");
-    expect(tokens).toContain("--mk-section-pad-bottom-last: 6rem");
-    expect(styles).toContain("padding-top: var(--mk-chapter-pad-y)");
-    expect(styles).toContain("padding-bottom: var(--mk-section-pad-bottom)");
-    expect(styles).toContain(
-      "padding-bottom: var(--mk-section-pad-bottom-last)"
-    );
-    expect(styles).not.toContain(".band:first-of-type");
+  it("drops the obsolete tablet chapter tokens", () => {
+    expect(tokens).not.toContain("--mk-chapter-pad-y");
+    expect(tokens).not.toContain("--mk-section-pad-bottom");
+    expect(tokens).not.toContain("--mk-section-pad-bottom-last");
+    expect(styles).not.toContain("var(--mk-chapter-pad-y)");
+    expect(styles).not.toContain("var(--mk-section-pad-bottom)");
+    expect(styles).not.toContain("var(--mk-section-space-lg)");
   });
 
   it("raises inner-page heroes to the desktop minimum without shrinking pricing", () => {
