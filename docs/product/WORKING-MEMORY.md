@@ -19,6 +19,10 @@ Production probes from this US runner (`x-vercel-id` `iad1::syd1`) on 2026-10-08
 
 Vitest on this pass: 366 files, 2532 tests, 61.70s, all passed. No test was removed. Chairside route tests still guard URLs that must stay absent. There are no snapshots.
 
+## About practice cards and header logo focus (2026-10-12)
+
+`.aboutClinicList` gap is `0.75rem` (12px at the default root). No breakpoint overrides that gap. Card padding, radius, borders, and the muted final row are unchanged. The marketing header logo link is `.wordmark` in `marketing-site-header.tsx`. Its keyboard ring comes from `.wordmark:focus-visible`: `2px solid var(--mk-focus)`, `outline-offset: 4px`, `border-radius: 0.25rem`. Forced colours uses `CanvasText`. The global marketing `:focus-visible` rule remains for other controls. The logo artwork, size, and header geometry are unchanged.
+
 ## Marketing spacing architecture (2026-10-12)
 
 Public marketing content between the hero and the closing CTA uses one rhythm. Desktop starts at `64rem`. Below `64rem`, including tablet, content spacing uses the mobile tokens. Navigation, heroes, the homepage phone, and the closing CTA keep their own breakpoints.

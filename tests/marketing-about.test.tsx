@@ -88,7 +88,12 @@ describe("marketing about page", () => {
     expect(marketingCss).toContain("margin-top: var(--mk-heading-intro-gap)");
     expect(marketingCss).toContain("margin-top: var(--mk-heading-content-gap)");
     expect(marketingCss).toContain(".aboutClinicList");
-    expect(marketingCss).toMatch(/\.aboutClinicList\s*\{[^}]*gap:\s*0\.5rem/);
+    expect(marketingCss).toMatch(/\.aboutClinicList\s*\{[^}]*gap:\s*0\.75rem/);
+    const clinicListBlocks = [
+      ...marketingCss.matchAll(/\.aboutClinicList[^{]*\{[^}]*\}/g),
+    ].map((match) => match[0]);
+    const gapBlocks = clinicListBlocks.filter((block) => /\bgap:/.test(block));
+    expect(gapBlocks).toEqual([expect.stringMatching(/gap:\s*0\.75rem/)]);
     expect(marketingCss).toContain("grid-template-rows: repeat(5");
     expect(marketingCss).toContain('grid-template-areas: "module copy"');
     expect(html).toContain("aboutClinicList");

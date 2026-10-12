@@ -69,6 +69,22 @@ describe("interaction system", () => {
     expect(patient).toContain("@media (hover: hover) and (pointer: fine)");
   });
 
+  it("rounds the marketing header logo focus ring with the shared focus token", () => {
+    const focus =
+      marketingModule.match(/\.wordmark:focus-visible\s*\{[^}]*\}/g) ?? [];
+    expect(focus[0]).toContain("outline: 2px solid var(--mk-focus)");
+    expect(focus[0]).toContain("outline-offset: 4px");
+    expect(focus[0]).toContain("border-radius: 0.25rem");
+    expect(focus[0]).not.toContain("outline: none");
+    expect(focus[0]).not.toContain("box-shadow");
+    expect(focus[0]).not.toContain("background");
+    expect(marketingModule).toContain("@media (forced-colors: active)");
+    expect(focus.some((block) => block.includes("CanvasText"))).toBe(true);
+    expect(marketingModule).not.toMatch(/\.wordmark:focus\s*\{/);
+    expect(marketing).toContain("--mk-focus:");
+    expect(marketing).toContain("outline: 2px solid var(--mk-focus)");
+  });
+
   it("keeps focus-visible distinct from hover", () => {
     expect(marketingModule).toContain(".primary:focus-visible");
     expect(marketingModule).toContain(".secondary:focus-visible");
