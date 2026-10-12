@@ -2069,23 +2069,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   letter-spacing: -0.01em;
 }
 
-.band {
-  padding-bottom: var(--mk-section-pad-bottom);
-}
-
-.band:first-of-type {
-  padding-top: var(--mk-section-pad-top);
-}
-
-.band:last-of-type {
-  padding-bottom: var(--mk-section-pad-bottom-last);
-}
-
-.marketingSoft > .band:first-child,
-.marketingShowcase > .band:first-child {
-  padding-top: var(--mk-chapter-pad-y);
-}
-
 .problemTitle {
   margin: 0;
   font-size: clamp(1.8rem, 4vw, 3rem);
@@ -3001,6 +2984,7 @@ html[data-theme-mode="dark"] .wordmarkName {
   background: #5a3f44;
 }
 
+/* Footer region. Not part of the content rhythm above. */
 .ctaBlock {
   position: relative;
   z-index: 1;
@@ -4513,10 +4497,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   background: var(--mk-brand);
 }
 
-.verticalBand {
-  padding: var(--mk-section-space-lg) 0;
-}
-
 .verticalSurfaceSoft {
   background: var(--mk-soft);
   color: var(--mk-ink);
@@ -5303,10 +5283,6 @@ html[data-theme-mode="dark"] .wordmarkName {
   grid-area: module;
 }
 
-.aboutEditorial + .aboutEditorial {
-  margin-top: var(--mk-section-space-lg);
-}
-
 .aboutCopy {
   min-width: 0;
   max-width: 40rem;
@@ -5400,7 +5376,6 @@ html[data-theme-mode="dark"] .wordmarkName {
 }
 
 .aboutOwnership {
-  padding: var(--mk-section-space-lg) 0;
   background: light-dark(
     color-mix(in srgb, var(--mk-brand) 6%, var(--mk-hero)),
     color-mix(in srgb, var(--mk-cobalt) 12%, var(--mk-hero))
@@ -5516,17 +5491,11 @@ html[data-theme-mode="dark"] .wordmarkName {
     padding-top: 4rem;
   }
 
-  .band {
-    padding-bottom: var(--mk-section-pad-bottom-mobile);
-  }
-
-  .band:last-of-type {
-    padding-bottom: var(--mk-section-pad-bottom-last-mobile);
-  }
-
-  .marketingSoft > .band:first-child,
-  .marketingShowcase > .band:first-child {
-    padding-top: var(--mk-chapter-pad-y-mobile);
+  .pageHeroPricing,
+  .pageHeroContact,
+  .verticalHero,
+  .clinicsHubHero {
+    padding-top: 3rem;
   }
 
   .workflowShowcase::before {
@@ -5573,6 +5542,57 @@ html[data-theme-mode="dark"] .wordmarkName {
 
   .phoneScreen {
     padding: 1.4rem 0.68rem 0.75rem;
+  }
+}
+
+/* Content rhythm below 64rem, including tablet. Desktop replaces it.
+   Heroes, navigation, and the closing CTA keep their own breakpoints. */
+@media (max-width: 63.99rem) {
+  /* Separation is one padding-bottom. The following band has no padding-top. */
+  .marketingSoft > .band,
+  .marketingShowcase > .band {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .marketingSoft > .band:not(:last-child),
+  .marketingShowcase > .band:not(:last-child) {
+    padding-bottom: var(--mk-content-space-mobile);
+  }
+
+  .marketingSoft > .band:last-child:not(:only-child),
+  .marketingShowcase > .band:last-child:not(:only-child) {
+    padding-bottom: var(--mk-content-group-edge-mobile);
+  }
+
+  .marketingSoft > .band:only-child,
+  .marketingShowcase > .band:only-child {
+    padding-top: var(--mk-content-space-mobile);
+    padding-bottom: var(--mk-content-space-mobile);
+  }
+
+  .marketingSoft > .band:first-child:not(:only-child),
+  .marketingShowcase > .band:first-child:not(:only-child) {
+    padding-top: var(--mk-content-group-edge-mobile);
+  }
+
+  main > .hero + .marketingSoft > .band:first-child,
+  main > .pageHero + .marketingSoft > .band:first-child,
+  main > .clinicsHubHero + .marketingSoft > .band:first-child {
+    padding-top: var(--mk-content-space-mobile);
+  }
+
+  .marketingSoft > .band:has(> .inner > .aboutEditorial + .aboutEditorial) {
+    padding-bottom: var(--mk-content-group-edge-mobile);
+  }
+
+  .aboutEditorial + .aboutEditorial {
+    margin-top: var(--mk-content-space-mobile);
+  }
+
+  .verticalBand,
+  .aboutOwnership {
+    padding: var(--mk-content-space-mobile) 0;
   }
 }
 
@@ -5958,30 +5978,49 @@ html[data-theme-mode="dark"] .wordmarkName {
     align-items: stretch;
   }
 
-  /* First band after a marketing hero, plus the homepage clinic-type showcase. */
-  main > .marketingSoft:first-of-type > .band:first-child,
-  main > .marketingShowcase.workflowShowcase > .band:first-child {
-    padding-top: 7rem;
+  .pageHeroPricing {
+    padding-top: max(4rem, clamp(3.1rem, 5.4vw, 4.35rem));
   }
 
-  .verticalHero + .verticalBand {
-    padding-top: 7rem;
+  .pageHeroContact,
+  .verticalHero,
+  .clinicsHubHero {
+    padding-top: 4rem;
   }
 
-  .aboutOwnership,
-  .marketingSoft > .band.aboutScopeBand {
-    padding: 7rem 0;
+  .pageHeroInner,
+  .verticalHeroInner,
+  .clinicsHubHeroInner {
+    padding-bottom: 4rem;
   }
 
-  .marketingShowcase > .band.pricingNotesBand,
-  .marketingShowcase > .band.clinicsHubDiscovery {
-    padding-top: 7rem;
-    padding-bottom: 7rem;
+  /* One padding-bottom owns the gap. The next band's padding-top stays 0. */
+  .marketingSoft > .band,
+  .marketingShowcase > .band {
+    padding-top: 0;
+    padding-bottom: var(--mk-content-space);
   }
 
-  /* Top padding is already 7rem from the first post-hero band. */
-  .marketingSoft > .band.clinicsHubPlatformBand {
-    padding-bottom: 7rem;
+  .marketingSoft > .band:first-child,
+  .marketingShowcase > .band:first-child {
+    padding-top: var(--mk-content-space);
+  }
+
+  main > .hero + .marketingSoft > .band:first-child {
+    padding-top: var(--mk-content-space-home);
+  }
+
+  main > .hero + .marketingSoft > .band:not(:last-child) {
+    padding-bottom: var(--mk-content-space-home);
+  }
+
+  .aboutEditorial + .aboutEditorial {
+    margin-top: var(--mk-content-space);
+  }
+
+  .verticalBand,
+  .aboutOwnership {
+    padding: var(--mk-content-space) 0;
   }
 
   .onboardingLayout {

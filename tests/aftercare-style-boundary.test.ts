@@ -180,34 +180,23 @@ describe("aftercare style boundary", () => {
     expect(styles).not.toContain("100vh");
     expect(styles).toContain("100svh");
     expect(tokens).toContain("--mk-interact-duration");
-    expect(tokens).toContain("--mk-section-pad-top");
-    expect(tokens).toContain("--mk-section-pad-bottom");
-    expect(tokens).toContain("--mk-section-pad-bottom-mobile");
-    expect(tokens).toContain("--mk-section-pad-bottom-last");
-    expect(tokens).toContain("--mk-section-pad-bottom-last-mobile");
-    expect(styles).toContain(".band:first-of-type");
-    expect(styles).toContain(".band:last-of-type");
-    expect(styles).toContain("padding-top: var(--mk-section-pad-top)");
-    expect(styles).toContain("padding-bottom: var(--mk-section-pad-bottom)");
-    expect(styles).toContain(
-      "padding-bottom: var(--mk-section-pad-bottom-mobile)"
-    );
-    expect(styles).toContain(
-      "padding-bottom: var(--mk-section-pad-bottom-last)"
-    );
-    expect(styles).toContain(
-      "padding-bottom: var(--mk-section-pad-bottom-last-mobile)"
-    );
-    expect(tokens).toContain("--mk-chapter-pad-y");
-    expect(tokens).toContain("--mk-chapter-pad-y-mobile");
+    expect(tokens).not.toContain("--mk-section-pad-bottom");
+    expect(tokens).not.toContain("--mk-chapter-pad-y");
+    expect(tokens).toContain("--mk-content-space: 7rem");
+    expect(tokens).toContain("--mk-content-space-home: 8rem");
+    expect(tokens).toContain("--mk-content-space-mobile: 3.5rem");
+    expect(tokens).toContain("--mk-content-group-edge-mobile: 4rem");
+    expect(tokens).not.toContain("--mk-section-pad-top");
+    expect(tokens).not.toContain("--mk-chapter-pad-y-mobile");
+    expect(styles).not.toContain(".band:last-of-type");
+    expect(styles).not.toContain(".band:first-of-type");
+    expect(styles).toContain("padding-bottom: var(--mk-content-space)");
+    expect(styles).toContain("padding-bottom: var(--mk-content-space-mobile)");
+    expect(styles).toContain("@media (max-width: 63.99rem)");
+    expect(styles).toContain("padding-top: var(--mk-content-space)");
+    expect(styles).toContain("padding-top: var(--mk-content-space-home)");
+    expect(styles).toContain("padding-bottom: var(--mk-content-space-mobile)");
     expect(tokens).toContain("--mk-card");
-    expect(tokens).toContain("clamp(8rem, 6vw, 6rem)");
-    expect(tokens).toContain("clamp(6rem, 8vw, 8rem)");
-    expect(tokens).toContain("clamp(6rem, 6vw, 6rem)");
-    expect(tokens).toContain("clamp(3.5rem, 6vw, 6rem)");
-    expect(tokens).toContain("clamp(4rem, 6vw, 6rem)");
-    expect(tokens).toContain("clamp(4rem, 5vw, 5rem)");
-    expect(styles).toContain("padding-top: var(--mk-chapter-pad-y-mobile)");
     expect(styles).not.toContain("3.6rem");
     expect(styles).not.toContain("3.25rem");
     expect(styles).toContain("a.navRoute");

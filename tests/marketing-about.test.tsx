@@ -106,13 +106,13 @@ describe("marketing about page", () => {
       /<a[^>]*>\s*Other appropriate allied health\s*<\/a>/
     );
     expect(marketingCss).toContain(".marketingSoft > .band:first-child");
-    expect(marketingCss).toContain("padding-top: var(--mk-chapter-pad-y)");
     expect(marketingCss).toContain(
-      "padding-top: var(--mk-chapter-pad-y-mobile)"
+      "padding-top: var(--mk-content-space-mobile)"
     );
-    expect(marketingCss).toContain("padding-top: 7rem");
-    expect(marketingCss).toContain("padding: 7rem 0");
-    expect(marketingCss).toContain(".aboutScopeBand");
+    expect(marketingCss).toContain("padding-top: var(--mk-content-space)");
+    expect(marketingCss).toContain("margin-top: var(--mk-content-space)");
+    expect(marketingCss).toContain(".aboutEditorial + .aboutEditorial");
+    expect(marketingCss).not.toContain(".aboutScopeBand");
     expect(marketingCss).toContain("padding: 6rem 0 2.5rem");
     expect(marketingCss).toContain(".aboutEditorial");
     expect(marketingCss).toContain(".aboutValuePanel");
