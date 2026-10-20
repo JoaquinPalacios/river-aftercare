@@ -5,7 +5,7 @@ import { prismaCliDatabaseUrl } from "@/lib/db/prisma-cli-database-url";
 const LOCAL =
   "postgresql://postgres:postgres@localhost:5432/care_guide?schema=public";
 const DIRECT =
-  "postgresql://app:secret@ep-example.ap-southeast-2.aws.neon.tech/neondb?sslmode=require";
+  "postgresql://app:secret@ep-example.ap-southeast-2.aws.neon.tech/neondb?sslmode=verify-full";
 
 describe("prismaCliDatabaseUrl", () => {
   it("uses DATABASE_URL when DIRECT_URL is unset", () => {
