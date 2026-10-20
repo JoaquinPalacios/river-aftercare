@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import type {
   ClinicInstructionTerminology,
   ClinicRadiusPreset,
@@ -153,8 +154,11 @@ function tenantFromSite(site: PatientSiteRow): ClinicBySlugRecord | null {
  * The hostname label `demo` is an alias for the existing shared-demo site
  * slug. No other label is rewritten, so an unknown subdomain does not
  * resolve to that site.
+ *
+ * Memoized for the current React render only. `demo` and the historical
+ * site slug stay separate keys. The next HTTP request reads again.
  */
-export async function getClinicBySlug(
+export const getClinicBySlug = cache(async function getClinicBySlug(
   slug: string
 ): Promise<ClinicBySlugRecord | null> {
   const siteSlug = sharedDemoSiteSlugForHostname(slug) ?? slug;
@@ -172,7 +176,7 @@ export async function getClinicBySlug(
   }
 
   return tenantFromSite(site);
-}
+});
 
 /** Staff and operator chrome for the account's primary site and root location. */
 export async function getPrimaryPatientChrome(

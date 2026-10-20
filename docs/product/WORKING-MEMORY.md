@@ -19,6 +19,12 @@ Production probes from this US runner (`x-vercel-id` `iad1::syd1`) on 2026-10-08
 
 Vitest on this pass: 366 files, 2532 tests, 61.70s, all passed. No test was removed. Chairside route tests still guard URLs that must stay absent. There are no snapshots.
 
+## Patient guide request cache (2026-10-20)
+
+`getClinicBySlug` and `getPublishedPracticeGuide` use React `cache()` for the current render. The guide key is `clinicSlug`, `publicSlug`, and optional `locationSlug`. A caller-supplied `now` always reads again, so a retention clock is not reused. `demo` and `demodental` stay separate keys and both resolve to the shared demo site. There is no `unstable_cache`, ISR, or shared patient HTML cache. `listPublishedPracticeGuides` and `listPublishedLocationGuides` are unchanged, so the patient home list still runs for metadata and again for the page.
+
+Seeded `demodental` on local `next start`, loopback PostgreSQL 18, warm requests counted with `log_statement=all`: guide 32 → 18, print 32 → 18, home 13 → 13. A second guide request is 18. Two overlapping guide requests are 36. `Cache-Control` stays `private, no-store`. Title, description, canonical URL, theme colour, link targets, and visible clinical text match the pre-change HTML.
+
 ## Marketing header logo hover (2026-10-12)
 
 The marketing header logo link is `.wordmark` in `marketing-site-header.tsx`. Light mode paints `.mark` (the isologo) beside the HTML wordmark. Dark mode paints `.logo` (the full lockup SVG) and hides `.wordmarkName`. Hover is only inside `@media (hover: hover) and (pointer: fine)`. The light symbol uses `filter: saturate(1.06) brightness(1.04)` with `transition: filter 180ms cubic-bezier(0.22, 1, 0.36, 1)`. `prefers-reduced-motion: reduce` sets that transition to `none` and keeps the filter. The dark lockup cannot be filtered as one image without also changing the wordmark, so a second copy (`.logoSymbol`) stays at `opacity: 0` until hover, then covers only the symbol with `clip-path: inset(0 82% 0 0)`. That edge sits in the clear gap between symbol ink (about 13%) and wordmark ink (about 23%). The wordmark copy is not filtered. Forced colours keeps `filter: none` and the symbol copy hidden. `.wordmark:focus-visible` is unchanged. Footer `.footerMark` is not included.

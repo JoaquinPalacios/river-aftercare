@@ -1,6 +1,7 @@
 import "server-only";
 
 import { GuideRevisionStatus, Prisma } from "@prisma/client";
+import { cache } from "react";
 
 import { composeGuideDocument } from "@/lib/aftercare/compose-guide-document";
 import {
@@ -191,7 +192,7 @@ type PlacementRow = Prisma.PracticeGuidePlacementGetPayload<{
   select: typeof placementSelect;
 }>;
 
-export async function getPublishedPracticeGuide(input: {
+async function readPublishedPracticeGuide(input: {
   clinicSlug: string;
   publicSlug: string;
   locationSlug?: string;
@@ -298,6 +299,41 @@ export async function getPublishedPracticeGuide(input: {
     revision: resolved.revision,
     sections: resolved.sections,
   };
+}
+
+const readPublishedPracticeGuideCached = cache(
+  async function readPublishedPracticeGuideCached(
+    clinicSlug: string,
+    publicSlug: string,
+    locationSlug: string | undefined
+  ): Promise<PublishedPracticeGuideDocument | null> {
+    return readPublishedPracticeGuide({
+      clinicSlug,
+      publicSlug,
+      locationSlug,
+    });
+  }
+);
+
+/**
+ * One published guide for this render. Metadata and the page share it.
+ * The key is the clinic, guide, and optional location slug. An explicit
+ * `now` is not part of that key, so a caller-supplied clock always reads again.
+ */
+export async function getPublishedPracticeGuide(input: {
+  clinicSlug: string;
+  publicSlug: string;
+  locationSlug?: string;
+  now?: Date;
+}): Promise<PublishedPracticeGuideDocument | null> {
+  if (input.now !== undefined) {
+    return readPublishedPracticeGuide(input);
+  }
+  return readPublishedPracticeGuideCached(
+    input.clinicSlug,
+    input.publicSlug,
+    input.locationSlug
+  );
 }
 
 async function getPublishedLocationGuide(input: {
