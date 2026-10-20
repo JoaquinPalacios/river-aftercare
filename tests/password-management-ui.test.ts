@@ -75,6 +75,10 @@ describe("password management UI contracts", () => {
     expect(login).toContain("PASSWORD_RESET_SUCCESS_MESSAGE");
     expect(login).toContain("INVITATION_READY_MESSAGE");
     expect(login).toContain("EMAIL_CHANGE_CONFIRMED_MESSAGE");
+    expect(login).toContain(
+      'import { EMAIL_CHANGE_CONFIRMED_MESSAGE } from "@/lib/auth/account-profile-fields"'
+    );
+    expect(login).not.toContain("account-profile-schema");
     expect(login).not.toContain("params.message");
     expect(login).not.toContain("searchParams.message");
   });
