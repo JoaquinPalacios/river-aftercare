@@ -109,6 +109,60 @@ These are different machines with different credentials.
 
 `DIRECT_URL` is for trusted production migration execution. `DATABASE_URL` remains the application runtime connection.
 
+## PostgreSQL TLS (`sslmode=verify-full`)
+
+Runtime Prisma uses pooled `DATABASE_URL` through `PrismaPg` and `pg`. `lib/prisma.ts` passes that string through as `connectionString`. It does not set `ssl`, `rejectUnauthorized`, or `uselibpqcompat`.
+
+The installed client is `pg` 8.23.0, which loads `pg-connection-string` 2.14.0. In that 2.x line, `sslmode=require` enables TLS and is treated as `sslmode=verify-full`: the server certificate is checked and the hostname is checked. Node.js keeps its defaults (`rejectUnauthorized` is not set to `false`, and `checkServerIdentity` is not replaced). The same parser emits a one-time `SECURITY WARNING` for `sslmode=require`. `pg` 9 and `pg-connection-string` 3 will give `sslmode=require` the weaker libpq meaning. `sslmode=verify-full` is the explicit form of the strict behaviour this repository already depends on, and it does not emit that warning.
+
+Use these endpoints and modes:
+
+| Variable       | Where it lives                                                           | Endpoint                                               | `sslmode`      |
+| -------------- | ------------------------------------------------------------------------ | ------------------------------------------------------ | -------------- |
+| `DATABASE_URL` | Vercel Preview, Vercel Production, and gitignored `.env.neon-production` | Neon pooled TCP host (the hostname contains `-pooler`) | `verify-full`  |
+| `DIRECT_URL`   | Trusted-machine `.env.neon-production` only                              | Neon direct TCP host (no `-pooler`)                    | `verify-full`  |
+| `DATABASE_URL` | Local Docker                                                             | `localhost:5432`                                       | omit `sslmode` |
+
+Do not add `DIRECT_URL` to Vercel Preview or Production. Do not point either variable at an HTTP or websocket Neon URL. Do not set `sslmode=no-verify`, `uselibpqcompat=true`, or `rejectUnauthorized: false`. Do not hide the compatibility warning with a global Node.js warning filter. Local `compose.yaml` stays without TLS.
+
+This repository change does not edit Vercel, Neon, Preview, Production, or `.env.neon-production`. Apply the parameter by hand, in this order.
+
+### Preview
+
+1. Open the Vercel project → Settings → Environment Variables → Preview.
+2. Edit the existing Preview `DATABASE_URL` only. Do not create `DIRECT_URL`.
+3. Keep the pooled hostname (it contains `-pooler`), the database name, the port, the user, the password, and every other query parameter.
+4. If the query string contains `sslmode=require`, change that value to `verify-full`. If `sslmode` is absent, add `sslmode=verify-full`. Do not change any other parameter.
+5. Save the variable and redeploy the Preview deployment that should read it.
+6. Confirm the Preview app can read the database. A certificate or hostname mismatch fails the connection. It does not deploy as a warning.
+
+### Production
+
+1. Open Vercel → Settings → Environment Variables → Production.
+2. Edit Production `DATABASE_URL` the same way: only `sslmode=require` becomes `sslmode=verify-full` on the existing pooled host.
+3. Do not add `DIRECT_URL`.
+4. Redeploy the current Production deployment so running functions read the new variable. Do not run `prisma migrate deploy` for this parameter change.
+5. Confirm `GET https://app.riveraftercare.com.au/api/health` returns `{ "status": "ok" }`.
+
+### Trusted-machine migrations
+
+1. On the machine that already holds gitignored `.env.neon-production`, edit that file only.
+2. In `DATABASE_URL`, keep the pooled `-pooler` host and set `sslmode=verify-full`.
+3. In `DIRECT_URL`, keep the direct host (no `-pooler`) and set `sslmode=verify-full`.
+4. Do not commit the file, print the URLs, or copy them into Vercel.
+5. Run `pnpm prod:db:status`. That is a read-only check through `DIRECT_URL`. It does not apply migrations.
+
+### Rollback
+
+If Preview, Production, or `pnpm prod:db:status` fails with a TLS certificate or hostname error:
+
+1. Set that same variable back to `sslmode=require`.
+2. Redeploy the affected Vercel environment, or save `.env.neon-production` and run `pnpm prod:db:status` again.
+3. On the installed `pg` 8.23.0 / `pg-connection-string` 2.14.0, `sslmode=require` still verifies the certificate and the hostname. Rollback restores the previous string and brings the compatibility warning back. It does not turn verification off.
+4. Do not roll back with `sslmode=no-verify`, `uselibpqcompat=true`, or `rejectUnauthorized: false`.
+
+Unit tests in this repository parse synthetic URLs only. They do not open a connection to Neon. A passing test run is not production connectivity.
+
 ## Detection (no database)
 
 ```bash
@@ -129,7 +183,7 @@ PRs run the same check via `.github/workflows/prisma-release-gate.yml` (contents
 
 ## Canonical production commands
 
-Create a **local, gitignored** `.env.neon-production` (`.env*` is already ignored). Put the Neon **pooled** URL in `DATABASE_URL` and the **unpooled** URL in `DIRECT_URL`. Do not commit the file. Do not copy it into Preview env or into Vercel merely to make the schema gate run.
+Create a **local, gitignored** `.env.neon-production` (`.env*` is already ignored). Put the Neon **pooled** URL in `DATABASE_URL` and the **unpooled** URL in `DIRECT_URL`. Both use `sslmode=verify-full`. Do not commit the file. Do not copy it into Preview env or into Vercel merely to make the schema gate run.
 
 Preferred helpers (fail closed if the file is missing, named wrong, lacks `DIRECT_URL`/`DATABASE_URL`, or points at localhost):
 

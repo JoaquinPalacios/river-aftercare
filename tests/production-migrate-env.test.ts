@@ -19,9 +19,9 @@ import {
 } from "@/lib/release/production-migrate.mjs";
 
 const NEON_POOLED =
-  "postgresql://app:super-secret-password@ep-example-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require";
+  "postgresql://app:super-secret-password@ep-example-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=verify-full";
 const NEON_DIRECT =
-  "postgresql://app:super-secret-password@ep-example.ap-southeast-2.aws.neon.tech/neondb?sslmode=require";
+  "postgresql://app:super-secret-password@ep-example.ap-southeast-2.aws.neon.tech/neondb?sslmode=verify-full";
 const LOCAL =
   "postgresql://postgres:postgres@localhost:5432/care_guide?schema=public";
 
