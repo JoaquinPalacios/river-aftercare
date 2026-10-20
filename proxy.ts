@@ -2,7 +2,6 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { isClinicBrandingPublicPath } from "@/lib/clinic-assets/clinic-logo";
-import { retiredTenantProxyResponse } from "@/lib/tenancy/retired-tenant-proxy";
 import { isPlatformSeoPublicPath } from "@/lib/platform-assets/platform-seo-image";
 import { parseHostname } from "@/lib/tenancy/parse-hostname";
 import {
@@ -107,6 +106,13 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
   if (classification.kind === "tenant") {
     try {
+      // Staff and marketing requests return before this branch, so they do
+      // not evaluate the retired-slug module or its Prisma client. A failed
+      // import is handled like a failed lookup: log the error name and
+      // continue the rewrite for this hostname only. The tenant layout still
+      // resolves that slug.
+      const { retiredTenantProxyResponse } =
+        await import("@/lib/tenancy/retired-tenant-proxy");
       const retired = await retiredTenantProxyResponse(classification.slug);
       if (retired) {
         return retired;

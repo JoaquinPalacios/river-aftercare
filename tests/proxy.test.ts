@@ -1,13 +1,20 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  RETIRED_TENANT_MESSAGE,
+  retiredTenantGoneResponse,
+} from "@/lib/aftercare/retired-tenant-http";
 import { config, proxy } from "@/proxy";
+import { retiredTenantProxyResponse } from "@/lib/tenancy/retired-tenant-proxy";
 import { PUBLIC_PATIENT_PATH_HEADER } from "@/lib/tenancy/public-patient-path";
 import { proxyMatcherMatches } from "./helpers/proxy-matcher";
 
 vi.mock("@/lib/tenancy/retired-tenant-proxy", () => ({
   retiredTenantProxyResponse: vi.fn(async () => null),
 }));
+
+const retiredTenantLookup = vi.mocked(retiredTenantProxyResponse);
 
 function requestFor(
   url: string,
@@ -34,6 +41,8 @@ describe("proxy", async () => {
 
   beforeEach(async () => {
     process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
+    retiredTenantLookup.mockReset();
+    retiredTenantLookup.mockResolvedValue(null);
   });
 
   afterEach(async () => {
@@ -669,6 +678,108 @@ describe("proxy", async () => {
     expect(proxyMatcherMatches("/robots.txt")).toBe(true);
     expect(proxyMatcherMatches("/llms.txt")).toBe(true);
     expect(proxyMatcherMatches("/foo.bar")).toBe(true);
+  });
+
+  it("does not look up retired tenants for staff or marketing requests", async () => {
+    const staff = await proxy(requestFor("http://app.localhost:3000/login"));
+    const operator = await proxy(
+      requestFor("http://app.localhost:3000/operator/clinics")
+    );
+    const health = await proxy(
+      requestFor("http://app.localhost:3000/api/health")
+    );
+    const marketing = await proxy(requestFor("http://localhost:3000/pricing"));
+    const cron = await proxy(
+      requestFor("http://localhost:3000/api/cron/billing-notices")
+    );
+    const unrelated = await proxy(
+      requestFor("http://clinic.example/extraction")
+    );
+
+    expect(staff.status).toBe(200);
+    expect(rewrittenUrl(staff)).toBeNull();
+    expect(operator.status).toBe(200);
+    expect(health.status).toBe(200);
+    expect(rewrittenUrl(marketing)?.pathname).toBe("/_marketing/pricing");
+    expect(cron.status).toBe(200);
+    expect(unrelated.status).toBe(404);
+    expect(retiredTenantLookup).not.toHaveBeenCalled();
+  });
+
+  it("returns the generic 410 for a retired tenant host and still rewrites an active host", async () => {
+    retiredTenantLookup.mockImplementation(async (slug: string) =>
+      slug === "retired-clinic" ? retiredTenantGoneResponse() : null
+    );
+
+    const retired = await proxy(
+      requestFor("http://retired-clinic.localhost:3000/extraction")
+    );
+    expect(retired.status).toBe(410);
+    expect(await retired.text()).toBe(RETIRED_TENANT_MESSAGE);
+    expect(retired.headers.get("cache-control")).toBe("private, no-store");
+    expect(rewrittenUrl(retired)).toBeNull();
+
+    const active = await proxy(
+      requestFor("http://active-clinic.localhost:3000/extraction?ref=qr", {
+        "x-care-guide-tenant": "retired-clinic",
+        "x-tenant": "other-clinic",
+      })
+    );
+    expect(active.status).toBe(200);
+    expect(rewrittenUrl(active)?.pathname).toBe(
+      "/_sites/active-clinic/extraction"
+    );
+    expect(rewrittenUrl(active)?.search).toBe("?ref=qr");
+    expect(
+      active.headers.get(`x-middleware-request-${PUBLIC_PATIENT_PATH_HEADER}`)
+    ).toBe("/extraction");
+    expect(active.headers.get("x-middleware-request-x-tenant")).toBeNull();
+    expect(retiredTenantLookup.mock.calls.map((call) => call[0])).toEqual([
+      "retired-clinic",
+      "active-clinic",
+    ]);
+  });
+
+  it("keeps the shared demo rewrite and passes the demo label to the lookup", async () => {
+    const response = await proxy(
+      requestFor("http://demo.localhost:3000/extraction")
+    );
+
+    expect(rewrittenUrl(response)?.pathname).toBe("/_sites/demo/extraction");
+    expect(
+      (await proxy(requestFor("http://demo.localhost:3000/login"))).status
+    ).toBe(404);
+    expect(retiredTenantLookup).toHaveBeenCalledExactlyOnceWith("demo");
+  });
+
+  it("continues the requesting tenant rewrite when the retired lookup fails", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    retiredTenantLookup.mockRejectedValue(
+      Object.assign(new Error("postgres://secret@db.internal/care_guide"), {
+        name: "PrismaClientInitializationError",
+      })
+    );
+
+    const response = await proxy(
+      requestFor("http://riverside.localhost:3000/extraction", {
+        "x-tenant": "other-clinic",
+      })
+    );
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(rewrittenUrl(response)?.pathname).toBe(
+      "/_sites/riverside/extraction"
+    );
+    expect(body).not.toContain("secret");
+    expect(body).not.toContain("other-clinic");
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      "[tenancy] retired_tenant_lookup_failed",
+      { name: "PrismaClientInitializationError" }
+    );
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("secret");
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("postgres");
+    warn.mockRestore();
   });
 
   it("would rewrite webmanifest on marketing and tenant hosts if the matcher ran", async () => {
