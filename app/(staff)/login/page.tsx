@@ -8,7 +8,7 @@ import {
   INVITATION_READY_MESSAGE,
   PASSWORD_RESET_SUCCESS_MESSAGE,
 } from "@/lib/auth/password-policy";
-import { EMAIL_CHANGE_CONFIRMED_MESSAGE } from "@/lib/auth/account-profile-schema";
+import { EMAIL_CHANGE_CONFIRMED_MESSAGE } from "@/lib/auth/account-profile-fields";
 import { getAuthContext } from "@/lib/auth/session";
 import { signedInHomePath } from "@/lib/auth/signed-in-home";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
