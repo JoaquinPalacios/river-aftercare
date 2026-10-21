@@ -194,7 +194,7 @@ describe("CMS discovery UI", () => {
 
     expect(welcome()?.textContent).toContain("Welcome to River Aftercare");
     expect(welcome()?.textContent).toContain("Start tour");
-    expect(welcome()?.textContent).toContain("Not now");
+    expect(welcome()?.textContent).toContain("Skip introduction");
 
     await act(async () => {
       welcome()?.querySelector("button")?.click();
@@ -287,7 +287,7 @@ describe("CMS discovery UI", () => {
     await renderDiscovery();
     await act(async () => {
       [...(welcome()?.querySelectorAll("button") ?? [])]
-        .find((button) => button.textContent === "Not now")
+        .find((button) => button.textContent === "Skip introduction")
         ?.click();
     });
 

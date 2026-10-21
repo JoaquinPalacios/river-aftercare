@@ -306,10 +306,10 @@ export function GuidedTour({
       }
 
       if (event.key === "ArrowLeft") {
+        event.preventDefault();
         if (index === 0) {
           return;
         }
-        event.preventDefault();
         onBackRef.current();
         return;
       }

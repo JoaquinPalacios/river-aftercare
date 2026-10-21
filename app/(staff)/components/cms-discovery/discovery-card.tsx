@@ -39,7 +39,7 @@ export function CmsWelcomeCard({
           className="staffBtn staffBtnQuiet"
           onClick={onDismiss}
         >
-          Not now
+          Skip introduction
         </button>
       </div>
     </section>
