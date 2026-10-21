@@ -92,6 +92,11 @@ describe("staff sidebar navigation", () => {
       "/practice/sites",
     ]);
     expect(currentHrefs(navEl)).toEqual(["/guides"]);
+    expect(
+      [...navEl.querySelectorAll("[data-cms-discovery]")].map((node) =>
+        node.getAttribute("data-cms-discovery")
+      )
+    ).toEqual(["nav-overview", "nav-guides", "nav-practice", "nav-sites"]);
     expect(navEl.querySelector(".staffBtnSpinner")).toBeNull();
     expect(navEl.textContent).not.toContain("Loading");
 
@@ -134,6 +139,7 @@ describe("staff sidebar navigation", () => {
     ) as HTMLAnchorElement;
     expect(link).not.toBeNull();
     expect(link.getAttribute("href")).toBe("https://demo.localhost:3000");
+    expect(link.getAttribute("data-cms-discovery")).toBe("nav-patient-site");
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toBe("noreferrer");
     expect(link.className).toContain("staffNavRow");

@@ -17,6 +17,7 @@ import {
 } from "@/lib/clinic-portal/role-labels";
 import { ProductMark } from "@/lib/branding/product-mark";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import { buildCmsDiscoveryContext } from "@/lib/cms-discovery/context";
 import { PortalAppearanceControl } from "@/app/(staff)/components/portal-appearance-control";
 
 export default async function AccountLayout({
@@ -55,6 +56,15 @@ export default async function AccountLayout({
         assistingClinicName={assisting ? displayName : null}
         showProductNav={billingAccess.kind === "allow"}
         billingHref={billingAccess.billingHref}
+        discovery={buildCmsDiscoveryContext({
+          userId: user.id,
+          role: clinicMembership.role,
+          assisting,
+          productNav: billingAccess.kind === "allow",
+          canManagePractice: assisting || clinicMembership.role === "ADMIN",
+          hasPatientSite: Boolean(overview?.patientSiteHref),
+          assistedOnboarding: overview?.assistedOnboarding ?? false,
+        })}
       >
         {children}
       </PortalChrome>

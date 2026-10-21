@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { HelpFeedbackForm } from "@/app/(staff)/account/help/help-feedback-form";
+import { CmsTourReplay } from "@/app/(staff)/components/cms-discovery/replay-tour";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { PRIVATE_ROBOTS } from "@/lib/seo/robots-policy";
@@ -35,6 +36,7 @@ export default async function HelpFeedbackPage({
           goes to the {PRODUCT_NAME} team by email.
         </p>
       </header>
+      <CmsTourReplay />
       <HelpFeedbackForm originPath={sanitizeHelpOriginPath(fromParam)} />
     </div>
   );

@@ -8,6 +8,7 @@ import {
   clinicMembershipRoleLabel,
   PLATFORM_OPERATOR_ROLE_LABEL,
 } from "@/lib/clinic-portal/role-labels";
+import { buildCmsDiscoveryContext } from "@/lib/cms-discovery/context";
 
 export default async function ClinicPortalLayout({
   children,
@@ -33,6 +34,15 @@ export default async function ClinicPortalLayout({
       canManagePractice={assisting || clinicMembership.role === "ADMIN"}
       assistingClinicName={assisting ? displayName : null}
       billingHref={billingAccess.billingHref}
+      discovery={buildCmsDiscoveryContext({
+        userId: user.id,
+        role: clinicMembership.role,
+        assisting,
+        productNav: true,
+        canManagePractice: assisting || clinicMembership.role === "ADMIN",
+        hasPatientSite: Boolean(overview?.patientSiteHref),
+        assistedOnboarding: overview?.assistedOnboarding ?? false,
+      })}
     >
       {children}
     </PortalChrome>

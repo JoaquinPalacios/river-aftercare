@@ -80,6 +80,7 @@ export default async function ClinicOverviewPage() {
       <section
         aria-labelledby="guide-summary-heading"
         className="grid gap-3 sm:grid-cols-2"
+        data-cms-discovery="guide-summary"
       >
         <h2 id="guide-summary-heading" className="sr-only">
           Guide summary

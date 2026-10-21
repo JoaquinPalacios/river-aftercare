@@ -42,7 +42,10 @@ export default async function PracticePage() {
 
   return (
     <div className="staffPracticePage">
-      <header className="staffPracticeHeader">
+      <header
+        className="staffPracticeHeader"
+        data-cms-discovery="practice-settings"
+      >
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
           Practice
         </p>

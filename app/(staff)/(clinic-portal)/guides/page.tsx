@@ -74,7 +74,10 @@ export default async function ClinicGuidesPage({
   const retainedGuides = directory.retained;
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <header
+        className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+        data-cms-discovery="guides-library"
+      >
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
             Guides

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
+import { CmsDiscoveryRoot } from "@/app/(staff)/components/cms-discovery/cms-discovery-root";
 import { PendingSubmitButton } from "@/app/(staff)/components/pending-submit-button";
 import { PortalAppearanceControl } from "@/app/(staff)/components/portal-appearance-control";
 import { StaffAccountPanel } from "@/app/(staff)/components/staff-account-panel";
@@ -15,6 +16,7 @@ import { stopOperatorClinicSupportAction } from "@/app/(staff)/(operator)/operat
 import { ProductMark } from "@/lib/branding/product-mark";
 import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import type { CmsDiscoveryContext } from "@/lib/cms-discovery/types";
 
 export function PortalChrome({
   displayName,
@@ -25,6 +27,7 @@ export function PortalChrome({
   assistingClinicName = null,
   showProductNav = true,
   billingHref = null,
+  discovery = null,
   children,
 }: {
   displayName: string;
@@ -35,6 +38,7 @@ export function PortalChrome({
   assistingClinicName?: string | null;
   showProductNav?: boolean;
   billingHref?: string | null;
+  discovery?: CmsDiscoveryContext | null;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -131,6 +135,7 @@ export function PortalChrome({
             id={menuId}
             popover="auto"
             inert={!open || undefined}
+            data-cms-discovery-menu="true"
             className="inset-auto top-[3.6rem] right-3 left-3 m-0 w-auto max-w-none overflow-hidden rounded-xl border border-staff-line bg-staff-panel p-2 text-staff-ink shadow-lg"
           >
             <PortalNav
@@ -172,7 +177,13 @@ export function PortalChrome({
                 </form>
               </div>
             ) : null}
-            {children}
+            {discovery ? (
+              <CmsDiscoveryRoot context={discovery}>
+                {children}
+              </CmsDiscoveryRoot>
+            ) : (
+              children
+            )}
           </div>
         </main>
       </div>
@@ -238,20 +249,37 @@ function PortalNav({
     href: string;
     label: string;
     icon: StaffNavIconName;
+    discovery?: string;
   }> = showProductNav
     ? [
-        { href: "/dashboard", label: "Overview", icon: "overview" },
-        { href: "/guides", label: "Guides", icon: "guides" },
+        {
+          href: "/dashboard",
+          label: "Overview",
+          icon: "overview",
+          discovery: "nav-overview",
+        },
+        {
+          href: "/guides",
+          label: "Guides",
+          icon: "guides",
+          discovery: "nav-guides",
+        },
         ...(canManagePractice
           ? [
               {
                 href: "/practice",
                 label: "Practice",
                 icon: "practice" as const,
+                discovery: "nav-practice",
               },
             ]
           : []),
-        { href: "/practice/sites", label: "Sites & Locations", icon: "sites" },
+        {
+          href: "/practice/sites",
+          label: "Sites & Locations",
+          icon: "sites",
+          discovery: "nav-sites",
+        },
       ]
     : [{ href: "/account/billing", label: "Billing", icon: "billing" }];
 
@@ -268,6 +296,9 @@ function PortalNav({
               onClick={onNavigate}
               className="staffNavRow"
               data-tooltip={item.label}
+              {...(item.discovery
+                ? { "data-cms-discovery": item.discovery }
+                : {})}
             >
               <StaffNavIcon name={item.icon} />
               <span className="staffNavLabel">{item.label}</span>
@@ -285,6 +316,7 @@ function PortalNav({
               rel="noreferrer"
               className="staffNavRow staffNavRowMuted"
               data-tooltip="View patient site"
+              data-cms-discovery="nav-patient-site"
             >
               <StaffNavIcon name="patient" />
               <span className="staffNavLabel staffNavExternalLabel">
