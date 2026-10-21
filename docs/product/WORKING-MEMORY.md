@@ -435,7 +435,7 @@ Any change to development or runtime requirements reviews `.cursor/environment.j
 
 User-facing failures must stay usable when Neon, R2, clinic profile fetch, or membership lookup is already failing. Marketing, staff, patient, and `global-error` fallbacks use local River Aftercare assets and CSS only. They do not query the database, R2, Resend, or remote brand files. Multiple root layouts do not apply group `not-found.tsx` to unmatched URLs; marketing `_marketing/[...slug]`, staff `[...slug]`, and nested tenant `[guideSlug]/[...rest]` catch-alls only call `notFound()`.
 
-Public synthetic DB health lives at **`https://app.riveraftercare.com.au/api/health`** only (staff host). It runs `SELECT 1` through the pooled Prisma `DATABASE_URL` client and returns `{ "status": "ok" }` (HTTP 200) or `{ "status": "unavailable" }` (HTTP 503). Marketing and tenant hosts 404. Do not probe this URL every 3 minutes while Neon scale-to-zero is in use; 15 minutes is the intended Better Stack interval. This is not a migration verifier or diagnostics dump. Failed probes are not sent to Sentry.
+Public synthetic DB health lives at **`https://app.riveraftercare.com.au/api/health`** only (staff host). It runs `SELECT 1` through the pooled Prisma `DATABASE_URL` client and returns `{ "status": "ok" }` (HTTP 200) or `{ "status": "unavailable" }` (HTTP 503). Marketing and tenant hosts 404. Do not probe this URL every 3 minutes while Neon scale-to-zero is in use; 30 minutes is the Better Stack interval. This is not a migration verifier or diagnostics dump. Failed probes are not sent to Sentry.
 
 Canonical detail: [../launch/PRODUCTION-READINESS.md](../launch/PRODUCTION-READINESS.md), [../architecture/APPLICATION.md](../architecture/APPLICATION.md).
 
