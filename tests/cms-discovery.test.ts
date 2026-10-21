@@ -19,7 +19,11 @@ import {
   cmsDiscoveryStorageKey,
   emptyCmsDiscoveryStore,
   parseCmsDiscoveryStore,
+  readActiveTour,
+  readCmsDiscoveryStore,
+  writeActiveTour,
   writeCmsDiscoveryRecord,
+  type CmsDiscoverySubject,
 } from "@/lib/cms-discovery/storage";
 import type {
   CmsDiscoveryContext,
@@ -38,6 +42,7 @@ function context(
 ): CmsDiscoveryContext {
   return {
     userId: "user_ada",
+    clinicId: "clinic_ada",
     role: "ADMIN",
     assisting: false,
     ...overrides,
@@ -142,10 +147,18 @@ describe("CMS discovery audience", () => {
     sampleTour,
   ];
 
-  it("hides the workspace from assisting operators and from billing-only access", () => {
+  it("offers an assisting operator the controls that clinic session already has", () => {
     const assisting = resolveCmsDiscovery(
       experiences,
       context({ assisting: true }),
+      emptyCmsDiscoveryStore()
+    );
+    const withoutPatientSite = resolveCmsDiscovery(
+      experiences,
+      context({
+        assisting: true,
+        requirements: { hasPatientSite: false },
+      }),
       emptyCmsDiscoveryStore()
     );
     const billing = resolveCmsDiscovery(
@@ -153,12 +166,43 @@ describe("CMS discovery audience", () => {
       context({ requirements: { productNav: false } }),
       emptyCmsDiscoveryStore()
     );
+    const optedOut = resolveCmsDiscovery(
+      experiences.map((experience) =>
+        experience.id === "share-menu"
+          ? {
+              ...experience,
+              audience: { ...experience.audience, includeAssisting: false },
+            }
+          : experience
+      ),
+      context({ assisting: true }),
+      emptyCmsDiscoveryStore()
+    );
 
-    expect(assisting.welcome).toBeNull();
-    expect(assisting.announcements).toEqual([]);
-    expect(assisting.tours).toEqual([]);
+    expect(assisting.welcome?.steps.map((step) => step.id)).toEqual([
+      "overview",
+      "guides",
+      "practice",
+      "sites",
+      "patient-site",
+      "help",
+    ]);
+    expect(assisting.announcements.map((item) => item.id)).toEqual([
+      "share-menu",
+    ]);
+    expect(assisting.tours.map((tour) => tour.id)).toContain("share-menu-tour");
+    expect(
+      withoutPatientSite.welcome?.steps.some(
+        (step) => step.id === "patient-site"
+      )
+    ).toBe(false);
+    expect(withoutPatientSite.welcome?.steps).toContainEqual(
+      expect.objectContaining({ id: "practice" })
+    );
     expect(billing.welcome).toBeNull();
     expect(billing.announcements).toEqual([]);
+    expect(optedOut.announcements).toEqual([]);
+    expect(optedOut.welcome?.id).toBe(CMS_INTRODUCTION_ID);
   });
 
   it("offers an announcement until that version is dismissed, including Show me", () => {
@@ -225,6 +269,17 @@ describe("CMS discovery audience", () => {
 });
 
 describe("CMS discovery storage", () => {
+  function subject(
+    overrides: Partial<CmsDiscoverySubject> = {}
+  ): CmsDiscoverySubject {
+    return {
+      userId: "user_ada",
+      clinicId: "clinic_ada",
+      assisting: false,
+      ...overrides,
+    };
+  }
+
   it("ignores corrupt records and keeps experiences separate", () => {
     expect(parseCmsDiscoveryStore("not-json").experiences).toEqual({});
     expect(parseCmsDiscoveryStore('{"schema":2}').experiences).toEqual({});
@@ -266,7 +321,7 @@ describe("CMS discovery storage", () => {
           "share-menu": { version: 1, status: "dismissed" },
         },
       };
-      const next = writeCmsDiscoveryRecord("user_ada", initial, {
+      const next = writeCmsDiscoveryRecord(subject(), initial, {
         id: CMS_INTRODUCTION_ID,
         version: 1,
         status: "completed",
@@ -276,15 +331,17 @@ describe("CMS discovery storage", () => {
         "share-menu": { version: 1, status: "dismissed" },
         [CMS_INTRODUCTION_ID]: { version: 1, status: "completed" },
       });
-      expect(cmsDiscoveryStorageKey("user_ada")).toBe(
+      expect(cmsDiscoveryStorageKey(subject())).toBe(
         "river-aftercare:cms-discovery:user_ada"
       );
       expect(storage.get("river-aftercare:cms-discovery:user_ada")).toContain(
         "completed"
       );
-      expect(cmsDiscoveryStorageKey("user/ada")).toBeNull();
       expect(
-        writeCmsDiscoveryRecord("user/ada", initial, {
+        cmsDiscoveryStorageKey(subject({ userId: "user/ada" }))
+      ).toBeNull();
+      expect(
+        writeCmsDiscoveryRecord(subject({ userId: "user/ada" }), initial, {
           id: CMS_INTRODUCTION_ID,
           version: 1,
           status: "skipped",
@@ -293,6 +350,73 @@ describe("CMS discovery storage", () => {
       expect([...storage.keys()]).toEqual([
         "river-aftercare:cms-discovery:user_ada",
       ]);
+    } finally {
+      Object.defineProperty(globalThis, "window", {
+        configurable: true,
+        value: previousWindow,
+      });
+    }
+  });
+
+  it("keeps an assisting operator's clinics apart from each other and from members", () => {
+    const storage = new Map<string, string>();
+    const sessions = new Map<string, string>();
+    const previousWindow = globalThis.window;
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        localStorage: {
+          getItem: (key: string) => storage.get(key) ?? null,
+          setItem: (key: string, value: string) => {
+            storage.set(key, value);
+          },
+        },
+        sessionStorage: {
+          getItem: (key: string) => sessions.get(key) ?? null,
+          setItem: (key: string, value: string) => {
+            sessions.set(key, value);
+          },
+          removeItem: (key: string) => {
+            sessions.delete(key);
+          },
+        },
+      },
+    });
+
+    try {
+      const member = subject();
+      const clinicA = subject({ assisting: true, clinicId: "clinic_a" });
+      const clinicB = subject({ assisting: true, clinicId: "clinic_b" });
+      writeCmsDiscoveryRecord(member, emptyCmsDiscoveryStore(), {
+        id: CMS_INTRODUCTION_ID,
+        version: 1,
+        status: "dismissed",
+      });
+      writeCmsDiscoveryRecord(clinicA, emptyCmsDiscoveryStore(), {
+        id: CMS_INTRODUCTION_ID,
+        version: 1,
+        status: "completed",
+      });
+      writeActiveTour(clinicA, { id: CMS_INTRODUCTION_ID, stepIndex: 2 });
+
+      expect(readCmsDiscoveryStore(clinicB).experiences).toEqual({});
+      expect(readCmsDiscoveryStore(member).experiences).toEqual({
+        [CMS_INTRODUCTION_ID]: { version: 1, status: "dismissed" },
+      });
+      expect(readCmsDiscoveryStore(clinicA).experiences).toEqual({
+        [CMS_INTRODUCTION_ID]: { version: 1, status: "completed" },
+      });
+      expect(readActiveTour(clinicA)?.stepIndex).toBe(2);
+      expect(readActiveTour(clinicB)).toBeNull();
+      expect(readActiveTour(member)).toBeNull();
+      expect(cmsDiscoveryStorageKey(clinicA)).toBe(
+        "river-aftercare:cms-discovery:user_ada:clinic_a"
+      );
+      expect(
+        cmsDiscoveryStorageKey(
+          subject({ assisting: true, clinicId: "clinic/a" })
+        )
+      ).toBeNull();
     } finally {
       Object.defineProperty(globalThis, "window", {
         configurable: true,
@@ -380,6 +504,7 @@ describe("CMS discovery context", () => {
     expect(
       buildCmsDiscoveryContext({
         userId: " user_ada ",
+        clinicId: " clinic_ada ",
         role: "STAFF",
         assisting: false,
         productNav: true,
@@ -389,6 +514,7 @@ describe("CMS discovery context", () => {
       })
     ).toEqual({
       userId: "user_ada",
+      clinicId: "clinic_ada",
       role: "STAFF",
       assisting: false,
       requirements: {
@@ -401,6 +527,7 @@ describe("CMS discovery context", () => {
     expect(
       buildCmsDiscoveryContext({
         userId: " ",
+        clinicId: "clinic_ada",
         role: "ADMIN",
         assisting: false,
         productNav: true,
@@ -412,6 +539,7 @@ describe("CMS discovery context", () => {
     expect(
       buildCmsDiscoveryContext({
         userId: "user_ada",
+        clinicId: "clinic_ada",
         role: "OPERATOR",
         assisting: false,
         productNav: true,

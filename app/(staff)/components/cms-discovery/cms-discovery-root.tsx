@@ -27,6 +27,7 @@ import {
   readCmsDiscoveryStore,
   writeActiveTour,
   writeCmsDiscoveryRecord,
+  type CmsDiscoverySubject,
 } from "@/lib/cms-discovery/storage";
 import type {
   CmsDiscoveryContext,
@@ -34,6 +35,14 @@ import type {
   CmsDiscoveryStatus,
   CmsDiscoveryStore,
 } from "@/lib/cms-discovery/types";
+
+function discoverySubject(context: CmsDiscoveryContext): CmsDiscoverySubject {
+  return {
+    userId: context.userId,
+    clinicId: context.clinicId,
+    assisting: context.assisting,
+  };
+}
 
 type Session =
   | { kind: "idle" }
@@ -60,8 +69,9 @@ export function CmsDiscoveryRoot({
 
   useEffect(() => {
     const currentContext = contextRef.current;
-    const stored = readCmsDiscoveryStore(currentContext.userId);
-    const active = readActiveTour(currentContext.userId);
+    const subject = discoverySubject(currentContext);
+    const stored = readCmsDiscoveryStore(subject);
+    const active = readActiveTour(subject);
     const tours = resolveCmsDiscovery(
       experiencesRef.current,
       currentContext,
@@ -79,20 +89,21 @@ export function CmsDiscoveryRoot({
         stepIndex: active.stepIndex,
       });
     } else {
-      writeActiveTour(currentContext.userId, null);
+      writeActiveTour(subject, null);
       setSession({ kind: "idle" });
     }
     setReady(true);
-  }, [context.userId]);
+  }, [context.assisting, context.clinicId, context.userId]);
 
   function remember(next: Session) {
+    const subject = discoverySubject(context);
     if (next.kind === "tour") {
-      writeActiveTour(context.userId, {
+      writeActiveTour(subject, {
         id: next.id,
         stepIndex: next.stepIndex,
       });
     } else {
-      writeActiveTour(context.userId, null);
+      writeActiveTour(subject, null);
     }
     setSession(next);
   }
@@ -104,7 +115,11 @@ export function CmsDiscoveryRoot({
 
   function persist(id: string, version: number, status: CmsDiscoveryStatus) {
     setStore((current) =>
-      writeCmsDiscoveryRecord(context.userId, current, { id, version, status })
+      writeCmsDiscoveryRecord(discoverySubject(context), current, {
+        id,
+        version,
+        status,
+      })
     );
   }
 
@@ -120,14 +135,17 @@ export function CmsDiscoveryRoot({
     () => ({
       replay: (experienceId) => {
         if (resolved.tours.some((tour) => tour.id === experienceId)) {
-          writeActiveTour(context.userId, { id: experienceId, stepIndex: 0 });
+          writeActiveTour(discoverySubject(context), {
+            id: experienceId,
+            stepIndex: 0,
+          });
           setSession({ kind: "tour", id: experienceId, stepIndex: 0 });
         }
       },
       canReplay: (experienceId) =>
         resolved.tours.some((tour) => tour.id === experienceId),
     }),
-    [context.userId, resolved.tours]
+    [context, resolved.tours]
   );
 
   const activeTour =

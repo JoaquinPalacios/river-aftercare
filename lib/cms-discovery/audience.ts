@@ -8,7 +8,7 @@ export function audienceMatches(
   audience: CmsDiscoveryAudience,
   context: CmsDiscoveryContext
 ): boolean {
-  if (context.assisting && audience.includeAssisting !== true) {
+  if (context.assisting && audience.includeAssisting === false) {
     return false;
   }
 

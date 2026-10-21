@@ -92,6 +92,7 @@ function context(
 ): CmsDiscoveryContext {
   return {
     userId: "user_ada",
+    clinicId: "clinic_ada",
     role: "ADMIN",
     assisting: false,
     requirements: {
@@ -358,13 +359,45 @@ describe("CMS discovery UI", () => {
     expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
   });
 
-  it("does not cover the editor or an assisting operator", async () => {
+  it("does not cover the guide editor", async () => {
     await renderDiscovery(context(), "/guides/guide_1/edit");
     expect(welcome()).toBeNull();
+  });
 
-    await renderDiscovery(context({ assisting: true }));
+  it("offers an assisting operator a separate welcome for each clinic", async () => {
+    localStorage.setItem(
+      "river-aftercare:cms-discovery:user_ada",
+      JSON.stringify({
+        schema: 1,
+        experiences: {
+          "cms-introduction": { version: 1, status: "dismissed" },
+        },
+      })
+    );
+
+    await renderDiscovery(context({ assisting: true, clinicId: "clinic_a" }));
+    expect(welcome()?.textContent).toContain("Skip introduction");
+    expect(container.textContent).toContain("Replay tour");
+
+    await act(async () => {
+      [...(welcome()?.querySelectorAll("button") ?? [])]
+        .find((button) => button.textContent === "Skip introduction")
+        ?.click();
+    });
+
     expect(welcome()).toBeNull();
-    expect(container.textContent).not.toContain("Replay tour");
+    expect(
+      localStorage.getItem("river-aftercare:cms-discovery:user_ada:clinic_a")
+    ).toContain('"status":"dismissed"');
+    expect(
+      localStorage.getItem("river-aftercare:cms-discovery:user_ada")
+    ).toContain('"status":"dismissed"');
+
+    await renderDiscovery(context({ assisting: true, clinicId: "clinic_b" }));
+    expect(welcome()?.textContent).toContain("Start tour");
+    expect(
+      localStorage.getItem("river-aftercare:cms-discovery:user_ada:clinic_b")
+    ).toBeNull();
   });
 
   it("shows one announcement after the welcome is settled", async () => {

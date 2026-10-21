@@ -15,6 +15,7 @@ export type CmsDiscoveryRole = "ADMIN" | "STAFF";
 /** Clinic workspace facts used to decide who can see an experience. */
 export type CmsDiscoveryContext = {
   userId: string;
+  clinicId: string;
   role: CmsDiscoveryRole;
   assisting: boolean;
   requirements: Record<CmsDiscoveryRequirement, boolean>;
@@ -23,8 +24,8 @@ export type CmsDiscoveryContext = {
 export type CmsDiscoveryAudience = {
   roles?: readonly CmsDiscoveryRole[];
   /**
-   * Assisting platform operators are excluded unless this is set.
-   * They are not first-time clinic staff.
+   * Assisting operators use the same role and requirement rules.
+   * Set false to keep an experience off assisted clinic sessions.
    */
   includeAssisting?: boolean;
   requires?: readonly CmsDiscoveryRequirement[];

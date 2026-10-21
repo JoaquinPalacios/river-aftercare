@@ -7,6 +7,7 @@ const ROLES = new Set<CmsDiscoveryRole>(["ADMIN", "STAFF"]);
 
 export function buildCmsDiscoveryContext(input: {
   userId: string;
+  clinicId: string;
   role: string;
   assisting: boolean;
   productNav: boolean;
@@ -19,12 +20,14 @@ export function buildCmsDiscoveryContext(input: {
   }
 
   const userId = input.userId.trim();
-  if (!userId) {
+  const clinicId = input.clinicId.trim();
+  if (!userId || !clinicId) {
     return null;
   }
 
   return {
     userId,
+    clinicId,
     role: input.role as CmsDiscoveryRole,
     assisting: input.assisting,
     requirements: {
