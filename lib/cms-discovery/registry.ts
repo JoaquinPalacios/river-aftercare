@@ -10,9 +10,11 @@ import type { CmsDiscoveryExperience } from "@/lib/cms-discovery/types";
  *
  * Target people with `audience.roles` and `audience.requires`
  * (`productNav`, `canManagePractice`, `hasPatientSite`, `assistedOnboarding`).
- * Assisting operators are excluded unless `includeAssisting` is set.
+ * An assisting operator in a clinic workspace matches those same rules.
+ * Set `includeAssisting: false` to keep one experience off assisted sessions.
  * Steps can repeat `requires` so a clinic admin sees Practice and a clinic
- * staff member does not.
+ * staff member does not. An assisting operator follows the controls that
+ * session already has, including Practice.
  *
  * Point `data-cms-discovery` at a real control. Set `path` when that control
  * lives on another CMS route. Set `fallbackTarget` to the nav row so a missing

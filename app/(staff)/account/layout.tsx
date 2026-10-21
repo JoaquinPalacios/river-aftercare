@@ -58,6 +58,7 @@ export default async function AccountLayout({
         billingHref={billingAccess.billingHref}
         discovery={buildCmsDiscoveryContext({
           userId: user.id,
+          clinicId: clinicMembership.clinic.id,
           role: clinicMembership.role,
           assisting,
           productNav: billingAccess.kind === "allow",

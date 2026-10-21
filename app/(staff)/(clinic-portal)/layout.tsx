@@ -36,6 +36,7 @@ export default async function ClinicPortalLayout({
       billingHref={billingAccess.billingHref}
       discovery={buildCmsDiscoveryContext({
         userId: user.id,
+        clinicId: clinicMembership.clinic.id,
         role: clinicMembership.role,
         assisting,
         productNav: true,

@@ -7,7 +7,36 @@ import {
 
 const KEY_PREFIX = "river-aftercare:cms-discovery:";
 const ACTIVE_PREFIX = "river-aftercare:cms-discovery-active:";
-const USER_ID = /^[A-Za-z0-9_-]{1,80}$/;
+const SCOPE_ID = /^[A-Za-z0-9_-]{1,80}$/;
+
+export type CmsDiscoverySubject = {
+  userId: string;
+  clinicId: string;
+  assisting: boolean;
+};
+
+/**
+ * Clinic members keep a per-user key. An assisting operator can open more
+ * than one clinic, so that record is per user and clinic and does not reuse
+ * a clinic member's key.
+ */
+export function cmsDiscoveryScopeId(
+  subject: CmsDiscoverySubject
+): string | null {
+  if (!SCOPE_ID.test(subject.userId)) {
+    return null;
+  }
+
+  if (!subject.assisting) {
+    return subject.userId;
+  }
+
+  if (!SCOPE_ID.test(subject.clinicId)) {
+    return null;
+  }
+
+  return `${subject.userId}:${subject.clinicId}`;
+}
 const EXPERIENCE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const STATUSES = new Set<CmsDiscoveryStatus>([
   "completed",
@@ -27,12 +56,15 @@ export function emptyCmsDiscoveryStore(): CmsDiscoveryStore {
   return { schema: CMS_DISCOVERY_STORE_SCHEMA, experiences: {} };
 }
 
-export function cmsDiscoveryStorageKey(userId: string): string | null {
-  if (!USER_ID.test(userId)) {
+export function cmsDiscoveryStorageKey(
+  subject: CmsDiscoverySubject
+): string | null {
+  const scope = cmsDiscoveryScopeId(subject);
+  if (!scope) {
     return null;
   }
 
-  return `${KEY_PREFIX}${userId}`;
+  return `${KEY_PREFIX}${scope}`;
 }
 
 export function parseCmsDiscoveryStore(raw: string | null): CmsDiscoveryStore {
@@ -104,8 +136,10 @@ function writeRaw(key: string, value: string): void {
   }
 }
 
-export function readCmsDiscoveryStore(userId: string): CmsDiscoveryStore {
-  const key = cmsDiscoveryStorageKey(userId);
+export function readCmsDiscoveryStore(
+  subject: CmsDiscoverySubject
+): CmsDiscoveryStore {
+  const key = cmsDiscoveryStorageKey(subject);
   if (!key || typeof window === "undefined") {
     return emptyCmsDiscoveryStore();
   }
@@ -114,7 +148,7 @@ export function readCmsDiscoveryStore(userId: string): CmsDiscoveryStore {
 }
 
 export function writeCmsDiscoveryRecord(
-  userId: string,
+  subject: CmsDiscoverySubject,
   store: CmsDiscoveryStore,
   record: { id: string; version: number; status: CmsDiscoveryStatus }
 ): CmsDiscoveryStore {
@@ -129,7 +163,7 @@ export function writeCmsDiscoveryRecord(
       [record.id]: { version: record.version, status: record.status },
     },
   };
-  const key = cmsDiscoveryStorageKey(userId);
+  const key = cmsDiscoveryStorageKey(subject);
   if (key && typeof window !== "undefined") {
     writeRaw(key, JSON.stringify(next));
   }
@@ -137,13 +171,13 @@ export function writeCmsDiscoveryRecord(
   return next;
 }
 
-function activeKey(userId: string): string | null {
-  const key = cmsDiscoveryStorageKey(userId);
-  if (!key) {
+function activeKey(subject: CmsDiscoverySubject): string | null {
+  const scope = cmsDiscoveryScopeId(subject);
+  if (!scope) {
     return null;
   }
 
-  return `${ACTIVE_PREFIX}${userId}`;
+  return `${ACTIVE_PREFIX}${scope}`;
 }
 
 function readSessionRaw(key: string): string | null {
@@ -176,8 +210,10 @@ function writeSessionRaw(key: string, value: string | null): void {
  * The open tour step is kept for this tab so Next can resume it.
  * Completion and dismissal stay in localStorage.
  */
-export function readActiveTour(userId: string): ActiveCmsDiscoveryTour | null {
-  const key = activeKey(userId);
+export function readActiveTour(
+  subject: CmsDiscoverySubject
+): ActiveCmsDiscoveryTour | null {
+  const key = activeKey(subject);
   if (!key || typeof window === "undefined") {
     return null;
   }
@@ -214,10 +250,10 @@ export function readActiveTour(userId: string): ActiveCmsDiscoveryTour | null {
 }
 
 export function writeActiveTour(
-  userId: string,
+  subject: CmsDiscoverySubject,
   tour: ActiveCmsDiscoveryTour | null
 ): void {
-  const key = activeKey(userId);
+  const key = activeKey(subject);
   if (!key || typeof window === "undefined") {
     return;
   }
