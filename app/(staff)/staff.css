@@ -4582,3 +4582,206 @@ a.staffTablePageButton:hover {
     gap: 1.5rem;
   }
 }
+
+.cmsDiscoveryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.875rem;
+  background: var(--staff-panel);
+  box-shadow: 0 1px 2px rgb(16 18 28 / 4%);
+}
+
+.cmsDiscoveryEyebrow {
+  margin: 0;
+  color: var(--staff-brand);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.cmsDiscoveryTitle {
+  margin: 0;
+  color: var(--staff-ink);
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.011em;
+  line-height: 1.35;
+}
+
+.cmsDiscoveryBody {
+  margin: 0;
+  max-width: 42rem;
+  color: var(--staff-muted);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.cmsDiscoveryActions,
+.cmsTourActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.cmsTourLayer {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.cmsTourLayer:popover-open {
+  display: block;
+}
+
+[data-cms-discovery-menu]:popover-open:has(.cmsTourCard) {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100svh - 8rem);
+  overflow: auto;
+  padding-bottom: 0.75rem;
+}
+
+.cmsTourTarget {
+  outline: 2px solid var(--staff-brand);
+  outline-offset: 2px;
+  border-radius: 0.65rem;
+}
+
+.cmsTourLayer::backdrop {
+  background: transparent;
+}
+
+.cmsTourBlocker {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: transparent;
+}
+
+.cmsTourBlocker[data-dim="page"] {
+  background: rgb(12 16 28 / 46%);
+}
+
+.cmsTourSpot {
+  position: fixed;
+  z-index: 91;
+  border-radius: 0.75rem;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 2px var(--staff-panel),
+    0 0 0 4px var(--staff-brand),
+    0 0 0 9999px rgb(12 16 28 / 48%);
+}
+
+.cmsTourCard {
+  position: fixed;
+  z-index: 92;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: min(24rem, calc(100dvh - 2rem));
+  overflow: auto;
+  padding: 1.15rem 1.2rem 1rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.875rem;
+  background: var(--staff-panel);
+  color: var(--staff-ink);
+  box-shadow: light-dark(
+    0 18px 48px rgb(10 13 20 / 18%),
+    0 18px 48px rgb(0 0 0 / 52%)
+  );
+}
+
+.cmsTourCard.cmsTourCardInMenu {
+  position: sticky;
+  top: auto;
+  right: auto;
+  bottom: 0;
+  left: auto;
+  width: auto;
+  max-height: none;
+  margin-top: 0.5rem;
+  transform: none;
+}
+
+.cmsTourCard:focus {
+  outline: none;
+}
+
+.cmsTourCard:focus-visible {
+  outline: var(--interaction-focus-width) solid var(--staff-brand);
+  outline-offset: var(--interaction-focus-offset);
+}
+
+.cmsTourProgress {
+  margin: 0;
+  color: var(--staff-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.cmsTourActions {
+  margin-top: 0.15rem;
+}
+
+.cmsTourActions .staffBtn,
+.cmsDiscoveryActions .staffBtn {
+  min-height: 2.75rem;
+}
+
+.cmsTourSkip {
+  margin-right: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmsTourSpot,
+  .cmsTourCard,
+  .cmsDiscoveryCard {
+    scroll-behavior: auto;
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .cmsTourSpot {
+    border: 3px solid Highlight;
+    background: transparent;
+    box-shadow: none;
+    forced-color-adjust: none;
+  }
+
+  .cmsTourBlocker[data-dim="page"] {
+    background: Canvas;
+  }
+
+  .cmsTourCard,
+  .cmsDiscoveryCard {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    forced-color-adjust: none;
+  }
+}

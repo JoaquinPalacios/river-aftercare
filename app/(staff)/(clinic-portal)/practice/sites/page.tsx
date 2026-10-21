@@ -22,7 +22,7 @@ export default async function SitesPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <header>
+      <header data-cms-discovery="sites-locations">
         <h1 className="text-2xl font-semibold tracking-tight">
           Sites & Locations
         </h1>

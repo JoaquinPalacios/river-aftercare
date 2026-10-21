@@ -64,6 +64,7 @@ export function StaffAccountPanel({
           href={helpHref}
           className="staffNavRow"
           data-tooltip="Help & feedback"
+          data-cms-discovery="nav-help"
           aria-current={helpCurrent ? "page" : undefined}
         >
           <StaffNavIcon name="help" />
