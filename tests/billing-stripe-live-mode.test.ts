@@ -23,6 +23,7 @@ import { getStripeClientConfig } from "@/lib/billing/stripe-client";
 import { STRIPE_WEBHOOK_EVENT_TYPES } from "@/lib/billing/stripe-event";
 import {
   BILLING_TEST_ENV,
+  conformingCataloguePrices,
   GROUP_BILLING_TEST_ENV,
 } from "@/tests/helpers/billing";
 
@@ -112,6 +113,7 @@ function fakeStripe(): {
 } {
   const sessions: unknown[] = [];
   const port: CheckoutStripePort = {
+    prices: conformingCataloguePrices,
     customers: {
       async create() {
         return { id: "cus_test" };

@@ -6,7 +6,11 @@ import {
   type CheckoutStripePort,
   type LockedCheckoutState,
 } from "@/lib/billing/checkout";
-import { BILLING_TEST_ENV, GROUP_BILLING_TEST_ENV } from "./helpers/billing";
+import {
+  BILLING_TEST_ENV,
+  conformingCataloguePrices,
+  GROUP_BILLING_TEST_ENV,
+} from "./helpers/billing";
 
 const GROUP_MONTHLY = GROUP_BILLING_TEST_ENV.STRIPE_GROUP_MONTHLY_PRICE_ID;
 const GROUP_YEARLY = GROUP_BILLING_TEST_ENV.STRIPE_GROUP_YEARLY_PRICE_ID;
@@ -298,6 +302,7 @@ function fakeStripe() {
   >();
   let sessionSeq = 0;
   const port: CheckoutStripePort = {
+    prices: conformingCataloguePrices,
     customers: {
       async create() {
         return { id: "cus_test" };

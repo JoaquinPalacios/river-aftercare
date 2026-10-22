@@ -12,6 +12,7 @@ import { saveBillingSetup } from "@/lib/billing/save-billing-setup";
 import { checkoutFailureLogFields } from "@/lib/billing/stripe-error-log";
 import {
   BILLING_TEST_ENV,
+  conformingCataloguePrices,
   GROUP_BILLING_TEST_ENV,
 } from "@/tests/helpers/billing";
 
@@ -204,6 +205,7 @@ function scriptedStripe() {
   }
 
   const port: CheckoutStripePort = {
+    prices: conformingCataloguePrices,
     customers: {
       async create(params) {
         customers.created.push(params);

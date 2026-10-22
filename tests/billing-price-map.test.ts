@@ -5,6 +5,7 @@ import {
   buildStripePriceMap,
   lookupStripePriceId,
   planFromStripePriceId,
+  recognizedBasePriceIds,
   stripePriceIdForPlan,
 } from "@/lib/billing/price-map";
 import { BILLING_TEST_ENV } from "./helpers/billing";
@@ -56,6 +57,39 @@ describe("Stripe Price catalogue mapping", () => {
       lookupStripePriceId("River Aftercare Essential", BILLING_TEST_ENV).kind
     ).toBe("unknown");
     expect(lookupStripePriceId("7900", BILLING_TEST_ENV).kind).toBe("unknown");
+  });
+
+  it("recognises a retired Price without using it for new Checkout", () => {
+    const env = {
+      ...BILLING_TEST_ENV,
+      STRIPE_ESSENTIAL_MONTHLY_LEGACY_PRICE_IDS:
+        "price_legacy_essential_monthly",
+    };
+    expect(stripePriceIdForPlan("ESSENTIAL", "MONTHLY", env)).toBe(
+      "price_test_essential_monthly"
+    );
+    expect(
+      planFromStripePriceId("price_legacy_essential_monthly", env)
+    ).toEqual({ plan: "ESSENTIAL", interval: "MONTHLY" });
+    expect(recognizedBasePriceIds("ESSENTIAL", "MONTHLY", env)).toEqual([
+      "price_test_essential_monthly",
+      "price_legacy_essential_monthly",
+    ]);
+    expect(lookupStripePriceId("price_legacy_essential_monthly", env)).toEqual({
+      kind: "mapped",
+      plan: "ESSENTIAL",
+      interval: "MONTHLY",
+    });
+  });
+
+  it("rejects a legacy Price id that repeats the current Price id", () => {
+    expect(() =>
+      buildStripePriceMap({
+        ...BILLING_TEST_ENV,
+        STRIPE_ESSENTIAL_MONTHLY_LEGACY_PRICE_IDS:
+          BILLING_TEST_ENV.STRIPE_ESSENTIAL_MONTHLY_PRICE_ID,
+      })
+    ).toThrow(/unique/i);
   });
 
   it("rejects duplicate configured Price IDs", () => {

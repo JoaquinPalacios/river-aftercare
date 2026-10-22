@@ -140,7 +140,7 @@ describe("billing setup form validation", () => {
         <BillingSetupForm
           clinicName="Harbour Dental"
           planName="Essential"
-          priceLabel="A$79 / month"
+          priceLabel="A$59 / month"
           annualNote={null}
           contactHref="/contact"
           termsHref="/terms"

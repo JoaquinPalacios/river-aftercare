@@ -1,7 +1,9 @@
 import "server-only";
 
 import {
+  STRIPE_ESSENTIAL_MONTHLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_ESSENTIAL_MONTHLY_PRICE_ID_ENV,
+  STRIPE_ESSENTIAL_YEARLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_ESSENTIAL_YEARLY_PRICE_ID_ENV,
   STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID_ENV,
   STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID_ENV,
@@ -9,9 +11,12 @@ import {
   STRIPE_GROUP_YEARLY_PRICE_ID_ENV,
   STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID_ENV,
   STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID_ENV,
+  STRIPE_PRACTICE_MONTHLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_PRACTICE_MONTHLY_PRICE_ID_ENV,
+  STRIPE_PRACTICE_YEARLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_PRACTICE_YEARLY_PRICE_ID_ENV,
 } from "@/lib/billing/env";
+import { isStripePriceId } from "@/lib/billing/stripe-mode";
 
 export const PUBLIC_GUIDE_RETENTION_DAYS = 60;
 
@@ -36,16 +41,19 @@ type CatalogueSlot =
       plan: CommercialPlanCode;
       interval: BillingIntervalCode;
       envKey: string;
+      generation: "current" | "legacy";
     }
   | {
       role: "PRACTICE_LOCATION_ADDON";
       interval: BillingIntervalCode;
       envKey: string;
+      generation: "current";
     }
   | {
       role: "GROUP_SITE_ADDON";
       interval: BillingIntervalCode;
       envKey: string;
+      generation: "current";
     };
 
 export const STRIPE_CATALOG_SLOTS: readonly StripeCatalogSlot[] = [
@@ -77,58 +85,95 @@ const STRIPE_CATALOGUE_SLOTS: readonly CatalogueSlot[] = [
     plan: "ESSENTIAL",
     interval: "MONTHLY",
     envKey: STRIPE_ESSENTIAL_MONTHLY_PRICE_ID_ENV,
+    generation: "current",
   },
   {
     role: "BASE_PLAN",
     plan: "ESSENTIAL",
     interval: "YEARLY",
     envKey: STRIPE_ESSENTIAL_YEARLY_PRICE_ID_ENV,
+    generation: "current",
   },
   {
     role: "BASE_PLAN",
     plan: "PRACTICE",
     interval: "MONTHLY",
     envKey: STRIPE_PRACTICE_MONTHLY_PRICE_ID_ENV,
+    generation: "current",
   },
   {
     role: "BASE_PLAN",
     plan: "PRACTICE",
     interval: "YEARLY",
     envKey: STRIPE_PRACTICE_YEARLY_PRICE_ID_ENV,
+    generation: "current",
   },
   {
     role: "PRACTICE_LOCATION_ADDON",
     interval: "MONTHLY",
     envKey: STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID_ENV,
+    generation: "current",
   },
   {
     role: "PRACTICE_LOCATION_ADDON",
     interval: "YEARLY",
     envKey: STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID_ENV,
+    generation: "current",
   },
   {
     role: "BASE_PLAN",
     plan: "GROUP",
     interval: "MONTHLY",
     envKey: STRIPE_GROUP_MONTHLY_PRICE_ID_ENV,
+    generation: "current",
   },
   {
     role: "BASE_PLAN",
     plan: "GROUP",
     interval: "YEARLY",
     envKey: STRIPE_GROUP_YEARLY_PRICE_ID_ENV,
+    generation: "current",
   },
   {
     role: "GROUP_SITE_ADDON",
     interval: "MONTHLY",
     envKey: STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID_ENV,
+    generation: "current",
   },
   {
     role: "GROUP_SITE_ADDON",
     interval: "YEARLY",
     envKey: STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID_ENV,
+    generation: "current",
   },
 ] as const;
+
+const LEGACY_BASE_PRICE_ENV = [
+  {
+    plan: "ESSENTIAL",
+    interval: "MONTHLY",
+    envKey: STRIPE_ESSENTIAL_MONTHLY_LEGACY_PRICE_IDS_ENV,
+  },
+  {
+    plan: "ESSENTIAL",
+    interval: "YEARLY",
+    envKey: STRIPE_ESSENTIAL_YEARLY_LEGACY_PRICE_IDS_ENV,
+  },
+  {
+    plan: "PRACTICE",
+    interval: "MONTHLY",
+    envKey: STRIPE_PRACTICE_MONTHLY_LEGACY_PRICE_IDS_ENV,
+  },
+  {
+    plan: "PRACTICE",
+    interval: "YEARLY",
+    envKey: STRIPE_PRACTICE_YEARLY_LEGACY_PRICE_IDS_ENV,
+  },
+] as const satisfies ReadonlyArray<{
+  plan: SelfServeCommercialPlan;
+  interval: BillingIntervalCode;
+  envKey: string;
+}>;
 
 const GROUP_PRICE_ENV_KEYS = [
   STRIPE_GROUP_MONTHLY_PRICE_ID_ENV,
@@ -190,6 +235,24 @@ function readPriceId(
   return value ? value : null;
 }
 
+function readLegacyPriceIds(
+  env: Record<string, string | undefined>,
+  envKey: string
+): { ids: string[]; invalid: boolean } {
+  const raw = env[envKey]?.trim() ?? "";
+  if (!raw) {
+    return { ids: [], invalid: false };
+  }
+  const ids = raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  if (ids.length === 0 || ids.some((id) => !isStripePriceId(id))) {
+    return { ids: [], invalid: true };
+  }
+  return { ids, invalid: false };
+}
+
 export const STRIPE_PRICE_IDS_MUST_BE_UNIQUE =
   "Stripe Price IDs must be unique across every configured base plan and add-on price.";
 
@@ -199,10 +262,15 @@ export type StripeCatalogueInspectionSlot = CatalogueSlot & {
 
 export function inspectStripeCatalogue(
   env: Record<string, string | undefined>
-): { slots: StripeCatalogueInspectionSlot[]; duplicate: boolean } {
+): {
+  slots: StripeCatalogueInspectionSlot[];
+  duplicate: boolean;
+  legacyInvalid: boolean;
+} {
   const slots: StripeCatalogueInspectionSlot[] = [];
   const seen = new Set<string>();
   let duplicate = false;
+  let legacyInvalid = false;
 
   for (const slot of STRIPE_CATALOGUE_SLOTS) {
     const priceId = readPriceId(env, slot.envKey);
@@ -216,13 +284,41 @@ export function inspectStripeCatalogue(
     slots.push({ ...slot, priceId });
   }
 
-  return { slots, duplicate };
+  for (const slot of LEGACY_BASE_PRICE_ENV) {
+    const legacy = readLegacyPriceIds(env, slot.envKey);
+    if (legacy.invalid) {
+      legacyInvalid = true;
+      continue;
+    }
+    for (const priceId of legacy.ids) {
+      if (seen.has(priceId)) {
+        duplicate = true;
+      } else {
+        seen.add(priceId);
+      }
+      slots.push({
+        role: "BASE_PLAN",
+        plan: slot.plan,
+        interval: slot.interval,
+        envKey: slot.envKey,
+        generation: "legacy",
+        priceId,
+      });
+    }
+  }
+
+  return { slots, duplicate, legacyInvalid };
 }
 
 function readConfiguredCatalogue(
   env: Record<string, string | undefined>
 ): ConfiguredCatalogueSlot[] {
   const inspection = inspectStripeCatalogue(env);
+  if (inspection.legacyInvalid) {
+    throw new StripePriceMappingError(
+      "Legacy Stripe Price IDs must be a comma-separated list of price_ ids."
+    );
+  }
   if (inspection.duplicate) {
     throw new StripePriceMappingError(STRIPE_PRICE_IDS_MUST_BE_UNIQUE);
   }
@@ -280,11 +376,42 @@ export function buildStripePriceMap(
     if (slot.role !== "BASE_PLAN" || slot.plan === "GROUP") {
       continue;
     }
+    if (slot.generation === "legacy") {
+      byPriceId[slot.priceId] = { plan: slot.plan, interval: slot.interval };
+      continue;
+    }
     bySlot[`${slot.plan}:${slot.interval}`] = slot.priceId;
     byPriceId[slot.priceId] = { plan: slot.plan, interval: slot.interval };
   }
 
   return { bySlot, byPriceId };
+}
+
+/**
+ * Current catalogue Price first, then retired Prices for the same plan and
+ * interval. Retired Prices stay recognisable for existing subscriptions.
+ * New Checkout uses `stripePriceIdForPlan`, which returns only the current Price.
+ */
+export function recognizedBasePriceIds(
+  plan: SelfServeCommercialPlan,
+  interval: BillingIntervalCode,
+  env: Record<string, string | undefined> = process.env
+): string[] {
+  const inspection = inspectStripeCatalogue(env);
+  if (inspection.duplicate || inspection.legacyInvalid) {
+    return [];
+  }
+  return inspection.slots.flatMap((slot) => {
+    if (
+      slot.priceId &&
+      slot.role === "BASE_PLAN" &&
+      slot.plan === plan &&
+      slot.interval === interval
+    ) {
+      return [slot.priceId];
+    }
+    return [];
+  });
 }
 
 export function stripePriceIdForPlan(

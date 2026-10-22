@@ -125,13 +125,13 @@ describe("marketing JSON-LD", () => {
       "Practice yearly",
     ]);
     expect(offers.map((offer) => offer.price)).toEqual([
-      "79",
-      "790",
-      "149",
-      "1490",
+      "59",
+      "590",
+      "129",
+      "1290",
     ]);
-    expect(offers.map((offer) => offer.price)).not.toContain("59");
-    expect(offers.map((offer) => offer.price)).not.toContain("590");
+    expect(offers.map((offer) => offer.price)).not.toContain("79");
+    expect(offers.map((offer) => offer.price)).not.toContain("790");
     expect(offers.every((offer) => offer.priceCurrency === "AUD")).toBe(true);
     expect(
       offers.map((offer) => {

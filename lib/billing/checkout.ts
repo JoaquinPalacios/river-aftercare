@@ -21,10 +21,15 @@ import {
 } from "@/lib/billing/stripe-error-log";
 import { stripeDeployment } from "@/lib/billing/stripe-mode";
 import {
+  rejectMismatchedCataloguePrices,
+  type CataloguePriceReader,
+} from "@/lib/billing/catalogue-price-check";
+import {
   stripeGroupBasePriceId,
   stripeGroupSiteAddonPriceId,
   stripePriceIdForPlan,
   StripePriceMappingError,
+  UnknownStripePriceError,
   type BillingIntervalCode,
   type SelfServeCommercialPlan,
 } from "@/lib/billing/price-map";
@@ -130,6 +135,7 @@ export function checkoutFailureMessage(code: CheckoutFailureCode): string {
 }
 
 export type CheckoutStripePort = {
+  prices: CataloguePriceReader;
   customers: {
     create(
       params: {
@@ -504,6 +510,32 @@ export async function executeClinicCheckout(input: {
       });
     }
     throw error;
+  }
+
+  try {
+    const rejection = await rejectMismatchedCataloguePrices({
+      priceIds: lineItems.map((item) => item.price),
+      env: input.env,
+      retrieve: (priceId) => input.stripe.prices.retrieve(priceId),
+    });
+    if (rejection) {
+      return failure("price_not_configured", rejection, {
+        operation: "catalogue_price",
+      });
+    }
+  } catch (error) {
+    if (
+      error instanceof StripePriceMappingError ||
+      error instanceof UnknownStripePriceError
+    ) {
+      return failure("price_not_configured", "catalogue_price_unmapped", {
+        operation: "catalogue_price",
+      });
+    }
+    return failure("checkout_failed", "catalogue_price_lookup_failed", {
+      operation: "catalogue_price",
+      error,
+    });
   }
 
   const deployment = stripeDeployment(input.env);

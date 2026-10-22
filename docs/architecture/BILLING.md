@@ -241,7 +241,7 @@ Migration `20260926140000_add_group_capacity_foundation` is additive. Migration 
 
 ### Practice Additional Location
 
-Practice base remains A$149/month or A$1,490/year and includes the first physical Location and one Clinic Site. There is no Essential additional-location Price. Essential stays 1 Clinic Site and 1 Location.
+Practice base remains A$129/month or A$1,290/year and includes the first physical Location and one Clinic Site. There is no Essential additional-location Price. Essential stays 1 Clinic Site and 1 Location.
 
 One graduated Price per interval, `River Aftercare Practice — Additional Location`:
 
@@ -658,8 +658,8 @@ Follow Stripe’s catalogue rule: **one Product per plan the customer can choose
 
 | Stripe Product            | Monthly Price                   | Yearly Price                    |
 | ------------------------- | ------------------------------- | ------------------------------- |
-| River Aftercare Essential | AUD 7900 cents, interval month  | AUD 79000 cents, interval year  |
-| River Aftercare Practice  | AUD 14900 cents, interval month | AUD 149000 cents, interval year |
+| River Aftercare Essential | AUD 5900 cents, interval month  | AUD 59000 cents, interval year  |
+| River Aftercare Practice  | AUD 12900 cents, interval month | AUD 129000 cents, interval year |
 
 All `tax_behavior: inclusive`. Currency `aud`. Nickname the Prices clearly (`essential_monthly`, etc.).
 
@@ -687,7 +687,7 @@ STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID
 
 `VERCEL_ENV=production` accepts `sk_live_` or `rk_live_` and rejects test keys. Preview and local accept `sk_test_` or `rk_test_` and reject live keys. Vercel **Preview** uses test-mode keys and test Price IDs. Vercel **Production** uses live-mode keys and live Price IDs. Never mix. There is no publishable Stripe key.
 
-River mapping is a closed server table: env Price ID → `{ commercialPlan, billingInterval, expectedAmountCents }` checked against `PLAN_PRICES`. Checkout Sessions are created only from operator-selected plan+interval after that lookup. Incoming webhooks resolve `stripePriceId` through the **same** map; unknown Price IDs are a hard error (alert operator, do not grant entitlements).
+River mapping is a closed server table: env Price ID → `{ commercialPlan, billingInterval, expectedAmountCents }` checked against `PLAN_PRICES`. Checkout retrieves the Price and refuses the session unless the unit amount, AUD currency, interval, and non-inclusive tax behaviour match. It does not charge a previous amount. Incoming webhooks resolve `stripePriceId` through the current map plus optional legacy Price ids for the previous Essential and Practice amounts. Unknown Price IDs are a hard error (alert operator, do not grant entitlements). A legacy id keeps the existing subscription; it is not used for a new Checkout. See [STRIPE-SETUP.md](../launch/STRIPE-SETUP.md).
 
 Clients never send Price IDs. Operators never paste Price IDs into clinic UI.
 
@@ -699,7 +699,7 @@ Why not Stripe Tax (Option B) for launch:
 
 | Concern                                               | Option A (manual inclusive 10% GST)                                                                                           | Option B (Stripe Tax)                                                                                                     |
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Advertised totals stay A$79 / A$149 / A$790 / A$1,490 | Yes, if `inclusive: true`                                                                                                     | Yes only if `tax_behavior: inclusive` **and** tax actually calculates                                                     |
+| Advertised totals stay A$59 / A$129 / A$590 / A$1,290 | Yes, if `inclusive: true`                                                                                                     | Yes only if `tax_behavior: inclusive` **and** tax actually calculates                                                     |
 | AU-only, fixed B2B SaaS                               | Matches                                                                                                                       | Extra machinery                                                                                                           |
 | ABN on a domestic AU→AU sale                          | GST still charged; customer claims input tax credits                                                                          | Stripe Tax docs treat ABN as **no GST for remote sellers**. A mis-set origin could omit GST on taxable domestic supplies. |
 | Fees                                                  | None beyond Billing                                                                                                           | Tax Basic is **0.5% per transaction** (Billing/Checkout) where registered; Tax Complete from A$140/month                  |
@@ -708,11 +708,11 @@ Why not Stripe Tax (Option B) for launch:
 
 This is **not** a tax determination. Joaquín’s accountant must confirm: GST registration, that these plans are taxable supplies, that inclusive 10% is correct, and invoice wording.
 
-Stripe’s own [Australia invoicing guide](https://docs.stripe.com/invoicing/australia-invoicing) still applies: seller identity, ABN, “Tax Invoice” subtitle via custom field, GST amount (required to be explicit for supplies **A$1,000+** — Practice annual is A$1,490), buyer identity or ABN.
+Stripe’s own [Australia invoicing guide](https://docs.stripe.com/invoicing/australia-invoicing) still applies: seller identity, ABN, “Tax Invoice” subtitle via custom field, GST amount (required to be explicit for supplies **A$1,000+** — Practice annual is A$1,290), buyer identity or ABN. Current decision remains: River Aftercare is not registering for GST, Prices are not marked tax inclusive, and Stripe Tax stays off. The inclusive-GST option in this section is the historical investigation, not the live setting.
 
 ### E.4 Amounts vs marketing
 
-`PLAN_PRICES` remains canonical for `/pricing` and JSON-LD. Implementation should assert Stripe Price unit amounts equal `PLAN_PRICES * 100` at Session-create time. Marketing pages must not fetch Stripe.
+`PLAN_PRICES` remains canonical for `/pricing` and JSON-LD. Checkout asserts Stripe Price unit amounts equal those dollar amounts × 100 before it creates a Session. Marketing pages do not fetch Stripe. Annual amounts are the yearly charge, 10 × the monthly amount.
 
 ---
 
@@ -968,7 +968,7 @@ Persist `StripeInvoiceRef` (IDs + URLs) optionally for the Billing page; **alway
 
 ### J.2 A$1,000+ recipient identity
 
-Practice annual A$1,490 **requires** buyer identity or ABN on the tax invoice. Therefore **before Checkout**:
+Practice annual A$1,290 **requires** buyer identity or ABN on the tax invoice under the superseded inclusive-GST investigation below. The live setting does not charge GST. Therefore **before Checkout**:
 
 Collect on `ClinicBillingProfile`: legal entity name, trading/practice name (if different), ABN (strongly recommended for all; **required for annual Practice**), billing address, billing contact, billing email, plan, interval.
 
@@ -1071,7 +1071,7 @@ Do not enable public self-serve signup, coupons, trials, Group automation, locat
 - [ ] Inclusive 10% GST tax rate named `GST`, inclusive, display name GST
 - [ ] Default on subscription invoices
 - [ ] Invoice custom field: `Tax Invoice`
-- [ ] Inclusive tax shown on PDF; GST amount visible (needed for A$1,490)
+- [ ] Inclusive tax shown on PDF; GST amount visible (historical investigation for Practice annual A$1,290; live setting does not charge GST)
 - [ ] Email: finalised invoices, receipts, failed payments
 - [ ] Do **not** also send River billing duplicates
 - [ ] Hosted invoice page on

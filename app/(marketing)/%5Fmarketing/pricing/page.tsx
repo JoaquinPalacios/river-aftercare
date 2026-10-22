@@ -110,7 +110,7 @@ export default async function MarketingPricingPage() {
                             {plan.cadence}
                           </span>
                           <span className={styles.planAnnual}>
-                            {plan.annualPrice}/year
+                            {plan.annualPrice} billed annually
                             {plan.annualNote ? ` — ${plan.annualNote}` : null}
                           </span>
                         </p>

@@ -10,6 +10,8 @@ import {
 } from "@prisma/client";
 import type Stripe from "stripe";
 
+import { rejectMismatchedCataloguePrices } from "@/lib/billing/catalogue-price-check";
+import type { RetrievedCataloguePrice } from "@/lib/billing/catalogue-price";
 import type { Env } from "@/lib/billing/env";
 import {
   RIVER_CLINIC_ID_METADATA_KEY,
@@ -186,6 +188,9 @@ export type CancellationSupersedeUpdate = {
 type StripeRequestOptions = { idempotencyKey?: string };
 
 export type PlanDowngradeStripePort = {
+  prices?: {
+    retrieve(id: string): Promise<RetrievedCataloguePrice>;
+  };
   subscriptions: {
     retrieve(id: string): Promise<DowngradeSubscriptionSnapshot>;
   };
@@ -1057,6 +1062,18 @@ export async function executeClinicPlanDowngrade(input: {
   };
 
   try {
+    if (!stripe.prices) {
+      return failure(input.state.clinicId, "price_not_configured");
+    }
+    const rejection = await rejectMismatchedCataloguePrices({
+      priceIds: [practicePriceId, essentialPriceId],
+      env: input.env,
+      retrieve: (priceId) => stripe.prices!.retrieve(priceId),
+    });
+    if (rejection) {
+      return failure(input.state.clinicId, "price_mismatch");
+    }
+
     let attemptId = input.state.stripePlanDowngradeAttemptId;
     let subscription = await stripe.subscriptions.retrieve(subscriptionId);
     if (subscription.id !== subscriptionId) {
@@ -1919,6 +1936,8 @@ export function decideSubscriptionScheduleEvent(input: {
   localScheduleId: string | null;
   practicePriceId: string | null;
   essentialPriceId: string | null;
+  recognizedPracticePriceIds?: readonly string[];
+  recognizedEssentialPriceIds?: readonly string[];
 }): ScheduleEventDecision {
   const owned = isRiverDowngradeSchedule({
     scheduleId: input.notice.scheduleId,
@@ -1940,19 +1959,30 @@ export function decideSubscriptionScheduleEvent(input: {
   if (input.notice.endBehavior !== "cancel") {
     return { action: "ignore" };
   }
-  if (input.notice.currentPriceId === input.essentialPriceId) {
+  const practicePriceIds =
+    input.recognizedPracticePriceIds ??
+    (input.practicePriceId ? [input.practicePriceId] : []);
+  const essentialPriceIds =
+    input.recognizedEssentialPriceIds ??
+    (input.essentialPriceId ? [input.essentialPriceId] : []);
+  if (
+    input.notice.currentPriceId &&
+    essentialPriceIds.includes(input.notice.currentPriceId)
+  ) {
     return { action: "ignore" };
   }
   if (
-    input.notice.currentPriceId === input.practicePriceId &&
+    input.notice.currentPriceId &&
+    practicePriceIds.includes(input.notice.currentPriceId) &&
     !input.notice.futurePriceId
   ) {
     return { action: "mark_cancel" };
   }
   if (
-    !input.practicePriceId ||
-    input.notice.currentPriceId !== input.practicePriceId ||
-    input.notice.futurePriceId !== input.essentialPriceId ||
+    !input.notice.currentPriceId ||
+    !practicePriceIds.includes(input.notice.currentPriceId) ||
+    !input.notice.futurePriceId ||
+    !essentialPriceIds.includes(input.notice.futurePriceId) ||
     input.notice.currentQuantity !== 1 ||
     input.notice.currentStart == null ||
     input.notice.currentEnd == null
@@ -1962,7 +1992,7 @@ export function decideSubscriptionScheduleEvent(input: {
   return {
     action: "cancellation_supersedes",
     update: buildCancellationSupersedeUpdate({
-      practicePriceId: input.practicePriceId,
+      practicePriceId: input.notice.currentPriceId,
       quantity: 1,
       phaseStart: input.notice.currentStart,
       periodEnd: input.notice.currentEnd,
@@ -2009,6 +2039,26 @@ export function noticeFromSubscriptionSchedule(
 
 export function downgradeStripePort(stripe: Stripe): PlanDowngradeStripePort {
   return {
+    prices: {
+      async retrieve(id) {
+        const price = await stripe.prices.retrieve(id);
+        return {
+          active: price.active,
+          currency: price.currency,
+          unit_amount: price.unit_amount,
+          unit_amount_decimal: price.unit_amount_decimal,
+          type: price.type,
+          tax_behavior: price.tax_behavior,
+          billing_scheme: price.billing_scheme,
+          recurring: price.recurring
+            ? {
+                interval: price.recurring.interval,
+                interval_count: price.recurring.interval_count,
+              }
+            : null,
+        };
+      },
+    },
     subscriptions: {
       async retrieve(id) {
         const subscription = await stripe.subscriptions.retrieve(id);

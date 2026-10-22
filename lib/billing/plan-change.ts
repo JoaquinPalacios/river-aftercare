@@ -7,11 +7,16 @@ import {
   type CommercialPlan,
 } from "@prisma/client";
 
+import {
+  cataloguePriceRejection,
+  type CataloguePriceReader,
+} from "@/lib/billing/catalogue-price-check";
 import type { Env } from "@/lib/billing/env";
 import { logStripeBilling } from "@/lib/billing/log";
 import {
   stripePriceIdForPlan,
   StripePriceMappingError,
+  UnknownStripePriceError,
 } from "@/lib/billing/price-map";
 import { getPrisma } from "@/lib/prisma";
 import { getStripeClient } from "@/lib/billing/stripe-client";
@@ -147,6 +152,7 @@ export type PlanChangeSubscription = {
 };
 
 export type PlanChangeStripePort = {
+  prices: CataloguePriceReader;
   subscriptions: {
     retrieve(id: string): Promise<PlanChangeSubscription>;
     update(
@@ -260,6 +266,35 @@ export async function executeOperatorPlanUpgrade(input: {
         reason: "price_mismatch",
       });
       return { ok: false, code: "price_mismatch" };
+    }
+
+    try {
+      const rejection = await cataloguePriceRejection({
+        priceId: targetPriceId,
+        env: input.env,
+        retrieve: (priceId) => input.stripe.prices.retrieve(priceId),
+      });
+      if (rejection) {
+        logStripeBilling({
+          event: "plan_upgrade_failed",
+          clinicId: assessed.clinicId,
+          reason: rejection,
+        });
+        return { ok: false, code: "price_mismatch" };
+      }
+    } catch (error) {
+      if (
+        error instanceof StripePriceMappingError ||
+        error instanceof UnknownStripePriceError
+      ) {
+        return { ok: false, code: "price_not_configured" };
+      }
+      logStripeBilling({
+        event: "plan_upgrade_failed",
+        clinicId: assessed.clinicId,
+        reason: "catalogue_price_lookup_failed",
+      });
+      return { ok: false, code: "upgrade_failed" };
     }
 
     await input.stripe.subscriptions.update(

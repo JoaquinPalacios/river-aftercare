@@ -12,6 +12,7 @@ vi.mock("next/headers", () => ({
 
 import MarketingPricingPage from "@/app/(marketing)/%5Fmarketing/pricing/page";
 import {
+  annualSavingFraction,
   formatAudInclGst,
   LAUNCH_PLANS,
   PLAN_COMPARISON_CONTROL_LABEL,
@@ -155,13 +156,12 @@ describe("marketing pricing page", () => {
     );
     expect(html).not.toContain("Second location:");
     expect(html).not.toContain("Third and subsequent");
+    expect(html).not.toContain("Additional location");
     expect(html).not.toContain(
-      formatAudInclGst(
-        PLAN_PRICES.practice.additionalLocation.monthlyAudInclGst
-      )
+      formatAudInclGst(PLAN_PRICES.practice.secondLocation.monthlyAudInclGst)
     );
     expect(html).not.toContain(
-      formatAudInclGst(PLAN_PRICES.practice.additionalLocation.annualAudInclGst)
+      formatAudInclGst(PLAN_PRICES.practice.secondLocation.annualAudInclGst)
     );
     expect(html).toContain("All prices are in Australian dollars.");
     expect(html).not.toContain("All prices include GST.");
@@ -171,7 +171,10 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("plus GST");
     expect(html).not.toMatch(/\bGST\b/);
     expect(html).toContain("2 months free");
-    expect(html).toContain("12 months for the price of 10");
+    expect(html).toContain("equal to 10 monthly payments");
+    expect(html).toContain("about 16.7% less than paying monthly");
+    expect(html).toContain("billed once a year");
+    expect(html).toContain("billed annually");
     expect(html).toContain("Custom pricing");
     expect(html).toContain("Recommended");
     expect(html).toContain(LAUNCH_PLANS[0].name);
@@ -462,13 +465,20 @@ describe("marketing pricing page", () => {
 
 describe("canonical plan prices", () => {
   it("keeps advertised production amounts in one source", () => {
-    expect(PLAN_PRICES.essential.monthlyAudInclGst).toBe(79);
-    expect(PLAN_PRICES.essential.annualAudInclGst).toBe(790);
+    expect(PLAN_PRICES.essential.monthlyAudInclGst).toBe(59);
+    expect(PLAN_PRICES.essential.annualAudInclGst).toBe(590);
+    expect(PLAN_PRICES.essential.annualAudInclGst).toBe(
+      PLAN_PRICES.essential.monthlyAudInclGst * 10
+    );
     expect(PLAN_PRICES.essential.includedLocations).toBe(1);
     expect(PLAN_PRICES.essential.customGuides).toBe(2);
     expect(PLAN_PRICES.essential.clinicTeamMembers).toBe(2);
-    expect(PLAN_PRICES.practice.monthlyAudInclGst).toBe(149);
-    expect(PLAN_PRICES.practice.annualAudInclGst).toBe(1490);
+    expect(PLAN_PRICES.practice.monthlyAudInclGst).toBe(129);
+    expect(PLAN_PRICES.practice.annualAudInclGst).toBe(1290);
+    expect(PLAN_PRICES.practice.annualAudInclGst).toBe(
+      PLAN_PRICES.practice.monthlyAudInclGst * 10
+    );
+    expect(annualSavingFraction()).toBeCloseTo(2 / 12, 10);
     expect(PLAN_PRICES.practice.includedLocations).toBe(1);
     expect(PLAN_PRICES.practice.customGuides).toBe(30);
     expect(PLAN_PRICES.practice.clinicTeamMembers).toBe(5);
