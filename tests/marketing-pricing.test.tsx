@@ -157,12 +157,8 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("Second location:");
     expect(html).not.toContain("Third and subsequent");
     expect(html).not.toContain("Additional location");
-    expect(html).not.toContain(
-      formatAudInclGst(PLAN_PRICES.practice.secondLocation.monthlyAudInclGst)
-    );
-    expect(html).not.toContain(
-      formatAudInclGst(PLAN_PRICES.practice.secondLocation.annualAudInclGst)
-    );
+    expect(html).not.toContain("A$79");
+    expect(html).not.toContain("A$790");
     expect(html).toContain("All prices are in Australian dollars.");
     expect(html).not.toContain("All prices include GST.");
     expect(html).not.toContain("GST included");
@@ -482,10 +478,11 @@ describe("canonical plan prices", () => {
     expect(PLAN_PRICES.practice.includedLocations).toBe(1);
     expect(PLAN_PRICES.practice.customGuides).toBe(30);
     expect(PLAN_PRICES.practice.clinicTeamMembers).toBe(5);
-    expect(PLAN_PRICES.practice.secondLocation.monthlyAudInclGst).toBe(79);
-    expect(PLAN_PRICES.practice.secondLocation.annualAudInclGst).toBe(790);
     expect(PLAN_PRICES.practice.additionalLocation.monthlyAudInclGst).toBe(59);
     expect(PLAN_PRICES.practice.additionalLocation.annualAudInclGst).toBe(590);
+    expect(PLAN_PRICES.practice.additionalLocation.annualAudInclGst).toBe(
+      PLAN_PRICES.practice.additionalLocation.monthlyAudInclGst * 10
+    );
     expect(formatAudInclGst(1490)).toBe("A$1,490");
     expect(JSON.stringify(PLAN_PRICES)).not.toContain("298");
     expect(PRICING_NOTES.map((note) => note.title)).toEqual([

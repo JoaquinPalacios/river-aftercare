@@ -3,6 +3,7 @@ import "server-only";
 import {
   catalogueBaseUnitAmountCents,
   catalogueGroupSiteUnitAmountCents,
+  cataloguePracticeLocationUnitAmountCents,
   cataloguePriceMismatchReason,
   type RetrievedCataloguePrice,
 } from "@/lib/billing/catalogue-price";
@@ -44,6 +45,9 @@ function expectedUnitAmount(
   }
   if (classified.role === "GROUP_SITE_ADDON") {
     return catalogueGroupSiteUnitAmountCents(classified.interval);
+  }
+  if (classified.role === "PRACTICE_LOCATION_ADDON") {
+    return cataloguePracticeLocationUnitAmountCents(classified.interval);
   }
   return null;
 }

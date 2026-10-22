@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 
+import { cataloguePriceRejection } from "@/lib/billing/catalogue-price-check";
 import {
   ESSENTIAL_MONTHLY_CENTS,
   ESSENTIAL_YEARLY_CENTS,
+  PRACTICE_ADDITIONAL_LOCATION_MONTHLY_CENTS,
+  PRACTICE_ADDITIONAL_LOCATION_YEARLY_CENTS,
   PRACTICE_MONTHLY_CENTS,
   PRACTICE_YEARLY_CENTS,
+  cataloguePracticeRecurringCents,
   cataloguePriceMismatchReason,
 } from "@/lib/billing/catalogue-price";
-import { conformingCataloguePrice } from "./helpers/billing";
+import {
+  conformingCataloguePrice,
+  PRACTICE_LOCATION_BILLING_TEST_ENV,
+} from "./helpers/billing";
 
 describe("catalogue price amounts", () => {
   it("charges 10 monthly payments for 12 months of access", () => {
@@ -17,6 +24,23 @@ describe("catalogue price amounts", () => {
     expect(PRACTICE_YEARLY_CENTS).toBe(129_000);
     expect(ESSENTIAL_YEARLY_CENTS).toBe(ESSENTIAL_MONTHLY_CENTS * 10);
     expect(PRACTICE_YEARLY_CENTS).toBe(PRACTICE_MONTHLY_CENTS * 10);
+    expect(PRACTICE_ADDITIONAL_LOCATION_MONTHLY_CENTS).toBe(5_900);
+    expect(PRACTICE_ADDITIONAL_LOCATION_YEARLY_CENTS).toBe(59_000);
+    expect(PRACTICE_ADDITIONAL_LOCATION_YEARLY_CENTS).toBe(
+      PRACTICE_ADDITIONAL_LOCATION_MONTHLY_CENTS * 10
+    );
+    expect(cataloguePracticeRecurringCents("MONTHLY", 0)).toBe(
+      PRACTICE_MONTHLY_CENTS
+    );
+    expect(cataloguePracticeRecurringCents("MONTHLY", 1)).toBe(
+      PRACTICE_MONTHLY_CENTS + PRACTICE_ADDITIONAL_LOCATION_MONTHLY_CENTS
+    );
+    expect(cataloguePracticeRecurringCents("YEARLY", 3)).toBe(
+      PRACTICE_YEARLY_CENTS + PRACTICE_ADDITIONAL_LOCATION_YEARLY_CENTS * 3
+    );
+    expect(cataloguePracticeRecurringCents("MONTHLY", 2)).not.toBe(
+      PRACTICE_MONTHLY_CENTS + 7_900 + 5_900
+    );
   });
 
   it("accepts an AUD exclusive recurring Price at the advertised amount", () => {
@@ -79,6 +103,48 @@ describe("catalogue price amounts", () => {
         })
       )
     ).toBe("amount");
+  });
+
+  it("accepts the flat additional-location Price and refuses a graduated one", async () => {
+    const priceId =
+      PRACTICE_LOCATION_BILLING_TEST_ENV.STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID;
+    await expect(
+      cataloguePriceRejection({
+        priceId,
+        env: PRACTICE_LOCATION_BILLING_TEST_ENV,
+        retrieve: async () =>
+          conformingCataloguePrice(priceId, {
+            unit_amount: PRACTICE_ADDITIONAL_LOCATION_MONTHLY_CENTS,
+            unit_amount_decimal: "5900",
+            recurring: { interval: "month", interval_count: 1 },
+          }),
+      })
+    ).resolves.toBeNull();
+    await expect(
+      cataloguePriceRejection({
+        priceId,
+        env: PRACTICE_LOCATION_BILLING_TEST_ENV,
+        retrieve: async () =>
+          conformingCataloguePrice(priceId, {
+            billing_scheme: "tiered",
+            unit_amount: null,
+            unit_amount_decimal: null,
+            recurring: { interval: "month", interval_count: 1 },
+          }),
+      })
+    ).resolves.toBe("catalogue_price_mismatch_billing_scheme");
+    await expect(
+      cataloguePriceRejection({
+        priceId,
+        env: PRACTICE_LOCATION_BILLING_TEST_ENV,
+        retrieve: async () =>
+          conformingCataloguePrice(priceId, {
+            unit_amount: 7_900,
+            unit_amount_decimal: "7900",
+            recurring: { interval: "month", interval_count: 1 },
+          }),
+      })
+    ).resolves.toBe("catalogue_price_mismatch_amount");
   });
 
   it("rejects a tax-inclusive Price and a monthly interval on a yearly charge", () => {

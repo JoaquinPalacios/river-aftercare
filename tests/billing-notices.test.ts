@@ -186,6 +186,23 @@ describe("billing notice decisions", () => {
     expect(result.page.annualReminder).toBeNull();
   });
 
+  it("does not quote a flat additional-location total", () => {
+    const result = evaluate({
+      subscription: {
+        purchasedAdditionalLocationQuantity: 2,
+        catalogueAddonPriceId: "price_test_practice_location_yearly",
+      },
+    });
+
+    expect(result.page.currentPriceLabel).toBeNull();
+    expect(result.overview?.body ?? "").not.toContain("A$");
+    expect(result.emails[0]?.text ?? "").not.toContain(
+      "expected renewal amount"
+    );
+    expect(result.emails[0]?.text ?? "").not.toContain("A$1,290");
+    expect(result.emails[0]?.text ?? "").not.toContain("A$590");
+  });
+
   it("does not quote the new catalogue amount for a grandfathered Price", () => {
     const result = evaluate({
       subscription: {

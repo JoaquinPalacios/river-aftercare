@@ -98,7 +98,10 @@ export function cataloguePriceIdsForSubscription(
         : null;
   const addon = addonRole
     ? inspection.slots.find(
-        (slot) => slot.role === addonRole && slot.interval === interval
+        (slot) =>
+          slot.generation === "current" &&
+          slot.role === addonRole &&
+          slot.interval === interval
       )
     : null;
   return {

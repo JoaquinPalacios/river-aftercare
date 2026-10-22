@@ -1,14 +1,20 @@
 import { describe, expect, it } from "vitest";
 
+import { cataloguePriceIdsForSubscription } from "@/lib/billing/notices/load";
 import {
+  StripePriceMappingError,
   UnknownStripePriceError,
   buildStripePriceMap,
+  classifyConfiguredStripePrice,
   lookupStripePriceId,
   planFromStripePriceId,
   recognizedBasePriceIds,
   stripePriceIdForPlan,
 } from "@/lib/billing/price-map";
-import { BILLING_TEST_ENV } from "./helpers/billing";
+import {
+  BILLING_TEST_ENV,
+  PRACTICE_LOCATION_BILLING_TEST_ENV,
+} from "./helpers/billing";
 
 describe("Stripe Price catalogue mapping", () => {
   it("maps Essential and Practice monthly and yearly to configured Price IDs", () => {
@@ -80,6 +86,82 @@ describe("Stripe Price catalogue mapping", () => {
       plan: "ESSENTIAL",
       interval: "MONTHLY",
     });
+  });
+
+  it("recognises a retired additional-location Price without selecting it as current", () => {
+    const env = {
+      ...PRACTICE_LOCATION_BILLING_TEST_ENV,
+      STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS:
+        "price_legacy_practice_location_monthly",
+    };
+    expect(
+      classifyConfiguredStripePrice(
+        "price_legacy_practice_location_monthly",
+        env
+      )
+    ).toEqual({
+      role: "PRACTICE_LOCATION_ADDON",
+      interval: "MONTHLY",
+      priceId: "price_legacy_practice_location_monthly",
+    });
+    expect(
+      classifyConfiguredStripePrice("price_test_practice_location_monthly", env)
+        .priceId
+    ).toBe("price_test_practice_location_monthly");
+    expect(
+      cataloguePriceIdsForSubscription("PRACTICE", "MONTHLY", env)
+    ).toEqual({
+      catalogueBasePriceId: "price_test_practice_monthly",
+      catalogueAddonPriceId: "price_test_practice_location_monthly",
+    });
+    expect(() =>
+      planFromStripePriceId("price_legacy_practice_location_monthly", env)
+    ).toThrow(UnknownStripePriceError);
+    expect(stripePriceIdForPlan("PRACTICE", "MONTHLY", env)).toBe(
+      "price_test_practice_monthly"
+    );
+  });
+
+  it("keeps a retired additional-location Price recognisable when the current Price is unset", () => {
+    const env = {
+      ...BILLING_TEST_ENV,
+      STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS:
+        "price_legacy_practice_location_yearly",
+    };
+    expect(
+      classifyConfiguredStripePrice(
+        "price_legacy_practice_location_yearly",
+        env
+      )
+    ).toEqual({
+      role: "PRACTICE_LOCATION_ADDON",
+      interval: "YEARLY",
+      priceId: "price_legacy_practice_location_yearly",
+    });
+    expect(
+      cataloguePriceIdsForSubscription("PRACTICE", "YEARLY", env)
+        .catalogueAddonPriceId
+    ).toBeNull();
+  });
+
+  it("rejects a legacy additional-location Price id that repeats the current Price id", () => {
+    expect(() =>
+      buildStripePriceMap({
+        ...PRACTICE_LOCATION_BILLING_TEST_ENV,
+        STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS:
+          PRACTICE_LOCATION_BILLING_TEST_ENV.STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID,
+      })
+    ).toThrow(StripePriceMappingError);
+  });
+
+  it("rejects a malformed additional-location legacy list", () => {
+    expect(() =>
+      buildStripePriceMap({
+        ...BILLING_TEST_ENV,
+        STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS:
+          "not-a-price",
+      })
+    ).toThrow(/Legacy Stripe Price/i);
   });
 
   it("rejects a legacy Price id that repeats the current Price id", () => {

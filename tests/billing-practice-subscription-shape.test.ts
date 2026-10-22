@@ -54,6 +54,23 @@ describe("Practice subscription shape", () => {
     });
   });
 
+  it("keeps quantity for a retired graduated additional-location Price", () => {
+    const env = {
+      ...ENV,
+      STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS:
+        "price_legacy_practice_location_monthly",
+    };
+    expect(
+      classifySubscriptionShape(
+        [
+          item(PRACTICE_MONTHLY, 1),
+          item("price_legacy_practice_location_monthly", 2),
+        ],
+        env
+      )
+    ).toMatchObject({ ok: true, additionalLocationQuantity: 2 });
+  });
+
   it("classifies a matching location add-on quantity, including reversed order", () => {
     expect(
       classifySubscriptionShape(

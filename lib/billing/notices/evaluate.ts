@@ -9,6 +9,7 @@ import {
   RESTRICTED_BILLING_MESSAGE,
   formatBillingDate,
 } from "@/lib/billing/billing-presentation";
+import { cataloguePracticeRecurringCents } from "@/lib/billing/catalogue-price";
 import { PLAN_PRICES } from "@/lib/marketing/plans";
 import {
   composeAnnualRenewalEmail,
@@ -153,29 +154,15 @@ function wholeQuantity(value: number | null): number | null {
   return value;
 }
 
-function practiceRecurringCents(
-  interval: BillingNoticeInterval,
-  additionalLocations: number
-): number {
-  const prices = PLAN_PRICES.practice;
-  const yearly = interval === "YEARLY";
-  const base = yearly ? prices.annualAudInclGst : prices.monthlyAudInclGst;
-  if (additionalLocations <= 0) {
-    return dollarsToCents(base);
-  }
-  const first = yearly
-    ? prices.secondLocation.annualAudInclGst
-    : prices.secondLocation.monthlyAudInclGst;
-  const later = yearly
-    ? prices.additionalLocation.annualAudInclGst
-    : prices.additionalLocation.monthlyAudInclGst;
-  return dollarsToCents(base + first + (additionalLocations - 1) * later);
-}
-
 /**
  * Current recurring amount when the stored base Price id matches the catalogue
  * and purchased add-on quantity is a recorded integer. Complimentary extras
  * are not part of the charge. A future increase is never inferred from this.
+ *
+ * Practice with purchased additional locations returns null. The add-on Price
+ * id is not stored, so a grandfathered graduated Price cannot be distinguished
+ * from the current per-unit Price. Quoting the flat total would name a charge
+ * Stripe may not make.
  */
 export function catalogueRecurringAmountCents(
   subscription: BillingNoticeSubscription
@@ -207,13 +194,10 @@ export function catalogueRecurringAmountCents(
     const quantity = wholeQuantity(
       subscription.purchasedAdditionalLocationQuantity
     );
-    if (quantity == null) {
+    if (quantity == null || quantity > 0) {
       return null;
     }
-    if (quantity > 0 && !subscription.catalogueAddonPriceId?.trim()) {
-      return null;
-    }
-    return practiceRecurringCents(interval, quantity);
+    return cataloguePracticeRecurringCents(interval, quantity);
   }
 
   const quantity = wholeQuantity(subscription.purchasedAdditionalSiteQuantity);

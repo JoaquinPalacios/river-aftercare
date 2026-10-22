@@ -29,6 +29,12 @@ export const PRACTICE_MONTHLY_CENTS = audDollarsToCents(
 export const PRACTICE_YEARLY_CENTS = audDollarsToCents(
   PLAN_PRICES.practice.annualAudInclGst
 );
+export const PRACTICE_ADDITIONAL_LOCATION_MONTHLY_CENTS = audDollarsToCents(
+  PLAN_PRICES.practice.additionalLocation.monthlyAudInclGst
+);
+export const PRACTICE_ADDITIONAL_LOCATION_YEARLY_CENTS = audDollarsToCents(
+  PLAN_PRICES.practice.additionalLocation.annualAudInclGst
+);
 
 export type CatalogueBasePlan = CommercialPlanCode;
 
@@ -59,9 +65,38 @@ export function catalogueGroupSiteUnitAmountCents(
     : GROUP_ADDITIONAL_SITE_MONTHLY_CENTS;
 }
 
+/** Flat per-unit amount. Every additional Location uses this rate. */
+export function cataloguePracticeLocationUnitAmountCents(
+  interval: BillingIntervalCode
+): number {
+  return interval === "YEARLY"
+    ? PRACTICE_ADDITIONAL_LOCATION_YEARLY_CENTS
+    : PRACTICE_ADDITIONAL_LOCATION_MONTHLY_CENTS;
+}
+
 /**
- * Fields Checkout reads from a Stripe Price. Graduated add-on Prices are not
- * described here; they have no single unit amount.
+ * Practice base plus N times the flat additional-location rate.
+ * N is the count above the Location included in Practice. N has no first-unit
+ * premium.
+ */
+export function cataloguePracticeRecurringCents(
+  interval: BillingIntervalCode,
+  additionalLocations: number
+): number {
+  const base = catalogueBaseUnitAmountCents("PRACTICE", interval);
+  if (additionalLocations <= 0) {
+    return base;
+  }
+  return (
+    base +
+    additionalLocations * cataloguePracticeLocationUnitAmountCents(interval)
+  );
+}
+
+/**
+ * Fields Checkout reads from a Stripe Price. The current Additional Location
+ * Price is per-unit. A retired graduated Price has no single unit amount and
+ * must not be configured as the current Additional Location Price.
  *
  * Stripe's `unit_amount_decimal` is a Decimal object, not a string.
  * Checkout passes the retrieved Price through, so this field accepts both.

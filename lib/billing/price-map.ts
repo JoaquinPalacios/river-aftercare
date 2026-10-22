@@ -9,7 +9,9 @@ import {
   STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID_ENV,
   STRIPE_GROUP_MONTHLY_PRICE_ID_ENV,
   STRIPE_GROUP_YEARLY_PRICE_ID_ENV,
+  STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID_ENV,
+  STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID_ENV,
   STRIPE_PRACTICE_MONTHLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_PRACTICE_MONTHLY_PRICE_ID_ENV,
@@ -47,7 +49,7 @@ type CatalogueSlot =
       role: "PRACTICE_LOCATION_ADDON";
       interval: BillingIntervalCode;
       envKey: string;
-      generation: "current";
+      generation: "current" | "legacy";
     }
   | {
       role: "GROUP_SITE_ADDON";
@@ -171,6 +173,20 @@ const LEGACY_BASE_PRICE_ENV = [
   },
 ] as const satisfies ReadonlyArray<{
   plan: SelfServeCommercialPlan;
+  interval: BillingIntervalCode;
+  envKey: string;
+}>;
+
+const LEGACY_LOCATION_PRICE_ENV = [
+  {
+    interval: "MONTHLY",
+    envKey: STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS_ENV,
+  },
+  {
+    interval: "YEARLY",
+    envKey: STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS_ENV,
+  },
+] as const satisfies ReadonlyArray<{
   interval: BillingIntervalCode;
   envKey: string;
 }>;
@@ -299,6 +315,28 @@ export function inspectStripeCatalogue(
       slots.push({
         role: "BASE_PLAN",
         plan: slot.plan,
+        interval: slot.interval,
+        envKey: slot.envKey,
+        generation: "legacy",
+        priceId,
+      });
+    }
+  }
+
+  for (const slot of LEGACY_LOCATION_PRICE_ENV) {
+    const legacy = readLegacyPriceIds(env, slot.envKey);
+    if (legacy.invalid) {
+      legacyInvalid = true;
+      continue;
+    }
+    for (const priceId of legacy.ids) {
+      if (seen.has(priceId)) {
+        duplicate = true;
+      } else {
+        seen.add(priceId);
+      }
+      slots.push({
+        role: "PRACTICE_LOCATION_ADDON",
         interval: slot.interval,
         envKey: slot.envKey,
         generation: "legacy",
@@ -456,7 +494,9 @@ function configuredCataloguePriceId(
   match: (slot: ConfiguredCatalogueSlot) => boolean,
   env: Record<string, string | undefined>
 ): string {
-  const priceId = readConfiguredCatalogue(env).find(match)?.priceId;
+  const priceId = readConfiguredCatalogue(env).find(
+    (slot) => slot.generation === "current" && match(slot)
+  )?.priceId;
   if (!priceId) {
     throw new StripePriceMappingError(
       "Stripe Price ID is not configured for that plan and interval."

@@ -343,6 +343,12 @@ describe("Stripe configuration check", () => {
     expect(absent.report).toContain("Stripe deployment: local");
     expect(absent.report).toContain("Stripe mode: not configured");
     expect(absent.report).toContain("Essential monthly: not configured");
+    expect(absent.report).toContain(
+      "Legacy Practice additional location monthly prices: not configured"
+    );
+    expect(absent.report).toContain(
+      "Legacy Practice additional location yearly prices: not configured"
+    );
     expect(absent.report).toContain("Stripe configuration: ok");
 
     const partial = runStripeConfigCheck({

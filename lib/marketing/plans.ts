@@ -54,13 +54,10 @@ export const PLAN_PRICES = {
     editableTemplates: PRACTICE_TEMPLATE_ADAPTATION_LIMIT,
     combinedClinicOwnedGuides: PRACTICE_COMBINED_GUIDE_LIMIT,
     /**
-     * Internal commercial reference only. There is no Location model yet.
+     * Flat rate for every Location above the one included in Practice,
+     * including the first additional Location. Internal commercial reference.
      * Do not format these amounts into public UI, metadata, or JSON-LD.
      */
-    secondLocation: {
-      monthlyAudInclGst: 79,
-      annualAudInclGst: annualAudFromMonthly(79),
-    },
     additionalLocation: {
       monthlyAudInclGst: 59,
       annualAudInclGst: annualAudFromMonthly(59),
