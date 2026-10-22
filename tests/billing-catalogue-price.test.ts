@@ -8,11 +8,18 @@ import {
   PRACTICE_ADDITIONAL_LOCATION_YEARLY_CENTS,
   PRACTICE_MONTHLY_CENTS,
   PRACTICE_YEARLY_CENTS,
+  catalogueBaseUnitAmountCents,
+  catalogueGroupSiteUnitAmountCents,
   cataloguePracticeRecurringCents,
   cataloguePriceMismatchReason,
 } from "@/lib/billing/catalogue-price";
 import {
+  GROUP_ADDITIONAL_SITE_MONTHLY_CENTS,
+  GROUP_ADDITIONAL_SITE_YEARLY_CENTS,
+} from "@/lib/clinics/group-commercial";
+import {
   conformingCataloguePrice,
+  GROUP_BILLING_TEST_ENV,
   PRACTICE_LOCATION_BILLING_TEST_ENV,
 } from "./helpers/billing";
 
@@ -103,6 +110,41 @@ describe("catalogue price amounts", () => {
         })
       )
     ).toBe("amount");
+  });
+
+  it("expects Group base at A$399 and A$3,990 and leaves additional sites unchanged", async () => {
+    expect(catalogueBaseUnitAmountCents("GROUP", "MONTHLY")).toBe(39_900);
+    expect(catalogueBaseUnitAmountCents("GROUP", "YEARLY")).toBe(399_000);
+    expect(catalogueBaseUnitAmountCents("GROUP", "YEARLY")).toBe(
+      catalogueBaseUnitAmountCents("GROUP", "MONTHLY") * 10
+    );
+    expect(catalogueGroupSiteUnitAmountCents("MONTHLY")).toBe(
+      GROUP_ADDITIONAL_SITE_MONTHLY_CENTS
+    );
+    expect(catalogueGroupSiteUnitAmountCents("YEARLY")).toBe(
+      GROUP_ADDITIONAL_SITE_YEARLY_CENTS
+    );
+    expect(GROUP_ADDITIONAL_SITE_MONTHLY_CENTS).toBe(5_000);
+    expect(GROUP_ADDITIONAL_SITE_YEARLY_CENTS).toBe(50_000);
+    const priceId = GROUP_BILLING_TEST_ENV.STRIPE_GROUP_MONTHLY_PRICE_ID;
+    await expect(
+      cataloguePriceRejection({
+        priceId,
+        env: GROUP_BILLING_TEST_ENV,
+        retrieve: async () => conformingCataloguePrice(priceId),
+      })
+    ).resolves.toBeNull();
+    await expect(
+      cataloguePriceRejection({
+        priceId,
+        env: GROUP_BILLING_TEST_ENV,
+        retrieve: async () =>
+          conformingCataloguePrice(priceId, {
+            unit_amount: 44_900,
+            unit_amount_decimal: "44900",
+          }),
+      })
+    ).resolves.toBe("catalogue_price_mismatch_amount");
   });
 
   it("accepts the flat additional-location Price and refuses a graduated one", async () => {

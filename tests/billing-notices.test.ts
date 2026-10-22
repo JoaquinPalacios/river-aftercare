@@ -590,6 +590,26 @@ describe("billing notice decisions", () => {
     expect(kinds.includes("PRICE_INCREASE_REMINDER")).toBe(false);
   });
 
+  it("does not quote the new Group amount for a grandfathered base Price", () => {
+    const result = evaluate({
+      subscription: {
+        commercialPlan: "GROUP",
+        stripePriceId: "price_legacy_group_yearly",
+        catalogueBasePriceId: "price_test_group_yearly",
+        catalogueAddonPriceId: "price_test_group_site_yearly",
+        purchasedAdditionalLocationQuantity: null,
+        purchasedAdditionalSiteQuantity: 1,
+      },
+    });
+
+    expect(result.page.currentPriceLabel).toBeNull();
+    expect(result.overview?.body ?? "").not.toContain("A$3,990");
+    expect(result.overview?.body ?? "").not.toContain("A$4,490");
+    expect(result.emails[0]?.text ?? "").not.toContain(
+      "expected renewal amount"
+    );
+  });
+
   it("produces one commercial notice for a Group account", () => {
     const result = evaluate({
       subscription: {
@@ -603,8 +623,8 @@ describe("billing notice decisions", () => {
     });
 
     expect(result.overview?.title).toContain("Group");
-    expect(result.overview?.body).toContain("A$4,490");
-    expect(GROUP_BASE_YEARLY_CENTS).toBe(449_000);
+    expect(result.overview?.body).toContain("A$3,990");
+    expect(GROUP_BASE_YEARLY_CENTS).toBe(399_000);
     expect(result.emails).toHaveLength(1);
   });
 });

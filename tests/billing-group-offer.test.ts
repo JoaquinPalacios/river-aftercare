@@ -19,8 +19,8 @@ describe("Group commercial quote", () => {
       interval: "MONTHLY",
       additionalSiteQuantity: 0,
     });
-    expect(monthlyBase.totalCents).toBe(44_900);
-    expect(monthlyBase.priceLabel).toBe("A$449 / month");
+    expect(monthlyBase.totalCents).toBe(39_900);
+    expect(monthlyBase.priceLabel).toBe("A$399 / month");
     expect(monthlyBase.detailLines).toContain("Additional Sites: none");
     expect(monthlyBase.sites).toBe(2);
     expect(monthlyBase.locations).toBe(5);
@@ -32,9 +32,9 @@ describe("Group commercial quote", () => {
       interval: "MONTHLY",
       additionalSiteQuantity: 2,
     });
-    expect(monthlyTwo.totalCents).toBe(54_900);
+    expect(monthlyTwo.totalCents).toBe(49_900);
     expect(monthlyTwo.addonCents).toBe(10_000);
-    expect(monthlyTwo.priceLabel).toBe("A$549 / month");
+    expect(monthlyTwo.priceLabel).toBe("A$499 / month");
     expect(monthlyTwo.sites).toBe(4);
     expect(monthlyTwo.locations).toBe(7);
 
@@ -42,8 +42,10 @@ describe("Group commercial quote", () => {
       interval: "YEARLY",
       additionalSiteQuantity: 3,
     });
-    expect(annualThree.totalCents).toBe(599_000);
-    expect(formatAudCents(annualThree.totalCents)).toBe("A$5,990");
+    expect(annualThree.totalCents).toBe(549_000);
+    expect(formatAudCents(annualThree.totalCents)).toBe("A$5,490");
+    expect(annualThree.baseCents).toBe(399_000);
+    expect(annualThree.addonUnitCents).toBe(50_000);
     expect(annualThree.sites).toBe(5);
     expect(annualThree.locations).toBe(8);
   });
@@ -456,12 +458,13 @@ describe("Group offer surfaces", () => {
       ctaHref: "/contact",
     });
     expect(readFileSync("lib/marketing/plans.ts", "utf8")).not.toContain("449");
+    expect(readFileSync("lib/marketing/plans.ts", "utf8")).not.toContain("399");
     expect(readFileSync("lib/marketing/plans.ts", "utf8")).not.toContain(
       "group-commercial"
     );
 
     const summary = offerSummaryForEntitlement("GROUP", "MONTHLY", 2);
-    expect(summary?.priceLabel).toBe("A$549 / month");
+    expect(summary?.priceLabel).toBe("A$499 / month");
     expect(summary?.capacityNote).toContain(
       "Available after successful payment"
     );

@@ -9,10 +9,12 @@ import {
   lookupStripePriceId,
   planFromStripePriceId,
   recognizedBasePriceIds,
+  stripeGroupBasePriceId,
   stripePriceIdForPlan,
 } from "@/lib/billing/price-map";
 import {
   BILLING_TEST_ENV,
+  GROUP_BILLING_TEST_ENV,
   PRACTICE_LOCATION_BILLING_TEST_ENV,
 } from "./helpers/billing";
 
@@ -142,6 +144,31 @@ describe("Stripe Price catalogue mapping", () => {
       cataloguePriceIdsForSubscription("PRACTICE", "YEARLY", env)
         .catalogueAddonPriceId
     ).toBeNull();
+  });
+
+  it("recognises a retired Group base Price without using it for Checkout", () => {
+    const env = {
+      ...GROUP_BILLING_TEST_ENV,
+      STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS: "price_legacy_group_monthly",
+    };
+    expect(stripeGroupBasePriceId("MONTHLY", env)).toBe(
+      "price_test_group_monthly"
+    );
+    expect(
+      classifyConfiguredStripePrice("price_legacy_group_monthly", env)
+    ).toEqual({
+      role: "BASE_PLAN",
+      plan: "GROUP",
+      interval: "MONTHLY",
+      priceId: "price_legacy_group_monthly",
+    });
+    expect(cataloguePriceIdsForSubscription("GROUP", "MONTHLY", env)).toEqual({
+      catalogueBasePriceId: "price_test_group_monthly",
+      catalogueAddonPriceId: "price_test_group_site_monthly",
+    });
+    expect(() =>
+      planFromStripePriceId("price_legacy_group_monthly", env)
+    ).toThrow(UnknownStripePriceError);
   });
 
   it("rejects a legacy additional-location Price id that repeats the current Price id", () => {

@@ -349,6 +349,12 @@ describe("Stripe configuration check", () => {
     expect(absent.report).toContain(
       "Legacy Practice additional location yearly prices: not configured"
     );
+    expect(absent.report).toContain(
+      "Legacy Group monthly prices: not configured"
+    );
+    expect(absent.report).toContain(
+      "Legacy Group yearly prices: not configured"
+    );
     expect(absent.report).toContain("Stripe configuration: ok");
 
     const partial = runStripeConfigCheck({

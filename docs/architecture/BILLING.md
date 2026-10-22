@@ -194,13 +194,15 @@ Approved Group catalogue:
 
 | Item                   | Monthly | Yearly  | Included capacity                           |
 | ---------------------- | ------- | ------- | ------------------------------------------- |
-| Group base             | A$449   | A$4,490 | 2 Clinic Sites and 5 Locations              |
+| Group base             | A$399   | A$3,990 | 2 Clinic Sites and 5 Locations              |
 | Additional Site bundle | A$50    | A$500   | +1 Clinic Site and +1 Location per quantity |
 
 Group has no standalone paid Additional Location product. Practice Additional Location is a separate per-unit Price, documented below. Server environment variables, blank in `.env.example`:
 
 - `STRIPE_GROUP_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_YEARLY_PRICE_ID`
+- `STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS`
+- `STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS`
 - `STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID`
 
@@ -666,7 +668,7 @@ Follow Stripe’s catalogue rule: **one Product per plan the customer can choose
 
 All `tax_behavior: inclusive`. Currency `aud`. Nickname the Prices clearly (`essential_monthly`, etc.).
 
-Group is a Stripe Product in the approved catalogue above: base A$449/month or A$4,490/year, plus an Additional Site Price of A$50/month or A$500/year. Group Checkout is operator-prepared. Public Group pricing stays custom. Group has no standalone paid Additional Location Price. Practice Additional Location is a separate per-unit Price at A$59 per month or A$590 per year for every additional Location, not quantity on the Practice base Price. Retired graduated Prices stay recognisable through the additional-location legacy Price id lists. Until an account is converted, an operator may still raise the stored Practice location allowance. Public Group copy stays custom. Site and location capacity is still enforced in the product. A missing entitlement is 1 site and 1 location, never unlimited. Essential is always 1/1. Practice is always one site.
+Group is a Stripe Product in the approved catalogue above: base A$399/month or A$3,990/year, plus an Additional Site Price of A$50/month or A$500/year. Retired Group base Prices stay recognisable through `STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS` and `STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS`. Additional Site Price ids stay current because that amount is unchanged. Group Checkout is operator-prepared. Public Group pricing stays custom. Group has no standalone paid Additional Location Price. Practice Additional Location is a separate per-unit Price at A$59 per month or A$590 per year for every additional Location, not quantity on the Practice base Price. Retired graduated Prices stay recognisable through the additional-location legacy Price id lists. Until an account is converted, an operator may still raise the stored Practice location allowance. Public Group copy stays custom. Site and location capacity is still enforced in the product. A missing entitlement is 1 site and 1 location, never unlimited. Essential is always 1/1. Practice is always one site.
 
 ### E.2 Price ID mapping
 
@@ -686,13 +688,15 @@ STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS
 STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS
 STRIPE_GROUP_MONTHLY_PRICE_ID
 STRIPE_GROUP_YEARLY_PRICE_ID
+STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS
+STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS
 STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID
 STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID
 ```
 
 `VERCEL_ENV=production` accepts `sk_live_` or `rk_live_` and rejects test keys. Preview and local accept `sk_test_` or `rk_test_` and reject live keys. Vercel **Preview** uses test-mode keys and test Price IDs. Vercel **Production** uses live-mode keys and live Price IDs. Never mix. There is no publishable Stripe key.
 
-River mapping is a closed server table: env Price ID → `{ commercialPlan, billingInterval, expectedAmountCents }` checked against `PLAN_PRICES`. Checkout retrieves the Price and refuses the session unless the unit amount, AUD currency, interval, and non-inclusive tax behaviour match. It does not charge a previous amount. Incoming webhooks resolve a base `stripePriceId` through the current map plus optional legacy Price ids for the previous Essential and Practice amounts. A Practice Additional Location item resolves through the current per-unit Price or the optional graduated legacy lists. Unknown Price IDs are a hard error (alert operator, do not grant entitlements). A legacy id keeps the existing subscription; it is not used for a new Checkout. Renewal copy omits the combined Practice total when purchased additional locations are above zero, because the add-on Price id is not stored. See [STRIPE-SETUP.md](../launch/STRIPE-SETUP.md).
+River mapping is a closed server table: env Price ID → `{ commercialPlan, billingInterval, expectedAmountCents }` checked against `PLAN_PRICES`. Checkout retrieves the Price and refuses the session unless the unit amount, AUD currency, interval, and non-inclusive tax behaviour match. It does not charge a previous amount. Incoming webhooks resolve a base `stripePriceId` through the current map plus optional legacy Price ids for the previous Essential, Practice, and Group amounts. A Practice Additional Location item resolves through the current per-unit Price or the optional graduated legacy lists. Group Additional Site stays on its current Price id. Unknown Price IDs are a hard error (alert operator, do not grant entitlements). A legacy id keeps the existing subscription; it is not used for a new Checkout. Renewal copy omits the combined Practice total when purchased additional locations are above zero, because the add-on Price id is not stored. See [STRIPE-SETUP.md](../launch/STRIPE-SETUP.md).
 
 Clients never send Price IDs. Operators never paste Price IDs into clinic UI.
 

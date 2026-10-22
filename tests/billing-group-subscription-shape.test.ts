@@ -21,6 +21,24 @@ function item(priceId: string, quantity: number) {
 }
 
 describe("Group subscription shape", () => {
+  it("keeps quantity when the Group base Price is a retired catalogue Price", () => {
+    const env = {
+      ...GROUP_BILLING_TEST_ENV,
+      STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS: "price_legacy_group_yearly",
+    };
+    expect(
+      classifySubscriptionShape(
+        [item("price_legacy_group_yearly", 1), item(ADDON_YEARLY, 2)],
+        env
+      )
+    ).toMatchObject({
+      ok: true,
+      kind: "group",
+      basePriceId: "price_legacy_group_yearly",
+      additionalSiteQuantity: 2,
+    });
+  });
+
   it("classifies a monthly or yearly base with no add-on as N=0", () => {
     expect(
       classifySubscriptionShape(

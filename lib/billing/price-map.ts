@@ -7,7 +7,9 @@ import {
   STRIPE_ESSENTIAL_YEARLY_PRICE_ID_ENV,
   STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID_ENV,
   STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID_ENV,
+  STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_GROUP_MONTHLY_PRICE_ID_ENV,
+  STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_GROUP_YEARLY_PRICE_ID_ENV,
   STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID_ENV,
@@ -177,6 +179,20 @@ const LEGACY_BASE_PRICE_ENV = [
   envKey: string;
 }>;
 
+const LEGACY_GROUP_BASE_PRICE_ENV = [
+  {
+    interval: "MONTHLY",
+    envKey: STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS_ENV,
+  },
+  {
+    interval: "YEARLY",
+    envKey: STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS_ENV,
+  },
+] as const satisfies ReadonlyArray<{
+  interval: BillingIntervalCode;
+  envKey: string;
+}>;
+
 const LEGACY_LOCATION_PRICE_ENV = [
   {
     interval: "MONTHLY",
@@ -337,6 +353,29 @@ export function inspectStripeCatalogue(
       }
       slots.push({
         role: "PRACTICE_LOCATION_ADDON",
+        interval: slot.interval,
+        envKey: slot.envKey,
+        generation: "legacy",
+        priceId,
+      });
+    }
+  }
+
+  for (const slot of LEGACY_GROUP_BASE_PRICE_ENV) {
+    const legacy = readLegacyPriceIds(env, slot.envKey);
+    if (legacy.invalid) {
+      legacyInvalid = true;
+      continue;
+    }
+    for (const priceId of legacy.ids) {
+      if (seen.has(priceId)) {
+        duplicate = true;
+      } else {
+        seen.add(priceId);
+      }
+      slots.push({
+        role: "BASE_PLAN",
+        plan: "GROUP",
         interval: slot.interval,
         envKey: slot.envKey,
         generation: "legacy",

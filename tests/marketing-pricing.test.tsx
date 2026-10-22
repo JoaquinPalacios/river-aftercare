@@ -159,6 +159,10 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("Additional location");
     expect(html).not.toContain("A$79");
     expect(html).not.toContain("A$790");
+    expect(html).not.toContain("A$399");
+    expect(html).not.toContain("A$3,990");
+    expect(html).not.toContain("A$449");
+    expect(html).not.toContain("A$4,490");
     expect(html).toContain("All prices are in Australian dollars.");
     expect(html).not.toContain("All prices include GST.");
     expect(html).not.toContain("GST included");
