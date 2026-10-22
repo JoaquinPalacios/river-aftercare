@@ -4597,6 +4597,103 @@ a.staffTablePageButton:hover {
   box-shadow: 0 1px 2px rgb(16 18 28 / 4%);
 }
 
+.cmsWelcomeEntry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--staff-canvas) 72%, var(--staff-panel));
+  box-shadow: none;
+}
+
+.cmsWelcomeEntryCopy {
+  display: flex;
+  flex: 1 1 16rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.55rem;
+  min-width: 0;
+}
+
+.cmsWelcomeEntryTitle {
+  margin: 0;
+  color: var(--staff-ink);
+  font-size: 0.875rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+.cmsWelcomeEntryBody {
+  margin: 0;
+  color: var(--staff-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.cmsWelcomeEntryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.cmsOverviewReplay {
+  margin: 0;
+}
+
+.cmsOverviewReplay .staffBtn {
+  min-height: 2.5rem;
+  padding-right: 0.35rem;
+  padding-left: 0.35rem;
+}
+
+.cmsTourReplayPanel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--staff-line);
+  border-radius: 0.65rem;
+  background: var(--staff-panel);
+}
+
+.cmsTourReplayCopy {
+  display: flex;
+  flex: 1 1 16rem;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.cmsTourReplayPanel .cmsDiscoveryTitle {
+  font-size: 0.875rem;
+}
+
+.cmsTourReplayPanel .cmsDiscoveryBody {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .cmsWelcomeEntryActions {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
 .cmsDiscoveryEyebrow {
   margin: 0;
   color: var(--staff-brand);
@@ -4759,7 +4856,9 @@ a.staffTablePageButton:hover {
 @media (prefers-reduced-motion: reduce) {
   .cmsTourSpot,
   .cmsTourCard,
-  .cmsDiscoveryCard {
+  .cmsDiscoveryCard,
+  .cmsWelcomeEntry,
+  .cmsTourReplayPanel {
     scroll-behavior: auto;
     transition: none;
   }
@@ -4778,7 +4877,9 @@ a.staffTablePageButton:hover {
   }
 
   .cmsTourCard,
-  .cmsDiscoveryCard {
+  .cmsDiscoveryCard,
+  .cmsWelcomeEntry,
+  .cmsTourReplayPanel {
     border-color: CanvasText;
     background: Canvas;
     color: CanvasText;

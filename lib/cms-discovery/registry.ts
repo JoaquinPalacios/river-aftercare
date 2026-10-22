@@ -33,8 +33,8 @@ export const CMS_DISCOVERY_EXPERIENCES: readonly CmsDiscoveryExperience[] = [
     version: 1,
     kind: "tour",
     offer: "welcome",
-    title: "Welcome to River Aftercare",
-    body: "A short tour shows how this workspace is organised. You can replay it later from Help & feedback.",
+    title: "Workspace tour",
+    body: "A short tour of this workspace. Replay it from Overview or Help & feedback.",
     audience: {
       roles: ["ADMIN", "STAFF"],
       requires: ["productNav"],
