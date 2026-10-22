@@ -17,19 +17,20 @@ export function CmsWelcomeCard({
 
   return (
     <section
-      className="cmsDiscoveryCard"
+      className="cmsWelcomeEntry"
       aria-labelledby={titleId}
       data-cms-discovery-card="welcome"
     >
-      <p className="cmsDiscoveryEyebrow">Welcome</p>
-      <h2 id={titleId} className="cmsDiscoveryTitle">
-        {title}
-      </h2>
-      <p className="cmsDiscoveryBody">{body}</p>
-      <div className="cmsDiscoveryActions">
+      <div className="cmsWelcomeEntryCopy">
+        <h2 id={titleId} className="cmsWelcomeEntryTitle">
+          {title}
+        </h2>
+        <p className="cmsWelcomeEntryBody">{body}</p>
+      </div>
+      <div className="cmsWelcomeEntryActions">
         <button
           type="button"
-          className="staffBtn staffBtnPrimary"
+          className="staffBtn staffBtnSecondary"
           onClick={onStart}
         >
           Start tour

@@ -11,26 +11,26 @@ export function CmsTourReplay() {
 
   return (
     <section
-      className="cmsDiscoveryCard"
+      className="cmsTourReplayPanel"
       aria-labelledby="cms-tour-replay-heading"
       data-cms-discovery="help-replay"
     >
-      <h2 id="cms-tour-replay-heading" className="cmsDiscoveryTitle">
-        Workspace tour
-      </h2>
-      <p className="cmsDiscoveryBody">
-        Replay the introduction to Overview, Guides, Sites & Locations, and the
-        other parts of the clinic workspace available to you.
-      </p>
-      <div className="cmsDiscoveryActions">
-        <button
-          type="button"
-          className="staffBtn staffBtnSecondary"
-          onClick={() => discovery?.replay(CMS_INTRODUCTION_ID)}
-        >
-          Replay tour
-        </button>
+      <div className="cmsTourReplayCopy">
+        <h2 id="cms-tour-replay-heading" className="cmsDiscoveryTitle">
+          Workspace tour
+        </h2>
+        <p className="cmsDiscoveryBody">
+          Replay the introduction to Overview, Guides, Sites & Locations, and
+          the other parts of the clinic workspace available to you.
+        </p>
       </div>
+      <button
+        type="button"
+        className="staffBtn staffBtnSecondary"
+        onClick={() => discovery?.replay(CMS_INTRODUCTION_ID)}
+      >
+        Replay tour
+      </button>
     </section>
   );
 }

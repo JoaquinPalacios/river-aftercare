@@ -21,6 +21,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { CmsDiscoveryRoot } from "@/app/(staff)/components/cms-discovery/cms-discovery-root";
+import { CmsOverviewTourEntry } from "@/app/(staff)/components/cms-discovery/overview-tour-entry";
 import { CmsTourReplay } from "@/app/(staff)/components/cms-discovery/replay-tour";
 import {
   findVisibleDiscoveryTarget,
@@ -173,6 +174,7 @@ describe("CMS discovery UI", () => {
     await act(async () => {
       root.render(
         <CmsDiscoveryRoot context={value} experiences={items}>
+          <CmsOverviewTourEntry />
           <section data-cms-discovery="guide-summary">Guide summary</section>
           <span data-cms-discovery="nav-overview">Overview</span>
           <span data-cms-discovery="nav-guides">Guides</span>
@@ -362,6 +364,43 @@ describe("CMS discovery UI", () => {
   it("does not cover the guide editor", async () => {
     await renderDiscovery(context(), "/guides/guide_1/edit");
     expect(welcome()).toBeNull();
+  });
+
+  it("keeps the overview prompt until the introduction is settled", async () => {
+    await renderDiscovery(context(), "/guides");
+
+    expect(welcome()).toBeNull();
+    expect(
+      localStorage.getItem("river-aftercare:cms-discovery:user_ada")
+    ).toBeNull();
+    expect(container.querySelector("[data-cms-overview-replay]")).toBeNull();
+
+    await renderDiscovery();
+
+    expect(welcome()?.textContent).toContain("Start tour");
+    expect(
+      localStorage.getItem("river-aftercare:cms-discovery:user_ada")
+    ).toBeNull();
+  });
+
+  it("keeps a quiet overview replay after the introduction is settled", async () => {
+    await renderDiscovery();
+    await act(async () => {
+      [...(welcome()?.querySelectorAll("button") ?? [])]
+        .find((button) => button.textContent === "Skip introduction")
+        ?.click();
+    });
+
+    expect(welcome()).toBeNull();
+    const replay = container.querySelector<HTMLButtonElement>(
+      "[data-cms-overview-replay]"
+    );
+    expect(replay?.textContent).toBe("Replay workspace tour");
+
+    await act(async () => {
+      replay?.click();
+    });
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("overview");
   });
 
   it("offers an assisting operator a separate welcome for each clinic", async () => {
@@ -571,6 +610,7 @@ describe("CMS discovery UI", () => {
     await act(async () => {
       root.render(
         <CmsDiscoveryRoot context={context()} experiences={[menuTour]}>
+          <CmsOverviewTourEntry />
           <CmsTourReplay />
         </CmsDiscoveryRoot>
       );
@@ -630,6 +670,7 @@ describe("CMS discovery UI", () => {
     await act(async () => {
       root.render(
         <CmsDiscoveryRoot context={context()} experiences={[menuTour]}>
+          <CmsOverviewTourEntry />
           <CmsTourReplay />
         </CmsDiscoveryRoot>
       );

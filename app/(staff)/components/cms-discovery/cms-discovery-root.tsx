@@ -3,10 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
-import {
-  CmsAnnouncementCard,
-  CmsWelcomeCard,
-} from "@/app/(staff)/components/cms-discovery/discovery-card";
+import { CmsAnnouncementCard } from "@/app/(staff)/components/cms-discovery/discovery-card";
 import {
   GuidedTour,
   TourCompletion,
@@ -131,22 +128,56 @@ export function CmsDiscoveryRoot({
     remember({ kind: "tour", id, stepIndex: 0 });
   }
 
-  const api = useMemo<CmsDiscoveryApi>(
-    () => ({
-      replay: (experienceId) => {
-        if (resolved.tours.some((tour) => tour.id === experienceId)) {
-          writeActiveTour(discoverySubject(context), {
-            id: experienceId,
-            stepIndex: 0,
-          });
-          setSession({ kind: "tour", id: experienceId, stepIndex: 0 });
-        }
-      },
+  const api = useMemo<CmsDiscoveryApi>(() => {
+    const subject = discoverySubject(context);
+    const idle = ready && session.kind === "idle";
+    const onOverview =
+      pathname === "/dashboard" && !suppressesAutomaticDiscovery(pathname);
+    const welcomeTour = resolved.welcome;
+    const showWelcome = idle && onOverview && welcomeTour !== null;
+
+    const begin = (experienceId: string) => {
+      if (!resolved.tours.some((tour) => tour.id === experienceId)) {
+        return;
+      }
+      writeActiveTour(subject, { id: experienceId, stepIndex: 0 });
+      setSession({ kind: "tour", id: experienceId, stepIndex: 0 });
+    };
+
+    return {
+      replay: begin,
       canReplay: (experienceId) =>
         resolved.tours.some((tour) => tour.id === experienceId),
-    }),
-    [context, resolved.tours]
-  );
+      welcome:
+        showWelcome && welcomeTour
+          ? { title: welcomeTour.title, body: welcomeTour.body }
+          : null,
+      startWelcome: () => {
+        if (welcomeTour) {
+          begin(welcomeTour.id);
+        }
+      },
+      dismissWelcome: () => {
+        if (!welcomeTour) {
+          return;
+        }
+        setStore((current) =>
+          writeCmsDiscoveryRecord(subject, current, {
+            id: welcomeTour.id,
+            version: welcomeTour.version,
+            status: "dismissed",
+          })
+        );
+      },
+      replayIntroduction:
+        idle &&
+        onOverview &&
+        !showWelcome &&
+        resolved.tours.some((tour) => tour.id === CMS_INTRODUCTION_ID)
+          ? () => begin(CMS_INTRODUCTION_ID)
+          : null,
+    };
+  }, [context, pathname, ready, resolved, session.kind]);
 
   const activeTour =
     session.kind === "tour"
@@ -157,25 +188,11 @@ export function CmsDiscoveryRoot({
   const announcement = resolved.announcements[0] ?? null;
   const hideCards =
     !ready || session.kind !== "idle" || suppressesAutomaticDiscovery(pathname);
-  const showWelcome = !hideCards && resolved.welcome !== null;
-  const showAnnouncement = !hideCards && !showWelcome && announcement !== null;
+  const showAnnouncement =
+    !hideCards && resolved.welcome === null && announcement !== null;
 
   return (
     <CmsDiscoveryProvider value={api}>
-      {showWelcome && resolved.welcome ? (
-        <CmsWelcomeCard
-          title={resolved.welcome.title}
-          body={resolved.welcome.body}
-          onStart={() => startTour(resolved.welcome!.id)}
-          onDismiss={() =>
-            persist(
-              resolved.welcome!.id,
-              resolved.welcome!.version,
-              "dismissed"
-            )
-          }
-        />
-      ) : null}
       {showAnnouncement && announcement ? (
         <CmsAnnouncementCard
           title={announcement.title}
@@ -228,7 +245,7 @@ export function CmsDiscoveryRoot({
           title="You're set"
           body={
             session.id === CMS_INTRODUCTION_ID
-              ? "You can replay this tour any time from Help & feedback."
+              ? "You can replay this tour from Overview or Help & feedback."
               : "That's the end of this tour."
           }
           onClose={() => remember({ kind: "idle" })}

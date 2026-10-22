@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { GettingStarted } from "@/app/(staff)/(clinic-portal)/dashboard/getting-started";
 import { BillingNotice } from "@/app/(staff)/components/billing-notice";
+import { CmsOverviewTourEntry } from "@/app/(staff)/components/cms-discovery/overview-tour-entry";
 import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import { loadOverviewBillingNotices } from "@/lib/billing/notices/load";
@@ -74,6 +75,8 @@ export default async function ClinicOverviewPage() {
           ))}
         </div>
       ) : null}
+
+      <CmsOverviewTourEntry />
 
       {gettingStarted ? <GettingStarted summary={gettingStarted} /> : null}
 
