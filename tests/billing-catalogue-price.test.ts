@@ -147,7 +147,7 @@ describe("catalogue price amounts", () => {
     ).resolves.toBe("catalogue_price_mismatch_amount");
   });
 
-  it("accepts the flat additional-location Price and refuses a graduated one", async () => {
+  it("accepts a per-unit additional-location Price and refuses tiered Volume pricing", async () => {
     const priceId =
       PRACTICE_LOCATION_BILLING_TEST_ENV.STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID;
     await expect(
@@ -171,6 +171,22 @@ describe("catalogue price amounts", () => {
             billing_scheme: "tiered",
             unit_amount: null,
             unit_amount_decimal: null,
+            recurring: { interval: "month", interval_count: 1 },
+          }),
+      })
+    ).resolves.toBe("catalogue_price_mismatch_billing_scheme");
+    // A one-tier Volume Price is still billing_scheme "tiered". Stripe leaves
+    // unit_amount null and stores A$59 on the tier. Matching the tier amount
+    // does not make that Price acceptable.
+    await expect(
+      cataloguePriceRejection({
+        priceId,
+        env: PRACTICE_LOCATION_BILLING_TEST_ENV,
+        retrieve: async () =>
+          conformingCataloguePrice(priceId, {
+            billing_scheme: "tiered",
+            unit_amount: PRACTICE_ADDITIONAL_LOCATION_MONTHLY_CENTS,
+            unit_amount_decimal: "5900",
             recurring: { interval: "month", interval_count: 1 },
           }),
       })

@@ -186,7 +186,7 @@ export const LAUNCH_PLANS = [
 export const PRICING_NOTES = [
   {
     title: "Annual billing",
-    body: "Annual plans are one yearly payment for 12 months of access, equal to 10 monthly payments. That is two months free, about 16.7% less than paying monthly. The yearly amount is billed once a year. It is not a monthly price.",
+    body: "Annual plans include 12 months for the price of 10.",
   },
   {
     title: "Assisted onboarding",

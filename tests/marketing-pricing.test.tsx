@@ -171,10 +171,12 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("plus GST");
     expect(html).not.toMatch(/\bGST\b/);
     expect(html).toContain("2 months free");
-    expect(html).toContain("equal to 10 monthly payments");
-    expect(html).toContain("about 16.7% less than paying monthly");
-    expect(html).toContain("billed once a year");
-    expect(html).toContain("billed annually");
+    expect(html).toContain("A$590/year");
+    expect(html).toContain("A$1,290/year");
+    expect(html).toContain("12 months for the price of 10");
+    expect(html).not.toContain("billed annually");
+    expect(html).not.toContain("16.7%");
+    expect(html).not.toContain("Additional site");
     expect(html).toContain("Custom pricing");
     expect(html).toContain("Recommended");
     expect(html).toContain(LAUNCH_PLANS[0].name);
@@ -494,6 +496,9 @@ describe("canonical plan prices", () => {
       "Assisted onboarding",
       "Current product scope",
     ]);
+    expect(PRICING_NOTES[0]?.body).toBe(
+      "Annual plans include 12 months for the price of 10."
+    );
     expect(JSON.stringify(PRICING_NOTES)).not.toMatch(/GST/i);
   });
 
