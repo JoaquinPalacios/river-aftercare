@@ -22,7 +22,10 @@ import {
   getTransactionalEmailMemoryInbox,
 } from "@/lib/email/transactional-mailer";
 import { inviteClinicUser } from "@/lib/operator/invite-clinic-user";
-import { BILLING_TEST_ENV } from "@/tests/helpers/billing";
+import {
+  BILLING_TEST_ENV,
+  conformingCataloguePrices,
+} from "@/tests/helpers/billing";
 import {
   cancelAccountSplitPreparation,
   createAccountSplitPreparation,
@@ -1451,6 +1454,7 @@ function recoverInvitationToken(tokenHash: string): string | null {
 
 function fakeCheckoutStripe() {
   return {
+    prices: conformingCataloguePrices,
     customers: {
       async create() {
         return { id: "cus_aspl_onboard" };

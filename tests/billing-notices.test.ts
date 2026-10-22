@@ -120,12 +120,12 @@ describe("billing notice decisions", () => {
     expect(result.overview).toMatchObject({
       id: "annual_renewal",
       title: `Your Practice subscription renews on ${RENEWAL_LABEL}.`,
-      body: "Your next payment is A$1,490. Review your billing details or manage your subscription before renewal.",
+      body: "Your next payment is A$1,290. Review your billing details or manage your subscription before renewal.",
       actionLabel: "View billing",
       actionHref: "/account/billing",
     });
     expect(result.page.nextRenewalLabel).toBe(RENEWAL_LABEL);
-    expect(result.page.currentPriceLabel).toBe("A$1,490 per year");
+    expect(result.page.currentPriceLabel).toBe("A$1,290 per year");
     expect(result.emails).toHaveLength(1);
     expect(result.emails[0]).toMatchObject({
       kind: "ANNUAL_RENEWAL_REMINDER",
@@ -134,7 +134,7 @@ describe("billing notice decisions", () => {
     expect(result.emails[0]?.text).toContain("Practice");
     expect(result.emails[0]?.text).toContain(RENEWAL_LABEL);
     expect(result.emails[0]?.text).toContain("Annual");
-    expect(result.emails[0]?.text).toContain("A$1,490");
+    expect(result.emails[0]?.text).toContain("A$1,290");
     expect(result.emails[0]?.text).toContain(LINKS.billingUrl);
     expect(result.emails[0]?.text).toContain("no cancellation fee");
     expect(result.priceIncreaseMayTakeEffect).toBe(false);
@@ -186,6 +186,35 @@ describe("billing notice decisions", () => {
     expect(result.page.annualReminder).toBeNull();
   });
 
+  it("does not quote a flat additional-location total", () => {
+    const result = evaluate({
+      subscription: {
+        purchasedAdditionalLocationQuantity: 2,
+        catalogueAddonPriceId: "price_test_practice_location_yearly",
+      },
+    });
+
+    expect(result.page.currentPriceLabel).toBeNull();
+    expect(result.overview?.body ?? "").not.toContain("A$");
+    expect(result.emails[0]?.text ?? "").not.toContain(
+      "expected renewal amount"
+    );
+    expect(result.emails[0]?.text ?? "").not.toContain("A$1,290");
+    expect(result.emails[0]?.text ?? "").not.toContain("A$590");
+  });
+
+  it("does not quote the new catalogue amount for a grandfathered Price", () => {
+    const result = evaluate({
+      subscription: {
+        stripePriceId: "price_legacy_practice_yearly",
+      },
+    });
+
+    expect(result.page.currentPriceLabel).toBeNull();
+    expect(result.overview?.body ?? "").not.toContain("A$1,290");
+    expect(result.emails[0]?.text ?? "").not.toContain("A$1,290");
+  });
+
   it("does not add a reminder for an ordinary monthly renewal", () => {
     const result = evaluate({
       subscription: {
@@ -202,7 +231,7 @@ describe("billing notice decisions", () => {
     expect(result.emails).toEqual([]);
     expect(result.overview).toBeNull();
     expect(result.page.nextRenewalLabel).toBe(RENEWAL_LABEL);
-    expect(result.page.currentPriceLabel).toBe("A$149 per month");
+    expect(result.page.currentPriceLabel).toBe("A$129 per month");
   });
 
   it("omits the renewal date when the persisted period is missing or inconsistent", () => {
@@ -561,6 +590,26 @@ describe("billing notice decisions", () => {
     expect(kinds.includes("PRICE_INCREASE_REMINDER")).toBe(false);
   });
 
+  it("does not quote the new Group amount for a grandfathered base Price", () => {
+    const result = evaluate({
+      subscription: {
+        commercialPlan: "GROUP",
+        stripePriceId: "price_legacy_group_yearly",
+        catalogueBasePriceId: "price_test_group_yearly",
+        catalogueAddonPriceId: "price_test_group_site_yearly",
+        purchasedAdditionalLocationQuantity: null,
+        purchasedAdditionalSiteQuantity: 1,
+      },
+    });
+
+    expect(result.page.currentPriceLabel).toBeNull();
+    expect(result.overview?.body ?? "").not.toContain("A$3,990");
+    expect(result.overview?.body ?? "").not.toContain("A$4,490");
+    expect(result.emails[0]?.text ?? "").not.toContain(
+      "expected renewal amount"
+    );
+  });
+
   it("produces one commercial notice for a Group account", () => {
     const result = evaluate({
       subscription: {
@@ -574,8 +623,8 @@ describe("billing notice decisions", () => {
     });
 
     expect(result.overview?.title).toContain("Group");
-    expect(result.overview?.body).toContain("A$4,490");
-    expect(GROUP_BASE_YEARLY_CENTS).toBe(449_000);
+    expect(result.overview?.body).toContain("A$3,990");
+    expect(GROUP_BASE_YEARLY_CENTS).toBe(399_000);
     expect(result.emails).toHaveLength(1);
   });
 });

@@ -48,14 +48,24 @@ Set these on Vercel Production after the live Dashboard objects exist. Use the l
 - `STRIPE_ESSENTIAL_YEARLY_PRICE_ID`
 - `STRIPE_PRACTICE_MONTHLY_PRICE_ID`
 - `STRIPE_PRACTICE_YEARLY_PRICE_ID`
+- `STRIPE_ESSENTIAL_MONTHLY_LEGACY_PRICE_IDS`
+- `STRIPE_ESSENTIAL_YEARLY_LEGACY_PRICE_IDS`
+- `STRIPE_PRACTICE_MONTHLY_LEGACY_PRICE_IDS`
+- `STRIPE_PRACTICE_YEARLY_LEGACY_PRICE_IDS`
 - `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID`
 - `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID`
+- `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS`
+- `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS`
 - `STRIPE_GROUP_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_YEARLY_PRICE_ID`
+- `STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS`
+- `STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS`
 - `STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID`
 
-The ten Price IDs must be unique. Preview uses the same names with test-mode values. Local uses the same names when a test is needed.
+The ten current Price IDs must be unique. Preview uses the same names with test-mode values. Local uses the same names when a test is needed.
+
+The legacy variables are optional comma-separated lists of retired `price_` ids. The Essential and Practice lists are required in any environment that already has subscriptions on the previous base amounts (A$79 / A$790 and A$149 / A$1,490). The Group lists are required when a subscription still uses the previous Group base amounts (A$449 / A$4,490). The two Additional Location lists are required when a subscription still has the previous graduated Additional Location Price. Leave a list unset when that environment has no such subscription. A legacy id must not repeat a current Price id. Checkout never uses a legacy id. Webhooks still map a legacy base id to the same plan and interval, and a legacy Additional Location id to the Practice location add-on, so an existing subscription can renew. Group Additional Site amounts are unchanged, so those current Price ids stay and have no legacy list. See [Price change](#price-change-for-essential-practice-and-group) below.
 
 A missing Group base Price for the prepared interval blocks that Group Checkout. A missing Additional Site Price blocks only an offer whose quantity is above zero. Essential and Practice continue to work. If the Practice Additional Location Price IDs are missing, base-only Practice billing continues to work and a retrieved base-only activation stores quantity 0. A new Practice activation still requires that retrieved subscription. An unrecognised extra subscription item still fails closed. An Additional Site Price and an Additional Location Price are not plans.
 
@@ -63,24 +73,132 @@ A missing Group base Price for the prepared interval blocks that Group Checkout.
 
 Create these objects in Stripe **live mode**. Currency **AUD**. Do not mark prices tax inclusive. Do not attach a GST tax rate. Do not enable automatic tax. Annual billing is 12 months for the price of 10. Do not invent another product. Public Group pricing stays Custom. Do not add a public Group Checkout button.
 
-| Product                                        | Price                 | Capacity                                    |
-| ---------------------------------------------- | --------------------- | ------------------------------------------- |
-| River Aftercare Essential                      | A$79 / month          | 1 Clinic Site and 1 Location                |
-| River Aftercare Essential                      | A$790 / year          | 1 Clinic Site and 1 Location                |
-| River Aftercare Practice                       | A$149 / month         | 1 Clinic Site and the first Location        |
-| River Aftercare Practice                       | A$1,490 / year        | 1 Clinic Site and the first Location        |
-| River Aftercare Practice — Additional Location | Graduated monthly     | First extra Location A$79, then A$59 each   |
-| River Aftercare Practice — Additional Location | Graduated yearly      | First extra Location A$790, then A$590 each |
-| River Aftercare Group                          | A$449 / month         | 2 Clinic Sites and 5 Locations              |
-| River Aftercare Group                          | A$4,490 / year        | 2 Clinic Sites and 5 Locations              |
-| River Aftercare Group Additional Site          | A$50 / month per unit | Each unit adds 1 Clinic Site and 1 Location |
-| River Aftercare Group Additional Site          | A$500 / year per unit | Each unit adds 1 Clinic Site and 1 Location |
+| Product                                        | Price                 | Capacity                                        |
+| ---------------------------------------------- | --------------------- | ----------------------------------------------- |
+| River Aftercare Essential                      | A$59 / month          | 1 Clinic Site and 1 Location                    |
+| River Aftercare Essential                      | A$590 / year          | 1 Clinic Site and 1 Location                    |
+| River Aftercare Practice                       | A$129 / month         | 1 Clinic Site and the first Location            |
+| River Aftercare Practice                       | A$1,290 / year        | 1 Clinic Site and the first Location            |
+| River Aftercare Practice — Additional Location | A$59 / month per unit | Each Location above the included first Location |
+| River Aftercare Practice — Additional Location | A$590 / year per unit | Each Location above the included first Location |
+| River Aftercare Group                          | A$399 / month         | 2 Clinic Sites and 5 Locations                  |
+| River Aftercare Group                          | A$3,990 / year        | 2 Clinic Sites and 5 Locations                  |
+| River Aftercare Group Additional Site          | A$50 / month per unit | Each unit adds 1 Clinic Site and 1 Location     |
+| River Aftercare Group Additional Site          | A$500 / year per unit | Each unit adds 1 Clinic Site and 1 Location     |
 
-Essential has no additional-location Price. Practice Additional Location is one quantity-based graduated Price per interval, not a second base plan and not a quantity on the Practice base Price. In the Dashboard graduated Price, the first unit is the A$79 or A$790 tier and every following unit is the A$59 or A$590 tier. Group has no standalone Additional Location Price. Group Additional Site is a per-unit recurring Price, not a graduated Price.
+Essential has no additional-location Price. Practice Additional Location is one per-unit recurring Price per interval on the existing Additional Location product, not a second base plan and not a quantity on the Practice base Price. Every additional Location is A$59 per month or A$590 per year, including the first additional Location. There is no cheaper tier for later Locations. The previous graduated Prices stay active for subscriptions that already use them. Group has no standalone Additional Location Price. Group Additional Site stays a per-unit recurring Price.
 
 Group Checkout starts only after an operator prepares the Group plan, interval, and additional-site quantity for that Account. The account administrator accepts Terms and pays. A base-only offer sends Group base quantity 1 and does not require the Additional Site Price. A quantity above zero also sends the matching-interval Additional Site Price at that quantity. `invoice.paid` stores that purchased quantity, including zero. Checkout completion and pending BECS do not. An existing Group whose purchased quantity is still null stays null. Practice add-on Checkout is not implemented. Buying or changing a Group or Practice quantity after activation is not implemented. `SITE_TO_NEW_GROUP` is not implemented.
 
-Copy each live `price_...` id into the matching Production variable above.
+Copy each live `price_...` id into the matching Production variable above. Do not edit the `unit_amount` of a Price that an existing subscription uses. Stripe Prices are immutable for amount. Create a new Price on the same Product instead.
+
+## Price change for Essential, Practice, and Group
+
+Public Essential stays A$59 per month or A$590/year. Public Practice stays A$129 per month or A$1,290/year. The public cards keep the existing “/year — 2 months free” line, and the annual note stays “Annual plans include 12 months for the price of 10.” Operator Group base is A$399 per month or A$3,990 per year. Public Group pricing stays Custom. The yearly Stripe charge is still 10 monthly payments for 12 months of access.
+
+Group Additional Site stays A$50 per month or A$500 per year. Practice Additional Location is a flat per-unit Price: A$59 per additional Location per month, including the first additional Location, and A$590 per additional Location per year. There is no decreasing tier. Negotiated offers keep the amount stored on the offer. Feature limits are unchanged. GST treatment is unchanged: do not register for GST, do not mark Prices tax inclusive, and do not enable Stripe Tax.
+
+This repository does not create, archive, or modify Stripe Prices or live subscriptions. Joaquín does that in the Dashboard, then sets environment variables, then deploys.
+
+### Create the new Prices
+
+In each mode that will charge the new amounts (live for Production, test for Preview and local):
+
+1. Open the existing Essential Product. Add a new recurring AUD Price: A$59, interval month, `tax_behavior` not inclusive. Add a second recurring AUD Price: A$590, interval year, `tax_behavior` not inclusive.
+2. Open the existing Practice Product. Add A$129 / month and A$1,290 / year the same way.
+3. Leave the previous Essential A$79 / A$790 and Practice A$149 / A$1,490 Prices active. Do not archive them while a subscription, schedule, invoice, or quote still references them.
+4. Open the existing Group Product. Add a new recurring AUD Price: A$399, interval month, `tax_behavior` not inclusive. Add A$3,990, interval year, the same way. Leave the previous Group A$449 / A$4,490 Prices active. Do not change the Group Additional Site Prices or their environment variables. Those amounts stay A$50 / A$500, so the existing Price ids remain the current ids and do not need a legacy list.
+5. On the existing Practice Additional Location product, add a new recurring AUD Price with Dashboard pricing model **Standard**: A$59, interval month, `billing_scheme` `per_unit`, `tax_behavior` not inclusive. Add a second Standard Price: A$590, interval year, the same way. Do not choose Volume or Graduated. Do not add tiers. Do not edit the existing graduated Prices. A one-tier Volume Price is not this Price; see [Verify `billing_scheme`](#verify-billing_scheme-before-use).
+6. Leave the graduated monthly Price (first unit A$79, then A$59) and the graduated yearly Price (first unit A$790, then A$590) active while any subscription, schedule, invoice, or quote references them.
+
+### Verify `billing_scheme` before use
+
+The current Practice Additional Location Prices must be standard per-unit Prices. `cataloguePriceMismatchReason` refuses a retrieved catalogue Price whose `billing_scheme` is present and not `per_unit`. Do not relax that check to accept Volume or Graduated Prices.
+
+Stripe Dashboard **Volume** pricing, including one tier of A$59 or A$590 for every quantity, stores `billing_scheme` `tiered` and `tiers_mode` `volume`. `unit_amount` is null. The amount sits on the tier (`up_to` `inf`). **Graduated** pricing is also `billing_scheme` `tiered`, with `tiers_mode` `graduated`. `billing_scheme` cannot be changed on an existing Price. A tiered id cannot be repaired into the current Additional Location variable. Create a replacement Price with Standard pricing: set `unit_amount`, leave `billing_scheme` at `per_unit`, and do not send `tiers` or `tiers_mode`.
+
+`pnpm stripe:config:check` does not call Stripe. It cannot see `billing_scheme`, `tiers_mode`, or `unit_amount`. Confirm the objects in the Dashboard, or retrieve them, before those ids go in the current variables. Use the same mode as the secret key: test ids with a test key, live ids with a live key. Do not print the secret.
+
+```text
+GET /v1/prices/price_...
+```
+
+The Stripe CLI equivalent is `stripe prices retrieve price_...` in that mode.
+
+Accept an id as `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID` only when every field below matches. The yearly variable uses the yearly column.
+
+| Field                      | Monthly Price   | Yearly Price     |
+| -------------------------- | --------------- | ---------------- |
+| `active`                   | true            | true             |
+| `currency`                 | `aud`           | `aud`            |
+| `type`                     | `recurring`     | `recurring`      |
+| `billing_scheme`           | `per_unit`      | `per_unit`       |
+| `tiers_mode`               | null            | null             |
+| `tiers`                    | null            | null             |
+| `unit_amount`              | `5900`          | `59000`          |
+| `unit_amount_decimal`      | equal to `5900` | equal to `59000` |
+| `recurring.interval`       | `month`         | `year`           |
+| `recurring.interval_count` | `1`             | `1`              |
+| `tax_behavior`             | not `inclusive` | not `inclusive`  |
+
+If `billing_scheme` is `tiered`, that id is not the current Price. That includes `tiers_mode` `volume` with a single tier whose `unit_amount` is 5900 or 59000. Leave the tiered Price active. Put it in `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS` or `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS` only when a subscription, schedule, invoice, or quote already uses it. Then create the replacement per-unit Prices and point the current variables at those new ids.
+
+Checkout does not send the Additional Location Price today, because buying locations is not implemented. A tiered id in the current variable still is not acceptable. A later retrieve of that id as the current Additional Location Price returns `catalogue_price_mismatch_billing_scheme` and does not charge it. The same `per_unit` rule applies to every Price Checkout does retrieve: Essential, Practice, Group base, and Group Additional Site. Confirm those objects the same way. Group Additional Site stays on its existing A$50 / A$500 Prices; do not replace them as part of this amount change.
+
+### Environment variables
+
+Set these in the same change, before the deployment that serves this code:
+
+| Variable                                                       | Value                                                         |
+| -------------------------------------------------------------- | ------------------------------------------------------------- |
+| `STRIPE_ESSENTIAL_MONTHLY_PRICE_ID`                            | new A$59 Price                                                |
+| `STRIPE_ESSENTIAL_YEARLY_PRICE_ID`                             | new A$590 Price                                               |
+| `STRIPE_PRACTICE_MONTHLY_PRICE_ID`                             | new A$129 Price                                               |
+| `STRIPE_PRACTICE_YEARLY_PRICE_ID`                              | new A$1,290 Price                                             |
+| `STRIPE_ESSENTIAL_MONTHLY_LEGACY_PRICE_IDS`                    | previous A$79 Price, if any subscription uses it              |
+| `STRIPE_ESSENTIAL_YEARLY_LEGACY_PRICE_IDS`                     | previous A$790 Price, if any subscription uses it             |
+| `STRIPE_PRACTICE_MONTHLY_LEGACY_PRICE_IDS`                     | previous A$149 Price, if any subscription uses it             |
+| `STRIPE_PRACTICE_YEARLY_LEGACY_PRICE_IDS`                      | previous A$1,490 Price, if any subscription uses it           |
+| `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID`         | new A$59 per-unit Price                                       |
+| `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID`          | new A$590 per-unit Price                                      |
+| `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS` | previous graduated monthly Price, if any subscription uses it |
+| `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS`  | previous graduated yearly Price, if any subscription uses it  |
+| `STRIPE_GROUP_MONTHLY_PRICE_ID`                                | new A$399 Price                                               |
+| `STRIPE_GROUP_YEARLY_PRICE_ID`                                 | new A$3,990 Price                                             |
+| `STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS`                        | previous A$449 Price, if any subscription uses it             |
+| `STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS`                         | previous A$4,490 Price, if any subscription uses it           |
+
+Several retired ids for one slot are comma-separated. Do not put a new Price id in a legacy variable. The names above use `YEARLY`, matching the existing `STRIPE_*_YEARLY_PRICE_ID` variables.
+
+### Deployment sequence
+
+1. Create the four new Essential and Practice base Prices, the two new Group base Prices, and the two new per-unit Additional Location Prices. Leave the Group Additional Site Prices in place. Do not change env vars yet. Existing Checkout still uses the previous base Prices. Marketing still shows the previous Essential and Practice amounts until this code is deployed. Public Group stays Custom.
+2. Set the current Essential, Practice, Group, and Additional Location variables to the new ids. Set the legacy lists to the previous ids before replacing each current variable. Leave `STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID` and `STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID` on the existing A$50 / A$500 Prices. Do not deploy an older build after this. An older build does not read the legacy variables, so existing subscription webhooks would fail as unknown Prices, and Checkout would charge the new Prices while operator quotes and the public site still showed the previous amounts.
+3. Deploy this code with those variables already set. Checkout retrieves each charged Price and refuses the session unless currency is AUD, the interval matches, the unit amount matches the catalogue, `billing_scheme` is per unit when Stripe reports it, and `tax_behavior` is not `inclusive`. Catalogue cents are Essential 5900 / 59000, Practice 12900 / 129000, Group base 39900 / 399000, Group Additional Site 5000 / 50000, and Additional Location 5900 / 59000. A mismatch returns “Secure payment isn't available right now.” It does not charge the previous amount. Practice add-on purchase is not implemented, so Checkout does not send the Additional Location Price.
+4. Run `pnpm stripe:config:check` with `VERCEL_ENV` and the variables for that environment. Expect the current rows `configured`, the legacy rows `configured` when subscribers exist, and `Catalogue unique: yes`. The command still does not call Stripe and does not print Price ids. Retrieve each new Price and confirm the fields in [Verify `billing_scheme`](#verify-billing_scheme-before-use). A one-tier Volume Price fails that check. After this deploy, the current Additional Location variables name the new per-unit Prices. The graduated Prices, and any Volume Price that was created by mistake, belong in the legacy lists only when a subscription still uses them, not in the current variables.
+
+Do not deploy this code while the current Essential, Practice, or Group base variables still point at the previous amounts. Checkout for that Price would stay closed, but a renewal reminder for a subscription on that Price id can name the new catalogue amount. The same split applies to Group: an operator quote would show A$399 while a subscription still stored on the previous Price id could be told A$399 if that id is still the current variable. After this code is live, the current Group variables name the new Prices, and the previous A$449 / A$4,490 ids belong in `STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS` and `STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS` when a subscription still uses them. The current Additional Location variables name the new per-unit Prices, with the graduated ids in the legacy lists when a subscription still uses them. A later charge that retrieves a graduated Price as the current Additional Location Price refuses `billing_scheme`, because that Price is not per unit.
+
+### Existing customers
+
+Subscriptions, invoices, discounts, negotiated Prices, and entitlements stay on the Stripe Price already on the subscription. This change does not migrate them. A renewal of a previous base Price keeps that Price's amount. Webhooks accept the legacy base id and keep the plan. Renewal copy omits a catalogue amount when the stored base Price id is not the current base Price id, so a grandfathered clinic is not told they will be charged A$59 or A$129.
+
+A Practice subscription that already has the graduated Additional Location item keeps that item and its tiered charge. This change does not rewrite the item. Webhooks accept that Price only when its id is in `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS` or `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS`. The app does not store the add-on Price id. Renewal copy therefore omits the combined Practice total whenever purchased additional locations are above zero, including when the live item is already the new per-unit Price. A base-only Practice subscription can still quote the current base amount when its base Price id is the current id. Buying additional locations in the app is still not implemented.
+
+A Group subscription on the previous A$449 or A$4,490 Price keeps that Price and its charge. Webhooks accept it only when the id is in `STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS` or `STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS`. Replacing `STRIPE_GROUP_MONTHLY_PRICE_ID` or `STRIPE_GROUP_YEARLY_PRICE_ID` without that list makes the item unknown and the webhook fails closed. Renewal copy omits the new Group amount when the stored base Price id is not the current id. Group Additional Site items stay on the existing A$50 / A$500 Prices. Those env vars are not replaced, so they do not need legacy lists. A new Group Checkout uses the new base Price plus the existing Additional Site Price.
+
+Self-serve Practice → Essential and operator Essential → Practice refuse a subscription whose Price id is a legacy id (`price_mismatch`). They do not replace a grandfathered Price. A new schedule or upgrade uses only the current Price ids, and only after the amount check. Moving an existing subscriber onto the new amount is a separate, explicit migration and is not part of this change.
+
+New Checkout, a new operator offer, and a plan change for a clinic already on a current Price id use the new amounts.
+
+### Rollback
+
+1. Point the Essential, Practice, and Group current base variables back at the previous base Prices.
+2. Clear the matching legacy variables, or leave a new Price id there only if a subscription was created on it and must keep renewing. Do not list an id in both a current variable and a legacy variable. Leave the Group Additional Site variables on the existing A$50 / A$500 Prices.
+3. Point `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID` and `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID` back at the graduated Prices only together with a previous build that still expects those tiers. With this build, those two variables name the per-unit Prices. If a subscription was created on the new per-unit Prices, keep those ids available: either as the current variables, or, after pointing the current variables back at the graduated Prices, in the legacy lists of a build that reads them.
+4. Redeploy the previous application build if the marketing copy must show the previous base amounts again. Env rollback alone keeps the new public copy and closes Checkout, because this code rejects the previous base unit amounts.
+
+Do not delete or archive a Price until Dashboard shows no subscription, schedule, or open invoice on it.
 
 Repeat the same catalogue in Stripe **test mode** for Preview and local testing. Those `price_...` ids are different objects. Put them only in Preview or local env.
 

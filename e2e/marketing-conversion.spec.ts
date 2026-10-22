@@ -46,10 +46,10 @@ test.describe("marketing conversion routes", () => {
     ).toBeVisible();
     await expect(page.getByText("Connected aftercare plans")).toHaveCount(0);
     await expect(page.getByText("Connected recovery plans")).toHaveCount(0);
-    await expect(page.getByText("A$79", { exact: true })).toBeVisible();
-    await expect(page.getByText("A$149", { exact: true })).toBeVisible();
-    await expect(page.getByText("A$790/year — 2 months free")).toBeVisible();
-    await expect(page.getByText("A$1,490/year — 2 months free")).toBeVisible();
+    await expect(page.getByText("A$59", { exact: true })).toBeVisible();
+    await expect(page.getByText("A$129", { exact: true })).toBeVisible();
+    await expect(page.getByText("A$590/year — 2 months free")).toBeVisible();
+    await expect(page.getByText("A$1,290/year — 2 months free")).toBeVisible();
     await expect(
       page.getByText("Multi-location practice? Talk to us about your setup.")
     ).toBeVisible();
@@ -130,8 +130,10 @@ test.describe("marketing conversion routes", () => {
     await expect(page.getByText("All prices include GST.")).toHaveCount(0);
     await expect(page.getByText("GST included")).toHaveCount(0);
     await expect(page.getByText("Second location:")).toHaveCount(0);
-    await expect(page.getByText("A$59")).toHaveCount(0);
-    await expect(page.getByText("A$590")).toHaveCount(0);
+    await expect(page.getByText("A$79")).toHaveCount(0);
+    await expect(page.getByText("A$149")).toHaveCount(0);
+    await expect(page.getByText("A$790")).toHaveCount(0);
+    await expect(page.getByText("A$1,490")).toHaveCount(0);
     await expect(page.getByText("active custom")).toHaveCount(0);
     await expect(page.getByText("working pricing")).toHaveCount(0);
     await expect(page.getByText("provisional")).toHaveCount(0);
@@ -766,7 +768,7 @@ test.describe("marketing conversion routes", () => {
       });
       expect(tenant?.status(), `tenant ${pathname}`).toBe(404);
       await expectGenericNotFound(page);
-      await expect(page.getByText("A$79")).toHaveCount(0);
+      await expect(page.getByText("A$59")).toHaveCount(0);
       await expect(page.getByText("Request a demo")).toHaveCount(0);
 
       const staff = await page.goto(staffUrl(pathname), {

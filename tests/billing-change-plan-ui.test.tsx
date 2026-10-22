@@ -38,7 +38,7 @@ import type { ClinicGuideSelectionPanel } from "@/lib/entitlements/downgrade-sel
 const readyProps = {
   canAct: true,
   intervalLabel: "Monthly",
-  essentialPriceLabel: "A$79 / month",
+  essentialPriceLabel: "A$59 / month",
   effectiveLabel: "22 October 2026",
   teamCurrent: 2,
   teamLimit: 2,
@@ -126,7 +126,7 @@ describe("self-service change plan panel", () => {
     await render({ phase: "entry" });
     expect(container.textContent).toContain("Current: Practice");
     expect(container.textContent).toContain(
-      "Essential · A$79 / month · Monthly"
+      "Essential · A$59 / month · Monthly"
     );
     expect(button("Change plan")).toBeTruthy();
     expect(container.querySelector(".staffBtnSpinner")).toBeNull();
@@ -152,7 +152,7 @@ describe("self-service change plan panel", () => {
       "All current clinic-owned guides fit within Essential."
     );
     expect(container.textContent).toContain("Price from next renewal");
-    expect(container.textContent).toContain("A$79 / month");
+    expect(container.textContent).toContain("A$59 / month");
     expect(container.textContent).toContain("Immediate charge");
     expect(container.textContent).toContain("None");
     expect(button("Confirm downgrade")?.disabled).toBe(false);

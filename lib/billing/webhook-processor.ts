@@ -40,6 +40,7 @@ import {
   type PlanDowngradeStripePort,
 } from "@/lib/billing/plan-downgrade";
 import {
+  recognizedBasePriceIds,
   stripePriceIdForPlan,
   StripePriceMappingError,
 } from "@/lib/billing/price-map";
@@ -1529,12 +1530,22 @@ async function applySubscriptionScheduleEvent(input: {
     }
   }
 
+  const recognizedPracticePriceIds =
+    interval === "MONTHLY" || interval === "YEARLY"
+      ? recognizedBasePriceIds("PRACTICE", interval, input.env)
+      : [];
+  const recognizedEssentialPriceIds =
+    interval === "MONTHLY" || interval === "YEARLY"
+      ? recognizedBasePriceIds("ESSENTIAL", interval, input.env)
+      : [];
   const decision = decideSubscriptionScheduleEvent({
     notice,
     clinicId: profile.clinicId,
     localScheduleId: profile.stripeSubscriptionScheduleId,
     practicePriceId,
     essentialPriceId,
+    recognizedPracticePriceIds,
+    recognizedEssentialPriceIds,
   });
 
   if (decision.action === "ignore") {

@@ -13,6 +13,7 @@ import {
   type LockedCheckoutState,
 } from "@/lib/billing/checkout";
 import { RIVER_CHECKOUT_ATTEMPT_METADATA_KEY } from "@/lib/billing/identity";
+import { conformingCataloguePrices } from "@/tests/helpers/billing";
 import { classifyStripeCheckoutFailure } from "@/lib/billing/stripe-error-log";
 import {
   BILLING_TEST_ENV,
@@ -423,6 +424,7 @@ function fakeStripe() {
   };
 
   stripe.port = {
+    prices: conformingCataloguePrices,
     customers: {
       async create(params, options) {
         const key = options?.idempotencyKey ?? "";

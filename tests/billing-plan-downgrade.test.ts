@@ -26,7 +26,10 @@ import {
 } from "@/lib/billing/plan-downgrade";
 import { presentScheduledPlanChange } from "@/lib/billing/billing-presentation";
 import { assessEssentialDowngradeReadiness } from "@/lib/entitlements/downgrade-readiness";
-import { BILLING_TEST_ENV } from "@/tests/helpers/billing";
+import {
+  BILLING_TEST_ENV,
+  conformingCataloguePrices,
+} from "@/tests/helpers/billing";
 
 const PERIOD_END = 1_792_647_594;
 const PHASE_START = 1_761_169_194;
@@ -223,6 +226,7 @@ function port(options: {
   let updateFailures = options.updateThrows ? 1 : 0;
   let createdCount = 0;
   const stripe = {
+    prices: conformingCataloguePrices,
     subscriptions: {
       async retrieve() {
         calls.retrieveSubscription += 1;
@@ -367,6 +371,27 @@ describe("Practice to Essential downgrade readiness", () => {
     });
     expect(result.ok).toBe(true);
     expect(fake.calls.create).toHaveLength(1);
+  });
+
+  it("does not rewrite a grandfathered Practice subscription", async () => {
+    const fake = port({
+      subscription: subscription({ priceId: "price_legacy_practice_monthly" }),
+    });
+    const result = await executeClinicPlanDowngrade({
+      state: state(),
+      readiness: readiness({}),
+      env: {
+        ...BILLING_TEST_ENV,
+        STRIPE_PRACTICE_MONTHLY_LEGACY_PRICE_IDS:
+          "price_legacy_practice_monthly",
+      },
+      stripe: fake.stripe,
+      persist: async () => undefined,
+      ...testAttempt(),
+    });
+    expect(result).toEqual({ ok: false, code: "price_mismatch" });
+    expect(fake.calls.create).toHaveLength(0);
+    expect(fake.calls.update).toHaveLength(0);
   });
 
   it.each([
@@ -915,6 +940,47 @@ describe("cancellation and a scheduled downgrade", () => {
       action: "cancellation_supersedes",
       update: buildCancellationSupersedeUpdate({
         practicePriceId: "price_test_practice_monthly",
+        quantity: 1,
+        phaseStart: PHASE_START,
+        periodEnd: PERIOD_END,
+      }),
+    });
+  });
+
+  it("keeps a grandfathered schedule on its original Practice price", () => {
+    const decision = decideSubscriptionScheduleEvent({
+      notice: {
+        scheduleId: "sub_sched_a",
+        status: "active",
+        endBehavior: "cancel",
+        subscriptionId: "sub_clinic_a",
+        releasedSubscriptionId: null,
+        metadataClinicId: "clinic_a",
+        metadataPurpose: "practice_to_essential",
+        metadataAttemptId: ATTEMPT,
+        currentPriceId: "price_legacy_practice_monthly",
+        currentQuantity: 1,
+        currentStart: PHASE_START,
+        currentEnd: PERIOD_END,
+        futurePriceId: "price_legacy_essential_monthly",
+      },
+      clinicId: "clinic_a",
+      localScheduleId: "sub_sched_a",
+      practicePriceId: "price_test_practice_monthly",
+      essentialPriceId: "price_test_essential_monthly",
+      recognizedPracticePriceIds: [
+        "price_test_practice_monthly",
+        "price_legacy_practice_monthly",
+      ],
+      recognizedEssentialPriceIds: [
+        "price_test_essential_monthly",
+        "price_legacy_essential_monthly",
+      ],
+    });
+    expect(decision).toEqual({
+      action: "cancellation_supersedes",
+      update: buildCancellationSupersedeUpdate({
+        practicePriceId: "price_legacy_practice_monthly",
         quantity: 1,
         phaseStart: PHASE_START,
         periodEnd: PERIOD_END,

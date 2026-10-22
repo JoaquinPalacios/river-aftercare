@@ -2,15 +2,23 @@ import "server-only";
 
 import {
   STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID_ENV,
+  STRIPE_ESSENTIAL_MONTHLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_ESSENTIAL_MONTHLY_PRICE_ID_ENV,
+  STRIPE_ESSENTIAL_YEARLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_ESSENTIAL_YEARLY_PRICE_ID_ENV,
   STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID_ENV,
   STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID_ENV,
+  STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_GROUP_MONTHLY_PRICE_ID_ENV,
+  STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_GROUP_YEARLY_PRICE_ID_ENV,
+  STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID_ENV,
+  STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID_ENV,
+  STRIPE_PRACTICE_MONTHLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_PRACTICE_MONTHLY_PRICE_ID_ENV,
+  STRIPE_PRACTICE_YEARLY_LEGACY_PRICE_IDS_ENV,
   STRIPE_PRACTICE_YEARLY_PRICE_ID_ENV,
   STRIPE_SECRET_KEY_ENV,
   STRIPE_WEBHOOK_SECRET_ENV,
@@ -42,6 +50,23 @@ const CATALOGUE_LABELS: Record<string, string> = {
     "Group additional site monthly",
   [STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID_ENV]:
     "Group additional site yearly",
+};
+
+const LEGACY_PRICE_LABELS: Record<string, string> = {
+  [STRIPE_ESSENTIAL_MONTHLY_LEGACY_PRICE_IDS_ENV]:
+    "Legacy Essential monthly prices",
+  [STRIPE_ESSENTIAL_YEARLY_LEGACY_PRICE_IDS_ENV]:
+    "Legacy Essential yearly prices",
+  [STRIPE_PRACTICE_MONTHLY_LEGACY_PRICE_IDS_ENV]:
+    "Legacy Practice monthly prices",
+  [STRIPE_PRACTICE_YEARLY_LEGACY_PRICE_IDS_ENV]:
+    "Legacy Practice yearly prices",
+  [STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS_ENV]:
+    "Legacy Practice additional location monthly prices",
+  [STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS_ENV]:
+    "Legacy Practice additional location yearly prices",
+  [STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS_ENV]: "Legacy Group monthly prices",
+  [STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS_ENV]: "Legacy Group yearly prices",
 };
 
 export type StripeConfigAssessment = {
@@ -135,6 +160,9 @@ export function assessStripeConfiguration(
   }
 
   for (const slot of catalogue.slots) {
+    if (slot.generation === "legacy") {
+      continue;
+    }
     const label = CATALOGUE_LABELS[slot.envKey] ?? slot.envKey;
     if (!slot.priceId) {
       lines.push(
@@ -153,10 +181,33 @@ export function assessStripeConfiguration(
     lines.push(`${label}: configured`);
   }
 
+  for (const [envKey, label] of Object.entries(LEGACY_PRICE_LABELS)) {
+    const raw = readTrimmedEnv(envKey, env);
+    if (!raw) {
+      lines.push(`${label}: not configured`);
+      continue;
+    }
+    const ids = raw
+      .split(",")
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0);
+    if (ids.length === 0 || ids.some((id) => !isStripePriceId(id))) {
+      lines.push(`${label}: rejected`);
+      failures.push(`${label} must be a comma-separated list of price_ ids.`);
+      continue;
+    }
+    lines.push(`${label}: configured`);
+  }
+
   lines.push(`Catalogue unique: ${catalogue.duplicate ? "no" : "yes"}`);
   if (catalogue.duplicate) {
     failures.push(
-      "Stripe Price IDs must be unique across every configured base plan and add-on price."
+      "Stripe Price IDs must be unique across every configured base plan, add-on price, and legacy price."
+    );
+  }
+  if (catalogue.legacyInvalid) {
+    failures.push(
+      "Legacy Stripe Price IDs must be a comma-separated list of price_ ids."
     );
   }
 

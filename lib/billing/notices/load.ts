@@ -80,11 +80,12 @@ export function cataloguePriceIdsForSubscription(
     return { catalogueBasePriceId: null, catalogueAddonPriceId: null };
   }
   const inspection = inspectStripeCatalogue(env);
-  if (inspection.duplicate) {
+  if (inspection.duplicate || inspection.legacyInvalid) {
     return { catalogueBasePriceId: null, catalogueAddonPriceId: null };
   }
   const base = inspection.slots.find(
     (slot) =>
+      slot.generation === "current" &&
       slot.role === "BASE_PLAN" &&
       slot.plan === plan &&
       slot.interval === interval
@@ -97,7 +98,10 @@ export function cataloguePriceIdsForSubscription(
         : null;
   const addon = addonRole
     ? inspection.slots.find(
-        (slot) => slot.role === addonRole && slot.interval === interval
+        (slot) =>
+          slot.generation === "current" &&
+          slot.role === addonRole &&
+          slot.interval === interval
       )
     : null;
   return {

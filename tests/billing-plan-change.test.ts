@@ -11,7 +11,10 @@ import {
   type PlanChangeState,
   type PlanChangeStripePort,
 } from "@/lib/billing/plan-change";
-import { BILLING_TEST_ENV } from "@/tests/helpers/billing";
+import {
+  BILLING_TEST_ENV,
+  conformingCataloguePrices,
+} from "@/tests/helpers/billing";
 
 function state(overrides: Partial<PlanChangeState> = {}): PlanChangeState {
   return {
@@ -58,6 +61,7 @@ function stripePort(
   return {
     updates,
     stripe: {
+      prices: conformingCataloguePrices,
       subscriptions: {
         async retrieve(id) {
           return {
@@ -173,6 +177,22 @@ describe("operator plan changes", () => {
         "PRACTICE"
       )
     ).toMatchObject({ ok: false, code: "no_subscription" });
+  });
+
+  it("does not move a grandfathered Essential subscription onto the new Practice price", async () => {
+    const port = stripePort("price_legacy_essential_monthly");
+    const result = await executeOperatorPlanUpgrade({
+      state: state(),
+      requestedPlan: "PRACTICE",
+      env: {
+        ...BILLING_TEST_ENV,
+        STRIPE_ESSENTIAL_MONTHLY_LEGACY_PRICE_IDS:
+          "price_legacy_essential_monthly",
+      },
+      stripe: port.stripe,
+    });
+    expect(result).toMatchObject({ ok: false, code: "price_mismatch" });
+    expect(port.updates).toHaveLength(0);
   });
 
   it("refuses a subscription that is not the mapped Essential price", async () => {

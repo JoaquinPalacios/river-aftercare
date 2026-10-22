@@ -6,17 +6,17 @@ import { commercialOfferSummary } from "@/lib/billing/offer-display";
 describe("billing setup UI", () => {
   it("uses canonical plan prices and annual saving language", () => {
     expect(commercialOfferSummary("ESSENTIAL", "MONTHLY").priceLabel).toBe(
-      "A$79 / month"
+      "A$59 / month"
     );
     expect(commercialOfferSummary("ESSENTIAL", "YEARLY")).toMatchObject({
-      priceLabel: "A$790 / year",
+      priceLabel: "A$590 / year",
       annualNote: "2 months free",
     });
     expect(commercialOfferSummary("PRACTICE", "MONTHLY").priceLabel).toBe(
-      "A$149 / month"
+      "A$129 / month"
     );
     expect(commercialOfferSummary("PRACTICE", "YEARLY")).toMatchObject({
-      priceLabel: "A$1,490 / year",
+      priceLabel: "A$1,290 / year",
       annualNote: "2 months free",
     });
   });

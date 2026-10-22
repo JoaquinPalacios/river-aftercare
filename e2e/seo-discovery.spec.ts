@@ -141,10 +141,10 @@ test.describe("Phase 2B SEO and discovery", () => {
       "Practice yearly",
     ]);
     expect(offers?.map((offer) => offer.price)).toEqual([
-      "79",
-      "790",
-      "149",
-      "1490",
+      "59",
+      "590",
+      "129",
+      "1290",
     ]);
     expect(offers?.every((offer) => offer.priceCurrency === "AUD")).toBe(true);
     expect(pricingLd).not.toContain("valueAddedTaxIncluded");

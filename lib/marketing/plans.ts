@@ -12,16 +12,33 @@ import {
 
 export const PRICING_CURRENCY = "AUD";
 
+/** Annual access is 12 months, charged as 10 monthly payments. */
+export const ANNUAL_ACCESS_MONTHS = 12;
+export const ANNUAL_PAID_MONTHS = 10;
+
+export function annualAudFromMonthly(monthlyAud: number): number {
+  return monthlyAud * ANNUAL_PAID_MONTHS;
+}
+
+/**
+ * Two unpaid months out of twelve. 2/12 is about 16.7%.
+ * This is a comparison with paying monthly. It is not a monthly price.
+ */
+export function annualSavingFraction(): number {
+  return (ANNUAL_ACCESS_MONTHS - ANNUAL_PAID_MONTHS) / ANNUAL_ACCESS_MONTHS;
+}
+
 /**
  * Canonical advertised Australian dollar amounts. Do not copy these literals
  * elsewhere. River Aftercare is not registering for GST. These amounts are
  * the public prices. Do not label them as including GST or excluding GST.
  * `InclGst` in the field names is a historical identifier for those amounts.
+ * Annual amounts are the yearly charge (10 × monthly), not a monthly equivalent.
  */
 export const PLAN_PRICES = {
   essential: {
-    monthlyAudInclGst: 79,
-    annualAudInclGst: 790,
+    monthlyAudInclGst: 59,
+    annualAudInclGst: annualAudFromMonthly(59),
     includedLocations: 1,
     customGuides: ESSENTIAL_CUSTOM_GUIDE_LIMIT,
     clinicTeamMembers: ESSENTIAL_TEAM_MEMBER_LIMIT,
@@ -29,24 +46,21 @@ export const PLAN_PRICES = {
     combinedClinicOwnedGuides: ESSENTIAL_COMBINED_GUIDE_LIMIT,
   },
   practice: {
-    monthlyAudInclGst: 149,
-    annualAudInclGst: 1490,
+    monthlyAudInclGst: 129,
+    annualAudInclGst: annualAudFromMonthly(129),
     includedLocations: 1,
     customGuides: PRACTICE_CUSTOM_GUIDE_LIMIT,
     clinicTeamMembers: PRACTICE_TEAM_MEMBER_LIMIT,
     editableTemplates: PRACTICE_TEMPLATE_ADAPTATION_LIMIT,
     combinedClinicOwnedGuides: PRACTICE_COMBINED_GUIDE_LIMIT,
     /**
-     * Internal commercial reference only. There is no Location model yet.
+     * Flat rate for every Location above the one included in Practice,
+     * including the first additional Location. Internal commercial reference.
      * Do not format these amounts into public UI, metadata, or JSON-LD.
      */
-    secondLocation: {
-      monthlyAudInclGst: 79,
-      annualAudInclGst: 790,
-    },
     additionalLocation: {
       monthlyAudInclGst: 59,
-      annualAudInclGst: 590,
+      annualAudInclGst: annualAudFromMonthly(59),
     },
   },
 } as const;

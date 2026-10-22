@@ -194,13 +194,15 @@ Approved Group catalogue:
 
 | Item                   | Monthly | Yearly  | Included capacity                           |
 | ---------------------- | ------- | ------- | ------------------------------------------- |
-| Group base             | A$449   | A$4,490 | 2 Clinic Sites and 5 Locations              |
+| Group base             | A$399   | A$3,990 | 2 Clinic Sites and 5 Locations              |
 | Additional Site bundle | A$50    | A$500   | +1 Clinic Site and +1 Location per quantity |
 
-Group has no standalone paid Additional Location product. Practice Additional Location is a separate quantity-based tiered Price, documented below. Server environment variables, blank in `.env.example`:
+Group has no standalone paid Additional Location product. Practice Additional Location is a separate per-unit Price, documented below. Server environment variables, blank in `.env.example`:
 
 - `STRIPE_GROUP_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_YEARLY_PRICE_ID`
+- `STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS`
+- `STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS`
 - `STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID`
 - `STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID`
 
@@ -241,16 +243,19 @@ Migration `20260926140000_add_group_capacity_foundation` is additive. Migration 
 
 ### Practice Additional Location
 
-Practice base remains A$149/month or A$1,490/year and includes the first physical Location and one Clinic Site. There is no Essential additional-location Price. Essential stays 1 Clinic Site and 1 Location.
+Practice base remains A$129/month or A$1,290/year and includes the first physical Location and one Clinic Site. There is no Essential additional-location Price. Essential stays 1 Clinic Site and 1 Location.
 
-One graduated Price per interval, `River Aftercare Practice — Additional Location`:
+One per-unit Price per interval, `River Aftercare Practice — Additional Location`:
 
-| Additional physical Location      | Monthly | Yearly |
-| --------------------------------- | ------- | ------ |
-| First above the included Location | A$79    | A$790  |
-| Each later Location               | A$59    | A$590  |
+| Additional physical Location              | Monthly | Yearly |
+| ----------------------------------------- | ------- | ------ |
+| Each Location above the included Location | A$59    | A$590  |
 
-N on that Price is the number of Locations above the included first Location. Annual billing stays 12 months for the price of 10. No GST and no Stripe Tax. Checkout does not add this line item yet.
+Every additional Location uses that rate, including the first. There is no decreasing tier. N on that Price is the number of Locations above the included first Location. Annual billing stays 12 months for the price of 10. No GST and no Stripe Tax. Checkout does not add this line item yet.
+
+The current Price for each interval must be `billing_scheme` `per_unit` (Dashboard pricing model Standard). A one-tier Volume Price is `billing_scheme` `tiered` and `tiers_mode` `volume`, with `unit_amount` null and the amount on the tier. Graduated pricing is also `tiered`. `cataloguePriceMismatchReason` refuses any retrieved catalogue Price whose `billing_scheme` is not `per_unit`. Do not accept a Volume Price because its single tier is A$59 or A$590. `billing_scheme` is immutable, so that object needs a replacement per-unit Price. `pnpm stripe:config:check` does not retrieve Prices. Confirm `billing_scheme`, `tiers_mode`, and `unit_amount` on the Price object before the id is used as the current variable. The exact field checks are in [STRIPE-SETUP.md](../launch/STRIPE-SETUP.md#verify-billing_scheme-before-use).
+
+The previous graduated Prices (first extra Location A$79 / A$790, later Locations A$59 / A$590) stay active while a subscription, schedule, invoice, or quote references them. They are not the current catalogue Price. When a subscription still has one, its id goes in the matching legacy list below before the current variable is replaced. Webhooks then keep classifying it as the location add-on and keep its quantity. This change does not rewrite the subscription item.
 
 `purchasedAdditionalLocationQuantity` is null for an established Practice row that has not been converted. Null keeps the stored `locationAllowance`. Zero means the derived model with no paid additional Location. `extraLocationAllowance` is the shared complimentary location delta for Practice and Group. A converted ACTIVE Practice account is 1 Clinic Site and `1 + N + extraLocationAllowance`. A pending offer does not gain that capacity. Historical Practice totals are not inferred as paid N or as extras.
 
@@ -262,6 +267,8 @@ Environment variables, blank in `.env.example`:
 
 - `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID`
 - `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID`
+- `STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS`
+- `STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS`
 
 A Practice Additional Location Price is never a `CommercialPlan`. Missing those variables leaves base-only Practice billing operational, including a retrieved base-only activation that stores N=0. A new activation whose subscription cannot be retrieved does not become ACTIVE Practice. A second subscription item whose Price is not configured fails closed. The webhook classifies the retrieved subscription items, not the first invoice line and not item order. A malformed Practice shape fails closed with `practice_subscription_shape_invalid`, leaves the last projected entitlement unchanged, and does not rewrite `locationAllowance`. An established legacy Practice left at null is logged as `practice_location_quantity_legacy_preserved` and is not sent to Sentry. A Group add-on Price never writes `purchasedAdditionalLocationQuantity`. A Practice add-on Price never writes `purchasedAdditionalSiteQuantity`. An Essential price on invoice.paid still selects Essential when the local row is already an established Practice, which is the scheduled downgrade path. `practiceCapacityPersistence` is the only writer of the materialized Practice site and location totals. It does not create, deactivate, or delete Clinic Location rows. Usage above the new allowance stays in place.
 
@@ -658,12 +665,12 @@ Follow Stripe’s catalogue rule: **one Product per plan the customer can choose
 
 | Stripe Product            | Monthly Price                   | Yearly Price                    |
 | ------------------------- | ------------------------------- | ------------------------------- |
-| River Aftercare Essential | AUD 7900 cents, interval month  | AUD 79000 cents, interval year  |
-| River Aftercare Practice  | AUD 14900 cents, interval month | AUD 149000 cents, interval year |
+| River Aftercare Essential | AUD 5900 cents, interval month  | AUD 59000 cents, interval year  |
+| River Aftercare Practice  | AUD 12900 cents, interval month | AUD 129000 cents, interval year |
 
 All `tax_behavior: inclusive`. Currency `aud`. Nickname the Prices clearly (`essential_monthly`, etc.).
 
-Group is a Stripe Product in the approved catalogue above: base A$449/month or A$4,490/year, plus an Additional Site Price of A$50/month or A$500/year. Group Checkout is operator-prepared. Public Group pricing stays custom. Group has no standalone paid Additional Location Price. Practice Additional Location is a separate graduated Price, not quantity on the Practice base Price. Until an account is converted, an operator may still raise the stored Practice location allowance. Public Group copy stays custom. Site and location capacity is still enforced in the product. A missing entitlement is 1 site and 1 location, never unlimited. Essential is always 1/1. Practice is always one site.
+Group is a Stripe Product in the approved catalogue above: base A$399/month or A$3,990/year, plus an Additional Site Price of A$50/month or A$500/year. Retired Group base Prices stay recognisable through `STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS` and `STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS`. Additional Site Price ids stay current because that amount is unchanged. Group Checkout is operator-prepared. Public Group pricing stays custom. Group has no standalone paid Additional Location Price. Practice Additional Location is a separate per-unit Price at A$59 per month or A$590 per year for every additional Location, not quantity on the Practice base Price. Retired graduated Prices stay recognisable through the additional-location legacy Price id lists. Until an account is converted, an operator may still raise the stored Practice location allowance. Public Group copy stays custom. Site and location capacity is still enforced in the product. A missing entitlement is 1 site and 1 location, never unlimited. Essential is always 1/1. Practice is always one site.
 
 ### E.2 Price ID mapping
 
@@ -679,15 +686,19 @@ STRIPE_PRACTICE_MONTHLY_PRICE_ID
 STRIPE_PRACTICE_YEARLY_PRICE_ID
 STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_PRICE_ID
 STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_PRICE_ID
+STRIPE_PRACTICE_ADDITIONAL_LOCATION_MONTHLY_LEGACY_PRICE_IDS
+STRIPE_PRACTICE_ADDITIONAL_LOCATION_YEARLY_LEGACY_PRICE_IDS
 STRIPE_GROUP_MONTHLY_PRICE_ID
 STRIPE_GROUP_YEARLY_PRICE_ID
+STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS
+STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS
 STRIPE_GROUP_ADDITIONAL_SITE_MONTHLY_PRICE_ID
 STRIPE_GROUP_ADDITIONAL_SITE_YEARLY_PRICE_ID
 ```
 
 `VERCEL_ENV=production` accepts `sk_live_` or `rk_live_` and rejects test keys. Preview and local accept `sk_test_` or `rk_test_` and reject live keys. Vercel **Preview** uses test-mode keys and test Price IDs. Vercel **Production** uses live-mode keys and live Price IDs. Never mix. There is no publishable Stripe key.
 
-River mapping is a closed server table: env Price ID → `{ commercialPlan, billingInterval, expectedAmountCents }` checked against `PLAN_PRICES`. Checkout Sessions are created only from operator-selected plan+interval after that lookup. Incoming webhooks resolve `stripePriceId` through the **same** map; unknown Price IDs are a hard error (alert operator, do not grant entitlements).
+River mapping is a closed server table: env Price ID → `{ commercialPlan, billingInterval, expectedAmountCents }` checked against `PLAN_PRICES`. Checkout retrieves the Price and refuses the session unless the unit amount, AUD currency, interval, and non-inclusive tax behaviour match. It does not charge a previous amount. Incoming webhooks resolve a base `stripePriceId` through the current map plus optional legacy Price ids for the previous Essential, Practice, and Group amounts. A Practice Additional Location item resolves through the current per-unit Price or the optional graduated legacy lists. Group Additional Site stays on its current Price id. Unknown Price IDs are a hard error (alert operator, do not grant entitlements). A legacy id keeps the existing subscription; it is not used for a new Checkout. Renewal copy omits the combined Practice total when purchased additional locations are above zero, because the add-on Price id is not stored. See [STRIPE-SETUP.md](../launch/STRIPE-SETUP.md).
 
 Clients never send Price IDs. Operators never paste Price IDs into clinic UI.
 
@@ -699,7 +710,7 @@ Why not Stripe Tax (Option B) for launch:
 
 | Concern                                               | Option A (manual inclusive 10% GST)                                                                                           | Option B (Stripe Tax)                                                                                                     |
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Advertised totals stay A$79 / A$149 / A$790 / A$1,490 | Yes, if `inclusive: true`                                                                                                     | Yes only if `tax_behavior: inclusive` **and** tax actually calculates                                                     |
+| Advertised totals stay A$59 / A$129 / A$590 / A$1,290 | Yes, if `inclusive: true`                                                                                                     | Yes only if `tax_behavior: inclusive` **and** tax actually calculates                                                     |
 | AU-only, fixed B2B SaaS                               | Matches                                                                                                                       | Extra machinery                                                                                                           |
 | ABN on a domestic AU→AU sale                          | GST still charged; customer claims input tax credits                                                                          | Stripe Tax docs treat ABN as **no GST for remote sellers**. A mis-set origin could omit GST on taxable domestic supplies. |
 | Fees                                                  | None beyond Billing                                                                                                           | Tax Basic is **0.5% per transaction** (Billing/Checkout) where registered; Tax Complete from A$140/month                  |
@@ -708,11 +719,11 @@ Why not Stripe Tax (Option B) for launch:
 
 This is **not** a tax determination. Joaquín’s accountant must confirm: GST registration, that these plans are taxable supplies, that inclusive 10% is correct, and invoice wording.
 
-Stripe’s own [Australia invoicing guide](https://docs.stripe.com/invoicing/australia-invoicing) still applies: seller identity, ABN, “Tax Invoice” subtitle via custom field, GST amount (required to be explicit for supplies **A$1,000+** — Practice annual is A$1,490), buyer identity or ABN.
+Stripe’s own [Australia invoicing guide](https://docs.stripe.com/invoicing/australia-invoicing) still applies: seller identity, ABN, “Tax Invoice” subtitle via custom field, GST amount (required to be explicit for supplies **A$1,000+** — Practice annual is A$1,290), buyer identity or ABN. Current decision remains: River Aftercare is not registering for GST, Prices are not marked tax inclusive, and Stripe Tax stays off. The inclusive-GST option in this section is the historical investigation, not the live setting.
 
 ### E.4 Amounts vs marketing
 
-`PLAN_PRICES` remains canonical for `/pricing` and JSON-LD. Implementation should assert Stripe Price unit amounts equal `PLAN_PRICES * 100` at Session-create time. Marketing pages must not fetch Stripe.
+`PLAN_PRICES` remains canonical for `/pricing` and JSON-LD. Checkout asserts Stripe Price unit amounts equal those dollar amounts × 100 before it creates a Session. Marketing pages do not fetch Stripe. Annual amounts are the yearly charge, 10 × the monthly amount.
 
 ---
 
@@ -968,7 +979,7 @@ Persist `StripeInvoiceRef` (IDs + URLs) optionally for the Billing page; **alway
 
 ### J.2 A$1,000+ recipient identity
 
-Practice annual A$1,490 **requires** buyer identity or ABN on the tax invoice. Therefore **before Checkout**:
+Practice annual A$1,290 **requires** buyer identity or ABN on the tax invoice under the superseded inclusive-GST investigation below. The live setting does not charge GST. Therefore **before Checkout**:
 
 Collect on `ClinicBillingProfile`: legal entity name, trading/practice name (if different), ABN (strongly recommended for all; **required for annual Practice**), billing address, billing contact, billing email, plan, interval.
 
@@ -1071,7 +1082,7 @@ Do not enable public self-serve signup, coupons, trials, Group automation, locat
 - [ ] Inclusive 10% GST tax rate named `GST`, inclusive, display name GST
 - [ ] Default on subscription invoices
 - [ ] Invoice custom field: `Tax Invoice`
-- [ ] Inclusive tax shown on PDF; GST amount visible (needed for A$1,490)
+- [ ] Inclusive tax shown on PDF; GST amount visible (historical investigation for Practice annual A$1,290; live setting does not charge GST)
 - [ ] Email: finalised invoices, receipts, failed payments
 - [ ] Do **not** also send River billing duplicates
 - [ ] Hosted invoice page on

@@ -10,7 +10,11 @@ import {
   type LockedCheckoutState,
 } from "@/lib/billing/checkout";
 import { RIVER_CLINIC_ID_METADATA_KEY } from "@/lib/billing/identity";
-import { BILLING_TEST_ENV } from "@/tests/helpers/billing";
+import {
+  BILLING_TEST_ENV,
+  conformingCataloguePrice,
+  conformingCataloguePrices,
+} from "@/tests/helpers/billing";
 
 const PRACTICE_YEARLY = BILLING_TEST_ENV.STRIPE_PRACTICE_YEARLY_PRICE_ID;
 
@@ -66,6 +70,30 @@ describe("checkout authorization", () => {
 });
 
 describe("checkout session creation", () => {
+  it("refuses a configured Price that still charges the previous amount", async () => {
+    const stripe = fakeStripe();
+    stripe.port.prices = {
+      async retrieve(id) {
+        return conformingCataloguePrice(id, {
+          unit_amount: 149_000,
+          unit_amount_decimal: "149000",
+        });
+      },
+    };
+    const result = await executeClinicCheckout({
+      state: readyState(),
+      env: BILLING_TEST_ENV,
+      stripe: stripe.port,
+      successUrl: "https://app.example/account/billing/complete",
+      cancelUrl: "https://app.example/account/billing/setup?checkout=cancelled",
+      persist: async () => undefined,
+    });
+
+    expect(result).toEqual({ ok: false, code: "price_not_configured" });
+    expect(stripe.sessions.created).toHaveLength(0);
+    expect(stripe.customers.created).toHaveLength(0);
+  });
+
   it("selects the server price, stamps clinic metadata, and limits payment methods", async () => {
     const stripe = fakeStripe();
     const result = await executeClinicCheckout({
@@ -248,6 +276,7 @@ function fakeStripe() {
   const sessions: { created: unknown[] } = { created: [] };
   let sessionSeq = 0;
   const port: CheckoutStripePort = {
+    prices: conformingCataloguePrices,
     customers: {
       async create(params) {
         customers.created.push(params);

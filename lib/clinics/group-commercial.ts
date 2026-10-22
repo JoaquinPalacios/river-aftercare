@@ -13,8 +13,9 @@ import { MAX_OPERATOR_EXTRA_ALLOWANCE } from "@/lib/entitlements/allowance-input
  * it. Stripe remains the charge.
  */
 
-export const GROUP_BASE_MONTHLY_CENTS = 44_900;
-export const GROUP_BASE_YEARLY_CENTS = 449_000;
+/** 10 monthly payments for 12 months of access. */
+export const GROUP_BASE_MONTHLY_CENTS = 39_900;
+export const GROUP_BASE_YEARLY_CENTS = GROUP_BASE_MONTHLY_CENTS * 10;
 export const GROUP_ADDITIONAL_SITE_MONTHLY_CENTS = 5_000;
 export const GROUP_ADDITIONAL_SITE_YEARLY_CENTS = 50_000;
 

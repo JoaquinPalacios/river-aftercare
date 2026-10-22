@@ -50,7 +50,10 @@ import { countOriginalCustomGuides } from "@/lib/entitlements/guide-usage";
 import { updateOperatorAllowanceExtras } from "@/lib/entitlements/operator-extras";
 import { essentialGuideLimits } from "@/lib/entitlements/downgrade-retention";
 import { getPrisma } from "@/lib/prisma";
-import { BILLING_TEST_ENV } from "@/tests/helpers/billing";
+import {
+  BILLING_TEST_ENV,
+  conformingCataloguePrices,
+} from "@/tests/helpers/billing";
 
 const LIMITS = essentialGuideLimits({
   teamMembers: 0,
@@ -1166,6 +1169,7 @@ describe("downgrade guide selection persistence", () => {
           throw new Error("must not persist");
         },
         stripe: {
+          prices: conformingCataloguePrices,
           subscriptions: {
             async retrieve() {
               return subscription;
