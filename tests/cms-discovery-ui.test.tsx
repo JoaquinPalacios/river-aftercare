@@ -279,11 +279,92 @@ describe("CMS discovery UI", () => {
       root.unmount();
     });
     root = createRoot(container);
-    await renderDiscovery();
+    await renderDiscovery(context(), "/guides");
 
     expect(welcome()).toBeNull();
     expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
     expect(tourStep()?.textContent).toContain("2 of 2");
+    expect(tourStep()?.getAttribute("data-cms-tour-motion")).not.toBe("route");
+  });
+
+  it("keeps the spotlight off the previous page until the next route is ready", async () => {
+    await renderDiscovery();
+    await act(async () => {
+      welcome()?.querySelector("button")?.click();
+    });
+    await act(async () => {
+      [...(tourStep()?.querySelectorAll("button") ?? [])]
+        .find((button) => button.textContent === "Next")
+        ?.click();
+    });
+
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
+    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("route");
+    expect(tourStep()?.style.opacity).toBe("0");
+    expect(
+      document
+        .querySelector("[data-cms-tour-spot]")
+        ?.getAttribute("data-cms-tour-motion")
+    ).toBe("route");
+    expect(nav.pushed).toEqual(["/guides"]);
+
+    const library = document.createElement("section");
+    library.setAttribute("data-cms-discovery", "guides-library");
+    library.textContent = "Guide library";
+    document.body.append(library);
+    await renderDiscovery(context(), "/guides");
+
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
+    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("reveal");
+    expect(
+      document
+        .querySelector("[data-cms-tour-spot]")
+        ?.getAttribute("data-cms-tour-motion")
+    ).toBe("reveal");
+  });
+
+  it("glides the spotlight between two targets on the same page", async () => {
+    await renderDiscovery(context(), "/dashboard", [
+      {
+        id: "cms-introduction",
+        version: 1,
+        kind: "tour",
+        offer: "welcome",
+        title: "Welcome to River Aftercare",
+        body: "A short tour shows how this workspace is organised.",
+        audience: { roles: ["ADMIN"], requires: ["productNav"] },
+        steps: [
+          {
+            id: "overview",
+            title: "Overview",
+            body: "This is your clinic snapshot.",
+            target: "guide-summary",
+            path: "/dashboard",
+            pathMatch: "exact",
+          },
+          {
+            id: "nearby",
+            title: "Nearby",
+            body: "The next control is already on this page.",
+            target: "nav-guides",
+            path: "/dashboard",
+            pathMatch: "exact",
+          },
+        ],
+      },
+    ]);
+    await act(async () => {
+      welcome()?.querySelector("button")?.click();
+    });
+    await act(async () => {
+      [...(tourStep()?.querySelectorAll("button") ?? [])]
+        .find((button) => button.textContent === "Next")
+        ?.click();
+    });
+
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("nearby");
+    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("move");
+    expect(nav.pushed).toEqual([]);
   });
 
   it("dismisses the welcome card for this user and keeps another user's card", async () => {
