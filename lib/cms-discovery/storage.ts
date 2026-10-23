@@ -163,3 +163,42 @@ export function writeCmsDiscoveryRecord(
 
   return next;
 }
+
+/**
+ * Drop selected experience records and leave every other record in place.
+ * Used to show page-tour invitations again without touching the workspace
+ * introduction or feature announcements.
+ */
+export function forgetCmsDiscoveryRecords(
+  subject: CmsDiscoverySubject,
+  store: CmsDiscoveryStore,
+  ids: readonly string[]
+): CmsDiscoveryStore {
+  const drop = new Set(ids.filter((id) => EXPERIENCE_ID.test(id)));
+  if (drop.size === 0) {
+    return store;
+  }
+
+  let changed = false;
+  const experiences = { ...store.experiences };
+  for (const id of drop) {
+    if (id in experiences) {
+      delete experiences[id];
+      changed = true;
+    }
+  }
+  if (!changed) {
+    return store;
+  }
+
+  const next: CmsDiscoveryStore = {
+    schema: CMS_DISCOVERY_STORE_SCHEMA,
+    experiences,
+  };
+  const key = cmsDiscoveryStorageKey(subject);
+  if (key && typeof window !== "undefined") {
+    writeRaw(key, JSON.stringify(next));
+  }
+
+  return next;
+}

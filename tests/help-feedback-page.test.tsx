@@ -40,8 +40,9 @@ describe("Help & feedback page", () => {
     expect(html).toContain("Report a problem");
     expect(html).toContain("Ask a question");
     expect(html).toContain("Suggest a feature");
-    expect(html).toContain("Workspace tour");
-    expect(html).toContain("Replay tour");
+    expect(html).toContain("Guided tours");
+    expect(html).toContain("Replay workspace tour");
+    expect(html).toContain("Show page tours again");
     expect(html).toContain("Choose an option to continue.");
     expect(html).not.toContain(
       "Please do not include patient names, medical information, photos, or other patient-identifiable information in this message."

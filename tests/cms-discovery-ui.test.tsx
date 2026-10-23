@@ -555,59 +555,190 @@ describe("CMS discovery UI", () => {
     expect(nav.replaced.some((href) => href.includes("cmsTour"))).toBe(false);
   });
 
-  it("replays a page tour after it has been completed", async () => {
-    const pageTour: CmsDiscoveryExperience = {
-      id: "overview-page",
+  it("hides a completed page tour and leaves the others visible", async () => {
+    const guidesTour: CmsDiscoveryExperience = {
+      id: "guides-page",
       version: 1,
       kind: "tour",
       offer: "manual",
-      title: "Overview",
+      title: "Guides",
       body: "This page.",
       audience: { roles: ["ADMIN"], requires: ["productNav"] },
-      page: { path: "/dashboard", match: "exact" },
+      page: { path: "/guides", match: "exact" },
       steps: [
         {
-          id: "summary",
-          title: "Guide summary",
-          body: "Published and draft counts live here.",
+          id: "library",
+          title: "Guide library",
+          body: "Published guides live here.",
           target: "guide-summary",
         },
       ],
     };
-    await renderDiscovery(context(), "/dashboard", [...experiences, pageTour]);
+    const practiceTour: CmsDiscoveryExperience = {
+      id: "practice-page",
+      version: 1,
+      kind: "tour",
+      offer: "manual",
+      title: "Practice",
+      body: "This page.",
+      audience: { roles: ["ADMIN"], requires: ["productNav"] },
+      page: { path: "/practice", match: "exact" },
+      steps: [
+        {
+          id: "members",
+          title: "Members",
+          body: "People who can sign in.",
+          target: "guide-summary",
+        },
+      ],
+    };
+    const items = [...experiences, guidesTour, practiceTour];
     const button = () =>
       container.querySelector<HTMLButtonElement>("[data-cms-page-tour]");
+    const stored = () =>
+      localStorage.getItem("river-aftercare:cms-discovery:user_ada");
+    localStorage.setItem(
+      "river-aftercare:cms-discovery:user_ada",
+      JSON.stringify({
+        schema: 1,
+        experiences: {
+          "feature-news": { version: 1, status: "dismissed" },
+        },
+      })
+    );
+
+    await renderDiscovery(context(), "/guides", items);
     expect(button()?.textContent).toBe("Tour this page");
-
     await act(async () => {
       button()?.click();
     });
-    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("summary");
-    expect(nav.pushed).toEqual([]);
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("library");
+    expect(stored()).not.toContain("guides-page");
 
+    await renderDiscovery(context(), "/dashboard", items);
+    expect(tourStep()).toBeNull();
+    expect(stored()).not.toContain("guides-page");
+
+    await renderDiscovery(context(), "/guides", items);
+    expect(button()?.textContent).toBe("Tour this page");
+    await act(async () => {
+      button()?.click();
+    });
     await act(async () => {
       [...(tourStep()?.querySelectorAll("button") ?? [])]
-        .find((button) => button.textContent === "Done")
+        .find((item) => item.textContent === "Done")
         ?.click();
     });
-    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("complete");
-    expect(
-      localStorage.getItem("river-aftercare:cms-discovery:user_ada")
-    ).toContain('"overview-page"');
-    expect(
-      localStorage.getItem("river-aftercare:cms-discovery:user_ada")
-    ).not.toContain('"cms-introduction"');
+    expect(button()).toBeNull();
 
+    await renderDiscovery(context(), "/practice", items);
+    expect(button()?.textContent).toBe("Tour this page");
+    await act(async () => {
+      button()?.click();
+    });
     await act(async () => {
       [...(tourStep()?.querySelectorAll("button") ?? [])]
-        .find((button) => button.textContent === "Close")
+        .find((item) => item.textContent === "Skip tour")
         ?.click();
     });
+    expect(button()).toBeNull();
+
+    await renderDiscovery(context(), "/guides", items);
+    expect(button()).toBeNull();
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((item) => item.textContent === "Show page tours again")
+        ?.click();
+    });
+    expect(button()?.textContent).toBe("Tour this page");
+    expect(stored()).toContain("feature-news");
+    await renderDiscovery(context(), "/dashboard", items);
     expect(welcome()?.textContent).toContain("Start tour");
+    expect(stored()).not.toContain("cms-introduction");
+    expect(stored()).toContain("feature-news");
+    expect(stored()).not.toContain("guides-page");
+    expect(stored()).not.toContain("practice-page");
+  });
+
+  it("restores only page tours the current role can see", async () => {
+    const guidesTour: CmsDiscoveryExperience = {
+      id: "guides-page",
+      version: 1,
+      kind: "tour",
+      offer: "manual",
+      title: "Guides",
+      body: "This page.",
+      audience: { roles: ["ADMIN", "STAFF"], requires: ["productNav"] },
+      page: { path: "/guides", match: "exact" },
+      steps: [
+        {
+          id: "library",
+          title: "Guide library",
+          body: "Published guides live here.",
+          target: "guide-summary",
+        },
+      ],
+    };
+    const practiceTour: CmsDiscoveryExperience = {
+      id: "practice-page",
+      version: 1,
+      kind: "tour",
+      offer: "manual",
+      title: "Practice",
+      body: "This page.",
+      audience: {
+        roles: ["ADMIN", "STAFF"],
+        requires: ["productNav", "canManagePractice"],
+      },
+      page: { path: "/practice", match: "exact" },
+      steps: [
+        {
+          id: "members",
+          title: "Members",
+          body: "People who can sign in.",
+          target: "guide-summary",
+        },
+      ],
+    };
+    localStorage.setItem(
+      "river-aftercare:cms-discovery:user_ada",
+      JSON.stringify({
+        schema: 1,
+        experiences: {
+          "guides-page": { version: 1, status: "completed" },
+          "practice-page": { version: 1, status: "skipped" },
+          "cms-introduction": { version: 1, status: "dismissed" },
+        },
+      })
+    );
+    await renderDiscovery(
+      context({
+        role: "STAFF",
+        requirements: {
+          productNav: true,
+          canManagePractice: false,
+          hasPatientSite: false,
+          assistedOnboarding: false,
+        },
+      }),
+      "/guides",
+      [experiences[0]!, guidesTour, practiceTour]
+    );
+    expect(container.querySelector("[data-cms-page-tour]")).toBeNull();
     await act(async () => {
-      button()?.click();
+      [...container.querySelectorAll("button")]
+        .find((item) => item.textContent === "Show page tours again")
+        ?.click();
     });
-    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("summary");
+    expect(container.querySelector("[data-cms-page-tour]")?.textContent).toBe(
+      "Tour this page"
+    );
+    const saved = localStorage.getItem(
+      "river-aftercare:cms-discovery:user_ada"
+    );
+    expect(saved).not.toContain("guides-page");
+    expect(saved).toContain("practice-page");
+    expect(saved).toContain("cms-introduction");
   });
 
   it("dismisses the welcome card for this user and keeps another user's card", async () => {
@@ -646,7 +777,7 @@ describe("CMS discovery UI", () => {
 
     await act(async () => {
       [...container.querySelectorAll("button")]
-        .find((button) => button.textContent === "Replay tour")
+        .find((button) => button.textContent === "Replay workspace tour")
         ?.click();
     });
     expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("overview");
@@ -707,7 +838,7 @@ describe("CMS discovery UI", () => {
     ).toBeNull();
   });
 
-  it("keeps a quiet overview replay after the introduction is settled", async () => {
+  it("leaves Overview clear after the introduction is settled", async () => {
     await renderDiscovery();
     await act(async () => {
       [...(welcome()?.querySelectorAll("button") ?? [])]
@@ -716,13 +847,12 @@ describe("CMS discovery UI", () => {
     });
 
     expect(welcome()).toBeNull();
-    const replay = container.querySelector<HTMLButtonElement>(
-      "[data-cms-overview-replay]"
-    );
-    expect(replay?.textContent).toBe("Replay workspace tour");
+    expect(container.querySelector("[data-cms-overview-replay]")).toBeNull();
 
     await act(async () => {
-      replay?.click();
+      [...container.querySelectorAll("button")]
+        .find((button) => button.textContent === "Replay workspace tour")
+        ?.click();
     });
     expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("overview");
   });
@@ -740,7 +870,7 @@ describe("CMS discovery UI", () => {
 
     await renderDiscovery(context({ assisting: true, clinicId: "clinic_a" }));
     expect(welcome()?.textContent).toContain("Skip introduction");
-    expect(container.textContent).toContain("Replay tour");
+    expect(container.textContent).toContain("Replay workspace tour");
 
     await act(async () => {
       [...(welcome()?.querySelectorAll("button") ?? [])]

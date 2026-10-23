@@ -24,14 +24,18 @@ export type CmsDiscoveryApi = {
   startWelcome: () => void;
   dismissWelcome: () => void;
   /**
-   * Quiet Overview replay after the introduction is settled. Null while the
-   * prompt is showing, a tour is open, or the page is not Overview.
+   * Invitation for the current page. Null when this page has no tour, the
+   * tour is already completed or skipped, or discovery has not loaded.
+   * Starting a tour does not clear it.
    */
-  replayIntroduction: (() => void) | null;
-  /** Eligible tour for the current page. Null when this page has none. */
   pageTour: CmsDiscoveryPageTour | null;
-  /** Eligible page tours, including tours for other pages. */
-  pageTours: CmsDiscoveryPageTour[];
+  /** True when this session can see at least one page tour. */
+  canRestorePageTours: boolean;
+  /**
+   * Show eligible page-tour invitations again. Does not change the workspace
+   * introduction or feature announcements.
+   */
+  showPageToursAgain: () => void;
 };
 
 const CmsDiscoveryContext = createContext<CmsDiscoveryApi | null>(null);

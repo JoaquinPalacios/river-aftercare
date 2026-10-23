@@ -26,6 +26,7 @@ import {
   cmsDiscoveryStorageKey,
   emptyCmsDiscoveryStore,
   parseCmsDiscoveryStore,
+  forgetCmsDiscoveryRecords,
   readCmsDiscoveryStore,
   writeCmsDiscoveryRecord,
   type CmsDiscoverySubject,
@@ -482,6 +483,20 @@ describe("CMS discovery storage", () => {
       expect(readCmsDiscoveryStore(member).experiences).not.toHaveProperty(
         CMS_PAGE_TOUR_IDS.guides
       );
+      const restored = forgetCmsDiscoveryRecords(
+        clinicA,
+        readCmsDiscoveryStore(clinicA),
+        [CMS_PAGE_TOUR_IDS.guides, CMS_PAGE_TOUR_IDS.practice]
+      );
+      expect(restored.experiences).toEqual({
+        [CMS_INTRODUCTION_ID]: { version: 1, status: "completed" },
+      });
+      expect(readCmsDiscoveryStore(clinicA).experiences).toEqual(
+        restored.experiences
+      );
+      expect(readCmsDiscoveryStore(member).experiences).toEqual({
+        [CMS_INTRODUCTION_ID]: { version: 1, status: "dismissed" },
+      });
       expect(cmsDiscoveryStorageKey(clinicA)).toBe(
         "river-aftercare:cms-discovery:user_ada:clinic_a"
       );
