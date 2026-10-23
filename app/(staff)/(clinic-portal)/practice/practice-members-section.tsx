@@ -88,6 +88,7 @@ export function PracticeMembersSection({
     <section
       className="min-w-0 rounded-xl border border-staff-line bg-staff-panel p-5"
       aria-labelledby="practice-members-heading"
+      data-cms-discovery="practice-members"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <h2

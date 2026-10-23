@@ -8,6 +8,7 @@ import {
   RetainedGuideCard,
   retainedGuideIsPublic,
 } from "@/app/(staff)/(clinic-portal)/guides/retained-guide-card";
+import { CmsPageTourButton } from "@/app/(staff)/components/cms-discovery/page-tour-button";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import { formatBillingDate } from "@/lib/billing/billing-presentation";
 import { getClinicPortalOverview } from "@/lib/clinic-portal/get-clinic-portal";
@@ -128,11 +129,18 @@ export default async function ClinicGuidesPage({
             </p>
           ) : null}
         </div>
-        {canManage ? (
-          <Link href="/guides/new" className="staffBtn staffBtnPrimary">
-            Create guide
-          </Link>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <CmsPageTourButton />
+          {canManage ? (
+            <Link
+              href="/guides/new"
+              className="staffBtn staffBtnPrimary"
+              data-cms-discovery="guides-create"
+            >
+              Create guide
+            </Link>
+          ) : null}
+        </div>
       </header>
 
       {preparation?.status === "awaiting" ? (

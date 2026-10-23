@@ -60,6 +60,7 @@ export function HelpFeedbackForm({
         className="grid gap-3 sm:grid-cols-3"
         role="group"
         aria-label="What do you need?"
+        data-cms-discovery="help-categories"
       >
         {OPTIONS.map((option) => {
           const selected = category === option.id;

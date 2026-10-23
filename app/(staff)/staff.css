@@ -4868,20 +4868,28 @@ a.staffTablePageButton:hover {
   min-width: 0;
 }
 
-.cmsTourCard.cmsTourCardTravel {
-  opacity: 1;
-  visibility: visible;
-  animation: none;
+.cmsPageTourButton {
+  min-height: 2.25rem;
+  padding-inline: 0.65rem;
+  font-size: 0.8125rem;
 }
 
-.cmsTourTravelTitle {
+.cmsPageTourCatalog {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.cmsPageTourCatalog .cmsDiscoveryTitle {
+  font-size: 0.8125rem;
+}
+
+.cmsPageTourList {
   display: flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.cmsTourBlocker[data-cms-tour-travel="true"] {
-  background: transparent;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
 }
 
 .cmsTourCard.cmsTourCardInMenu {
@@ -4940,12 +4948,9 @@ a.staffTablePageButton:hover {
   .cmsTourCard[data-cms-tour-motion="enter"],
   .cmsTourCard[data-cms-tour-motion="move"],
   .cmsTourCard[data-cms-tour-motion="exit"],
-  .cmsTourCard[data-cms-tour-motion="travel"],
   .cmsTourCard.cmsTourCardEnter,
-  .cmsTourCard.cmsTourCardTravel,
   .cmsTourCardCopy,
   .cmsTourBlocker,
-  .cmsTourBlocker[data-cms-tour-travel="true"],
   .cmsDiscoveryCard,
   .cmsWelcomeEntry,
   .cmsTourReplayPanel {

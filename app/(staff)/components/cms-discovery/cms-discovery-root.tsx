@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { CmsAnnouncementCard } from "@/app/(staff)/components/cms-discovery/discovery-card";
 import {
@@ -11,8 +11,15 @@ import {
 import {
   CmsDiscoveryProvider,
   type CmsDiscoveryApi,
+  type CmsDiscoveryPageTour,
 } from "@/app/(staff)/components/cms-discovery/cms-discovery-context";
-import { suppressesAutomaticDiscovery } from "@/lib/cms-discovery/navigation";
+import {
+  cmsTourHandoffHref,
+  CMS_TOUR_HANDOFF_PARAM,
+  discoveryPathMatches,
+  requestCmsDiscoveryNavigation,
+  suppressesAutomaticDiscovery,
+} from "@/lib/cms-discovery/navigation";
 import {
   CMS_DISCOVERY_EXPERIENCES,
   CMS_INTRODUCTION_ID,
@@ -20,9 +27,7 @@ import {
 import { resolveCmsDiscovery } from "@/lib/cms-discovery/resolve";
 import {
   emptyCmsDiscoveryStore,
-  readActiveTour,
   readCmsDiscoveryStore,
-  writeActiveTour,
   writeCmsDiscoveryRecord,
   type CmsDiscoverySubject,
 } from "@/lib/cms-discovery/storage";
@@ -31,6 +36,7 @@ import type {
   CmsDiscoveryExperience,
   CmsDiscoveryStatus,
   CmsDiscoveryStore,
+  ResolvedTour,
 } from "@/lib/cms-discovery/types";
 
 function discoverySubject(context: CmsDiscoveryContext): CmsDiscoverySubject {
@@ -43,8 +49,41 @@ function discoverySubject(context: CmsDiscoveryContext): CmsDiscoverySubject {
 
 type Session =
   | { kind: "idle" }
-  | { kind: "tour"; id: string; stepIndex: number }
-  | { kind: "complete"; id: string };
+  | { kind: "tour"; id: string; stepIndex: number; path: string }
+  | { kind: "complete"; id: string; path: string };
+
+function readHandoffId(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const id = new URLSearchParams(window.location.search).get(
+    CMS_TOUR_HANDOFF_PARAM
+  );
+  return id && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) ? id : null;
+}
+
+function stripHandoff(
+  pathname: string,
+  router: { replace: (href: string, options?: { scroll?: boolean }) => void }
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has(CMS_TOUR_HANDOFF_PARAM)) {
+    return;
+  }
+  params.delete(CMS_TOUR_HANDOFF_PARAM);
+  const query = params.toString();
+  router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+}
+
+function tourIsOnPage(tour: ResolvedTour, pathname: string): boolean {
+  return Boolean(
+    tour.page &&
+    discoveryPathMatches(pathname, tour.page.path, tour.page.match ?? "exact")
+  );
+}
 
 export function CmsDiscoveryRoot({
   context,
@@ -56,6 +95,11 @@ export function CmsDiscoveryRoot({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const replaceRef = useRef(router.replace);
+  const pushRef = useRef(router.push);
+  replaceRef.current = router.replace;
+  pushRef.current = router.push;
   const contextRef = useRef(context);
   const experiencesRef = useRef(experiences);
   contextRef.current = context;
@@ -63,52 +107,52 @@ export function CmsDiscoveryRoot({
   const [ready, setReady] = useState(false);
   const [store, setStore] = useState<CmsDiscoveryStore>(emptyCmsDiscoveryStore);
   const [session, setSession] = useState<Session>({ kind: "idle" });
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
 
   useEffect(() => {
     const currentContext = contextRef.current;
-    const subject = discoverySubject(currentContext);
-    const stored = readCmsDiscoveryStore(subject);
-    const active = readActiveTour(subject);
-    const tours = resolveCmsDiscovery(
-      experiencesRef.current,
-      currentContext,
-      stored
-    ).tours;
-    const tour = active
-      ? tours.find((item) => item.id === active.id)
-      : undefined;
-
-    setStore(stored);
-    if (tour && active && active.stepIndex < tour.steps.length) {
-      setSession({
-        kind: "tour",
-        id: tour.id,
-        stepIndex: active.stepIndex,
-      });
-    } else {
-      writeActiveTour(subject, null);
-      setSession({ kind: "idle" });
-    }
+    setStore(readCmsDiscoveryStore(discoverySubject(currentContext)));
+    setSession({ kind: "idle" });
     setReady(true);
   }, [context.assisting, context.clinicId, context.userId]);
-
-  function remember(next: Session) {
-    const subject = discoverySubject(context);
-    if (next.kind === "tour") {
-      writeActiveTour(subject, {
-        id: next.id,
-        stepIndex: next.stepIndex,
-      });
-    } else {
-      writeActiveTour(subject, null);
-    }
-    setSession(next);
-  }
 
   const resolved = useMemo(
     () => resolveCmsDiscovery(experiences, context, store),
     [context, experiences, store]
   );
+  const toursRef = useRef(resolved.tours);
+  toursRef.current = resolved.tours;
+
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+    const id = readHandoffId();
+    const handoff = id
+      ? toursRef.current.find((tour) => tour.id === id)
+      : undefined;
+    const handoffHere = Boolean(handoff && tourIsOnPage(handoff, pathname));
+    const current = sessionRef.current;
+
+    if (handoffHere && handoff) {
+      setSession((existing) =>
+        existing.kind === "tour" &&
+        existing.id === handoff.id &&
+        existing.path === pathname
+          ? existing
+          : { kind: "tour", id: handoff.id, stepIndex: 0, path: pathname }
+      );
+    } else if (current.kind !== "idle" && current.path !== pathname) {
+      setSession({ kind: "idle" });
+    }
+
+    if (id) {
+      stripHandoff(pathname, {
+        replace: (href, options) => replaceRef.current(href, options),
+      });
+    }
+  }, [pathname, ready]);
 
   function persist(id: string, version: number, status: CmsDiscoveryStatus) {
     setStore((current) =>
@@ -120,12 +164,22 @@ export function CmsDiscoveryRoot({
     );
   }
 
-  function startTour(id: string) {
+  function openTour(id: string) {
     const tour = resolved.tours.find((item) => item.id === id);
     if (!tour) {
       return;
     }
-    remember({ kind: "tour", id, stepIndex: 0 });
+    if (tour.page && !tourIsOnPage(tour, pathname)) {
+      const href = cmsTourHandoffHref(tour.page.path, tour.id);
+      if (!href) {
+        return;
+      }
+      requestCmsDiscoveryNavigation(href, {
+        push: (next) => pushRef.current(next),
+      });
+      return;
+    }
+    setSession({ kind: "tour", id, stepIndex: 0, path: pathname });
   }
 
   const api = useMemo<CmsDiscoveryApi>(() => {
@@ -135,17 +189,21 @@ export function CmsDiscoveryRoot({
       pathname === "/dashboard" && !suppressesAutomaticDiscovery(pathname);
     const welcomeTour = resolved.welcome;
     const showWelcome = idle && onOverview && welcomeTour !== null;
-
-    const begin = (experienceId: string) => {
-      if (!resolved.tours.some((tour) => tour.id === experienceId)) {
-        return;
-      }
-      writeActiveTour(subject, { id: experienceId, stepIndex: 0 });
-      setSession({ kind: "tour", id: experienceId, stepIndex: 0 });
-    };
+    const pageTours: CmsDiscoveryPageTour[] = resolved.tours
+      .filter((tour) => tour.page)
+      .map((tour) => ({
+        id: tour.id,
+        title: tour.title,
+        start: () => openTour(tour.id),
+      }));
+    const pageTour =
+      pageTours.find((tour) => {
+        const full = resolved.tours.find((item) => item.id === tour.id);
+        return full ? tourIsOnPage(full, pathname) : false;
+      }) ?? null;
 
     return {
-      replay: begin,
+      replay: openTour,
       canReplay: (experienceId) =>
         resolved.tours.some((tour) => tour.id === experienceId),
       welcome:
@@ -154,7 +212,7 @@ export function CmsDiscoveryRoot({
           : null,
       startWelcome: () => {
         if (welcomeTour) {
-          begin(welcomeTour.id);
+          openTour(welcomeTour.id);
         }
       },
       dismissWelcome: () => {
@@ -174,13 +232,16 @@ export function CmsDiscoveryRoot({
         onOverview &&
         !showWelcome &&
         resolved.tours.some((tour) => tour.id === CMS_INTRODUCTION_ID)
-          ? () => begin(CMS_INTRODUCTION_ID)
+          ? () => openTour(CMS_INTRODUCTION_ID)
           : null,
+      pageTour,
+      pageTours,
     };
+    // openTour is recreated in this render and closes over pathname and resolved.
   }, [context, pathname, ready, resolved, session.kind]);
 
   const activeTour =
-    session.kind === "tour"
+    session.kind === "tour" && session.path === pathname
       ? (resolved.tours.find((tour) => tour.id === session.id) ?? null)
       : null;
   const step =
@@ -201,7 +262,7 @@ export function CmsDiscoveryRoot({
           onShowMe={() => {
             persist(announcement.id, announcement.version, "dismissed");
             if (announcement.showMeTourId) {
-              startTour(announcement.showMeTourId);
+              openTour(announcement.showMeTourId);
             }
           }}
           onDismiss={() =>
@@ -216,39 +277,45 @@ export function CmsDiscoveryRoot({
           index={session.stepIndex}
           total={activeTour.steps.length}
           onBack={() =>
-            remember({
+            setSession({
               kind: "tour",
               id: activeTour.id,
               stepIndex: Math.max(0, session.stepIndex - 1),
+              path: session.path,
             })
           }
           onSkip={() => {
             persist(activeTour.id, activeTour.version, "skipped");
-            remember({ kind: "idle" });
+            setSession({ kind: "idle" });
           }}
           onNext={() => {
             if (session.stepIndex >= activeTour.steps.length - 1) {
               persist(activeTour.id, activeTour.version, "completed");
-              remember({ kind: "complete", id: activeTour.id });
+              setSession({
+                kind: "complete",
+                id: activeTour.id,
+                path: pathname,
+              });
               return;
             }
-            remember({
+            setSession({
               kind: "tour",
               id: activeTour.id,
               stepIndex: session.stepIndex + 1,
+              path: session.path,
             });
           }}
         />
       ) : null}
-      {session.kind === "complete" ? (
+      {session.kind === "complete" && session.path === pathname ? (
         <TourCompletion
           title="You're set"
           body={
             session.id === CMS_INTRODUCTION_ID
               ? "You can replay this tour from Overview or Help & feedback."
-              : "That's the end of this tour."
+              : "That's the end of this tour. Tour this page runs it again."
           }
-          onClose={() => remember({ kind: "idle" })}
+          onClose={() => setSession({ kind: "idle" })}
         />
       ) : null}
     </CmsDiscoveryProvider>

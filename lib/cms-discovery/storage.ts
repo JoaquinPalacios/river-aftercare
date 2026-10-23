@@ -6,7 +6,6 @@ import {
 } from "@/lib/cms-discovery/types";
 
 const KEY_PREFIX = "river-aftercare:cms-discovery:";
-const ACTIVE_PREFIX = "river-aftercare:cms-discovery-active:";
 const SCOPE_ID = /^[A-Za-z0-9_-]{1,80}$/;
 
 export type CmsDiscoverySubject = {
@@ -45,12 +44,6 @@ const STATUSES = new Set<CmsDiscoveryStatus>([
 ]);
 
 const memory = new Map<string, string>();
-const activeMemory = new Map<string, string>();
-
-export type ActiveCmsDiscoveryTour = {
-  id: string;
-  stepIndex: number;
-};
 
 export function emptyCmsDiscoveryStore(): CmsDiscoveryStore {
   return { schema: CMS_DISCOVERY_STORE_SCHEMA, experiences: {} };
@@ -169,102 +162,4 @@ export function writeCmsDiscoveryRecord(
   }
 
   return next;
-}
-
-function activeKey(subject: CmsDiscoverySubject): string | null {
-  const scope = cmsDiscoveryScopeId(subject);
-  if (!scope) {
-    return null;
-  }
-
-  return `${ACTIVE_PREFIX}${scope}`;
-}
-
-function readSessionRaw(key: string): string | null {
-  try {
-    return window.sessionStorage.getItem(key);
-  } catch {
-    return activeMemory.get(key) ?? null;
-  }
-}
-
-function writeSessionRaw(key: string, value: string | null): void {
-  try {
-    if (value === null) {
-      window.sessionStorage.removeItem(key);
-    } else {
-      window.sessionStorage.setItem(key, value);
-    }
-    activeMemory.delete(key);
-  } catch {
-    if (value === null) {
-      activeMemory.delete(key);
-    } else {
-      activeMemory.set(key, value);
-    }
-  }
-}
-
-/**
- * The clinic workspace and account pages mount separate shells.
- * The open tour step is kept for this tab so Next can resume it.
- * Completion and dismissal stay in localStorage.
- */
-export function readActiveTour(
-  subject: CmsDiscoverySubject
-): ActiveCmsDiscoveryTour | null {
-  const key = activeKey(subject);
-  if (!key || typeof window === "undefined") {
-    return null;
-  }
-
-  const raw = readSessionRaw(key);
-  if (!raw) {
-    return null;
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-
-  if (!parsed || typeof parsed !== "object") {
-    return null;
-  }
-
-  const id = (parsed as { id?: unknown }).id;
-  const stepIndex = (parsed as { stepIndex?: unknown }).stepIndex;
-  if (
-    typeof id !== "string" ||
-    !EXPERIENCE_ID.test(id) ||
-    typeof stepIndex !== "number" ||
-    !Number.isInteger(stepIndex) ||
-    stepIndex < 0
-  ) {
-    return null;
-  }
-
-  return { id, stepIndex };
-}
-
-export function writeActiveTour(
-  subject: CmsDiscoverySubject,
-  tour: ActiveCmsDiscoveryTour | null
-): void {
-  const key = activeKey(subject);
-  if (!key || typeof window === "undefined") {
-    return;
-  }
-
-  if (!tour || !EXPERIENCE_ID.test(tour.id) || tour.stepIndex < 0) {
-    writeSessionRaw(key, null);
-    return;
-  }
-
-  writeSessionRaw(
-    key,
-    JSON.stringify({ id: tour.id, stepIndex: tour.stepIndex })
-  );
 }

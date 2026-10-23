@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CreateSiteForm } from "@/app/(staff)/(clinic-portal)/practice/sites/create-site-form";
+import { CmsPageTourButton } from "@/app/(staff)/components/cms-discovery/page-tour-button";
 import { serviceCategoryLabel } from "@/lib/aftercare/service-category";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import { listAccountSites } from "@/lib/clinics/list-account-sites";
@@ -22,18 +23,25 @@ export default async function SitesPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <header data-cms-discovery="sites-locations">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Sites & Locations
-        </h1>
-        <p className="mt-2 text-sm text-staff-muted">
-          Clinic sites are the public practice identities. Locations are the
-          physical places under a site.
-        </p>
+      <header
+        className="flex flex-wrap items-start justify-between gap-3"
+        data-cms-discovery="sites-locations"
+      >
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Sites & Locations
+          </h1>
+          <p className="mt-2 text-sm text-staff-muted">
+            Clinic sites are the public practice identities. Locations are the
+            physical places under a site.
+          </p>
+        </div>
+        <CmsPageTourButton />
       </header>
       <section
         className="grid gap-3 rounded-xl border border-staff-line bg-staff-panel p-5 sm:grid-cols-2"
         aria-label="Capacity"
+        data-cms-discovery="sites-capacity"
       >
         <p className="text-sm">
           <span className="block text-staff-muted">Sites</span>
@@ -49,7 +57,7 @@ export default async function SitesPage() {
           </span>
         </p>
       </section>
-      <ul className="flex flex-col gap-4">
+      <ul className="flex flex-col gap-4" data-cms-discovery="sites-list">
         {account.sites.map((site) => (
           <li
             key={site.id}

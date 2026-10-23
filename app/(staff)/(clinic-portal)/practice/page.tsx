@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { PracticeMembersSection } from "@/app/(staff)/(clinic-portal)/practice/practice-members-section";
 import { PracticeSettingsForm } from "@/app/(staff)/(clinic-portal)/practice/practice-settings-form";
+import { CmsPageTourButton } from "@/app/(staff)/components/cms-discovery/page-tour-button";
 import { requireClinicAdmin } from "@/lib/auth/require-clinic-admin";
 import { isClinicAssetStorageConfigured } from "@/lib/clinic-assets/config";
 import { resolveClinicLogoSrc } from "@/lib/clinic-assets/public-url";
@@ -56,6 +57,7 @@ export default async function PracticePage() {
           Identity, branding, contact, and emergency details used on the patient
           site. Tenant hostname stays operator-controlled.
         </p>
+        <CmsPageTourButton />
       </header>
       <PracticeMembersSection
         clinicName={overview.displayName}

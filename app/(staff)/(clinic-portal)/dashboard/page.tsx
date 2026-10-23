@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { GettingStarted } from "@/app/(staff)/(clinic-portal)/dashboard/getting-started";
 import { BillingNotice } from "@/app/(staff)/components/billing-notice";
 import { CmsOverviewTourEntry } from "@/app/(staff)/components/cms-discovery/overview-tour-entry";
+import { CmsPageTourButton } from "@/app/(staff)/components/cms-discovery/page-tour-button";
 import { ExternalLinkIcon } from "@/app/(staff)/components/icons";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import { loadOverviewBillingNotices } from "@/lib/billing/notices/load";
@@ -54,18 +55,22 @@ export default async function ClinicOverviewPage() {
             Manage your clinic&apos;s patient aftercare.
           </p>
         </div>
-        {overview.patientSiteHref ? (
-          <a
-            href={overview.patientSiteHref}
-            target="_blank"
-            rel="noreferrer"
-            className="staffBtn staffBtnPrimary"
-          >
-            View patient site
-            <span className="sr-only"> (opens in a new tab)</span>
-            <ExternalLinkIcon className="ml-1" />
-          </a>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <CmsPageTourButton />
+          {overview.patientSiteHref ? (
+            <a
+              href={overview.patientSiteHref}
+              target="_blank"
+              rel="noreferrer"
+              className="staffBtn staffBtnPrimary"
+              data-cms-discovery="overview-patient-site"
+            >
+              View patient site
+              <span className="sr-only"> (opens in a new tab)</span>
+              <ExternalLinkIcon className="ml-1" />
+            </a>
+          ) : null}
+        </div>
       </header>
 
       {billingNotices.length > 0 ? (
@@ -78,7 +83,11 @@ export default async function ClinicOverviewPage() {
 
       <CmsOverviewTourEntry />
 
-      {gettingStarted ? <GettingStarted summary={gettingStarted} /> : null}
+      {gettingStarted ? (
+        <div data-cms-discovery="overview-setup">
+          <GettingStarted summary={gettingStarted} />
+        </div>
+      ) : null}
 
       <section
         aria-labelledby="guide-summary-heading"
@@ -106,6 +115,7 @@ export default async function ClinicOverviewPage() {
         <section
           aria-labelledby="setup-heading"
           className="rounded-xl border border-staff-line bg-staff-panel p-5 shadow-sm"
+          data-cms-discovery="overview-setup"
         >
           <h2
             id="setup-heading"

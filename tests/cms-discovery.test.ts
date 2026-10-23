@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { buildCmsDiscoveryContext } from "@/lib/cms-discovery/context";
 import {
+  cmsTourHandoffHref,
   discoveryPathMatches,
+  isSafeDiscoveryHref,
   isSafeDiscoveryPath,
   suppressesAutomaticDiscovery,
 } from "@/lib/cms-discovery/navigation";
@@ -14,6 +16,7 @@ import {
 import {
   CMS_DISCOVERY_EXPERIENCES,
   CMS_INTRODUCTION_ID,
+  CMS_PAGE_TOUR_IDS,
 } from "@/lib/cms-discovery/registry";
 import {
   isCmsDiscoverySettled,
@@ -23,9 +26,7 @@ import {
   cmsDiscoveryStorageKey,
   emptyCmsDiscoveryStore,
   parseCmsDiscoveryStore,
-  readActiveTour,
   readCmsDiscoveryStore,
-  writeActiveTour,
   writeCmsDiscoveryRecord,
   type CmsDiscoverySubject,
 } from "@/lib/cms-discovery/storage";
@@ -132,6 +133,16 @@ describe("CMS discovery registry", () => {
       "patient-site",
       "help",
     ]);
+    expect(admin.welcome?.steps.map((step) => step.target)).toEqual([
+      "nav-overview",
+      "nav-guides",
+      "nav-practice",
+      "nav-sites",
+      "nav-patient-site",
+      "nav-help",
+    ]);
+    expect(admin.welcome?.steps.every((step) => !step.path)).toBe(true);
+    expect(admin.welcome?.page).toBeNull();
     expect(staff.welcome?.steps.map((step) => step.id)).toEqual([
       "overview",
       "guides",
@@ -140,6 +151,69 @@ describe("CMS discovery registry", () => {
     ]);
     expect(staff.tours[0]?.steps.some((step) => step.id === "practice")).toBe(
       false
+    );
+  });
+
+  it("keeps page tours manual, on their own page, and independent of each other", () => {
+    const admin = resolveCmsDiscovery(
+      CMS_DISCOVERY_EXPERIENCES,
+      context(),
+      emptyCmsDiscoveryStore()
+    );
+    const staff = resolveCmsDiscovery(
+      CMS_DISCOVERY_EXPERIENCES,
+      context({
+        role: "STAFF",
+        requirements: { canManagePractice: false, hasPatientSite: false },
+      }),
+      emptyCmsDiscoveryStore()
+    );
+    const completedOverview = resolveCmsDiscovery(
+      CMS_DISCOVERY_EXPERIENCES,
+      context(),
+      {
+        schema: 1,
+        experiences: {
+          [CMS_PAGE_TOUR_IDS.overview]: { version: 1, status: "completed" },
+        },
+      }
+    );
+
+    expect(admin.tours.map((tour) => tour.id)).toEqual([
+      CMS_INTRODUCTION_ID,
+      CMS_PAGE_TOUR_IDS.overview,
+      CMS_PAGE_TOUR_IDS.guides,
+      CMS_PAGE_TOUR_IDS.practice,
+      CMS_PAGE_TOUR_IDS.sites,
+      CMS_PAGE_TOUR_IDS.help,
+    ]);
+    expect(
+      admin.tours
+        .filter((tour) => tour.id !== CMS_INTRODUCTION_ID)
+        .every(
+          (tour) =>
+            tour.page && tour.steps.length >= 2 && tour.steps.length <= 4
+        )
+    ).toBe(true);
+    expect(staff.tours.map((tour) => tour.id)).not.toContain(
+      CMS_PAGE_TOUR_IDS.practice
+    );
+    expect(
+      staff.tours
+        .find((tour) => tour.id === CMS_PAGE_TOUR_IDS.guides)
+        ?.steps.some((step) => step.id === "create")
+    ).toBe(false);
+    expect(
+      staff.tours
+        .find((tour) => tour.id === CMS_PAGE_TOUR_IDS.overview)
+        ?.steps.some((step) => step.id === "patient-site")
+    ).toBe(false);
+    expect(completedOverview.welcome?.id).toBe(CMS_INTRODUCTION_ID);
+    expect(completedOverview.tours.map((tour) => tour.id)).toContain(
+      CMS_PAGE_TOUR_IDS.guides
+    );
+    expect(completedOverview.tours.map((tour) => tour.id)).toContain(
+      CMS_PAGE_TOUR_IDS.overview
     );
   });
 });
@@ -364,7 +438,6 @@ describe("CMS discovery storage", () => {
 
   it("keeps an assisting operator's clinics apart from each other and from members", () => {
     const storage = new Map<string, string>();
-    const sessions = new Map<string, string>();
     const previousWindow = globalThis.window;
     Object.defineProperty(globalThis, "window", {
       configurable: true,
@@ -373,15 +446,6 @@ describe("CMS discovery storage", () => {
           getItem: (key: string) => storage.get(key) ?? null,
           setItem: (key: string, value: string) => {
             storage.set(key, value);
-          },
-        },
-        sessionStorage: {
-          getItem: (key: string) => sessions.get(key) ?? null,
-          setItem: (key: string, value: string) => {
-            sessions.set(key, value);
-          },
-          removeItem: (key: string) => {
-            sessions.delete(key);
           },
         },
       },
@@ -401,7 +465,11 @@ describe("CMS discovery storage", () => {
         version: 1,
         status: "completed",
       });
-      writeActiveTour(clinicA, { id: CMS_INTRODUCTION_ID, stepIndex: 2 });
+      writeCmsDiscoveryRecord(clinicA, readCmsDiscoveryStore(clinicA), {
+        id: CMS_PAGE_TOUR_IDS.guides,
+        version: 1,
+        status: "completed",
+      });
 
       expect(readCmsDiscoveryStore(clinicB).experiences).toEqual({});
       expect(readCmsDiscoveryStore(member).experiences).toEqual({
@@ -409,10 +477,11 @@ describe("CMS discovery storage", () => {
       });
       expect(readCmsDiscoveryStore(clinicA).experiences).toEqual({
         [CMS_INTRODUCTION_ID]: { version: 1, status: "completed" },
+        [CMS_PAGE_TOUR_IDS.guides]: { version: 1, status: "completed" },
       });
-      expect(readActiveTour(clinicA)?.stepIndex).toBe(2);
-      expect(readActiveTour(clinicB)).toBeNull();
-      expect(readActiveTour(member)).toBeNull();
+      expect(readCmsDiscoveryStore(member).experiences).not.toHaveProperty(
+        CMS_PAGE_TOUR_IDS.guides
+      );
       expect(cmsDiscoveryStorageKey(clinicA)).toBe(
         "river-aftercare:cms-discovery:user_ada:clinic_a"
       );
@@ -577,6 +646,17 @@ describe("CMS discovery placement and routes", () => {
     expect(isSafeDiscoveryPath("/guides")).toBe(true);
     expect(isSafeDiscoveryPath("//evil.test")).toBe(false);
     expect(isSafeDiscoveryPath("https://evil.test")).toBe(false);
+    expect(isSafeDiscoveryHref("/guides?cmsTour=cms-page-guides")).toBe(true);
+    expect(cmsTourHandoffHref("/guides", "cms-page-guides")).toBe(
+      "/guides?cmsTour=cms-page-guides"
+    );
+    expect(
+      isSafeDiscoveryHref("/guides?cmsTour=cms-page-guides&next=/admin")
+    ).toBe(false);
+    expect(
+      isSafeDiscoveryHref("https://evil.test?cmsTour=cms-page-guides")
+    ).toBe(false);
+    expect(cmsTourHandoffHref("//evil.test", "cms-page-guides")).toBeNull();
     expect(suppressesAutomaticDiscovery("/guides/new")).toBe(true);
     expect(suppressesAutomaticDiscovery("/guides/guide_1/edit")).toBe(true);
     expect(suppressesAutomaticDiscovery("/guides/guide_1/preview")).toBe(false);
