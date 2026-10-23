@@ -19,8 +19,16 @@ describe("practice settings polish", () => {
 
     const css = readFileSync("app/(staff)/staff.css", "utf8");
 
-    expect(form).toContain("IntersectionObserver");
-    expect(form).toContain("prefers-reduced-motion");
+    expect(form).toContain("attachPracticeSectionNav");
+    expect(form).not.toMatch(/\.scrollIntoView\s*\(/);
+    expect(form).not.toContain("IntersectionObserver");
+    const nav = readFileSync(
+      "app/(staff)/(clinic-portal)/practice/practice-section-nav.ts",
+      "utf8"
+    );
+    expect(nav).toContain("prefers-reduced-motion");
+    expect(nav).toContain("selectPracticeSection");
+    expect(nav).not.toMatch(/\.scrollIntoView\s*\(/);
     expect(form).toContain('aria-current={current ? "true" : undefined}');
     expect(form).toContain("staffSelect");
     expect(form).toContain("staffPracticeSave");
