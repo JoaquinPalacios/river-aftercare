@@ -4868,6 +4868,22 @@ a.staffTablePageButton:hover {
   min-width: 0;
 }
 
+.cmsTourCard.cmsTourCardTravel {
+  opacity: 1;
+  visibility: visible;
+  animation: none;
+}
+
+.cmsTourTravelTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.cmsTourBlocker[data-cms-tour-travel="true"] {
+  background: transparent;
+}
+
 .cmsTourCard.cmsTourCardInMenu {
   position: sticky;
   top: auto;
@@ -4924,9 +4940,12 @@ a.staffTablePageButton:hover {
   .cmsTourCard[data-cms-tour-motion="enter"],
   .cmsTourCard[data-cms-tour-motion="move"],
   .cmsTourCard[data-cms-tour-motion="exit"],
+  .cmsTourCard[data-cms-tour-motion="travel"],
   .cmsTourCard.cmsTourCardEnter,
+  .cmsTourCard.cmsTourCardTravel,
   .cmsTourCardCopy,
   .cmsTourBlocker,
+  .cmsTourBlocker[data-cms-tour-travel="true"],
   .cmsDiscoveryCard,
   .cmsWelcomeEntry,
   .cmsTourReplayPanel {
