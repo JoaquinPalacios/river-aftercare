@@ -4801,8 +4801,23 @@ a.staffTablePageButton:hover {
     0 0 0 9999px rgb(12 16 28 / 48%);
 }
 
-.cmsTourSpot[data-cms-tour-motion="reveal"] {
+.cmsTourSpot[data-cms-tour-motion="enter"] {
   animation: cmsTourFade 250ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.cmsTourSpot[data-cms-tour-motion="move"] {
+  transition:
+    top 400ms cubic-bezier(0.2, 0, 0, 1),
+    left 400ms cubic-bezier(0.2, 0, 0, 1),
+    width 400ms cubic-bezier(0.2, 0, 0, 1),
+    height 400ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 250ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.cmsTourSpot[data-cms-tour-motion="exit"],
+.cmsTourSpot[data-cms-tour-ready="false"] {
+  opacity: 0;
+  animation: none;
 }
 
 .cmsTourCard {
@@ -4826,9 +4841,24 @@ a.staffTablePageButton:hover {
   );
 }
 
-.cmsTourCard[data-cms-tour-motion="reveal"],
+.cmsTourCard[data-cms-tour-motion="enter"],
 .cmsTourCard.cmsTourCardEnter {
   animation: cmsTourFade 300ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.cmsTourCard[data-cms-tour-motion="move"] {
+  transition:
+    top 300ms cubic-bezier(0.2, 0, 0, 1),
+    left 300ms cubic-bezier(0.2, 0, 0, 1),
+    width 300ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 300ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.cmsTourCard[data-cms-tour-motion="exit"],
+.cmsTourCard[data-cms-tour-ready="false"] {
+  opacity: 0;
+  visibility: hidden;
+  animation: none;
 }
 
 .cmsTourCardCopy {
@@ -4836,12 +4866,6 @@ a.staffTablePageButton:hover {
   flex-direction: column;
   gap: 0.75rem;
   min-width: 0;
-  animation: cmsTourFade 300ms cubic-bezier(0.2, 0, 0, 1);
-}
-
-.cmsTourCard[data-cms-tour-motion="route"] .cmsTourCardCopy,
-.cmsTourCard[data-cms-tour-motion="reveal"] .cmsTourCardCopy {
-  animation: none;
 }
 
 .cmsTourCard.cmsTourCardInMenu {
@@ -4850,10 +4874,13 @@ a.staffTablePageButton:hover {
   right: auto;
   bottom: 0;
   left: auto;
+  flex: 0 0 auto;
   width: auto;
-  max-height: none;
+  min-height: min-content;
+  max-height: min(18rem, 50svh);
   margin-top: 0.5rem;
   transform: none;
+  z-index: 2;
 }
 
 .cmsTourCard:focus {
@@ -4890,9 +4917,13 @@ a.staffTablePageButton:hover {
 
 @media (prefers-reduced-motion: reduce) {
   .cmsTourSpot,
-  .cmsTourSpot[data-cms-tour-motion="reveal"],
+  .cmsTourSpot[data-cms-tour-motion="enter"],
+  .cmsTourSpot[data-cms-tour-motion="move"],
+  .cmsTourSpot[data-cms-tour-motion="exit"],
   .cmsTourCard,
-  .cmsTourCard[data-cms-tour-motion="reveal"],
+  .cmsTourCard[data-cms-tour-motion="enter"],
+  .cmsTourCard[data-cms-tour-motion="move"],
+  .cmsTourCard[data-cms-tour-motion="exit"],
   .cmsTourCard.cmsTourCardEnter,
   .cmsTourCardCopy,
   .cmsTourBlocker,
