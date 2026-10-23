@@ -517,12 +517,17 @@ export function GuidedTour({
       return;
     }
 
-    if (reducedMotion()) {
+    // Keep this status mounted until the next target has a box. Navigation
+    // starts now, while the previous page is still painted.
+    if (route || reducedMotion()) {
+      closeDiscoveryMenuIfOpened();
       awaitingPrimaryRef.current = route;
       setAnchored(false);
       setShown({ step, index });
       targetRef.current = null;
       setTarget(null);
+      placementRef.current = null;
+      setPlacement(null);
       setPhase("travel");
       return;
     }
@@ -605,6 +610,8 @@ export function GuidedTour({
         }
         return;
       }
+
+      requestedStepRef.current = null;
 
       const found = findTourTarget(current, !awaitingPrimaryRef.current);
       if (found.status === "ready") {
@@ -819,8 +826,47 @@ export function GuidedTour({
     return () => window.clearTimeout(timer);
   }, [phase, target]);
 
+  useLayoutEffect(() => {
+    if (phase !== "travel" || dialogOpen) {
+      return;
+    }
+    const layer = layerRef.current;
+    if (layer && typeof layer.showPopover === "function") {
+      try {
+        if (!layer.matches(":popover-open")) {
+          layer.showPopover();
+        }
+      } catch {
+        // Already open.
+      }
+    }
+
+    const card = cardRef.current;
+    if (!card) {
+      return;
+    }
+    const viewport = readViewport();
+    const next = fitCard(card, null);
+    if (viewport.width > 0 && viewport.width < 768) {
+      const height = card.offsetHeight;
+      next.top = Math.max(16, viewport.height - height - 16);
+      next.left = 16;
+    }
+    card.style.top = `${next.top}px`;
+    card.style.left = `${next.left}px`;
+    card.style.width = `${next.width}px`;
+    card.style.right = "auto";
+    card.style.bottom = "auto";
+    card.style.transform = "none";
+  }, [dialogOpen, phase, shown.step.id]);
+
   useEffect(() => {
-    if (phase !== "enter" && phase !== "shown" && phase !== "move") {
+    if (
+      phase !== "enter" &&
+      phase !== "shown" &&
+      phase !== "move" &&
+      phase !== "travel"
+    ) {
       return;
     }
     const card = cardRef.current;
@@ -940,14 +986,76 @@ export function GuidedTour({
     return () => target.classList.remove("cmsTourTarget");
   }, [target]);
 
+  const travelling = phase === "travel";
   const visible =
     !dialogOpen &&
-    (phase === "exit" ||
+    (travelling ||
+      phase === "exit" ||
       phase === "enter" ||
       phase === "move" ||
       phase === "shown");
   if (!visible || typeof document === "undefined") {
     return null;
+  }
+
+  if (travelling) {
+    return createPortal(
+      <div
+        ref={layerRef}
+        className="cmsTourLayer"
+        popover="manual"
+        data-cms-tour-layer="true"
+      >
+        <div className="cmsTourBlocker" data-cms-tour-travel="true" />
+        <div
+          ref={cardRef}
+          className="cmsTourCard cmsTourCardTravel"
+          role="dialog"
+          aria-modal="true"
+          aria-busy="true"
+          aria-labelledby={titleId}
+          aria-describedby={bodyId}
+          tabIndex={-1}
+          data-cms-tour-step={shown.step.id}
+          data-cms-tour-motion="travel"
+          data-cms-tour-ready="true"
+          data-cms-tour-placement="pending"
+        >
+          <div className="cmsTourCardCopy">
+            <p className="cmsTourProgress">
+              {shown.index + 1} of {total}
+            </p>
+            <h2 id={titleId} className="cmsDiscoveryTitle cmsTourTravelTitle">
+              <span className="staffBtnSpinner" aria-hidden="true" />
+              Opening {shown.step.title}
+            </h2>
+            <p id={bodyId} className="cmsDiscoveryBody">
+              The highlight returns when that page is ready.
+            </p>
+          </div>
+          <div className="cmsTourActions">
+            <button
+              type="button"
+              className="staffBtn staffBtnQuiet cmsTourSkip"
+              onClick={() => onSkipRef.current()}
+            >
+              Skip tour
+            </button>
+            <button
+              type="button"
+              className="staffBtn staffBtnSecondary"
+              disabled
+            >
+              Back
+            </button>
+            <button type="button" className="staffBtn staffBtnPrimary" disabled>
+              Next
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
   }
 
   const stepping = phase === "shown" || phase === "move";
