@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { HelpFeedbackForm } from "@/app/(staff)/account/help/help-feedback-form";
+import { CmsPageTourButton } from "@/app/(staff)/components/cms-discovery/page-tour-button";
 import { CmsTourReplay } from "@/app/(staff)/components/cms-discovery/replay-tour";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
@@ -24,17 +25,20 @@ export default async function HelpFeedbackPage({
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-8">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
-          Account
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-staff-ink">
-          Help & feedback
-        </h1>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-staff-muted">
-          Report a problem, ask a question, or suggest a feature. Your message
-          goes to the {PRODUCT_NAME} team by email.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
+            Account
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-staff-ink">
+            Help & feedback
+          </h1>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-staff-muted">
+            Report a problem, ask a question, or suggest a feature. Your message
+            goes to the {PRODUCT_NAME} team by email.
+          </p>
+        </div>
+        <CmsPageTourButton />
       </header>
       <CmsTourReplay />
       <HelpFeedbackForm originPath={sanitizeHelpOriginPath(fromParam)} />

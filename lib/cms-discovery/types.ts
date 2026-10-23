@@ -31,18 +31,23 @@ export type CmsDiscoveryAudience = {
   requires?: readonly CmsDiscoveryRequirement[];
 };
 
+export type CmsDiscoveryPage = {
+  /** In-app CMS path. An announcement opens this route before its tour starts. */
+  path: string;
+  match?: "exact" | "prefix";
+};
+
 export type CmsDiscoveryStep = {
   id: string;
   title: string;
   body: string;
   /** Value of `data-cms-discovery` on the element to highlight. */
   target: string;
-  /** Used when the primary target is not on screen, usually the matching nav row. */
+  /** Used when the primary target is not on screen. */
   fallbackTarget?: string;
   /**
-   * In-app path. When the primary target is missing, the tour navigates here
-   * with the existing staff router, or through a link click when the page has
-   * unsaved edits so the leave confirmation still runs.
+   * Kept so an older registry entry still type-checks. The tour does not
+   * change routes from a step path. Set `page` on the tour instead.
    */
   path?: string;
   pathMatch?: "exact" | "prefix";
@@ -58,6 +63,12 @@ export type CmsDiscoveryTour = {
   title: string;
   body: string;
   audience: CmsDiscoveryAudience;
+  /**
+   * Page this tour explains. Absent for the workspace introduction, which
+   * highlights navigation and does not leave the current page. Show me opens
+   * this path before starting the tour when the person is somewhere else.
+   */
+  page?: CmsDiscoveryPage;
   steps: readonly CmsDiscoveryStep[];
 };
 
@@ -92,6 +103,7 @@ export type ResolvedTour = {
   version: number;
   title: string;
   body: string;
+  page: CmsDiscoveryPage | null;
   steps: CmsDiscoveryStep[];
 };
 

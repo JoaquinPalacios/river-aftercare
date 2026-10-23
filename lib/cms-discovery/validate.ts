@@ -35,6 +35,9 @@ export function cmsDiscoveryRegistryIssues(
       if (experience.steps.length === 0) {
         issues.push(`Tour "${experience.id}" needs at least one step.`);
       }
+      if (experience.page && !isSafeDiscoveryPath(experience.page.path)) {
+        issues.push(`Tour "${experience.id}" has an invalid page.`);
+      }
 
       const stepIds = new Set<string>();
       for (const step of experience.steps) {

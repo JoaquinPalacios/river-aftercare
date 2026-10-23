@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const nav = vi.hoisted(() => ({
   pathname: "/dashboard",
   pushed: [] as string[],
+  replaced: [] as string[],
 }));
 
 vi.mock("next/navigation", () => ({
@@ -16,12 +17,15 @@ vi.mock("next/navigation", () => ({
       nav.pushed.push(href);
     },
     refresh: vi.fn(),
-    replace: vi.fn(),
+    replace: (href: string) => {
+      nav.replaced.push(href);
+    },
   }),
 }));
 
 import { CmsDiscoveryRoot } from "@/app/(staff)/components/cms-discovery/cms-discovery-root";
 import { CmsOverviewTourEntry } from "@/app/(staff)/components/cms-discovery/overview-tour-entry";
+import { CmsPageTourButton } from "@/app/(staff)/components/cms-discovery/page-tour-button";
 import { CmsTourReplay } from "@/app/(staff)/components/cms-discovery/replay-tour";
 import {
   findVisibleDiscoveryTarget,
@@ -54,9 +58,7 @@ const experiences: CmsDiscoveryExperience[] = [
         id: "guides",
         title: "Guides",
         body: "Guides are the aftercare pages patients open.",
-        target: "guides-library",
-        fallbackTarget: "nav-guides",
-        path: "/guides",
+        target: "nav-guides",
       },
     ],
   },
@@ -133,6 +135,8 @@ describe("CMS discovery UI", () => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
     nav.pathname = "/dashboard";
     nav.pushed = [];
+    nav.replaced = [];
+    window.history.replaceState({}, "", "/dashboard");
     localStorage.clear();
     sessionStorage.clear();
     targetBox.left = 24;
@@ -182,6 +186,7 @@ describe("CMS discovery UI", () => {
       root.render(
         <CmsDiscoveryRoot context={value} experiences={items}>
           <CmsOverviewTourEntry />
+          <CmsPageTourButton />
           <section data-cms-discovery="guide-summary">Guide summary</section>
           <span data-cms-discovery="nav-overview">Overview</span>
           <span data-cms-discovery="nav-guides">Guides</span>
@@ -224,7 +229,7 @@ describe("CMS discovery UI", () => {
     expect(back?.disabled).toBe(true);
   });
 
-  it("moves forward and back, then completes", async () => {
+  it("moves forward and back without changing the route, then completes", async () => {
     await renderDiscovery();
     await act(async () => {
       welcome()?.querySelector("button")?.click();
@@ -239,18 +244,11 @@ describe("CMS discovery UI", () => {
     await act(async () => {
       next()?.click();
     });
-    expect(nav.pushed).toEqual(["/guides"]);
-    expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
-
-    const library = document.createElement("section");
-    library.setAttribute("data-cms-discovery", "guides-library");
-    library.textContent = "Guide library";
-    document.body.append(library);
-    await renderDiscovery(context(), "/guides");
-
+    expect(nav.pushed).toEqual([]);
     expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
     expect(tourStep()?.getAttribute("data-cms-tour-placement")).toBe("target");
     expect(tourStep()?.textContent).toContain("2 of 2");
+    expect(document.querySelector("[data-cms-tour-spot]")).not.toBeNull();
 
     await act(async () => {
       [...(tourStep()?.querySelectorAll("button") ?? [])]
@@ -258,6 +256,7 @@ describe("CMS discovery UI", () => {
         ?.click();
     });
     expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("overview");
+    expect(nav.pushed).toEqual([]);
 
     await act(async () => {
       next()?.click();
@@ -279,41 +278,55 @@ describe("CMS discovery UI", () => {
     expect(welcome()).toBeNull();
   });
 
-  it("resumes the open step when the shell remounts", async () => {
+  it("closes the tour when the route changes and does not resume it", async () => {
     await renderDiscovery();
     await act(async () => {
       welcome()?.querySelector("button")?.click();
     });
-    await act(async () => {
-      [...(tourStep()?.querySelectorAll("button") ?? [])]
-        .find((button) => button.textContent === "Next")
-        ?.click();
-    });
-    expect(
-      sessionStorage.getItem("river-aftercare:cms-discovery-active:user_ada")
-    ).toContain('"stepIndex":1');
-    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("travel");
-    expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("overview");
 
-    await act(async () => {
-      root.unmount();
-    });
-    const library = document.createElement("section");
-    library.setAttribute("data-cms-discovery", "guides-library");
-    library.textContent = "Guide library";
-    document.body.append(library);
-    root = createRoot(container);
     await renderDiscovery(context(), "/guides");
 
-    expect(welcome()).toBeNull();
-    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
-    expect(tourStep()?.textContent).toContain("2 of 2");
-    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("shown");
-    expect(tourStep()?.getAttribute("data-cms-tour-placement")).toBe("target");
+    expect(tourStep()).toBeNull();
+    expect(document.querySelector("[data-cms-tour-layer]")).toBeNull();
+    expect(sessionStorage.length).toBe(0);
+    expect(nav.pushed).toEqual([]);
+    expect(
+      localStorage.getItem("river-aftercare:cms-discovery:user_ada")
+    ).toBeNull();
+
+    await renderDiscovery();
+    expect(welcome()?.textContent).toContain("Start tour");
   });
 
-  it("keeps the spotlight off the previous page until the next route is ready", async () => {
-    await renderDiscovery();
+  it("ignores a step path and keeps the highlight on this page", async () => {
+    await renderDiscovery(context(), "/dashboard", [
+      {
+        id: "cms-introduction",
+        version: 1,
+        kind: "tour",
+        offer: "welcome",
+        title: "Workspace tour",
+        body: "A short tour of the navigation.",
+        audience: { roles: ["ADMIN"], requires: ["productNav"] },
+        steps: [
+          {
+            id: "overview",
+            title: "Overview",
+            body: "This is your clinic snapshot.",
+            target: "guide-summary",
+            path: "/dashboard",
+          },
+          {
+            id: "guides",
+            title: "Guides",
+            body: "Guides are the aftercare pages patients open.",
+            target: "nav-guides",
+            path: "/guides",
+          },
+        ],
+      },
+    ]);
     await act(async () => {
       welcome()?.querySelector("button")?.click();
     });
@@ -323,30 +336,12 @@ describe("CMS discovery UI", () => {
         ?.click();
     });
 
-    expect(nav.pushed).toEqual(["/guides"]);
-    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("travel");
-    expect(tourStep()?.textContent).toContain("Opening Guides");
-    expect(tourStep()?.textContent).not.toContain(
-      "This is your clinic snapshot."
-    );
-    expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
-    expect(document.querySelector("[data-cms-tour-layer]")).not.toBeNull();
-
-    const library = document.createElement("section");
-    library.setAttribute("data-cms-discovery", "guides-library");
-    library.textContent = "Guide library";
-    document.body.append(library);
-    await renderDiscovery(context(), "/guides");
-
+    expect(nav.pushed).toEqual([]);
     expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
-    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("shown");
-    expect(tourStep()?.style.opacity).not.toBe("0");
-    expect(
-      document
-        .querySelector("[data-cms-tour-spot]")
-        ?.getAttribute("data-cms-tour-motion")
-    ).toBe("shown");
-    expect(tourStep()?.getAttribute("data-cms-tour-placement")).toBe("target");
+    expect(tourStep()?.textContent).toContain(
+      "Guides are the aftercare pages patients open."
+    );
+    expect(document.querySelector("[data-cms-tour-spot]")).not.toBeNull();
   });
 
   it("follows a target that moves after the spotlight is shown", async () => {
@@ -417,302 +412,11 @@ describe("CMS discovery UI", () => {
     expect(nav.pushed).toEqual([]);
   });
 
-  it("explains a route change without waiting for the spotlight to fade", async () => {
+  it("does not skip ahead when Next is activated twice before the next paint", async () => {
     await renderDiscovery();
     await act(async () => {
       welcome()?.querySelector("button")?.click();
     });
-
-    const original = window.getComputedStyle.bind(window);
-    window.getComputedStyle = ((element: Element, pseudo?: string | null) => {
-      const style = original(element, pseudo);
-      return new Proxy(style, {
-        get(target, prop, receiver) {
-          if (prop === "transitionDuration") {
-            return "300ms";
-          }
-          if (prop === "animationDuration") {
-            return "0s";
-          }
-          const value = Reflect.get(target, prop, receiver);
-          return typeof value === "function" ? value.bind(target) : value;
-        },
-      });
-    }) as typeof window.getComputedStyle;
-
-    try {
-      await act(async () => {
-        [...(tourStep()?.querySelectorAll("button") ?? [])]
-          .find((button) => button.textContent === "Next")
-          ?.click();
-      });
-
-      expect(nav.pushed).toEqual(["/guides"]);
-      expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
-      expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("travel");
-      expect(tourStep()?.getAttribute("aria-busy")).toBe("true");
-      expect(tourStep()?.textContent).toContain("Opening Guides");
-      expect(tourStep()?.textContent).toContain(
-        "The highlight returns when that page is ready."
-      );
-      expect(tourStep()?.textContent).not.toContain(
-        "This is your clinic snapshot."
-      );
-      expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
-      expect(
-        [...(tourStep()?.querySelectorAll("button") ?? [])].find(
-          (button) => button.textContent === "Next"
-        )?.disabled
-      ).toBe(true);
-
-      await act(async () => {
-        document.dispatchEvent(
-          new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })
-        );
-      });
-      expect(nav.pushed).toEqual(["/guides"]);
-      expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
-      expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("travel");
-    } finally {
-      window.getComputedStyle = original;
-    }
-  });
-
-  it("keeps an explanation on Sites & Locations while Help & feedback opens", async () => {
-    const routeTour: CmsDiscoveryExperience = {
-      id: "cms-introduction",
-      version: 1,
-      kind: "tour",
-      offer: "welcome",
-      title: "Workspace tour",
-      body: "A short tour of this workspace.",
-      audience: { roles: ["ADMIN"], requires: ["productNav"] },
-      steps: [
-        {
-          id: "patient-site",
-          title: "Patient site",
-          body: "View patient site opens the published clinic site in a new tab.",
-          target: "nav-patient-site",
-        },
-        {
-          id: "help",
-          title: "Help & feedback",
-          body: "Send a problem, a question, or a feature suggestion.",
-          target: "help-replay",
-          fallbackTarget: "nav-help",
-          path: "/account/help",
-          pathMatch: "exact",
-        },
-      ],
-    };
-    sessionStorage.setItem(
-      "river-aftercare:cms-discovery-active:user_ada",
-      JSON.stringify({ id: "cms-introduction", stepIndex: 0 })
-    );
-    const patientSite = document.createElement("a");
-    patientSite.setAttribute("data-cms-discovery", "nav-patient-site");
-    patientSite.textContent = "View patient site";
-    document.body.append(patientSite);
-
-    await renderDiscovery(context(), "/practice/sites", [routeTour]);
-    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("patient-site");
-    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("shown");
-
-    const original = window.getComputedStyle.bind(window);
-    window.getComputedStyle = ((element: Element, pseudo?: string | null) => {
-      const style = original(element, pseudo);
-      return new Proxy(style, {
-        get(target, prop, receiver) {
-          if (prop === "transitionDuration") {
-            return "300ms";
-          }
-          if (prop === "animationDuration") {
-            return "0s";
-          }
-          const value = Reflect.get(target, prop, receiver);
-          return typeof value === "function" ? value.bind(target) : value;
-        },
-      });
-    }) as typeof window.getComputedStyle;
-
-    try {
-      await act(async () => {
-        [...(tourStep()?.querySelectorAll("button") ?? [])]
-          .find((button) => button.textContent === "Next")
-          ?.click();
-      });
-
-      expect(nav.pathname).toBe("/practice/sites");
-      expect(nav.pushed).toEqual(["/account/help"]);
-      expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("help");
-      expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("travel");
-      expect(tourStep()?.textContent).toContain("Opening Help & feedback");
-      expect(tourStep()?.textContent).not.toContain(
-        "View patient site opens the published clinic site"
-      );
-      expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
-      expect(
-        [...(tourStep()?.querySelectorAll("button") ?? [])].find(
-          (button) => button.textContent === "Next"
-        )?.disabled
-      ).toBe(true);
-
-      window.getComputedStyle = original;
-      await renderDiscovery(context(), "/account/help", [routeTour]);
-      expect(nav.pathname).toBe("/account/help");
-      expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("help");
-      expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("shown");
-      expect(tourStep()?.getAttribute("data-cms-tour-placement")).toBe(
-        "target"
-      );
-      expect(tourStep()?.textContent).toContain(
-        "Send a problem, a question, or a feature suggestion."
-      );
-      expect(document.querySelector("[data-cms-tour-spot]")).not.toBeNull();
-
-      await act(async () => {
-        [...(tourStep()?.querySelectorAll("button") ?? [])]
-          .find((button) => button.textContent === "Back")
-          ?.click();
-      });
-      expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe(
-        "patient-site"
-      );
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 450));
-      });
-      expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("shown");
-
-      await renderDiscovery(context(), "/practice/sites", [routeTour]);
-      await act(async () => {
-        [...(tourStep()?.querySelectorAll("button") ?? [])]
-          .find((button) => button.textContent === "Next")
-          ?.click();
-      });
-      expect(nav.pathname).toBe("/practice/sites");
-      expect(nav.pushed).toEqual(["/account/help", "/account/help"]);
-      expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("travel");
-      expect(tourStep()?.textContent).toContain("Opening Help & feedback");
-    } finally {
-      window.getComputedStyle = original;
-    }
-  });
-
-  it("does not highlight the nav fallback while the next page target is missing", async () => {
-    await renderDiscovery();
-    await act(async () => {
-      welcome()?.querySelector("button")?.click();
-    });
-    await act(async () => {
-      [...(tourStep()?.querySelectorAll("button") ?? [])]
-        .find((button) => button.textContent === "Next")
-        ?.click();
-    });
-
-    expect(nav.pushed).toEqual(["/guides"]);
-    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("travel");
-    expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
-
-    await renderDiscovery(context(), "/guides");
-    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("travel");
-    expect(tourStep()?.getAttribute("data-cms-tour-placement")).toBe("pending");
-    expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
-
-    const library = document.createElement("section");
-    library.setAttribute("data-cms-discovery", "guides-library");
-    library.textContent = "Guide library";
-    await act(async () => {
-      document.body.append(library);
-    });
-
-    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
-    expect(tourStep()?.getAttribute("data-cms-tour-placement")).toBe("target");
-    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("shown");
-  });
-
-  it("keeps the spotlight when the target box collapses", async () => {
-    await renderDiscovery();
-    await act(async () => {
-      welcome()?.querySelector("button")?.click();
-    });
-    const summary = container.querySelector(
-      "[data-cms-discovery='guide-summary']"
-    ) as HTMLElement;
-    const spot = document.querySelector("[data-cms-tour-spot]") as HTMLElement;
-    const top = spot.style.top;
-    const left = spot.style.left;
-    expect(top).not.toBe("");
-    expect(top).not.toBe("0px");
-
-    summary.getBoundingClientRect = () =>
-      ({
-        x: 0,
-        y: 0,
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: 0,
-        height: 0,
-        toJSON() {
-          return {};
-        },
-      }) as DOMRect;
-
-    await act(async () => {
-      window.dispatchEvent(new Event("scroll"));
-      await new Promise((resolve) => {
-        requestAnimationFrame(() => resolve(undefined));
-      });
-    });
-
-    const settled = document.querySelector(
-      "[data-cms-tour-spot]"
-    ) as HTMLElement;
-    expect(settled).not.toBeNull();
-    expect(settled.style.top).toBe(top);
-    expect(settled.style.left).toBe(left);
-  });
-
-  it("ignores a second step request while a route change is leaving", async () => {
-    const routeTour: CmsDiscoveryExperience = {
-      id: "cms-introduction",
-      version: 1,
-      kind: "tour",
-      offer: "welcome",
-      title: "Welcome",
-      body: "Look around.",
-      audience: { roles: ["ADMIN"], requires: ["productNav"] },
-      steps: [
-        {
-          id: "overview",
-          title: "Overview",
-          body: "Snapshot.",
-          target: "guide-summary",
-          path: "/dashboard",
-        },
-        {
-          id: "guides",
-          title: "Guides",
-          body: "Library.",
-          target: "guides-library",
-          fallbackTarget: "nav-guides",
-          path: "/guides",
-        },
-        {
-          id: "practice",
-          title: "Practice",
-          body: "Settings.",
-          target: "practice-settings",
-          path: "/practice",
-        },
-      ],
-    };
-    await renderDiscovery(context(), "/dashboard", [routeTour]);
-    await act(async () => {
-      welcome()?.querySelector("button")?.click();
-    });
-
     const next = () =>
       [...(tourStep()?.querySelectorAll("button") ?? [])].find(
         (button) => button.textContent === "Next"
@@ -723,21 +427,187 @@ describe("CMS discovery UI", () => {
       next()?.click();
     });
 
-    expect(nav.pushed).toEqual(["/guides"]);
-    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("travel");
-    expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
+    expect(nav.pushed).toEqual([]);
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).not.toBe("complete");
+    expect(sessionStorage.length).toBe(0);
+  });
 
+  it("uses the fallback until the page target appears", async () => {
+    await renderDiscovery(context(), "/dashboard", [
+      {
+        id: "cms-introduction",
+        version: 1,
+        kind: "tour",
+        offer: "welcome",
+        title: "Welcome",
+        body: "Look around.",
+        audience: { roles: ["ADMIN"], requires: ["productNav"] },
+        steps: [
+          {
+            id: "later",
+            title: "Later",
+            body: "The control is still loading.",
+            target: "guides-library",
+            fallbackTarget: "nav-guides",
+          },
+        ],
+      },
+    ]);
     await act(async () => {
-      document.dispatchEvent(
-        new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
-      );
+      welcome()?.querySelector("button")?.click();
     });
+
+    expect(nav.pushed).toEqual([]);
+    expect(tourStep()?.getAttribute("data-cms-tour-placement")).toBe("target");
+    expect(tourStep()?.textContent).toContain("The control is still loading.");
+    const before = (
+      document.querySelector("[data-cms-tour-spot]") as HTMLElement | null
+    )?.style.left;
+
+    const library = document.createElement("section");
+    library.setAttribute("data-cms-discovery", "guides-library");
+    library.textContent = "Guide library";
+    library.getBoundingClientRect = () => rect(180, 44, 300);
+    await act(async () => {
+      document.body.append(library);
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => resolve(undefined));
+      });
+    });
+
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("later");
+    expect(nav.pushed).toEqual([]);
+    expect(
+      (document.querySelector("[data-cms-tour-spot]") as HTMLElement | null)
+        ?.style.left
+    ).not.toBe(before);
+  });
+
+  it("opens the tour page before Show me and does not keep an overlay across the route", async () => {
+    const pageTour: CmsDiscoveryExperience = {
+      id: "guides-page",
+      version: 1,
+      kind: "tour",
+      offer: "manual",
+      title: "Guides",
+      body: "The guide library.",
+      audience: { roles: ["ADMIN"], requires: ["productNav"] },
+      page: { path: "/guides", match: "exact" },
+      steps: [
+        {
+          id: "library",
+          title: "Guide library",
+          body: "Patients open published guides from here.",
+          target: "guides-library",
+        },
+      ],
+    };
+    const announcement: CmsDiscoveryExperience = {
+      id: "guides-news",
+      version: 1,
+      kind: "announcement",
+      title: "Guide library",
+      body: "See how the guide list works.",
+      audience: { roles: ["ADMIN"], requires: ["productNav"] },
+      showMeTourId: "guides-page",
+    };
+    localStorage.setItem(
+      "river-aftercare:cms-discovery:user_ada",
+      JSON.stringify({
+        schema: 1,
+        experiences: {
+          "cms-introduction": { version: 1, status: "dismissed" },
+        },
+      })
+    );
+    await renderDiscovery(context(), "/dashboard", [
+      announcement,
+      pageTour,
+      experiences[0]!,
+    ]);
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((button) => button.textContent === "Show me")
+        ?.click();
+    });
+
+    expect(nav.pushed).toEqual(["/guides?cmsTour=guides-page"]);
     expect(tourStep()).toBeNull();
     expect(document.querySelector("[data-cms-tour-layer]")).toBeNull();
+
+    window.history.pushState({}, "", "/guides?cmsTour=guides-page");
+    const library = document.createElement("section");
+    library.setAttribute("data-cms-discovery", "guides-library");
+    library.textContent = "Guide library";
+    document.body.append(library);
+    await renderDiscovery(context(), "/guides", [
+      announcement,
+      pageTour,
+      experiences[0]!,
+    ]);
+
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("library");
+    expect(tourStep()?.textContent).toContain(
+      "Patients open published guides from here."
+    );
+    expect(nav.replaced.some((href) => href.startsWith("/guides"))).toBe(true);
+    expect(nav.replaced.some((href) => href.includes("cmsTour"))).toBe(false);
+  });
+
+  it("replays a page tour after it has been completed", async () => {
+    const pageTour: CmsDiscoveryExperience = {
+      id: "overview-page",
+      version: 1,
+      kind: "tour",
+      offer: "manual",
+      title: "Overview",
+      body: "This page.",
+      audience: { roles: ["ADMIN"], requires: ["productNav"] },
+      page: { path: "/dashboard", match: "exact" },
+      steps: [
+        {
+          id: "summary",
+          title: "Guide summary",
+          body: "Published and draft counts live here.",
+          target: "guide-summary",
+        },
+      ],
+    };
+    await renderDiscovery(context(), "/dashboard", [...experiences, pageTour]);
+    const button = () =>
+      container.querySelector<HTMLButtonElement>("[data-cms-page-tour]");
+    expect(button()?.textContent).toBe("Tour this page");
+
+    await act(async () => {
+      button()?.click();
+    });
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("summary");
+    expect(nav.pushed).toEqual([]);
+
+    await act(async () => {
+      [...(tourStep()?.querySelectorAll("button") ?? [])]
+        .find((button) => button.textContent === "Done")
+        ?.click();
+    });
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("complete");
     expect(
-      sessionStorage.getItem("river-aftercare:cms-discovery-active:user_ada")
-    ).toBeNull();
-    expect(nav.pushed).toEqual(["/guides"]);
+      localStorage.getItem("river-aftercare:cms-discovery:user_ada")
+    ).toContain('"overview-page"');
+    expect(
+      localStorage.getItem("river-aftercare:cms-discovery:user_ada")
+    ).not.toContain('"cms-introduction"');
+
+    await act(async () => {
+      [...(tourStep()?.querySelectorAll("button") ?? [])]
+        .find((button) => button.textContent === "Close")
+        ?.click();
+    });
+    expect(welcome()?.textContent).toContain("Start tour");
+    await act(async () => {
+      button()?.click();
+    });
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("summary");
   });
 
   it("dismisses the welcome card for this user and keeps another user's card", async () => {

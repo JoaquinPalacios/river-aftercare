@@ -113,7 +113,7 @@ export function ClinicGuidesTable({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="staffTableToolbar">
+      <div className="staffTableToolbar" data-cms-discovery="guides-search">
         <TableSearch
           label="Search guides"
           placeholder="Search guides…"
@@ -153,27 +153,32 @@ export function ClinicGuidesTable({
       {guides.length === 0 &&
       suppressEmpty &&
       !state.q ? null : guides.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-staff-line bg-staff-panel px-5 py-8 text-sm leading-6 text-staff-muted">
-          <p className="staffTableEmpty">
-            {state.q
-              ? "No guides match the current search."
-              : "No guides have been configured for this practice yet."}
-          </p>
-          {state.q ? (
-            <button
-              type="button"
-              className="staffBtn staffBtnSecondary mt-4"
-              onClick={() => {
-                setDraftQuery("");
-                navigate({ q: "", page: 1 });
-              }}
-            >
-              Clear search
-            </button>
-          ) : null}
+        <div data-cms-discovery="guides-list">
+          <div className="rounded-xl border border-dashed border-staff-line bg-staff-panel px-5 py-8 text-sm leading-6 text-staff-muted">
+            <p className="staffTableEmpty">
+              {state.q
+                ? "No guides match the current search."
+                : "No guides have been configured for this practice yet."}
+            </p>
+            {state.q ? (
+              <button
+                type="button"
+                className="staffBtn staffBtnSecondary mt-4"
+                onClick={() => {
+                  setDraftQuery("");
+                  navigate({ q: "", page: 1 });
+                }}
+              >
+                Clear search
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : (
-        <div className="staffOperatorTableWrap">
+        <div
+          className="staffOperatorTableWrap"
+          data-cms-discovery="guides-list"
+        >
           <div className="staffDataTableScroll">
             <table
               className="staffDataTable"

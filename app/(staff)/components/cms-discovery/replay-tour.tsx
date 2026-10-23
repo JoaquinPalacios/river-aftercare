@@ -5,7 +5,9 @@ import { CMS_INTRODUCTION_ID } from "@/lib/cms-discovery/registry";
 
 export function CmsTourReplay() {
   const discovery = useCmsDiscovery();
-  if (discovery && !discovery.canReplay(CMS_INTRODUCTION_ID)) {
+  const pageTours = discovery?.pageTours ?? [];
+  const showWorkspace = !discovery || discovery.canReplay(CMS_INTRODUCTION_ID);
+  if (!showWorkspace && pageTours.length === 0) {
     return null;
   }
 
@@ -15,22 +17,50 @@ export function CmsTourReplay() {
       aria-labelledby="cms-tour-replay-heading"
       data-cms-discovery="help-replay"
     >
-      <div className="cmsTourReplayCopy">
+      {showWorkspace ? (
+        <div className="cmsTourReplayCopy">
+          <h2 id="cms-tour-replay-heading" className="cmsDiscoveryTitle">
+            Workspace tour
+          </h2>
+          <p className="cmsDiscoveryBody">
+            Replay the introduction to the clinic navigation. It highlights
+            Overview, Guides, Practice when you can open it, Sites & Locations,
+            the patient site when it is available, and Help & feedback, without
+            leaving the page you are on.
+          </p>
+        </div>
+      ) : (
         <h2 id="cms-tour-replay-heading" className="cmsDiscoveryTitle">
-          Workspace tour
+          Tours
         </h2>
-        <p className="cmsDiscoveryBody">
-          Replay the introduction to Overview, Guides, Sites & Locations, and
-          the other parts of the clinic workspace available to you.
-        </p>
-      </div>
-      <button
-        type="button"
-        className="staffBtn staffBtnSecondary"
-        onClick={() => discovery?.replay(CMS_INTRODUCTION_ID)}
-      >
-        Replay tour
-      </button>
+      )}
+      {showWorkspace ? (
+        <button
+          type="button"
+          className="staffBtn staffBtnSecondary"
+          onClick={() => discovery?.replay(CMS_INTRODUCTION_ID)}
+        >
+          Replay tour
+        </button>
+      ) : null}
+      {pageTours.length > 0 ? (
+        <div className="cmsPageTourCatalog">
+          <h3 className="cmsDiscoveryTitle">Page tours</h3>
+          <ul className="cmsPageTourList">
+            {pageTours.map((tour) => (
+              <li key={tour.id}>
+                <button
+                  type="button"
+                  className="staffBtn staffBtnQuiet cmsPageTourButton"
+                  onClick={tour.start}
+                >
+                  {tour.title}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
   );
 }

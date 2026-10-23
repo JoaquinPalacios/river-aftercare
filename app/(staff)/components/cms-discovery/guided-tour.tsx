@@ -2,17 +2,12 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { usePathname, useRouter } from "next/navigation";
 
 import {
   closeDiscoveryMenuIfOpened,
   findVisibleDiscoveryTarget,
   revealDiscoveryMenu,
 } from "@/lib/cms-discovery/dom";
-import {
-  discoveryPathMatches,
-  requestCmsDiscoveryNavigation,
-} from "@/lib/cms-discovery/navigation";
 import {
   keepTourCardOnScreen,
   placeTourCard,
@@ -22,12 +17,12 @@ import {
 } from "@/lib/cms-discovery/placement";
 import type { CmsDiscoveryStep } from "@/lib/cms-discovery/types";
 
-const TARGET_WAIT_MS = 8000;
+const SEEK_MS = 1500;
 const SPOT_MOVE_MS = 400;
 const CARD_MOVE_MS = 300;
 const MOVE_EASE = "cubic-bezier(0.2, 0, 0, 1)";
 
-type TourPhase = "travel" | "exit" | "enter" | "move" | "shown";
+type TourPhase = "seek" | "enter" | "move" | "shown";
 
 type ShownStep = {
   step: CmsDiscoveryStep;
@@ -57,13 +52,6 @@ function cssTimeMs(value: string): number {
     }
   }
   return Number.isFinite(max) ? max : 0;
-}
-
-function needsRoute(step: CmsDiscoveryStep, pathname: string): boolean {
-  return Boolean(
-    step.path &&
-    !discoveryPathMatches(pathname, step.path, step.pathMatch ?? "exact")
-  );
 }
 
 function readLiveRect(element: HTMLElement | null): DiscoveryRect | null {
@@ -253,10 +241,18 @@ function placementsEqual(
   );
 }
 
-function findTourTarget(
-  step: CmsDiscoveryStep,
-  allowMenu: boolean
-): FoundTarget {
+function mobileViewport(): boolean {
+  return (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(max-width: 767px)").matches
+  );
+}
+
+/**
+ * Find the step's control on this page. A mobile nav target opens the menu
+ * and stays inside it. A visible page target leaves that menu closed.
+ */
+function locateStep(step: CmsDiscoveryStep): FoundTarget {
   const outside = findVisibleDiscoveryTarget(step.target, {
     outsideMenu: true,
   });
@@ -264,23 +260,21 @@ function findTourTarget(
     closeDiscoveryMenuIfOpened();
     return { status: "ready", element: outside };
   }
-  if (!allowMenu) {
-    return { status: "missing" };
-  }
 
-  revealDiscoveryMenu();
-  const primary = findVisibleDiscoveryTarget(step.target);
-  if (primary) {
-    return { status: "ready", element: primary };
-  }
-
-  const menu = document.querySelector("[data-cms-discovery-menu]");
-  if (
-    menu instanceof HTMLElement &&
-    menu.dataset.cmsDiscoveryOpened === "true" &&
-    menu.hasAttribute("inert")
-  ) {
-    return { status: "wait" };
+  if (mobileViewport()) {
+    revealDiscoveryMenu();
+    const menu = document.querySelector("[data-cms-discovery-menu]");
+    if (
+      menu instanceof HTMLElement &&
+      menu.dataset.cmsDiscoveryOpened === "true" &&
+      menu.hasAttribute("inert")
+    ) {
+      return { status: "wait" };
+    }
+    const inside = findVisibleDiscoveryTarget(step.target);
+    if (inside) {
+      return { status: "ready", element: inside };
+    }
   }
 
   return { status: "missing" };
@@ -290,6 +284,16 @@ function findFallback(step: CmsDiscoveryStep): HTMLElement | null {
   if (!step.fallbackTarget) {
     return null;
   }
+  const outside = findVisibleDiscoveryTarget(step.fallbackTarget, {
+    outsideMenu: true,
+  });
+  if (outside) {
+    return outside;
+  }
+  if (!mobileViewport()) {
+    return null;
+  }
+  revealDiscoveryMenu();
   return findVisibleDiscoveryTarget(step.fallbackTarget);
 }
 
@@ -384,10 +388,6 @@ export function GuidedTour({
   onBack: () => void;
   onSkip: () => void;
 }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const pushRef = useRef(router.push);
-  pushRef.current = router.push;
   const titleId = useId();
   const bodyId = useId();
   const hintId = useId();
@@ -396,17 +396,14 @@ export function GuidedTour({
   const layerRef = useRef<HTMLDivElement>(null);
   const placementRef = useRef<TourCardPlacement | null>(null);
   const targetRef = useRef<HTMLElement | null>(null);
-  const phaseRef = useRef<TourPhase>("travel");
+  const phaseRef = useRef<TourPhase>("seek");
   const stepRef = useRef(step);
   const indexRef = useRef(index);
-  const awaitingPrimaryRef = useRef(false);
-  const requestedStepRef = useRef<string | null>(null);
-  const guardHoldRef = useRef(false);
   stepRef.current = step;
   indexRef.current = index;
 
   const [shown, setShown] = useState<ShownStep>({ step, index });
-  const [phase, setPhase] = useState<TourPhase>("travel");
+  const [phase, setPhase] = useState<TourPhase>("seek");
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [placement, setPlacement] = useState<TourCardPlacement | null>(null);
   const [anchored, setAnchored] = useState(false);
@@ -444,8 +441,7 @@ export function GuidedTour({
   }
 
   function showFound(element: HTMLElement | null) {
-    awaitingPrimaryRef.current = false;
-    guardHoldRef.current = false;
+    phaseRef.current = "enter";
     setAnchored(false);
     setShown({ step: stepRef.current, index: indexRef.current });
     rememberTarget(element);
@@ -490,144 +486,105 @@ export function GuidedTour({
     if (step.id === shown.step.id) {
       return;
     }
-    if (phase === "exit" || phase === "travel") {
+
+    const found = locateStep(step);
+    if (found.status === "wait") {
+      setAnchored(false);
+      setShown({ step, index });
+      setPhase("seek");
       return;
     }
 
-    const route = needsRoute(step, pathname);
-    const outside = findVisibleDiscoveryTarget(step.target, {
-      outsideMenu: true,
-    });
+    const nextElement =
+      found.status === "ready" ? found.element : findFallback(step);
     const current = targetRef.current;
+    const bothInMenu = Boolean(
+      nextElement &&
+      current &&
+      inDiscoveryMenu(current) &&
+      inDiscoveryMenu(nextElement)
+    );
+
+    if (nextElement && !elementInView(nextElement)) {
+      try {
+        nextElement.scrollIntoView({
+          block: "nearest",
+          inline: "nearest",
+          behavior: "auto",
+        });
+      } catch {
+        // jsdom does not implement scrolling.
+      }
+    }
+
+    if (bothInMenu && nextElement) {
+      setShown({ step, index });
+      rememberTarget(nextElement);
+      setPhase("shown");
+      return;
+    }
+
     const canGlide =
-      !route &&
       !reducedMotion() &&
-      outside instanceof HTMLElement &&
+      nextElement instanceof HTMLElement &&
+      !inDiscoveryMenu(nextElement) &&
       current instanceof HTMLElement &&
       current.isConnected &&
       !inDiscoveryMenu(current) &&
       elementInView(current) &&
-      elementInView(outside) &&
+      elementInView(nextElement) &&
       cardOnScreen(cardRef.current);
 
-    if (canGlide) {
-      setShown({ step, index });
-      rememberTarget(outside);
-      setPhase("move");
+    setShown({ step, index });
+    if (nextElement) {
+      rememberTarget(nextElement);
+      setPhase(canGlide ? "move" : "shown");
       return;
     }
 
-    // Keep this status mounted until the next target has a box. Navigation
-    // starts now, while the previous page is still painted.
-    if (route || reducedMotion()) {
-      closeDiscoveryMenuIfOpened();
-      awaitingPrimaryRef.current = route;
-      setAnchored(false);
-      setShown({ step, index });
-      targetRef.current = null;
-      setTarget(null);
-      placementRef.current = null;
-      setPlacement(null);
-      setPhase("travel");
-      return;
-    }
-
-    setPhase("exit");
-  }, [index, pathname, phase, shown.step.id, step]);
-
-  useEffect(() => {
-    if (phase !== "exit") {
-      return;
-    }
-    const card = cardRef.current;
-    let cancelled = false;
-    const finish = () => {
-      if (cancelled || phaseRef.current !== "exit") {
-        return;
-      }
-      const next = stepRef.current;
-      awaitingPrimaryRef.current = needsRoute(next, pathname);
-      setAnchored(false);
-      setShown({ step: next, index: indexRef.current });
-      targetRef.current = null;
-      setTarget(null);
-      setPhase("travel");
-    };
-    if (!card) {
-      finish();
-      return;
-    }
-    return afterCardFade(card, finish);
-  }, [pathname, phase]);
+    setAnchored(false);
+    targetRef.current = null;
+    setTarget(null);
+    setPhase("seek");
+  }, [index, shown.step.id, step]);
 
   useLayoutEffect(() => {
-    if (phase !== "travel" || dialogOpen || dialogIsOpen()) {
+    if (phase !== "seek" || dialogOpen || dialogIsOpen()) {
       return;
     }
-    if (needsRoute(step, pathname)) {
-      return;
-    }
-    const found = findTourTarget(step, !awaitingPrimaryRef.current);
+    const found = locateStep(step);
     if (found.status === "ready") {
       showFound(found.element);
+      return;
     }
-  }, [dialogOpen, pathname, phase, step]);
+    if (found.status === "missing") {
+      showFound(findFallback(step));
+    }
+  }, [dialogOpen, phase, step]);
 
   useEffect(() => {
-    if (phaseRef.current !== "travel") {
+    if (phaseRef.current !== "seek") {
       return;
     }
     let cancelled = false;
     const started = performance.now();
 
     const look = () => {
-      if (cancelled || phaseRef.current !== "travel") {
+      if (cancelled || phaseRef.current !== "seek") {
         return;
-      }
-      const current = stepRef.current;
-      if (!needsRoute(current, pathname)) {
-        guardHoldRef.current = false;
       }
       if (dialogIsOpen()) {
         return;
       }
-      if (guardHoldRef.current) {
-        showFound(findFallback(current));
-        return;
-      }
-
-      if (needsRoute(current, pathname)) {
-        if (requestedStepRef.current !== current.id && current.path) {
-          requestedStepRef.current = current.id;
-          awaitingPrimaryRef.current = true;
-          const result = requestCmsDiscoveryNavigation(current.path, {
-            push: (href) => pushRef.current(href),
-          });
-          if (result === "guarded") {
-            awaitingPrimaryRef.current = false;
-            guardHoldRef.current = true;
-          }
-        }
-        return;
-      }
-
-      requestedStepRef.current = null;
-
-      const found = findTourTarget(current, !awaitingPrimaryRef.current);
+      const found = locateStep(stepRef.current);
       if (found.status === "ready") {
         showFound(found.element);
         return;
       }
-      if (found.status === "wait") {
+      if (found.status === "wait" && performance.now() - started < SEEK_MS) {
         return;
       }
-      if (
-        awaitingPrimaryRef.current &&
-        performance.now() - started < TARGET_WAIT_MS
-      ) {
-        return;
-      }
-      showFound(findFallback(current));
+      showFound(findFallback(stepRef.current));
     };
 
     look();
@@ -638,14 +595,46 @@ export function GuidedTour({
       attributes: true,
       attributeFilter: ["open", "inert", "hidden"],
     });
-    const timer = window.setTimeout(look, TARGET_WAIT_MS);
-
+    const timer = window.setTimeout(look, SEEK_MS);
     return () => {
       cancelled = true;
       observer.disconnect();
       window.clearTimeout(timer);
     };
-  }, [pathname, phase, step]);
+  }, [phase, step]);
+
+  useEffect(() => {
+    if (phase !== "shown" && phase !== "enter") {
+      return;
+    }
+    const look = () => {
+      if (phaseRef.current !== "shown" && phaseRef.current !== "enter") {
+        return;
+      }
+      const found = locateStep(stepRef.current);
+      if (found.status !== "ready") {
+        return;
+      }
+      const current = targetRef.current;
+      if (current === found.element) {
+        return;
+      }
+      if (
+        current?.getAttribute("data-cms-discovery") === stepRef.current.target
+      ) {
+        return;
+      }
+      rememberTarget(found.element);
+    };
+    const observer = new MutationObserver(look);
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["hidden", "inert", "open"],
+    });
+    return () => observer.disconnect();
+  }, [phase, step]);
 
   useLayoutEffect(() => {
     if (phase !== "enter" && phase !== "move" && phase !== "shown") {
@@ -774,8 +763,7 @@ export function GuidedTour({
       ]
         .map((value) => Math.round(value))
         .join(":");
-      const inside = cardFits(card, viewport);
-      if (key === lastKey && inside) {
+      if (key === lastKey) {
         return;
       }
       lastKey = key;
@@ -826,47 +814,8 @@ export function GuidedTour({
     return () => window.clearTimeout(timer);
   }, [phase, target]);
 
-  useLayoutEffect(() => {
-    if (phase !== "travel" || dialogOpen) {
-      return;
-    }
-    const layer = layerRef.current;
-    if (layer && typeof layer.showPopover === "function") {
-      try {
-        if (!layer.matches(":popover-open")) {
-          layer.showPopover();
-        }
-      } catch {
-        // Already open.
-      }
-    }
-
-    const card = cardRef.current;
-    if (!card) {
-      return;
-    }
-    const viewport = readViewport();
-    const next = fitCard(card, null);
-    if (viewport.width > 0 && viewport.width < 768) {
-      const height = card.offsetHeight;
-      next.top = Math.max(16, viewport.height - height - 16);
-      next.left = 16;
-    }
-    card.style.top = `${next.top}px`;
-    card.style.left = `${next.left}px`;
-    card.style.width = `${next.width}px`;
-    card.style.right = "auto";
-    card.style.bottom = "auto";
-    card.style.transform = "none";
-  }, [dialogOpen, phase, shown.step.id]);
-
   useEffect(() => {
-    if (
-      phase !== "enter" &&
-      phase !== "shown" &&
-      phase !== "move" &&
-      phase !== "travel"
-    ) {
+    if (phase !== "enter" && phase !== "shown" && phase !== "move") {
       return;
     }
     const card = cardRef.current;
@@ -945,6 +894,29 @@ export function GuidedTour({
     return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [index, phase]);
 
+  useEffect(() => {
+    if (!target?.closest("[data-cms-discovery-menu]")) {
+      return;
+    }
+    const onClick = (event: MouseEvent) => {
+      const node = event.target;
+      if (!(node instanceof Element)) {
+        return;
+      }
+      const anchor = node.closest("a");
+      if (!anchor?.closest("[data-cms-discovery-menu]")) {
+        return;
+      }
+      if (cardRef.current?.contains(anchor)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [target]);
+
   useLayoutEffect(() => {
     const menu = target?.closest("[data-cms-discovery-menu]");
     if (!(menu instanceof HTMLElement)) {
@@ -986,94 +958,28 @@ export function GuidedTour({
     return () => target.classList.remove("cmsTourTarget");
   }, [target]);
 
-  const travelling = phase === "travel";
   const visible =
-    !dialogOpen &&
-    (travelling ||
-      phase === "exit" ||
-      phase === "enter" ||
-      phase === "move" ||
-      phase === "shown");
+    !dialogOpen && (phase === "enter" || phase === "move" || phase === "shown");
   if (!visible || typeof document === "undefined") {
     return null;
   }
 
-  if (travelling) {
-    return createPortal(
-      <div
-        ref={layerRef}
-        className="cmsTourLayer"
-        popover="manual"
-        data-cms-tour-layer="true"
-      >
-        <div className="cmsTourBlocker" data-cms-tour-travel="true" />
-        <div
-          ref={cardRef}
-          className="cmsTourCard cmsTourCardTravel"
-          role="dialog"
-          aria-modal="true"
-          aria-busy="true"
-          aria-labelledby={titleId}
-          aria-describedby={bodyId}
-          tabIndex={-1}
-          data-cms-tour-step={shown.step.id}
-          data-cms-tour-motion="travel"
-          data-cms-tour-ready="true"
-          data-cms-tour-placement="pending"
-        >
-          <div className="cmsTourCardCopy">
-            <p className="cmsTourProgress">
-              {shown.index + 1} of {total}
-            </p>
-            <h2 id={titleId} className="cmsDiscoveryTitle cmsTourTravelTitle">
-              <span className="staffBtnSpinner" aria-hidden="true" />
-              Opening {shown.step.title}
-            </h2>
-            <p id={bodyId} className="cmsDiscoveryBody">
-              The highlight returns when that page is ready.
-            </p>
-          </div>
-          <div className="cmsTourActions">
-            <button
-              type="button"
-              className="staffBtn staffBtnQuiet cmsTourSkip"
-              onClick={() => onSkipRef.current()}
-            >
-              Skip tour
-            </button>
-            <button
-              type="button"
-              className="staffBtn staffBtnSecondary"
-              disabled
-            >
-              Back
-            </button>
-            <button type="button" className="staffBtn staffBtnPrimary" disabled>
-              Next
-            </button>
-          </div>
-        </div>
-      </div>,
-      document.body
-    );
-  }
-
   const stepping = phase === "shown" || phase === "move";
   const last = shown.index === total - 1;
-  const ready = anchored || phase === "exit" || phase === "move";
+  const ready = anchored || phase === "move";
   const cardStyle = placement
     ? {
         top: `${placement.top}px`,
         left: `${placement.left}px`,
         width: `${placement.width}px`,
-        opacity: ready && phase !== "exit" ? 1 : 0,
+        opacity: ready ? 1 : 0,
       }
     : {
         top: "50%",
         left: "50%",
         width: "min(22rem, calc(100vw - 2rem))",
         transform: "translate(-50%, -50%)",
-        opacity: ready && phase !== "exit" ? 1 : 0,
+        opacity: ready ? 1 : 0,
       };
 
   const menuHost = target?.closest("[data-cms-discovery-menu]");
@@ -1172,7 +1078,7 @@ export function GuidedTour({
             left: `${placement.spot.left}px`,
             width: `${placement.spot.width}px`,
             height: `${placement.spot.height}px`,
-            opacity: ready && phase !== "exit" ? 1 : 0,
+            opacity: ready ? 1 : 0,
           }}
         />
       ) : null}

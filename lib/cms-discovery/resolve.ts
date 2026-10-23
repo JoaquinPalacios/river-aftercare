@@ -48,6 +48,7 @@ export function resolveCmsDiscovery(
       version: experience.version,
       title: experience.title,
       body: experience.body,
+      page: experience.page ?? null,
       steps: [...steps],
     });
   }

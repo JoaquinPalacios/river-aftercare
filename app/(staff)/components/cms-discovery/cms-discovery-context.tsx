@@ -7,6 +7,12 @@ export type CmsDiscoveryWelcome = {
   body: string;
 };
 
+export type CmsDiscoveryPageTour = {
+  id: string;
+  title: string;
+  start: () => void;
+};
+
 export type CmsDiscoveryApi = {
   replay: (experienceId: string) => void;
   canReplay: (experienceId: string) => boolean;
@@ -22,6 +28,10 @@ export type CmsDiscoveryApi = {
    * prompt is showing, a tour is open, or the page is not Overview.
    */
   replayIntroduction: (() => void) | null;
+  /** Eligible tour for the current page. Null when this page has none. */
+  pageTour: CmsDiscoveryPageTour | null;
+  /** Eligible page tours, including tours for other pages. */
+  pageTours: CmsDiscoveryPageTour[];
 };
 
 const CmsDiscoveryContext = createContext<CmsDiscoveryApi | null>(null);

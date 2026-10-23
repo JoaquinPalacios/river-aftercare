@@ -264,7 +264,11 @@ export function PracticeSettingsForm({
           </Field>
         </section>
 
-        <section id="practice-branding" className="staffPracticeSection">
+        <section
+          id="practice-branding"
+          className="staffPracticeSection"
+          data-cms-discovery="practice-branding"
+        >
           <h2 className="text-base font-semibold">Branding</h2>
           <h3 className="text-sm font-semibold">Brand identity</h3>
           <PracticeLogoField
@@ -469,7 +473,11 @@ export function PracticeSettingsForm({
           />
         </section>
 
-        <section id="practice-contact" className="staffPracticeSection">
+        <section
+          id="practice-contact"
+          className="staffPracticeSection"
+          data-cms-discovery="practice-contact"
+        >
           <h2 className="text-base font-semibold">Contact</h2>
           <Field label="Clinic phone" htmlFor="phone">
             <input
@@ -568,7 +576,11 @@ export function PracticeSettingsForm({
           </div>
         </section>
 
-        <section id="practice-emergency" className="staffPracticeSection">
+        <section
+          id="practice-emergency"
+          className="staffPracticeSection"
+          data-cms-discovery="practice-emergency"
+        >
           <h2 className="text-base font-semibold">Emergency / urgent help</h2>
           <Field label="Emergency instructions" htmlFor="emergencyInstructions">
             <textarea
