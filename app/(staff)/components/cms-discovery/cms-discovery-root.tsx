@@ -24,9 +24,13 @@ import {
   CMS_DISCOVERY_EXPERIENCES,
   CMS_INTRODUCTION_ID,
 } from "@/lib/cms-discovery/registry";
-import { resolveCmsDiscovery } from "@/lib/cms-discovery/resolve";
+import {
+  isCmsDiscoverySettled,
+  resolveCmsDiscovery,
+} from "@/lib/cms-discovery/resolve";
 import {
   emptyCmsDiscoveryStore,
+  forgetCmsDiscoveryRecords,
   readCmsDiscoveryStore,
   writeCmsDiscoveryRecord,
   type CmsDiscoverySubject,
@@ -189,18 +193,22 @@ export function CmsDiscoveryRoot({
       pathname === "/dashboard" && !suppressesAutomaticDiscovery(pathname);
     const welcomeTour = resolved.welcome;
     const showWelcome = idle && onOverview && welcomeTour !== null;
-    const pageTours: CmsDiscoveryPageTour[] = resolved.tours
-      .filter((tour) => tour.page)
-      .map((tour) => ({
-        id: tour.id,
-        title: tour.title,
-        start: () => openTour(tour.id),
-      }));
-    const pageTour =
-      pageTours.find((tour) => {
-        const full = resolved.tours.find((item) => item.id === tour.id);
-        return full ? tourIsOnPage(full, pathname) : false;
-      }) ?? null;
+    const pageTours = resolved.tours.filter((tour) => tour.page);
+    const currentPageTour =
+      pageTours.find((tour) => tourIsOnPage(tour, pathname)) ?? null;
+    const pageTour: CmsDiscoveryPageTour | null =
+      ready &&
+      currentPageTour &&
+      !isCmsDiscoverySettled(
+        store.experiences[currentPageTour.id],
+        currentPageTour.version
+      )
+        ? {
+            id: currentPageTour.id,
+            title: currentPageTour.title,
+            start: () => openTour(currentPageTour.id),
+          }
+        : null;
 
     return {
       replay: openTour,
@@ -227,18 +235,20 @@ export function CmsDiscoveryRoot({
           })
         );
       },
-      replayIntroduction:
-        idle &&
-        onOverview &&
-        !showWelcome &&
-        resolved.tours.some((tour) => tour.id === CMS_INTRODUCTION_ID)
-          ? () => openTour(CMS_INTRODUCTION_ID)
-          : null,
       pageTour,
-      pageTours,
+      canRestorePageTours: pageTours.length > 0,
+      showPageToursAgain: () => {
+        setStore((current) =>
+          forgetCmsDiscoveryRecords(
+            subject,
+            current,
+            pageTours.map((tour) => tour.id)
+          )
+        );
+      },
     };
     // openTour is recreated in this render and closes over pathname and resolved.
-  }, [context, pathname, ready, resolved, session.kind]);
+  }, [context, pathname, ready, resolved, session.kind, store]);
 
   const activeTour =
     session.kind === "tour" && session.path === pathname
@@ -312,8 +322,8 @@ export function CmsDiscoveryRoot({
           title="You're set"
           body={
             session.id === CMS_INTRODUCTION_ID
-              ? "You can replay this tour from Overview or Help & feedback."
-              : "That's the end of this tour. Tour this page runs it again."
+              ? "You can replay this tour from Help & feedback."
+              : "That's the end of this page tour. Help & feedback can show the invitation again."
           }
           onClose={() => setSession({ kind: "idle" })}
         />

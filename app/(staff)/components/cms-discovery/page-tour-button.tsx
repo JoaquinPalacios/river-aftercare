@@ -3,8 +3,8 @@
 import { useCmsDiscovery } from "@/app/(staff)/components/cms-discovery/cms-discovery-context";
 
 /**
- * Quiet replay for the tour registered to the current CMS page.
- * It stays available after completion or dismissal. It does not auto-start.
+ * Quiet invitation for the tour registered to the current CMS page.
+ * It is hidden after that tour is completed or skipped. It does not auto-start.
  */
 export function CmsPageTourButton() {
   const discovery = useCmsDiscovery();

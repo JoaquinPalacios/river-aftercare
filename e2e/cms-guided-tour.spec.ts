@@ -45,6 +45,21 @@ async function expectStep(page: Page, title: string): Promise<void> {
   await expect(dialog).toHaveAttribute("data-cms-tour-motion", "shown");
 }
 
+async function completePageTour(page: Page, titles: readonly string[]) {
+  await page.getByRole("button", { name: "Tour this page" }).click();
+  for (const title of titles) {
+    await expectStep(page, title);
+    if (title !== titles.at(-1)) {
+      await advance(page, "Next");
+    }
+  }
+  await advance(page, "Done");
+  await advance(page, "Close");
+  await expect(
+    page.getByRole("button", { name: "Tour this page" })
+  ).toHaveCount(0);
+}
+
 test.describe("clinic CMS guided tour", () => {
   test.describe("desktop", () => {
     test.use({ viewport: { width: 1440, height: 900 } });
@@ -52,7 +67,7 @@ test.describe("clinic CMS guided tour", () => {
     test("keeps the workspace introduction and page tours on one page", async ({
       page,
     }) => {
-      test.setTimeout(90_000);
+      test.setTimeout(120_000);
       await page.emulateMedia({ reducedMotion: "reduce" });
       await openAssistedClinic(page);
       await page.getByRole("button", { name: "Start tour" }).click();
@@ -82,49 +97,129 @@ test.describe("clinic CMS guided tour", () => {
       await expect(tourDialog(page)).toContainText("You're set");
       await advance(page, "Close");
       await expect(page).toHaveURL(staffUrl("/dashboard"));
+      await expect(
+        page.getByRole("button", { name: "Start tour" })
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Replay workspace tour" })
+      ).toHaveCount(0);
 
-      await page.getByRole("button", { name: "Tour this page" }).click();
-      for (const title of [
+      await completePageTour(page, [
         "Guide summary",
         "Clinic setup",
         "View patient site",
-      ]) {
-        await expectStep(page, title);
-        await expect(page).toHaveURL(staffUrl("/dashboard"));
-        if (title !== "View patient site") {
-          await advance(page, "Next");
-        }
-      }
-      await advance(page, "Done");
-      await advance(page, "Close");
+      ]);
+      await expect(page).toHaveURL(staffUrl("/dashboard"));
 
       await page.getByRole("link", { name: "Guides", exact: true }).click();
       await expect(page).toHaveURL(staffUrl("/guides"));
       await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Tour this page" })
+      ).toBeVisible();
 
       await page.getByRole("button", { name: "Tour this page" }).click();
-      for (const title of [
+      await expectStep(page, "Guide library");
+      await page.goto(staffUrl("/practice"));
+      await expect(page).toHaveURL(staffUrl("/practice"));
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await page.goto(staffUrl("/guides"));
+      await expect(
+        page.getByRole("button", { name: "Tour this page" })
+      ).toBeVisible();
+      await completePageTour(page, [
         "Guide library",
         "Search",
         "Create guide",
         "Guide list",
-      ]) {
-        await expectStep(page, title);
-        await expect(page).toHaveURL(staffUrl("/guides"));
-        if (title !== "Guide list") {
-          await advance(page, "Next");
-        }
-      }
-      await advance(page, "Done");
-      await advance(page, "Close");
-      await expect(page).toHaveURL(staffUrl("/guides"));
+      ]);
 
+      await page.getByRole("link", { name: "Practice", exact: true }).click();
+      await expect(page).toHaveURL(staffUrl("/practice"));
+      await expect(
+        page.getByRole("button", { name: "Tour this page" })
+      ).toBeVisible();
+      await page.getByRole("button", { name: "Tour this page" }).click();
+      await expectStep(page, "Members");
+      await advance(page, "Skip tour");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Tour this page" })
+      ).toHaveCount(0);
+
+      await page.getByRole("link", { name: "Sites & Locations" }).click();
+      await expect(page).toHaveURL(staffUrl("/practice/sites"));
+      await completePageTour(page, [
+        "Sites and locations",
+        "Capacity",
+        "Site list",
+      ]);
+
+      await page.getByRole("link", { name: "Guides", exact: true }).click();
+      await expect(
+        page.getByRole("button", { name: "Tour this page" })
+      ).toHaveCount(0);
+      await page.getByRole("link", { name: "Practice", exact: true }).click();
+      await expect(
+        page.getByRole("button", { name: "Tour this page" })
+      ).toHaveCount(0);
+
+      await page.getByRole("link", { name: "Help & feedback" }).click();
+      await expect(page).toHaveURL(/\/account\/help/);
+      await expect(
+        page.getByRole("button", { name: "Start tour" })
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Replay workspace tour" })
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Show page tours again" })
+      ).toBeVisible();
+      await completePageTour(page, ["Guided tours", "Your message"]);
+      await expect(
+        page.getByRole("button", { name: "Replay workspace tour" })
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Show page tours again" })
+      ).toBeVisible();
+
+      await page.getByRole("link", { name: "Overview", exact: true }).click();
+      await expect(page).toHaveURL(staffUrl("/dashboard"));
+      await expect(
+        page.getByRole("button", { name: "Tour this page" })
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Start tour" })
+      ).toHaveCount(0);
+
+      await page.getByRole("link", { name: "Help & feedback" }).click();
+      await page.getByRole("button", { name: "Show page tours again" }).click();
+
+      await page.getByRole("link", { name: "Guides", exact: true }).click();
+      await expect(page).toHaveURL(staffUrl("/guides"));
       await page.getByRole("button", { name: "Tour this page" }).click();
       await expectStep(page, "Guide library");
       await advance(page, "Skip tour");
       await expect(page.getByRole("dialog")).toHaveCount(0);
-      await page.getByRole("button", { name: "Tour this page" }).click();
-      await expectStep(page, "Guide library");
+      await expect(
+        page.getByRole("button", { name: "Tour this page" })
+      ).toHaveCount(0);
+
+      await page.getByRole("link", { name: "Practice", exact: true }).click();
+      await expect(
+        page.getByRole("button", { name: "Tour this page" })
+      ).toBeVisible();
+      await page.getByRole("link", { name: "Overview", exact: true }).click();
+      await expect(page).toHaveURL(staffUrl("/dashboard"));
+      await expect(
+        page.getByRole("button", { name: "Tour this page" })
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Start tour" })
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Replay workspace tour" })
+      ).toHaveCount(0);
     });
   });
 

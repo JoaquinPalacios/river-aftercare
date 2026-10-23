@@ -243,8 +243,8 @@ export const CMS_DISCOVERY_EXPERIENCES: readonly CmsDiscoveryExperience[] = [
     steps: [
       {
         id: "replay",
-        title: "Tours",
-        body: "Replay the workspace tour from here, or open a tour of another clinic page. Page tours can also be started with Tour this page.",
+        title: "Guided tours",
+        body: "Replay workspace tour runs the navigation introduction again. Show page tours again puts Tour this page back on each clinic page after that tour was completed or skipped.",
         target: "help-replay",
       },
       {
