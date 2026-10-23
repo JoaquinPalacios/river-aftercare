@@ -6,7 +6,11 @@ import {
   isSafeDiscoveryPath,
   suppressesAutomaticDiscovery,
 } from "@/lib/cms-discovery/navigation";
-import { placeTourCard } from "@/lib/cms-discovery/placement";
+import {
+  keepTourCardOnScreen,
+  placeTourCard,
+  visibleLayoutSize,
+} from "@/lib/cms-discovery/placement";
 import {
   CMS_DISCOVERY_EXPERIENCES,
   CMS_INTRODUCTION_ID,
@@ -462,6 +466,87 @@ describe("CMS discovery placement and routes", () => {
     expect(placement.left).toBe(16);
     expect(placement.top).toBe(464);
     expect(placement.width).toBe(352);
+  });
+
+  it("keeps a card inside the viewport when the painted box runs off the right", () => {
+    const fitted = keepTourCardOnScreen({
+      placement: {
+        spot: { top: 164, left: 694, width: 1112, height: 102 },
+        top: 164,
+        left: 1818,
+        width: 352,
+      },
+      card: { top: 164, left: 1818, width: 480, height: 220 },
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+
+    expect(fitted.left).toBeGreaterThanOrEqual(16);
+    expect(fitted.left + fitted.width).toBeLessThanOrEqual(1920 - 16);
+    expect(fitted.top).toBeGreaterThan(164);
+  });
+
+  it("pulls a card back from the left edge of the viewport", () => {
+    const fitted = keepTourCardOnScreen({
+      placement: {
+        spot: { top: 300, left: 8, width: 240, height: 56 },
+        top: 300,
+        left: -180,
+        width: 352,
+      },
+      card: { top: 300, left: -180, width: 352, height: 220 },
+      viewportWidth: 1280,
+      viewportHeight: 800,
+    });
+
+    expect(fitted.left).toBe(16);
+    expect(fitted.top).toBe(300);
+  });
+
+  it("keeps the layout viewport when the window is fully on screen", () => {
+    const visible = visibleLayoutSize({
+      width: 1951,
+      height: 1104,
+      screenX: 0,
+      screenY: 29,
+      outerWidth: 1920,
+      outerHeight: 1171,
+      availWidth: 1920,
+      availHeight: 1200,
+    });
+    expect(visible).toEqual({ width: 1951, height: 1104 });
+  });
+
+  it("keeps the layout viewport when screen size is the emulated viewport", () => {
+    expect(
+      visibleLayoutSize({
+        width: 375,
+        height: 740,
+        screenX: 40,
+        screenY: 40,
+        outerWidth: 508,
+        outerHeight: 825,
+        availWidth: 390,
+        availHeight: 740,
+      })
+    ).toEqual({ width: 375, height: 740 });
+  });
+
+  it("shrinks the layout viewport when the window hangs off the screen", () => {
+    const visible = visibleLayoutSize({
+      width: 1951,
+      height: 1104,
+      screenX: 200,
+      screenY: 0,
+      outerWidth: 1920,
+      outerHeight: 1100,
+      availWidth: 1920,
+      availHeight: 1200,
+    });
+
+    expect(visible.width).toBeLessThan(1800);
+    expect(visible.width).toBeGreaterThan(1700);
+    expect(visible.height).toBe(1104);
   });
 
   it("centers the card when the target is missing", () => {

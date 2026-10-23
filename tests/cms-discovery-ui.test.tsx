@@ -106,13 +106,15 @@ function context(
   };
 }
 
-function rect(width = 160, height = 44): DOMRect {
+const targetBox = { left: 24 };
+
+function rect(width = 160, height = 44, left = 24): DOMRect {
   return {
-    x: 24,
+    x: left,
     y: 80,
     top: 80,
-    left: 24,
-    right: 24 + width,
+    left,
+    right: left + width,
     bottom: 80 + height,
     width,
     height,
@@ -133,12 +135,17 @@ describe("CMS discovery UI", () => {
     nav.pushed = [];
     localStorage.clear();
     sessionStorage.clear();
+    targetBox.left = 24;
     originalRect = HTMLElement.prototype.getBoundingClientRect;
     HTMLElement.prototype.getBoundingClientRect = function () {
+      const className = this.getAttribute("class") ?? "";
+      if (this.getAttribute("data-cms-discovery") === "guide-summary") {
+        return rect(160, 44, targetBox.left);
+      }
       if (
         this.hasAttribute("data-cms-discovery") ||
-        this.classList.contains("cmsTourCard") ||
-        this.classList.contains("cmsTourSpot")
+        className.includes("cmsTourCard") ||
+        className.includes("cmsTourSpot")
       ) {
         return rect();
       }
@@ -232,8 +239,17 @@ describe("CMS discovery UI", () => {
     await act(async () => {
       next()?.click();
     });
-    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
     expect(nav.pushed).toEqual(["/guides"]);
+    expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
+
+    const library = document.createElement("section");
+    library.setAttribute("data-cms-discovery", "guides-library");
+    library.textContent = "Guide library";
+    document.body.append(library);
+    await renderDiscovery(context(), "/guides");
+
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
+    expect(tourStep()?.getAttribute("data-cms-tour-placement")).toBe("target");
     expect(tourStep()?.textContent).toContain("2 of 2");
 
     await act(async () => {
@@ -273,18 +289,26 @@ describe("CMS discovery UI", () => {
         .find((button) => button.textContent === "Next")
         ?.click();
     });
-    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
+    expect(
+      sessionStorage.getItem("river-aftercare:cms-discovery-active:user_ada")
+    ).toContain('"stepIndex":1');
+    expect(tourStep()).toBeNull();
 
     await act(async () => {
       root.unmount();
     });
+    const library = document.createElement("section");
+    library.setAttribute("data-cms-discovery", "guides-library");
+    library.textContent = "Guide library";
+    document.body.append(library);
     root = createRoot(container);
     await renderDiscovery(context(), "/guides");
 
     expect(welcome()).toBeNull();
     expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
     expect(tourStep()?.textContent).toContain("2 of 2");
-    expect(tourStep()?.getAttribute("data-cms-tour-motion")).not.toBe("route");
+    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("shown");
+    expect(tourStep()?.getAttribute("data-cms-tour-placement")).toBe("target");
   });
 
   it("keeps the spotlight off the previous page until the next route is ready", async () => {
@@ -298,15 +322,10 @@ describe("CMS discovery UI", () => {
         ?.click();
     });
 
-    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
-    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("route");
-    expect(tourStep()?.style.opacity).toBe("0");
-    expect(
-      document
-        .querySelector("[data-cms-tour-spot]")
-        ?.getAttribute("data-cms-tour-motion")
-    ).toBe("route");
     expect(nav.pushed).toEqual(["/guides"]);
+    expect(tourStep()).toBeNull();
+    expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
+    expect(document.querySelector("[data-cms-tour-layer]")).toBeNull();
 
     const library = document.createElement("section");
     library.setAttribute("data-cms-discovery", "guides-library");
@@ -315,12 +334,36 @@ describe("CMS discovery UI", () => {
     await renderDiscovery(context(), "/guides");
 
     expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
-    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("reveal");
+    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("shown");
+    expect(tourStep()?.style.opacity).not.toBe("0");
     expect(
       document
         .querySelector("[data-cms-tour-spot]")
         ?.getAttribute("data-cms-tour-motion")
-    ).toBe("reveal");
+    ).toBe("shown");
+    expect(tourStep()?.getAttribute("data-cms-tour-placement")).toBe("target");
+  });
+
+  it("follows a target that moves after the spotlight is shown", async () => {
+    await renderDiscovery();
+    await act(async () => {
+      welcome()?.querySelector("button")?.click();
+    });
+
+    const before = tourStep()?.style.left;
+    expect(before).toBeTruthy();
+    targetBox.left = 420;
+
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("overview");
+    expect(tourStep()?.style.left).not.toBe(before);
+    expect(tourStep()?.style.opacity).not.toBe("0");
+    expect(document.querySelector("[data-cms-tour-spot]")).not.toBeNull();
   });
 
   it("glides the spotlight between two targets on the same page", async () => {
@@ -364,7 +407,225 @@ describe("CMS discovery UI", () => {
 
     expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("nearby");
     expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("move");
+    expect(tourStep()?.style.opacity).not.toBe("0");
+    expect(tourStep()?.textContent).toContain("The next control is already");
     expect(nav.pushed).toEqual([]);
+  });
+
+  it("fades the current step out before navigating", async () => {
+    await renderDiscovery();
+    await act(async () => {
+      welcome()?.querySelector("button")?.click();
+    });
+    const spotTop = (
+      document.querySelector("[data-cms-tour-spot]") as HTMLElement | null
+    )?.style.top;
+    expect(spotTop).not.toBe("");
+
+    const original = window.getComputedStyle.bind(window);
+    window.getComputedStyle = ((element: Element, pseudo?: string | null) => {
+      const style = original(element, pseudo);
+      return new Proxy(style, {
+        get(target, prop, receiver) {
+          if (prop === "transitionDuration") {
+            return "300ms";
+          }
+          if (prop === "animationDuration") {
+            return "0s";
+          }
+          const value = Reflect.get(target, prop, receiver);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+    }) as typeof window.getComputedStyle;
+
+    try {
+      await act(async () => {
+        [...(tourStep()?.querySelectorAll("button") ?? [])]
+          .find((button) => button.textContent === "Next")
+          ?.click();
+      });
+
+      expect(nav.pushed).toEqual([]);
+      expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("overview");
+      expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("exit");
+      expect(tourStep()?.textContent).toContain(
+        "This is your clinic snapshot."
+      );
+      expect(
+        (document.querySelector("[data-cms-tour-spot]") as HTMLElement | null)
+          ?.style.top
+      ).toBe(spotTop);
+      expect(
+        (document.querySelector("[data-cms-tour-spot]") as HTMLElement | null)
+          ?.style.opacity
+      ).toBe("0");
+      expect(
+        [...(tourStep()?.querySelectorAll("button") ?? [])].find(
+          (button) => button.textContent === "Next"
+        )?.disabled
+      ).toBe(true);
+
+      await act(async () => {
+        document.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })
+        );
+      });
+      expect(nav.pushed).toEqual([]);
+      expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("overview");
+
+      await act(async () => {
+        const event = new Event("transitionend", { bubbles: true });
+        Object.defineProperty(event, "propertyName", { value: "opacity" });
+        tourStep()?.dispatchEvent(event);
+      });
+
+      expect(nav.pushed).toEqual(["/guides"]);
+      expect(tourStep()).toBeNull();
+      expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
+      expect(document.querySelector("[data-cms-tour-layer]")).toBeNull();
+    } finally {
+      window.getComputedStyle = original;
+    }
+  });
+
+  it("does not highlight the nav fallback while the next page target is missing", async () => {
+    await renderDiscovery();
+    await act(async () => {
+      welcome()?.querySelector("button")?.click();
+    });
+    await act(async () => {
+      [...(tourStep()?.querySelectorAll("button") ?? [])]
+        .find((button) => button.textContent === "Next")
+        ?.click();
+    });
+
+    expect(nav.pushed).toEqual(["/guides"]);
+    expect(tourStep()).toBeNull();
+
+    await renderDiscovery(context(), "/guides");
+    expect(tourStep()).toBeNull();
+    expect(document.querySelector("[data-cms-tour-spot]")).toBeNull();
+
+    const library = document.createElement("section");
+    library.setAttribute("data-cms-discovery", "guides-library");
+    library.textContent = "Guide library";
+    await act(async () => {
+      document.body.append(library);
+    });
+
+    expect(tourStep()?.getAttribute("data-cms-tour-step")).toBe("guides");
+    expect(tourStep()?.getAttribute("data-cms-tour-placement")).toBe("target");
+    expect(tourStep()?.getAttribute("data-cms-tour-motion")).toBe("shown");
+  });
+
+  it("keeps the spotlight when the target box collapses", async () => {
+    await renderDiscovery();
+    await act(async () => {
+      welcome()?.querySelector("button")?.click();
+    });
+    const summary = container.querySelector(
+      "[data-cms-discovery='guide-summary']"
+    ) as HTMLElement;
+    const spot = document.querySelector("[data-cms-tour-spot]") as HTMLElement;
+    const top = spot.style.top;
+    const left = spot.style.left;
+    expect(top).not.toBe("");
+    expect(top).not.toBe("0px");
+
+    summary.getBoundingClientRect = () =>
+      ({
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: 0,
+        height: 0,
+        toJSON() {
+          return {};
+        },
+      }) as DOMRect;
+
+    await act(async () => {
+      window.dispatchEvent(new Event("scroll"));
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => resolve(undefined));
+      });
+    });
+
+    const settled = document.querySelector(
+      "[data-cms-tour-spot]"
+    ) as HTMLElement;
+    expect(settled).not.toBeNull();
+    expect(settled.style.top).toBe(top);
+    expect(settled.style.left).toBe(left);
+  });
+
+  it("ignores a second step request while a route change is leaving", async () => {
+    const routeTour: CmsDiscoveryExperience = {
+      id: "cms-introduction",
+      version: 1,
+      kind: "tour",
+      offer: "welcome",
+      title: "Welcome",
+      body: "Look around.",
+      audience: { roles: ["ADMIN"], requires: ["productNav"] },
+      steps: [
+        {
+          id: "overview",
+          title: "Overview",
+          body: "Snapshot.",
+          target: "guide-summary",
+          path: "/dashboard",
+        },
+        {
+          id: "guides",
+          title: "Guides",
+          body: "Library.",
+          target: "guides-library",
+          fallbackTarget: "nav-guides",
+          path: "/guides",
+        },
+        {
+          id: "practice",
+          title: "Practice",
+          body: "Settings.",
+          target: "practice-settings",
+          path: "/practice",
+        },
+      ],
+    };
+    await renderDiscovery(context(), "/dashboard", [routeTour]);
+    await act(async () => {
+      welcome()?.querySelector("button")?.click();
+    });
+
+    const next = () =>
+      [...(tourStep()?.querySelectorAll("button") ?? [])].find(
+        (button) => button.textContent === "Next"
+      );
+
+    await act(async () => {
+      next()?.click();
+      next()?.click();
+    });
+
+    expect(nav.pushed).toEqual(["/guides"]);
+    expect(tourStep()).toBeNull();
+
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+      );
+    });
+    expect(tourStep()).toBeNull();
+    expect(document.querySelector("[data-cms-tour-layer]")).toBeNull();
+    expect(
+      sessionStorage.getItem("river-aftercare:cms-discovery-active:user_ada")
+    ).toBeNull();
+    expect(nav.pushed).toEqual(["/guides"]);
   });
 
   it("dismisses the welcome card for this user and keeps another user's card", async () => {
@@ -705,6 +966,119 @@ describe("CMS discovery UI", () => {
     expect(tourStep()?.getAttribute("data-cms-tour-placement")).toBe("menu");
     expect(menu.contains(tourStep())).toBe(true);
     expect(link.classList.contains("cmsTourTarget")).toBe(true);
+  });
+
+  it("shows the mobile menu card when screen metrics include browser chrome", async () => {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes("max-width: 767px"),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    const previousInnerWidth = window.innerWidth;
+    const previousInnerHeight = window.innerHeight;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 390,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 740,
+    });
+    Object.defineProperty(window, "screenX", { configurable: true, value: 40 });
+    Object.defineProperty(window, "screenY", { configurable: true, value: 40 });
+    Object.defineProperty(window, "outerWidth", {
+      configurable: true,
+      value: 508,
+    });
+    Object.defineProperty(window, "outerHeight", {
+      configurable: true,
+      value: 825,
+    });
+    Object.defineProperty(window.screen, "availWidth", {
+      configurable: true,
+      value: 390,
+    });
+    Object.defineProperty(window.screen, "availHeight", {
+      configurable: true,
+      value: 740,
+    });
+    HTMLElement.prototype.getBoundingClientRect = function () {
+      const className = this.getAttribute("class") ?? "";
+      if (className.includes("cmsTourCard")) {
+        return rect(343, 317, 16);
+      }
+      if (this.hasAttribute("data-cms-discovery")) {
+        return {
+          ...rect(320, 48, 16),
+          y: 180,
+          top: 180,
+          bottom: 228,
+        } as DOMRect;
+      }
+      return originalRect.call(this);
+    };
+    const menu = document.createElement("div");
+    menu.setAttribute("data-cms-discovery-menu", "true");
+    menu.setAttribute("inert", "");
+    const link = document.createElement("span");
+    link.setAttribute("data-cms-discovery", "nav-patient-site");
+    link.textContent = "View patient site";
+    menu.append(link);
+    Object.assign(menu, {
+      showPopover: () => {
+        menu.removeAttribute("inert");
+      },
+      hidePopover: vi.fn(),
+    });
+    document.body.append(menu);
+
+    const menuTour: CmsDiscoveryExperience = {
+      id: "cms-introduction",
+      version: 1,
+      kind: "tour",
+      offer: "welcome",
+      title: "Welcome to River Aftercare",
+      body: "A short tour shows how this workspace is organised.",
+      audience: { roles: ["ADMIN", "STAFF"], requires: ["productNav"] },
+      steps: [
+        {
+          id: "patient-site",
+          title: "Patient site",
+          body: "View patient site opens the published clinic site.",
+          target: "nav-patient-site",
+        },
+      ],
+    };
+
+    await act(async () => {
+      root.render(
+        <CmsDiscoveryRoot context={context()} experiences={[menuTour]}>
+          <CmsOverviewTourEntry />
+          <CmsTourReplay />
+        </CmsDiscoveryRoot>
+      );
+    });
+    await act(async () => {
+      welcome()?.querySelector("button")?.click();
+    });
+    await act(async () => {
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => resolve(undefined));
+      });
+    });
+
+    expect(tourStep()?.getAttribute("data-cms-tour-ready")).toBe("true");
+    expect(tourStep()?.getAttribute("style") ?? "").not.toContain("width:");
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: previousInnerWidth,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: previousInnerHeight,
+    });
   });
 
   it("waits until the mobile menu finishes opening before drawing the card", async () => {
