@@ -83,8 +83,14 @@ describe("input semantics", () => {
         return [];
       }
     }
+    class ResizeObserverStub {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
     Object.assign(globalThis, {
       IntersectionObserver: IntersectionObserverStub,
+      ResizeObserver: ResizeObserverStub,
     });
     container = document.createElement("div");
     document.body.appendChild(container);

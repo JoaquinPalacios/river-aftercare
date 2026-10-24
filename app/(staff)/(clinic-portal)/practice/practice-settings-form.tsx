@@ -24,31 +24,19 @@ import {
   savePracticeSettingsAction,
   type PracticeActionState,
 } from "@/app/(staff)/(clinic-portal)/practice/actions";
+import {
+  attachPracticeSectionNav,
+  PRACTICE_SECTION_NAV,
+  type PracticeSectionId,
+} from "@/app/(staff)/(clinic-portal)/practice/practice-section-nav";
 import { formSaveStatus } from "@/lib/clinic-portal/form-save-status";
 import type { PracticeSettingsInput } from "@/lib/clinic-portal/practice-settings-schema";
 import { CLINIC_TYPEFACE_OPTIONS } from "@/lib/branding/clinic-typeface";
 
 const initial: PracticeActionState = {};
 
-const SECTIONS = [
-  { id: "practice-identity", label: "Identity" },
-  { id: "practice-branding", label: "Branding" },
-  { id: "practice-contact", label: "Contact" },
-  { id: "practice-emergency", label: "Emergency" },
-  { id: "practice-presentation", label: "Presentation" },
-] as const;
-
 function snapshot(values: PracticeSettingsInput): string {
   return JSON.stringify(values);
-}
-
-function scrollToSection(id: string) {
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  document.getElementById(id)?.scrollIntoView({
-    behavior: reduce ? "auto" : "smooth",
-    block: "start",
-    inline: "nearest",
-  });
 }
 
 export function PracticeSettingsForm({
@@ -81,9 +69,12 @@ export function PracticeSettingsForm({
     "light"
   );
   const [confirmed, setConfirmed] = useState(() => snapshot(values));
-  const [activeSection, setActiveSection] = useState<
-    (typeof SECTIONS)[number]["id"]
-  >(SECTIONS[0].id);
+  const [activeSection, setActiveSection] = useState<PracticeSectionId>(
+    PRACTICE_SECTION_NAV[0].id
+  );
+  const scrollToSectionRef = useRef<(id: PracticeSectionId) => void>(
+    () => undefined
+  );
   const serialized = useMemo(() => snapshot(form), [form]);
   const dirty = serialized !== confirmed;
   const saveStatus = formSaveStatus({ dirty, pending });
@@ -146,37 +137,18 @@ export function PracticeSettingsForm({
   }, [state]);
 
   useEffect(() => {
-    const nodes = SECTIONS.map((section) =>
-      document.getElementById(section.id)
-    ).filter((node): node is HTMLElement => Boolean(node));
-    if (nodes.length === 0) {
+    const anchor = document.getElementById(PRACTICE_SECTION_NAV[0].id);
+    if (!(anchor instanceof HTMLElement)) {
       return;
     }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .toSorted(
-            (left, right) => right.intersectionRatio - left.intersectionRatio
-          )[0];
-        if (visible?.target.id) {
-          setActiveSection(
-            visible.target.id as (typeof SECTIONS)[number]["id"]
-          );
-        }
-      },
-      {
-        rootMargin: "-20% 0px -55% 0px",
-        threshold: [0.15, 0.35, 0.6],
-      }
-    );
-
-    for (const node of nodes) {
-      observer.observe(node);
-    }
-
-    return () => observer.disconnect();
+    const nav = attachPracticeSectionNav(anchor, (id) => {
+      setActiveSection((current) => (current === id ? current : id));
+    });
+    scrollToSectionRef.current = nav.scrollTo;
+    return () => {
+      scrollToSectionRef.current = () => undefined;
+      nav.disconnect();
+    };
   }, []);
 
   function patch<K extends keyof PracticeSettingsInput>(
@@ -193,7 +165,7 @@ export function PracticeSettingsForm({
         className="mb-6 hidden lg:sticky lg:top-4 lg:mb-0 lg:block"
       >
         <ul className="staffNavGroup">
-          {SECTIONS.map((section) => {
+          {PRACTICE_SECTION_NAV.map((section) => {
             const current = activeSection === section.id;
             return (
               <li key={section.id}>
@@ -203,8 +175,7 @@ export function PracticeSettingsForm({
                   className="staffNavRow staffSectionNavRow"
                   onClick={(event) => {
                     event.preventDefault();
-                    scrollToSection(section.id);
-                    setActiveSection(section.id);
+                    scrollToSectionRef.current(section.id);
                   }}
                 >
                   {section.label}
