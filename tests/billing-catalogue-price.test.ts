@@ -25,10 +25,10 @@ import {
 
 describe("catalogue price amounts", () => {
   it("charges 10 monthly payments for 12 months of access", () => {
-    expect(ESSENTIAL_MONTHLY_CENTS).toBe(5_900);
-    expect(ESSENTIAL_YEARLY_CENTS).toBe(59_000);
-    expect(PRACTICE_MONTHLY_CENTS).toBe(12_900);
-    expect(PRACTICE_YEARLY_CENTS).toBe(129_000);
+    expect(ESSENTIAL_MONTHLY_CENTS).toBe(4_900);
+    expect(ESSENTIAL_YEARLY_CENTS).toBe(49_000);
+    expect(PRACTICE_MONTHLY_CENTS).toBe(11_900);
+    expect(PRACTICE_YEARLY_CENTS).toBe(119_000);
     expect(ESSENTIAL_YEARLY_CENTS).toBe(ESSENTIAL_MONTHLY_CENTS * 10);
     expect(PRACTICE_YEARLY_CENTS).toBe(PRACTICE_MONTHLY_CENTS * 10);
     expect(PRACTICE_ADDITIONAL_LOCATION_MONTHLY_CENTS).toBe(5_900);
@@ -66,8 +66,28 @@ describe("catalogue price amounts", () => {
         ESSENTIAL_MONTHLY_CENTS,
         "MONTHLY",
         conformingCataloguePrice("price_test_essential_monthly", {
+          unit_amount: 5_900,
+          unit_amount_decimal: "5900",
+        })
+      )
+    ).toBe("amount");
+    expect(
+      cataloguePriceMismatchReason(
+        ESSENTIAL_MONTHLY_CENTS,
+        "MONTHLY",
+        conformingCataloguePrice("price_test_essential_monthly", {
           unit_amount: 7_900,
           unit_amount_decimal: "7900",
+        })
+      )
+    ).toBe("amount");
+    expect(
+      cataloguePriceMismatchReason(
+        PRACTICE_YEARLY_CENTS,
+        "YEARLY",
+        conformingCataloguePrice("price_test_practice_yearly", {
+          unit_amount: 129_000,
+          unit_amount_decimal: "129000",
         })
       )
     ).toBe("amount");
@@ -91,7 +111,7 @@ describe("catalogue price amounts", () => {
         conformingCataloguePrice("price_test_essential_monthly", {
           unit_amount_decimal: {
             toString() {
-              return "5900.00";
+              return "4900.00";
             },
           },
         })
