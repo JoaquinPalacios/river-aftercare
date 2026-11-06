@@ -157,6 +157,10 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("Second location:");
     expect(html).not.toContain("Third and subsequent");
     expect(html).not.toContain("Additional location");
+    expect(html).not.toContain("A$59");
+    expect(html).not.toContain("A$129");
+    expect(html).not.toContain("A$590");
+    expect(html).not.toContain("A$1,290");
     expect(html).not.toContain("A$79");
     expect(html).not.toContain("A$790");
     expect(html).not.toContain("A$399");
@@ -171,8 +175,8 @@ describe("marketing pricing page", () => {
     expect(html).not.toContain("plus GST");
     expect(html).not.toMatch(/\bGST\b/);
     expect(html).toContain("2 months free");
-    expect(html).toContain("A$590/year");
-    expect(html).toContain("A$1,290/year");
+    expect(html).toContain("A$490/year");
+    expect(html).toContain("A$1,190/year");
     expect(html).toContain("12 months for the price of 10");
     expect(html).not.toContain("billed annually");
     expect(html).not.toContain("16.7%");
@@ -467,16 +471,16 @@ describe("marketing pricing page", () => {
 
 describe("canonical plan prices", () => {
   it("keeps advertised production amounts in one source", () => {
-    expect(PLAN_PRICES.essential.monthlyAudInclGst).toBe(59);
-    expect(PLAN_PRICES.essential.annualAudInclGst).toBe(590);
+    expect(PLAN_PRICES.essential.monthlyAudInclGst).toBe(49);
+    expect(PLAN_PRICES.essential.annualAudInclGst).toBe(490);
     expect(PLAN_PRICES.essential.annualAudInclGst).toBe(
       PLAN_PRICES.essential.monthlyAudInclGst * 10
     );
     expect(PLAN_PRICES.essential.includedLocations).toBe(1);
     expect(PLAN_PRICES.essential.customGuides).toBe(2);
     expect(PLAN_PRICES.essential.clinicTeamMembers).toBe(2);
-    expect(PLAN_PRICES.practice.monthlyAudInclGst).toBe(129);
-    expect(PLAN_PRICES.practice.annualAudInclGst).toBe(1290);
+    expect(PLAN_PRICES.practice.monthlyAudInclGst).toBe(119);
+    expect(PLAN_PRICES.practice.annualAudInclGst).toBe(1190);
     expect(PLAN_PRICES.practice.annualAudInclGst).toBe(
       PLAN_PRICES.practice.monthlyAudInclGst * 10
     );

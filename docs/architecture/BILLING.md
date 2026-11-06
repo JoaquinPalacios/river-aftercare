@@ -243,7 +243,7 @@ Migration `20260926140000_add_group_capacity_foundation` is additive. Migration 
 
 ### Practice Additional Location
 
-Practice base remains A$129/month or A$1,290/year and includes the first physical Location and one Clinic Site. There is no Essential additional-location Price. Essential stays 1 Clinic Site and 1 Location.
+Practice base is A$119/month or A$1,190/year and includes the first physical Location and one Clinic Site. There is no Essential additional-location Price. Essential is A$49/month or A$490/year and stays 1 Clinic Site and 1 Location.
 
 One per-unit Price per interval, `River Aftercare Practice — Additional Location`:
 
@@ -665,10 +665,10 @@ Follow Stripe’s catalogue rule: **one Product per plan the customer can choose
 
 | Stripe Product            | Monthly Price                   | Yearly Price                    |
 | ------------------------- | ------------------------------- | ------------------------------- |
-| River Aftercare Essential | AUD 5900 cents, interval month  | AUD 59000 cents, interval year  |
-| River Aftercare Practice  | AUD 12900 cents, interval month | AUD 129000 cents, interval year |
+| River Aftercare Essential | AUD 4900 cents, interval month  | AUD 49000 cents, interval year  |
+| River Aftercare Practice  | AUD 11900 cents, interval month | AUD 119000 cents, interval year |
 
-All `tax_behavior: inclusive`. Currency `aud`. Nickname the Prices clearly (`essential_monthly`, etc.).
+Currency `aud`. Do not mark these Prices tax inclusive. River Aftercare is not registering for GST, and Stripe Tax stays off. Nickname the Prices clearly (`essential_monthly`, etc.).
 
 Group is a Stripe Product in the approved catalogue above: base A$399/month or A$3,990/year, plus an Additional Site Price of A$50/month or A$500/year. Retired Group base Prices stay recognisable through `STRIPE_GROUP_MONTHLY_LEGACY_PRICE_IDS` and `STRIPE_GROUP_YEARLY_LEGACY_PRICE_IDS`. Additional Site Price ids stay current because that amount is unchanged. Group Checkout is operator-prepared. Public Group pricing stays custom. Group has no standalone paid Additional Location Price. Practice Additional Location is a separate per-unit Price at A$59 per month or A$590 per year for every additional Location, not quantity on the Practice base Price. Retired graduated Prices stay recognisable through the additional-location legacy Price id lists. Until an account is converted, an operator may still raise the stored Practice location allowance. Public Group copy stays custom. Site and location capacity is still enforced in the product. A missing entitlement is 1 site and 1 location, never unlimited. Essential is always 1/1. Practice is always one site.
 
@@ -710,7 +710,7 @@ Why not Stripe Tax (Option B) for launch:
 
 | Concern                                               | Option A (manual inclusive 10% GST)                                                                                           | Option B (Stripe Tax)                                                                                                     |
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Advertised totals stay A$59 / A$129 / A$590 / A$1,290 | Yes, if `inclusive: true`                                                                                                     | Yes only if `tax_behavior: inclusive` **and** tax actually calculates                                                     |
+| Advertised totals stay A$49 / A$119 / A$490 / A$1,190 | Yes, if `inclusive: true`                                                                                                     | Yes only if `tax_behavior: inclusive` **and** tax actually calculates                                                     |
 | AU-only, fixed B2B SaaS                               | Matches                                                                                                                       | Extra machinery                                                                                                           |
 | ABN on a domestic AU→AU sale                          | GST still charged; customer claims input tax credits                                                                          | Stripe Tax docs treat ABN as **no GST for remote sellers**. A mis-set origin could omit GST on taxable domestic supplies. |
 | Fees                                                  | None beyond Billing                                                                                                           | Tax Basic is **0.5% per transaction** (Billing/Checkout) where registered; Tax Complete from A$140/month                  |
@@ -719,7 +719,7 @@ Why not Stripe Tax (Option B) for launch:
 
 This is **not** a tax determination. Joaquín’s accountant must confirm: GST registration, that these plans are taxable supplies, that inclusive 10% is correct, and invoice wording.
 
-Stripe’s own [Australia invoicing guide](https://docs.stripe.com/invoicing/australia-invoicing) still applies: seller identity, ABN, “Tax Invoice” subtitle via custom field, GST amount (required to be explicit for supplies **A$1,000+** — Practice annual is A$1,290), buyer identity or ABN. Current decision remains: River Aftercare is not registering for GST, Prices are not marked tax inclusive, and Stripe Tax stays off. The inclusive-GST option in this section is the historical investigation, not the live setting.
+Stripe’s own [Australia invoicing guide](https://docs.stripe.com/invoicing/australia-invoicing) still applies: seller identity, ABN, “Tax Invoice” subtitle via custom field, GST amount (required to be explicit for supplies **A$1,000+** — Practice annual is A$1,190), buyer identity or ABN. Current decision remains: River Aftercare is not registering for GST, Prices are not marked tax inclusive, and Stripe Tax stays off. The inclusive-GST option in this section is the historical investigation, not the live setting.
 
 ### E.4 Amounts vs marketing
 
@@ -979,7 +979,7 @@ Persist `StripeInvoiceRef` (IDs + URLs) optionally for the Billing page; **alway
 
 ### J.2 A$1,000+ recipient identity
 
-Practice annual A$1,290 **requires** buyer identity or ABN on the tax invoice under the superseded inclusive-GST investigation below. The live setting does not charge GST. Therefore **before Checkout**:
+Practice annual A$1,190 **requires** buyer identity or ABN on the tax invoice under the superseded inclusive-GST investigation below. The live setting does not charge GST. Therefore **before Checkout**:
 
 Collect on `ClinicBillingProfile`: legal entity name, trading/practice name (if different), ABN (strongly recommended for all; **required for annual Practice**), billing address, billing contact, billing email, plan, interval.
 
@@ -1082,7 +1082,7 @@ Do not enable public self-serve signup, coupons, trials, Group automation, locat
 - [ ] Inclusive 10% GST tax rate named `GST`, inclusive, display name GST
 - [ ] Default on subscription invoices
 - [ ] Invoice custom field: `Tax Invoice`
-- [ ] Inclusive tax shown on PDF; GST amount visible (historical investigation for Practice annual A$1,290; live setting does not charge GST)
+- [ ] Inclusive tax shown on PDF; GST amount visible (historical investigation for Practice annual A$1,190; live setting does not charge GST)
 - [ ] Email: finalised invoices, receipts, failed payments
 - [ ] Do **not** also send River billing duplicates
 - [ ] Hosted invoice page on

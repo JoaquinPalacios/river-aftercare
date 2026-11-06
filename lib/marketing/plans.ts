@@ -37,8 +37,8 @@ export function annualSavingFraction(): number {
  */
 export const PLAN_PRICES = {
   essential: {
-    monthlyAudInclGst: 59,
-    annualAudInclGst: annualAudFromMonthly(59),
+    monthlyAudInclGst: 49,
+    annualAudInclGst: annualAudFromMonthly(49),
     includedLocations: 1,
     customGuides: ESSENTIAL_CUSTOM_GUIDE_LIMIT,
     clinicTeamMembers: ESSENTIAL_TEAM_MEMBER_LIMIT,
@@ -46,8 +46,8 @@ export const PLAN_PRICES = {
     combinedClinicOwnedGuides: ESSENTIAL_COMBINED_GUIDE_LIMIT,
   },
   practice: {
-    monthlyAudInclGst: 129,
-    annualAudInclGst: annualAudFromMonthly(129),
+    monthlyAudInclGst: 119,
+    annualAudInclGst: annualAudFromMonthly(119),
     includedLocations: 1,
     customGuides: PRACTICE_CUSTOM_GUIDE_LIMIT,
     clinicTeamMembers: PRACTICE_TEAM_MEMBER_LIMIT,
