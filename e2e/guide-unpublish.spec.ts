@@ -1,8 +1,16 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { expectGenericNotFound } from "./helpers/assertions";
 import { DEMO_TENANT_SLUG, staffUrl, tenantUrl } from "./helpers/origins";
 import { signInAsLocalAdmin, signInAsLocalStaff } from "./helpers/staff-auth";
+
+async function findGuideRow(page: Page, title: string) {
+  await page.goto(staffUrl("/guides"), { waitUntil: "load" });
+  await page.getByRole("searchbox", { name: "Search guides" }).fill(title);
+  const row = page.getByRole("row", { name: title });
+  await expect(row).toBeVisible();
+  return row;
+}
 
 test.describe("published guide unpublish lifecycle", () => {
   test("admin can unpublish, public URL 404s, and republish restores it", async ({
@@ -85,8 +93,7 @@ test.describe("published guide unpublish lifecycle", () => {
       path: "test-results/artifacts/phase-2a.5-unpublish-public-404.png",
     });
 
-    await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    const row = page.getByRole("row", { name: title });
+    const row = await findGuideRow(page, title);
     await expect(row.getByText("Unpublished", { exact: true })).toHaveCount(1);
     await page.screenshot({
       path: "test-results/artifacts/phase-2a.5-unpublish-guides-status.png",
@@ -112,14 +119,29 @@ test.describe("published guide unpublish lifecycle", () => {
       path: "test-results/artifacts/phase-2a.5-unpublish-republish.png",
     });
 
-    await page.goto(staffUrl("/guides"), { waitUntil: "load" });
-    await row.getByRole("button", { name: "More actions" }).click();
+    const listed = await findGuideRow(page, title);
+    await listed.getByRole("button", { name: "More actions" }).click();
     await page.getByRole("menuitem", { name: "Unpublish guide" }).click();
     await page
       .getByRole("dialog", { name: "Unpublish this guide?" })
       .getByRole("button", { name: "Unpublish guide" })
       .click();
-    await expect(row.getByText("Unpublished", { exact: true })).toHaveCount(1);
+    await expect(listed.getByText("Unpublished", { exact: true })).toHaveCount(
+      1
+    );
+
+    await listed.getByRole("button", { name: "More actions" }).click();
+    await page.getByRole("menuitem", { name: "Delete guide" }).click();
+    await page
+      .getByRole("dialog", { name: "Delete this guide?" })
+      .getByRole("button", { name: "Delete guide" })
+      .click();
+    await expect(page).toHaveURL(staffUrl("/guides"));
+    await page.getByRole("searchbox", { name: "Search guides" }).fill(title);
+    await expect(
+      page.getByText("No guides match the current search.")
+    ).toBeVisible();
+    await expect(page.getByRole("row", { name: title })).toHaveCount(0);
   });
 
   test("clinic staff cannot unpublish", async ({ page }) => {

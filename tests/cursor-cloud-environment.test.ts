@@ -81,10 +81,10 @@ describe("Cursor Cloud environment contract", () => {
     expect(agents).toContain("Review is required for Node, pnpm,");
   });
 
-  it("pins Node.js 26.13.1 locally and selects 26.x on Vercel", () => {
+  it("pins Node.js 26.13.1 locally and keeps Vercel on 24.x", () => {
     expect(readFileSync(".nvmrc", "utf8").trim()).toBe("26.13.1");
     expect(readFileSync(".node-version", "utf8").trim()).toBe("26.13.1");
-    expect(packageJson.engines?.node).toBe("26.x");
+    expect(packageJson.engines?.node).toBe("24.x");
     expect(dockerfile).toContain("NODE_VERSION=26.13.1");
     const workflow = readFileSync(
       ".github/workflows/prisma-release-gate.yml",

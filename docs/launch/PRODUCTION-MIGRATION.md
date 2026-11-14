@@ -106,6 +106,7 @@ These are different machines with different credentials.
 - should **not** require adding `DIRECT_URL` merely to support ordinary application runtime
 - the current gate proceeds when `DATABASE_URL` is present; Prisma CLI prefers `DIRECT_URL` if it happens to be set, otherwise `DATABASE_URL`
 - do not expose `DIRECT_URL` to Vercel unless a future explicitly reviewed implementation genuinely requires it
+- the 14 November 2026 Node 26 production build failed with Prisma `P1001` while opening the pooled host from the Washington build region. The pooled and direct hostnames share the same address records, so a direct URL would not have given that build a different network path. `DIRECT_URL` stays off Vercel. Vercel stays on Node 24, which is the runtime of the deployment that is still serving
 
 `DIRECT_URL` is for trusted production migration execution. `DATABASE_URL` remains the application runtime connection.
 

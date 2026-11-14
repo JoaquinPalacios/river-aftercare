@@ -6,9 +6,13 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const nodeMajor = Number(process.versions.node.split(".")[0]);
-if (!Number.isInteger(nodeMajor) || nodeMajor < 26) {
+if (
+  process.features.typescript !== "strip" ||
+  !Number.isInteger(nodeMajor) ||
+  (nodeMajor !== 24 && nodeMajor !== 26)
+) {
   console.error(
-    `Canonical template import requires Node.js 26. This process is Node ${process.versions.node}.`
+    `Canonical template import requires Node.js 24 or Node.js 26 with built-in TypeScript stripping. This process is Node ${process.versions.node}.`
   );
   process.exit(1);
 }
