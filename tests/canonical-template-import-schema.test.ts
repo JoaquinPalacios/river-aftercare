@@ -545,7 +545,7 @@ describe("canonical template import schema", () => {
     expect(appSource).not.toContain("canonical-template:import");
   });
 
-  it("prints import help from the Node 26 CLI", async () => {
+  it("prints import help from the CLI", async () => {
     const result = await execFileAsync(
       process.execPath,
       [
