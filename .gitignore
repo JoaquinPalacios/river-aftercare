@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+/prototypes/prisma-8/node_modules
+/prototypes/prisma-8/generated
 /.pnp
 .pnp.*
 .yarn/*
