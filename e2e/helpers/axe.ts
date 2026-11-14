@@ -7,7 +7,7 @@ export async function setPortalColorScheme(
 ): Promise<void> {
   await page.emulateMedia({ colorScheme: scheme });
   const appearance = page.locator("aside").getByRole("button", {
-    name: /Appearance, colour theme currently/,
+    name: /Appearance (Light|Dark|System), colour theme/,
   });
   const dialogOpen = (await page.locator("dialog[open]").count()) > 0;
   if (
@@ -80,22 +80,33 @@ export async function setPortalColorScheme(
   await expect
     .poll(async () =>
       page.evaluate((mode) => {
-        const parseRgb = (value: string) => {
-          const match = value.match(
-            /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/
-          );
-          if (!match) {
-            return null;
-          }
-          return {
-            r: Number(match[1]) / 255,
-            g: Number(match[2]) / 255,
-            b: Number(match[3]) / 255,
-          };
-        };
-        const luminance = (rgb: { r: number; g: number; b: number }) =>
-          0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b;
-
+        const tabs = [...document.querySelectorAll(".staffActivityTab")].filter(
+          (element): element is HTMLElement => element instanceof HTMLElement
+        );
+        if (tabs.length === 0) {
+          return true;
+        }
+        const expected =
+          mode === "dark"
+            ? {
+                muted: "rgb(168, 178, 194)",
+                brand: "rgb(142, 160, 255)",
+              }
+            : {
+                muted: "rgb(92, 101, 115)",
+                brand: "rgb(59, 75, 209)",
+              };
+        return tabs.every((tab) => {
+          const color = getComputedStyle(tab).color;
+          const selected = tab.getAttribute("aria-current") === "page";
+          return color === (selected ? expected.brand : expected.muted);
+        });
+      }, scheme)
+    )
+    .toBe(true);
+  await expect
+    .poll(async () =>
+      page.evaluate((mode) => {
         const visible = [
           ...document.querySelectorAll(".staffBtnSecondary"),
         ].filter(
@@ -111,23 +122,22 @@ export async function setPortalColorScheme(
         if (visible.length === 0) {
           return true;
         }
+        const settled =
+          mode === "dark"
+            ? [
+                ["rgb(255, 255, 255)", "rgb(12, 14, 20)"],
+                ["rgb(255, 255, 255)", "rgb(21, 24, 34)"],
+              ]
+            : [
+                ["rgb(10, 13, 20)", "rgb(255, 255, 255)"],
+                ["rgb(59, 75, 209)", "rgb(255, 255, 255)"],
+              ];
         return visible.every((element) => {
           const style = getComputedStyle(element);
-          const background = parseRgb(style.backgroundColor);
-          const foreground = parseRgb(style.color);
-          if (!background || !foreground) {
-            return false;
-          }
-          const backgroundLum = luminance(background);
-          const foregroundLum = luminance(foreground);
-          const lighter = Math.max(backgroundLum, foregroundLum);
-          const darker = Math.min(backgroundLum, foregroundLum);
-          const contrast = (lighter + 0.05) / (darker + 0.05);
-          const backgroundSettled =
-            mode === "dark" ? backgroundLum < 0.3 : backgroundLum > 0.7;
-          const foregroundSettled =
-            mode === "dark" ? foregroundLum > 0.7 : foregroundLum < 0.3;
-          return backgroundSettled && foregroundSettled && contrast >= 4.5;
+          return settled.some(
+            ([color, background]) =>
+              style.color === color && style.backgroundColor === background
+          );
         });
       }, scheme)
     )

@@ -84,16 +84,16 @@ export async function createOperatorClinic(
   try {
     return await getPrisma().$transaction(async (tx) => {
       await lockAndAssertTenantSlugsAvailable(tx, [values.slug]);
-      const [clinicTaken, siteTaken] = await Promise.all([
-        tx.clinic.findUnique({
-          where: { slug: values.slug },
-          select: { id: true },
-        }),
-        tx.clinicSite.findUnique({
-          where: { slug: values.slug },
-          select: { id: true },
-        }),
-      ]);
+      // One transaction uses one pg client. Overlapping queries on that
+      // client are deprecated in pg 8.23 and removed in pg 9.
+      const clinicTaken = await tx.clinic.findUnique({
+        where: { slug: values.slug },
+        select: { id: true },
+      });
+      const siteTaken = await tx.clinicSite.findUnique({
+        where: { slug: values.slug },
+        select: { id: true },
+      });
       if (clinicTaken || siteTaken) {
         throw new ClinicPortalError(
           "That tenant slug is already in use.",

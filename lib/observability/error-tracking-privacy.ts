@@ -29,23 +29,41 @@ export function createErrorTrackingInitOptions(
     enabled: true,
     environment: config.environment,
     ...(config.release ? { release: config.release } : {}),
-    sendDefaultPii: false,
     tracesSampleRate: 0,
+    // SDK 11 ignores beforeSendTransaction unless the lifecycle is static.
+    // Static keeps the drop hook effective and does not enable streaming spans.
+    traceLifecycle: "static",
     maxBreadcrumbs: 0,
     enableLogs: false,
     includeLocalVariables: false,
     includeServerName: false,
     sendClientReports: false,
     attachStacktrace: true,
-    skipOpenTelemetrySetup: true,
+    enableOpenTelemetrySetup: false,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0,
     profilesSampleRate: 0,
+    // SDK 11 collects these categories unless they are set. This keeps the
+    // previous restrictive floor: no user info, cookies, bodies, query text,
+    // or model inputs. Header and query denylist matches the v10 scrub.
     dataCollection: {
       userInfo: false,
       cookies: false,
+      httpHeaders: {
+        request: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+        response: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+      },
       httpBodies: [],
+      urlQueryParams: {
+        deny: ["forwarded", "-ip", "remote-", "via", "-user"],
+      },
+      genAI: { inputs: false, outputs: false },
+      mcp: { inputs: false, outputs: false },
+      databaseQueryData: false,
+      queues: false,
+      graphQL: { document: false, variables: false },
       stackFrameVariables: false,
+      frameContextLines: 7,
     },
     beforeSend(event: Record<string, unknown>) {
       try {

@@ -379,9 +379,7 @@ describe("Stripe configuration check", () => {
     const result = spawnSync(
       process.execPath,
       [
-        "--experimental-transform-types",
         "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
-        "--disable-warning=ExperimentalWarning",
         "scripts/stripe-config-check.mjs",
       ],
       {

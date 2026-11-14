@@ -53,7 +53,7 @@ Sanitization is **server-only**. Regex is not the security boundary. The stored 
 
 Ordinary Practice mutations (display name, colours, contact, emergency text, presentation) must not import `jsdom`, DOMPurify, or `sanitize-clinic-logo-svg`. Those live in `practice/actions.ts`. Logo upload/remove live in `practice/logo-actions.ts`. `mutate-clinic-logo` dynamically imports the sanitizer only after `validateClinicLogo` reports `kind === "svg"`. Raster PNG/JPEG/WebP uploads never load jsdom.
 
-`jsdom` is pinned to **26.1.0** (CJS `html-encoding-sniffer@4` / `parse5@7`). jsdom 27+ requires ESM-only `@exodus/bytes` from CommonJS; Vercel’s Node runtime rejects that with `ERR_REQUIRE_ESM`. Do not “fix” this by changing Vercel `NODE_OPTIONS`. Fail closed on SVG rather than skip sanitization.
+`jsdom` is pinned to **26.1.0** (CJS `html-encoding-sniffer@4` / `parse5@7`). Re-checked on 14 November 2026: jsdom 31.0.1 is still CommonJS and depends on ESM-only `parse5@8` and `@exodus/bytes`. Vercel’s Node runtime disables `require(esm)`, so that graph throws `ERR_REQUIRE_ESM`. Do not “fix” this by changing Vercel `NODE_OPTIONS`. Fail closed on SVG rather than skip sanitization.
 
 ## Production provider
 

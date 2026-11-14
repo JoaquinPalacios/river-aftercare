@@ -523,25 +523,23 @@ export async function loadExtraDowngradeContext(
   tx: Prisma.TransactionClient,
   clinicId: string
 ): Promise<ExtraDowngradeContext> {
-  const [preparation, entitlement, guides] = await Promise.all([
-    tx.clinicDowngradePreparation.findUnique({
-      where: { clinicId },
-      select: {
-        status: true,
-        selections: {
-          select: { practiceGuide: { select: guideSelect } },
-        },
+  const preparation = await tx.clinicDowngradePreparation.findUnique({
+    where: { clinicId },
+    select: {
+      status: true,
+      selections: {
+        select: { practiceGuide: { select: guideSelect } },
       },
-    }),
-    tx.clinicEntitlement.findUnique({
-      where: { clinicId },
-      select: { scheduledCommercialPlan: true, commercialPlan: true },
-    }),
-    tx.practiceGuide.findMany({
-      where: { clinicId, downgradeRetainedAt: null },
-      select: guideSelect,
-    }),
-  ]);
+    },
+  });
+  const entitlement = await tx.clinicEntitlement.findUnique({
+    where: { clinicId },
+    select: { scheduledCommercialPlan: true, commercialPlan: true },
+  });
+  const guides = await tx.practiceGuide.findMany({
+    where: { clinicId, downgradeRetainedAt: null },
+    select: guideSelect,
+  });
   const selectedGuides =
     preparation?.selections.map((row) => row.practiceGuide) ?? [];
   const selection = selectionCountsForGuides(

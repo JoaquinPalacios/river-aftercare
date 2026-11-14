@@ -24,7 +24,12 @@ import { subscriptionCancellationScheduled } from "@/lib/billing/stripe-event";
 
 export const PLAN_UPGRADE_PRORATION_BEHAVIOR = "always_invoice" as const;
 export const PLAN_UPGRADE_PAYMENT_BEHAVIOR = "pending_if_incomplete" as const;
-export const PLAN_UPGRADE_BILLING_CYCLE_ANCHOR = "unchanged" as const;
+// Stripe API 2026-10-28.endive (stripe-node 23) takes an object here.
+// `type: "unchanged"` is the previous string `"unchanged"`: the billing
+// cycle anchor stays where it is when the price changes.
+export const PLAN_UPGRADE_BILLING_CYCLE_ANCHOR = {
+  type: "unchanged",
+} as const;
 
 export type PlanChangeCode =
   | "downgrade_deferred"

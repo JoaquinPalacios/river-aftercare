@@ -1,10 +1,10 @@
 export class PlatformSeoAssetError extends Error {
-  constructor(
-    message: string,
-    readonly code: "forbidden" | "invalid"
-  ) {
+  readonly code: "forbidden" | "invalid";
+
+  constructor(message: string, code: "forbidden" | "invalid") {
     super(message);
     this.name = "PlatformSeoAssetError";
+    this.code = code;
   }
 }
 

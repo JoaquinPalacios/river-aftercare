@@ -4,16 +4,9 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const nodeMajor = Number(process.versions.node.split(".")[0]);
-if (!Number.isInteger(nodeMajor) || nodeMajor < 24) {
+if (!Number.isInteger(nodeMajor) || nodeMajor < 26) {
   console.error(
-    `Stripe configuration check requires Node.js 24. This process is Node ${process.versions.node}.`
-  );
-  process.exit(1);
-}
-
-if (!process.execArgv.includes("--experimental-transform-types")) {
-  console.error(
-    "Run pnpm stripe:config:check so Node can load the Stripe configuration check."
+    `Stripe configuration check requires Node.js 26. This process is Node ${process.versions.node}.`
   );
   process.exit(1);
 }

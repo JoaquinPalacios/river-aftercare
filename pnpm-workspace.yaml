@@ -8,3 +8,13 @@ ignoredBuiltDependencies:
   - unrs-resolver
 minimumReleaseAgeExclude:
   - zod@4.6.2
+  - "@aws-sdk/client-s3@3.1169.0"
+  - "@eslint/config-array@0.23.6"
+  - "@playwright/test@1.65.1"
+  - eslint@10.15.0
+  - framer-motion@14.14.0
+  - motion-dom@14.14.0
+  - motion@14.14.0
+  - playwright-core@1.65.1
+  - playwright@1.65.1
+  - resend@6.38.1

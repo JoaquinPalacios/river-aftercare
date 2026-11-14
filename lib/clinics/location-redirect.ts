@@ -78,20 +78,18 @@ export async function createClinicLocationRedirect(input: {
     throw invalid("A location redirect must move to a different clinic site.");
   }
 
-  const [preparation, source, destination] = await Promise.all([
-    input.tx.clinicAccountSplitPreparation.findUnique({
-      where: { id: input.preparationId },
-      select: { id: true },
-    }),
-    input.tx.clinicSite.findUnique({
-      where: { id: input.sourceClinicSiteId },
-      select: { id: true },
-    }),
-    input.tx.clinicSite.findUnique({
-      where: { id: input.destinationClinicSiteId },
-      select: { id: true },
-    }),
-  ]);
+  const preparation = await input.tx.clinicAccountSplitPreparation.findUnique({
+    where: { id: input.preparationId },
+    select: { id: true },
+  });
+  const source = await input.tx.clinicSite.findUnique({
+    where: { id: input.sourceClinicSiteId },
+    select: { id: true },
+  });
+  const destination = await input.tx.clinicSite.findUnique({
+    where: { id: input.destinationClinicSiteId },
+    select: { id: true },
+  });
   if (!preparation) {
     throw invalid("That preparation was not found.");
   }

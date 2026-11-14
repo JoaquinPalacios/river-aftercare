@@ -209,15 +209,17 @@ describe("verification event send path", () => {
     const options = sentry.init.mock.calls[0]?.[0] as {
       environment: string;
       enabled: boolean;
-      sendDefaultPii: boolean;
       tracesSampleRate: number;
-      skipOpenTelemetrySetup: boolean;
+      enableOpenTelemetrySetup: boolean;
+      dataCollection: { userInfo: boolean; httpBodies: unknown[] };
     };
     expect(options.environment).toBe("verification");
     expect(options.enabled).toBe(true);
-    expect(options.sendDefaultPii).toBe(false);
+    expect(options).not.toHaveProperty("sendDefaultPii");
     expect(options.tracesSampleRate).toBe(0);
-    expect(options.skipOpenTelemetrySetup).toBe(true);
+    expect(options.enableOpenTelemetrySetup).toBe(false);
+    expect(options.dataCollection.userInfo).toBe(false);
+    expect(options.dataCollection.httpBodies).toEqual([]);
     expect(sentry.captureEvent).toHaveBeenCalledOnce();
     expect(sentry.flush).toHaveBeenCalledOnce();
   });
@@ -348,7 +350,9 @@ describe("verification event send path", () => {
   it("does not require VERCEL_ENV for verification init options", () => {
     const options = createVerificationInitOptions(FAKE_DSN);
     expect(options.environment).toBe("verification");
-    expect(options.sendDefaultPii).toBe(false);
+    expect(options).not.toHaveProperty("sendDefaultPii");
+    expect(options.enableOpenTelemetrySetup).toBe(false);
+    expect(options.dataCollection.userInfo).toBe(false);
     expect(options.includeServerName).toBe(false);
     expect(options.tracesSampleRate).toBe(0);
     expect(JSON.stringify({ environment: options.environment })).not.toContain(

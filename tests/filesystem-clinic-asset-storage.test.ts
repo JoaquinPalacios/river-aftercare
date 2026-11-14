@@ -37,6 +37,7 @@ const previous = {
   origin: process.env.CLINIC_ASSET_PUBLIC_ORIGIN,
   vercel: process.env.VERCEL,
   vercelEnv: process.env.VERCEL_ENV,
+  databaseUrl: process.env.DATABASE_URL,
 };
 
 function restoreEnv(): void {
@@ -46,6 +47,7 @@ function restoreEnv(): void {
     CLINIC_ASSET_PUBLIC_ORIGIN: previous.origin,
     VERCEL: previous.vercel,
     VERCEL_ENV: previous.vercelEnv,
+    DATABASE_URL: previous.databaseUrl,
   })) {
     if (value === undefined) {
       delete process.env[key];
@@ -211,6 +213,10 @@ describe("filesystem clinic asset storage", () => {
     process.env.CLINIC_ASSET_STORAGE_DRIVER = "filesystem";
     process.env.CLINIC_ASSET_FILESYSTEM_ROOT = root;
     delete process.env.CLINIC_ASSET_PUBLIC_ORIGIN;
+    // A suite-level DATABASE_URL must not turn this no-database serve path
+    // into a clinic lookup. Production still looks the clinic up when a
+    // database is configured; that contract is asserted below.
+    delete process.env.DATABASE_URL;
     resetClinicAssetStorageCache();
 
     const writer = createFilesystemClinicAssetStorage({ root });
@@ -240,6 +246,23 @@ describe("filesystem clinic asset storage", () => {
     expect(Array.from(new Uint8Array(await response.arrayBuffer()))).toEqual(
       Array.from(PNG)
     );
+
+    if (previous.databaseUrl) {
+      process.env.DATABASE_URL = previous.databaseUrl;
+      const missingClinic = await getFallbackClinicLogo(
+        new Request(
+          "http://localhost:3000/clinic-branding/clinic_filesystem_route_absent/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png",
+          { headers: { host: "localhost:3000" } }
+        ),
+        {
+          params: Promise.resolve({
+            clinicId: "clinic_filesystem_route_absent",
+            filename: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png",
+          }),
+        }
+      );
+      expect(missingClinic.status).toBe(404);
+    }
   });
 
   it("refuses the filesystem driver on Vercel", () => {

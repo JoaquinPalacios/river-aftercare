@@ -23,7 +23,7 @@ pnpm canonical-template:import -- --apply --operator-email operator@example.com 
 pnpm canonical-template:import -- --apply --allow-production --confirm-draft-import --operator-email operator@example.com content/canonical-templates
 ```
 
-Requires Node.js 24.
+Requires Node.js 26. Type stripping is built in, so the command does not pass a TypeScript transform flag.
 
 ### Local
 

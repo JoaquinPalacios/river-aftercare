@@ -86,9 +86,12 @@ export type CompleteEmailChangeResult =
     };
 
 export class AccountTokenError extends Error {
-  constructor(readonly code: "invalid_email" | "invalid_invitation") {
+  readonly code: "invalid_email" | "invalid_invitation";
+
+  constructor(code: "invalid_email" | "invalid_invitation") {
     super(code);
     this.name = "AccountTokenError";
+    this.code = code;
   }
 }
 
@@ -566,24 +569,22 @@ export async function completeInvitation(input: {
       return { ok: false, reason: latestFailure ?? "missing" };
     }
 
-    const [user, clinic, membershipCount] = await Promise.all([
-      tx.user.findUnique({
-        where: { id: latest.userId },
-        select: {
-          id: true,
-          email: true,
-          passwordHash: true,
-          platformRole: true,
-        },
-      }),
-      tx.clinic.findUnique({
-        where: { id: latest.clinicId },
-        select: { id: true },
-      }),
-      tx.clinicMembership.count({
-        where: { userId: latest.userId },
-      }),
-    ]);
+    const user = await tx.user.findUnique({
+      where: { id: latest.userId },
+      select: {
+        id: true,
+        email: true,
+        passwordHash: true,
+        platformRole: true,
+      },
+    });
+    const clinic = await tx.clinic.findUnique({
+      where: { id: latest.clinicId },
+      select: { id: true },
+    });
+    const membershipCount = await tx.clinicMembership.count({
+      where: { userId: latest.userId },
+    });
 
     if (
       invitationAcceptanceIsStale({

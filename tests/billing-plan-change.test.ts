@@ -43,7 +43,7 @@ function stripePort(
       items: Array<{ id: string; price: string }>;
       proration_behavior: string;
       payment_behavior: string;
-      billing_cycle_anchor: string;
+      billing_cycle_anchor: typeof PLAN_UPGRADE_BILLING_CYCLE_ANCHOR;
     };
     idempotencyKey?: string;
   }>;
@@ -54,7 +54,7 @@ function stripePort(
       items: Array<{ id: string; price: string }>;
       proration_behavior: string;
       payment_behavior: string;
-      billing_cycle_anchor: string;
+      billing_cycle_anchor: typeof PLAN_UPGRADE_BILLING_CYCLE_ANCHOR;
     };
     idempotencyKey?: string;
   }> = [];

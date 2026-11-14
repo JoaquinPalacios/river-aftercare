@@ -21,6 +21,10 @@ import {
   tenantUrl,
 } from "./helpers/origins";
 import {
+  acquireDemoBrandingLock,
+  releaseDemoBrandingLock,
+} from "./helpers/demo-branding-lock";
+import {
   signInAsLocalAdmin,
   signInAsLocalOperator,
   signInAsLocalStaff,
@@ -690,7 +694,7 @@ test.describe("clinic portal UX polish", () => {
     await signInAsLocalAdmin(page);
     await page.setViewportSize({ width: 1440, height: 900 });
     const appearance = page.locator("aside").getByRole("button", {
-      name: /Appearance, colour theme currently/,
+      name: /Appearance (Light|Dark|System), colour theme/,
     });
     await expect(appearance).toBeVisible();
     await appearance.click();
@@ -712,7 +716,7 @@ test.describe("clinic portal UX polish", () => {
     await page
       .locator("aside")
       .getByRole("button", {
-        name: /Appearance, colour theme currently/,
+        name: /Appearance (Light|Dark|System), colour theme/,
       })
       .click();
     await page.getByRole("radio", { name: "Light" }).click();
@@ -730,7 +734,9 @@ test.describe("clinic portal UX polish", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("button", { name: "Clinic portal menu" }).click();
     await expect(
-      page.getByRole("button", { name: /Appearance, colour theme currently/ })
+      page.getByRole("button", {
+        name: /Appearance (Light|Dark|System), colour theme/,
+      })
     ).toBeVisible();
     await page.screenshot({
       path: "test-results/artifacts/staff-mobile-nav-appearance-390.png",
@@ -741,48 +747,57 @@ test.describe("clinic portal UX polish", () => {
     page,
   }) => {
     await signInAsLocalAdmin(page);
-    await page.goto(staffUrl("/practice"), { waitUntil: "load" });
-    await expect(
-      page.getByRole("heading", { name: "Practice identity" })
-    ).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Branding" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Contact" })).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: "Emergency / urgent help" })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: "Patient presentation" })
-    ).toBeVisible();
-    await expect(page.locator("[data-save-state=saved]")).toBeVisible();
-    await expect(
-      page.getByText("Practice logo", { exact: true }).first()
-    ).toBeVisible();
-    await expect(page.locator("#clinic-logo-file")).toHaveCount(1);
-    await expect(page.locator("#clinic-dark-logo-file")).toHaveCount(1);
-    await expect(page.locator("#clinic-favicon-file")).toHaveCount(1);
-    await expect(
-      page
-        .getByRole("group", { name: "Practice logo" })
-        .getByText("Choose replacement")
-    ).toBeVisible();
-    await expect(
-      page.getByText("SVG, PNG, JPEG or WebP", { exact: false }).first()
-    ).toBeVisible();
-    await expect(page.locator('input[type="file"]')).toHaveCount(3);
-    await expect(page.locator('input[type="color"]')).toHaveCount(5);
-    await page.getByLabel("Display name").fill("Riverside Dental Demo ");
-    await expect(page.locator("[data-save-state=unsaved]")).toBeVisible();
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.screenshot({
-      path: "test-results/artifacts/staff-practice-sections-1440.png",
-      fullPage: true,
-    });
-    await page.getByRole("link", { name: "Guides" }).click();
-    await expect(
-      page.getByRole("dialog", { name: "Discard unsaved changes?" })
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Discard changes" }).click();
-    await expect(page).toHaveURL(staffUrl("/guides"));
+    await acquireDemoBrandingLock();
+    try {
+      await page.goto(staffUrl("/practice"), { waitUntil: "load" });
+      await expect(
+        page.getByRole("heading", { name: "Practice identity" })
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Branding" })
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Contact" })
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Emergency / urgent help" })
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Patient presentation" })
+      ).toBeVisible();
+      await expect(page.locator("[data-save-state=saved]")).toBeVisible();
+      await expect(
+        page.getByText("Practice logo", { exact: true }).first()
+      ).toBeVisible();
+      await expect(page.locator("#clinic-logo-file")).toHaveCount(1);
+      await expect(page.locator("#clinic-dark-logo-file")).toHaveCount(1);
+      await expect(page.locator("#clinic-favicon-file")).toHaveCount(1);
+      await expect(
+        page
+          .getByRole("group", { name: "Practice logo" })
+          .getByText("Choose replacement")
+      ).toBeVisible();
+      await expect(
+        page.getByText("SVG, PNG, JPEG or WebP", { exact: false }).first()
+      ).toBeVisible();
+      await expect(page.locator('input[type="file"]')).toHaveCount(3);
+      await expect(page.locator('input[type="color"]')).toHaveCount(5);
+      await page.getByLabel("Display name").fill("Riverside Dental Demo ");
+      await expect(page.locator("[data-save-state=unsaved]")).toBeVisible();
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.screenshot({
+        path: "test-results/artifacts/staff-practice-sections-1440.png",
+        fullPage: true,
+      });
+      await page.getByRole("link", { name: "Guides" }).click();
+      await expect(
+        page.getByRole("dialog", { name: "Discard unsaved changes?" })
+      ).toBeVisible();
+      await page.getByRole("button", { name: "Discard changes" }).click();
+      await expect(page).toHaveURL(staffUrl("/guides"));
+    } finally {
+      await releaseDemoBrandingLock();
+    }
   });
 
   test("new custom guide shows empty live preview", async ({ page }) => {
@@ -806,17 +821,15 @@ test.describe("clinic portal UX polish", () => {
       fullPage: true,
     });
     await page
-      .getByRole("button", { name: "Cancel" })
-      .filter({ visible: true })
+      .locator(".staffEditorToolbarActions")
+      .getByRole("button", { name: "More actions" })
       .click();
-    await expect(page).toHaveURL(staffUrl("/guides"));
-    const row = page.getByRole("row", { name: new RegExp(slug) });
-    await row.getByRole("button", { name: "More actions" }).click();
-    await row.getByRole("menuitem", { name: "Delete guide" }).click();
+    await page.getByRole("menuitem", { name: "Delete guide" }).click();
     await page
       .getByRole("dialog", { name: "Delete this guide?" })
       .getByRole("button", { name: "Delete guide" })
       .click();
+    await expect(page).toHaveURL(staffUrl("/guides"));
     await expect(page.getByText(slug)).toHaveCount(0);
   });
 
