@@ -195,6 +195,7 @@ describe("Sentry error tracking configuration", () => {
       environment: string;
       release: string;
       tracesSampleRate: number;
+      traceLifecycle: string;
       maxBreadcrumbs: number;
       enableLogs: boolean;
       includeLocalVariables: boolean;
@@ -216,6 +217,7 @@ describe("Sentry error tracking configuration", () => {
     expect(options.release).toBe("deadbeefcafebabe");
     expect(options).not.toHaveProperty("sendDefaultPii");
     expect(options.tracesSampleRate).toBe(0);
+    expect(options.traceLifecycle).toBe("static");
     expect(options.maxBreadcrumbs).toBe(0);
     expect(options.enableLogs).toBe(false);
     expect(options.includeLocalVariables).toBe(false);
@@ -256,6 +258,7 @@ describe("Sentry error tracking configuration", () => {
     expect(options.enableOpenTelemetrySetup).toBe(false);
     expect(options.dataCollection.userInfo).toBe(false);
     expect(options.tracesSampleRate).toBe(0);
+    expect(options.traceLifecycle).toBe("static");
     expect(options.maxBreadcrumbs).toBe(0);
     expect(options.includeServerName).toBe(false);
     expect(options.replaysSessionSampleRate).toBe(0);

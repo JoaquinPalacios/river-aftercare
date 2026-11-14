@@ -177,6 +177,7 @@ describe("client error tracking", () => {
       enableOpenTelemetrySetup: boolean;
       dataCollection: { userInfo: boolean; cookies: boolean };
       tracesSampleRate: number;
+      traceLifecycle: string;
       profilesSampleRate: number;
       replaysSessionSampleRate: number;
     };
@@ -188,6 +189,7 @@ describe("client error tracking", () => {
     expect(options.dataCollection.userInfo).toBe(false);
     expect(options.dataCollection.cookies).toBe(false);
     expect(options.tracesSampleRate).toBe(0);
+    expect(options.traceLifecycle).toBe("static");
     expect(options.profilesSampleRate).toBe(0);
     expect(options.replaysSessionSampleRate).toBe(0);
 

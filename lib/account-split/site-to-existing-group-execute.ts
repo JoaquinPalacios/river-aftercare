@@ -420,31 +420,26 @@ export async function executeSiteToExistingGroupCutover(
       { preparationId: snapshot.preparation.id },
     ],
   };
-  const [
-    sourceCommercial,
-    destinationCommercial,
-    destinationProfile,
-    redirectsBefore,
-  ] = await Promise.all([
-    tx.clinicEntitlement.findUnique({
-      where: { clinicId: snapshot.source.id },
-      select: COMMERCIAL_SELECT,
-    }),
-    tx.clinicEntitlement.findUnique({
-      where: { clinicId: destinationId },
-      select: COMMERCIAL_SELECT,
-    }),
-    tx.clinicProfile.findUnique({
-      where: { clinicId: destinationId },
-      select: {
-        displayName: true,
-        logoUrl: true,
-        darkLogoUrl: true,
-        faviconUrl: true,
-      },
-    }),
-    tx.clinicLocationRedirect.count({ where: redirectScope }),
-  ]);
+  const sourceCommercial = await tx.clinicEntitlement.findUnique({
+    where: { clinicId: snapshot.source.id },
+    select: COMMERCIAL_SELECT,
+  });
+  const destinationCommercial = await tx.clinicEntitlement.findUnique({
+    where: { clinicId: destinationId },
+    select: COMMERCIAL_SELECT,
+  });
+  const destinationProfile = await tx.clinicProfile.findUnique({
+    where: { clinicId: destinationId },
+    select: {
+      displayName: true,
+      logoUrl: true,
+      darkLogoUrl: true,
+      faviconUrl: true,
+    },
+  });
+  const redirectsBefore = await tx.clinicLocationRedirect.count({
+    where: redirectScope,
+  });
   const destinationGuidesBefore = await tx.practiceGuide.findMany({
     where: { clinicId: destinationId },
     orderBy: { id: "asc" },
@@ -667,34 +662,30 @@ export async function executeSiteToExistingGroupCutover(
     placementIds: movingPlacements.map((placement) => placement.id),
   });
 
-  const [
-    sourceAfter,
-    destinationAfter,
-    profileAfter,
-    redirectsAfter,
-    guidesAfter,
-  ] = await Promise.all([
-    tx.clinicEntitlement.findUnique({
-      where: { clinicId: snapshot.source.id },
-      select: COMMERCIAL_SELECT,
-    }),
-    tx.clinicEntitlement.findUnique({
-      where: { clinicId: destinationId },
-      select: COMMERCIAL_SELECT,
-    }),
-    tx.clinicProfile.findUnique({
-      where: { clinicId: destinationId },
-      select: {
-        displayName: true,
-        logoUrl: true,
-        darkLogoUrl: true,
-        faviconUrl: true,
-      },
-    }),
-    tx.clinicLocationRedirect.count({ where: redirectScope }),
+  const sourceAfter = await tx.clinicEntitlement.findUnique({
+    where: { clinicId: snapshot.source.id },
+    select: COMMERCIAL_SELECT,
+  });
+  const destinationAfter = await tx.clinicEntitlement.findUnique({
+    where: { clinicId: destinationId },
+    select: COMMERCIAL_SELECT,
+  });
+  const profileAfter = await tx.clinicProfile.findUnique({
+    where: { clinicId: destinationId },
+    select: {
+      displayName: true,
+      logoUrl: true,
+      darkLogoUrl: true,
+      faviconUrl: true,
+    },
+  });
+  const redirectsAfter = await tx.clinicLocationRedirect.count({
+    where: redirectScope,
+  });
+  const guidesAfter =
     destinationGuidesBefore.length === 0
-      ? Promise.resolve([])
-      : tx.practiceGuide.findMany({
+      ? []
+      : await tx.practiceGuide.findMany({
           where: {
             id: { in: destinationGuidesBefore.map((guide) => guide.id) },
           },
@@ -711,8 +702,7 @@ export async function executeSiteToExistingGroupCutover(
             copiedFromPracticeGuideId: true,
             downgradeRetainedAt: true,
           },
-        }),
-  ]);
+        });
   if (
     JSON.stringify(sourceCommercial) !== JSON.stringify(sourceAfter) ||
     JSON.stringify(destinationCommercial) !== JSON.stringify(destinationAfter)

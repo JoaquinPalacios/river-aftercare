@@ -1,5 +1,5 @@
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { accessSync, constants, mkdirSync } from "node:fs";
+import path from "node:path";
 
 import { expect, test } from "@playwright/test";
 
@@ -12,12 +12,27 @@ import {
   signInAsLocalOperator,
 } from "./helpers/staff-auth";
 
-const ARTIFACT_DIR = "/opt/cursor/artifacts";
+function artifactDirectory(): string {
+  const override = process.env.CARE_GUIDE_E2E_ARTIFACT_DIR?.trim();
+  if (override) {
+    return override;
+  }
+  const cloudArtifacts = "/opt/cursor/artifacts";
+  try {
+    mkdirSync(cloudArtifacts, { recursive: true });
+    accessSync(cloudArtifacts, constants.W_OK);
+    return cloudArtifacts;
+  } catch {
+    return path.join(process.cwd(), "test-results", "account-artifacts");
+  }
+}
+
+const ARTIFACT_DIR = artifactDirectory();
 
 function artifactPath(name: string) {
-  const path = `${ARTIFACT_DIR}/${name}`;
-  mkdirSync(dirname(path), { recursive: true });
-  return path;
+  const filePath = path.join(ARTIFACT_DIR, name);
+  mkdirSync(path.dirname(filePath), { recursive: true });
+  return filePath;
 }
 
 test.describe("account settings and clinic members", () => {

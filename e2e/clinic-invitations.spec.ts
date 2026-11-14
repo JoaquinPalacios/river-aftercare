@@ -1,11 +1,20 @@
 import { expect, test } from "@playwright/test";
 
 import { expectNoSeriousAxeViolations } from "./helpers/axe";
+import { e2ePrisma } from "./helpers/prisma";
 import { staffUrl } from "./helpers/origins";
 import {
   signInAsLocalAdmin,
   signInAsLocalOperator,
 } from "./helpers/staff-auth";
+
+const ROLE_CHANGE_EMAIL = "role-change-member@example.test";
+const ROLE_CHANGE_NAME = "Role Change Member";
+const DEMO_CLINIC_ID = "clinic_demo_rivers";
+
+async function removeRoleChangeMember(): Promise<void> {
+  await e2ePrisma.user.deleteMany({ where: { email: ROLE_CHANGE_EMAIL } });
+}
 
 test.describe("operator clinic invitations", () => {
   test("operator can open Team and invite a pending user", async ({ page }) => {
@@ -110,43 +119,63 @@ test.describe("operator clinic invitations", () => {
   });
 
   test("operator can change an active member role", async ({ page }) => {
-    await signInAsLocalOperator(page);
-    await page
-      .getByRole("link", { name: "River Aftercare Demo Clinic" })
-      .click();
-    await page.getByRole("link", { name: "Open team" }).click();
-    await expect(page.getByRole("heading", { name: "Team" })).toBeVisible();
-
-    const staffActions = page.getByRole("button", {
-      name: "Actions for Demo Staff",
+    await removeRoleChangeMember();
+    await e2ePrisma.user.create({
+      data: {
+        name: ROLE_CHANGE_NAME,
+        email: ROLE_CHANGE_EMAIL,
+        memberships: {
+          create: {
+            clinicId: DEMO_CLINIC_ID,
+            role: "STAFF",
+          },
+        },
+      },
     });
-    await staffActions.click();
-    await page.getByRole("menuitem", { name: "Change role" }).click();
-    const dialog = page.getByRole("dialog", { name: "Change role" });
-    await expect(
-      dialog.getByRole("heading", { name: "Change role" })
-    ).toBeVisible();
-    await expect(
-      dialog.getByText("Choose the access level for Demo Staff.")
-    ).toBeVisible();
-    const role = dialog.getByLabel("Role", { exact: true });
-    await expect(role).toHaveValue("STAFF");
-    await expect(
-      dialog.getByRole("button", { name: "Save role" })
-    ).toBeDisabled();
-    await role.selectOption("ADMIN");
-    await dialog.getByRole("button", { name: "Save role" }).click();
-    await expect(page.getByText("Role updated.")).toBeVisible();
-    const staffRow = page.getByRole("row").filter({ hasText: "Demo Staff" });
-    await expect(staffRow.getByText("Administrator")).toBeVisible();
 
-    await staffActions.click();
-    await page.getByRole("menuitem", { name: "Change role" }).click();
-    await expect(role).toHaveValue("ADMIN");
-    await role.selectOption("STAFF");
-    await dialog.getByRole("button", { name: "Save role" }).click();
-    await expect(page.getByText("Role updated.")).toBeVisible();
-    await expect(staffRow.getByText("Staff", { exact: true })).toBeVisible();
+    try {
+      await signInAsLocalOperator(page);
+      await page
+        .getByRole("link", { name: "River Aftercare Demo Clinic" })
+        .click();
+      await page.getByRole("link", { name: "Open team" }).click();
+      await expect(page.getByRole("heading", { name: "Team" })).toBeVisible();
+
+      const staffActions = page.getByRole("button", {
+        name: `Actions for ${ROLE_CHANGE_NAME}`,
+      });
+      await staffActions.click();
+      await page.getByRole("menuitem", { name: "Change role" }).click();
+      const dialog = page.getByRole("dialog", { name: "Change role" });
+      await expect(
+        dialog.getByRole("heading", { name: "Change role" })
+      ).toBeVisible();
+      await expect(
+        dialog.getByText(`Choose the access level for ${ROLE_CHANGE_NAME}.`)
+      ).toBeVisible();
+      const role = dialog.getByLabel("Role", { exact: true });
+      await expect(role).toHaveValue("STAFF");
+      await expect(
+        dialog.getByRole("button", { name: "Save role" })
+      ).toBeDisabled();
+      await role.selectOption("ADMIN");
+      await dialog.getByRole("button", { name: "Save role" }).click();
+      await expect(page.getByText("Role updated.")).toBeVisible();
+      const staffRow = page
+        .getByRole("row")
+        .filter({ hasText: ROLE_CHANGE_NAME });
+      await expect(staffRow.getByText("Administrator")).toBeVisible();
+
+      await staffActions.click();
+      await page.getByRole("menuitem", { name: "Change role" }).click();
+      await expect(role).toHaveValue("ADMIN");
+      await role.selectOption("STAFF");
+      await dialog.getByRole("button", { name: "Save role" }).click();
+      await expect(page.getByText("Role updated.")).toBeVisible();
+      await expect(staffRow.getByText("Staff", { exact: true })).toBeVisible();
+    } finally {
+      await removeRoleChangeMember();
+    }
   });
 });
 

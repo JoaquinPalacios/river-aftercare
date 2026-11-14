@@ -16,7 +16,7 @@ describe("portal appearance", () => {
 
     expect(html).toContain("Appearance");
     expect(html).toContain("colour theme");
-    expect(html).toContain("currently System");
+    expect(html).toContain('aria-label="Appearance System, colour theme"');
     expect(html).toContain('data-tooltip="Appearance"');
     expect(html).not.toContain('href="/appearance"');
     expect(html).not.toContain("ThemeProvider");

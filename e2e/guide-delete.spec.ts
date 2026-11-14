@@ -50,10 +50,15 @@ test.describe("guide delete lifecycle", () => {
     await page.locator("#serviceCategory").selectOption("DENTAL");
     await page.getByRole("button", { name: "Create custom guide" }).click();
     await expect(page).toHaveURL(/\/guides\/.+\/edit/);
-    await page
-      .getByRole("button", { name: "Publish guide" })
-      .filter({ visible: true })
-      .click();
+    const publish = page
+      .locator(".staffEditorToolbarActions")
+      .getByRole("button", { name: "Publish guide" });
+    await expect(async () => {
+      await publish.click({ timeout: 1_000 });
+      await expect(
+        page.getByRole("dialog", { name: "Publish this guide?" })
+      ).toBeVisible({ timeout: 1_000 });
+    }).toPass();
     await page
       .getByRole("dialog", { name: "Publish this guide?" })
       .getByRole("button", { name: "Publish guide" })

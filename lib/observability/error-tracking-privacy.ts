@@ -30,6 +30,9 @@ export function createErrorTrackingInitOptions(
     environment: config.environment,
     ...(config.release ? { release: config.release } : {}),
     tracesSampleRate: 0,
+    // SDK 11 ignores beforeSendTransaction unless the lifecycle is static.
+    // Static keeps the drop hook effective and does not enable streaming spans.
+    traceLifecycle: "static",
     maxBreadcrumbs: 0,
     enableLogs: false,
     includeLocalVariables: false,

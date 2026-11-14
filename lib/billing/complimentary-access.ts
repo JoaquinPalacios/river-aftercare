@@ -151,29 +151,28 @@ function parsedMutation(
 }
 
 async function readContext(tx: Db, clinicId: string) {
-  const [clinic, openSplit, profile, entitlement, openNegotiatedOffer] =
-    await Promise.all([
-      tx.clinic.findUnique({
-        where: { id: clinicId },
-        select: { id: true, deactivatedAt: true, archivedAt: true },
-      }),
-      findOpenAccountSplitInvolvingClinic(clinicId, tx),
-      tx.clinicBillingProfile.findUnique({
-        where: { clinicId },
-        select: {
-          stripeSubscriptionId: true,
-          stripeCheckoutSessionId: true,
-        },
-      }),
-      tx.clinicEntitlement.findUnique({ where: { clinicId } }),
-      tx.clinicNegotiatedOffer.findFirst({
-        where: {
-          clinicId,
-          status: { in: ["PREPARED", "CHECKOUT_OPEN"] },
-        },
-        select: { id: true },
-      }),
-    ]);
+  const clinic = await tx.clinic.findUnique({
+    where: { id: clinicId },
+    select: { id: true, deactivatedAt: true, archivedAt: true },
+  });
+  const openSplit = await findOpenAccountSplitInvolvingClinic(clinicId, tx);
+  const profile = await tx.clinicBillingProfile.findUnique({
+    where: { clinicId },
+    select: {
+      stripeSubscriptionId: true,
+      stripeCheckoutSessionId: true,
+    },
+  });
+  const entitlement = await tx.clinicEntitlement.findUnique({
+    where: { clinicId },
+  });
+  const openNegotiatedOffer = await tx.clinicNegotiatedOffer.findFirst({
+    where: {
+      clinicId,
+      status: { in: ["PREPARED", "CHECKOUT_OPEN"] },
+    },
+    select: { id: true },
+  });
   return { clinic, openSplit, profile, entitlement, openNegotiatedOffer };
 }
 
