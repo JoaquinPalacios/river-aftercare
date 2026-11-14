@@ -64,6 +64,55 @@ describe("vercel production schema gate script", () => {
     expect(result.stderr).toBe("");
   });
 
+  it("fails closed when production migrate status cannot open the database", () => {
+    const unreachable =
+      "postgresql://postgres:postgres@127.0.0.1:1/care_guide?connect_timeout=2";
+    const result = spawnSync(
+      process.execPath,
+      ["scripts/vercel-production-schema-gate.mjs"],
+      {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          VERCEL: "1",
+          VERCEL_ENV: "production",
+          DATABASE_URL: unreachable,
+          DIRECT_URL: unreachable,
+        },
+      }
+    );
+    const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+    expect(result.status).not.toBe(0);
+    expect(output).toContain(
+      "Vercel production schema gate: prisma migrate status failed."
+    );
+    expect(output).toContain("This build does not run migrate deploy.");
+    expect(output).not.toContain("postgres:postgres");
+  });
+
+  it("accepts a reachable disposable database that has no pending migrations", () => {
+    const disposable =
+      "postgresql://postgres:postgres@127.0.0.1:54330/care_guide?schema=public";
+    const result = spawnSync(
+      process.execPath,
+      ["scripts/vercel-production-schema-gate.mjs"],
+      {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          VERCEL: "1",
+          VERCEL_ENV: "production",
+          DATABASE_URL: disposable,
+          DIRECT_URL: disposable,
+        },
+      }
+    );
+    expect(result.status).toBe(0);
+    expect(`${result.stdout ?? ""}\n${result.stderr ?? ""}`).toMatch(
+      /up to date|in sync|no pending migrations/i
+    );
+  });
+
   it("does not invoke migrate deploy, seed, or db push", () => {
     const source = readFileSync(
       "scripts/vercel-production-schema-gate.mjs",

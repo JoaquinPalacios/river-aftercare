@@ -28,7 +28,7 @@ Do not use alpha, beta, rc, canary, experimental, or preview packages unless the
 
 Verify versions from registry metadata (`pnpm outdated`, `pnpm view`) rather than assuming freshness. “Latest stable” still means the newest versions that keep this repository’s peer-dependency graph working.
 
-Production runtime: latest actively supported **Node.js LTS** (currently 26.x). Local, CI, and the Cursor Cloud image pin **26.13.1**. Vercel selects the major with `engines.node` set to `26.x` and rolls its own patch. Do not use a newer Current release solely because the version number is higher.
+Local, CI, and the Cursor Cloud image pin Node.js **26.13.1**. Vercel production and preview stay on Node.js **24.x**. `engines.node` is `24.x` so it does not override the Vercel project setting. Prisma ORM 7.10.1 allows Node majors 20, 22, and 24 only. The Node 26 production build could not open the Neon pooler during `prisma migrate status` (P1001). Do not set `engines.node` to `26.x` until a stable Prisma release lists Node 26 and a production build completes that status check against the pooled Neon URL.
 
 Node.js 26 does not ship Corepack. Install `corepack@0.36.0` (`npm install -g corepack@0.36.0`), then `corepack enable` and `corepack prepare --activate` so the `packageManager` pin is the pnpm that installs the lockfile.
 

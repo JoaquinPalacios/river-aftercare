@@ -408,7 +408,7 @@ Clinic portal: Overview, Guides, Practice (ADMIN). Account today is **Account se
 | Audit log       | **None.** The legacy chairside `ProcedureSessionStageTransition` table was removed with the chairside schema. The application does not write an audit log.                                                                                                                                      |
 | Stripe          | **Absent.** No `stripe` package. Privacy copy currently says manual invoicing and that customers do not provide cards through the Service.                                                                                                                                                      |
 | Observability   | Sentry via `@sentry/nextjs` for production/preview exceptions. Session Replay off. [`sensitive-value-sanitizer.ts`](../../lib/observability/sensitive-value-sanitizer.ts) redacts secrets/emails/tokens; extend it for `sk_`, `rk_`, `whsec_`, Stripe IDs in logs. Uptime remains Better Stack. |
-| Runtime         | Next.js 16.4.6 App Router monolith on Vercel. Node.js 26.x (`engines.node`). Local and CI pin 26.13.1.                                                                                                                                                                                          |
+| Runtime         | Next.js 16.4.6 App Router monolith on Vercel. Vercel Node.js 24.x (`engines.node`). Local, CI, and Cloud pin 26.13.1.                                                                                                                                                                           |
 
 ### A.9 Legal / commercial stance today
 
