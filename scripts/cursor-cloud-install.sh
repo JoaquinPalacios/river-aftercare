@@ -18,6 +18,10 @@ if [[ "${DATABASE_URL:-}${E2E_DATABASE_URL:-}" == *neon.tech* ]]; then
   exit 1
 fi
 
+# Node.js 26 no longer ships Corepack. The Cloud image installs the same pin.
+if ! command -v corepack >/dev/null 2>&1; then
+  npm install -g corepack@0.36.0
+fi
 corepack enable
 corepack prepare --activate
 

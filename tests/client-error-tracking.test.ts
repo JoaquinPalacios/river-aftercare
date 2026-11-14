@@ -174,7 +174,8 @@ describe("client error tracking", () => {
       dsn: string;
       environment: string;
       release: string;
-      sendDefaultPii: boolean;
+      enableOpenTelemetrySetup: boolean;
+      dataCollection: { userInfo: boolean; cookies: boolean };
       tracesSampleRate: number;
       profilesSampleRate: number;
       replaysSessionSampleRate: number;
@@ -182,7 +183,10 @@ describe("client error tracking", () => {
     expect(options.dsn).toBe(FAKE_DSN);
     expect(options.environment).toBe("production");
     expect(options.release).toBe(RELEASE_SHA);
-    expect(options.sendDefaultPii).toBe(false);
+    expect(options).not.toHaveProperty("sendDefaultPii");
+    expect(options.enableOpenTelemetrySetup).toBe(false);
+    expect(options.dataCollection.userInfo).toBe(false);
+    expect(options.dataCollection.cookies).toBe(false);
     expect(options.tracesSampleRate).toBe(0);
     expect(options.profilesSampleRate).toBe(0);
     expect(options.replaysSessionSampleRate).toBe(0);

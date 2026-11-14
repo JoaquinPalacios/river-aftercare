@@ -4,8 +4,8 @@ FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
-    NODE_VERSION=24.21.0 \
-    NODE_SHA256=fd8e59d5a511510f6a298afb548f18c7d2b1be404d8b4a27d94fbe49f56cb2d6
+    NODE_VERSION=26.13.1 \
+    NODE_SHA256=5c063e46bab0fbc1c17cc445d7ff129cbdcd0471be6ed83b6ab864f8143bc864
 
 # Keep image builds non-interactive if a package ships a conffile.
 RUN printf 'DPkg::Options { "--force-confdef"; "--force-confold"; };\n' > /etc/apt/apt.conf.d/99cloud-dpkg-options
@@ -25,8 +25,9 @@ RUN curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-l
     && echo "${NODE_SHA256}  /tmp/node.tar.xz" | sha256sum -c - \
     && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
     && rm /tmp/node.tar.xz \
+    && npm install -g corepack@0.36.0 \
     && corepack enable \
-    && corepack prepare pnpm@12.6.0 --activate
+    && corepack prepare pnpm@12.18.0 --activate
 
 # Cursor's documented nested-Docker setup (fuse-overlayfs + iptables-legacy).
 # https://cursor.com/docs/cloud-agent/setup

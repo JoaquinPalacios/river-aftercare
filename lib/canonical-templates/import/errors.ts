@@ -1,7 +1,17 @@
 export class CanonicalTemplateImportError extends Error {
+  readonly code:
+    | "unsupported_schema"
+    | "invalid"
+    | "forbidden_field"
+    | "conflict"
+    | "actor"
+    | "sample"
+    | "usage"
+    | "failed";
+
   constructor(
     message: string,
-    readonly code:
+    code:
       | "unsupported_schema"
       | "invalid"
       | "forbidden_field"
@@ -13,6 +23,7 @@ export class CanonicalTemplateImportError extends Error {
   ) {
     super(message);
     this.name = "CanonicalTemplateImportError";
+    this.code = code;
   }
 }
 

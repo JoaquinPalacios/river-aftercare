@@ -86,9 +86,12 @@ export type CompleteEmailChangeResult =
     };
 
 export class AccountTokenError extends Error {
-  constructor(readonly code: "invalid_email" | "invalid_invitation") {
+  readonly code: "invalid_email" | "invalid_invitation";
+
+  constructor(code: "invalid_email" | "invalid_invitation") {
     super(code);
     this.name = "AccountTokenError";
+    this.code = code;
   }
 }
 

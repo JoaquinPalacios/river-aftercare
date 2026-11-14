@@ -545,13 +545,11 @@ describe("canonical template import schema", () => {
     expect(appSource).not.toContain("canonical-template:import");
   });
 
-  it("prints import help from the Node 24 CLI", async () => {
+  it("prints import help from the Node 26 CLI", async () => {
     const result = await execFileAsync(
       process.execPath,
       [
-        "--experimental-transform-types",
         "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
-        "--disable-warning=ExperimentalWarning",
         "scripts/import-canonical-template.mjs",
         "--help",
       ],

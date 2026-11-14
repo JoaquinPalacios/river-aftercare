@@ -690,7 +690,7 @@ test.describe("clinic portal UX polish", () => {
     await signInAsLocalAdmin(page);
     await page.setViewportSize({ width: 1440, height: 900 });
     const appearance = page.locator("aside").getByRole("button", {
-      name: /Appearance, colour theme currently/,
+      name: /Appearance (Light|Dark|System), colour theme/,
     });
     await expect(appearance).toBeVisible();
     await appearance.click();
@@ -712,7 +712,7 @@ test.describe("clinic portal UX polish", () => {
     await page
       .locator("aside")
       .getByRole("button", {
-        name: /Appearance, colour theme currently/,
+        name: /Appearance (Light|Dark|System), colour theme/,
       })
       .click();
     await page.getByRole("radio", { name: "Light" }).click();
@@ -730,7 +730,9 @@ test.describe("clinic portal UX polish", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("button", { name: "Clinic portal menu" }).click();
     await expect(
-      page.getByRole("button", { name: /Appearance, colour theme currently/ })
+      page.getByRole("button", {
+        name: /Appearance (Light|Dark|System), colour theme/,
+      })
     ).toBeVisible();
     await page.screenshot({
       path: "test-results/artifacts/staff-mobile-nav-appearance-390.png",

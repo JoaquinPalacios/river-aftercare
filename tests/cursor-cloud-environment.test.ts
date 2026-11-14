@@ -17,7 +17,7 @@ const gitignore = readFileSync(".gitignore", "utf8");
 const agents = readFileSync("AGENTS.md", "utf8");
 const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
   packageManager?: string;
-  engines?: { pnpm?: string };
+  engines?: { node?: string; pnpm?: string };
 };
 
 describe("Cursor Cloud environment contract", () => {
@@ -67,9 +67,11 @@ describe("Cursor Cloud environment contract", () => {
     expect(packageManager).toMatch(/^pnpm@\d+\.\d+\.\d+$/);
     const version = packageManager.slice("pnpm@".length);
     expect(packageJson.engines?.pnpm).toBe(`^${version}`);
+    expect(dockerfile).toContain("npm install -g corepack@0.36.0");
     expect(dockerfile).toContain(
       `corepack prepare ${packageManager} --activate`
     );
+    expect(install).toContain("npm install -g corepack@0.36.0");
     expect(dockerfile).not.toMatch(/pnpm@11\b/);
     expect(dockerfile).not.toMatch(/pnpm@(latest|12)(\s|--)/);
     expect(install).toContain("corepack prepare --activate");
@@ -77,6 +79,18 @@ describe("Cursor Cloud environment contract", () => {
     const guide = readFileSync("docs/development/CURSOR-CLOUD.md", "utf8");
     expect(guide).toContain(packageManager);
     expect(agents).toContain("Review is required for Node, pnpm,");
+  });
+
+  it("pins Node.js 26.13.1 locally and selects 26.x on Vercel", () => {
+    expect(readFileSync(".nvmrc", "utf8").trim()).toBe("26.13.1");
+    expect(readFileSync(".node-version", "utf8").trim()).toBe("26.13.1");
+    expect(packageJson.engines?.node).toBe("26.x");
+    expect(dockerfile).toContain("NODE_VERSION=26.13.1");
+    const workflow = readFileSync(
+      ".github/workflows/prisma-release-gate.yml",
+      "utf8"
+    );
+    expect(workflow).toContain("node-version: 26.13.1");
   });
 
   it("documents the Cloud maintenance contract for future agents", () => {

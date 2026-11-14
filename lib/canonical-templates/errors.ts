@@ -1,7 +1,16 @@
 export class CanonicalTemplateError extends Error {
+  readonly code:
+    | "not_found"
+    | "conflict"
+    | "invalid"
+    | "sample"
+    | "immutable"
+    | "inactive"
+    | "pinned";
+
   constructor(
     message: string,
-    readonly code:
+    code:
       | "not_found"
       | "conflict"
       | "invalid"
@@ -12,6 +21,7 @@ export class CanonicalTemplateError extends Error {
   ) {
     super(message);
     this.name = "CanonicalTemplateError";
+    this.code = code;
   }
 }
 

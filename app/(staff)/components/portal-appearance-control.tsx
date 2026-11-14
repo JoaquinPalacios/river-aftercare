@@ -193,13 +193,13 @@ export function PortalAppearanceControl() {
         className="ptlBtn"
         aria-expanded={expanded}
         aria-controls={menuId}
-        aria-label={`Appearance, colour theme currently ${currentLabel}`}
+        aria-label={`Appearance ${currentLabel}, colour theme`}
         data-tooltip="Appearance"
         onClick={() => setExpanded((open) => !open)}
       >
         <StaffNavIcon name="appearance" />
         <span>Appearance</span>
-        <span>{currentLabel}</span>
+        <span> {currentLabel}</span>
       </button>
       {portaled && chooser && typeof document !== "undefined"
         ? createPortal(chooser, document.body)

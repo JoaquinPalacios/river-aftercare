@@ -106,9 +106,12 @@ export type AccountSplitExecutionHooks = {
 };
 
 export class AccountSplitExecutionInterrupted extends Error {
-  constructor(readonly point: AccountSplitExecutionInterrupt) {
+  readonly point: AccountSplitExecutionInterrupt;
+
+  constructor(point: AccountSplitExecutionInterrupt) {
     super(`Account split execution interrupted after ${point}.`);
     this.name = "AccountSplitExecutionInterrupted";
+    this.point = point;
   }
 }
 

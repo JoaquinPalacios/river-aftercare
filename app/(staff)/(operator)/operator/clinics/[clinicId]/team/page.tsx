@@ -113,7 +113,7 @@ export default async function ClinicTeamPage({
         <Link
           href={`/operator/clinics/${clinicId}`}
           className="staffBtn staffBtnQuiet gap-1 px-0"
-          aria-label={`Back to ${team.clinicName}`}
+          aria-label={`Clinic details, back to ${team.clinicName}`}
         >
           <BackArrowIcon />
           Clinic details
