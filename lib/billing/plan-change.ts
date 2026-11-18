@@ -21,6 +21,7 @@ import {
 import { getPrisma } from "@/lib/prisma";
 import { getStripeClient } from "@/lib/billing/stripe-client";
 import { subscriptionCancellationScheduled } from "@/lib/billing/stripe-event";
+import { stripeTrialStillOpen } from "@/lib/billing/trial";
 
 export const PLAN_UPGRADE_PRORATION_BEHAVIOR = "always_invoice" as const;
 export const PLAN_UPGRADE_PAYMENT_BEHAVIOR = "pending_if_incomplete" as const;
@@ -43,7 +44,8 @@ export type PlanChangeCode =
   | "price_not_configured"
   | "subscription_shape"
   | "price_mismatch"
-  | "upgrade_failed";
+  | "upgrade_failed"
+  | "trial_in_progress";
 
 export type PlanChangeState = {
   clinicId: string;
@@ -100,6 +102,9 @@ export function assessOperatorPlanUpgrade(
   ) {
     return { ok: false, code: "cancel_scheduled" };
   }
+  if (state.billingStatus === BillingStatus.TRIALING) {
+    return { ok: false, code: "trial_in_progress" };
+  }
   if (
     state.entitlementStatus !== EntitlementStatus.ACTIVE ||
     state.billingStatus !== BillingStatus.ACTIVE
@@ -138,6 +143,8 @@ export function planChangeMessage(code: PlanChangeCode): string {
     case "price_mismatch":
     case "upgrade_failed":
       return "The plan change could not be sent. Nothing else was subscribed.";
+    case "trial_in_progress":
+      return "Plan changes are available after the free trial ends.";
   }
 }
 
@@ -145,6 +152,8 @@ type SubscriptionItemPrice = { id: string } | string;
 
 export type PlanChangeSubscription = {
   id: string;
+  status?: string | null;
+  trial_end?: number | null;
   cancel_at?: number | null;
   cancel_at_period_end?: boolean | null;
   items: {
@@ -241,6 +250,17 @@ export async function executeOperatorPlanUpgrade(input: {
         reason: "cancel_scheduled",
       });
       return { ok: false, code: "cancel_scheduled" };
+    }
+    if (
+      subscription.status === "trialing" ||
+      stripeTrialStillOpen(subscription.trial_end)
+    ) {
+      logStripeBilling({
+        event: "plan_upgrade_failed",
+        clinicId: assessed.clinicId,
+        reason: "trial_in_progress",
+      });
+      return { ok: false, code: "trial_in_progress" };
     }
     const items = subscription.items.data;
     if (items.length !== 1) {

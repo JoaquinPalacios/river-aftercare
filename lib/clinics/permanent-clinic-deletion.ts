@@ -30,6 +30,7 @@ const DESIGNATED_DEMO_CLINIC_ID = "clinic_demo_rivers";
 
 const LIVE_SUBSCRIPTION_STATUSES: readonly BillingStatus[] = [
   BillingStatus.ACTIVE,
+  BillingStatus.TRIALING,
   BillingStatus.PAST_DUE,
   BillingStatus.UNPAID,
 ];

@@ -164,6 +164,7 @@ function toCandidate(clinic: LoadedClinic, env: Env): BillingNoticeCandidate {
     currentPeriodStart: entitlement?.currentPeriodStart ?? null,
     currentPeriodEnd: entitlement?.currentPeriodEnd ?? null,
     paidThrough: entitlement?.paidThrough ?? null,
+    trialEndsAt: entitlement?.trialEndsAt ?? null,
     cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
     scheduledCommercialPlan: asPlan(
       entitlement?.scheduledCommercialPlan ?? null

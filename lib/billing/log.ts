@@ -90,6 +90,11 @@ export type StripeBillingLogEvent =
       billingInterval: string;
     }
   | {
+      event: "checkout_trial_withheld";
+      clinicId: string;
+      reason: "prior_subscription" | "subscription_history_unavailable";
+    }
+  | {
       event: "checkout_session_failed";
       clinicId: string;
       reason: string;

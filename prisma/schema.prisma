@@ -856,6 +856,9 @@ enum BillingStatus {
   /// No Stripe billing lifecycle. Complimentary access uses this value.
   /// It is not an active, unpaid, past-due, or ended subscription.
   NOT_BILLED
+  /// Catalogue Checkout trial. Product access is open. paidThrough stays
+  /// empty until the first collected invoice on an active subscription.
+  TRIALING
 }
 
 /// How the clinic holds its functional plan.
@@ -1284,6 +1287,10 @@ model ClinicEntitlement {
   currentPeriodStart                  DateTime?
   currentPeriodEnd                    DateTime?
   paidThrough                         DateTime?
+  /// Set when a catalogue Checkout trial starts. Kept after the trial ends,
+  /// including after the first real payment, so the clinic cannot receive
+  /// another trial. This is not a paid-through date.
+  trialEndsAt                         DateTime?
   cancelAtPeriodEnd                   Boolean               @default(false)
   subscriptionEndedAt                 DateTime?
   /// Calculated only when a subscription actually ends. Not set on

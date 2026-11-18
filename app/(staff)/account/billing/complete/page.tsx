@@ -40,17 +40,29 @@ export default async function BillingCompletePage() {
           role="status"
         >
           <p className="staffStatusPill" data-tone="success">
-            Active
+            {presentation.trial?.phase === "in_trial"
+              ? "Free trial"
+              : presentation.trial?.phase === "awaiting_first_charge"
+                ? "First payment processing"
+                : "Active"}
           </p>
           <h2 className="mt-4 text-lg font-semibold">
-            Your River Aftercare subscription is active.
+            {presentation.trial?.phase === "in_trial"
+              ? "Your River Aftercare free trial has started."
+              : presentation.trial?.phase === "awaiting_first_charge"
+                ? "Your free trial has ended."
+                : "Your River Aftercare subscription is active."}
           </h2>
           <p className="mt-2 text-sm text-staff-muted">
             {presentation.planName} · {presentation.intervalLabel}
           </p>
+          {presentation.trial?.message ? (
+            <p className="mt-3 text-sm">{presentation.trial.message}</p>
+          ) : null}
           {presentation.attentionMessage ? (
             <p className="mt-3 text-sm">{presentation.attentionMessage}</p>
-          ) : presentation.assistedSetup ? (
+          ) : presentation.trial
+              ?.message ? null : presentation.assistedSetup ? (
             <p className="mt-3 text-sm">
               Your Practice plan is active. We’ll help you get your River
               Aftercare setup ready.

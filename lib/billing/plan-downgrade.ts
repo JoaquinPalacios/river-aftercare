@@ -25,6 +25,7 @@ import {
 } from "@/lib/billing/price-map";
 import { getStripeClient } from "@/lib/billing/stripe-client";
 import { subscriptionCancellationScheduled } from "@/lib/billing/stripe-event";
+import { stripeTrialStillOpen } from "@/lib/billing/trial";
 import {
   type EssentialDowngradeReadiness,
   loadEssentialDowngradeReadiness,
@@ -94,7 +95,8 @@ export type PlanDowngradeCode =
   | "unsupported"
   | "schedule_failed"
   | "not_scheduled"
-  | "already_transitioned";
+  | "already_transitioned"
+  | "trial_in_progress";
 
 export type PlanDowngradeState = {
   clinicId: string;
@@ -249,6 +251,8 @@ export function planDowngradeMessage(
       return "There is no scheduled downgrade to remove.";
     case "already_transitioned":
       return "Essential is already the current plan. Keeping Practice is no longer available.";
+    case "trial_in_progress":
+      return "Plan changes are available after the free trial ends.";
   }
 }
 
@@ -277,6 +281,8 @@ export function customerPlanDowngradeMessage(code: PlanDowngradeCode): string {
       return "Resolve the team changes shown below before scheduling the plan change.";
     case "selection_required":
       return "Choose which guides will stay active before scheduling the plan change.";
+    case "trial_in_progress":
+      return "Plan changes are available after the free trial ends.";
     default:
       return "We couldn’t schedule the plan change. Your Practice plan is unchanged. Please try again.";
   }
@@ -377,6 +383,9 @@ export function assessClinicPlanDowngrade(input: {
   }
   if (state.billingStatus === BillingStatus.PAST_DUE) {
     return { ok: false, code: "past_due" };
+  }
+  if (state.billingStatus === BillingStatus.TRIALING) {
+    return { ok: false, code: "trial_in_progress" };
   }
   if (
     state.entitlementStatus !== EntitlementStatus.ACTIVE ||
@@ -1081,6 +1090,9 @@ export async function executeClinicPlanDowngrade(input: {
     }
     if (subscription.cancelAtPeriodEnd) {
       return failure(input.state.clinicId, "cancel_scheduled");
+    }
+    if (subscription.status === "trialing" || subscription.trialPresent) {
+      return failure(input.state.clinicId, "trial_in_progress");
     }
     if (subscription.status !== "active") {
       return failure(input.state.clinicId, "not_active");
@@ -2116,7 +2128,7 @@ export function subscriptionSnapshotFromStripe(
         : null,
     itemCount: subscription.items?.data?.length ?? 0,
     discountsPresent: Array.isArray(discounts) && discounts.length > 0,
-    trialPresent: subscription.trial_end != null,
+    trialPresent: stripeTrialStillOpen(subscription.trial_end),
     taxRatesPresent:
       Array.isArray(item?.tax_rates) && item.tax_rates.length > 0,
   };
@@ -2145,7 +2157,7 @@ export function scheduleSnapshotFromStripe(
       hasExtras: Boolean(
         phase.add_invoice_items?.length ||
         phase.discounts?.length ||
-        phase.trial_end ||
+        stripeTrialStillOpen(phase.trial_end) ||
         phase.default_tax_rates?.length
       ),
     })),

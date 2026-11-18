@@ -28,6 +28,7 @@ import { getPrisma } from "@/lib/prisma";
 
 const ACTIVE_BILLING = new Set<BillingStatus>([
   BillingStatus.ACTIVE,
+  BillingStatus.TRIALING,
   BillingStatus.PAST_DUE,
   BillingStatus.CANCEL_AT_PERIOD_END,
 ]);

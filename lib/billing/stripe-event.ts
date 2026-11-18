@@ -45,6 +45,12 @@ export type StripeProjectionSnapshot = {
   currentPeriodEnd: Date | null;
   invoiceIsPaid: boolean;
   checkoutPaymentStatus: string | null;
+  /** Stripe subscription.trial_end. Null when this event has no trial. */
+  trialEndsAt?: Date | null;
+  /** Stripe invoice.amount_paid. Null on subscription and Checkout events. */
+  invoiceAmountPaid?: number | null;
+  /** Stripe invoice.billing_reason. Null on subscription and Checkout events. */
+  invoiceBillingReason?: string | null;
 };
 
 function unixToDate(value: number | null | undefined): Date | null {
@@ -145,6 +151,9 @@ export function snapshotFromSubscription(
     currentPeriodEnd: period.end,
     invoiceIsPaid: false,
     checkoutPaymentStatus: null,
+    trialEndsAt: unixToDate(subscription.trial_end),
+    invoiceAmountPaid: null,
+    invoiceBillingReason: null,
   };
 }
 
@@ -171,6 +180,13 @@ export function snapshotFromInvoice(
     currentPeriodEnd: unixToDate(invoice.period_end),
     invoiceIsPaid: paid,
     checkoutPaymentStatus: null,
+    trialEndsAt: null,
+    invoiceAmountPaid:
+      typeof invoice.amount_paid === "number" ? invoice.amount_paid : null,
+    invoiceBillingReason:
+      typeof invoice.billing_reason === "string"
+        ? invoice.billing_reason
+        : null,
   };
 }
 
@@ -197,6 +213,9 @@ export function snapshotFromCheckoutSession(
     currentPeriodEnd: null,
     invoiceIsPaid: false,
     checkoutPaymentStatus: session.payment_status,
+    trialEndsAt: null,
+    invoiceAmountPaid: null,
+    invoiceBillingReason: null,
   };
 }
 
@@ -228,6 +247,9 @@ export function mergeSubscriptionIntoSnapshot(
       fromSubscription.currentPeriodStart ?? snapshot.currentPeriodStart,
     currentPeriodEnd:
       fromSubscription.currentPeriodEnd ?? snapshot.currentPeriodEnd,
+    trialEndsAt: fromSubscription.trialEndsAt ?? snapshot.trialEndsAt ?? null,
+    invoiceAmountPaid: snapshot.invoiceAmountPaid ?? null,
+    invoiceBillingReason: snapshot.invoiceBillingReason ?? null,
   };
 }
 

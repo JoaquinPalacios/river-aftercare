@@ -33,6 +33,11 @@ export type LocalEntitlementSnapshot = {
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
   paidThrough: Date | null;
+  /**
+   * Catalogue trial end. Kept after the trial so a later paid period does not
+   * look like a first trial. Absent on historical fixtures.
+   */
+  trialEndsAt?: Date | null;
   cancelAtPeriodEnd: boolean;
   subscriptionEndedAt: Date | null;
   publicGuideRetentionUntil: Date | null;
@@ -57,6 +62,12 @@ export type EntitlementProjectionInput = {
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
   invoiceIsPaid: boolean;
+  /** Stripe `invoice.amount_paid`. Absent on subscription and Checkout events. */
+  invoiceAmountPaid?: number | null;
+  /** Stripe `invoice.billing_reason`. Absent on subscription and Checkout events. */
+  invoiceBillingReason?: string | null;
+  /** Stripe `subscription.trial_end`. Absent when the subscription has no trial. */
+  trialEndsAt?: Date | null;
   now?: Date;
   /**
    * Set only after a persisted negotiated offer matches the retrieved
@@ -120,18 +131,102 @@ function withMappedCatalog(
   };
 }
 
+function carriedTrialEnd(
+  previous: LocalEntitlementSnapshot | null,
+  input: Pick<EntitlementProjectionInput, "trialEndsAt">
+): Date | null {
+  return input.trialEndsAt ?? previous?.trialEndsAt ?? null;
+}
+
+/**
+ * A catalogue trial that has not yet had a collected invoice.
+ * A later paid period sets paidThrough and leaves this false, even though
+ * trialEndsAt stays on the row.
+ */
+export function neverPaidCatalogueTrial(
+  previous: LocalEntitlementSnapshot | null,
+  input: Pick<EntitlementProjectionInput, "trialEndsAt">
+): boolean {
+  return (
+    Boolean(carriedTrialEnd(previous, input)) && previous?.paidThrough == null
+  );
+}
+
+/**
+ * The invoice that collects the first or next paid period.
+ * A trial's opening invoice is `subscription_create` for A$0 while the
+ * subscription is trialing. The first charge after the trial is
+ * `subscription_cycle`. A positive `subscription_create` invoice without a
+ * trial remains the normal first payment.
+ */
+function confirmsCollectedInvoice(
+  input: EntitlementProjectionInput,
+  previous: LocalEntitlementSnapshot | null
+): boolean {
+  if (input.eventType !== "invoice.paid" || !input.invoiceIsPaid) {
+    return false;
+  }
+  if (input.subscriptionStatus === "trialing") {
+    return false;
+  }
+  if (
+    input.subscriptionStatus === "canceled" ||
+    input.subscriptionStatus === "incomplete" ||
+    input.subscriptionStatus === "incomplete_expired" ||
+    input.subscriptionStatus === "paused" ||
+    input.subscriptionStatus === "unpaid"
+  ) {
+    return false;
+  }
+  if (!neverPaidCatalogueTrial(previous, input)) {
+    return true;
+  }
+  if (input.invoiceBillingReason === "subscription_cycle") {
+    return true;
+  }
+  if (
+    typeof input.invoiceAmountPaid === "number" &&
+    input.invoiceAmountPaid > 0 &&
+    input.subscriptionStatus === "active"
+  ) {
+    return true;
+  }
+  if (
+    input.invoiceBillingReason === "subscription_create" ||
+    input.invoiceAmountPaid === 0
+  ) {
+    return false;
+  }
+  return (
+    input.subscriptionStatus === "active" || input.subscriptionStatus == null
+  );
+}
+
 function withPeriod(
   snapshot: LocalEntitlementSnapshot,
   input: EntitlementProjectionInput
 ): LocalEntitlementSnapshot {
+  const trialEndsAt = input.trialEndsAt ?? snapshot.trialEndsAt ?? null;
+  const unpaidTrial = Boolean(trialEndsAt) && snapshot.paidThrough == null;
+  const confirming = confirmsCollectedInvoice(input, {
+    ...snapshot,
+    trialEndsAt,
+  });
+  const paidThrough = confirming
+    ? (input.currentPeriodEnd ??
+      snapshot.paidThrough ??
+      snapshot.currentPeriodEnd)
+    : unpaidTrial
+      ? (snapshot.paidThrough ?? null)
+      : (input.currentPeriodEnd ??
+        snapshot.paidThrough ??
+        snapshot.currentPeriodEnd);
   return {
     ...snapshot,
     currentPeriodStart: input.currentPeriodStart ?? snapshot.currentPeriodStart,
     currentPeriodEnd: input.currentPeriodEnd ?? snapshot.currentPeriodEnd,
-    paidThrough:
-      input.currentPeriodEnd ??
-      snapshot.paidThrough ??
-      snapshot.currentPeriodEnd,
+    paidThrough,
+    trialEndsAt,
     cancelAtPeriodEnd: input.cancelAtPeriodEnd,
   };
 }
@@ -141,11 +236,16 @@ function endedSnapshot(
   input: EntitlementProjectionInput,
   now: Date
 ): LocalEntitlementSnapshot {
-  const paidThrough: Date | null =
-    input.currentPeriodEnd ??
-    previous?.paidThrough ??
-    previous?.currentPeriodEnd ??
-    null;
+  const trialEndsAt = carriedTrialEnd(previous, input);
+  // A never-paid trial does not gain a paid-through date from the trial end.
+  // Public-guide retention still uses the existing window from subscription end.
+  const neverPaidTrial = Boolean(trialEndsAt) && previous?.paidThrough == null;
+  const paidThrough: Date | null = neverPaidTrial
+    ? null
+    : (input.currentPeriodEnd ??
+      previous?.paidThrough ??
+      previous?.currentPeriodEnd ??
+      null);
   const endedAt =
     previous?.subscriptionEndedAt ?? input.currentPeriodEnd ?? now;
   return withMappedCatalog(
@@ -160,6 +260,7 @@ function endedSnapshot(
       currentPeriodEnd:
         input.currentPeriodEnd ?? previous?.currentPeriodEnd ?? null,
       paidThrough,
+      trialEndsAt,
       cancelAtPeriodEnd: false,
       subscriptionEndedAt: endedAt,
       publicGuideRetentionUntil:
@@ -186,6 +287,38 @@ function pendingSnapshot(
         currentPeriodStart: previous?.currentPeriodStart ?? null,
         currentPeriodEnd: previous?.currentPeriodEnd ?? null,
         paidThrough: previous?.paidThrough ?? null,
+        trialEndsAt: previous?.trialEndsAt ?? null,
+        cancelAtPeriodEnd: input.cancelAtPeriodEnd,
+        subscriptionEndedAt: null,
+        publicGuideRetentionUntil: null,
+      },
+      input.mappedPrice,
+      input.stripePriceId
+    ),
+    input
+  );
+}
+
+function trialSnapshot(
+  previous: LocalEntitlementSnapshot | null,
+  input: EntitlementProjectionInput
+): LocalEntitlementSnapshot {
+  const billingStatus = input.cancelAtPeriodEnd
+    ? BillingStatus.CANCEL_AT_PERIOD_END
+    : BillingStatus.TRIALING;
+  return withPeriod(
+    withMappedCatalog(
+      {
+        commercialPlan: previous?.commercialPlan ?? null,
+        billingInterval: previous?.billingInterval ?? null,
+        billingStatus,
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        commercialArrangement: previous?.commercialArrangement,
+        stripePriceId: input.stripePriceId ?? previous?.stripePriceId ?? null,
+        currentPeriodStart: previous?.currentPeriodStart ?? null,
+        currentPeriodEnd: previous?.currentPeriodEnd ?? null,
+        paidThrough: previous?.paidThrough ?? null,
+        trialEndsAt: previous?.trialEndsAt ?? null,
         cancelAtPeriodEnd: input.cancelAtPeriodEnd,
         subscriptionEndedAt: null,
         publicGuideRetentionUntil: null,
@@ -213,6 +346,7 @@ function activeSnapshot(
         currentPeriodStart: previous?.currentPeriodStart ?? null,
         currentPeriodEnd: previous?.currentPeriodEnd ?? null,
         paidThrough: previous?.paidThrough ?? null,
+        trialEndsAt: previous?.trialEndsAt ?? null,
         cancelAtPeriodEnd: input.cancelAtPeriodEnd,
         subscriptionEndedAt: null,
         publicGuideRetentionUntil: null,
@@ -239,6 +373,7 @@ function restrictedSnapshot(
         currentPeriodStart: previous?.currentPeriodStart ?? null,
         currentPeriodEnd: previous?.currentPeriodEnd ?? null,
         paidThrough: previous?.paidThrough ?? null,
+        trialEndsAt: previous?.trialEndsAt ?? null,
         cancelAtPeriodEnd: input.cancelAtPeriodEnd,
         subscriptionEndedAt: null,
         publicGuideRetentionUntil: previous?.publicGuideRetentionUntil ?? null,
@@ -304,6 +439,31 @@ export function projectEntitlement(
   const now = input.now ?? new Date();
   const eventType = input.eventType;
   const subscriptionStatus = input.subscriptionStatus;
+  const closedEntitlement =
+    previous?.entitlementStatus === EntitlementStatus.ENDED ||
+    previous?.entitlementStatus === EntitlementStatus.RESTRICTED;
+
+  if (
+    subscriptionStatus === "trialing" &&
+    eventType !== "customer.subscription.deleted"
+  ) {
+    if (closedEntitlement && previous) {
+      return { kind: "apply", entitlement: previous };
+    }
+    return { kind: "apply", entitlement: trialSnapshot(previous, input) };
+  }
+
+  if (
+    eventType === "invoice.paid" &&
+    input.invoiceIsPaid &&
+    neverPaidCatalogueTrial(previous, input) &&
+    !confirmsCollectedInvoice(input, previous)
+  ) {
+    if (closedEntitlement && previous) {
+      return { kind: "apply", entitlement: previous };
+    }
+    return { kind: "apply", entitlement: trialSnapshot(previous, input) };
+  }
 
   if (CHECKOUT_EVENTS.has(eventType)) {
     if (
@@ -327,6 +487,34 @@ export function projectEntitlement(
   if (eventType === "invoice.payment_failed") {
     if (previous?.entitlementStatus === EntitlementStatus.ENDED) {
       return { kind: "apply", entitlement: previous };
+    }
+    if (
+      neverPaidCatalogueTrial(previous, input) &&
+      subscriptionStatus !== "trialing"
+    ) {
+      if (subscriptionStatus === "unpaid") {
+        if (
+          wasActive(previous) ||
+          previous?.entitlementStatus === EntitlementStatus.RESTRICTED
+        ) {
+          return {
+            kind: "apply",
+            entitlement: restrictedSnapshot(previous, input),
+          };
+        }
+        return keepEstablished(previous, input);
+      }
+      if (
+        wasActive(previous) ||
+        previous?.billingStatus === BillingStatus.TRIALING ||
+        previous?.billingStatus === BillingStatus.CANCEL_AT_PERIOD_END
+      ) {
+        return {
+          kind: "apply",
+          entitlement: activeSnapshot(previous, input, BillingStatus.PAST_DUE),
+        };
+      }
+      return keepEstablished(previous, input);
     }
     if (subscriptionStatus === "active" || subscriptionStatus === "trialing") {
       if (wasActive(previous)) {
@@ -435,6 +623,13 @@ export function projectEntitlement(
       return keepEstablished(previous, input);
     }
     if (subscriptionStatus === "past_due") {
+      if (
+        neverPaidCatalogueTrial(previous, input) &&
+        previous?.billingStatus !== BillingStatus.PAST_DUE &&
+        previous?.billingStatus !== BillingStatus.UNPAID
+      ) {
+        return { kind: "apply", entitlement: trialSnapshot(previous, input) };
+      }
       if (wasActive(previous)) {
         return {
           kind: "apply",
@@ -442,6 +637,15 @@ export function projectEntitlement(
         };
       }
       return keepEstablished(previous, input);
+    }
+    if (
+      subscriptionStatus === "active" &&
+      neverPaidCatalogueTrial(previous, input)
+    ) {
+      if (closedEntitlement && previous) {
+        return { kind: "apply", entitlement: previous };
+      }
+      return { kind: "apply", entitlement: trialSnapshot(previous, input) };
     }
     if (subscriptionStatus === "active" || subscriptionStatus === "trialing") {
       if (wasActive(previous)) {

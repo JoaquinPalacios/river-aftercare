@@ -46,6 +46,7 @@ export function BillingSetupForm({
   defaults,
   cancelMessage,
   negotiatedTerms = null,
+  trialNote = null,
 }: {
   clinicName: string;
   planName: string;
@@ -60,6 +61,7 @@ export function BillingSetupForm({
   defaults: BillingSetupFormValues;
   cancelMessage: string | null;
   negotiatedTerms?: { terms: string; policyLabel: string } | null;
+  trialNote?: string | null;
 }) {
   const [state, action, pending] = useActionState(
     continueToSecurePaymentAction,
@@ -512,6 +514,9 @@ export function BillingSetupForm({
         >
           {pending ? "Continuing…" : "Continue to secure payment"}
         </button>
+        {trialNote && !negotiatedTerms ? (
+          <p className="text-sm leading-6">{trialNote}</p>
+        ) : null}
         <p className="text-sm text-staff-muted">
           You’ll complete payment on Stripe. River Aftercare never stores card
           or bank details.

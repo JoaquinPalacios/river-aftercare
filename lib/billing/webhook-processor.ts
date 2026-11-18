@@ -168,6 +168,7 @@ function localFromRow(
     currentPeriodStart: Date | null;
     currentPeriodEnd: Date | null;
     paidThrough: Date | null;
+    trialEndsAt?: Date | null;
     cancelAtPeriodEnd: boolean;
     subscriptionEndedAt: Date | null;
     publicGuideRetentionUntil: Date | null;
@@ -186,6 +187,7 @@ function localFromRow(
     currentPeriodStart: row.currentPeriodStart,
     currentPeriodEnd: row.currentPeriodEnd,
     paidThrough: row.paidThrough,
+    trialEndsAt: row.trialEndsAt ?? null,
     cancelAtPeriodEnd: row.cancelAtPeriodEnd,
     subscriptionEndedAt: row.subscriptionEndedAt,
     publicGuideRetentionUntil: row.publicGuideRetentionUntil,
@@ -411,6 +413,9 @@ async function applyProjection(options: {
       currentPeriodStart: entitlement.currentPeriodStart,
       currentPeriodEnd: entitlement.currentPeriodEnd,
       paidThrough: entitlement.paidThrough,
+      ...(entitlement.trialEndsAt
+        ? { trialEndsAt: entitlement.trialEndsAt }
+        : {}),
       cancelAtPeriodEnd: entitlement.cancelAtPeriodEnd,
       subscriptionEndedAt: entitlement.subscriptionEndedAt,
       publicGuideRetentionUntil: entitlement.publicGuideRetentionUntil,
@@ -437,6 +442,9 @@ async function applyProjection(options: {
       currentPeriodStart: entitlement.currentPeriodStart,
       currentPeriodEnd: entitlement.currentPeriodEnd,
       paidThrough: entitlement.paidThrough,
+      ...(entitlement.trialEndsAt
+        ? { trialEndsAt: entitlement.trialEndsAt }
+        : {}),
       cancelAtPeriodEnd: entitlement.cancelAtPeriodEnd,
       subscriptionEndedAt: entitlement.subscriptionEndedAt,
       publicGuideRetentionUntil: entitlement.publicGuideRetentionUntil,
@@ -969,6 +977,9 @@ export async function processVerifiedStripeEvent(
     currentPeriodStart: snapshot.currentPeriodStart,
     currentPeriodEnd: snapshot.currentPeriodEnd,
     invoiceIsPaid: snapshot.invoiceIsPaid,
+    invoiceAmountPaid: snapshot.invoiceAmountPaid ?? null,
+    invoiceBillingReason: snapshot.invoiceBillingReason ?? null,
+    trialEndsAt: snapshot.trialEndsAt ?? null,
     negotiatedConversion: negotiatedConversion !== null,
   });
 
