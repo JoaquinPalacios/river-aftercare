@@ -206,6 +206,11 @@ function scriptedStripe() {
 
   const port: CheckoutStripePort = {
     prices: conformingCataloguePrices,
+    subscriptions: {
+      async list() {
+        return { data: [] };
+      },
+    },
     customers: {
       async create(params) {
         customers.created.push(params);

@@ -114,6 +114,11 @@ function fakeStripe(): {
   const sessions: unknown[] = [];
   const port: CheckoutStripePort = {
     prices: conformingCataloguePrices,
+    subscriptions: {
+      async list() {
+        return { data: [] };
+      },
+    },
     customers: {
       async create() {
         return { id: "cus_test" };

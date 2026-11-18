@@ -47,6 +47,7 @@ export function BillingSetupForm({
   cancelMessage,
   negotiatedTerms = null,
   trialNote = null,
+  checkoutBlockedMessage = null,
 }: {
   clinicName: string;
   planName: string;
@@ -62,6 +63,7 @@ export function BillingSetupForm({
   cancelMessage: string | null;
   negotiatedTerms?: { terms: string; policyLabel: string } | null;
   trialNote?: string | null;
+  checkoutBlockedMessage?: string | null;
 }) {
   const [state, action, pending] = useActionState(
     continueToSecurePaymentAction,
@@ -505,15 +507,21 @@ export function BillingSetupForm({
             {paymentError}
           </p>
         ) : null}
-        <button
-          type="submit"
-          className="staffBtn staffBtnPrimary h-11 w-full sm:w-fit"
-          disabled={pending}
-          aria-busy={pending || undefined}
-          aria-describedby={paymentError ? paymentErrorId : undefined}
-        >
-          {pending ? "Continuing…" : "Continue to secure payment"}
-        </button>
+        {checkoutBlockedMessage ? (
+          <p className="text-sm leading-6" role="status">
+            {checkoutBlockedMessage}
+          </p>
+        ) : (
+          <button
+            type="submit"
+            className="staffBtn staffBtnPrimary h-11 w-full sm:w-fit"
+            disabled={pending}
+            aria-busy={pending || undefined}
+            aria-describedby={paymentError ? paymentErrorId : undefined}
+          >
+            {pending ? "Continuing…" : "Continue to secure payment"}
+          </button>
+        )}
         {trialNote && !negotiatedTerms ? (
           <p className="text-sm leading-6">{trialNote}</p>
         ) : null}

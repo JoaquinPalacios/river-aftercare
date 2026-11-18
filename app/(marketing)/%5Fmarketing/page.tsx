@@ -103,7 +103,10 @@ export default async function MarketingHomePage() {
                         Give patients clear, clinic-branded treatment, recovery
                         and home-care guidance they can reopen after the
                         appointment — by link or QR code, with no app or patient
-                        login.
+                        login. Essential and Practice include a 14-day free
+                        trial. Payment details are collected, and the
+                        subscription starts charging after the trial unless you
+                        cancel first. <Link href="/pricing">See pricing</Link>.
                       </p>
                     </MarketingReveal.Item>
                     <MarketingReveal.Item>

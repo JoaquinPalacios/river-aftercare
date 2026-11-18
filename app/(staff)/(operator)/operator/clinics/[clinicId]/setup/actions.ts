@@ -6,6 +6,11 @@ import { notFound, redirect } from "next/navigation";
 
 import { requirePlatformOperator } from "@/lib/auth/require-platform-operator";
 import { prepareClinicCommercialOffer } from "@/lib/billing/prepare-offer";
+import {
+  parsePromotionExpiry,
+  setClinicPromotionalTerm,
+} from "@/lib/billing/promotion-offer";
+import { parseIntroductoryTermField } from "@/lib/billing/promotion-terms";
 import { discardAssistedClinic } from "@/lib/operator/discard-assisted-clinic";
 import { INVITATION_DELIVERY_FAILED_MESSAGE } from "@/lib/operator/invite-clinic-user";
 import { inviteFirstClinicAdministrator } from "@/lib/operator/invite-first-clinic-administrator";
@@ -51,7 +56,7 @@ export async function prepareOnboardingStandardOfferAction(
   _previous: OnboardingActionState,
   formData: FormData
 ): Promise<OnboardingActionState> {
-  await requireOperatorOnStaffHost();
+  const { user } = await requireOperatorOnStaffHost();
   const clinicId = clinicIdFromForm(formData);
   if (!clinicId) {
     notFound();
@@ -78,6 +83,45 @@ export async function prepareOnboardingStandardOfferAction(
   });
   if (!prepared.ok) {
     return { error: prepared.message };
+  }
+  const introductory = parseIntroductoryTermField(
+    formData.has("introductoryTerm")
+      ? String(formData.get("introductoryTerm") ?? "")
+      : null
+  );
+  if (introductory.status === "invalid") {
+    return {
+      error: "Choose a six-month offer, a twelve-month offer, or none.",
+      fieldErrors: {
+        introductoryTerm:
+          "Choose a six-month offer, a twelve-month offer, or none.",
+      },
+    };
+  }
+  if (introductory.status !== "absent") {
+    const expiry =
+      introductory.status === "set"
+        ? parsePromotionExpiry(
+            formData.get("introductoryExpiresOn"),
+            new Date()
+          )
+        : { ok: true as const, expiresAt: null };
+    if (!expiry.ok) {
+      return {
+        error: expiry.error,
+        fieldErrors: { introductoryExpiresOn: expiry.error },
+      };
+    }
+    const authorised = await setClinicPromotionalTerm({
+      clinicId,
+      actorUserId: user.id,
+      term: introductory.status === "set" ? introductory.term : null,
+      expiresAt: expiry.expiresAt,
+      commercialPlan,
+    });
+    if (!authorised.ok) {
+      return { error: authorised.error };
+    }
   }
   revalidateOnboarding(clinicId);
   return {

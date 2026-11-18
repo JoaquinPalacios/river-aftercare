@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import {
   BillingStatus,
   EntitlementStatus,
@@ -20,6 +22,7 @@ import {
   classifyStripeCheckoutFailure,
 } from "@/lib/billing/stripe-error-log";
 import { stripeDeployment } from "@/lib/billing/stripe-mode";
+import type { RetrievedCataloguePrice } from "@/lib/billing/catalogue-price";
 import {
   rejectMismatchedCataloguePrices,
   type CataloguePriceReader,
@@ -49,6 +52,25 @@ import {
   catalogueTrialHistory,
   RIVER_TRIAL_DAYS_METADATA_KEY,
 } from "@/lib/billing/trial";
+import type { PromotionCouponSnapshot } from "@/lib/billing/promotion-config";
+import {
+  resolveCheckoutPromotion,
+  type ResolvedCheckoutPromotion,
+} from "@/lib/billing/promotion-checkout";
+import {
+  expirePromotionalOffer,
+  loadOpenPromotionalOffer,
+  markPromotionalOfferCheckoutOpen,
+  promotionalOfferStillOpen,
+  type OpenPromotionalOffer,
+} from "@/lib/billing/promotion-offer";
+import {
+  RIVER_PROMOTION_APPLICATION_AFTER_ZERO_INVOICE,
+  RIVER_PROMOTION_APPLICATION_CHECKOUT,
+  RIVER_PROMOTION_APPLICATION_KEY,
+  RIVER_PROMOTION_COUPON_ID_KEY,
+  RIVER_PROMOTION_OFFER_ID_KEY,
+} from "@/lib/billing/promotion-terms";
 
 /**
  * Card and AU BECS only.
@@ -81,6 +103,11 @@ export type CheckoutFailureCode =
   | "checkout_already_completed"
   | "checkout_unavailable"
   | "checkout_failed"
+  | "trial_eligibility_unavailable"
+  | "promotion_unavailable"
+  | "promotion_expired"
+  | "promotion_with_trial_unavailable"
+  | "promotion_ineligible"
   | "negotiated_not_ready"
   | "negotiated_terms_required"
   | "split_in_progress";
@@ -132,6 +159,16 @@ export function checkoutFailureMessage(code: CheckoutFailureCode): string {
       return "Payment has already been submitted.";
     case "checkout_failed":
       return "We couldn't open secure payment. Your details have been saved. Please try again.";
+    case "trial_eligibility_unavailable":
+      return "We couldn't confirm the 14-day free trial. Payment was not opened, and you have not been charged. Please try again.";
+    case "promotion_unavailable":
+      return "The introductory offer can't be applied right now. Payment was not opened, and you have not been charged.";
+    case "promotion_expired":
+      return "This introductory offer has expired. Payment was not opened. Ask River Aftercare to prepare billing again.";
+    case "promotion_with_trial_unavailable":
+      return "The introductory offer can't be combined with the free trial yet. Payment was not opened, and you have not been charged.";
+    case "promotion_ineligible":
+      return "This clinic can't use the introductory offer. Payment was not opened, and you have not been charged.";
     case "negotiated_not_ready":
       return "This negotiated price is not open for payment yet.";
     case "negotiated_terms_required":
@@ -203,8 +240,8 @@ export type CheckoutStripePort = {
   };
   /**
    * Optional so existing test doubles stay non-trial. Production Stripe has
-   * this method. A missing or failed list withholds the trial and still opens
-   * Checkout.
+   * this method. When local state promises a trial, a missing or failed list
+   * refuses Checkout instead of opening an immediately chargeable session.
    */
   subscriptions?: {
     list(params: {
@@ -212,6 +249,13 @@ export type CheckoutStripePort = {
       status: "all";
       limit: number;
     }): Promise<{ data?: ReadonlyArray<{ id?: string }> | null }>;
+  };
+  /**
+   * Required only when an authorised introductory offer is present. A missing
+   * retrieve refuses Checkout rather than charging the catalogue price.
+   */
+  coupons?: {
+    retrieve(id: string): Promise<PromotionCouponSnapshot>;
   };
 };
 
@@ -234,7 +278,11 @@ export type CheckoutSessionCreateShape = {
    */
   payment_method_collection: "always";
   wallet_options: { link: { display: "never" } };
-  allow_promotion_codes: false;
+  /**
+   * Omitted when `discounts` is set. Stripe rejects a session that sends both.
+   */
+  allow_promotion_codes?: false;
+  discounts?: Array<{ coupon: string }>;
 };
 
 export type LockedCheckoutState = {
@@ -250,6 +298,8 @@ export type LockedCheckoutState = {
   stripeCheckoutSessionId: string | null;
   /** Set after a catalogue trial starts. A later checkout cannot trial again. */
   trialEndsAt?: Date | null;
+  /** Open operator-authorised introductory offer. Absent means no discount. */
+  promotionalOffer?: OpenPromotionalOffer | null;
   offeredAdditionalSiteQuantity: number | null;
   termsAccepted: boolean;
   identity: {
@@ -353,9 +403,20 @@ function checkoutLineItems(
   return [{ price: stripePriceIdForPlan(plan, interval, env), quantity: 1 }];
 }
 
+function productIdFromPrice(price: RetrievedCataloguePrice): string | null {
+  if (!price.product) {
+    return null;
+  }
+  if (typeof price.product === "string") {
+    return price.product;
+  }
+  return price.product.id ?? null;
+}
+
 function checkoutMetadata(
   state: LockedCheckoutState,
-  trialDays: typeof CATALOGUE_TRIAL_PERIOD_DAYS | null = null
+  trialDays: typeof CATALOGUE_TRIAL_PERIOD_DAYS | null = null,
+  promotion: ResolvedCheckoutPromotion | null = null
 ): Record<string, string> {
   const metadata: Record<string, string> = {
     [RIVER_CLINIC_ID_METADATA_KEY]: state.clinicId,
@@ -364,6 +425,11 @@ function checkoutMetadata(
     metadata[RIVER_TRIAL_DAYS_METADATA_KEY] = String(
       CATALOGUE_TRIAL_PERIOD_DAYS
     );
+  }
+  if (promotion) {
+    metadata[RIVER_PROMOTION_OFFER_ID_KEY] = promotion.offerId;
+    metadata[RIVER_PROMOTION_COUPON_ID_KEY] = promotion.couponId;
+    metadata[RIVER_PROMOTION_APPLICATION_KEY] = promotion.application;
   }
   if (
     state.commercialPlan === "GROUP" &&
@@ -388,23 +454,49 @@ function checkoutMetadata(
  * replacement cannot fork another Session. Once the attempt has advanced,
  * the Session id and the attempt are both included.
  */
+function promotionIdempotencySegment(
+  promotion: ResolvedCheckoutPromotion | null
+): string {
+  if (!promotion) {
+    return "";
+  }
+  const mode =
+    promotion.application === RIVER_PROMOTION_APPLICATION_AFTER_ZERO_INVOICE
+      ? "d"
+      : "c";
+  return `-promo-${mode}-${promotion.offerId}`;
+}
+
+function boundedCheckoutIdempotencyKey(key: string): string {
+  if (key.length <= 255) {
+    return key;
+  }
+  return `river-checkout-${createHash("sha256").update(key).digest("hex")}`;
+}
+
 export function checkoutIdempotencyKey(
   clinicId: string,
   lineItems: ReadonlyArray<{ price: string; quantity: number }>,
   sessionId: string | null,
   attempt = 0,
-  trialDays = 0
+  trialDays = 0,
+  promotion: ResolvedCheckoutPromotion | null = null
 ): string {
   const suffix = checkoutIdempotencySuffix(sessionId, attempt);
   const trialSegment =
     trialDays === CATALOGUE_TRIAL_PERIOD_DAYS ? "-trial-14" : "";
+  const promotionSegment = promotionIdempotencySegment(promotion);
   if (lineItems.length === 1 && lineItems[0]?.quantity === 1) {
-    return `river-checkout-${clinicId}-${lineItems[0].price}${trialSegment}-${suffix}`;
+    return boundedCheckoutIdempotencyKey(
+      `river-checkout-${clinicId}-${lineItems[0].price}${trialSegment}${promotionSegment}-${suffix}`
+    );
   }
   const signature = lineItems
     .map((item) => `${item.price}x${item.quantity}`)
     .join("+");
-  return `river-checkout-${clinicId}-${signature}${trialSegment}-${suffix}`;
+  return boundedCheckoutIdempotencyKey(
+    `river-checkout-${clinicId}-${signature}${trialSegment}${promotionSegment}-${suffix}`
+  );
 }
 
 function sessionRequestsTrial(session: {
@@ -413,6 +505,24 @@ function sessionRequestsTrial(session: {
   return (
     session.metadata?.[RIVER_TRIAL_DAYS_METADATA_KEY] ===
     String(CATALOGUE_TRIAL_PERIOD_DAYS)
+  );
+}
+
+function sessionPromotionMatches(
+  session: { metadata?: Record<string, string> | null },
+  promotion: ResolvedCheckoutPromotion | null
+): boolean {
+  const metadata = session.metadata ?? {};
+  const offerId = metadata[RIVER_PROMOTION_OFFER_ID_KEY] ?? "";
+  const couponId = metadata[RIVER_PROMOTION_COUPON_ID_KEY] ?? "";
+  const application = metadata[RIVER_PROMOTION_APPLICATION_KEY] ?? "";
+  if (!promotion) {
+    return offerId === "" && couponId === "" && application === "";
+  }
+  return (
+    offerId === promotion.offerId &&
+    couponId === promotion.couponId &&
+    application === promotion.application
   );
 }
 
@@ -463,6 +573,12 @@ export async function executeClinicCheckout(input: {
     stripeCustomerId?: string;
     stripeCheckoutSessionId?: string | null;
   }) => Promise<void>;
+  persistPromotion?: (update: {
+    offerId: string;
+    couponId: string;
+    discountDeferred: boolean;
+  }) => Promise<void>;
+  expirePromotion?: (offerId: string) => Promise<void>;
 }): Promise<CheckoutExecutionResult> {
   const { state } = input;
   const failure = (
@@ -473,7 +589,12 @@ export async function executeClinicCheckout(input: {
     if (
       code === "checkout_failed" ||
       code === "checkout_unavailable" ||
-      code === "price_not_configured"
+      code === "price_not_configured" ||
+      code === "trial_eligibility_unavailable" ||
+      code === "promotion_unavailable" ||
+      code === "promotion_expired" ||
+      code === "promotion_with_trial_unavailable" ||
+      code === "promotion_ineligible"
     ) {
       logStripeBilling({
         event: "checkout_session_failed",
@@ -607,6 +728,20 @@ export async function executeClinicCheckout(input: {
   let operation = "checkout";
   let checkoutAttempt = 0;
   let trialDays: typeof CATALOGUE_TRIAL_PERIOD_DAYS | null = null;
+  let promotion: ResolvedCheckoutPromotion | null = null;
+
+  const recordPromotion = async (): Promise<void> => {
+    if (!promotion || !input.persistPromotion) {
+      return;
+    }
+    await input.persistPromotion({
+      offerId: promotion.offerId,
+      couponId: promotion.couponId,
+      discountDeferred:
+        promotion.application ===
+        RIVER_PROMOTION_APPLICATION_AFTER_ZERO_INVOICE,
+    });
+  };
 
   const persistCheckoutAttempt = async (next: number): Promise<boolean> => {
     if (!customerId || next <= checkoutAttempt || next > 1_000_000) {
@@ -647,7 +782,12 @@ export async function executeClinicCheckout(input: {
       });
     }
     operation = "stripe_checkout_session_create";
-    const metadata = checkoutMetadata(state, trialDays);
+    const metadata = checkoutMetadata(state, trialDays, promotion);
+    const checkoutCouponId =
+      promotion &&
+      promotion.application === RIVER_PROMOTION_APPLICATION_CHECKOUT
+        ? promotion.couponId
+        : null;
     const session = await input.stripe.checkout.sessions.create(
       {
         mode: "subscription",
@@ -666,7 +806,9 @@ export async function executeClinicCheckout(input: {
         payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
         payment_method_collection: "always",
         wallet_options: { link: { display: "never" } },
-        allow_promotion_codes: false,
+        ...(checkoutCouponId
+          ? { discounts: [{ coupon: checkoutCouponId }] }
+          : { allow_promotion_codes: false as const }),
       },
       {
         idempotencyKey: checkoutIdempotencyKey(
@@ -674,7 +816,8 @@ export async function executeClinicCheckout(input: {
           lineItems,
           state.stripeCheckoutSessionId,
           attempt,
-          trialDays ?? 0
+          trialDays ?? 0,
+          promotion
         ),
       }
     );
@@ -688,6 +831,7 @@ export async function executeClinicCheckout(input: {
 
     operation = "persist_checkout_session";
     await input.persist({ stripeCheckoutSessionId: session.id });
+    await recordPromotion();
     logStripeBilling({
       event: "checkout_session_created",
       clinicId: state.clinicId,
@@ -739,29 +883,64 @@ export async function executeClinicCheckout(input: {
       });
     }
 
+    let trialHistory: "none" | "present" | "unavailable" | null = null;
     if (
       customerId &&
       catalogueTrialDaysForState(state) === CATALOGUE_TRIAL_PERIOD_DAYS
     ) {
-      const history = await catalogueTrialHistory({
+      trialHistory = await catalogueTrialHistory({
         customerId,
         listSubscriptions: input.stripe.subscriptions?.list.bind(
           input.stripe.subscriptions
         ),
       });
-      if (history === "none") {
+      if (trialHistory === "none") {
         trialDays = CATALOGUE_TRIAL_PERIOD_DAYS;
+      } else if (trialHistory === "unavailable") {
+        return failure(
+          "trial_eligibility_unavailable",
+          "subscription_history_unavailable",
+          { operation: "catalogue_trial_history" }
+        );
       } else {
         logStripeBilling({
           event: "checkout_trial_withheld",
           clinicId: state.clinicId,
-          reason:
-            history === "present"
-              ? "prior_subscription"
-              : "subscription_history_unavailable",
+          reason: "prior_subscription",
         });
       }
     }
+
+    const openOffer = state.promotionalOffer ?? null;
+    if (openOffer && !promotionalOfferStillOpen(openOffer)) {
+      if (input.expirePromotion) {
+        await input.expirePromotion(openOffer.id);
+      }
+      return failure("promotion_expired", "promotion_expired");
+    }
+    if (openOffer && trialHistory === "present") {
+      return failure("promotion_ineligible", "prior_subscription");
+    }
+    let priceProductId: string | null = null;
+    if (openOffer && lineItems.length === 1) {
+      const price = await input.stripe.prices.retrieve(lineItems[0].price);
+      priceProductId = productIdFromPrice(price);
+    }
+    const promotionResolution = await resolveCheckoutPromotion({
+      offer: openOffer,
+      plan,
+      interval,
+      trialDays,
+      env: input.env,
+      priceProductId,
+      retrieveCoupon: input.stripe.coupons
+        ? (couponId) => input.stripe.coupons!.retrieve(couponId)
+        : undefined,
+    });
+    if (!promotionResolution.ok) {
+      return failure(promotionResolution.code, promotionResolution.reason);
+    }
+    promotion = promotionResolution.promotion;
 
     if (state.stripeCheckoutSessionId) {
       operation = "stripe_checkout_session_retrieve";
@@ -779,13 +958,16 @@ export async function executeClinicCheckout(input: {
         const trialMatches =
           sessionRequestsTrial(existing) ===
           (trialDays === CATALOGUE_TRIAL_PERIOD_DAYS);
+        const promotionMatches = sessionPromotionMatches(existing, promotion);
         if (
           sameLineItems(sessionLineItems(existing), lineItems) &&
-          trialMatches
+          trialMatches &&
+          promotionMatches
         ) {
           if (!isStripeHostedCheckoutUrl(existing.url)) {
             return failure("checkout_unavailable", "unexpected_checkout_url");
           }
+          await recordPromotion();
           logStripeBilling({
             event: "checkout_session_reused",
             clinicId: state.clinicId,
@@ -981,6 +1163,10 @@ export async function createClinicCheckout(input: {
             stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
             stripeCheckoutSessionId: profile?.stripeCheckoutSessionId ?? null,
             trialEndsAt: entitlement?.trialEndsAt ?? null,
+            promotionalOffer: await loadOpenPromotionalOffer(
+              input.clinicId,
+              transaction as never
+            ),
             offeredAdditionalSiteQuantity:
               entitlement?.offeredAdditionalSiteQuantity ?? null,
             termsAccepted: Boolean(acceptance),
@@ -998,6 +1184,23 @@ export async function createClinicCheckout(input: {
               where: { clinicId: input.clinicId },
               data: update,
             });
+          },
+          persistPromotion: async (update) => {
+            await markPromotionalOfferCheckoutOpen(
+              {
+                offerId: update.offerId,
+                clinicId: input.clinicId,
+                stripeCouponId: update.couponId,
+                discountDeferred: update.discountDeferred,
+              },
+              transaction as never
+            );
+          },
+          expirePromotion: async (offerId) => {
+            await expirePromotionalOffer(
+              { offerId, clinicId: input.clinicId },
+              transaction as never
+            );
           },
         });
       },

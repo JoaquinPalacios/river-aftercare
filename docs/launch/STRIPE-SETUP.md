@@ -327,3 +327,37 @@ Guide selection on a disposable local Practice clinic, before any further Stripe
 Renewal without waiting for the real period end uses a **Test Clock**. An existing customer cannot be attached to a clock. Create a disposable one in test mode, attach a new Customer and a Practice subscription, schedule the downgrade, advance the clock, and forward the resulting webhooks. Expect the same subscription id, the Essential Price, and local `commercialPlan` Essential.
 
 Also check cancellation in test mode: schedule a downgrade, then cancel at period end in the test Portal. The subscription should end at the paid-period boundary instead of continuing on Essential.
+
+## Introductory discounts
+
+Do not create new Products or Prices for these offers. Use the four coupons that already exist in each Stripe environment, and store their ids separately. Test and live ids are different. Leave every flag unset or `false` until the checklist below has passed. The application does not create coupons.
+
+| Offer                              | Coupon                            |
+| ---------------------------------- | --------------------------------- |
+| Monthly, six months                | 50% off, repeating, six months    |
+| Monthly, twelve months             | 50% off, repeating, twelve months |
+| Annual upfront, six-month offer    | 25% off, once                     |
+| Annual upfront, twelve-month offer | 50% off, once                     |
+
+```
+STRIPE_PROMOTION_MONTHLY_SIX_MONTH_COUPON_ID=
+STRIPE_PROMOTION_MONTHLY_TWELVE_MONTH_COUPON_ID=
+STRIPE_PROMOTION_ANNUAL_SIX_MONTH_COUPON_ID=
+STRIPE_PROMOTION_ANNUAL_TWELVE_MONTH_COUPON_ID=
+STRIPE_PROMOTIONAL_REDEMPTION_ENABLED=false
+STRIPE_PROMOTIONAL_REDEMPTION_LIVE_ENABLED=false
+STRIPE_PROMOTION_WITH_TRIAL_ENABLED=false
+```
+
+`pnpm stripe:config:check` reports each coupon as configured or not configured and does not print the id. It fails when redemption is enabled and any id is missing or malformed. It also fails when the live or trial-combination flag is true while redemption is not enabled.
+
+Production activation, after the additive migration `20261118193000_add_promotional_offer` has been applied by a separate approved command:
+
+1. Confirm the four live coupons match the table. Do not edit existing Prices.
+2. Set the four live coupon ids in Vercel Production. Leave all three flags false or unset.
+3. Run `pnpm stripe:config:check` with `VERCEL_ENV=production`. Expect the four coupon rows `configured` and the flags `disabled`.
+4. Set `STRIPE_PROMOTIONAL_REDEMPTION_ENABLED=true` only after a test-mode Checkout has shown the discount on a paid invoice without a trial.
+5. Set `STRIPE_PROMOTIONAL_REDEMPTION_LIVE_ENABLED=true` only for the live key, after that same check.
+6. Leave `STRIPE_PROMOTION_WITH_TRIAL_ENABLED` false until a Stripe test subscription shows the finalized first paid invoice, not only an upcoming-invoice preview, with the intended discount after the 14-day trial. A once coupon must not be consumed by the A$0 trial invoice. A repeating coupon must still cover six or twelve paid months.
+
+An authorised clinic that cannot receive the coupon is not charged the catalogue price. Checkout stays closed.

@@ -178,7 +178,7 @@ Migration `20261005130000_add_negotiated_offer` is additive. Do not apply it to 
 
 - Monthly ↔ annual interval changes
 - Per-seat billing, extra-seat prices, or subscription quantities other than the Group Additional Site quantity model below
-- Self-service Essential → Practice upgrade, refunds, coupons
+- Self-service Essential → Practice upgrade, refunds, and customer-entered promotion codes
 - Fixed-term negotiated pricing. This release is indefinite only. A later version needs an explicit billing-cycle and proration policy before a negotiated subscription can end on a chosen date. There is no automatic move onto the catalogue price.
 - Post-activation Group quantity changes, Group subscription mutation, and Group capacity increase or decrease APIs
 - Practice → Group and Group → Practice billing mutation
@@ -188,9 +188,11 @@ Migration `20261005130000_add_negotiated_offer` is additive. Do not apply it to 
 
 ### Catalogue free trial
 
-Eligible new Essential and Practice clinics, monthly and yearly, can start a 14-day Stripe Checkout trial. Group, complimentary clinics, negotiated offers, and any clinic that already has a Stripe subscription or a stored `trialEndsAt` do not. Checkout still collects a card or AU BECS (`payment_method_collection: "always"`, `payment_method_types: ["card", "au_becs_debit"]`). The trial is `subscription_data.trial_period_days: 14` on that Session only. Catalogue Prices stay without `recurring.trial_period_days`, so Group and later non-trial Checkout are unchanged. Coupons and `allow_promotion_codes` stay off. The four promotional coupons are not applied.
+Eligible new Essential and Practice clinics, monthly and yearly, can start a 14-day Stripe Checkout trial. Group, complimentary clinics, negotiated offers, and any clinic that already has a Stripe subscription or a stored `trialEndsAt` do not. Checkout still collects a card or AU BECS (`payment_method_collection: "always"`, `payment_method_types: ["card", "au_becs_debit"]`). The trial is `subscription_data.trial_period_days: 14` on that Session only. Catalogue Prices stay without `recurring.trial_period_days`, so Group and later non-trial Checkout are unchanged. Customers cannot enter a promotion code. An operator-authorised introductory coupon is a separate path, described below.
 
 `ClinicEntitlement.billingStatus` can be `TRIALING`. `trialEndsAt` is set from Stripe `trial_end` and is kept after the trial, including after the first real payment, so the clinic cannot receive a second trial. Product access follows entitlement `ACTIVE`. `paidThrough` stays empty until `invoice.paid` confirms a collected period on an active subscription. The opening A$0 invoice (`billing_reason: subscription_create` while trialing, or a later replay of that A$0 invoice) does not set `paidThrough` and does not count as a paid renewal. The first charge after the trial is `subscription_cycle`. A positive `amount_paid` on an active subscription also counts. `customer.subscription.updated` moving to `active` before that invoice does not set `paidThrough` and leaves billing `TRIALING`.
+
+When local state promises this trial, a missing or failed `subscriptions.list` refuses Checkout (`trial_eligibility_unavailable`). It does not open an immediately chargeable session. A successful lookup that finds an earlier subscription withholds the trial and can still open Checkout, unless an introductory offer is also authorised. That combination is refused.
 
 Annual renewal notices require a paid-through instant that matches the period end, and they also skip `TRIALING` and any row whose trial end is set while `paidThrough` is empty. Billing copy says “Trial ends” or “Trial ended”, not “Next renewal” or “Paid through”.
 
@@ -198,7 +200,26 @@ Cancel at period end during the trial keeps access until Stripe deletes the subs
 
 `invoice.payment_failed` on a never-paid trial records `PAST_DUE` and keeps product access. `customer.subscription.updated` to `past_due` alone does not raise that notice while the trial has never been paid, because an AU BECS debit can still be clearing. Stripe’s exact status while that first debit is `processing` was not confirmed in a sandbox. If a failure was already recorded, a later `past_due` update does not clear it.
 
-Plan upgrades and downgrades are refused while billing is `TRIALING` or the live subscription is still trialing (`trial_end` in the future). A completed trial’s past `trial_end` does not keep blocking plan changes. An open Checkout Session is reused only when its line items and `riverTrialDays=14` marker match. An unpaid open Session without that marker is expired and replaced when the clinic is now eligible. The idempotency key gains `-trial-14` only when the trial is applied. A missing or failed `subscriptions.list` withholds the trial and still opens Checkout.
+Plan upgrades and downgrades are refused while billing is `TRIALING` or the live subscription is still trialing (`trial_end` in the future). A completed trial’s past `trial_end` does not keep blocking plan changes. An open Checkout Session is reused only when its line items, `riverTrialDays=14` marker, and introductory-offer metadata match. An unpaid open Session that does not match is expired and replaced. The idempotency key gains `-trial-14` only when the trial is applied, and a promotion segment only when an introductory offer is applied. Sessions without an introductory offer still send `allow_promotion_codes: false`. A session that applies a coupon omits that parameter, because Stripe rejects both.
+
+### Introductory catalogue discounts
+
+An operator can authorise one private introductory offer for a new Essential or Practice clinic: six months or twelve months. There is no annual commitment billed monthly. Group, complimentary clinics, negotiated prices, and a clinic that already has a subscription cannot receive one. A clinic that has already redeemed an offer cannot receive another. Public pages do not advertise these discounts.
+
+The coupon follows the billing interval selected at Checkout:
+
+| Interval       | Six-month offer                        | Twelve-month offer                        |
+| -------------- | -------------------------------------- | ----------------------------------------- |
+| Monthly        | 50% off for six paid months, repeating | 50% off for twelve paid months, repeating |
+| Annual upfront | 25% off the first annual invoice, once | 50% off the first annual invoice, once    |
+
+After the coupon, renewal uses the existing catalogue Price. Checkout does not create Prices or Products. Coupon ids are environment variables, separate for test and live. Redemption is off unless `STRIPE_PROMOTIONAL_REDEMPTION_ENABLED=true`. A live secret key also needs `STRIPE_PROMOTIONAL_REDEMPTION_LIVE_ENABLED=true`. If an authorised offer cannot be applied, Checkout stays closed.
+
+A trial and a promotion together do not put the coupon on the Checkout Session. Stripe would attach it to the opening A$0 invoice. The Session metadata says `riverPromotionApplication=after_zero_invoice`. After that A$0 `subscription_create` invoice is paid, and before any positive invoice, the webhook calls `subscriptions.update` with that one coupon and idempotency key `river-promo-attach-{subscriptionId}-{couponId}`. A second coupon already on the subscription is refused. This combination stays off unless `STRIPE_PROMOTION_WITH_TRIAL_ENABLED=true`. Sandbox upcoming-invoice previews showed the discount on the next invoice. A finalized post-trial charge was not observed, because claimable-sandbox test clocks are forbidden and Stripe delays that invoice for about an hour. Keep the combination flag off until that charge is confirmed.
+
+A subscription-level coupon would also discount an additional-location line added during the window. Additional-location purchase is not implemented. Do not change the existing coupons to `applies_to` from this application.
+
+Migration `20261118193000_add_promotional_offer` is additive. Do not apply it to production from this change. Existing subscriptions are not rewritten.
 
 Migration `20261118120000_add_catalogue_checkout_trial` is additive. Do not apply it to production from this change. Existing subscriptions are not backfilled and Stripe Live Mode is not changed.
 

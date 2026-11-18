@@ -11,6 +11,11 @@ import {
 } from "@/lib/billing/plan-change";
 import { parseOfferedAdditionalSiteQuantity } from "@/lib/clinics/group-commercial";
 import { prepareClinicCommercialOffer } from "@/lib/billing/prepare-offer";
+import {
+  parsePromotionExpiry,
+  setClinicPromotionalTerm,
+} from "@/lib/billing/promotion-offer";
+import { parseIntroductoryTermField } from "@/lib/billing/promotion-terms";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 
 export interface PrepareBillingActionState {
@@ -33,7 +38,7 @@ export async function prepareClinicBillingAction(
   if (!isStaffAppHost(host)) {
     notFound();
   }
-  await requirePlatformOperator();
+  const { user } = await requirePlatformOperator();
 
   const clinicId = String(formData.get("clinicId") ?? "").trim();
   const commercialPlan = String(formData.get("commercialPlan") ?? "");
@@ -83,6 +88,46 @@ export async function prepareClinicBillingAction(
   });
   if (!prepared.ok) {
     return { error: prepared.message };
+  }
+
+  const introductory = parseIntroductoryTermField(
+    formData.has("introductoryTerm")
+      ? String(formData.get("introductoryTerm") ?? "")
+      : null
+  );
+  if (introductory.status === "invalid") {
+    return {
+      error: "Choose a six-month offer, a twelve-month offer, or none.",
+      fieldErrors: {
+        introductoryTerm:
+          "Choose a six-month offer, a twelve-month offer, or none.",
+      },
+    };
+  }
+  if (introductory.status !== "absent") {
+    const expiry =
+      introductory.status === "set"
+        ? parsePromotionExpiry(
+            formData.get("introductoryExpiresOn"),
+            new Date()
+          )
+        : { ok: true as const, expiresAt: null };
+    if (!expiry.ok) {
+      return {
+        error: expiry.error,
+        fieldErrors: { introductoryExpiresOn: expiry.error },
+      };
+    }
+    const authorised = await setClinicPromotionalTerm({
+      clinicId,
+      actorUserId: user.id,
+      term: introductory.status === "set" ? introductory.term : null,
+      expiresAt: expiry.expiresAt,
+      commercialPlan,
+    });
+    if (!authorised.ok) {
+      return { error: authorised.error };
+    }
   }
 
   revalidatePath(`/operator/clinics/${clinicId}`);

@@ -1455,6 +1455,11 @@ function recoverInvitationToken(tokenHash: string): string | null {
 function fakeCheckoutStripe() {
   return {
     prices: conformingCataloguePrices,
+    subscriptions: {
+      async list() {
+        return { data: [] };
+      },
+    },
     customers: {
       async create() {
         return { id: "cus_aspl_onboard" };
