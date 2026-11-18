@@ -47,8 +47,8 @@ export default async function MarketingPricingPage() {
           variant="pricing"
           eyebrow="Pricing"
           titleId="pricing-hero"
-          title="Simple plans for branded patient aftercare."
-          intro={`${PRODUCT_NAME} looks like the clinic, is frictionless for the patient, and needs no patient account or app. Your practice software runs the clinic. ${PRODUCT_NAME} owns the experience after the patient walks out the door.`}
+          title="Try River Aftercare free for 14 days"
+          intro={`Get started with a 14-day free trial. Explore ${PRODUCT_NAME} before your first subscription payment. Payment details are collected, the selected Essential or Practice subscription starts charging after the trial, and you can cancel before the first charge. Group does not include this trial. ${PRODUCT_NAME} looks like the clinic, is frictionless for the patient, and needs no patient account or app.`}
         />
 
         <div className={styles.marketingSoft} data-mk-chapter="soft">
@@ -113,6 +113,11 @@ export default async function MarketingPricingPage() {
                             {plan.annualPrice}/year
                             {plan.annualNote ? ` — ${plan.annualNote}` : null}
                           </span>
+                          {plan.trialNote ? (
+                            <span className={styles.planAnnual}>
+                              {plan.trialNote}
+                            </span>
+                          ) : null}
                         </p>
                       ) : (
                         <p className={styles.planPrice}>

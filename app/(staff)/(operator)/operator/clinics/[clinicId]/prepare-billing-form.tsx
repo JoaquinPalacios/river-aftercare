@@ -11,6 +11,7 @@ import {
   parseOfferedAdditionalSiteQuantity,
 } from "@/lib/clinics/group-commercial";
 import { INACTIVE_CLINIC_EDIT_NOTE } from "@/lib/clinics/inactive-clinic-copy";
+import { IntroductoryOfferFields } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/introductory-offer-fields";
 
 const initial: PrepareBillingActionState = {};
 
@@ -32,6 +33,9 @@ export function PrepareBillingForm({
   cancellationScheduled,
   cancellationDateLabel,
   commercialNotice = null,
+  promotionalTerm = null,
+  promotionalExpiresOn = "",
+  promotionalSummary = null,
   editsLocked = false,
   lockedNote = INACTIVE_CLINIC_EDIT_NOTE,
 }: {
@@ -52,6 +56,9 @@ export function PrepareBillingForm({
   cancellationScheduled: "Yes" | "No";
   cancellationDateLabel: string | null;
   commercialNotice?: string | null;
+  promotionalTerm?: "SIX_MONTHS" | "TWELVE_MONTHS" | null;
+  promotionalExpiresOn?: string;
+  promotionalSummary?: string | null;
   editsLocked?: boolean;
   lockedNote?: string;
 }) {
@@ -134,11 +141,17 @@ export function PrepareBillingForm({
             <dd>{commercialNotice}</dd>
           </div>
         ) : null}
+        {promotionalSummary ? (
+          <div className="sm:col-span-2">
+            <dt className="text-staff-muted">Introductory offer</dt>
+            <dd>{promotionalSummary}</dd>
+          </div>
+        ) : null}
       </dl>
 
       {canRevise && !editsLocked ? (
         <form
-          key={`${plan ?? "none"}-${interval ?? "none"}-${offeredAdditionalSiteQuantity ?? "none"}`}
+          key={`${plan ?? "none"}-${interval ?? "none"}-${offeredAdditionalSiteQuantity ?? "none"}-${promotionalTerm ?? "none"}-${promotionalExpiresOn}`}
           action={action}
           className="mt-5 flex max-w-lg flex-col gap-4"
         >
@@ -186,6 +199,13 @@ export function PrepareBillingForm({
               <option value="YEARLY">Annual</option>
             </select>
           </div>
+          <IntroductoryOfferFields
+            idPrefix="billing"
+            plan={selectedPlan}
+            defaultTerm={promotionalTerm}
+            defaultExpiresOn={promotionalExpiresOn}
+            fieldErrors={state.fieldErrors}
+          />
           {selectedPlan === "GROUP" ? (
             <div className="flex flex-col gap-1.5">
               <label

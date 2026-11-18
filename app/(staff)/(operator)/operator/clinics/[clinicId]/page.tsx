@@ -376,6 +376,9 @@ export default async function OperatorClinicDetailPage({
           cancellationScheduled={billing.cancellationScheduled}
           cancellationDateLabel={billing.cancellationDateLabel}
           commercialNotice={billing.commercialNotice}
+          promotionalTerm={billing.promotionalTerm}
+          promotionalExpiresOn={billing.promotionalExpiresOn}
+          promotionalSummary={billing.promotionalSummary}
           editsLocked={closed}
           lockedNote={editNote}
         />

@@ -67,6 +67,13 @@ import {
   type StripeProjectionSnapshot,
 } from "@/lib/billing/stripe-event";
 import { getStripeClient } from "@/lib/billing/stripe-client";
+import {
+  ensurePromotionDiscount,
+  promotionStripeFromClient,
+  type PromotionAttachStripe,
+} from "@/lib/billing/promotion-attach";
+import { markPromotionalOfferRedeemed } from "@/lib/billing/promotion-offer";
+import { RIVER_PROMOTION_APPLICATION_KEY } from "@/lib/billing/promotion-terms";
 
 export type StripeEventProcessOutcome =
   | "processed"
@@ -105,6 +112,11 @@ type StripeEventOptions = {
   reader?: StripeSubscriptionReader | null;
   env?: Record<string, string | undefined>;
   downgradeStripe?: PlanDowngradeStripePort | null;
+  /**
+   * Stripe calls that attach an introductory coupon after the A$0 trial
+   * invoice. Null skips that call. The default uses the configured client.
+   */
+  promotionStripe?: PromotionAttachStripe | null;
 };
 
 /**
@@ -1216,6 +1228,56 @@ export async function processVerifiedStripeEvent(
     (projection.entitlement.commercialPlan === "ESSENTIAL" &&
       previousRow?.commercialPlan === "PRACTICE");
 
+  let promotionRedemption: {
+    offerId: string;
+    couponId: string;
+    deferred: boolean;
+  } | null = null;
+  const promotionMetadata = authoritativeSubscription?.metadata ?? null;
+  if (
+    identity.clinicId &&
+    snapshot.stripeSubscriptionId &&
+    promotionMetadata?.[RIVER_PROMOTION_APPLICATION_KEY] &&
+    promotionMetadata.clinicId === identity.clinicId
+  ) {
+    const promotionStripe =
+      options?.promotionStripe === undefined
+        ? promotionStripeFromClient(getStripeClient(env))
+        : options.promotionStripe;
+    if (promotionStripe) {
+      const decision = await ensurePromotionDiscount({
+        subscriptionId: snapshot.stripeSubscriptionId,
+        stripe: promotionStripe,
+      });
+      if (decision.action === "redeem") {
+        promotionRedemption = {
+          offerId: decision.offerId,
+          couponId: decision.couponId,
+          deferred: decision.deferred,
+        };
+      } else if (
+        decision.action === "refuse" ||
+        (decision.action === "missed" &&
+          decision.reason === "promotion_paid_invoice_without_discount")
+      ) {
+        const diagnostic = `Introductory discount was not applied (${decision.reason}).`;
+        await mark(
+          StripeEventProcessingStatus.FAILED,
+          diagnostic,
+          identity.clinicId
+        );
+        logStripeBilling({
+          event: "stripe_webhook_failed",
+          stripeEventId,
+          eventType,
+          clinicId: identity.clinicId,
+          reason: decision.reason,
+        });
+        throw new Error(diagnostic);
+      }
+    }
+  }
+
   let writeResult: "ignored" | "processed" = "processed";
   try {
     writeResult = await db.$transaction(async (tx) => {
@@ -1316,6 +1378,58 @@ export async function processVerifiedStripeEvent(
         }),
         cancellationSuperseded,
       });
+      if (promotionRedemption && snapshot.stripeSubscriptionId) {
+        const redeemed = await markPromotionalOfferRedeemed(
+          {
+            offerId: promotionRedemption.offerId,
+            clinicId: identity.clinicId!,
+            stripeSubscriptionId: snapshot.stripeSubscriptionId,
+            stripeCouponId: promotionRedemption.couponId,
+            discountDeferred: promotionRedemption.deferred,
+          },
+          tx as never
+        );
+        if (!redeemed) {
+          const offers = (
+            tx as unknown as {
+              clinicPromotionalOffer?: {
+                findUnique(args: {
+                  where: { id: string };
+                  select: {
+                    status: true;
+                    clinicId: true;
+                    stripeCouponId: true;
+                  };
+                }): Promise<{
+                  status: string;
+                  clinicId: string;
+                  stripeCouponId: string | null;
+                } | null>;
+              };
+            }
+          ).clinicPromotionalOffer;
+          const existing = offers
+            ? await offers.findUnique({
+                where: { id: promotionRedemption.offerId },
+                select: {
+                  status: true,
+                  clinicId: true,
+                  stripeCouponId: true,
+                },
+              })
+            : null;
+          const alreadySettled =
+            existing?.clinicId === identity.clinicId &&
+            (existing.status === "REDEEMED" ||
+              existing.status === "WITHDRAWN" ||
+              existing.status === "EXPIRED") &&
+            (existing.stripeCouponId == null ||
+              existing.stripeCouponId === promotionRedemption.couponId);
+          if (!alreadySettled) {
+            throw new Error("Introductory offer could not be recorded.");
+          }
+        }
+      }
       await tx.stripeEventReceipt.update({
         where: { id: receipt.id },
         data: {

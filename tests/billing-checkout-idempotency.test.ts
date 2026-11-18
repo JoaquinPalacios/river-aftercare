@@ -367,6 +367,7 @@ function readyCall(overrides: Partial<LockedCheckoutState> = {}): {
       stripeCustomerId: null,
       stripeSubscriptionId: null,
       stripeCheckoutSessionId: null,
+      trialEndsAt: new Date("2020-01-01T00:00:00.000Z"),
       offeredAdditionalSiteQuantity: null,
       termsAccepted: true,
       identity: {
@@ -398,6 +399,7 @@ function fakeStripe() {
   const createdSessions: Array<{
     line_items: Array<{ price: string; quantity: number }>;
     payment_method_types: string[];
+    metadata?: Record<string, string>;
   }> = [];
   const customerCreates: Array<{ idempotencyKey?: string }> = [];
   const customersByKey = new Map<
@@ -425,6 +427,11 @@ function fakeStripe() {
 
   stripe.port = {
     prices: conformingCataloguePrices,
+    subscriptions: {
+      async list() {
+        return { data: [] };
+      },
+    },
     customers: {
       async create(params, options) {
         const key = options?.idempotencyKey ?? "";
@@ -505,6 +512,7 @@ function fakeStripe() {
             createdSessions.push({
               line_items: params.line_items,
               payment_method_types: params.payment_method_types,
+              metadata: params.metadata,
             });
             return session;
           })();
@@ -521,6 +529,7 @@ function fakeStripe() {
             id,
             url: "https://checkout.stripe.com/c/pay/cs_1",
             status: "open",
+            metadata: created?.metadata ?? null,
             line_items: {
               data: (created?.line_items ?? []).map((item) => ({
                 price: { id: item.price },

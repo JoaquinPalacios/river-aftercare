@@ -194,8 +194,14 @@ describe("catalogue checkout trial", () => {
     expect(stripe.sessions.created).toHaveLength(1);
     expect(stripe.sessions.expired).toHaveLength(0);
 
-    const plain = fakeStripe({ subscriptions: "missing" });
-    await checkout(plain, readyState());
+    const plain = fakeStripe();
+    await checkout(
+      plain,
+      readyState({ trialEndsAt: new Date("2026-01-01T00:00:00.000Z") })
+    );
+    expect(plain.sessions.created[0]?.subscription_data).not.toHaveProperty(
+      "trial_period_days"
+    );
     const eligible = fakeStripe();
     eligible.sessions.created.push(plain.sessions.created[0]!);
     const replaced = await checkout(
@@ -248,21 +254,16 @@ describe("catalogue checkout trial", () => {
 
     const unavailable = fakeStripe({ subscriptions: "throws" });
     const missing = fakeStripe({ subscriptions: "missing" });
-    expect((await checkout(unavailable, readyState())).ok).toBe(true);
-    expect((await checkout(missing, readyState())).ok).toBe(true);
-    expect(
-      unavailable.sessions.created[0]?.subscription_data
-    ).not.toHaveProperty("trial_period_days");
-    expect(missing.sessions.created[0]?.subscription_data).not.toHaveProperty(
-      "trial_period_days"
-    );
-    expect(missing.sessions.idempotencyKeys[0]).toBe(
-      checkoutIdempotencyKey(
-        "clinic_trial",
-        [{ price: ESSENTIAL_MONTHLY, quantity: 1 }],
-        null
-      )
-    );
+    expect(await checkout(unavailable, readyState())).toEqual({
+      ok: false,
+      code: "trial_eligibility_unavailable",
+    });
+    expect(await checkout(missing, readyState())).toEqual({
+      ok: false,
+      code: "trial_eligibility_unavailable",
+    });
+    expect(unavailable.sessions.created).toHaveLength(0);
+    expect(missing.sessions.created).toHaveLength(0);
 
     const subscribed = fakeStripe();
     expect(

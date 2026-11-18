@@ -10,6 +10,7 @@ import {
   saveComplimentaryAccessAction,
   type ComplimentaryAccessActionState,
 } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/complimentary-actions";
+import { IntroductoryOfferFields } from "@/app/(staff)/(operator)/operator/clinics/[clinicId]/introductory-offer-fields";
 
 const complimentaryInitial: ComplimentaryAccessActionState = {};
 const offerInitial: OnboardingActionState = {};
@@ -285,6 +286,11 @@ export function OnboardingStandardOfferForm({
           </p>
         ) : null}
       </div>
+      <IntroductoryOfferFields
+        idPrefix="onboarding"
+        plan="ESSENTIAL"
+        fieldErrors={state.fieldErrors}
+      />
       {state.error ? (
         <p className="text-sm text-red-600" role="alert">
           {state.error}

@@ -126,6 +126,7 @@ model Clinic {
   billingNoticeDeliveries   BillingNoticeDelivery[]
   complimentaryAccessEvents ClinicComplimentaryAccessEvent[]
   negotiatedOffers          ClinicNegotiatedOffer[]
+  promotionalOffers         ClinicPromotionalOffer[]
   /// Set while the clinic account is reversibly deactivated. Null means active.
   /// Child sites, locations, guides, memberships, and billing rows stay as they are.
   deactivatedAt             DateTime?
@@ -199,6 +200,7 @@ model User {
   complimentaryAccessEvents       ClinicComplimentaryAccessEvent[]
   preparedNegotiatedOffers        ClinicNegotiatedOffer[]            @relation("NegotiatedOfferPreparedBy")
   acceptedNegotiatedOffers        ClinicNegotiatedOffer[]            @relation("NegotiatedOfferAcceptedBy")
+  preparedPromotionalOffers       ClinicPromotionalOffer[]           @relation("PromotionalOfferPreparedBy")
   deactivatedClinics              Clinic[]                           @relation("ClinicDeactivatedBy")
   archivedClinics                 Clinic[]                           @relation("ClinicArchivedBy")
   permanentlyDeletedClinics       Clinic[]                           @relation("ClinicPermanentlyDeletedBy")
@@ -897,6 +899,23 @@ enum NegotiatedTaxTreatment {
   NO_GST
 }
 
+/// Introductory catalogue discount. Six or twelve months is the offer length,
+/// not a new billing interval and not an annual commitment billed monthly.
+enum PromotionalOfferTerm {
+  SIX_MONTHS
+  TWELVE_MONTHS
+}
+
+/// AUTHORISED and CHECKOUT_OPEN are the only open states. A partial unique
+/// index keeps one open row per clinic. Prisma cannot express that index.
+enum PromotionalOfferStatus {
+  AUTHORISED
+  CHECKOUT_OPEN
+  REDEEMED
+  WITHDRAWN
+  EXPIRED
+}
+
 /// River product authorization derived from billing.
 /// PENDING is the Phase 2 pre-payment activation gate for clinics explicitly
 /// placed into billing onboarding. RESTRICTED and ENDED are not enforced yet.
@@ -1421,6 +1440,35 @@ model ClinicNegotiatedOffer {
 
   @@index([clinicId, status])
   @@index([stripePriceId])
+  @@index([preparedByUserId])
+}
+
+/// Operator-authorised introductory discount for one new Essential or Practice
+/// clinic. It does not create a Stripe Price. The coupon id is copied from
+/// the environment when Checkout opens. Redeemed and withdrawn rows stay.
+/// Open uniqueness is ClinicPromotionalOffer_one_open_per_clinic_key.
+model ClinicPromotionalOffer {
+  id                      String                 @id @default(cuid())
+  clinicId                String
+  preparedByUserId        String
+  term                    PromotionalOfferTerm
+  status                  PromotionalOfferStatus
+  /// End of the selected Sydney day. Null when the authorisation does not expire.
+  /// Checkout refuses an open row at or after this instant.
+  authorisationExpiresAt  DateTime?
+  stripeCouponId          String?
+  stripeSubscriptionId    String?
+  /// True when the coupon is attached after the A$0 trial invoice, not on Checkout.
+  discountDeferred        Boolean                @default(false)
+  redeemedAt              DateTime?
+  withdrawnAt             DateTime?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  clinic                  Clinic                 @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  preparedBy              User                   @relation("PromotionalOfferPreparedBy", fields: [preparedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([clinicId, status])
+  @@index([stripeSubscriptionId])
   @@index([preparedByUserId])
 }
 

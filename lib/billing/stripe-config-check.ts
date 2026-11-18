@@ -26,6 +26,7 @@ import {
   type Env,
 } from "@/lib/billing/env";
 import { inspectStripeCatalogue } from "@/lib/billing/price-map";
+import { assessPromotionConfiguration } from "@/lib/billing/promotion-config";
 import {
   evaluateStripeSecretKey,
   isStripePortalConfigurationId,
@@ -210,6 +211,10 @@ export function assessStripeConfiguration(
       "Legacy Stripe Price IDs must be a comma-separated list of price_ ids."
     );
   }
+
+  const promotion = assessPromotionConfiguration(env);
+  lines.push(...promotion.lines);
+  failures.push(...promotion.failures);
 
   const ok = failures.length === 0;
   lines.push(`Stripe configuration: ${ok ? "ok" : "failed"}`);

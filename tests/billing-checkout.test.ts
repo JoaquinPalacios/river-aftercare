@@ -277,6 +277,11 @@ function fakeStripe() {
   let sessionSeq = 0;
   const port: CheckoutStripePort = {
     prices: conformingCataloguePrices,
+    subscriptions: {
+      async list() {
+        return { data: [] };
+      },
+    },
     customers: {
       async create(params) {
         customers.created.push(params);
@@ -305,6 +310,9 @@ function fakeStripe() {
             id,
             url: "https://checkout.stripe.com/c/pay/cs_test_1",
             status: "open",
+            metadata:
+              (created as { metadata?: Record<string, string> } | undefined)
+                ?.metadata ?? null,
             line_items: {
               data: [{ price: { id: created?.line_items?.[0]?.price } }],
             },

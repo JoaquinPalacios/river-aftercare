@@ -63,7 +63,7 @@ describe("marketing pricing page", () => {
     const html = renderToStaticMarkup(await MarketingPricingPage());
 
     expect(html.match(/<h1\b/g)).toHaveLength(1);
-    expect(html).toContain("Simple plans for branded patient aftercare.");
+    expect(html).toContain("Try River Aftercare free for 14 days");
     expect(html).toContain('data-mk-page-hero="pricing"');
     expect(html).toContain("mkPageWaveInnerPage");
     expect(html).not.toContain("mkPageWavePricing");
@@ -496,11 +496,12 @@ describe("canonical plan prices", () => {
     expect(formatAudInclGst(1490)).toBe("A$1,490");
     expect(JSON.stringify(PLAN_PRICES)).not.toContain("298");
     expect(PRICING_NOTES.map((note) => note.title)).toEqual([
+      "14-day free trial",
       "Annual billing",
       "Assisted onboarding",
       "Current product scope",
     ]);
-    expect(PRICING_NOTES[0]?.body).toBe(
+    expect(PRICING_NOTES[1]?.body).toBe(
       "Annual plans include 12 months for the price of 10."
     );
     expect(JSON.stringify(PRICING_NOTES)).not.toMatch(/GST/i);

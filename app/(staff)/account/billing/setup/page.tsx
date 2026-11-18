@@ -123,9 +123,13 @@ export default async function BillingSetupPage({
         <BillingSetupForm
           clinicName={view.clinicName}
           planName={view.summary.planName}
-          priceLabel={view.summary.priceLabel}
-          annualNote={view.summary.annualNote}
-          detailLines={view.summary.detailLines}
+          priceLabel={
+            view.promotion?.quote?.priceLabel ?? view.summary.priceLabel
+          }
+          annualNote={view.promotion?.quote ? null : view.summary.annualNote}
+          detailLines={
+            view.promotion?.quote?.detailLines ?? view.summary.detailLines
+          }
           capacityNote={view.summary.capacityNote}
           contactHref={context.contactHref}
           termsHref={context.termsHref}
@@ -133,8 +137,13 @@ export default async function BillingSetupPage({
           regions={AU_REGION_OPTIONS}
           cancelMessage={cancelMessage}
           trialNote={
-            view.catalogueTrialDisclosure ? CATALOGUE_TRIAL_DISCLOSURE : null
+            view.promotion?.quote
+              ? null
+              : view.catalogueTrialDisclosure
+                ? CATALOGUE_TRIAL_DISCLOSURE
+                : null
           }
+          checkoutBlockedMessage={view.promotion?.checkoutBlockedMessage}
           defaults={{
             legalEntityName: view.identity?.legalEntityName ?? "",
             tradingName: view.identity?.tradingName ?? view.clinicName,
@@ -174,7 +183,12 @@ function PlanSummary({
       <p className="mt-3 text-xl font-semibold">
         {view.summary?.planName ?? view.planLabel}
       </p>
-      <p className="mt-1 text-sm">{view.summary?.priceLabel}</p>
+      <p className="mt-1 text-sm">
+        {view.promotion?.quote?.priceLabel ?? view.summary?.priceLabel}
+      </p>
+      {view.promotion?.summary ? (
+        <p className="mt-1 text-sm">{view.promotion.summary}</p>
+      ) : null}
       {view.summary?.annualNote ? (
         <p className="mt-1 text-sm text-staff-muted">
           {view.summary.annualNote}

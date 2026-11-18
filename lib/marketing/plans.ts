@@ -144,6 +144,8 @@ export const LAUNCH_PLANS = [
     ctaHref: "/contact",
     features: ESSENTIAL_CARD_FEATURES,
     setupNotes: null,
+    trialNote:
+      "14-day free trial. Payment details are collected, and this plan starts charging after the trial unless you cancel first.",
   },
   {
     id: "practice",
@@ -159,6 +161,8 @@ export const LAUNCH_PLANS = [
     ctaHref: "/contact",
     features: PRACTICE_CARD_FEATURES,
     setupNotes: ["Multi-location practice? Talk to us about your setup."],
+    trialNote:
+      "14-day free trial. Payment details are collected, and this plan starts charging after the trial unless you cancel first.",
   },
   {
     id: "group",
@@ -180,10 +184,15 @@ export const LAUNCH_PLANS = [
       "Tailored account setup",
     ],
     setupNotes: null,
+    trialNote: null,
   },
 ] as const;
 
 export const PRICING_NOTES = [
+  {
+    title: "14-day free trial",
+    body: "Essential and Practice include a 14-day free trial for a new clinic. Payment details are collected, the selected subscription starts charging after the trial, and you can cancel before the first charge. Group is arranged with River Aftercare and does not include this trial.",
+  },
   {
     title: "Annual billing",
     body: "Annual plans include 12 months for the price of 10.",

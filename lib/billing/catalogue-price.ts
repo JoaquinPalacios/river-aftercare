@@ -116,6 +116,8 @@ export type RetrievedCataloguePrice = {
     interval?: string | null;
     interval_count?: number | null;
   } | null;
+  /** Present when Checkout expands or the Price payload includes the product. */
+  product?: string | { id?: string | null } | null;
 };
 
 const STRIPE_INTERVAL: Record<BillingIntervalCode, "month" | "year"> = {

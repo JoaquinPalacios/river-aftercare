@@ -43,6 +43,8 @@ import {
   loadBillingNoticeCandidate,
 } from "@/lib/billing/notices/load";
 import type { BillingPageCommercialDetail } from "@/lib/billing/notices/types";
+import { loadClinicPromotionPresentation } from "@/lib/billing/promotion-offer";
+import type { PromotionTerm } from "@/lib/billing/promotion-terms";
 import { catalogueCheckoutTrialEligible } from "@/lib/billing/trial";
 import {
   billingPeriodLabel,
@@ -99,6 +101,9 @@ export type OperatorBillingPanel = {
   canRevise: boolean;
   reviseBlockedReason: string | null;
   commercialArrangement: "PAID" | "COMPLIMENTARY" | null;
+  promotionalTerm: PromotionTerm | null;
+  promotionalExpiresOn: string;
+  promotionalSummary: string | null;
 };
 
 export async function loadOperatorBillingPanel(
@@ -291,6 +296,44 @@ export async function loadOperatorBillingPanel(
           planChangeVisible,
         }),
     commercialArrangement: entitlement?.commercialArrangement ?? null,
+    ...(await operatorPromotionFields(clinicId, entitlement, profile)),
+  };
+}
+
+async function operatorPromotionFields(
+  clinicId: string,
+  entitlement: {
+    commercialPlan: string | null;
+    billingInterval: string | null;
+    commercialArrangement?: "PAID" | "COMPLIMENTARY" | null;
+    billingStatus: BillingStatus | null;
+    entitlementStatus: EntitlementStatus | null;
+    trialEndsAt?: Date | null;
+  } | null,
+  profile: { stripeSubscriptionId: string | null } | null
+): Promise<{
+  promotionalTerm: PromotionTerm | null;
+  promotionalExpiresOn: string;
+  promotionalSummary: string | null;
+}> {
+  const promotion = await loadClinicPromotionPresentation({
+    clinicId,
+    plan: entitlement?.commercialPlan ?? null,
+    interval: entitlement?.billingInterval ?? null,
+    trialEligible: catalogueCheckoutTrialEligible({
+      commercialArrangement: entitlement?.commercialArrangement ?? null,
+      commercialPlan: entitlement?.commercialPlan ?? null,
+      billingInterval: entitlement?.billingInterval ?? null,
+      billingStatus: entitlement?.billingStatus ?? null,
+      entitlementStatus: entitlement?.entitlementStatus ?? null,
+      stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
+      trialEndsAt: entitlement?.trialEndsAt ?? null,
+    }),
+  });
+  return {
+    promotionalTerm: promotion && !promotion.applied ? promotion.term : null,
+    promotionalExpiresOn: promotion?.expiresOn ?? "",
+    promotionalSummary: promotion?.summary ?? null,
   };
 }
 
@@ -304,6 +347,7 @@ export type ClinicBillingView = {
   paidThroughLabel: string | null;
   periodLabel: string;
   catalogueTrialDisclosure: boolean;
+  promotion: Awaited<ReturnType<typeof loadClinicPromotionPresentation>>;
   portalEligible: boolean;
   entitlementStatus: EntitlementStatus | null;
   billingStatus: BillingStatus | null;
@@ -442,6 +486,21 @@ export async function loadClinicBillingView(
       entitlementStatus: entitlement?.entitlementStatus ?? null,
       stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
       trialEndsAt: entitlement?.trialEndsAt ?? null,
+    }),
+    promotion: await loadClinicPromotionPresentation({
+      clinicId,
+      plan: entitlement?.commercialPlan ?? null,
+      interval: entitlement?.billingInterval ?? null,
+      trialEligible: catalogueCheckoutTrialEligible({
+        commercialArrangement: entitlement?.commercialArrangement ?? null,
+        commercialPlan: entitlement?.commercialPlan ?? null,
+        billingInterval: entitlement?.billingInterval ?? null,
+        billingStatus: entitlement?.billingStatus ?? null,
+        entitlementStatus: entitlement?.entitlementStatus ?? null,
+        stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
+        trialEndsAt: entitlement?.trialEndsAt ?? null,
+      }),
+      includeRedeemed: true,
     }),
     portalEligible: clinicSupportsCustomerPortal({
       stripeCustomerId: profile?.stripeCustomerId ?? null,
