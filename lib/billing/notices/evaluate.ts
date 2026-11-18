@@ -607,6 +607,12 @@ function annualRenewalReady(input: {
     return null;
   }
   if (
+    subscription.billingStatus === "TRIALING" ||
+    (subscription.trialEndsAt && !subscription.paidThrough)
+  ) {
+    return null;
+  }
+  if (
     subscription.entitlementStatus !== "ACTIVE" ||
     (subscription.billingStatus !== "ACTIVE" &&
       subscription.billingStatus !== "PAST_DUE") ||

@@ -11,6 +11,7 @@ import {
   BILLING_SETUP_PATH,
 } from "@/lib/billing/activation-gate";
 import {
+  customerBillingStatusLabel,
   ENDED_BILLING_MESSAGE,
   RESTRICTED_BILLING_MESSAGE,
 } from "@/lib/billing/billing-presentation";
@@ -129,27 +130,13 @@ export default async function BillingStatusPage({
                           : "warning"
                     }
                   >
-                    {view.complimentary
-                      ? view.complimentary.accessLabel
-                      : presentation.kind === "active" &&
-                          presentation.attention === "cancel_scheduled"
-                        ? "Scheduled to end"
-                        : presentation.kind === "active" &&
-                            presentation.attention === "past_due" &&
-                            showCommercialDetail
-                          ? "Payment issue"
-                          : presentation.kind === "active"
-                            ? "Active"
-                            : presentation.kind === "processing"
-                              ? "Payment processing"
-                              : presentation.kind === "restricted" &&
-                                  showCommercialDetail
-                                ? "Unpaid"
-                                : presentation.kind === "restricted"
-                                  ? "Billing"
-                                  : presentation.kind === "inactive"
-                                    ? "Ended"
-                                    : view.billingLabel}
+                    {customerBillingStatusLabel({
+                      presentation,
+                      complimentaryLabel:
+                        view.complimentary?.accessLabel ?? null,
+                      showCommercialDetail,
+                      billingLabel: view.billingLabel,
+                    })}
                   </span>
                 </dd>
               </div>
@@ -178,6 +165,14 @@ export default async function BillingStatusPage({
             !paymentRecovery ? (
               <p className="mt-4 text-sm" role="status">
                 {presentation.attentionMessage}
+              </p>
+            ) : null}
+            {showCommercialDetail &&
+            presentation.kind === "active" &&
+            presentation.trial?.message &&
+            !paymentRecovery ? (
+              <p className="mt-4 text-sm" role="status">
+                {presentation.trial.message}
               </p>
             ) : null}
             {commercial?.annualReminder ? (

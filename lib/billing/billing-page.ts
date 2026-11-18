@@ -43,6 +43,7 @@ import {
   loadBillingNoticeCandidate,
 } from "@/lib/billing/notices/load";
 import type { BillingPageCommercialDetail } from "@/lib/billing/notices/types";
+import { catalogueCheckoutTrialEligible } from "@/lib/billing/trial";
 import {
   billingPeriodLabel,
   billingStateLabel,
@@ -68,6 +69,7 @@ export type OperatorBillingPanel = {
   customerLinked: "Yes" | "No";
   subscriptionLinked: "Yes" | "No";
   paidThroughLabel: string | null;
+  trialEndsLabel: string | null;
   cancellationScheduled: "Yes" | "No";
   cancellationDateLabel: string | null;
   canUpgradeToPractice: boolean;
@@ -182,8 +184,22 @@ export async function loadOperatorBillingPanel(
   const showDowngrade =
     entitlement?.commercialPlan === "PRACTICE" && !complimentary;
   const planChangeVisible = planChange.ok || showDowngrade;
-  const periodDate =
-    entitlement?.paidThrough ?? entitlement?.currentPeriodEnd ?? null;
+  const unpaidTrial =
+    Boolean(entitlement?.trialEndsAt) &&
+    entitlement?.paidThrough == null &&
+    entitlement?.entitlementStatus === EntitlementStatus.ACTIVE;
+  const periodDate = unpaidTrial
+    ? null
+    : (entitlement?.paidThrough ?? entitlement?.currentPeriodEnd ?? null);
+  const trialEndsLabel =
+    unpaidTrial && entitlement?.trialEndsAt
+      ? formatBillingDate(entitlement.trialEndsAt)
+      : null;
+  const cancellationInstant = entitlement?.cancelAtPeriodEnd
+    ? unpaidTrial
+      ? (entitlement.trialEndsAt ?? null)
+      : periodDate
+    : null;
   const noticeCandidate = await loadBillingNoticeCandidate(clinicId);
   const noticeEvaluation = noticeCandidate
     ? evaluateCandidate(noticeCandidate, new Date())
@@ -219,11 +235,11 @@ export async function loadOperatorBillingPanel(
     customerLinked: profile?.stripeCustomerId ? "Yes" : "No",
     subscriptionLinked: profile?.stripeSubscriptionId ? "Yes" : "No",
     paidThroughLabel: periodDate ? formatBillingDate(periodDate) : null,
+    trialEndsLabel,
     cancellationScheduled: entitlement?.cancelAtPeriodEnd ? "Yes" : "No",
-    cancellationDateLabel:
-      entitlement?.cancelAtPeriodEnd && periodDate
-        ? formatBillingDate(periodDate)
-        : null,
+    cancellationDateLabel: cancellationInstant
+      ? formatBillingDate(cancellationInstant)
+      : null,
     canUpgradeToPractice: planChange.ok,
     showDowngrade,
     downgradeEffectiveLabel: periodDate ? formatBillingDate(periodDate) : null,
@@ -287,6 +303,7 @@ export type ClinicBillingView = {
   intervalLabel: string;
   paidThroughLabel: string | null;
   periodLabel: string;
+  catalogueTrialDisclosure: boolean;
   portalEligible: boolean;
   entitlementStatus: EntitlementStatus | null;
   billingStatus: BillingStatus | null;
@@ -364,11 +381,27 @@ export async function loadClinicBillingView(
     checkoutStarted: Boolean(profile?.stripeCheckoutSessionId),
     stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
     paidThrough: reliableInstant,
+    recordedPaidThrough: entitlement?.paidThrough ?? null,
     currentPeriodEnd: reliableInstant,
     cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
+    trialEndsAt: entitlement?.trialEndsAt ?? null,
   });
   const reliablePeriodLabel = noticeEvaluation?.page.periodEndLabel ?? null;
   const cancelScheduled = Boolean(entitlement?.cancelAtPeriodEnd);
+  const unpaidTrial =
+    Boolean(entitlement?.trialEndsAt) &&
+    entitlement?.paidThrough == null &&
+    entitlement?.entitlementStatus === EntitlementStatus.ACTIVE;
+  const periodLabel =
+    unpaidTrial && entitlement?.trialEndsAt
+      ? entitlement.trialEndsAt.getTime() <= Date.now()
+        ? "Trial ended"
+        : "Trial ends"
+      : billingPeriodLabel(cancelScheduled);
+  const displayedPeriodLabel =
+    unpaidTrial && entitlement?.trialEndsAt
+      ? formatBillingDate(entitlement.trialEndsAt)
+      : reliablePeriodLabel;
 
   const identity = profile
     ? {
@@ -399,8 +432,17 @@ export async function loadClinicBillingView(
     billingLabel: billingStateLabel(entitlement?.billingStatus ?? null),
     planLabel: commercialPlanLabel(entitlement?.commercialPlan ?? null),
     intervalLabel: billingIntervalLabel(entitlement?.billingInterval ?? null),
-    paidThroughLabel: reliablePeriodLabel,
-    periodLabel: billingPeriodLabel(cancelScheduled),
+    paidThroughLabel: displayedPeriodLabel,
+    periodLabel,
+    catalogueTrialDisclosure: catalogueCheckoutTrialEligible({
+      commercialArrangement: entitlement?.commercialArrangement ?? null,
+      commercialPlan: entitlement?.commercialPlan ?? null,
+      billingInterval: entitlement?.billingInterval ?? null,
+      billingStatus: entitlement?.billingStatus ?? null,
+      entitlementStatus: entitlement?.entitlementStatus ?? null,
+      stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
+      trialEndsAt: entitlement?.trialEndsAt ?? null,
+    }),
     portalEligible: clinicSupportsCustomerPortal({
       stripeCustomerId: profile?.stripeCustomerId ?? null,
       entitlementStatus: entitlement?.entitlementStatus ?? null,

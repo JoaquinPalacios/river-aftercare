@@ -18,6 +18,7 @@ export const BILLING_PORTAL_RETURN_PATH = "/account/billing";
 const PORTAL_BILLING_STATUSES = new Set<BillingStatus>([
   BillingStatus.PAYMENT_PENDING,
   BillingStatus.ACTIVE,
+  BillingStatus.TRIALING,
   BillingStatus.PAST_DUE,
   BillingStatus.UNPAID,
   BillingStatus.CANCEL_AT_PERIOD_END,

@@ -178,7 +178,7 @@ Migration `20261005130000_add_negotiated_offer` is additive. Do not apply it to 
 
 - Monthly ↔ annual interval changes
 - Per-seat billing, extra-seat prices, or subscription quantities other than the Group Additional Site quantity model below
-- Self-service Essential → Practice upgrade, refunds, coupons, trials
+- Self-service Essential → Practice upgrade, refunds, coupons
 - Fixed-term negotiated pricing. This release is indefinite only. A later version needs an explicit billing-cycle and proration policy before a negotiated subscription can end on a chosen date. There is no automatic move onto the catalogue price.
 - Post-activation Group quantity changes, Group subscription mutation, and Group capacity increase or decrease APIs
 - Practice → Group and Group → Practice billing mutation
@@ -186,9 +186,25 @@ Migration `20261005130000_add_negotiated_offer` is additive. Do not apply it to 
 - Live payments
 - GST / Stripe Tax (not in scope: River Aftercare is not registering for GST at this stage)
 
+### Catalogue free trial
+
+Eligible new Essential and Practice clinics, monthly and yearly, can start a 14-day Stripe Checkout trial. Group, complimentary clinics, negotiated offers, and any clinic that already has a Stripe subscription or a stored `trialEndsAt` do not. Checkout still collects a card or AU BECS (`payment_method_collection: "always"`, `payment_method_types: ["card", "au_becs_debit"]`). The trial is `subscription_data.trial_period_days: 14` on that Session only. Catalogue Prices stay without `recurring.trial_period_days`, so Group and later non-trial Checkout are unchanged. Coupons and `allow_promotion_codes` stay off. The four promotional coupons are not applied.
+
+`ClinicEntitlement.billingStatus` can be `TRIALING`. `trialEndsAt` is set from Stripe `trial_end` and is kept after the trial, including after the first real payment, so the clinic cannot receive a second trial. Product access follows entitlement `ACTIVE`. `paidThrough` stays empty until `invoice.paid` confirms a collected period on an active subscription. The opening A$0 invoice (`billing_reason: subscription_create` while trialing, or a later replay of that A$0 invoice) does not set `paidThrough` and does not count as a paid renewal. The first charge after the trial is `subscription_cycle`. A positive `amount_paid` on an active subscription also counts. `customer.subscription.updated` moving to `active` before that invoice does not set `paidThrough` and leaves billing `TRIALING`.
+
+Annual renewal notices require a paid-through instant that matches the period end, and they also skip `TRIALING` and any row whose trial end is set while `paidThrough` is empty. Billing copy says “Trial ends” or “Trial ended”, not “Next renewal” or “Paid through”.
+
+Cancel at period end during the trial keeps access until Stripe deletes the subscription and does not create a charge. A never-paid deletion leaves `paidThrough` empty. Public patient guides still use the existing 60-day retention measured from the subscription end. A paid cancellation keeps the existing paid-through retention path.
+
+`invoice.payment_failed` on a never-paid trial records `PAST_DUE` and keeps product access. `customer.subscription.updated` to `past_due` alone does not raise that notice while the trial has never been paid, because an AU BECS debit can still be clearing. Stripe’s exact status while that first debit is `processing` was not confirmed in a sandbox. If a failure was already recorded, a later `past_due` update does not clear it.
+
+Plan upgrades and downgrades are refused while billing is `TRIALING` or the live subscription is still trialing (`trial_end` in the future). A completed trial’s past `trial_end` does not keep blocking plan changes. An open Checkout Session is reused only when its line items and `riverTrialDays=14` marker match. An unpaid open Session without that marker is expired and replaced when the clinic is now eligible. The idempotency key gains `-trial-14` only when the trial is applied. A missing or failed `subscriptions.list` withholds the trial and still opens Checkout.
+
+Migration `20261118120000_add_catalogue_checkout_trial` is additive. Do not apply it to production from this change. Existing subscriptions are not backfilled and Stripe Live Mode is not changed.
+
 ### Group billing foundation
 
-Public marketing for Group stays **Custom pricing**. There is no public Group Checkout button and no published Group rate. There is no GST label and no Stripe Tax. Annual billing is 12 months for the price of 10. Operator-prepared Group Checkout uses the catalogue below. Essential and Practice Checkout are unchanged.
+Public marketing for Group stays **Custom pricing**. There is no public Group Checkout button and no published Group rate. There is no GST label and no Stripe Tax. Annual billing is 12 months for the price of 10. Operator-prepared Group Checkout uses the catalogue below. Group Checkout does not include the catalogue free trial.
 
 Approved Group catalogue:
 
@@ -1062,7 +1078,7 @@ Recommended sequence (safer than billing-before-domain):
 
 **Live-mode gate (after E at minimum, G before taking public URLs down automatically):** GST registration confirmed; Terms/Privacy mention Stripe and auto-charge; live Products/Prices; live webhook on `app.riveraftercare.com.au`; Better Stack alert on `stripe_webhook_failed`; first paying clinic is operator-watched.
 
-Do not enable public self-serve signup, coupons, trials, Group automation, location add-ons, Xero, or Peppol in these phases.
+Do not enable public self-serve signup, coupons, Group automation, location add-ons, Xero, or Peppol in these phases. The catalogue free trial above is limited to new eligible Essential and Practice Checkout.
 
 ---
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BillingSetupForm } from "@/app/(staff)/account/billing/setup/billing-setup-form";
+import { CATALOGUE_TRIAL_DISCLOSURE } from "@/lib/billing/trial";
 import { loadBillingPageContext } from "@/app/(staff)/account/billing/billing-context";
 import {
   BILLING_COMPLETE_PATH,
@@ -131,6 +132,9 @@ export default async function BillingSetupPage({
           privacyHref={context.privacyHref}
           regions={AU_REGION_OPTIONS}
           cancelMessage={cancelMessage}
+          trialNote={
+            view.catalogueTrialDisclosure ? CATALOGUE_TRIAL_DISCLOSURE : null
+          }
           defaults={{
             legalEntityName: view.identity?.legalEntityName ?? "",
             tradingName: view.identity?.tradingName ?? view.clinicName,

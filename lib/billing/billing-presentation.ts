@@ -18,6 +18,15 @@ import {
 
 export type BillingAttention = "past_due" | "cancel_scheduled";
 
+export type BillingTrialPhase =
+  "in_trial" | "awaiting_first_charge" | "first_payment_failed";
+
+export type BillingTrialPresentation = {
+  phase: BillingTrialPhase;
+  endsAt: Date;
+  message: string | null;
+};
+
 export type BillingReturnPresentation =
   | {
       kind: "active";
@@ -27,6 +36,7 @@ export type BillingReturnPresentation =
       intervalLabel: string;
       attention: BillingAttention | null;
       attentionMessage: string | null;
+      trial: BillingTrialPresentation | null;
     }
   | { kind: "processing"; productAccess: false }
   | { kind: "retry"; productAccess: false; canRestartCheckout: boolean }
@@ -130,14 +140,29 @@ export function presentBillingReturn(input: {
   checkoutStarted: boolean;
   stripeSubscriptionId: string | null;
   paidThrough?: Date | null;
+  /**
+   * The stored paid-through instant, even when it is not reliable enough to
+   * display as a renewal date. A historical trial end is not unpaid while
+   * this date is present.
+   */
+  recordedPaidThrough?: Date | null;
   currentPeriodEnd?: Date | null;
   cancelAtPeriodEnd?: boolean;
+  trialEndsAt?: Date | null;
+  now?: Date;
 }): BillingReturnPresentation {
   const planName = commercialPlanLabel(input.commercialPlan);
   const intervalLabel = billingIntervalLabel(input.billingInterval);
 
   if (input.entitlementStatus === EntitlementStatus.ACTIVE) {
-    const effectiveEnd = input.paidThrough ?? input.currentPeriodEnd ?? null;
+    const now = input.now ?? new Date();
+    const settledPaidThrough =
+      input.recordedPaidThrough ?? input.paidThrough ?? null;
+    const unpaidTrial =
+      Boolean(input.trialEndsAt) && settledPaidThrough == null;
+    const effectiveEnd = unpaidTrial
+      ? (input.trialEndsAt ?? null)
+      : (input.paidThrough ?? input.currentPeriodEnd ?? null);
     const cancelScheduled =
       input.cancelAtPeriodEnd === true ||
       input.billingStatus === BillingStatus.CANCEL_AT_PERIOD_END;
@@ -147,6 +172,14 @@ export function presentBillingReturn(input: {
       : cancelScheduled
         ? "cancel_scheduled"
         : null;
+    const trial = unpaidTrial
+      ? unpaidTrialPresentation({
+          trialEndsAt: input.trialEndsAt ?? null,
+          pastDue,
+          cancelScheduled,
+          now,
+        })
+      : null;
     return {
       kind: "active",
       productAccess: true,
@@ -154,14 +187,20 @@ export function presentBillingReturn(input: {
       planName,
       intervalLabel,
       attention,
-      attentionMessage:
-        attention === "past_due"
+      attentionMessage: unpaidTrial
+        ? trialCancelOrFailureMessage({
+            attention,
+            effectiveEnd,
+            pastDue,
+          })
+        : attention === "past_due"
           ? PAST_DUE_BILLING_MESSAGE
           : attention === "cancel_scheduled" && effectiveEnd
             ? cancellationScheduledMessage(effectiveEnd)
             : attention === "cancel_scheduled"
               ? "Your subscription is scheduled to end at the close of the current paid period."
               : null,
+      trial,
     };
   }
 
@@ -239,9 +278,117 @@ export function billingStateLabel(status: BillingStatus | null): string {
       return "Ended";
     case BillingStatus.NOT_BILLED:
       return "Complimentary";
+    case BillingStatus.TRIALING:
+      return "Free trial";
     default:
       return "Not started";
   }
+}
+
+function unpaidTrialPresentation(input: {
+  trialEndsAt: Date | null;
+  pastDue: boolean;
+  cancelScheduled: boolean;
+  now: Date;
+}): BillingTrialPresentation | null {
+  if (!input.trialEndsAt) {
+    return null;
+  }
+  if (input.pastDue) {
+    return {
+      phase: "first_payment_failed",
+      endsAt: input.trialEndsAt,
+      message: null,
+    };
+  }
+  const open = input.trialEndsAt.getTime() > input.now.getTime();
+  if (open) {
+    return {
+      phase: "in_trial",
+      endsAt: input.trialEndsAt,
+      message: input.cancelScheduled
+        ? null
+        : `Your free trial includes full access through ${formatBillingDate(input.trialEndsAt)}. The catalogue price is charged then, unless you cancel from Billing before the trial ends.`,
+    };
+  }
+  return {
+    phase: "awaiting_first_charge",
+    endsAt: input.trialEndsAt,
+    message:
+      "Your free trial has ended. The first payment is being processed, and clinic access stays open.",
+  };
+}
+
+function trialCancelOrFailureMessage(input: {
+  attention: BillingAttention | null;
+  effectiveEnd: Date | null;
+  pastDue: boolean;
+}): string | null {
+  if (input.pastDue) {
+    return PAST_DUE_BILLING_MESSAGE;
+  }
+  if (input.attention === "cancel_scheduled" && input.effectiveEnd) {
+    return `Your free trial is scheduled to end on ${formatBillingDate(input.effectiveEnd)}. You will not be charged.`;
+  }
+  if (input.attention === "cancel_scheduled") {
+    return "Your free trial is scheduled to end. You will not be charged.";
+  }
+  return null;
+}
+
+export function customerBillingStatusLabel(input: {
+  presentation: BillingReturnPresentation;
+  complimentaryLabel: string | null;
+  showCommercialDetail: boolean;
+  billingLabel: string;
+}): string {
+  if (input.complimentaryLabel) {
+    return input.complimentaryLabel;
+  }
+  const presentation = input.presentation;
+  if (
+    presentation.kind === "active" &&
+    presentation.trial?.phase === "in_trial"
+  ) {
+    return presentation.attention === "cancel_scheduled"
+      ? "Trial ending"
+      : "Free trial";
+  }
+  if (
+    presentation.kind === "active" &&
+    presentation.trial?.phase === "awaiting_first_charge"
+  ) {
+    return "First payment processing";
+  }
+  if (
+    presentation.kind === "active" &&
+    presentation.attention === "cancel_scheduled"
+  ) {
+    return "Scheduled to end";
+  }
+  if (
+    presentation.kind === "active" &&
+    presentation.attention === "past_due" &&
+    input.showCommercialDetail
+  ) {
+    return "Payment issue";
+  }
+  if (presentation.kind === "active") {
+    return "Active";
+  }
+  if (presentation.kind === "processing") {
+    return "Payment processing";
+  }
+  if (presentation.kind === "restricted" && input.showCommercialDetail) {
+    return "Unpaid";
+  }
+  if (presentation.kind === "restricted") {
+    return "Billing";
+  }
+  if (presentation.kind === "inactive") {
+    return "Ended";
+  }
+  return input.billingLabel;
 }
 
 export function entitlementStateLabel(

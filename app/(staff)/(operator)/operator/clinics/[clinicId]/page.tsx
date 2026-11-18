@@ -372,6 +372,7 @@ export default async function OperatorClinicDetailPage({
           customerLinked={billing.customerLinked}
           subscriptionLinked={billing.subscriptionLinked}
           paidThroughLabel={billing.paidThroughLabel}
+          trialEndsLabel={billing.trialEndsLabel}
           cancellationScheduled={billing.cancellationScheduled}
           cancellationDateLabel={billing.cancellationDateLabel}
           commercialNotice={billing.commercialNotice}

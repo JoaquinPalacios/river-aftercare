@@ -43,6 +43,12 @@ import {
   TERMS_ACCEPTANCE_VERSION,
 } from "@/lib/legal/status";
 import { getPrisma } from "@/lib/prisma";
+import {
+  CATALOGUE_TRIAL_PERIOD_DAYS,
+  catalogueTrialDaysForState,
+  catalogueTrialHistory,
+  RIVER_TRIAL_DAYS_METADATA_KEY,
+} from "@/lib/billing/trial";
 
 /**
  * Card and AU BECS only.
@@ -57,6 +63,7 @@ export const CHECKOUT_PAYMENT_METHOD_TYPES = ["card", "au_becs_debit"] as const;
 
 const PAID_BILLING = new Set<BillingStatus>([
   BillingStatus.ACTIVE,
+  BillingStatus.TRIALING,
   BillingStatus.PAST_DUE,
   BillingStatus.CANCEL_AT_PERIOD_END,
 ]);
@@ -189,9 +196,22 @@ export type CheckoutStripePort = {
             quantity?: number | null;
           }>;
         } | null;
+        metadata?: Record<string, string> | null;
       }>;
       expire(id: string): Promise<unknown>;
     };
+  };
+  /**
+   * Optional so existing test doubles stay non-trial. Production Stripe has
+   * this method. A missing or failed list withholds the trial and still opens
+   * Checkout.
+   */
+  subscriptions?: {
+    list(params: {
+      customer: string;
+      status: "all";
+      limit: number;
+    }): Promise<{ data?: ReadonlyArray<{ id?: string }> | null }>;
   };
 };
 
@@ -203,8 +223,16 @@ export type CheckoutSessionCreateShape = {
   success_url: string;
   cancel_url: string;
   metadata: Record<string, string>;
-  subscription_data: { metadata: Record<string, string> };
+  subscription_data: {
+    metadata: Record<string, string>;
+    trial_period_days?: number;
+  };
   payment_method_types: Array<(typeof CHECKOUT_PAYMENT_METHOD_TYPES)[number]>;
+  /**
+   * Keep collecting a card or AU BECS during a trial. Stripe's default is
+   * already `always`; naming it stops a later change to `if_required`.
+   */
+  payment_method_collection: "always";
   wallet_options: { link: { display: "never" } };
   allow_promotion_codes: false;
 };
@@ -220,6 +248,8 @@ export type LockedCheckoutState = {
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   stripeCheckoutSessionId: string | null;
+  /** Set after a catalogue trial starts. A later checkout cannot trial again. */
+  trialEndsAt?: Date | null;
   offeredAdditionalSiteQuantity: number | null;
   termsAccepted: boolean;
   identity: {
@@ -323,10 +353,18 @@ function checkoutLineItems(
   return [{ price: stripePriceIdForPlan(plan, interval, env), quantity: 1 }];
 }
 
-function checkoutMetadata(state: LockedCheckoutState): Record<string, string> {
+function checkoutMetadata(
+  state: LockedCheckoutState,
+  trialDays: typeof CATALOGUE_TRIAL_PERIOD_DAYS | null = null
+): Record<string, string> {
   const metadata: Record<string, string> = {
     [RIVER_CLINIC_ID_METADATA_KEY]: state.clinicId,
   };
+  if (trialDays === CATALOGUE_TRIAL_PERIOD_DAYS) {
+    metadata[RIVER_TRIAL_DAYS_METADATA_KEY] = String(
+      CATALOGUE_TRIAL_PERIOD_DAYS
+    );
+  }
   if (
     state.commercialPlan === "GROUP" &&
     state.billingInterval &&
@@ -354,16 +392,28 @@ export function checkoutIdempotencyKey(
   clinicId: string,
   lineItems: ReadonlyArray<{ price: string; quantity: number }>,
   sessionId: string | null,
-  attempt = 0
+  attempt = 0,
+  trialDays = 0
 ): string {
   const suffix = checkoutIdempotencySuffix(sessionId, attempt);
+  const trialSegment =
+    trialDays === CATALOGUE_TRIAL_PERIOD_DAYS ? "-trial-14" : "";
   if (lineItems.length === 1 && lineItems[0]?.quantity === 1) {
-    return `river-checkout-${clinicId}-${lineItems[0].price}-${suffix}`;
+    return `river-checkout-${clinicId}-${lineItems[0].price}${trialSegment}-${suffix}`;
   }
   const signature = lineItems
     .map((item) => `${item.price}x${item.quantity}`)
     .join("+");
-  return `river-checkout-${clinicId}-${signature}-${suffix}`;
+  return `river-checkout-${clinicId}-${signature}${trialSegment}-${suffix}`;
+}
+
+function sessionRequestsTrial(session: {
+  metadata?: Record<string, string> | null;
+}): boolean {
+  return (
+    session.metadata?.[RIVER_TRIAL_DAYS_METADATA_KEY] ===
+    String(CATALOGUE_TRIAL_PERIOD_DAYS)
+  );
 }
 
 function checkoutIdempotencySuffix(
@@ -556,6 +606,7 @@ export async function executeClinicCheckout(input: {
   let createdCustomer = false;
   let operation = "checkout";
   let checkoutAttempt = 0;
+  let trialDays: typeof CATALOGUE_TRIAL_PERIOD_DAYS | null = null;
 
   const persistCheckoutAttempt = async (next: number): Promise<boolean> => {
     if (!customerId || next <= checkoutAttempt || next > 1_000_000) {
@@ -596,6 +647,7 @@ export async function executeClinicCheckout(input: {
       });
     }
     operation = "stripe_checkout_session_create";
+    const metadata = checkoutMetadata(state, trialDays);
     const session = await input.stripe.checkout.sessions.create(
       {
         mode: "subscription",
@@ -604,11 +656,15 @@ export async function executeClinicCheckout(input: {
         line_items: lineItems,
         success_url: input.successUrl,
         cancel_url: input.cancelUrl,
-        metadata: checkoutMetadata(state),
+        metadata,
         subscription_data: {
-          metadata: checkoutMetadata(state),
+          metadata,
+          ...(trialDays === CATALOGUE_TRIAL_PERIOD_DAYS
+            ? { trial_period_days: CATALOGUE_TRIAL_PERIOD_DAYS }
+            : {}),
         },
         payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
+        payment_method_collection: "always",
         wallet_options: { link: { display: "never" } },
         allow_promotion_codes: false,
       },
@@ -617,7 +673,8 @@ export async function executeClinicCheckout(input: {
           state.clinicId,
           lineItems,
           state.stripeCheckoutSessionId,
-          attempt
+          attempt,
+          trialDays ?? 0
         ),
       }
     );
@@ -682,6 +739,30 @@ export async function executeClinicCheckout(input: {
       });
     }
 
+    if (
+      customerId &&
+      catalogueTrialDaysForState(state) === CATALOGUE_TRIAL_PERIOD_DAYS
+    ) {
+      const history = await catalogueTrialHistory({
+        customerId,
+        listSubscriptions: input.stripe.subscriptions?.list.bind(
+          input.stripe.subscriptions
+        ),
+      });
+      if (history === "none") {
+        trialDays = CATALOGUE_TRIAL_PERIOD_DAYS;
+      } else {
+        logStripeBilling({
+          event: "checkout_trial_withheld",
+          clinicId: state.clinicId,
+          reason:
+            history === "present"
+              ? "prior_subscription"
+              : "subscription_history_unavailable",
+        });
+      }
+    }
+
     if (state.stripeCheckoutSessionId) {
       operation = "stripe_checkout_session_retrieve";
       const existing = await input.stripe.checkout.sessions.retrieve(
@@ -695,7 +776,13 @@ export async function executeClinicCheckout(input: {
         );
       }
       if (existing.status === "open" && existing.url) {
-        if (sameLineItems(sessionLineItems(existing), lineItems)) {
+        const trialMatches =
+          sessionRequestsTrial(existing) ===
+          (trialDays === CATALOGUE_TRIAL_PERIOD_DAYS);
+        if (
+          sameLineItems(sessionLineItems(existing), lineItems) &&
+          trialMatches
+        ) {
           if (!isStripeHostedCheckoutUrl(existing.url)) {
             return failure("checkout_unavailable", "unexpected_checkout_url");
           }
@@ -893,6 +980,7 @@ export async function createClinicCheckout(input: {
             stripeCustomerId: profile?.stripeCustomerId ?? null,
             stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
             stripeCheckoutSessionId: profile?.stripeCheckoutSessionId ?? null,
+            trialEndsAt: entitlement?.trialEndsAt ?? null,
             offeredAdditionalSiteQuantity:
               entitlement?.offeredAdditionalSiteQuantity ?? null,
             termsAccepted: Boolean(acceptance),

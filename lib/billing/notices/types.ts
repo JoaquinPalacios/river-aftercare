@@ -15,7 +15,8 @@ export type BillingNoticeBillingStatus =
   | "UNPAID"
   | "CANCEL_AT_PERIOD_END"
   | "ENDED"
-  | "NOT_BILLED";
+  | "NOT_BILLED"
+  | "TRIALING";
 
 /**
  * Local subscription facts. Dates come from the Stripe projection.
@@ -33,6 +34,8 @@ export type BillingNoticeSubscription = {
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
   paidThrough: Date | null;
+  /** Catalogue trial end. A trial is not a paid renewal while this is set and paidThrough is empty. */
+  trialEndsAt?: Date | null;
   cancelAtPeriodEnd: boolean;
   scheduledCommercialPlan: BillingNoticePlan | null;
   scheduledAdditionalSiteQuantity: number | null;

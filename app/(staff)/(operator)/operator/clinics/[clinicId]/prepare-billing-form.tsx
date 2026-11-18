@@ -28,6 +28,7 @@ export function PrepareBillingForm({
   customerLinked,
   subscriptionLinked,
   paidThroughLabel,
+  trialEndsLabel = null,
   cancellationScheduled,
   cancellationDateLabel,
   commercialNotice = null,
@@ -47,6 +48,7 @@ export function PrepareBillingForm({
   customerLinked: "Yes" | "No";
   subscriptionLinked: "Yes" | "No";
   paidThroughLabel: string | null;
+  trialEndsLabel?: string | null;
   cancellationScheduled: "Yes" | "No";
   cancellationDateLabel: string | null;
   commercialNotice?: string | null;
@@ -113,6 +115,12 @@ export function PrepareBillingForm({
           <dt className="text-staff-muted">Paid through</dt>
           <dd>{paidThroughLabel ?? "Not available"}</dd>
         </div>
+        {trialEndsLabel ? (
+          <div>
+            <dt className="text-staff-muted">Trial ends</dt>
+            <dd>{trialEndsLabel}</dd>
+          </div>
+        ) : null}
         <div>
           <dt className="text-staff-muted">Cancellation scheduled</dt>
           <dd>

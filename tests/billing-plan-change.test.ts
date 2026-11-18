@@ -32,6 +32,8 @@ function state(overrides: Partial<PlanChangeState> = {}): PlanChangeState {
 function stripePort(
   priceId = "price_test_essential_monthly",
   subscription: {
+    status?: string | null;
+    trial_end?: number | null;
     cancel_at?: number | null;
     cancel_at_period_end?: boolean | null;
   } = {}
@@ -150,6 +152,39 @@ describe("operator plan changes", () => {
     });
     expect(result).toMatchObject({ ok: false, code: "cancel_scheduled" });
     expect(port.updates).toHaveLength(0);
+  });
+
+  it("does not upgrade a clinic during a free trial", async () => {
+    expect(
+      assessOperatorPlanUpgrade(
+        state({ billingStatus: BillingStatus.TRIALING }),
+        "PRACTICE"
+      )
+    ).toMatchObject({ ok: false, code: "trial_in_progress" });
+    const port = stripePort("price_test_essential_monthly", {
+      status: "trialing",
+      trial_end: Math.floor(Date.now() / 1000) + 86_400,
+    });
+    const result = await executeOperatorPlanUpgrade({
+      state: state(),
+      requestedPlan: "PRACTICE",
+      env: BILLING_TEST_ENV,
+      stripe: port.stripe,
+    });
+    expect(result).toMatchObject({ ok: false, code: "trial_in_progress" });
+    expect(port.updates).toHaveLength(0);
+
+    const completed = stripePort("price_test_essential_monthly", {
+      status: "active",
+      trial_end: Math.floor(Date.now() / 1000) - 86_400,
+    });
+    const afterTrial = await executeOperatorPlanUpgrade({
+      state: state(),
+      requestedPlan: "PRACTICE",
+      env: BILLING_TEST_ENV,
+      stripe: completed.stripe,
+    });
+    expect(afterTrial).toEqual({ ok: true });
   });
 
   it("does not upgrade a past-due, cancelled, or group clinic", () => {
