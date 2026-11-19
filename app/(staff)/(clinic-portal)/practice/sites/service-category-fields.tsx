@@ -12,12 +12,14 @@ export function ServiceCategoryFields({
   legend = "Services",
   description = "Choose every service this site provides. A site can offer more than one. Leave this blank until the site is classified.",
   error,
+  onToggle,
 }: {
   selected: readonly ServiceCategory[];
   disabled?: boolean;
   legend?: string;
   description?: string;
   error?: string;
+  onToggle?: (category: ServiceCategory, checked: boolean) => void;
 }) {
   return (
     <fieldset
@@ -38,7 +40,15 @@ export function ServiceCategoryFields({
               type="checkbox"
               name="serviceCategories"
               value={category}
-              defaultChecked={selected.includes(category)}
+              checked={onToggle ? selected.includes(category) : undefined}
+              defaultChecked={
+                onToggle ? undefined : selected.includes(category)
+              }
+              onChange={
+                onToggle
+                  ? (event) => onToggle(category, event.target.checked)
+                  : undefined
+              }
               className="size-4"
             />
             {SERVICE_CATEGORY_LABELS[category]}
@@ -48,7 +58,7 @@ export function ServiceCategoryFields({
       {error ? (
         <p
           id="service-categories-error"
-          className="text-sm text-red-600"
+          className="staffFieldError"
           role="alert"
         >
           {error}

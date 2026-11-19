@@ -15,44 +15,52 @@ import {
   uniqueServiceCategories,
   type ServiceCategory,
 } from "@/lib/aftercare/service-category";
-import { isValidCareGuideSlug } from "@/lib/aftercare/slug-rules";
-import { isDemoTenant } from "@/lib/aftercare/demo-tenant";
 import {
   PRIVACY_ACKNOWLEDGEMENT_VERSION,
   TERMS_ACCEPTANCE_VERSION,
 } from "@/lib/legal/status";
-import { isSharedDemoHostnameLabel } from "@/lib/tenancy/shared-demo-hostname";
-import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
+
+import {
+  REGISTRATION_CATEGORY_INVALID_MESSAGE,
+  REGISTRATION_CATEGORY_REQUIRED_MESSAGE,
+  REGISTRATION_INTENT_GENERIC_MESSAGE,
+  REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
+  REGISTRATION_INTERVAL_MESSAGE,
+  REGISTRATION_PLAN_MESSAGE,
+  REGISTRATION_PRACTICE_NAME_INVALID_MESSAGE,
+  REGISTRATION_PRACTICE_NAME_MAX_MESSAGE,
+  REGISTRATION_PRACTICE_NAME_REQUIRED_MESSAGE,
+  REGISTRATION_SLUG_DEMO_MESSAGE,
+  REGISTRATION_SLUG_INVALID_MESSAGE,
+  REGISTRATION_SLUG_RESERVED_MESSAGE,
+  REGISTRATION_SLUG_TAKEN_MESSAGE,
+  REGISTRATION_TERMS_REQUIRED_MESSAGE,
+  REGISTRATION_VERIFY_CONFIRMED_MESSAGE,
+  REGISTRATION_VERIFY_EXPIRED_MESSAGE,
+  registrationSlugPolicyMessage,
+} from "@/lib/auth/registration-copy";
+
+export {
+  REGISTRATION_CATEGORY_INVALID_MESSAGE,
+  REGISTRATION_CATEGORY_REQUIRED_MESSAGE,
+  REGISTRATION_INTENT_GENERIC_MESSAGE,
+  REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
+  REGISTRATION_INTERVAL_MESSAGE,
+  REGISTRATION_PLAN_MESSAGE,
+  REGISTRATION_PRACTICE_NAME_INVALID_MESSAGE,
+  REGISTRATION_PRACTICE_NAME_MAX_MESSAGE,
+  REGISTRATION_PRACTICE_NAME_REQUIRED_MESSAGE,
+  REGISTRATION_SLUG_DEMO_MESSAGE,
+  REGISTRATION_SLUG_INVALID_MESSAGE,
+  REGISTRATION_SLUG_RESERVED_MESSAGE,
+  REGISTRATION_SLUG_TAKEN_MESSAGE,
+  REGISTRATION_TERMS_REQUIRED_MESSAGE,
+  REGISTRATION_VERIFY_CONFIRMED_MESSAGE,
+  REGISTRATION_VERIFY_EXPIRED_MESSAGE,
+  registrationSlugPolicyMessage,
+};
 
 export const REGISTRATION_INTENT_TTL_MS = 24 * 60 * 60 * 1000;
-
-export const REGISTRATION_INTENT_GENERIC_MESSAGE =
-  "If that address can be registered, we've sent a verification link.";
-
-export const REGISTRATION_INTENT_INVALID_LINK_MESSAGE =
-  "This verification link is invalid or has expired.";
-
-export const REGISTRATION_SLUG_INVALID_MESSAGE = "Enter a valid tenant slug.";
-export const REGISTRATION_SLUG_RESERVED_MESSAGE =
-  "That hostname is reserved by the platform.";
-export const REGISTRATION_SLUG_DEMO_MESSAGE =
-  "That hostname is reserved for the interactive demo.";
-export const REGISTRATION_SLUG_TAKEN_MESSAGE =
-  "That tenant slug is already in use.";
-
-export const REGISTRATION_PLAN_MESSAGE = "Choose Essential or Practice.";
-export const REGISTRATION_INTERVAL_MESSAGE =
-  "Choose monthly or annual billing.";
-export const REGISTRATION_CATEGORY_REQUIRED_MESSAGE =
-  "Select at least one practice category.";
-export const REGISTRATION_CATEGORY_INVALID_MESSAGE =
-  "Choose a supported practice category.";
-export const REGISTRATION_PRACTICE_NAME_REQUIRED_MESSAGE =
-  "Enter the practice name.";
-export const REGISTRATION_PRACTICE_NAME_MAX_MESSAGE =
-  "Practice name must be 80 characters or fewer.";
-export const REGISTRATION_PRACTICE_NAME_INVALID_MESSAGE =
-  "Enter a valid practice name.";
 
 export const REGISTRATION_PLANS = ["ESSENTIAL", "PRACTICE"] as const;
 export const REGISTRATION_INTERVALS = ["MONTHLY", "YEARLY"] as const;
@@ -149,19 +157,6 @@ export function registrationConsumePublicOutcome(
     return "slug_unavailable";
   }
   return "invalid";
-}
-
-export function registrationSlugPolicyMessage(slug: string): string | null {
-  if (!isValidCareGuideSlug(slug)) {
-    return REGISTRATION_SLUG_INVALID_MESSAGE;
-  }
-  if (isReservedTenantSlug(slug)) {
-    return REGISTRATION_SLUG_RESERVED_MESSAGE;
-  }
-  if (isDemoTenant(slug) || isSharedDemoHostnameLabel(slug)) {
-    return REGISTRATION_SLUG_DEMO_MESSAGE;
-  }
-  return null;
 }
 
 function practiceNameError(name: string): string | null {

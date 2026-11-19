@@ -124,6 +124,13 @@ describe("proxy", async () => {
       (await proxy(requestFor("http://localhost:3000/forgot-password"))).status
     ).toBe(404);
     expect(
+      (await proxy(requestFor("http://localhost:3000/register"))).status
+    ).toBe(404);
+    expect(
+      (await proxy(requestFor("http://localhost:3000/verify-registration")))
+        .status
+    ).toBe(404);
+    expect(
       (await proxy(requestFor("http://localhost:3000/reset-password"))).status
     ).toBe(404);
     expect(
@@ -333,6 +340,13 @@ describe("proxy", async () => {
         .status
     ).toBe(200);
     expect(
+      (await proxy(requestFor("http://app.localhost:3000/register"))).status
+    ).toBe(200);
+    expect(
+      (await proxy(requestFor("http://app.localhost:3000/verify-registration")))
+        .status
+    ).toBe(200);
+    expect(
       (await proxy(requestFor("http://app.localhost:3000/reset-password")))
         .status
     ).toBe(200);
@@ -420,6 +434,10 @@ describe("proxy", async () => {
           requestFor("http://demodental.localhost:3000/forgot-password")
         )
       ).status
+    ).toBe(404);
+    expect(
+      (await proxy(requestFor("http://demodental.localhost:3000/register")))
+        .status
     ).toBe(404);
     expect(
       (

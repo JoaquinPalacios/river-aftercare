@@ -9,12 +9,14 @@ export async function StaffAuthShell({
   description,
   backHref,
   backLabel,
+  width = "default",
   children,
 }: {
   title: string;
   description: string;
   backHref?: string;
   backLabel?: string;
+  width?: "default" | "wide";
   children: ReactNode;
 }) {
   const { homeHref } = backHref
@@ -24,8 +26,10 @@ export async function StaffAuthShell({
   const label = backLabel ?? `Back to ${PRODUCT_NAME}`;
 
   return (
-    <main className="staffAuthPage flex flex-1 items-center justify-center bg-staff-canvas px-6 py-16">
-      <div className="w-full max-w-md">
+    <main className="staffAuthPage flex flex-1 items-center justify-center bg-staff-canvas px-4 py-10 sm:px-6 sm:py-16">
+      <div
+        className={width === "wide" ? "w-full max-w-2xl" : "w-full max-w-md"}
+      >
         <a href={href} className="staffBackLink" aria-label={label}>
           ← {label}
         </a>

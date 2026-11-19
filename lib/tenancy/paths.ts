@@ -1,5 +1,7 @@
 export const STAFF_PATH_PREFIXES = [
   "/login",
+  "/register",
+  "/verify-registration",
   "/forgot-password",
   "/reset-password",
   "/accept-invitation",

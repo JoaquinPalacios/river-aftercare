@@ -42,6 +42,8 @@ export const ROBOTS_DISALLOW_INTERNAL = [
   "/_marketing",
   "/_sites",
   "/login",
+  "/register",
+  "/verify-registration",
   "/forgot-password",
   "/reset-password",
   "/accept-invitation",

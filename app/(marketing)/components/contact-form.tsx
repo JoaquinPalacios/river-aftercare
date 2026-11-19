@@ -27,6 +27,10 @@ import {
   type ContactEnquiryField,
   type ContactEnquiryFieldErrors,
 } from "@/lib/marketing/contact-fields";
+import {
+  onboardingAssistanceMessage,
+  onboardingAssistanceStageFromHash,
+} from "@/lib/support/onboarding-assistance";
 
 import styles from "../marketing.module.css";
 
@@ -73,6 +77,20 @@ export function ContactForm({
       : Object.keys(clientErrors).length > 0
         ? "Please review the highlighted fields."
         : null;
+
+  useEffect(() => {
+    const stage = onboardingAssistanceStageFromHash(window.location.hash);
+    if (!stage) {
+      return;
+    }
+    const message = formRef.current?.elements.namedItem("message");
+    if (
+      message instanceof HTMLTextAreaElement &&
+      message.value.trim().length === 0
+    ) {
+      message.value = onboardingAssistanceMessage(stage);
+    }
+  }, []);
 
   useEffect(() => {
     if (state.status === "success") {

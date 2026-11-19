@@ -2,14 +2,20 @@ import "server-only";
 
 import { AccountTokenType, Prisma, type PrismaClient } from "@prisma/client";
 
-import { DUMMY_PASSWORD_HASH, hashPassword } from "@/lib/auth/password";
 import {
+  PASSWORD_RESET_REQUEST_COOLDOWN_MINUTES,
   generateAccountToken,
   hashAccountToken,
 } from "@/lib/auth/account-token";
 import { isWellFormedRawAccountToken } from "@/lib/auth/account-token-format";
 import {
+  AccountTokenError,
+  normalizeAccountTokenEmail,
+} from "@/lib/auth/account-token-service";
+import { DUMMY_PASSWORD_HASH, hashPassword } from "@/lib/auth/password";
+import {
   REGISTRATION_INTENT_GENERIC_MESSAGE,
+  REGISTRATION_INTENT_TTL_MS,
   REGISTRATION_SLUG_TAKEN_MESSAGE,
   registrationIntentExpiresAt,
   registrationIntentLockKey,
@@ -302,6 +308,120 @@ export async function recoverRegistrationIntentSlug(input: {
       data: { slug: input.slug },
     });
     return { ok: true as const, intent: toView(updated) };
+  });
+}
+
+const REGISTRATION_REISSUE_COOLDOWN_MS =
+  PASSWORD_RESET_REQUEST_COOLDOWN_MINUTES * 60 * 1000;
+
+export type ReissueRegistrationIntentResult =
+  | {
+      status: "send";
+      rawToken: string;
+      intentId: string;
+      expiresAt: Date;
+      practiceName: string;
+      previous: { tokenHash: string; expiresAt: Date };
+    }
+  | { status: "suppress" }
+  | { status: "invalid_email" };
+
+/**
+ * Rotate the verification token for an existing live intent.
+ * Does not change the stored password and does not consume the intent.
+ * A recent token is left in place so a replacement request cannot mail-bomb
+ * the address. Callers must not return `rawToken` to a browser.
+ */
+export async function reissueRegistrationIntentToken(input: {
+  email: string;
+  now?: Date;
+}): Promise<ReissueRegistrationIntentResult> {
+  let email: string;
+  try {
+    email = normalizeAccountTokenEmail(input.email);
+  } catch (error) {
+    if (error instanceof AccountTokenError) {
+      return { status: "invalid_email" };
+    }
+    throw error;
+  }
+
+  const now = input.now ?? new Date();
+  return getPrisma().$transaction(async (tx) => {
+    await lockRegistrationEmail(tx, email);
+    if (await registrationEmailIsClaimed(tx, email)) {
+      await revokeLiveRegistrationIntents(tx, email, now);
+      return { status: "suppress" as const };
+    }
+
+    const row = await tx.clinicRegistrationIntent.findFirst({
+      where: { email, consumedAt: null, revokedAt: null },
+    });
+    if (!row) {
+      return { status: "suppress" as const };
+    }
+
+    const issuedAt = row.expiresAt.getTime() - REGISTRATION_INTENT_TTL_MS;
+    if (now.getTime() - issuedAt < REGISTRATION_REISSUE_COOLDOWN_MS) {
+      return { status: "suppress" as const };
+    }
+
+    const rawToken = generateAccountToken();
+    const tokenHash = hashAccountToken(rawToken);
+    const expiresAt = registrationIntentExpiresAt(now);
+    const updated = await tx.clinicRegistrationIntent.updateMany({
+      where: {
+        id: row.id,
+        tokenHash: row.tokenHash,
+        consumedAt: null,
+        revokedAt: null,
+      },
+      data: { tokenHash, expiresAt },
+    });
+    if (updated.count !== 1) {
+      return { status: "suppress" as const };
+    }
+
+    return {
+      status: "send" as const,
+      rawToken,
+      intentId: row.id,
+      expiresAt,
+      practiceName: row.practiceName,
+      previous: { tokenHash: row.tokenHash, expiresAt: row.expiresAt },
+    };
+  });
+}
+
+export async function revokeUnconsumedRegistrationIntent(input: {
+  intentId: string;
+  now?: Date;
+}): Promise<void> {
+  const now = input.now ?? new Date();
+  await getPrisma().clinicRegistrationIntent.updateMany({
+    where: { id: input.intentId, consumedAt: null, revokedAt: null },
+    data: { revokedAt: now, passwordHash: DUMMY_PASSWORD_HASH },
+  });
+}
+
+/** Put the previous token back when a replacement email was not sent. */
+export async function restoreRegistrationIntentToken(input: {
+  intentId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  replacementTokenHash: string;
+}): Promise<void> {
+  await getPrisma().clinicRegistrationIntent.updateMany({
+    where: {
+      id: input.intentId,
+      tokenHash: input.replacementTokenHash,
+      consumedAt: null,
+      revokedAt: null,
+    },
+    data: {
+      tokenHash: input.tokenHash,
+      expiresAt: input.expiresAt,
+    },
   });
 }
 
