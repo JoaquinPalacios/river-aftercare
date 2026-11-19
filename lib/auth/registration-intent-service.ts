@@ -171,19 +171,46 @@ export async function validateRegistrationIntent(input: {
 /**
  * Revoke live intents whose verification window has ended and redact the
  * stored password hash. An optional email limits the sweep to one address.
+ * `limit` caps the rows examined. The update still requires the row to be
+ * unconsumed, unrevoked, and expired, so a registration that succeeds between
+ * the read and the write is left alone. Consumed rows are not deleted.
  */
 export async function expireRegistrationIntents(input?: {
   now?: Date;
   email?: string;
+  limit?: number;
 }): Promise<{ revoked: number }> {
   const now = input?.now ?? new Date();
+  const where = {
+    consumedAt: null,
+    revokedAt: null,
+    expiresAt: { lte: now },
+    ...(input?.email ? { email: input.email } : {}),
+  };
+  const limit = input?.limit;
+  if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
+    return { revoked: 0 };
+  }
+
+  if (limit !== undefined) {
+    const due = await getPrisma().clinicRegistrationIntent.findMany({
+      where,
+      select: { id: true },
+      orderBy: { expiresAt: "asc" },
+      take: limit,
+    });
+    if (due.length === 0) {
+      return { revoked: 0 };
+    }
+    const result = await getPrisma().clinicRegistrationIntent.updateMany({
+      where: { ...where, id: { in: due.map((row) => row.id) } },
+      data: { revokedAt: now, passwordHash: DUMMY_PASSWORD_HASH },
+    });
+    return { revoked: result.count };
+  }
+
   const result = await getPrisma().clinicRegistrationIntent.updateMany({
-    where: {
-      consumedAt: null,
-      revokedAt: null,
-      expiresAt: { lte: now },
-      ...(input?.email ? { email: input.email } : {}),
-    },
+    where,
     data: { revokedAt: now, passwordHash: DUMMY_PASSWORD_HASH },
   });
   return { revoked: result.count };

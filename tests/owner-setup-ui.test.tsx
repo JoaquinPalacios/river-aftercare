@@ -17,6 +17,19 @@ vi.mock("@/lib/clinic-portal/load-owner-setup", () => ({
   loadOwnerGettingStarted: vi.fn(),
 }));
 
+vi.mock("@/lib/marketing/public-links", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/marketing/public-links")>();
+  return {
+    ...actual,
+    marketingPublicLinks: vi.fn(async () => ({
+      demoHref: "http://demodental.localhost:3000/",
+      staffHref: "http://app.localhost:3000/login",
+      homeHref: "http://localhost:3000/",
+    })),
+  };
+});
+
 import ClinicOverviewPage from "@/app/(staff)/(clinic-portal)/dashboard/page";
 import { GettingStarted } from "@/app/(staff)/(clinic-portal)/dashboard/getting-started";
 import { requireStaffSession } from "@/lib/auth/require-staff-session";
@@ -146,6 +159,7 @@ describe("getting started surface", () => {
     expect(html).toContain("Clinic identity");
     expect(html).not.toContain('data-owner-setup="getting-started"');
     expect(html).toContain("Published guides");
+    expect(html).not.toContain("onboarding-stage=clinic_configuration");
     expect(loadOwnerGettingStarted).not.toHaveBeenCalled();
   });
 
@@ -173,6 +187,9 @@ describe("getting started surface", () => {
     expect(html).not.toContain("Clinic setup");
     expect(html).toContain("Published guides");
     expect(html).toContain("Draft guides");
+    expect(html).toContain("Request onboarding help");
+    expect(html).toContain("onboarding-stage=clinic_configuration");
+    expect(html).not.toMatch(/password|sk_live|sk_test/);
   });
 
   it("asks the loader for a staff audience on an assisted clinic", async () => {

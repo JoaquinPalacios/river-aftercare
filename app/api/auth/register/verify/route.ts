@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
 
-import {
-  REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
-  REGISTRATION_VERIFY_CONFIRMED_MESSAGE,
-  REGISTRATION_VERIFY_EXPIRED_MESSAGE,
-} from "@/lib/auth/registration-copy";
+import { REGISTRATION_INTENT_INVALID_LINK_MESSAGE } from "@/lib/auth/registration-copy";
 import { registrationAccessDenial } from "@/lib/auth/registration-http";
-import { validateRegistrationIntent } from "@/lib/auth/registration-intent-service";
+import { logRegistrationLifecycle } from "@/lib/auth/registration-lifecycle-log";
+import { provisionRegisteredClinic } from "@/lib/auth/provision-registration-clinic";
+import { registrationProvisionHttpResponse } from "@/lib/auth/registration-provision-http";
 
 /**
- * Confirms a verification token without consuming it. Clinic provisioning is
- * a later phase and must consume the intent in the same transaction.
+ * Consumes a verification token and creates the clinic. The response sets the
+ * session cookie and names the billing setup path. It does not call Stripe.
  */
 export async function POST(request: Request) {
   const denied = registrationAccessDenial(request);
@@ -37,28 +35,13 @@ export async function POST(request: Request) {
       : "";
 
   try {
-    const result = await validateRegistrationIntent({ rawToken });
-    if (!result.ok) {
-      if (result.reason === "expired") {
-        return NextResponse.json({
-          status: "expired",
-          message: REGISTRATION_VERIFY_EXPIRED_MESSAGE,
-        });
-      }
-      return NextResponse.json({
-        status: "invalid",
-        message: REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
-      });
-    }
-  } catch {
-    return NextResponse.json({
-      status: "invalid",
-      message: REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
+    const outcome = await provisionRegisteredClinic({ rawToken });
+    return registrationProvisionHttpResponse(outcome);
+  } catch (error) {
+    logRegistrationLifecycle({
+      event: "registration_clinic_provision_failed",
+      name: error instanceof Error ? error.name : "Error",
     });
+    return registrationProvisionHttpResponse({ status: "retry" });
   }
-
-  return NextResponse.json({
-    status: "valid",
-    message: REGISTRATION_VERIFY_CONFIRMED_MESSAGE,
-  });
 }

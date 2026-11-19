@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { GettingStarted } from "@/app/(staff)/(clinic-portal)/dashboard/getting-started";
+import { OnboardingAssistance } from "@/app/(staff)/components/onboarding-assistance";
 import { BillingNotice } from "@/app/(staff)/components/billing-notice";
 import { CmsOverviewTourEntry } from "@/app/(staff)/components/cms-discovery/overview-tour-entry";
 import { CmsPageTourButton } from "@/app/(staff)/components/cms-discovery/page-tour-button";
@@ -12,6 +13,10 @@ import { getClinicPortalOverview } from "@/lib/clinic-portal/get-clinic-portal";
 import { loadOwnerGettingStarted } from "@/lib/clinic-portal/load-owner-setup";
 import { ownerSetupAudience } from "@/lib/clinic-portal/owner-setup";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
+import {
+  marketingContactHref,
+  marketingPublicLinks,
+} from "@/lib/marketing/public-links";
 
 export const metadata: Metadata = {
   title: `Overview · ${PRODUCT_NAME}`,
@@ -39,6 +44,9 @@ export default async function ClinicOverviewPage() {
         clinicId,
         ownerSetupAudience(clinicMembership)
       )
+    : null;
+  const contactHref = gettingStarted
+    ? marketingContactHref(await marketingPublicLinks())
     : null;
 
   return (
@@ -86,6 +94,12 @@ export default async function ClinicOverviewPage() {
       {gettingStarted ? (
         <div data-cms-discovery="overview-setup">
           <GettingStarted summary={gettingStarted} />
+          {contactHref ? (
+            <OnboardingAssistance
+              stage="clinic_configuration"
+              contactHref={contactHref}
+            />
+          ) : null}
         </div>
       ) : null}
 

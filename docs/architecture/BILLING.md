@@ -8,7 +8,7 @@
 
 ### Launch sales flow (Phase 2)
 
-River Aftercare is not public self-service SaaS. Public `/pricing` stays Request a demo / Talk to us. There is no Buy now button and no anonymous Checkout.
+River Aftercare is not public self-service SaaS. Public `/pricing` stays Request a demo / Talk to us. There is no Buy now button and no anonymous Checkout. `REGISTRATION_ENABLED` stays off. A verified registration, when that flag is on, prepares an Essential or Practice `OFFER_PREPARED` / `PENDING` entitlement and sends the new administrator to `/account/billing/setup`. That database transaction does not call Stripe. Checkout, the 14-day catalogue trial, Customer creation, and `invoice.paid` stay on the existing path. The registration does not prepare Group, complimentary access, a negotiated price, or a promotional coupon.
 
 ```text
 Request demo

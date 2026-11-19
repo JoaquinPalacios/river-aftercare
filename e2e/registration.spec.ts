@@ -1,5 +1,13 @@
+import { createHash, randomBytes, scryptSync } from "node:crypto";
+
 import { expect, test } from "@playwright/test";
 
+import {
+  PRIVACY_ACKNOWLEDGEMENT_VERSION,
+  TERMS_ACCEPTANCE_VERSION,
+} from "@/lib/legal/status";
+
+import { e2ePrisma } from "./helpers/prisma";
 import { expectNoHorizontalOverflow } from "./helpers/layout";
 import { marketingUrl, staffUrl } from "./helpers/origins";
 
@@ -85,4 +93,129 @@ test.describe("self-serve registration", () => {
       page.getByRole("button", { name: "Email a new link" })
     ).toBeVisible();
   });
+
+  test("creates the clinic from the verification link and opens billing setup", async ({
+    page,
+  }) => {
+    const stamp = Date.now().toString(36);
+    const email = `reg-e2e-prov-${stamp}@example.test`;
+    const slug = `rege2e${stamp}`.slice(0, 32);
+    const rawToken = randomBytes(32).toString("base64url");
+    await e2ePrisma.clinicRegistrationIntent.create({
+      data: registrationIntent({
+        email,
+        slug,
+        rawToken,
+        commercialPlan: "ESSENTIAL",
+        billingInterval: "MONTHLY",
+      }),
+    });
+
+    try {
+      await page.goto(`${staffUrl("/verify-registration")}#token=${rawToken}`);
+      await expect(page).toHaveURL(/\/account\/billing\/setup$/, {
+        timeout: 20_000,
+      });
+      await expect(
+        page.getByRole("heading", { name: "Billing setup" })
+      ).toBeVisible();
+      await expect(page.getByText("Essential", { exact: true })).toBeVisible();
+      await expect(page.getByText("A$49 / month")).toBeVisible();
+      await expect(page.getByText(/14 days of River Aftercare/)).toBeVisible();
+      const help = page.getByRole("link", { name: "Request onboarding help" });
+      await expect(help).toBeVisible();
+      await expect(help).toHaveAttribute(
+        "href",
+        /onboarding-stage=billing_setup$/
+      );
+      expect(await help.getAttribute("href")).not.toMatch(
+        /password|token|sk_live|sk_test/i
+      );
+
+      await page.goto(staffUrl("/dashboard"));
+      await expect(page).toHaveURL(/\/account\/billing\/setup$/);
+      await expect(
+        page.getByRole("heading", { name: "Billing setup" })
+      ).toBeVisible();
+    } finally {
+      await deleteRegistration(email, slug);
+    }
+  });
+
+  test("lets the owner choose another address when the slug was taken", async ({
+    page,
+  }) => {
+    const stamp = Date.now().toString(36);
+    const email = `reg-e2e-slug-${stamp}@example.test`;
+    const taken = `rege2et${stamp}`.slice(0, 32);
+    const replacement = `rege2er${stamp}`.slice(0, 32);
+    const rawToken = randomBytes(32).toString("base64url");
+    await e2ePrisma.clinic.create({
+      data: { name: "Taken registration", slug: taken },
+    });
+    await e2ePrisma.clinicRegistrationIntent.create({
+      data: registrationIntent({
+        email,
+        slug: taken,
+        rawToken,
+        commercialPlan: "PRACTICE",
+        billingInterval: "YEARLY",
+      }),
+    });
+
+    try {
+      await page.goto(`${staffUrl("/verify-registration")}#token=${rawToken}`);
+      await expect(
+        page.getByText("That tenant slug is already in use.")
+      ).toBeVisible();
+      await page.getByLabel("Preferred clinic URL").fill(replacement);
+      await page.getByRole("button", { name: "Use this address" }).click();
+      await expect(page).toHaveURL(/\/account\/billing\/setup$/, {
+        timeout: 20_000,
+      });
+      await expect(page.getByText("Practice", { exact: true })).toBeVisible();
+      await expect(page.getByText("A$1,190 / year")).toBeVisible();
+      await page.goto(staffUrl("/dashboard"));
+      await expect(page).toHaveURL(/\/account\/billing\/setup$/);
+    } finally {
+      await deleteRegistration(email, taken, replacement);
+    }
+  });
 });
+
+function registrationIntent(input: {
+  email: string;
+  slug: string;
+  rawToken: string;
+  commercialPlan: "ESSENTIAL" | "PRACTICE";
+  billingInterval: "MONTHLY" | "YEARLY";
+}) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync("registration-secret-1", salt, 64).toString("hex");
+  return {
+    email: input.email,
+    ownerName: "Registration Owner",
+    passwordHash: `scrypt:${salt}:${hash}`,
+    practiceName: "Registration Practice",
+    slug: input.slug,
+    serviceCategories: ["DENTAL" as const],
+    commercialPlan: input.commercialPlan,
+    billingInterval: input.billingInterval,
+    termsVersion: TERMS_ACCEPTANCE_VERSION,
+    privacyVersionAcknowledged: PRIVACY_ACKNOWLEDGEMENT_VERSION,
+    tokenHash: createHash("sha256")
+      .update(input.rawToken, "utf8")
+      .digest("hex"),
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+  };
+}
+
+async function deleteRegistration(
+  email: string,
+  ...slugs: string[]
+): Promise<void> {
+  await e2ePrisma.session.deleteMany({ where: { user: { email } } });
+  await e2ePrisma.clinic.deleteMany({ where: { slug: { in: slugs } } });
+  await e2ePrisma.user.deleteMany({ where: { email } });
+  await e2ePrisma.clinicRegistrationIntent.deleteMany({ where: { email } });
+}

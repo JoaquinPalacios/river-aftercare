@@ -38,7 +38,7 @@ export default async function RegisterPage() {
     <StaffAuthShell
       width="wide"
       title="Register your practice"
-      description={`Create the owner account for your clinic. We'll email a confirmation link before any clinic is created.`}
+      description="Create the owner account for your clinic. We'll email a confirmation link. Opening that link creates the clinic. Payment is the next step and is not taken here."
       backHref="/login"
       backLabel="Back to sign in"
     >
