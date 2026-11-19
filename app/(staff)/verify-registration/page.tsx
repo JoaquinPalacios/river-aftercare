@@ -11,6 +11,7 @@ import {
   marketingPublicLinks,
 } from "@/lib/marketing/public-links";
 import { PRIVATE_ROBOTS } from "@/lib/seo/robots-policy";
+import { getRootDomain } from "@/lib/tenancy/root-domain";
 
 export const metadata: Metadata = {
   title: `Confirm your email · ${PRODUCT_NAME}`,
@@ -28,13 +29,14 @@ export default async function VerifyRegistrationPage() {
   return (
     <StaffAuthShell
       title="Confirm your email"
-      description="This confirms the address for a registration. It does not create the clinic."
+      description="Confirm your email to create the clinic. Payment is the next step and is not taken on this page."
       backHref="/register"
       backLabel="Back to registration"
     >
       <VerifyRegistrationPanel
         turnstileSiteKey={getTurnstileSiteKey()}
         contactHref={marketingContactHref(links)}
+        slugHost={getRootDomain()}
       />
     </StaffAuthShell>
   );

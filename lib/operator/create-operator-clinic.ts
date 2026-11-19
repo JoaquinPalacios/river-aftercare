@@ -8,13 +8,9 @@ import {
 } from "@/lib/aftercare/service-category";
 import { isSharedDemoHostnameLabel } from "@/lib/tenancy/shared-demo-hostname";
 import { careGuideSlugSchema } from "@/lib/aftercare/slug";
-import {
-  primaryClinicSiteData,
-  rootClinicLocationData,
-} from "@/lib/clinics/primary-site-location.mjs";
+import { insertAssistedClinicGraph } from "@/lib/clinics/assisted-clinic-graph";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
 import { lockAndAssertTenantSlugsAvailable } from "@/lib/clinics/retired-tenant-slug";
-import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
 import { isReservedTenantSlug } from "@/lib/tenancy/reserved-slugs";
 import { getPrisma } from "@/lib/prisma";
 
@@ -79,8 +75,6 @@ export async function createOperatorClinic(
     );
   }
 
-  const profile = { displayName: values.name };
-
   try {
     return await getPrisma().$transaction(async (tx) => {
       await lockAndAssertTenantSlugsAvailable(tx, [values.slug]);
@@ -101,43 +95,11 @@ export async function createOperatorClinic(
         );
       }
 
-      const clinic = await tx.clinic.create({
-        data: {
-          name: values.name,
-          slug: values.slug,
-          assistedOnboarding: true,
-          profile: {
-            create: profile,
-          },
-        },
-        select: { id: true },
+      return insertAssistedClinicGraph(tx, {
+        name: values.name,
+        slug: values.slug,
+        serviceCategories,
       });
-      await lockClinicAccountStructure(tx, clinic.id);
-      const site = await tx.clinicSite.create({
-        data: primaryClinicSiteData({
-          clinicId: clinic.id,
-          clinicName: values.name,
-          slug: values.slug,
-          profile,
-        }),
-        select: { id: true },
-      });
-      await tx.clinicSiteServiceCategory.createMany({
-        data: serviceCategories.map((serviceCategory) => ({
-          clinicSiteId: site.id,
-          clinicId: clinic.id,
-          serviceCategory,
-        })),
-      });
-      await tx.clinicLocation.create({
-        data: rootClinicLocationData({
-          clinicId: clinic.id,
-          clinicSiteId: site.id,
-          clinicName: values.name,
-          profile,
-        }),
-      });
-      return clinic;
     });
   } catch (error) {
     if (

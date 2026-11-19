@@ -68,6 +68,11 @@ export type EntitlementProjectionInput = {
   invoiceBillingReason?: string | null;
   /** Stripe `subscription.trial_end`. Absent when the subscription has no trial. */
   trialEndsAt?: Date | null;
+  /**
+   * False when a subscription snapshot has no default payment method.
+   * Absent on historical fixtures, which keep the previous trial behaviour.
+   */
+  paymentMethodPresent?: boolean;
   now?: Date;
   /**
    * Set only after a persisted negotiated offer matches the retrieved
@@ -449,6 +454,9 @@ export function projectEntitlement(
   ) {
     if (closedEntitlement && previous) {
       return { kind: "apply", entitlement: previous };
+    }
+    if (input.paymentMethodPresent === false) {
+      return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
     }
     return { kind: "apply", entitlement: trialSnapshot(previous, input) };
   }

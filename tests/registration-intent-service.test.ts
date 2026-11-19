@@ -57,7 +57,12 @@ function input(overrides: Record<string, unknown> = {}) {
 
 async function cleanup() {
   await prisma.clinicRegistrationIntent.deleteMany({
-    where: { email: { startsWith: "regint-" } },
+    where: {
+      OR: [
+        { email: { startsWith: "regint-" } },
+        { email: { endsWith: "@mailinator.com" } },
+      ],
+    },
   });
   await prisma.accountToken.deleteMany({
     where: { email: { startsWith: "regint-" } },
@@ -153,6 +158,56 @@ describe("registration intent service", () => {
       ...before,
       intents: before.intents + 1,
     });
+  });
+
+  it("does not hash or replace a registration repeated inside one minute", async () => {
+    const first = await createOrReplaceRegistrationIntent(
+      input({ email: "regint-cooldown@example.test", slug: "regint-cooldown" })
+    );
+    if (first.status !== "accepted" || first.delivery !== "send") {
+      throw new Error("expected the first registration to send");
+    }
+    const stored = await prisma.clinicRegistrationIntent.findUniqueOrThrow({
+      where: { id: first.intentId },
+    });
+    const second = await createOrReplaceRegistrationIntent(
+      input({
+        email: "regint-cooldown@example.test",
+        slug: "regint-other",
+        password: "registration-secret-2",
+        now: new Date("2026-11-19T00:00:30.000Z"),
+      })
+    );
+    expect(second).toEqual({
+      status: "accepted",
+      delivery: "suppress",
+      message: REGISTRATION_INTENT_GENERIC_MESSAGE,
+    });
+    const still = await prisma.clinicRegistrationIntent.findUniqueOrThrow({
+      where: { id: first.intentId },
+    });
+    expect(still.passwordHash).toBe(stored.passwordHash);
+    expect(still.slug).toBe("regint-cooldown");
+    expect(still.tokenHash).toBe(stored.tokenHash);
+  });
+
+  it("refuses a temporary inbox without creating an intent", async () => {
+    const result = await createOrReplaceRegistrationIntent(
+      input({
+        email: "regint-temp@mailinator.com",
+        slug: "regint-temp",
+      })
+    );
+    expect(result).toMatchObject({
+      status: "invalid",
+      field: "email",
+    });
+    expect(JSON.stringify(result)).not.toMatch(/already|registered|exists/i);
+    expect(
+      await prisma.clinicRegistrationIntent.count({
+        where: { email: "regint-temp@mailinator.com" },
+      })
+    ).toBe(0);
   });
 
   it("replaces a live token and redacts the previous password hash", async () => {

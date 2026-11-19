@@ -992,6 +992,7 @@ export async function processVerifiedStripeEvent(
     invoiceAmountPaid: snapshot.invoiceAmountPaid ?? null,
     invoiceBillingReason: snapshot.invoiceBillingReason ?? null,
     trialEndsAt: snapshot.trialEndsAt ?? null,
+    paymentMethodPresent: snapshot.paymentMethodPresent,
     negotiatedConversion: negotiatedConversion !== null,
   });
 

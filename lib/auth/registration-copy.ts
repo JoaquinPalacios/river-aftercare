@@ -10,7 +10,19 @@ export const REGISTRATION_INTENT_INVALID_LINK_MESSAGE =
   "This verification link is invalid or has expired.";
 
 export const REGISTRATION_VERIFY_CONFIRMED_MESSAGE =
-  "Your email is confirmed. Creating your clinic is the next step, and that step is not available yet.";
+  "Your email is confirmed. We're creating the clinic.";
+
+export const REGISTRATION_SLUG_RECOVERY_MESSAGE =
+  "That clinic address is already in use. Choose another one to continue. Your registration is still here.";
+
+export const REGISTRATION_PROVISION_RETRY_MESSAGE =
+  "We couldn't create the clinic just now. Open the verification link again.";
+
+export const REGISTRATION_SIGN_IN_MESSAGE =
+  "Your clinic is ready. Sign in to continue billing setup.";
+
+export const REGISTRATION_DISPOSABLE_EMAIL_MESSAGE =
+  "Use a permanent clinic email address. Temporary inbox addresses can't register.";
 
 export const REGISTRATION_VERIFY_EXPIRED_MESSAGE =
   "This verification link has expired. Request another email if you still want to register.";

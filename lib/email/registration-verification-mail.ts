@@ -17,7 +17,7 @@ export function composeRegistrationVerificationEmail(input: {
   const paragraphs = [
     `Confirm your email for ${productName}`,
     `We received a request to register ${practice} on ${productName}.`,
-    "This link expires in 24 hours. Opening it confirms this email address. It does not create the clinic:",
+    "This link expires in 24 hours. Opening it confirms this email address and creates the clinic. It does not start a subscription or a charge:",
     input.verificationUrl,
     "If you ask for another verification email, this link stops working.",
     `If you didn't ask to register ${practice}, you can ignore this email.`,
@@ -26,7 +26,7 @@ export function composeRegistrationVerificationEmail(input: {
 
   const html = [
     `<p>We received a request to register ${escapeHtml(practice)} on ${escapeHtml(productName)}.</p>`,
-    "<p>This link expires in 24 hours. Opening it confirms this email address. It does not create the clinic:</p>",
+    "<p>This link expires in 24 hours. Opening it confirms this email address and creates the clinic. It does not start a subscription or a charge:</p>",
     `<p><a href="${escapeHtml(input.verificationUrl)}">Confirm your email</a></p>`,
     "<p>If you ask for another verification email, this link stops working.</p>",
     `<p>If you didn't ask to register ${escapeHtml(practice)}, you can ignore this email.</p>`,

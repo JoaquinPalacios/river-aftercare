@@ -4,15 +4,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requestRegistrationVerification = vi.hoisted(() => vi.fn());
 const requestRegistrationReplacement = vi.hoisted(() => vi.fn());
-const validateRegistrationIntent = vi.hoisted(() => vi.fn());
+const provisionRegisteredClinic = vi.hoisted(() => vi.fn());
+const recoverAndProvisionRegisteredClinic = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth/request-registration", () => ({
   requestRegistrationVerification,
   requestRegistrationReplacement,
 }));
 
-vi.mock("@/lib/auth/registration-intent-service", () => ({
-  validateRegistrationIntent,
+vi.mock("@/lib/auth/provision-registration-clinic", () => ({
+  provisionRegisteredClinic,
+  recoverAndProvisionRegisteredClinic,
 }));
 
 vi.mock("@/lib/tenancy/root-domain", () => ({
@@ -21,9 +23,22 @@ vi.mock("@/lib/tenancy/root-domain", () => ({
 
 import { POST as register } from "@/app/api/auth/register/route";
 import { POST as resend } from "@/app/api/auth/register/resend/route";
+import { POST as recoverSlug } from "@/app/api/auth/register/slug/route";
 import { POST as verify } from "@/app/api/auth/register/verify/route";
 import { REGISTRATION_INTENT_GENERIC_MESSAGE } from "@/lib/auth/registration-copy";
 import { TURNSTILE_DUMMY_PASS_TOKEN } from "@/lib/marketing/contact-turnstile-public";
+
+function jsonRequest(path: string, body: unknown, host = "app.localhost:3000") {
+  return new Request(`http://${host}${path}`, {
+    method: "POST",
+    headers: {
+      host,
+      origin: `http://${host}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+}
 
 function formRequest(
   path: string,
@@ -59,7 +74,8 @@ describe("registration routes", () => {
     process.env.REGISTRATION_ENABLED = "true";
     requestRegistrationVerification.mockReset();
     requestRegistrationReplacement.mockReset();
-    validateRegistrationIntent.mockReset();
+    provisionRegisteredClinic.mockReset();
+    recoverAndProvisionRegisteredClinic.mockReset();
     requestRegistrationVerification.mockResolvedValue({
       status: "accepted",
       message: REGISTRATION_INTENT_GENERIC_MESSAGE,
@@ -77,6 +93,15 @@ describe("registration routes", () => {
     );
     expect(disabled.status).toBe(404);
     expect(requestRegistrationVerification).not.toHaveBeenCalled();
+
+    const verifyDisabled = await verify(
+      jsonRequest("/api/auth/register/verify", {
+        token: "raw-token-value",
+        turnstileToken: TURNSTILE_DUMMY_PASS_TOKEN,
+      })
+    );
+    expect(verifyDisabled.status).toBe(404);
+    expect(provisionRegisteredClinic).not.toHaveBeenCalled();
 
     process.env.REGISTRATION_ENABLED = "true";
     const marketing = await register(
@@ -102,6 +127,15 @@ describe("registration routes", () => {
     );
     expect(unverified.status).toBe(400);
     expect(requestRegistrationVerification).not.toHaveBeenCalled();
+
+    const direct = await verify(
+      jsonRequest("/api/auth/register/verify", { token: "raw-token-value" })
+    );
+    expect(direct.status).toBe(400);
+    await expect(direct.json()).resolves.toMatchObject({
+      status: "verification_failed",
+    });
+    expect(provisionRegisteredClinic).not.toHaveBeenCalled();
   });
 
   it("returns the generic message and no token", async () => {
@@ -115,10 +149,19 @@ describe("registration routes", () => {
     expect(requestRegistrationVerification).toHaveBeenCalledOnce();
   });
 
-  it("validates a token without consuming it and keeps expired links distinct", async () => {
-    validateRegistrationIntent.mockResolvedValueOnce({
-      ok: true,
-      intent: { id: "intent" },
+  it("provisions a clinic and sets the session cookie without returning the token", async () => {
+    provisionRegisteredClinic.mockResolvedValueOnce({
+      status: "provisioned",
+      redirectTo: "/account/billing/setup",
+      session: {
+        sessionToken: "session-token-value",
+        expires: new Date("2026-12-19T00:00:00.000Z"),
+      },
+      intentId: "intent",
+      clinicId: "clinic",
+      userId: "user",
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
     });
     const valid = await verify(
       new Request("http://app.localhost:3000/api/auth/register/verify", {
@@ -128,20 +171,27 @@ describe("registration routes", () => {
           origin: "http://app.localhost:3000",
           "content-type": "application/json",
         },
-        body: JSON.stringify({ token: "raw-token-value" }),
+        body: JSON.stringify({
+          token: "raw-token-value",
+          turnstileToken: TURNSTILE_DUMMY_PASS_TOKEN,
+        }),
       })
     );
     const validBody = await valid.json();
-    expect(validBody.status).toBe("valid");
+    expect(validBody).toEqual({
+      status: "provisioned",
+      redirectTo: "/account/billing/setup",
+    });
     expect(JSON.stringify(validBody)).not.toContain("raw-token-value");
-    expect(validateRegistrationIntent).toHaveBeenCalledWith({
+    expect(JSON.stringify(validBody)).not.toContain("session-token-value");
+    expect(valid.cookies.get("authjs.session-token")?.value).toBe(
+      "session-token-value"
+    );
+    expect(provisionRegisteredClinic).toHaveBeenCalledWith({
       rawToken: "raw-token-value",
     });
 
-    validateRegistrationIntent.mockResolvedValueOnce({
-      ok: false,
-      reason: "expired",
-    });
+    provisionRegisteredClinic.mockResolvedValueOnce({ status: "expired" });
     const expired = await verify(
       new Request("http://app.localhost:3000/api/auth/register/verify", {
         method: "POST",
@@ -150,22 +200,72 @@ describe("registration routes", () => {
           origin: "http://app.localhost:3000",
           "content-type": "application/json",
         },
-        body: JSON.stringify({ token: "expired-token" }),
+        body: JSON.stringify({
+          token: "expired-token",
+          turnstileToken: TURNSTILE_DUMMY_PASS_TOKEN,
+        }),
       })
     );
     await expect(expired.json()).resolves.toMatchObject({ status: "expired" });
+    expect(expired.cookies.get("authjs.session-token")).toBeUndefined();
   });
 
-  it("does not consume a registration intent from the public routes", () => {
-    const source = [
+  it("returns a slug recovery response without a session", async () => {
+    recoverAndProvisionRegisteredClinic.mockResolvedValueOnce({
+      status: "slug_unavailable",
+      message: "That tenant slug is already in use.",
+      slug: "taken-slug",
+    });
+    const response = await recoverSlug(
+      new Request("http://app.localhost:3000/api/auth/register/slug", {
+        method: "POST",
+        headers: {
+          host: "app.localhost:3000",
+          origin: "http://app.localhost:3000",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          token: "raw-token-value",
+          slug: "taken-slug",
+          turnstileToken: TURNSTILE_DUMMY_PASS_TOKEN,
+        }),
+      })
+    );
+    await expect(response.json()).resolves.toEqual({
+      status: "slug_unavailable",
+      message: "That tenant slug is already in use.",
+      slug: "taken-slug",
+    });
+    expect(response.cookies.get("authjs.session-token")).toBeUndefined();
+    expect(recoverAndProvisionRegisteredClinic).toHaveBeenCalledWith({
+      rawToken: "raw-token-value",
+      slug: "taken-slug",
+    });
+  });
+
+  it("does not provision from the registration or replacement routes", () => {
+    const collected = [
       "app/api/auth/register/route.ts",
       "app/api/auth/register/resend/route.ts",
-      "app/api/auth/register/verify/route.ts",
       "lib/auth/request-registration.ts",
     ]
       .map((path) => readFileSync(path, "utf8"))
       .join("\n");
-    expect(source).not.toContain("consumeRegistrationIntent");
+    expect(collected).not.toContain("consumeRegistrationIntent");
+    expect(collected).not.toContain("provisionRegisteredClinic");
+
+    const provisioning = [
+      "app/api/auth/register/verify/route.ts",
+      "app/api/auth/register/slug/route.ts",
+      "lib/auth/provision-registration-clinic.ts",
+    ]
+      .map((path) => readFileSync(path, "utf8"))
+      .join("\n");
+    expect(provisioning).not.toContain("createClinicCheckout");
+    expect(provisioning).not.toContain("checkout.sessions");
+    expect(provisioning).not.toContain("grantComplimentary");
+    expect(provisioning).not.toContain("ClinicPromotionalOffer");
+    expect(provisioning).toContain("prepareClinicCommercialOffer");
   });
 
   it("sends a replacement request without returning a token", async () => {

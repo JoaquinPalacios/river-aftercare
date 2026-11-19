@@ -152,28 +152,24 @@ describe("proxy", async () => {
     ).toBe(404);
   });
 
-  it("allows the billing notice cron on the marketing host and blocks it on a patient host", async () => {
-    const marketing = await proxy(
-      requestFor("http://localhost:3000/api/cron/billing-notices")
-    );
-    expect(marketing.status).toBe(200);
-    expect(rewrittenUrl(marketing)).toBeNull();
+  it("allows scheduled crons on the marketing host and blocks them on a patient host", async () => {
+    for (const path of [
+      "/api/cron/billing-notices",
+      "/api/cron/registration-intents",
+    ]) {
+      const marketing = await proxy(requestFor(`http://localhost:3000${path}`));
+      expect(marketing.status).toBe(200);
+      expect(rewrittenUrl(marketing)).toBeNull();
 
-    const staff = await proxy(
-      requestFor("http://app.localhost:3000/api/cron/billing-notices")
-    );
-    expect(staff.status).toBe(200);
-    expect(rewrittenUrl(staff)).toBeNull();
+      const staff = await proxy(requestFor(`http://app.localhost:3000${path}`));
+      expect(staff.status).toBe(200);
+      expect(rewrittenUrl(staff)).toBeNull();
 
-    expect(
-      (
-        await proxy(
-          requestFor(
-            "http://demodental.localhost:3000/api/cron/billing-notices"
-          )
-        )
-      ).status
-    ).toBe(404);
+      expect(
+        (await proxy(requestFor(`http://demodental.localhost:3000${path}`)))
+          .status
+      ).toBe(404);
+    }
   });
 
   it("rewrites marketing pricing, contact, about, privacy, terms, and clinic pages to /_marketing/...", async () => {

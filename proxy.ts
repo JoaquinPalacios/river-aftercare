@@ -12,10 +12,18 @@ import {
   normalizePathname,
 } from "@/lib/tenancy/paths";
 import { PUBLIC_PATIENT_PATH_HEADER } from "@/lib/tenancy/public-patient-path";
+import { REGISTRATION_INTENT_CRON_PATH } from "@/lib/auth/registration-cron-path";
 import { BILLING_NOTICE_CRON_PATH } from "@/lib/billing/notices/constants";
 import { getRootDomain } from "@/lib/tenancy/root-domain";
 
 const SPOOFABLE_TENANT_HEADERS = ["x-care-guide-tenant", "x-tenant"] as const;
+
+function isScheduledCronPath(pathname: string): boolean {
+  return (
+    pathname === BILLING_NOTICE_CRON_PATH ||
+    pathname === REGISTRATION_INTENT_CRON_PATH
+  );
+}
 
 function notFound(): NextResponse {
   return new NextResponse(null, { status: 404 });
@@ -78,10 +86,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   }
 
   if (classification.kind === "marketing") {
-    if (
-      isMarketingCrawlPath(pathname) ||
-      pathname === BILLING_NOTICE_CRON_PATH
-    ) {
+    if (isMarketingCrawlPath(pathname) || isScheduledCronPath(pathname)) {
       return continueWithoutSpoofedHeaders(request);
     }
 
@@ -100,7 +105,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     });
   }
 
-  if (isStaffPath(pathname) || pathname === BILLING_NOTICE_CRON_PATH) {
+  if (isStaffPath(pathname) || isScheduledCronPath(pathname)) {
     return notFound();
   }
 

@@ -51,6 +51,11 @@ export type StripeProjectionSnapshot = {
   invoiceAmountPaid?: number | null;
   /** Stripe invoice.billing_reason. Null on subscription and Checkout events. */
   invoiceBillingReason?: string | null;
+  /**
+   * True when the subscription has a default payment method.
+   * Absent on events that are not subscription snapshots.
+   */
+  paymentMethodPresent?: boolean;
 };
 
 function unixToDate(value: number | null | undefined): Date | null {
@@ -154,6 +159,7 @@ export function snapshotFromSubscription(
     trialEndsAt: unixToDate(subscription.trial_end),
     invoiceAmountPaid: null,
     invoiceBillingReason: null,
+    paymentMethodPresent: Boolean(subscription.default_payment_method),
   };
 }
 
@@ -250,6 +256,7 @@ export function mergeSubscriptionIntoSnapshot(
     trialEndsAt: fromSubscription.trialEndsAt ?? snapshot.trialEndsAt ?? null,
     invoiceAmountPaid: snapshot.invoiceAmountPaid ?? null,
     invoiceBillingReason: snapshot.invoiceBillingReason ?? null,
+    paymentMethodPresent: fromSubscription.paymentMethodPresent,
   };
 }
 

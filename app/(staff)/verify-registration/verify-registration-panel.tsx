@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { ContactTurnstile } from "@/app/(marketing)/components/contact-turnstile";
 import { OnboardingAssistance } from "@/app/(staff)/components/onboarding-assistance";
@@ -9,37 +10,75 @@ import { staffEmailFieldError } from "@/lib/auth/login-input";
 import {
   REGISTRATION_INTENT_GENERIC_MESSAGE,
   REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
-  REGISTRATION_VERIFY_CONFIRMED_MESSAGE,
+  REGISTRATION_PROVISION_RETRY_MESSAGE,
+  REGISTRATION_SIGN_IN_MESSAGE,
+  REGISTRATION_SLUG_RECOVERY_MESSAGE,
+  REGISTRATION_VERIFICATION_FAILED_MESSAGE,
   REGISTRATION_VERIFY_EXPIRED_MESSAGE,
+  registrationSlugPolicyMessage,
 } from "@/lib/auth/registration-copy";
+import { REGISTRATION_TURNSTILE_ACTION } from "@/lib/auth/registration-turnstile";
 import { CONTACT_HONEYPOT_FIELD } from "@/lib/marketing/contact-fields";
+
+const BILLING_SETUP_PATH = "/account/billing/setup";
+
+// Survives a development remount after the fragment has been removed.
+let verificationTokenMemory = "";
+let provisionFlight: {
+  key: string;
+  promise: Promise<ProvisionBody | null>;
+} | null = null;
 
 type VerifyState =
   | { status: "checking" }
-  | { status: "valid"; message: string }
+  | { status: "slug"; message: string; slug: string }
   | { status: "expired"; message: string }
-  | { status: "invalid"; message: string };
+  | { status: "invalid"; message: string }
+  | { status: "retry"; message: string }
+  | { status: "sign_in"; message: string };
+
+type ProvisionBody = {
+  status?: string;
+  message?: string;
+  slug?: string;
+  redirectTo?: string;
+};
 
 export function VerifyRegistrationPanel({
   turnstileSiteKey,
   contactHref,
+  slugHost,
 }: {
   turnstileSiteKey: string;
   contactHref: string;
+  slugHost: string;
 }) {
   const [state, setState] = useState<VerifyState>({ status: "checking" });
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState<string | undefined>();
+  const [slug, setSlug] = useState("");
+  const [slugError, setSlugError] = useState<string | undefined>();
   const [formError, setFormError] = useState<string | undefined>();
   const [sent, setSent] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const tokenRef = useRef("");
   const formRef = useRef<HTMLFormElement>(null);
+  const [challengeToken, setChallengeToken] = useState("");
+  const [slugChallengeToken, setSlugChallengeToken] = useState("");
+  const [slugReset, setSlugReset] = useState(0);
   const pending = isSubmitting || isPending;
+  const rememberChallenge = useCallback((token: string) => {
+    setChallengeToken(token);
+  }, []);
+  const rememberSlugChallenge = useCallback((token: string) => {
+    setSlugChallengeToken(token);
+  }, []);
 
   useEffect(() => {
-    const token = readAccountTokenFromHash(window.location.hash);
+    const token =
+      readAccountTokenFromHash(window.location.hash) || verificationTokenMemory;
     if (!token) {
       setState({
         status: "invalid",
@@ -47,54 +86,93 @@ export function VerifyRegistrationPanel({
       });
       return;
     }
-
-    const controller = new AbortController();
-    void (async () => {
-      try {
-        const response = await fetch("/api/auth/register/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-          signal: controller.signal,
-        });
-        const data = (await response.json()) as {
-          status?: string;
-          message?: string;
-        };
-        if (data.status === "valid") {
-          setState({
-            status: "valid",
-            message: data.message ?? REGISTRATION_VERIFY_CONFIRMED_MESSAGE,
-          });
-          window.history.replaceState(null, "", "/verify-registration");
-          return;
-        }
-        if (data.status === "expired") {
-          setState({
-            status: "expired",
-            message: data.message ?? REGISTRATION_VERIFY_EXPIRED_MESSAGE,
-          });
-          window.history.replaceState(null, "", "/verify-registration");
-          return;
-        }
-        setState({
-          status: "invalid",
-          message: data.message ?? REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
-        });
-        window.history.replaceState(null, "", "/verify-registration");
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-        setState({
-          status: "invalid",
-          message: REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
-        });
-      }
-    })();
-
-    return () => controller.abort();
+    verificationTokenMemory = token;
+    tokenRef.current = token;
+    window.history.replaceState(null, "", "/verify-registration");
   }, []);
+
+  useEffect(() => {
+    const token = tokenRef.current;
+    if (!token || !challengeToken || state.status !== "checking") {
+      return;
+    }
+    let cancelled = false;
+    void ensureProvision(token, challengeToken)
+      .then((data) => {
+        if (cancelled) {
+          return;
+        }
+        if (!data) {
+          setState({
+            status: "retry",
+            message: REGISTRATION_PROVISION_RETRY_MESSAGE,
+          });
+          return;
+        }
+        applyProvisionResult(data, setState, setSlug);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setState({
+            status: "retry",
+            message: REGISTRATION_PROVISION_RETRY_MESSAGE,
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [challengeToken, state.status]);
+
+  function handleSlug(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = tokenRef.current || verificationTokenMemory;
+    if (!token || !slugChallengeToken || submittingRef.current) {
+      return;
+    }
+    const nextSlug = slug.trim().toLowerCase();
+    const policy = registrationSlugPolicyMessage(nextSlug);
+    if (policy) {
+      setSlugError(policy);
+      return;
+    }
+    setSlugError(undefined);
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    startTransition(async () => {
+      try {
+        const data = await postProvision("/api/auth/register/slug", {
+          token,
+          slug: nextSlug,
+          turnstileToken: slugChallengeToken,
+        });
+        if (!data) {
+          setState({
+            status: "retry",
+            message: REGISTRATION_PROVISION_RETRY_MESSAGE,
+          });
+          return;
+        }
+        if (data.status === "verification_failed") {
+          setFormError(
+            data.message ?? REGISTRATION_VERIFICATION_FAILED_MESSAGE
+          );
+          setSlugChallengeToken("");
+          setSlugReset((value) => value + 1);
+          return;
+        }
+        applyProvisionResult(data, setState, setSlug);
+      } catch {
+        setState({
+          status: "retry",
+          message: REGISTRATION_PROVISION_RETRY_MESSAGE,
+        });
+      } finally {
+        submittingRef.current = false;
+        setIsSubmitting(false);
+      }
+    });
+  }
 
   function handleResend(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -146,25 +224,102 @@ export function VerifyRegistrationPanel({
     });
   }
 
+  const assistanceStage =
+    state.status === "checking" ||
+    state.status === "slug" ||
+    state.status === "retry"
+      ? "email_verification"
+      : "registration";
+
   return (
     <div className="flex flex-col gap-5">
       {state.status === "checking" ? (
-        <p className="text-sm text-staff-muted" role="status">
-          Checking this verification link.
-        </p>
-      ) : (
-        <div
-          className="rounded-md border border-staff-line bg-staff-canvas px-3 py-3 text-sm leading-6 text-staff-ink"
-          role="status"
-        >
-          {state.message}
+        <div className="flex flex-col gap-4">
+          <ContactTurnstile
+            siteKey={turnstileSiteKey}
+            resetSignal={0}
+            action={REGISTRATION_TURNSTILE_ACTION.verify}
+            onToken={rememberChallenge}
+          />
+          <p className="text-sm text-staff-muted" role="status">
+            {challengeToken
+              ? "Creating your clinic."
+              : "Confirm this browser, then the clinic is created."}
+          </p>
         </div>
-      )}
+      ) : null}
 
-      {state.status === "valid" ? (
-        <p className="text-sm leading-6 text-staff-muted">
-          Keep this email address. Clinic setup will continue from the
-          confirmation you just completed.
+      {state.status === "slug" ? (
+        <form className="flex flex-col gap-4" onSubmit={handleSlug} noValidate>
+          <p className="text-sm leading-6 text-staff-ink" role="status">
+            {state.message || REGISTRATION_SLUG_RECOVERY_MESSAGE}
+          </p>
+          <div className="flex flex-col gap-2">
+            <label
+              className="text-sm font-medium text-staff-ink"
+              htmlFor="slug"
+            >
+              Preferred clinic URL
+            </label>
+            <input
+              id="slug"
+              name="slug"
+              value={slug}
+              disabled={pending}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              onChange={(event) => {
+                setSlug(event.target.value.trim().toLowerCase());
+                setSlugError(undefined);
+              }}
+              aria-invalid={slugError ? "true" : "false"}
+              aria-describedby={slugError ? "slug-error" : "slug-hint"}
+              className="staffLoginField"
+            />
+            {slugError ? (
+              <p id="slug-error" className="staffFieldError">
+                {slugError}
+              </p>
+            ) : (
+              <p id="slug-hint" className="text-sm text-staff-muted">
+                {slug || "your-clinic"}.{slugHost}
+              </p>
+            )}
+          </div>
+          <ContactTurnstile
+            siteKey={turnstileSiteKey}
+            resetSignal={slugReset}
+            action={REGISTRATION_TURNSTILE_ACTION.slug}
+            onToken={rememberSlugChallenge}
+          />
+          <button
+            type="submit"
+            disabled={pending || !slugChallengeToken}
+            className="staffBtn staffBtnPrimary staffLoginSubmit h-11"
+          >
+            {pending ? "Creating clinic…" : "Use this address"}
+          </button>
+        </form>
+      ) : null}
+
+      {state.status === "sign_in" ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm leading-6 text-staff-ink" role="status">
+            {state.message}
+          </p>
+          <Link
+            href="/login"
+            className="staffBtn staffBtnPrimary staffLoginSubmit h-11"
+          >
+            Sign in
+          </Link>
+        </div>
+      ) : null}
+
+      {state.status === "retry" ? (
+        <p className="text-sm leading-6 text-staff-ink" role="alert">
+          {state.message}
         </p>
       ) : null}
 
@@ -177,6 +332,12 @@ export function VerifyRegistrationPanel({
           noValidate
           aria-busy={pending || undefined}
         >
+          <div
+            className="rounded-md border border-staff-line bg-staff-canvas px-3 py-3 text-sm leading-6 text-staff-ink"
+            role="status"
+          >
+            {state.message}
+          </div>
           <p className="text-sm leading-6 text-staff-muted">
             Request another verification email. If a registration is waiting for
             this address, we'll send a new link.
@@ -217,7 +378,11 @@ export function VerifyRegistrationPanel({
               autoComplete="off"
             />
           </div>
-          <ContactTurnstile siteKey={turnstileSiteKey} resetSignal={0} />
+          <ContactTurnstile
+            siteKey={turnstileSiteKey}
+            resetSignal={0}
+            action={REGISTRATION_TURNSTILE_ACTION.resend}
+          />
           {formError ? (
             <div className="staffFormAlert" role="alert">
               {formError}
@@ -238,10 +403,91 @@ export function VerifyRegistrationPanel({
         </form>
       ) : null}
 
-      <OnboardingAssistance
-        stage={state.status === "valid" ? "email_verification" : "registration"}
-        contactHref={contactHref}
-      />
+      <OnboardingAssistance stage={assistanceStage} contactHref={contactHref} />
     </div>
   );
+}
+
+function ensureProvision(token: string, turnstileToken: string) {
+  const key = `${token}:${turnstileToken}`;
+  if (provisionFlight?.key === key) {
+    return provisionFlight.promise;
+  }
+  const promise = postProvision("/api/auth/register/verify", {
+    token,
+    turnstileToken,
+  });
+  provisionFlight = { key, promise };
+  return promise;
+}
+
+async function postProvision(
+  path: string,
+  body: { token: string; slug?: string; turnstileToken: string },
+  signal?: AbortSignal
+): Promise<ProvisionBody | null> {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  try {
+    return (await response.json()) as ProvisionBody;
+  } catch {
+    return null;
+  }
+}
+
+function applyProvisionResult(
+  data: ProvisionBody,
+  setState: (state: VerifyState) => void,
+  setSlug: (slug: string) => void
+) {
+  if (data.status === "sign_in") {
+    verificationTokenMemory = "";
+    window.location.assign("/login");
+    return;
+  }
+  if (data.status === "verification_failed") {
+    provisionFlight = null;
+    setState({
+      status: "retry",
+      message: data.message ?? REGISTRATION_VERIFICATION_FAILED_MESSAGE,
+    });
+    return;
+  }
+  if (data.status === "provisioned" && data.redirectTo === BILLING_SETUP_PATH) {
+    verificationTokenMemory = "";
+    window.location.assign(BILLING_SETUP_PATH);
+    return;
+  }
+  if (data.status === "slug_unavailable") {
+    const nextSlug = typeof data.slug === "string" ? data.slug : "";
+    setSlug(nextSlug);
+    setState({
+      status: "slug",
+      message: data.message ?? REGISTRATION_SLUG_RECOVERY_MESSAGE,
+      slug: nextSlug,
+    });
+    return;
+  }
+  if (data.status === "expired") {
+    setState({
+      status: "expired",
+      message: data.message ?? REGISTRATION_VERIFY_EXPIRED_MESSAGE,
+    });
+    return;
+  }
+  if (data.status === "retry") {
+    setState({
+      status: "retry",
+      message: data.message ?? REGISTRATION_PROVISION_RETRY_MESSAGE,
+    });
+    return;
+  }
+  setState({
+    status: "invalid",
+    message: data.message ?? REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
+  });
 }

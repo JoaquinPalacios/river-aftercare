@@ -2,15 +2,20 @@ import { NextResponse } from "next/server";
 
 import {
   REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
-  REGISTRATION_VERIFY_CONFIRMED_MESSAGE,
-  REGISTRATION_VERIFY_EXPIRED_MESSAGE,
+  REGISTRATION_VERIFICATION_FAILED_MESSAGE,
 } from "@/lib/auth/registration-copy";
-import { registrationAccessDenial } from "@/lib/auth/registration-http";
-import { validateRegistrationIntent } from "@/lib/auth/registration-intent-service";
+import {
+  registrationAccessDenial,
+  registrationTurnstileTokenDenial,
+} from "@/lib/auth/registration-http";
+import { REGISTRATION_TURNSTILE_ACTION } from "@/lib/auth/registration-turnstile";
+import { logRegistrationLifecycle } from "@/lib/auth/registration-lifecycle-log";
+import { provisionRegisteredClinic } from "@/lib/auth/provision-registration-clinic";
+import { registrationProvisionHttpResponse } from "@/lib/auth/registration-provision-http";
 
 /**
- * Confirms a verification token without consuming it. Clinic provisioning is
- * a later phase and must consume the intent in the same transaction.
+ * Consumes a verification token and creates the clinic. The response sets the
+ * session cookie and names the billing setup path. It does not call Stripe.
  */
 export async function POST(request: Request) {
   const denied = registrationAccessDenial(request);
@@ -35,30 +40,33 @@ export async function POST(request: Request) {
     typeof (body as { token?: unknown })?.token === "string"
       ? (body as { token: string }).token
       : "";
-
-  try {
-    const result = await validateRegistrationIntent({ rawToken });
-    if (!result.ok) {
-      if (result.reason === "expired") {
-        return NextResponse.json({
-          status: "expired",
-          message: REGISTRATION_VERIFY_EXPIRED_MESSAGE,
-        });
-      }
-      return NextResponse.json({
-        status: "invalid",
-        message: REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
-      });
-    }
-  } catch {
-    return NextResponse.json({
-      status: "invalid",
-      message: REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
-    });
+  const turnstileToken =
+    typeof (body as { turnstileToken?: unknown })?.turnstileToken === "string"
+      ? (body as { turnstileToken: string }).turnstileToken
+      : "";
+  const turnstile = await registrationTurnstileTokenDenial(
+    request,
+    turnstileToken,
+    REGISTRATION_TURNSTILE_ACTION.verify
+  );
+  if (turnstile) {
+    return NextResponse.json(
+      {
+        status: "verification_failed",
+        message: REGISTRATION_VERIFICATION_FAILED_MESSAGE,
+      },
+      { status: 400 }
+    );
   }
 
-  return NextResponse.json({
-    status: "valid",
-    message: REGISTRATION_VERIFY_CONFIRMED_MESSAGE,
-  });
+  try {
+    const outcome = await provisionRegisteredClinic({ rawToken });
+    return registrationProvisionHttpResponse(outcome);
+  } catch (error) {
+    logRegistrationLifecycle({
+      event: "registration_clinic_provision_failed",
+      name: error instanceof Error ? error.name : "Error",
+    });
+    return registrationProvisionHttpResponse({ status: "retry" });
+  }
 }

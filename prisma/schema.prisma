@@ -956,9 +956,13 @@ enum EntitlementStatus {
   ENDED
 }
 
-/// Why a person accepted the current legal documents. Append-only.
+/// Why a person accepted the legal documents. Append-only.
+/// `REGISTRATION` records the versions accepted when a verified registration
+/// creates the clinic. Checkout still requires a separate `BILLING_CHECKOUT`
+/// row for the current versions.
 enum LegalAcceptanceSource {
   BILLING_CHECKOUT
+  REGISTRATION
 }
 
 enum StripeEventProcessingStatus {

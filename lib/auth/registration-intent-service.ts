@@ -107,14 +107,59 @@ export async function createOrReplaceRegistrationIntent(input: {
     return validated.error;
   }
 
+  const now = input.now ?? new Date();
+  if (await registrationEmailIsClaimed(getPrisma(), validated.value.email)) {
+    await getPrisma().$transaction(async (tx) => {
+      await lockRegistrationEmail(tx, validated.value.email);
+      if (await registrationEmailIsClaimed(tx, validated.value.email)) {
+        await revokeLiveRegistrationIntents(tx, validated.value.email, now);
+      }
+    });
+    return {
+      status: "accepted" as const,
+      delivery: "suppress" as const,
+      message: REGISTRATION_INTENT_GENERIC_MESSAGE,
+    };
+  }
+
+  const recent = await getPrisma().clinicRegistrationIntent.findFirst({
+    where: {
+      email: validated.value.email,
+      consumedAt: null,
+      revokedAt: null,
+    },
+    select: { expiresAt: true },
+  });
+  if (recent && registrationCreateOnCooldown(recent.expiresAt, now)) {
+    return {
+      status: "accepted" as const,
+      delivery: "suppress" as const,
+      message: REGISTRATION_INTENT_GENERIC_MESSAGE,
+    };
+  }
+
   const passwordHash = hashPassword(validated.value.password);
   const rawToken = generateAccountToken();
   const tokenHash = hashAccountToken(rawToken);
-  const now = input.now ?? new Date();
   const expiresAt = registrationIntentExpiresAt(now);
 
   return getPrisma().$transaction(async (tx) => {
     await lockRegistrationEmail(tx, validated.value.email);
+    const locked = await tx.clinicRegistrationIntent.findFirst({
+      where: {
+        email: validated.value.email,
+        consumedAt: null,
+        revokedAt: null,
+      },
+      select: { expiresAt: true },
+    });
+    if (locked && registrationCreateOnCooldown(locked.expiresAt, now)) {
+      return {
+        status: "accepted" as const,
+        delivery: "suppress" as const,
+        message: REGISTRATION_INTENT_GENERIC_MESSAGE,
+      };
+    }
     if (await registrationEmailIsClaimed(tx, validated.value.email)) {
       await revokeLiveRegistrationIntents(tx, validated.value.email, now);
       return {
@@ -171,19 +216,46 @@ export async function validateRegistrationIntent(input: {
 /**
  * Revoke live intents whose verification window has ended and redact the
  * stored password hash. An optional email limits the sweep to one address.
+ * `limit` caps the rows examined. The update still requires the row to be
+ * unconsumed, unrevoked, and expired, so a registration that succeeds between
+ * the read and the write is left alone. Consumed rows are not deleted.
  */
 export async function expireRegistrationIntents(input?: {
   now?: Date;
   email?: string;
+  limit?: number;
 }): Promise<{ revoked: number }> {
   const now = input?.now ?? new Date();
+  const where = {
+    consumedAt: null,
+    revokedAt: null,
+    expiresAt: { lte: now },
+    ...(input?.email ? { email: input.email } : {}),
+  };
+  const limit = input?.limit;
+  if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
+    return { revoked: 0 };
+  }
+
+  if (limit !== undefined) {
+    const due = await getPrisma().clinicRegistrationIntent.findMany({
+      where,
+      select: { id: true },
+      orderBy: { expiresAt: "asc" },
+      take: limit,
+    });
+    if (due.length === 0) {
+      return { revoked: 0 };
+    }
+    const result = await getPrisma().clinicRegistrationIntent.updateMany({
+      where: { ...where, id: { in: due.map((row) => row.id) } },
+      data: { revokedAt: now, passwordHash: DUMMY_PASSWORD_HASH },
+    });
+    return { revoked: result.count };
+  }
+
   const result = await getPrisma().clinicRegistrationIntent.updateMany({
-    where: {
-      consumedAt: null,
-      revokedAt: null,
-      expiresAt: { lte: now },
-      ...(input?.email ? { email: input.email } : {}),
-    },
+    where,
     data: { revokedAt: now, passwordHash: DUMMY_PASSWORD_HASH },
   });
   return { revoked: result.count };
@@ -314,6 +386,18 @@ export async function recoverRegistrationIntentSlug(input: {
 const REGISTRATION_REISSUE_COOLDOWN_MS =
   PASSWORD_RESET_REQUEST_COOLDOWN_MINUTES * 60 * 1000;
 
+/** Stops a second registration for the same email from hashing or sending mail. */
+export const REGISTRATION_CREATE_COOLDOWN_MS = 60 * 1000;
+
+function registrationIssuedAt(expiresAt: Date): number {
+  return expiresAt.getTime() - REGISTRATION_INTENT_TTL_MS;
+}
+
+function registrationCreateOnCooldown(expiresAt: Date, now: Date): boolean {
+  const age = now.getTime() - registrationIssuedAt(expiresAt);
+  return age > 0 && age < REGISTRATION_CREATE_COOLDOWN_MS;
+}
+
 export type ReissueRegistrationIntentResult =
   | {
       status: "send";
@@ -361,8 +445,10 @@ export async function reissueRegistrationIntentToken(input: {
       return { status: "suppress" as const };
     }
 
-    const issuedAt = row.expiresAt.getTime() - REGISTRATION_INTENT_TTL_MS;
-    if (now.getTime() - issuedAt < REGISTRATION_REISSUE_COOLDOWN_MS) {
+    if (
+      now.getTime() - registrationIssuedAt(row.expiresAt) <
+      REGISTRATION_REISSUE_COOLDOWN_MS
+    ) {
       return { status: "suppress" as const };
     }
 

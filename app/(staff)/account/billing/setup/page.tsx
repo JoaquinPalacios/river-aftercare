@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BillingSetupForm } from "@/app/(staff)/account/billing/setup/billing-setup-form";
+import { OnboardingAssistance } from "@/app/(staff)/components/onboarding-assistance";
 import { CATALOGUE_TRIAL_DISCLOSURE } from "@/lib/billing/trial";
 import { loadBillingPageContext } from "@/app/(staff)/account/billing/billing-context";
 import {
@@ -165,6 +166,15 @@ export default async function BillingSetupPage({
           This clinic’s plan can’t be paid online. Contact River Aftercare.
         </p>
       )}
+
+      {membership &&
+      membership.source !== "operator_support" &&
+      view?.presentation.kind === "setup" ? (
+        <OnboardingAssistance
+          stage="billing_setup"
+          contactHref={context.contactHref}
+        />
+      ) : null}
     </div>
   );
 }

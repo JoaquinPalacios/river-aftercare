@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -34,5 +36,24 @@ describe("onboarding assistance", () => {
       "Request complimentary onboarding assistance"
     );
     expect(ONBOARDING_ASSISTANCE_CTA).toBe("Request onboarding help");
+  });
+
+  it("stays available on billing setup and when clinic configuration begins", () => {
+    const billing = readFileSync(
+      "app/(staff)/account/billing/setup/page.tsx",
+      "utf8"
+    );
+    expect(billing).toContain('stage="billing_setup"');
+    expect(billing).toContain("OnboardingAssistance");
+    const dashboard = readFileSync(
+      "app/(staff)/(clinic-portal)/dashboard/page.tsx",
+      "utf8"
+    );
+    expect(dashboard).toContain('stage="clinic_configuration"');
+    const assistance = readFileSync(
+      "app/(staff)/components/onboarding-assistance.tsx",
+      "utf8"
+    );
+    expect(assistance).not.toMatch(/password|token|stripe/i);
   });
 });

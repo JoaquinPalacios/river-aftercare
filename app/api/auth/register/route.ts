@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { newPasswordFieldErrors } from "@/lib/auth/password-policy";
+import { REGISTRATION_TURNSTILE_ACTION } from "@/lib/auth/registration-turnstile";
 import { REGISTRATION_TERMS_REQUIRED_MESSAGE } from "@/lib/auth/registration-copy";
 import {
   readFormText,
@@ -31,7 +32,11 @@ export async function POST(request: Request) {
     return registrationGenericSuccess();
   }
 
-  const turnstile = await registrationTurnstileDenial(request, formData);
+  const turnstile = await registrationTurnstileDenial(
+    request,
+    formData,
+    REGISTRATION_TURNSTILE_ACTION.create
+  );
   if (turnstile) {
     return turnstile;
   }
