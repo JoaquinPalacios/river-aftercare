@@ -377,8 +377,19 @@ Essential and Practice team allowances are enforced inside `inviteClinicUser` an
 
 A clinic administrator or a platform operator at the effective allowance cannot invite or reactivate. Extra places are a persistent operator grant on the clinic page, not a per-invitation override. The grant does not change the plan or Stripe. Group and clinics with no entitlement row stay open. UI copy says “team members”, not seats.
 
+## Registration intent
+
+`ClinicRegistrationIntent` stores a prospective owner's registration before any `User`, `Clinic`, membership, entitlement, or Stripe customer exists. There is no public registration route, form, verification email, or marketing CTA in this phase. Login, invitation, and password reset are unchanged. Auth.js `VerificationToken` and `AccountToken` are not reused: a registration intent has no user id yet.
+
+A live intent is unconsumed and unrevoked. The partial unique index is one live row per normalised email. It does not use `now()`. Expiry is 24 hours and is enforced in `lib/auth/registration-intent-service.ts`. Reissuing for the same new email revokes the previous token and redacts its password hash to the public dummy scrypt hash. Existing users, pending invitations, operator emails, and outstanding email-change claims return the same generic accepted result and do not receive a token.
+
+The proposed tenant slug is validated with the existing reserved, demo, and retired-slug rules, then rechecked under `tenant-slug:{slug}` at consume time. The intent does not reserve the slug. A collision leaves the intent unconsumed so a later call can point it at another slug. `consumeRegistrationIntent` runs the caller-supplied provisioning callback in the same transaction and sets `consumedAt` only after that callback returns. A thrown callback rolls the consume back.
+
+Migration `20261119120000_add_clinic_registration_intent` is additive and is not applied to production from this change.
+
 ## Not yet implemented
 
+- public registration route, verification email, and marketing signup CTA
 - clinic STAFF inviting users
 - clinic ADMIN resend, cancel, role change, and remove (operator Team only)
 - last-admin protection (revisit when clinic-admin Team self-service ships; operator retains platform control)

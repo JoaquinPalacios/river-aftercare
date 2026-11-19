@@ -295,6 +295,36 @@ model AccountToken {
   @@index([invitedByUserId])
 }
 
+/// Prospective clinic registration before any User, Clinic, membership, or
+/// entitlement exists. A live row is unconsumed and unrevoked. Expiry is
+/// enforced by the service. The one-live-row-per-email index is in the
+/// migration because Prisma cannot express it, and that predicate does not
+/// use now(). The proposed slug is not reserved. Raw tokens are never stored.
+/// passwordHash is redacted to the public dummy scrypt hash when the row is
+/// revoked, expired, or consumed.
+model ClinicRegistrationIntent {
+  id                         String            @id @default(cuid())
+  email                      String
+  ownerName                  String
+  passwordHash               String
+  practiceName               String
+  slug                       String
+  serviceCategories          ServiceCategory[]
+  commercialPlan             CommercialPlan
+  billingInterval            BillingInterval
+  termsVersion               String
+  privacyVersionAcknowledged String
+  tokenHash                  String            @unique
+  expiresAt                  DateTime
+  consumedAt                 DateTime?
+  revokedAt                  DateTime?
+  createdAt                  DateTime          @default(now())
+
+  @@index([email])
+  @@index([slug])
+  @@index([expiresAt])
+}
+
 /// Patient-facing practice chrome. Colour, radius, terminology, typeface, and theme-policy fields are validated and mapped to semantic tokens. Never add arbitrary CSS injection fields (customCss, stylesheet, headerHtml).
 model ClinicProfile {
   clinicId                 String                       @id
