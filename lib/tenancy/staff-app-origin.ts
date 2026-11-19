@@ -5,6 +5,7 @@ import { getRootDomain } from "@/lib/tenancy/root-domain";
 export const PASSWORD_RESET_PAGE_PATH = "/reset-password";
 export const ACCEPT_INVITATION_PAGE_PATH = "/accept-invitation";
 export const CONFIRM_EMAIL_CHANGE_PAGE_PATH = "/confirm-email-change";
+export const REGISTRATION_VERIFY_PAGE_PATH = "/verify-registration";
 
 /** `pnpm dev` listens here. Playwright overrides it via `CARE_GUIDE_METADATA_BASE`. */
 const LOCAL_DEVELOPMENT_PORT = "3000";
@@ -113,6 +114,17 @@ export function buildInvitationUrl(
   env: NodeJS.ProcessEnv = process.env
 ): string {
   return buildStaffFragmentTokenUrl(ACCEPT_INVITATION_PAGE_PATH, rawToken, env);
+}
+
+export function buildRegistrationVerificationUrl(
+  rawToken: string,
+  env: NodeJS.ProcessEnv = process.env
+): string {
+  return buildStaffFragmentTokenUrl(
+    REGISTRATION_VERIFY_PAGE_PATH,
+    rawToken,
+    env
+  );
 }
 
 export function buildEmailChangeUrl(

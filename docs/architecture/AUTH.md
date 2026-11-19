@@ -379,7 +379,7 @@ A clinic administrator or a platform operator at the effective allowance cannot 
 
 ## Registration intent
 
-`ClinicRegistrationIntent` stores a prospective owner's registration before any `User`, `Clinic`, membership, entitlement, or Stripe customer exists. There is no public registration route, form, verification email, or marketing CTA in this phase. Login, invitation, and password reset are unchanged. Auth.js `VerificationToken` and `AccountToken` are not reused: a registration intent has no user id yet.
+`ClinicRegistrationIntent` stores a prospective owner's registration before any `User`, `Clinic`, membership, entitlement, or Stripe customer exists. Login, invitation, and password reset are unchanged. Auth.js `VerificationToken` and `AccountToken` are not reused: a registration intent has no user id yet.
 
 A live intent is unconsumed and unrevoked. The partial unique index is one live row per normalised email. It does not use `now()`. Expiry is 24 hours and is enforced in `lib/auth/registration-intent-service.ts`. Reissuing for the same new email revokes the previous token and redacts its password hash to the public dummy scrypt hash. Existing users, pending invitations, operator emails, and outstanding email-change claims return the same generic accepted result and do not receive a token.
 
@@ -387,9 +387,11 @@ The proposed tenant slug is validated with the existing reserved, demo, and reti
 
 Migration `20261119120000_add_clinic_registration_intent` is additive and is not applied to production from this change.
 
+`/register` and `/verify-registration` are staff-host pages. They stay off unless `REGISTRATION_ENABLED=true`. The variable is server-only and defaults to off. Marketing pages do not link to registration. The registration and replacement forms use the same Turnstile check, honeypot, staff host, and Origin rules as the other auth mutations. The HTTP response is the generic accepted message and never includes the raw token. Verification validates the intent and does not set `consumedAt`. A replacement email rotates the token after the same 10-minute cooldown as password reset, and a failed send restores the previous token. The onboarding-help link opens the public contact form with a fixed stage note and does not send the password, token, or payment details.
+
 ## Not yet implemented
 
-- public registration route, verification email, and marketing signup CTA
+- marketing signup CTA, and clinic provisioning after email verification
 - clinic STAFF inviting users
 - clinic ADMIN resend, cancel, role change, and remove (operator Team only)
 - last-admin protection (revisit when clinic-admin Team self-service ships; operator retains platform control)
