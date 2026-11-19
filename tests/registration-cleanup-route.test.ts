@@ -23,7 +23,10 @@ describe("registration intent cleanup route", () => {
     process.env.CARE_GUIDE_ROOT_DOMAIN = "localhost";
     process.env.CRON_SECRET = "cron-test-secret";
     runRegistrationIntentCleanup.mockReset();
-    runRegistrationIntentCleanup.mockResolvedValue({ revoked: 2 });
+    runRegistrationIntentCleanup.mockResolvedValue({
+      revoked: 2,
+      backlog: false,
+    });
   });
 
   it("rejects a missing secret, a patient host, and reports a failed sweep", async () => {
@@ -63,7 +66,11 @@ describe("registration intent cleanup route", () => {
       })
     );
     expect(marketing.status).toBe(200);
-    await expect(marketing.json()).resolves.toEqual({ ok: true, revoked: 2 });
+    await expect(marketing.json()).resolves.toEqual({
+      ok: true,
+      revoked: 2,
+      backlog: false,
+    });
 
     const staff = await GET(
       request({

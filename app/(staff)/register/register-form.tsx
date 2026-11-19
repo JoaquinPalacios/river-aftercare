@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 
 import { ContactTurnstile } from "@/app/(marketing)/components/contact-turnstile";
+import { REGISTRATION_TURNSTILE_ACTION } from "@/lib/auth/registration-turnstile";
 import { PasswordVisibilityField } from "@/app/(staff)/components/password-visibility-field";
 import { ServiceCategoryFields } from "@/app/(staff)/(clinic-portal)/practice/sites/service-category-fields";
 import {
@@ -505,7 +506,11 @@ export function RegisterForm({
         />
       </div>
 
-      <ContactTurnstile siteKey={turnstileSiteKey} resetSignal={0} />
+      <ContactTurnstile
+        siteKey={turnstileSiteKey}
+        resetSignal={0}
+        action={REGISTRATION_TURNSTILE_ACTION.create}
+      />
 
       {formError ? (
         <div className="staffFormAlert" role="alert">

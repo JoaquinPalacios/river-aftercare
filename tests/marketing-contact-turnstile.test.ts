@@ -79,10 +79,10 @@ describe("verifyTurnstileToken", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it("always calls Siteverify in Vercel production, including dummy secrets", async () => {
+  it("fails closed in Vercel production when the secret is a Cloudflare dummy", async () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ success: true }),
+      json: async () => ({ success: true, hostname: "app.example.test" }),
     });
     const result = await verifyTurnstileToken({
       token: "prod-token",
@@ -90,13 +90,71 @@ describe("verifyTurnstileToken", () => {
       fetchImpl: fetchImpl as unknown as typeof fetch,
       env: { VERCEL_ENV: "production" },
     });
-    expect(result).toEqual({ ok: true });
+    expect(result).toEqual({ ok: false, reason: "unavailable" });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("calls Siteverify for a real production secret and checks hostname and action", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        hostname: "app.riveraftercare.com.au",
+        action: "registration",
+      }),
+    });
+    const accepted = await verifyTurnstileToken({
+      token: "prod-token",
+      secret: "live-secret",
+      expectedHostname: "app.riveraftercare.com.au",
+      expectedAction: "registration",
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      env: { VERCEL_ENV: "production" },
+    });
+    expect(accepted).toEqual({ ok: true });
     expect(fetchImpl).toHaveBeenCalledOnce();
     const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(url).toBe(TURNSTILE_SITEVERIFY_URL);
-    expect(init.method).toBe("POST");
     expect(String(init.body)).toContain("response=prod-token");
-    expect(String(init.body)).not.toContain("TURNSTILE_SECRET_KEY");
+    expect(String(init.body)).not.toContain("live-secret-in-logs");
+
+    fetchImpl.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        hostname: "evil.example",
+        action: "registration",
+      }),
+    });
+    await expect(
+      verifyTurnstileToken({
+        token: "prod-token",
+        secret: "live-secret",
+        expectedHostname: "app.riveraftercare.com.au",
+        expectedAction: "registration",
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        env: { VERCEL_ENV: "production" },
+      })
+    ).resolves.toEqual({ ok: false, reason: "failed" });
+
+    fetchImpl.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        hostname: "app.riveraftercare.com.au",
+        action: "contact",
+      }),
+    });
+    await expect(
+      verifyTurnstileToken({
+        token: "prod-token",
+        secret: "live-secret",
+        expectedHostname: "app.riveraftercare.com.au",
+        expectedAction: "registration",
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        env: { VERCEL_ENV: "production" },
+      })
+    ).resolves.toEqual({ ok: false, reason: "failed" });
   });
 
   it("treats a successful Siteverify payload as accepted", async () => {
@@ -200,10 +258,16 @@ describe("Turnstile configuration", () => {
     restore("NEXT_PUBLIC_TURNSTILE_SITE_KEY", undefined);
   });
 
-  it("fails closed in Vercel production when the secret is missing", () => {
+  it("fails closed in Vercel production when the secret is missing or a dummy", () => {
     expect(
       getTurnstileSecretKey({
         VERCEL_ENV: "production",
+      })
+    ).toBeNull();
+    expect(
+      getTurnstileSecretKey({
+        VERCEL_ENV: "production",
+        TURNSTILE_SECRET_KEY: TURNSTILE_DUMMY_PASS_SECRET,
       })
     ).toBeNull();
   });

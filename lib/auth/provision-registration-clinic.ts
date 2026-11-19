@@ -7,8 +7,6 @@ import {
   Prisma,
 } from "@prisma/client";
 
-import { hashAccountToken } from "@/lib/auth/account-token";
-import { isWellFormedRawAccountToken } from "@/lib/auth/account-token-format";
 import { logRegistrationLifecycle } from "@/lib/auth/registration-lifecycle-log";
 import {
   REGISTRATION_SLUG_TAKEN_MESSAGE,
@@ -28,10 +26,6 @@ import { BILLING_SETUP_PATH } from "@/lib/billing/activation-gate";
 import { insertLegalAcceptance } from "@/lib/billing/legal-acceptance";
 import { insertAssistedClinicGraph } from "@/lib/clinics/assisted-clinic-graph";
 import { ClinicPortalError } from "@/lib/clinic-portal/errors";
-import { getPrisma } from "@/lib/prisma";
-
-/** A lost response can open the same link again for this long. */
-export const REGISTRATION_PROVISION_RETRY_MS = 10 * 60 * 1000;
 
 export class RegistrationProvisionError extends Error {
   constructor(
@@ -59,6 +53,7 @@ export type RegistrationProvisionOutcome =
       slug: string;
     }
   | { status: "expired" }
+  | { status: "sign_in" }
   | { status: "invalid" }
   | { status: "retry" };
 
@@ -74,8 +69,8 @@ type ProvisionedClinic = {
  * Consume a verification token and create the clinic, owner, membership,
  * catalogue offer, and registration legal audit row in that same transaction.
  * The session is created only after the transaction commits. Stripe is not
- * called. An already-consumed token does not create a second clinic. For a
- * short retry window it can sign in the owner who just provisioned.
+ * called. An already-consumed token does not create a session. The owner
+ * signs in with the password they chose.
  */
 export async function provisionRegisteredClinic(input: {
   rawToken: string;
@@ -93,11 +88,7 @@ export async function provisionRegisteredClinic(input: {
       return finishProvisionedClinic(consumed.intentId, consumed.value);
     }
     if (consumed.reason === "consumed") {
-      return (
-        (await resumeConsumedRegistration(input.rawToken, now)) ?? {
-          status: "invalid",
-        }
-      );
+      return { status: "sign_in" };
     }
     if (consumed.reason === "expired") {
       return { status: "expired" };
@@ -304,74 +295,4 @@ async function liveRegistrationSlug(
 ): Promise<string> {
   const validated = await validateRegistrationIntent({ rawToken, now });
   return validated.ok ? validated.intent.slug : "";
-}
-
-async function resumeConsumedRegistration(
-  rawToken: string,
-  now: Date
-): Promise<RegistrationProvisionOutcome | null> {
-  if (!isWellFormedRawAccountToken(rawToken)) {
-    return null;
-  }
-  const row = await getPrisma().clinicRegistrationIntent.findUnique({
-    where: { tokenHash: hashAccountToken(rawToken) },
-    select: {
-      id: true,
-      email: true,
-      slug: true,
-      consumedAt: true,
-      revokedAt: true,
-      commercialPlan: true,
-      billingInterval: true,
-    },
-  });
-  if (!row?.consumedAt || row.revokedAt) {
-    return null;
-  }
-  if (
-    now.getTime() - row.consumedAt.getTime() >
-    REGISTRATION_PROVISION_RETRY_MS
-  ) {
-    return { status: "invalid" };
-  }
-  if (row.commercialPlan !== "ESSENTIAL" && row.commercialPlan !== "PRACTICE") {
-    return { status: "invalid" };
-  }
-  if (row.billingInterval !== "MONTHLY" && row.billingInterval !== "YEARLY") {
-    return { status: "invalid" };
-  }
-
-  const user = await getPrisma().user.findUnique({
-    where: { email: row.email },
-    select: {
-      id: true,
-      emailVerified: true,
-      platformRole: true,
-      memberships: {
-        where: { active: true },
-        select: {
-          role: true,
-          clinic: { select: { id: true, slug: true } },
-        },
-      },
-    },
-  });
-  const membership = user?.memberships[0];
-  if (
-    !user?.emailVerified ||
-    user.platformRole !== PlatformRole.NONE ||
-    user.memberships.length !== 1 ||
-    membership?.role !== ClinicMembershipRole.ADMIN ||
-    membership.clinic.slug !== row.slug
-  ) {
-    return { status: "invalid" };
-  }
-
-  return finishProvisionedClinic(row.id, {
-    intentId: row.id,
-    clinicId: membership.clinic.id,
-    userId: user.id,
-    commercialPlan: row.commercialPlan,
-    billingInterval: row.billingInterval,
-  });
 }

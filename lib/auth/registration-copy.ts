@@ -18,6 +18,12 @@ export const REGISTRATION_SLUG_RECOVERY_MESSAGE =
 export const REGISTRATION_PROVISION_RETRY_MESSAGE =
   "We couldn't create the clinic just now. Open the verification link again.";
 
+export const REGISTRATION_SIGN_IN_MESSAGE =
+  "Your clinic is ready. Sign in to continue billing setup.";
+
+export const REGISTRATION_DISPOSABLE_EMAIL_MESSAGE =
+  "Use a permanent clinic email address. Temporary inbox addresses can't register.";
+
 export const REGISTRATION_VERIFY_EXPIRED_MESSAGE =
   "This verification link has expired. Request another email if you still want to register.";
 

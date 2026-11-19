@@ -56,6 +56,12 @@ function applied(result: ReturnType<typeof projectEntitlement>) {
 }
 
 describe("catalogue trial projection", () => {
+  it("does not open a trial when the subscription has no payment method", () => {
+    const entitlement = applied(project({ paymentMethodPresent: false }));
+    expect(entitlement.entitlementStatus).toBe(EntitlementStatus.PENDING);
+    expect(entitlement.billingStatus).toBe(BillingStatus.PAYMENT_PENDING);
+  });
+
   it("opens monthly and annual trials without a paid-through date", () => {
     for (const interval of ["MONTHLY", "YEARLY"] as const) {
       const entitlement = applied(

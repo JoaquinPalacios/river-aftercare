@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { ContactTurnstile } from "@/app/(marketing)/components/contact-turnstile";
 import { OnboardingAssistance } from "@/app/(staff)/components/onboarding-assistance";
@@ -10,23 +11,31 @@ import {
   REGISTRATION_INTENT_GENERIC_MESSAGE,
   REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
   REGISTRATION_PROVISION_RETRY_MESSAGE,
+  REGISTRATION_SIGN_IN_MESSAGE,
   REGISTRATION_SLUG_RECOVERY_MESSAGE,
+  REGISTRATION_VERIFICATION_FAILED_MESSAGE,
   REGISTRATION_VERIFY_EXPIRED_MESSAGE,
   registrationSlugPolicyMessage,
 } from "@/lib/auth/registration-copy";
+import { REGISTRATION_TURNSTILE_ACTION } from "@/lib/auth/registration-turnstile";
 import { CONTACT_HONEYPOT_FIELD } from "@/lib/marketing/contact-fields";
 
 const BILLING_SETUP_PATH = "/account/billing/setup";
 
 // Survives a development remount after the fragment has been removed.
 let verificationTokenMemory = "";
+let provisionFlight: {
+  key: string;
+  promise: Promise<ProvisionBody | null>;
+} | null = null;
 
 type VerifyState =
   | { status: "checking" }
   | { status: "slug"; message: string; slug: string }
   | { status: "expired"; message: string }
   | { status: "invalid"; message: string }
-  | { status: "retry"; message: string };
+  | { status: "retry"; message: string }
+  | { status: "sign_in"; message: string };
 
 type ProvisionBody = {
   status?: string;
@@ -56,7 +65,16 @@ export function VerifyRegistrationPanel({
   const submittingRef = useRef(false);
   const tokenRef = useRef("");
   const formRef = useRef<HTMLFormElement>(null);
+  const [challengeToken, setChallengeToken] = useState("");
+  const [slugChallengeToken, setSlugChallengeToken] = useState("");
+  const [slugReset, setSlugReset] = useState(0);
   const pending = isSubmitting || isPending;
+  const rememberChallenge = useCallback((token: string) => {
+    setChallengeToken(token);
+  }, []);
+  const rememberSlugChallenge = useCallback((token: string) => {
+    setSlugChallengeToken(token);
+  }, []);
 
   useEffect(() => {
     const token =
@@ -71,36 +89,45 @@ export function VerifyRegistrationPanel({
     verificationTokenMemory = token;
     tokenRef.current = token;
     window.history.replaceState(null, "", "/verify-registration");
+  }, []);
 
-    const controller = new AbortController();
-    void postProvision(
-      "/api/auth/register/verify",
-      { token },
-      controller.signal
-    )
+  useEffect(() => {
+    const token = tokenRef.current;
+    if (!token || !challengeToken || state.status !== "checking") {
+      return;
+    }
+    let cancelled = false;
+    void ensureProvision(token, challengeToken)
       .then((data) => {
+        if (cancelled) {
+          return;
+        }
         if (!data) {
+          setState({
+            status: "retry",
+            message: REGISTRATION_PROVISION_RETRY_MESSAGE,
+          });
           return;
         }
         applyProvisionResult(data, setState, setSlug);
       })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
+      .catch(() => {
+        if (!cancelled) {
+          setState({
+            status: "retry",
+            message: REGISTRATION_PROVISION_RETRY_MESSAGE,
+          });
         }
-        setState({
-          status: "retry",
-          message: REGISTRATION_PROVISION_RETRY_MESSAGE,
-        });
       });
-
-    return () => controller.abort();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [challengeToken, state.status]);
 
   function handleSlug(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = tokenRef.current || verificationTokenMemory;
-    if (!token || submittingRef.current) {
+    if (!token || !slugChallengeToken || submittingRef.current) {
       return;
     }
     const nextSlug = slug.trim().toLowerCase();
@@ -117,12 +144,21 @@ export function VerifyRegistrationPanel({
         const data = await postProvision("/api/auth/register/slug", {
           token,
           slug: nextSlug,
+          turnstileToken: slugChallengeToken,
         });
         if (!data) {
           setState({
             status: "retry",
             message: REGISTRATION_PROVISION_RETRY_MESSAGE,
           });
+          return;
+        }
+        if (data.status === "verification_failed") {
+          setFormError(
+            data.message ?? REGISTRATION_VERIFICATION_FAILED_MESSAGE
+          );
+          setSlugChallengeToken("");
+          setSlugReset((value) => value + 1);
           return;
         }
         applyProvisionResult(data, setState, setSlug);
@@ -198,9 +234,19 @@ export function VerifyRegistrationPanel({
   return (
     <div className="flex flex-col gap-5">
       {state.status === "checking" ? (
-        <p className="text-sm text-staff-muted" role="status">
-          Creating your clinic.
-        </p>
+        <div className="flex flex-col gap-4">
+          <ContactTurnstile
+            siteKey={turnstileSiteKey}
+            resetSignal={0}
+            action={REGISTRATION_TURNSTILE_ACTION.verify}
+            onToken={rememberChallenge}
+          />
+          <p className="text-sm text-staff-muted" role="status">
+            {challengeToken
+              ? "Creating your clinic."
+              : "Confirm this browser, then the clinic is created."}
+          </p>
+        </div>
       ) : null}
 
       {state.status === "slug" ? (
@@ -241,14 +287,34 @@ export function VerifyRegistrationPanel({
               </p>
             )}
           </div>
+          <ContactTurnstile
+            siteKey={turnstileSiteKey}
+            resetSignal={slugReset}
+            action={REGISTRATION_TURNSTILE_ACTION.slug}
+            onToken={rememberSlugChallenge}
+          />
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || !slugChallengeToken}
             className="staffBtn staffBtnPrimary staffLoginSubmit h-11"
           >
             {pending ? "Creating clinic…" : "Use this address"}
           </button>
         </form>
+      ) : null}
+
+      {state.status === "sign_in" ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm leading-6 text-staff-ink" role="status">
+            {state.message}
+          </p>
+          <Link
+            href="/login"
+            className="staffBtn staffBtnPrimary staffLoginSubmit h-11"
+          >
+            Sign in
+          </Link>
+        </div>
       ) : null}
 
       {state.status === "retry" ? (
@@ -312,7 +378,11 @@ export function VerifyRegistrationPanel({
               autoComplete="off"
             />
           </div>
-          <ContactTurnstile siteKey={turnstileSiteKey} resetSignal={0} />
+          <ContactTurnstile
+            siteKey={turnstileSiteKey}
+            resetSignal={0}
+            action={REGISTRATION_TURNSTILE_ACTION.resend}
+          />
           {formError ? (
             <div className="staffFormAlert" role="alert">
               {formError}
@@ -338,9 +408,22 @@ export function VerifyRegistrationPanel({
   );
 }
 
+function ensureProvision(token: string, turnstileToken: string) {
+  const key = `${token}:${turnstileToken}`;
+  if (provisionFlight?.key === key) {
+    return provisionFlight.promise;
+  }
+  const promise = postProvision("/api/auth/register/verify", {
+    token,
+    turnstileToken,
+  });
+  provisionFlight = { key, promise };
+  return promise;
+}
+
 async function postProvision(
   path: string,
-  body: { token: string; slug?: string },
+  body: { token: string; slug?: string; turnstileToken: string },
   signal?: AbortSignal
 ): Promise<ProvisionBody | null> {
   const response = await fetch(path, {
@@ -361,6 +444,19 @@ function applyProvisionResult(
   setState: (state: VerifyState) => void,
   setSlug: (slug: string) => void
 ) {
+  if (data.status === "sign_in") {
+    verificationTokenMemory = "";
+    window.location.assign("/login");
+    return;
+  }
+  if (data.status === "verification_failed") {
+    provisionFlight = null;
+    setState({
+      status: "retry",
+      message: data.message ?? REGISTRATION_VERIFICATION_FAILED_MESSAGE,
+    });
+    return;
+  }
   if (data.status === "provisioned" && data.redirectTo === BILLING_SETUP_PATH) {
     verificationTokenMemory = "";
     window.location.assign(BILLING_SETUP_PATH);

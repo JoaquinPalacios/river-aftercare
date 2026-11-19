@@ -31,7 +31,11 @@ export async function GET(request: Request) {
 
   try {
     const result = await runRegistrationIntentCleanup();
-    return NextResponse.json({ ok: true, revoked: result.revoked });
+    return NextResponse.json({
+      ok: true,
+      revoked: result.revoked,
+      backlog: result.backlog,
+    });
   } catch (error) {
     logRegistrationLifecycle({
       event: "registration_intent_expiry_failed",

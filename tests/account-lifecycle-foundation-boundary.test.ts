@@ -68,6 +68,8 @@ const CLIENT_FILES = [
   "app/(staff)/verify-registration/verify-registration-panel.tsx",
   "app/(staff)/components/onboarding-assistance.tsx",
   "lib/auth/registration-copy.ts",
+  "lib/auth/registration-email-policy.ts",
+  "lib/auth/registration-turnstile.ts",
   "lib/support/onboarding-assistance.ts",
   "app/(staff)/reset-password/reset-password-form.tsx",
   "app/(staff)/accept-invitation/accept-invitation-form.tsx",

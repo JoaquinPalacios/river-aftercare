@@ -32,7 +32,6 @@ import { loadClinicAccess } from "@/lib/auth/clinic-authorization";
 import {
   provisionRegisteredClinic,
   recoverAndProvisionRegisteredClinic,
-  REGISTRATION_PROVISION_RETRY_MS,
 } from "@/lib/auth/provision-registration-clinic";
 import {
   createOrReplaceRegistrationIntent,
@@ -342,41 +341,32 @@ describe("registration clinic provisioning", () => {
       provisionRegisteredClinic({ rawToken: created.rawToken, now }),
       provisionRegisteredClinic({ rawToken: created.rawToken, now }),
     ]);
-    expect(first.status).toBe("provisioned");
-    expect(second.status).toBe("provisioned");
-    if (first.status !== "provisioned" || second.status !== "provisioned") {
-      throw new Error("expected both verifications to finish");
+    const statuses = [first.status, second.status].sort();
+    expect(statuses).toEqual(["provisioned", "sign_in"]);
+    const provisioned = first.status === "provisioned" ? first : second;
+    if (provisioned.status !== "provisioned") {
+      throw new Error("expected one verification to finish");
     }
-    expect(first.clinicId).toBe(second.clinicId);
     expect(
       await prisma.clinic.count({ where: { slug: "regprov-repeat" } })
     ).toBe(1);
     expect(
       await prisma.clinicMembership.count({
-        where: { clinicId: first.clinicId },
+        where: { clinicId: provisioned.clinicId },
       })
     ).toBe(1);
     expect(
-      await prisma.session.count({ where: { userId: first.userId } })
-    ).toBe(2);
+      await prisma.session.count({ where: { userId: provisioned.userId } })
+    ).toBe(1);
 
-    const aged = await prisma.clinicRegistrationIntent.update({
-      where: { id: created.intentId },
-      data: {
-        consumedAt: new Date(
-          now.getTime() - REGISTRATION_PROVISION_RETRY_MS - 1
-        ),
-      },
-    });
-    const stale = await provisionRegisteredClinic({
+    const replay = await provisionRegisteredClinic({
       rawToken: created.rawToken,
-      now,
+      now: new Date(now.getTime() + 60 * 60 * 1000),
     });
-    expect(stale.status).toBe("invalid");
-    expect(aged.consumedAt).not.toBeNull();
+    expect(replay.status).toBe("sign_in");
     expect(
-      await prisma.session.count({ where: { userId: first.userId } })
-    ).toBe(2);
+      await prisma.session.count({ where: { userId: provisioned.userId } })
+    ).toBe(1);
   });
 
   it("does not provision when the email is already a user", async () => {

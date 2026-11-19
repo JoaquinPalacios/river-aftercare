@@ -28,6 +28,18 @@ import { POST as verify } from "@/app/api/auth/register/verify/route";
 import { REGISTRATION_INTENT_GENERIC_MESSAGE } from "@/lib/auth/registration-copy";
 import { TURNSTILE_DUMMY_PASS_TOKEN } from "@/lib/marketing/contact-turnstile-public";
 
+function jsonRequest(path: string, body: unknown, host = "app.localhost:3000") {
+  return new Request(`http://${host}${path}`, {
+    method: "POST",
+    headers: {
+      host,
+      origin: `http://${host}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 function formRequest(
   path: string,
   fields: Record<string, string>,
@@ -82,6 +94,15 @@ describe("registration routes", () => {
     expect(disabled.status).toBe(404);
     expect(requestRegistrationVerification).not.toHaveBeenCalled();
 
+    const verifyDisabled = await verify(
+      jsonRequest("/api/auth/register/verify", {
+        token: "raw-token-value",
+        turnstileToken: TURNSTILE_DUMMY_PASS_TOKEN,
+      })
+    );
+    expect(verifyDisabled.status).toBe(404);
+    expect(provisionRegisteredClinic).not.toHaveBeenCalled();
+
     process.env.REGISTRATION_ENABLED = "true";
     const marketing = await register(
       formRequest("/api/auth/register", validFields, "localhost:3000")
@@ -106,6 +127,15 @@ describe("registration routes", () => {
     );
     expect(unverified.status).toBe(400);
     expect(requestRegistrationVerification).not.toHaveBeenCalled();
+
+    const direct = await verify(
+      jsonRequest("/api/auth/register/verify", { token: "raw-token-value" })
+    );
+    expect(direct.status).toBe(400);
+    await expect(direct.json()).resolves.toMatchObject({
+      status: "verification_failed",
+    });
+    expect(provisionRegisteredClinic).not.toHaveBeenCalled();
   });
 
   it("returns the generic message and no token", async () => {
@@ -141,7 +171,10 @@ describe("registration routes", () => {
           origin: "http://app.localhost:3000",
           "content-type": "application/json",
         },
-        body: JSON.stringify({ token: "raw-token-value" }),
+        body: JSON.stringify({
+          token: "raw-token-value",
+          turnstileToken: TURNSTILE_DUMMY_PASS_TOKEN,
+        }),
       })
     );
     const validBody = await valid.json();
@@ -167,7 +200,10 @@ describe("registration routes", () => {
           origin: "http://app.localhost:3000",
           "content-type": "application/json",
         },
-        body: JSON.stringify({ token: "expired-token" }),
+        body: JSON.stringify({
+          token: "expired-token",
+          turnstileToken: TURNSTILE_DUMMY_PASS_TOKEN,
+        }),
       })
     );
     await expect(expired.json()).resolves.toMatchObject({ status: "expired" });
@@ -188,7 +224,11 @@ describe("registration routes", () => {
           origin: "http://app.localhost:3000",
           "content-type": "application/json",
         },
-        body: JSON.stringify({ token: "raw-token-value", slug: "taken-slug" }),
+        body: JSON.stringify({
+          token: "raw-token-value",
+          slug: "taken-slug",
+          turnstileToken: TURNSTILE_DUMMY_PASS_TOKEN,
+        }),
       })
     );
     await expect(response.json()).resolves.toEqual({

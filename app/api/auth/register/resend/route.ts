@@ -7,6 +7,7 @@ import {
   registrationHoneypotTripped,
   registrationTurnstileDenial,
 } from "@/lib/auth/registration-http";
+import { REGISTRATION_TURNSTILE_ACTION } from "@/lib/auth/registration-turnstile";
 import { requestRegistrationReplacement } from "@/lib/auth/request-registration";
 
 export async function POST(request: Request) {
@@ -29,7 +30,11 @@ export async function POST(request: Request) {
     return registrationGenericSuccess();
   }
 
-  const turnstile = await registrationTurnstileDenial(request, formData);
+  const turnstile = await registrationTurnstileDenial(
+    request,
+    formData,
+    REGISTRATION_TURNSTILE_ACTION.resend
+  );
   if (turnstile) {
     return turnstile;
   }

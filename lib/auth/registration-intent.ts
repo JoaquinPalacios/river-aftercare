@@ -9,6 +9,7 @@ import {
   AccountTokenError,
   normalizeAccountTokenEmail,
 } from "@/lib/auth/account-token-service";
+import { disposableRegistrationEmailMessage } from "@/lib/auth/registration-email-policy";
 import { newPasswordPolicyError } from "@/lib/auth/password-policy";
 import {
   SERVICE_CATEGORIES,
@@ -230,6 +231,14 @@ export function validateRegistrationInput(input: {
       };
     }
     throw error;
+  }
+
+  const disposableEmail = disposableRegistrationEmailMessage(email);
+  if (disposableEmail) {
+    return {
+      ok: false,
+      error: { status: "invalid", field: "email", message: disposableEmail },
+    };
   }
 
   const passwordError = newPasswordPolicyError(input.password);

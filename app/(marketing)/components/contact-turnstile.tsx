@@ -19,6 +19,7 @@ type TurnstileApi = {
       theme?: "auto" | "light" | "dark";
       size?: "normal" | "compact" | "flexible";
       appearance?: "always" | "execute" | "interaction-only";
+      action?: string;
       callback?: (token: string) => void;
       "expired-callback"?: () => void;
       "error-callback"?: () => void;
@@ -93,14 +94,21 @@ function loadTurnstileApi(): Promise<TurnstileApi> {
 export function ContactTurnstile({
   siteKey,
   resetSignal,
+  action,
+  onToken,
 }: {
   siteKey: string;
   resetSignal: number;
+  action?: string;
+  onToken?: (token: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!siteKey || isDummyPassTurnstileSiteKey(siteKey)) {
+      if (isDummyPassTurnstileSiteKey(siteKey)) {
+        onToken?.(TURNSTILE_DUMMY_PASS_TOKEN);
+      }
       return;
     }
 
@@ -119,6 +127,8 @@ export function ContactTurnstile({
           theme: "auto",
           size: "flexible",
           appearance: "always",
+          ...(action ? { action } : {}),
+          callback: (token) => onToken?.(token),
           "response-field": true,
           "response-field-name": CONTACT_TURNSTILE_FIELD,
         });
@@ -133,7 +143,7 @@ export function ContactTurnstile({
         api.remove(widgetId);
       }
     };
-  }, [siteKey, resetSignal]);
+  }, [action, onToken, siteKey, resetSignal]);
 
   if (!siteKey) {
     return null;

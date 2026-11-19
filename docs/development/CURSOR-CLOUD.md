@@ -36,7 +36,7 @@ Cursor checks out the repository itself. `.cursor/Dockerfile` does not `COPY` th
 
 ## Scheduled billing notices
 
-`vercel.json` schedules `GET /api/cron/billing-notices` daily at 21:00 UTC and `GET /api/cron/registration-intents` daily at 21:30 UTC. The Cloud VM does not start those jobs, and local `pnpm dev` does not either. `CRON_SECRET` is not required for Vitest, Playwright, or ordinary local development. Billing-notice tests use the memory mailer and do not call Resend. Registration cleanup tests revoke expired intent rows on the local database only. Do not set a production `CRON_SECRET` in this environment.
+`vercel.json` schedules `GET /api/cron/billing-notices` daily at 21:00 UTC and `GET /api/cron/registration-intents` daily at 21:30 UTC. The Cloud VM does not start those jobs, and local `pnpm dev` does not either. `CRON_SECRET` is not required for Vitest, Playwright, or ordinary local development. Billing-notice tests use the memory mailer and do not call Resend. Registration cleanup tests revoke expired intent rows on the local database only. One invocation redacts at most four batches and logs a backlog instead of looping. Do not set a production `CRON_SECRET` in this environment.
 
 ## Runtime requirements
 

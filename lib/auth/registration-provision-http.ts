@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import {
   REGISTRATION_INTENT_INVALID_LINK_MESSAGE,
   REGISTRATION_PROVISION_RETRY_MESSAGE,
+  REGISTRATION_SIGN_IN_MESSAGE,
   REGISTRATION_VERIFY_EXPIRED_MESSAGE,
 } from "@/lib/auth/registration-copy";
 import type { RegistrationProvisionOutcome } from "@/lib/auth/provision-registration-clinic";
@@ -40,6 +41,13 @@ export function registrationProvisionHttpResponse(
       status: "slug_unavailable",
       message: outcome.message,
       slug: outcome.slug,
+    });
+  }
+
+  if (outcome.status === "sign_in") {
+    return NextResponse.json({
+      status: "sign_in",
+      message: REGISTRATION_SIGN_IN_MESSAGE,
     });
   }
 

@@ -25,9 +25,20 @@ export type TurnstileVerifyReason =
 export type TurnstileVerifyResult =
   { ok: true } | { ok: false; reason: TurnstileVerifyReason };
 
+export function isDummyTurnstileSecret(secret: string): boolean {
+  return (
+    secret === TURNSTILE_DUMMY_PASS_SECRET ||
+    secret === TURNSTILE_DUMMY_FAIL_SECRET ||
+    secret === TURNSTILE_DUMMY_SPENT_SECRET
+  );
+}
+
 export function getTurnstileSecretKey(env: Env = process.env): string | null {
   const configured = env[TURNSTILE_SECRET_KEY_ENV]?.trim() ?? "";
   if (configured) {
+    if (isVercelProduction(env) && isDummyTurnstileSecret(configured)) {
+      return null;
+    }
     return configured;
   }
 
@@ -83,10 +94,20 @@ function codesFromPayload(payload: unknown): string[] {
   return codes.filter((code): code is string => typeof code === "string");
 }
 
+function payloadField(payload: unknown, name: string): string {
+  if (!payload || typeof payload !== "object") {
+    return "";
+  }
+  const value = (payload as Record<string, unknown>)[name];
+  return typeof value === "string" ? value : "";
+}
+
 export async function verifyTurnstileToken({
   token,
   secret,
   remoteIp,
+  expectedHostname,
+  expectedAction,
   fetchImpl = fetch,
   timeoutMs = TURNSTILE_VERIFY_TIMEOUT_MS,
   env = process.env,
@@ -94,11 +115,17 @@ export async function verifyTurnstileToken({
   token: string;
   secret: string | null;
   remoteIp?: string;
+  expectedHostname?: string;
+  expectedAction?: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
   env?: Env;
 }): Promise<TurnstileVerifyResult> {
   if (!secret) {
+    return { ok: false, reason: "unavailable" };
+  }
+
+  if (isVercelProduction(env) && isDummyTurnstileSecret(secret)) {
     return { ok: false, reason: "unavailable" };
   }
 
@@ -144,6 +171,18 @@ export async function verifyTurnstileToken({
       typeof payload === "object" &&
       (payload as { success?: unknown }).success === true
     ) {
+      if (
+        expectedHostname &&
+        payloadField(payload, "hostname") !== expectedHostname
+      ) {
+        return { ok: false, reason: "failed" };
+      }
+      if (
+        expectedAction &&
+        payloadField(payload, "action") !== expectedAction
+      ) {
+        return { ok: false, reason: "failed" };
+      }
       return { ok: true };
     }
 
