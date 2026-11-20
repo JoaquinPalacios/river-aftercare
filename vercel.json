@@ -1,14 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["syd1"],
-  "crons": [
-    {
-      "path": "/api/cron/billing-notices",
-      "schedule": "0 21 * * *"
-    },
-    {
+  "schedules": {
+    "registration-intents-cleanup": {
+      "schedule": "30 21 * * *",
+      "timezone": "UTC",
       "path": "/api/cron/registration-intents",
-      "schedule": "30 21 * * *"
+      "requestMethod": "GET"
     }
-  ]
+  }
 }

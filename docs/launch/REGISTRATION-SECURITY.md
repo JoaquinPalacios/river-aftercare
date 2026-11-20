@@ -18,7 +18,7 @@ Nothing in this document changes live Vercel Firewall rules or live Stripe setti
 - Clinic creation, the owner, the single ADMIN membership, the Essential or Practice offer, and token consumption commit together. Stripe is not called in that transaction.
 - Group, complimentary, negotiated, and promotional offers are not created on this path.
 - Checkout still requires a payment method. A trialing subscription with no default payment method stays pending. `checkout.session.completed` alone does not open the workspace. A prior Stripe subscription withholds another catalogue trial. If that history cannot be read, Checkout fails closed instead of granting the trial.
-- The cleanup cron requires the same bearer secret and host rule as billing notices. One run redacts at most 2,000 expired unused password hashes, in batches of 500, and does not delete rows. A saturated run logs `registration_intent_expiry_backlog`.
+- The cleanup schedule is the static Vercel Schedule `registration-intents-cleanup` (`GET /api/cron/registration-intents`, `30 21 * * *` UTC). It requires the same bearer secret and host rule as the billing-notice handler. Billing notices are not scheduled. One run redacts at most 2,000 expired unused password hashes, in batches of 500, and does not delete rows. A saturated run logs `registration_intent_expiry_backlog`.
 
 ## Recommended Vercel Firewall rules
 
@@ -58,7 +58,7 @@ Stripe Radar's basic rules are included with Stripe billing. Radar for Fraud Tea
 
 1. Apply migration `20261119180000_add_registration_legal_acceptance` with `pnpm prod:db:migrate --apply` on a trusted machine, then verify and redeploy that SHA.
 2. Confirm production `TURNSTILE_SECRET_KEY` and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` are the real Cloudflare keys, not the dummy keys.
-3. Confirm `CRON_SECRET` is set. The registration cleanup cron uses it.
+3. Confirm production `CRON_SECRET` is set. The registration cleanup schedule sends it as `Authorization: Bearer <CRON_SECRET>`. A missing secret makes the route return 401 and redact nothing.
 4. Add the Firewall rules above if Joaquín approves them.
 5. Confirm a sandbox Checkout for a self-registered Essential clinic and a Practice clinic still requests the 14-day trial only when Stripe subscription history is empty, and that a declined card leaves the entitlement pending.
 6. Only then set `REGISTRATION_ENABLED=true` and add marketing links.
