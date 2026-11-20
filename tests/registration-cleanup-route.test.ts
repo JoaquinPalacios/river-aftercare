@@ -58,7 +58,7 @@ describe("registration intent cleanup route", () => {
     expect(JSON.stringify(body)).not.toMatch(/password|token|email/i);
   });
 
-  it("accepts the bearer secret Vercel Schedules send on a path target", async () => {
+  it("accepts the bearer secret on the staff or marketing host", async () => {
     const scheduled = await GET(
       request({
         host: "localhost:3000",

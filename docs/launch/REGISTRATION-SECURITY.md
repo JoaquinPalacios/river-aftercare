@@ -18,7 +18,7 @@ Nothing in this document changes live Vercel Firewall rules or live Stripe setti
 - Clinic creation, the owner, the single ADMIN membership, the Essential or Practice offer, and token consumption commit together. Stripe is not called in that transaction.
 - Group, complimentary, negotiated, and promotional offers are not created on this path.
 - Checkout still requires a payment method. A trialing subscription with no default payment method stays pending. `checkout.session.completed` alone does not open the workspace. A prior Stripe subscription withholds another catalogue trial. If that history cannot be read, Checkout fails closed instead of granting the trial.
-- The cleanup schedule is the static Vercel Schedule `registration-intents-cleanup` (`GET /api/cron/registration-intents`, `30 21 * * *` UTC). It requires the same bearer secret and host rule as the billing-notice handler. Billing notices are not scheduled. One run redacts at most 2,000 expired unused password hashes, in batches of 500, and does not delete rows. A saturated run logs `registration_intent_expiry_backlog`.
+- The cleanup schedule is the private Vercel Schedule `registration-intents-cleanup` (`api/registration-intents-cleanup`, `30 21 * * *` UTC). Its only trigger is `schedule/v1beta`, so the function has no public URL. `pnpm build` writes that file by bundling `lib/schedules/registration-intents-cleanup.ts`. `GET /api/cron/registration-intents` remains and still requires the bearer secret and the staff or marketing host. Billing notices are not scheduled. One run redacts at most 2,000 expired unused password hashes, in batches of 500, and does not delete rows. A saturated run logs `registration_intent_expiry_backlog`.
 
 ## Recommended Vercel Firewall rules
 
