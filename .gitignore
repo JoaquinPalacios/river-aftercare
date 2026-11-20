@@ -45,6 +45,8 @@ yarn-error.log*
 
 # vercel
 .vercel
+# Private schedule bundle. `pnpm build` writes it for the Vercel Node builder.
+/api/registration-intents-cleanup.js
 
 # typescript
 *.tsbuildinfo
