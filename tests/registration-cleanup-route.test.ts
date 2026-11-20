@@ -58,6 +58,26 @@ describe("registration intent cleanup route", () => {
     expect(JSON.stringify(body)).not.toMatch(/password|token|email/i);
   });
 
+  it("accepts the bearer secret Vercel Schedules send on a path target", async () => {
+    const scheduled = await GET(
+      request({
+        host: "localhost:3000",
+        authorization: "Bearer cron-test-secret",
+        "user-agent": "vercel-cron/1.0",
+        "x-vercel-cron-schedule": "30 21 * * *",
+        "ce-type": "com.vercel.schedule.v1beta",
+        "ce-vssschedulename": "registration-intents-cleanup",
+      })
+    );
+    expect(scheduled.status).toBe(200);
+    await expect(scheduled.json()).resolves.toEqual({
+      ok: true,
+      revoked: 2,
+      backlog: false,
+    });
+    expect(runRegistrationIntentCleanup).toHaveBeenCalledTimes(1);
+  });
+
   it("returns the revoked count for an authorized marketing or staff host", async () => {
     const marketing = await GET(
       request({
