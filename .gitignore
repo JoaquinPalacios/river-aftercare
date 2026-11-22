@@ -45,6 +45,9 @@ yarn-error.log*
 
 # vercel
 .vercel
+# Private schedule bundle. `pnpm build` writes it for the Vercel Node builder.
+# The tracked entry `api/registration-intents-cleanup.js` must stay in Git.
+/lib/schedules/registration-intents-cleanup-bundle.js
 
 # typescript
 *.tsbuildinfo

@@ -13,9 +13,10 @@ export const dynamic = "force-dynamic";
 
 /**
  * Daily redaction of expired registration password hashes.
- * A failure returns 500 and deletes nothing. The next scheduled run retries.
- * The static Vercel Schedule `registration-intents-cleanup` calls this with GET.
- * Path schedules send `Authorization: Bearer <CRON_SECRET>` when that secret is set.
+ * A failure returns 500 and deletes nothing.
+ * The schedule `registration-intents-cleanup` does not call this route.
+ * This endpoint remains for an authorized staff or marketing host.
+ * It requires `Authorization: Bearer <CRON_SECRET>`.
  * Patient hosts are refused.
  */
 export async function GET(request: Request) {

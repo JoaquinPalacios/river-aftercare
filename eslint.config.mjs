@@ -46,6 +46,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "lib/schedules/registration-intents-cleanup-bundle.js",
     "**/*.d.ts",
     "test-results/**",
     "playwright-report/**",
