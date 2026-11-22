@@ -1,2 +1,2 @@
 pnpm-lock.yaml
-api/registration-intents-cleanup.js
+lib/schedules/registration-intents-cleanup-bundle.js

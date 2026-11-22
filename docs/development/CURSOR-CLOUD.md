@@ -159,7 +159,7 @@ pnpm build
 pnpm test:e2e
 ```
 
-`pnpm build` generates the Prisma client, lints, typechecks, runs `next build`, and bundles the private registration-intent schedule into `api/registration-intents-cleanup.js`. The production schema gate runs only when `VERCEL_ENV=production`, which Cloud startup rejects. Do not set `SKIP_PRODUCTION_SCHEMA_GATE`.
+`pnpm build` generates the Prisma client, lints, typechecks, runs `next build`, and bundles the private registration-intent schedule. Git tracks `api/registration-intents-cleanup.js`; the build writes `lib/schedules/registration-intents-cleanup-bundle.js` for that entry to require. The production schema gate runs only when `VERCEL_ENV=production`, which Cloud startup rejects. Do not set `SKIP_PRODUCTION_SCHEMA_GATE`.
 
 `pnpm test:e2e` uses `care_guide_e2e` and refuses `care_guide`. Playwright builds and starts its own server on port 4173. That build sets `CARE_GUIDE_METADATA_BASE=http://localhost:4173` and `CARE_GUIDE_E2E_BUILD=1`, so static marketing links match port 4173 and the output goes to `.next-e2e`.
 

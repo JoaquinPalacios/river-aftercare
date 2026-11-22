@@ -5,23 +5,27 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
- * The Vercel Node builder traces `api/*.js` without Next's bundler.
- * It does not resolve the `@/` path alias, and it does not select the
- * `react-server` export of `server-only` (that export is the empty module;
- * the default export throws). This bundle is the private schedule function
- * only. Node packages stay external so Prisma and `@vercel/schedules` are
- * traced as normal dependencies. `server-only` becomes an empty module here
- * and nowhere else.
+ * The tracked function entry is `api/registration-intents-cleanup.js`.
+ * Vercel matches that path in the Git upload, before this script runs.
+ * This bundle is the implementation that entry requires. It lives outside
+ * `api/` so it is not a second function. The Node builder does not resolve
+ * `@/` and does not select the empty `react-server` export of `server-only`
+ * (the default export throws). Node packages stay external. `server-only`
+ * becomes an empty module in this bundle only. CommonJS matches the
+ * Node builder, which loads this project as CommonJS.
  */
 await build({
   absWorkingDir: root,
   entryPoints: [
     path.join(root, "lib/schedules/registration-intents-cleanup.ts"),
   ],
-  outfile: path.join(root, "api/registration-intents-cleanup.js"),
+  outfile: path.join(
+    root,
+    "lib/schedules/registration-intents-cleanup-bundle.js"
+  ),
   bundle: true,
   platform: "node",
-  format: "esm",
+  format: "cjs",
   target: "node24",
   packages: "external",
   legalComments: "none",

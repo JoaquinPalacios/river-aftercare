@@ -4,7 +4,8 @@ import { runRegistrationIntentCleanup } from "@/lib/auth/registration-cleanup";
 
 /**
  * Private Vercel Schedule target for `registration-intents-cleanup`.
- * `pnpm build` bundles this file to `api/registration-intents-cleanup.js`.
+ * Git tracks `api/registration-intents-cleanup.js`, which requires the
+ * bundle `pnpm build` writes from this file.
  * `schedule/v1beta` is that function's only trigger, so it has no public URL.
  * `handleSchedule` awaits the callback. A throw leaves the run failed.
  * The log has the schedule name, execution id, revoked count, and backlog

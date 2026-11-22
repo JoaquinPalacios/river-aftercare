@@ -124,7 +124,29 @@ describe("Vercel Schedules configuration", () => {
     expect(scheduled).toContain("throw error");
     expect(bundleScript).toContain("empty-server-only");
     expect(bundleScript).toContain("sideEffects: false");
-    expect(bundleScript).toContain("api/registration-intents-cleanup.js");
+    expect(bundleScript).toContain(
+      "lib/schedules/registration-intents-cleanup-bundle.js"
+    );
+    const trackedEntry = readFileSync(
+      "api/registration-intents-cleanup.js",
+      "utf8"
+    );
+    expect(trackedEntry).toContain(
+      "../lib/schedules/registration-intents-cleanup-bundle.js"
+    );
+    expect(trackedEntry).not.toContain("@/");
+    expect(() =>
+      execFileSync("git", [
+        "check-ignore",
+        "-q",
+        "api/registration-intents-cleanup.js",
+      ])
+    ).toThrow();
+    execFileSync("git", [
+      "check-ignore",
+      "-q",
+      "lib/schedules/registration-intents-cleanup-bundle.js",
+    ]);
     expect(pkg.scripts?.build).toContain(
       "node scripts/bundle-registration-intent-schedule.mjs"
     );
@@ -144,10 +166,13 @@ describe("Vercel Schedules configuration", () => {
     execFileSync("node", ["scripts/bundle-registration-intent-schedule.mjs"], {
       stdio: "pipe",
     });
-    const bundled = readFileSync("api/registration-intents-cleanup.js", "utf8");
+    const bundled = readFileSync(
+      "lib/schedules/registration-intents-cleanup-bundle.js",
+      "utf8"
+    );
     expect(bundled).toContain("async function expireRegistrationIntents");
     expect(bundled).toContain("async function runRegistrationIntentCleanup");
-    expect(bundled).toContain("export {\n  POST\n}");
+    expect(bundled).toContain("POST: () => POST");
     expect(bundled).not.toContain("next/navigation");
     expect(bundled).not.toContain(
       "This module cannot be imported from a Client Component"
