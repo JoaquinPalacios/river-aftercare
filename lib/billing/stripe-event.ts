@@ -58,6 +58,18 @@ export type StripeProjectionSnapshot = {
   paymentMethodPresent?: boolean;
 };
 
+/**
+ * Stripe invoice amounts are integer cents. Anything else, including a
+ * missing field, a string, a fraction, or a negative value, is not evidence
+ * that a charge was collected.
+ */
+export function invoiceAmountPaidCents(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    return null;
+  }
+  return value;
+}
+
 function unixToDate(value: number | null | undefined): Date | null {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
     return null;
@@ -187,8 +199,7 @@ export function snapshotFromInvoice(
     invoiceIsPaid: paid,
     checkoutPaymentStatus: null,
     trialEndsAt: null,
-    invoiceAmountPaid:
-      typeof invoice.amount_paid === "number" ? invoice.amount_paid : null,
+    invoiceAmountPaid: invoiceAmountPaidCents(invoice.amount_paid),
     invoiceBillingReason:
       typeof invoice.billing_reason === "string"
         ? invoice.billing_reason

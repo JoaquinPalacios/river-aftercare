@@ -134,7 +134,59 @@ describe("Stripe identity and Basil event snapshots", () => {
       stripeSubscriptionId: "sub_1",
       stripePriceId: "price_test_practice_yearly",
       invoiceIsPaid: true,
+      invoiceAmountPaid: null,
     });
+  });
+
+  it("keeps only a non-negative integer amount_paid", () => {
+    const cases: Array<[string, unknown, number | null]> = [
+      ["omitted", undefined, null],
+      ["null", null, null],
+      ["string", "4900", null],
+      ["negative", -1, null],
+      ["fraction", 49.5, null],
+      ["NaN", Number.NaN, null],
+      ["Infinity", Number.POSITIVE_INFINITY, null],
+      ["zero", 0, 0],
+      ["positive", 4900, 4900],
+    ];
+    for (const [label, amount, expected] of cases) {
+      const invoice: Record<string, unknown> = {
+        object: "invoice",
+        status: "paid",
+        customer: "cus_1",
+        metadata: { clinicId: "clinic_1" },
+        parent: {
+          type: "subscription_details",
+          subscription_details: {
+            subscription: "sub_1",
+            metadata: { clinicId: "clinic_1" },
+          },
+        },
+        lines: {
+          data: [
+            {
+              pricing: {
+                price_details: { price: "price_test_essential_monthly" },
+              },
+            },
+          ],
+        },
+        period_start: 1_746_000_000,
+        period_end: 1_748_600_000,
+      };
+      if (label !== "omitted") {
+        invoice.amount_paid = amount;
+      }
+      const snapshot = snapshotFromStripeEvent({
+        id: `evt_amt_${label}`,
+        object: "event",
+        created: 1_747_000_000,
+        type: "invoice.paid",
+        data: { object: invoice },
+      } as unknown as Stripe.Event);
+      expect(snapshot?.invoiceAmountPaid, label).toBe(expected);
+    }
   });
 });
 

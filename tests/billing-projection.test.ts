@@ -73,6 +73,7 @@ describe("entitlement projection", () => {
     const result = project({
       eventType: "invoice.paid",
       invoiceIsPaid: true,
+      invoiceAmountPaid: 4900,
       subscriptionStatus: "active",
     });
     expect(result.kind).toBe("apply");
@@ -94,6 +95,7 @@ describe("entitlement projection", () => {
     const result = project({
       eventType: "invoice.paid",
       invoiceIsPaid: true,
+      invoiceAmountPaid: 4900,
       previous: emptyEntitlement({
         commercialPlan: "ESSENTIAL",
         billingInterval: "MONTHLY",
@@ -429,6 +431,7 @@ describe("entitlement projection", () => {
       subscriptionStatus: "active",
       cancelAtPeriodEnd: true,
       invoiceIsPaid: true,
+      invoiceAmountPaid: 4900,
       previous: emptyEntitlement({
         billingStatus: BillingStatus.PAYMENT_PENDING,
         entitlementStatus: EntitlementStatus.PENDING,
@@ -494,6 +497,7 @@ describe("entitlement projection", () => {
     const paid = project({
       eventType: "invoice.paid",
       invoiceIsPaid: true,
+      invoiceAmountPaid: 4900,
       subscriptionStatus: "active",
       previous: emptyEntitlement({
         billingStatus: BillingStatus.PAST_DUE,
@@ -584,8 +588,125 @@ describe("entitlement projection", () => {
         billingStatus: BillingStatus.ACTIVE,
       }),
       invoiceIsPaid: true,
+      invoiceAmountPaid: 4900,
     });
     expect(paid.kind).toBe("apply");
+  });
+
+  it("does not collect an active invoice when amount_paid is missing or invalid", () => {
+    const nextEnd = new Date("2026-11-01T00:00:00.000Z");
+    const verified = emptyEntitlement({
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      paidThrough: PERIOD_END,
+      currentPeriodEnd: PERIOD_END,
+    });
+    const amounts: Array<number | null | undefined> = [
+      undefined,
+      null,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      -1,
+      49.5,
+      0,
+    ];
+    for (const invoiceAmountPaid of amounts) {
+      const fresh = project({
+        eventType: "invoice.paid",
+        invoiceIsPaid: true,
+        invoiceAmountPaid,
+        subscriptionStatus: "active",
+        currentPeriodEnd: nextEnd,
+      });
+      expect(fresh.kind).toBe("apply");
+      if (fresh.kind !== "apply") {
+        continue;
+      }
+      expect(fresh.entitlement.entitlementStatus).toBe(
+        EntitlementStatus.PENDING
+      );
+      expect(fresh.entitlement.paidThrough).toBeNull();
+
+      const kept = project({
+        eventType: "invoice.paid",
+        invoiceIsPaid: true,
+        invoiceAmountPaid,
+        subscriptionStatus: "active",
+        currentPeriodEnd: nextEnd,
+        previous: verified,
+      });
+      expect(kept.kind).toBe("apply");
+      if (kept.kind !== "apply") {
+        continue;
+      }
+      expect(kept.entitlement).toMatchObject({
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        billingStatus: BillingStatus.ACTIVE,
+        paidThrough: PERIOD_END,
+      });
+    }
+  });
+
+  it("collects a positive amount and an explicit negotiated zero", () => {
+    const positive = project({
+      eventType: "invoice.paid",
+      invoiceIsPaid: true,
+      invoiceAmountPaid: 4900,
+      subscriptionStatus: "active",
+    });
+    expect(positive.kind).toBe("apply");
+    if (positive.kind === "apply") {
+      expect(positive.entitlement).toMatchObject({
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        paidThrough: PERIOD_END,
+      });
+    }
+
+    const missingCredit = project({
+      eventType: "invoice.paid",
+      invoiceIsPaid: true,
+      invoiceAmountPaid: undefined,
+      negotiatedConversion: true,
+      subscriptionStatus: "active",
+      previous: {
+        ...emptyEntitlement({
+          commercialPlan: "ESSENTIAL",
+          billingInterval: "MONTHLY",
+          billingStatus: BillingStatus.NOT_BILLED,
+          entitlementStatus: EntitlementStatus.ACTIVE,
+        }),
+        commercialArrangement: "COMPLIMENTARY",
+      },
+    });
+    expect(missingCredit).toEqual({ kind: "complimentary_unchanged" });
+
+    const credit = project({
+      eventType: "invoice.paid",
+      invoiceIsPaid: true,
+      invoiceAmountPaid: 0,
+      negotiatedConversion: true,
+      subscriptionStatus: "active",
+      previous: {
+        ...emptyEntitlement({
+          commercialPlan: "ESSENTIAL",
+          billingInterval: "MONTHLY",
+          billingStatus: BillingStatus.NOT_BILLED,
+          entitlementStatus: EntitlementStatus.ACTIVE,
+        }),
+        commercialArrangement: "COMPLIMENTARY",
+      },
+    });
+    expect(credit.kind).toBe("apply");
+    if (credit.kind === "apply") {
+      expect(credit.entitlement).toMatchObject({
+        commercialArrangement: "PAID",
+        entitlementStatus: EntitlementStatus.ACTIVE,
+        billingStatus: BillingStatus.ACTIVE,
+        paidThrough: PERIOD_END,
+      });
+    }
   });
 
   it("fails closed for an unknown clinic or unknown Price ID", () => {

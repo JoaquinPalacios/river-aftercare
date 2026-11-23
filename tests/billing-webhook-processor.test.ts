@@ -441,6 +441,7 @@ function invoicePaidEvent(): Stripe.Event {
         },
         period_start: 1_746_000_000,
         period_end: 1_748_600_000,
+        amount_paid: 4900,
       },
     },
   } as unknown as Stripe.Event;
@@ -2397,6 +2398,139 @@ describe("processVerifiedStripeEvent", () => {
       env: BILLING_TEST_ENV,
     });
     expect(replay.outcome).toBe("duplicate");
+  });
+
+  it("does not collect an invoice whose amount_paid is missing, null, or malformed", async () => {
+    const amounts: unknown[] = [undefined, null, "4900", -1, 49.5, Number.NaN];
+    for (const amount of amounts) {
+      const db = createDb();
+      const event = invoicePaidEvent();
+      event.id = `evt_bad_amount_${String(amount)}`;
+      const invoice = event.data.object as { amount_paid?: unknown };
+      if (amount === undefined) {
+        delete invoice.amount_paid;
+      } else {
+        invoice.amount_paid = amount;
+      }
+      const result = await processVerifiedStripeEvent(event, {
+        prisma: db,
+        reader: { retrieveSubscription: async () => activeSubscription },
+        env: BILLING_TEST_ENV,
+      });
+      expect(result.outcome).toBe("processed");
+      expect(db.entitlements.get("clinic_1")).toMatchObject({
+        entitlementStatus: EntitlementStatus.PENDING,
+        billingStatus: BillingStatus.PAYMENT_PENDING,
+        paidThrough: null,
+      });
+      const replay = await processVerifiedStripeEvent(event, {
+        prisma: db,
+        reader: { retrieveSubscription: async () => activeSubscription },
+        env: BILLING_TEST_ENV,
+      });
+      expect(replay.outcome).toBe("duplicate");
+      expect(db.entitlements.get("clinic_1")?.entitlementStatus).toBe(
+        EntitlementStatus.PENDING
+      );
+    }
+
+    const recoveredDb = createDb();
+    const missing = invoicePaidEvent();
+    missing.id = "evt_amount_missing";
+    delete (missing.data.object as { amount_paid?: unknown }).amount_paid;
+    await processVerifiedStripeEvent(missing, {
+      prisma: recoveredDb,
+      reader: { retrieveSubscription: async () => activeSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    const collected = invoicePaidEvent();
+    collected.id = "evt_amount_present";
+    const recovered = await processVerifiedStripeEvent(collected, {
+      prisma: recoveredDb,
+      reader: { retrieveSubscription: async () => activeSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    expect(recovered.outcome).toBe("processed");
+    expect(recoveredDb.entitlements.get("clinic_1")).toMatchObject({
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.ACTIVE,
+      paidThrough: new Date(1_748_600_000 * 1000),
+    });
+
+    const kept = createDb();
+    const verified = {
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: "price_test_essential_monthly",
+      paidThrough: new Date("2026-10-01T00:00:00.000Z"),
+    };
+    kept.entitlements.set("clinic_1", verified);
+    const repeat = invoicePaidEvent();
+    repeat.id = "evt_amount_keeps_verified";
+    delete (repeat.data.object as { amount_paid?: unknown }).amount_paid;
+    const unchanged = await processVerifiedStripeEvent(repeat, {
+      prisma: kept,
+      reader: { retrieveSubscription: async () => activeSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    expect(unchanged.outcome).toBe("processed");
+    expect(kept.entitlements.get("clinic_1")).toMatchObject(verified);
+    expect(kept.entitlements.get("clinic_1")?.paidThrough).toEqual(
+      verified.paidThrough
+    );
+  });
+
+  it("does not convert a negotiated offer when amount_paid is missing", async () => {
+    const db = createDb();
+    db.entitlements.set("clinic_1", {
+      clinicId: "clinic_1",
+      commercialPlan: "ESSENTIAL",
+      commercialArrangement: "COMPLIMENTARY",
+      billingStatus: BillingStatus.NOT_BILLED,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      complimentaryExpiresAt: new Date("2027-04-05T12:59:59.999Z"),
+    });
+    db.profiles.set("clinic_1", {
+      clinicId: "clinic_1",
+      stripeCustomerId: "cus_1",
+      stripeSubscriptionId: "sub_1",
+      stripeSubscriptionScheduleId: null,
+      stripePlanDowngradeAttemptId: null,
+      stripeCheckoutSessionId: "cs_1",
+    });
+    db.offers.set("offer_missing_amount", {
+      id: "offer_missing_amount",
+      clinicId: "clinic_1",
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      amountCents: 4900,
+      status: "CHECKOUT_OPEN",
+      stripePriceId: "price_neg_49",
+      stripeProductId: "prod_neg",
+      createdAt: new Date("2026-10-05T00:00:00.000Z"),
+    });
+    const event = negotiatedInvoice({
+      id: "evt_neg_missing_amount",
+      priceId: "price_neg_49",
+      amountPaid: 0,
+    });
+    delete (event.data.object as { amount_paid?: unknown }).amount_paid;
+    const result = await processVerifiedStripeEvent(event, {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () =>
+          negotiatedSubscription("price_neg_49", 4900),
+      },
+      env: BILLING_TEST_ENV,
+    });
+    expect(result.outcome).toBe("ignored");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialArrangement: "COMPLIMENTARY",
+      entitlementStatus: EntitlementStatus.ACTIVE,
+    });
+    expect(db.offers.get("offer_missing_amount")?.status).toBe("CHECKOUT_OPEN");
   });
 
   it("retries a paid invoice that does not match the negotiated subscription terms", async () => {

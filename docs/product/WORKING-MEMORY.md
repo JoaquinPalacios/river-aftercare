@@ -5,6 +5,8 @@ This file helps later implementation sessions. It is **not** the product contrac
 Authoritative requirements: [PRD.md](PRD.md)  
 Decisions: [../adr/README.md](../adr/README.md)
 
+Last updated: 2026-11-23 (`invoice.paid` confirms a collected period only from a non-negative integer `amount_paid`. An omitted, null, fractional, or negative amount does not activate a clinic or advance `paidThrough`. Explicit 0 still converts a complimentary clinic only when the retrieved subscription matches the open negotiated offer. A missing amount does not. No migration.)
+
 Last updated: 2026-11-23 (`invoice.paid` does not activate a clinic unless Stripe returns the subscription. A missing or failed lookup marks the receipt FAILED and leaves the current entitlement unchanged so Stripe can retry. An A$0 invoice, an unknown subscription status, and a trialing subscription without payment-method evidence do not grant access. A retrieved post-trial invoice still sets `paidThrough`. No migration. Cursor Cloud environment reviewed; no update required.)
 
 Last updated: 2026-11-23 (The private schedule entry `api/registration-intents-cleanup.js` is tracked. Vercel matches `functions` against the Git upload, so the previous gitignored bundle never became a function and Preview `dpl_HXveLKNLz6gQZUakUeTDmwewhsrS` failed with `unused_function`. `pnpm build` now writes `lib/schedules/registration-intents-cleanup-bundle.js`, which that entry requires. The function runtime stays `nodejs24.x` because `engines.node` is `24.x` and overrides the project Node `26.x` setting. Schedule name, `30 21 * * *` UTC, and `schedule/v1beta` are unchanged. No production deploy.)

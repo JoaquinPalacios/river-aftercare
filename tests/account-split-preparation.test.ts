@@ -1291,6 +1291,7 @@ describe("account split preparation", () => {
             },
             period_start: 1_746_000_000,
             period_end: 1_748_600_000,
+            amount_paid: 4900,
           },
         },
       } as never,

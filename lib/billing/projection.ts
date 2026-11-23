@@ -159,11 +159,24 @@ export function neverPaidCatalogueTrial(
 }
 
 /**
+ * A payable amount is a non-negative integer number of cents.
+ * Missing, fractional, and negative values are not a collected charge.
+ */
+function payableInvoiceAmount(value: number | null | undefined): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    return null;
+  }
+  return value;
+}
+
+/**
  * The invoice that collects the first or next paid period.
  * A trial's opening invoice is `subscription_create` for A$0 while the
  * subscription is trialing. The first charge after the trial is
  * `subscription_cycle`. A positive `subscription_create` invoice without a
- * trial remains the normal first payment.
+ * trial remains the normal first payment. Explicit zero confirms collection
+ * only for a negotiated complimentary conversion. An omitted or invalid
+ * amount never does.
  */
 function confirmsCollectedInvoice(
   input: EntitlementProjectionInput,
@@ -187,7 +200,11 @@ function confirmsCollectedInvoice(
   ) {
     return false;
   }
-  if (input.invoiceAmountPaid === 0 && input.negotiatedConversion !== true) {
+  const amount = payableInvoiceAmount(input.invoiceAmountPaid);
+  if (amount === null) {
+    return false;
+  }
+  if (amount === 0 && input.negotiatedConversion !== true) {
     return false;
   }
   if (!neverPaidCatalogueTrial(previous, input)) {
@@ -196,11 +213,7 @@ function confirmsCollectedInvoice(
   if (input.invoiceBillingReason === "subscription_cycle") {
     return true;
   }
-  if (
-    typeof input.invoiceAmountPaid === "number" &&
-    input.invoiceAmountPaid > 0 &&
-    input.subscriptionStatus === "active"
-  ) {
+  if (amount > 0 && input.subscriptionStatus === "active") {
     return true;
   }
   if (input.invoiceBillingReason === "subscription_create") {

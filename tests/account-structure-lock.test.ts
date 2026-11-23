@@ -576,6 +576,7 @@ describeDb("account structure lock participation", () => {
           },
           period_start: 1_746_000_000,
           period_end: 1_748_600_000,
+          amount_paid: 4900,
         },
       },
     } as unknown as Stripe.Event;
@@ -591,7 +592,28 @@ describeDb("account structure lock participation", () => {
 
     await holdStructureLock(account.id, async () => {
       mutation = processVerifiedStripeEvent(event, {
-        reader: null,
+        reader: {
+          retrieveSubscription: async () =>
+            ({
+              id: `sub_${account.id}`,
+              object: "subscription",
+              status: "active",
+              customer: `cus_${account.id}`,
+              cancel_at_period_end: false,
+              metadata: { clinicId: account.id },
+              items: {
+                data: [
+                  {
+                    id: "si_aslck",
+                    price: { id: priceId },
+                    quantity: 1,
+                    current_period_start: 1_746_000_000,
+                    current_period_end: 1_748_600_000,
+                  },
+                ],
+              },
+            }) as Stripe.Subscription,
+        },
         env,
       }).finally(() => {
         projected = true;
