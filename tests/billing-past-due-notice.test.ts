@@ -157,6 +157,7 @@ describe("past-due notice follows the billing projection", () => {
       project({
         eventType: "invoice.paid",
         invoiceIsPaid: true,
+        invoiceAmountPaid: 4900,
         subscriptionStatus: "active",
         previous: duplicate.entitlement,
       })

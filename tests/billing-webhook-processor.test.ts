@@ -441,6 +441,7 @@ function invoicePaidEvent(): Stripe.Event {
         },
         period_start: 1_746_000_000,
         period_end: 1_748_600_000,
+        amount_paid: 4900,
       },
     },
   } as unknown as Stripe.Event;
@@ -676,6 +677,176 @@ describe("processVerifiedStripeEvent", () => {
     const second = await processVerifiedStripeEvent(event, deps);
     expect(second.outcome).toBe("duplicate");
     expect([...db.receipts.values()]).toHaveLength(1);
+    expect(db.receipts.get(event.id)?.processingStatus).toBe(
+      StripeEventProcessingStatus.PROCESSED
+    );
+  });
+
+  it("does not activate from an A$0 invoice when the subscription cannot be retrieved", async () => {
+    const unverified =
+      "Stripe subscription could not be verified. The entitlement was left unchanged.";
+    const withoutTrial = createDb();
+    const opening = invoicePaidEvent();
+    opening.id = "evt_zero_without_trial";
+    const openingInvoice = opening.data.object as Stripe.Invoice;
+    openingInvoice.amount_paid = 0;
+    openingInvoice.billing_reason = "subscription_create";
+    await expect(
+      processVerifiedStripeEvent(opening, {
+        prisma: withoutTrial,
+        reader: { retrieveSubscription: async () => null },
+        env: BILLING_TEST_ENV,
+      })
+    ).rejects.toThrow(unverified);
+    expect(withoutTrial.entitlements.size).toBe(0);
+    expect(withoutTrial.receipts.get(opening.id)?.processingStatus).toBe(
+      StripeEventProcessingStatus.FAILED
+    );
+
+    const withTrial = createDb();
+    const trialEndsAt = new Date("2026-11-15T00:00:00.000Z");
+    const verified = {
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.TRIALING,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: "price_test_essential_monthly",
+      paidThrough: null,
+      trialEndsAt,
+    };
+    withTrial.entitlements.set("clinic_1", verified);
+    const zero = invoicePaidEvent();
+    zero.id = "evt_zero_with_trial";
+    const zeroInvoice = zero.data.object as Stripe.Invoice;
+    zeroInvoice.amount_paid = 0;
+    zeroInvoice.billing_reason = "subscription_create";
+    await expect(
+      processVerifiedStripeEvent(zero, {
+        prisma: withTrial,
+        reader: { retrieveSubscription: async () => null },
+        env: BILLING_TEST_ENV,
+      })
+    ).rejects.toThrow(unverified);
+    expect(withTrial.entitlements.get("clinic_1")).toEqual(verified);
+    expect(withTrial.receipts.get(zero.id)?.processingStatus).toBe(
+      StripeEventProcessingStatus.FAILED
+    );
+  });
+
+  it("does not activate when subscription retrieval throws, then recovers", async () => {
+    const db = createDb();
+    const event = invoicePaidEvent();
+    event.id = "evt_lookup_throws";
+    const invoice = event.data.object as Stripe.Invoice;
+    invoice.amount_paid = 4900;
+    invoice.billing_reason = "subscription_cycle";
+    let lookups = 0;
+    const deps = {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () => {
+          lookups += 1;
+          if (lookups === 1) {
+            throw new Error("stripe unavailable");
+          }
+          return activeSubscription;
+        },
+      },
+      env: BILLING_TEST_ENV,
+    };
+    await expect(processVerifiedStripeEvent(event, deps)).rejects.toThrow(
+      "stripe unavailable"
+    );
+    expect(db.entitlements.size).toBe(0);
+    expect(db.receipts.get(event.id)?.processingStatus).toBe(
+      StripeEventProcessingStatus.FAILED
+    );
+
+    const recovered = await processVerifiedStripeEvent(event, deps);
+    expect(recovered.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.ACTIVE,
+      paidThrough: new Date(1_748_600_000 * 1000),
+    });
+    expect(db.receipts.get(event.id)?.processingStatus).toBe(
+      StripeEventProcessingStatus.PROCESSED
+    );
+  });
+
+  it("activates a verified trial, then records the collected invoice after it", async () => {
+    const db = createDb();
+    const trialingSubscription = {
+      ...activeSubscription,
+      status: "trialing",
+      trial_end: 1_763_200_000,
+      default_payment_method: "pm_trial",
+    } as Stripe.Subscription;
+    const subscriptionUpdated = subscriptionEvent({
+      id: "evt_trial_sub",
+      subscription: trialingSubscription,
+    });
+    const zero = invoicePaidEvent();
+    zero.id = "evt_trial_zero";
+    zero.created = 1_746_900_000;
+    const zeroInvoice = zero.data.object as Stripe.Invoice;
+    zeroInvoice.amount_paid = 0;
+    zeroInvoice.billing_reason = "subscription_create";
+
+    await expect(
+      processVerifiedStripeEvent(zero, {
+        prisma: db,
+        reader: { retrieveSubscription: async () => null },
+        env: BILLING_TEST_ENV,
+      })
+    ).rejects.toThrow(
+      "Stripe subscription could not be verified. The entitlement was left unchanged."
+    );
+    expect(db.entitlements.size).toBe(0);
+
+    const opened = await processVerifiedStripeEvent(subscriptionUpdated, {
+      prisma: db,
+      reader: { retrieveSubscription: async () => trialingSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    expect(opened.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.TRIALING,
+      paidThrough: null,
+      trialEndsAt: new Date(1_763_200_000 * 1000),
+    });
+
+    const replayedZero = await processVerifiedStripeEvent(zero, {
+      prisma: db,
+      reader: { retrieveSubscription: async () => trialingSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    expect(replayedZero.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.TRIALING,
+      paidThrough: null,
+    });
+
+    const collected = invoicePaidEvent();
+    collected.id = "evt_trial_collected";
+    collected.created = 1_763_200_000;
+    const collectedInvoice = collected.data.object as Stripe.Invoice;
+    collectedInvoice.amount_paid = 4900;
+    collectedInvoice.billing_reason = "subscription_cycle";
+    const paid = await processVerifiedStripeEvent(collected, {
+      prisma: db,
+      reader: { retrieveSubscription: async () => activeSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    expect(paid.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.ACTIVE,
+      paidThrough: new Date(1_748_600_000 * 1000),
+      trialEndsAt: new Date(1_763_200_000 * 1000),
+    });
   });
 
   it("records unsupported events as ignored", async () => {
@@ -2227,6 +2398,139 @@ describe("processVerifiedStripeEvent", () => {
       env: BILLING_TEST_ENV,
     });
     expect(replay.outcome).toBe("duplicate");
+  });
+
+  it("does not collect an invoice whose amount_paid is missing, null, or malformed", async () => {
+    const amounts: unknown[] = [undefined, null, "4900", -1, 49.5, Number.NaN];
+    for (const amount of amounts) {
+      const db = createDb();
+      const event = invoicePaidEvent();
+      event.id = `evt_bad_amount_${String(amount)}`;
+      const invoice = event.data.object as { amount_paid?: unknown };
+      if (amount === undefined) {
+        delete invoice.amount_paid;
+      } else {
+        invoice.amount_paid = amount;
+      }
+      const result = await processVerifiedStripeEvent(event, {
+        prisma: db,
+        reader: { retrieveSubscription: async () => activeSubscription },
+        env: BILLING_TEST_ENV,
+      });
+      expect(result.outcome).toBe("processed");
+      expect(db.entitlements.get("clinic_1")).toMatchObject({
+        entitlementStatus: EntitlementStatus.PENDING,
+        billingStatus: BillingStatus.PAYMENT_PENDING,
+        paidThrough: null,
+      });
+      const replay = await processVerifiedStripeEvent(event, {
+        prisma: db,
+        reader: { retrieveSubscription: async () => activeSubscription },
+        env: BILLING_TEST_ENV,
+      });
+      expect(replay.outcome).toBe("duplicate");
+      expect(db.entitlements.get("clinic_1")?.entitlementStatus).toBe(
+        EntitlementStatus.PENDING
+      );
+    }
+
+    const recoveredDb = createDb();
+    const missing = invoicePaidEvent();
+    missing.id = "evt_amount_missing";
+    delete (missing.data.object as { amount_paid?: unknown }).amount_paid;
+    await processVerifiedStripeEvent(missing, {
+      prisma: recoveredDb,
+      reader: { retrieveSubscription: async () => activeSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    const collected = invoicePaidEvent();
+    collected.id = "evt_amount_present";
+    const recovered = await processVerifiedStripeEvent(collected, {
+      prisma: recoveredDb,
+      reader: { retrieveSubscription: async () => activeSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    expect(recovered.outcome).toBe("processed");
+    expect(recoveredDb.entitlements.get("clinic_1")).toMatchObject({
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.ACTIVE,
+      paidThrough: new Date(1_748_600_000 * 1000),
+    });
+
+    const kept = createDb();
+    const verified = {
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.ACTIVE,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: "price_test_essential_monthly",
+      paidThrough: new Date("2026-10-01T00:00:00.000Z"),
+    };
+    kept.entitlements.set("clinic_1", verified);
+    const repeat = invoicePaidEvent();
+    repeat.id = "evt_amount_keeps_verified";
+    delete (repeat.data.object as { amount_paid?: unknown }).amount_paid;
+    const unchanged = await processVerifiedStripeEvent(repeat, {
+      prisma: kept,
+      reader: { retrieveSubscription: async () => activeSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    expect(unchanged.outcome).toBe("processed");
+    expect(kept.entitlements.get("clinic_1")).toMatchObject(verified);
+    expect(kept.entitlements.get("clinic_1")?.paidThrough).toEqual(
+      verified.paidThrough
+    );
+  });
+
+  it("does not convert a negotiated offer when amount_paid is missing", async () => {
+    const db = createDb();
+    db.entitlements.set("clinic_1", {
+      clinicId: "clinic_1",
+      commercialPlan: "ESSENTIAL",
+      commercialArrangement: "COMPLIMENTARY",
+      billingStatus: BillingStatus.NOT_BILLED,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      complimentaryExpiresAt: new Date("2027-04-05T12:59:59.999Z"),
+    });
+    db.profiles.set("clinic_1", {
+      clinicId: "clinic_1",
+      stripeCustomerId: "cus_1",
+      stripeSubscriptionId: "sub_1",
+      stripeSubscriptionScheduleId: null,
+      stripePlanDowngradeAttemptId: null,
+      stripeCheckoutSessionId: "cs_1",
+    });
+    db.offers.set("offer_missing_amount", {
+      id: "offer_missing_amount",
+      clinicId: "clinic_1",
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      amountCents: 4900,
+      status: "CHECKOUT_OPEN",
+      stripePriceId: "price_neg_49",
+      stripeProductId: "prod_neg",
+      createdAt: new Date("2026-10-05T00:00:00.000Z"),
+    });
+    const event = negotiatedInvoice({
+      id: "evt_neg_missing_amount",
+      priceId: "price_neg_49",
+      amountPaid: 0,
+    });
+    delete (event.data.object as { amount_paid?: unknown }).amount_paid;
+    const result = await processVerifiedStripeEvent(event, {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () =>
+          negotiatedSubscription("price_neg_49", 4900),
+      },
+      env: BILLING_TEST_ENV,
+    });
+    expect(result.outcome).toBe("ignored");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      commercialArrangement: "COMPLIMENTARY",
+      entitlementStatus: EntitlementStatus.ACTIVE,
+    });
+    expect(db.offers.get("offer_missing_amount")?.status).toBe("CHECKOUT_OPEN");
   });
 
   it("retries a paid invoice that does not match the negotiated subscription terms", async () => {

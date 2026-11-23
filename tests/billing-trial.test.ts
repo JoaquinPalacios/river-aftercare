@@ -42,6 +42,7 @@ function project(overrides: Partial<Parameters<typeof projectEntitlement>[0]>) {
     currentPeriodEnd: TRIAL_END,
     invoiceIsPaid: false,
     trialEndsAt: TRIAL_END,
+    paymentMethodPresent: true,
     now: TRIAL_START,
     ...overrides,
   });
@@ -60,6 +61,80 @@ describe("catalogue trial projection", () => {
     const entitlement = applied(project({ paymentMethodPresent: false }));
     expect(entitlement.entitlementStatus).toBe(EntitlementStatus.PENDING);
     expect(entitlement.billingStatus).toBe(BillingStatus.PAYMENT_PENDING);
+  });
+
+  it("does not open a trial when payment-method evidence is missing", () => {
+    const entitlement = applied(project({ paymentMethodPresent: undefined }));
+    expect(entitlement.entitlementStatus).toBe(EntitlementStatus.PENDING);
+    expect(entitlement.billingStatus).toBe(BillingStatus.PAYMENT_PENDING);
+  });
+
+  it("keeps a verified trial when a later event omits payment-method evidence", () => {
+    const trialing = applied(project({}));
+    const repeated = applied(
+      project({
+        previous: trialing,
+        paymentMethodPresent: undefined,
+      })
+    );
+    expect(repeated).toEqual(trialing);
+    expect(repeated.entitlementStatus).toBe(EntitlementStatus.ACTIVE);
+    expect(repeated.billingStatus).toBe(BillingStatus.TRIALING);
+  });
+
+  it("does not let an A$0 invoice activate without a verified subscription", () => {
+    const withTrialEnd = applied(
+      project({
+        eventType: "invoice.paid",
+        invoiceIsPaid: true,
+        invoiceAmountPaid: 0,
+        invoiceBillingReason: "subscription_create",
+        subscriptionStatus: null,
+        paymentMethodPresent: undefined,
+        previous: emptyEntitlement({
+          commercialPlan: "ESSENTIAL",
+          billingInterval: "MONTHLY",
+          billingStatus: BillingStatus.OFFER_PREPARED,
+          entitlementStatus: EntitlementStatus.PENDING,
+          trialEndsAt: TRIAL_END,
+        }),
+      })
+    );
+    expect(withTrialEnd.entitlementStatus).toBe(EntitlementStatus.PENDING);
+    expect(withTrialEnd.paidThrough).toBeNull();
+
+    const withoutTrialEnd = applied(
+      project({
+        eventType: "invoice.paid",
+        invoiceIsPaid: true,
+        invoiceAmountPaid: 0,
+        invoiceBillingReason: "subscription_create",
+        subscriptionStatus: null,
+        trialEndsAt: null,
+        paymentMethodPresent: undefined,
+        previous: null,
+      })
+    );
+    expect(withoutTrialEnd.entitlementStatus).toBe(EntitlementStatus.PENDING);
+    expect(withoutTrialEnd.billingStatus).toBe(BillingStatus.PAYMENT_PENDING);
+    expect(withoutTrialEnd.paidThrough).toBeNull();
+  });
+
+  it("does not clear a verified trial when an A$0 invoice has no subscription", () => {
+    const trialing = applied(project({}));
+    const unchanged = applied(
+      project({
+        eventType: "invoice.paid",
+        invoiceIsPaid: true,
+        invoiceAmountPaid: 0,
+        invoiceBillingReason: "subscription_create",
+        subscriptionStatus: null,
+        paymentMethodPresent: undefined,
+        previous: trialing,
+      })
+    );
+    expect(unchanged).toEqual(trialing);
+    expect(unchanged.paidThrough).toBeNull();
   });
 
   it("opens monthly and annual trials without a paid-through date", () => {

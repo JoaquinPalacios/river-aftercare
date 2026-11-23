@@ -451,6 +451,7 @@ function paidInvoice(input: {
         },
         period_start: 1_746_000_000,
         period_end: 1_748_600_000,
+        amount_paid: input.type === "invoice.payment_failed" ? undefined : 4900,
       },
     },
   } as unknown as Stripe.Event;
@@ -1062,14 +1063,17 @@ describe("Practice additional location webhook projection", () => {
   it("keeps an established legacy Practice when the subscription cannot be retrieved", async () => {
     const db = createDb();
     seedEntitlement(db, { locationAllowance: 3 });
-    const result = await projectInvoice({
-      db,
-      id: "evt_legacy_missing",
-      priceId: PRACTICE_MONTHLY,
-      subscription: null,
-      env: BILLING_TEST_ENV,
-    });
-    expect(result.outcome).toBe("processed");
+    await expect(
+      projectInvoice({
+        db,
+        id: "evt_legacy_missing",
+        priceId: PRACTICE_MONTHLY,
+        subscription: null,
+        env: BILLING_TEST_ENV,
+      })
+    ).rejects.toThrow(
+      "Stripe subscription could not be verified. The entitlement was left unchanged."
+    );
     expect(db.entitlements.get("clinic_1")).toMatchObject({
       commercialPlan: "PRACTICE",
       entitlementStatus: EntitlementStatus.ACTIVE,
@@ -1078,7 +1082,7 @@ describe("Practice additional location webhook projection", () => {
       siteAllowance: 1,
     });
     expect(db.receipts.get("evt_legacy_missing")?.processingStatus).toBe(
-      StripeEventProcessingStatus.PROCESSED
+      StripeEventProcessingStatus.FAILED
     );
     expect(db.locationCalls).toEqual([]);
   });
@@ -1245,22 +1249,21 @@ describe("Practice additional location webhook projection", () => {
     }
 
     const invoiceOnly = createDb();
-    const result = await projectInvoice({
-      db: invoiceOnly,
-      id: "evt_essential_invoice_only",
-      priceId: ESSENTIAL_MONTHLY,
-      subscription: null,
-      env: BILLING_TEST_ENV,
-    });
-    expect(result.outcome).toBe("processed");
-    expect(invoiceOnly.entitlements.get("clinic_1")).toMatchObject({
-      commercialPlan: "ESSENTIAL",
-      entitlementStatus: EntitlementStatus.ACTIVE,
-    });
+    await expect(
+      projectInvoice({
+        db: invoiceOnly,
+        id: "evt_essential_invoice_only",
+        priceId: ESSENTIAL_MONTHLY,
+        subscription: null,
+        env: BILLING_TEST_ENV,
+      })
+    ).rejects.toThrow(
+      "Stripe subscription could not be verified. The entitlement was left unchanged."
+    );
+    expect(invoiceOnly.entitlements.size).toBe(0);
     expect(
-      invoiceOnly.entitlements.get("clinic_1")
-        ?.purchasedAdditionalLocationQuantity
-    ).toBeUndefined();
+      invoiceOnly.receipts.get("evt_essential_invoice_only")?.processingStatus
+    ).toBe(StripeEventProcessingStatus.FAILED);
   });
 
   it("projects Practice quantity when Essential is paid on a retrieved subscription", async () => {

@@ -69,8 +69,9 @@ export type EntitlementProjectionInput = {
   /** Stripe `subscription.trial_end`. Absent when the subscription has no trial. */
   trialEndsAt?: Date | null;
   /**
-   * False when a subscription snapshot has no default payment method.
-   * Absent on historical fixtures, which keep the previous trial behaviour.
+   * True only when the subscription snapshot includes a default payment method.
+   * Missing evidence does not open a trial. An entitlement that is already
+   * active stays unchanged. Explicit false keeps a new trial pending.
    */
   paymentMethodPresent?: boolean;
   now?: Date;
@@ -158,11 +159,24 @@ export function neverPaidCatalogueTrial(
 }
 
 /**
+ * A payable amount is a non-negative integer number of cents.
+ * Missing, fractional, and negative values are not a collected charge.
+ */
+function payableInvoiceAmount(value: number | null | undefined): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    return null;
+  }
+  return value;
+}
+
+/**
  * The invoice that collects the first or next paid period.
  * A trial's opening invoice is `subscription_create` for A$0 while the
  * subscription is trialing. The first charge after the trial is
  * `subscription_cycle`. A positive `subscription_create` invoice without a
- * trial remains the normal first payment.
+ * trial remains the normal first payment. Explicit zero confirms collection
+ * only for a negotiated complimentary conversion. An omitted or invalid
+ * amount never does.
  */
 function confirmsCollectedInvoice(
   input: EntitlementProjectionInput,
@@ -171,7 +185,10 @@ function confirmsCollectedInvoice(
   if (input.eventType !== "invoice.paid" || !input.invoiceIsPaid) {
     return false;
   }
-  if (input.subscriptionStatus === "trialing") {
+  if (
+    input.subscriptionStatus === "trialing" ||
+    input.subscriptionStatus == null
+  ) {
     return false;
   }
   if (
@@ -183,28 +200,26 @@ function confirmsCollectedInvoice(
   ) {
     return false;
   }
+  const amount = payableInvoiceAmount(input.invoiceAmountPaid);
+  if (amount === null) {
+    return false;
+  }
+  if (amount === 0 && input.negotiatedConversion !== true) {
+    return false;
+  }
   if (!neverPaidCatalogueTrial(previous, input)) {
     return true;
   }
   if (input.invoiceBillingReason === "subscription_cycle") {
     return true;
   }
-  if (
-    typeof input.invoiceAmountPaid === "number" &&
-    input.invoiceAmountPaid > 0 &&
-    input.subscriptionStatus === "active"
-  ) {
+  if (amount > 0 && input.subscriptionStatus === "active") {
     return true;
   }
-  if (
-    input.invoiceBillingReason === "subscription_create" ||
-    input.invoiceAmountPaid === 0
-  ) {
+  if (input.invoiceBillingReason === "subscription_create") {
     return false;
   }
-  return (
-    input.subscriptionStatus === "active" || input.subscriptionStatus == null
-  );
+  return input.subscriptionStatus === "active";
 }
 
 function withPeriod(
@@ -221,7 +236,7 @@ function withPeriod(
     ? (input.currentPeriodEnd ??
       snapshot.paidThrough ??
       snapshot.currentPeriodEnd)
-    : unpaidTrial
+    : input.eventType === "invoice.paid" || unpaidTrial
       ? (snapshot.paidThrough ?? null)
       : (input.currentPeriodEnd ??
         snapshot.paidThrough ??
@@ -407,6 +422,25 @@ function keepEstablished(
   return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
 }
 
+/**
+ * An invoice that cannot prove a collected charge or a verified trial.
+ * An entitlement that is already active stays as it is. A clinic that is
+ * not active yet stays pending.
+ */
+function unverifiedInvoiceResult(
+  previous: LocalEntitlementSnapshot | null,
+  input: EntitlementProjectionInput,
+  convertingComplimentary: boolean
+): EntitlementProjectionResult {
+  if (convertingComplimentary) {
+    return { kind: "complimentary_unchanged" };
+  }
+  if (wasActive(previous) && previous) {
+    return { kind: "apply", entitlement: previous };
+  }
+  return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
+}
+
 export function projectEntitlement(
   input: EntitlementProjectionInput
 ): EntitlementProjectionResult {
@@ -455,10 +489,17 @@ export function projectEntitlement(
     if (closedEntitlement && previous) {
       return { kind: "apply", entitlement: previous };
     }
-    if (input.paymentMethodPresent === false) {
-      return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
+    if (input.paymentMethodPresent === true) {
+      return { kind: "apply", entitlement: trialSnapshot(previous, input) };
     }
-    return { kind: "apply", entitlement: trialSnapshot(previous, input) };
+    if (
+      wasActive(previous) &&
+      input.paymentMethodPresent !== false &&
+      previous
+    ) {
+      return { kind: "apply", entitlement: previous };
+    }
+    return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
   }
 
   if (
@@ -470,7 +511,13 @@ export function projectEntitlement(
     if (closedEntitlement && previous) {
       return { kind: "apply", entitlement: previous };
     }
-    return { kind: "apply", entitlement: trialSnapshot(previous, input) };
+    if (
+      subscriptionStatus === "trialing" &&
+      input.paymentMethodPresent === true
+    ) {
+      return { kind: "apply", entitlement: trialSnapshot(previous, input) };
+    }
+    return unverifiedInvoiceResult(previous, input, convertingComplimentary);
   }
 
   if (CHECKOUT_EVENTS.has(eventType)) {
@@ -589,6 +636,9 @@ export function projectEntitlement(
         return { kind: "complimentary_unchanged" };
       }
       return { kind: "apply", entitlement: pendingSnapshot(previous, input) };
+    }
+    if (!confirmsCollectedInvoice(input, previous)) {
+      return unverifiedInvoiceResult(previous, input, convertingComplimentary);
     }
     const billingStatus = input.cancelAtPeriodEnd
       ? BillingStatus.CANCEL_AT_PERIOD_END

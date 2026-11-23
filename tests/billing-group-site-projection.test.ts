@@ -401,6 +401,7 @@ function paidInvoice(input: {
         },
         period_start: 1_746_000_000,
         period_end: 1_748_600_000,
+        amount_paid: input.type === "invoice.payment_failed" ? undefined : 4900,
       },
     },
   } as unknown as Stripe.Event;
