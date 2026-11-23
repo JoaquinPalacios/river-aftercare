@@ -612,7 +612,7 @@ describeDb("account structure lock participation", () => {
                   },
                 ],
               },
-            }) as Stripe.Subscription,
+            }) as unknown as Stripe.Subscription,
         },
         env,
       }).finally(() => {
