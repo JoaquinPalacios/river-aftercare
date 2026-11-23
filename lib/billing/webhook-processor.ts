@@ -644,12 +644,33 @@ export async function processVerifiedStripeEvent(
 
   let authoritativeSubscription: Stripe.Subscription | null = null;
   if (reader && snapshot.stripeSubscriptionId) {
-    const subscription = await reader.retrieveSubscription(
-      snapshot.stripeSubscriptionId
-    );
-    if (subscription) {
-      authoritativeSubscription = subscription;
-      snapshot = mergeSubscriptionIntoSnapshot(snapshot, subscription);
+    try {
+      const subscription = await reader.retrieveSubscription(
+        snapshot.stripeSubscriptionId
+      );
+      if (subscription) {
+        authoritativeSubscription = subscription;
+        snapshot = mergeSubscriptionIntoSnapshot(snapshot, subscription);
+      }
+    } catch (error) {
+      if (eventType === "invoice.paid") {
+        const diagnostic =
+          "Stripe subscription could not be verified. The entitlement was left unchanged.";
+        await mark(
+          StripeEventProcessingStatus.FAILED,
+          diagnostic,
+          snapshot.clinicIdHint
+        );
+        logStripeBilling({
+          event: "stripe_webhook_failed",
+          stripeEventId,
+          eventType,
+          clinicId: snapshot.clinicIdHint,
+          reason: "subscription_unverified",
+        });
+        throw error;
+      }
+      throw error;
     }
   }
 
@@ -1057,11 +1078,23 @@ export async function processVerifiedStripeEvent(
     };
   }
 
+  const unverifiedPaidInvoice =
+    eventType === "invoice.paid" && authoritativeSubscription === null;
+  const catalogPlan =
+    catalog?.kind === "project" ? (catalog.mappedPrice?.plan ?? null) : null;
+  const capacityPlan =
+    unverifiedPaidInvoice && catalogPlan
+      ? catalogPlan
+      : projection.entitlement.commercialPlan;
+  const capacityEntitlementStatus = unverifiedPaidInvoice
+    ? EntitlementStatus.ACTIVE
+    : projection.entitlement.entitlementStatus;
+
   const locationProjection =
     projection.kind === "apply"
       ? decidePracticeLocationProjection({
-          projectedPlan: projection.entitlement.commercialPlan,
-          projectedEntitlementStatus: projection.entitlement.entitlementStatus,
+          projectedPlan: capacityPlan,
+          projectedEntitlementStatus: capacityEntitlementStatus,
           classifiedQuantity:
             catalog?.kind === "project"
               ? catalog.practiceAdditionalLocationQuantity
@@ -1083,8 +1116,8 @@ export async function processVerifiedStripeEvent(
   const siteProjection =
     projection.kind === "apply"
       ? decideGroupSiteProjection({
-          projectedPlan: projection.entitlement.commercialPlan,
-          projectedEntitlementStatus: projection.entitlement.entitlementStatus,
+          projectedPlan: capacityPlan,
+          projectedEntitlementStatus: capacityEntitlementStatus,
           classifiedQuantity:
             catalog?.kind === "project"
               ? (catalog.groupAdditionalSiteQuantity ?? null)
@@ -1137,6 +1170,24 @@ export async function processVerifiedStripeEvent(
       reason: "group_subscription_unavailable",
     });
     throw new Error("Group subscription could not be retrieved.");
+  }
+
+  if (eventType === "invoice.paid" && !authoritativeSubscription) {
+    const diagnostic =
+      "Stripe subscription could not be verified. The entitlement was left unchanged.";
+    await mark(
+      StripeEventProcessingStatus.FAILED,
+      diagnostic,
+      identity.clinicId
+    );
+    logStripeBilling({
+      event: "stripe_webhook_failed",
+      stripeEventId,
+      eventType,
+      clinicId: identity.clinicId,
+      reason: "subscription_unverified",
+    });
+    throw new Error(diagnostic);
   }
 
   const profile = identity.clinicId

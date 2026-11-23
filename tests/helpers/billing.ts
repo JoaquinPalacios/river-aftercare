@@ -123,6 +123,7 @@ export function emptyEntitlement(
     currentPeriodStart?: Date | null;
     currentPeriodEnd?: Date | null;
     paidThrough?: Date | null;
+    trialEndsAt?: Date | null;
     cancelAtPeriodEnd?: boolean;
     subscriptionEndedAt?: Date | null;
     publicGuideRetentionUntil?: Date | null;

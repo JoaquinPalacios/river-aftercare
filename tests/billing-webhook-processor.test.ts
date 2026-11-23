@@ -676,6 +676,176 @@ describe("processVerifiedStripeEvent", () => {
     const second = await processVerifiedStripeEvent(event, deps);
     expect(second.outcome).toBe("duplicate");
     expect([...db.receipts.values()]).toHaveLength(1);
+    expect(db.receipts.get(event.id)?.processingStatus).toBe(
+      StripeEventProcessingStatus.PROCESSED
+    );
+  });
+
+  it("does not activate from an A$0 invoice when the subscription cannot be retrieved", async () => {
+    const unverified =
+      "Stripe subscription could not be verified. The entitlement was left unchanged.";
+    const withoutTrial = createDb();
+    const opening = invoicePaidEvent();
+    opening.id = "evt_zero_without_trial";
+    const openingInvoice = opening.data.object as Stripe.Invoice;
+    openingInvoice.amount_paid = 0;
+    openingInvoice.billing_reason = "subscription_create";
+    await expect(
+      processVerifiedStripeEvent(opening, {
+        prisma: withoutTrial,
+        reader: { retrieveSubscription: async () => null },
+        env: BILLING_TEST_ENV,
+      })
+    ).rejects.toThrow(unverified);
+    expect(withoutTrial.entitlements.size).toBe(0);
+    expect(withoutTrial.receipts.get(opening.id)?.processingStatus).toBe(
+      StripeEventProcessingStatus.FAILED
+    );
+
+    const withTrial = createDb();
+    const trialEndsAt = new Date("2026-11-15T00:00:00.000Z");
+    const verified = {
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      billingStatus: BillingStatus.TRIALING,
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      stripePriceId: "price_test_essential_monthly",
+      paidThrough: null,
+      trialEndsAt,
+    };
+    withTrial.entitlements.set("clinic_1", verified);
+    const zero = invoicePaidEvent();
+    zero.id = "evt_zero_with_trial";
+    const zeroInvoice = zero.data.object as Stripe.Invoice;
+    zeroInvoice.amount_paid = 0;
+    zeroInvoice.billing_reason = "subscription_create";
+    await expect(
+      processVerifiedStripeEvent(zero, {
+        prisma: withTrial,
+        reader: { retrieveSubscription: async () => null },
+        env: BILLING_TEST_ENV,
+      })
+    ).rejects.toThrow(unverified);
+    expect(withTrial.entitlements.get("clinic_1")).toEqual(verified);
+    expect(withTrial.receipts.get(zero.id)?.processingStatus).toBe(
+      StripeEventProcessingStatus.FAILED
+    );
+  });
+
+  it("does not activate when subscription retrieval throws, then recovers", async () => {
+    const db = createDb();
+    const event = invoicePaidEvent();
+    event.id = "evt_lookup_throws";
+    const invoice = event.data.object as Stripe.Invoice;
+    invoice.amount_paid = 4900;
+    invoice.billing_reason = "subscription_cycle";
+    let lookups = 0;
+    const deps = {
+      prisma: db,
+      reader: {
+        retrieveSubscription: async () => {
+          lookups += 1;
+          if (lookups === 1) {
+            throw new Error("stripe unavailable");
+          }
+          return activeSubscription;
+        },
+      },
+      env: BILLING_TEST_ENV,
+    };
+    await expect(processVerifiedStripeEvent(event, deps)).rejects.toThrow(
+      "stripe unavailable"
+    );
+    expect(db.entitlements.size).toBe(0);
+    expect(db.receipts.get(event.id)?.processingStatus).toBe(
+      StripeEventProcessingStatus.FAILED
+    );
+
+    const recovered = await processVerifiedStripeEvent(event, deps);
+    expect(recovered.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.ACTIVE,
+      paidThrough: new Date(1_748_600_000 * 1000),
+    });
+    expect(db.receipts.get(event.id)?.processingStatus).toBe(
+      StripeEventProcessingStatus.PROCESSED
+    );
+  });
+
+  it("activates a verified trial, then records the collected invoice after it", async () => {
+    const db = createDb();
+    const trialingSubscription = {
+      ...activeSubscription,
+      status: "trialing",
+      trial_end: 1_763_200_000,
+      default_payment_method: "pm_trial",
+    } as Stripe.Subscription;
+    const subscriptionUpdated = subscriptionEvent({
+      id: "evt_trial_sub",
+      subscription: trialingSubscription,
+    });
+    const zero = invoicePaidEvent();
+    zero.id = "evt_trial_zero";
+    zero.created = 1_746_900_000;
+    const zeroInvoice = zero.data.object as Stripe.Invoice;
+    zeroInvoice.amount_paid = 0;
+    zeroInvoice.billing_reason = "subscription_create";
+
+    await expect(
+      processVerifiedStripeEvent(zero, {
+        prisma: db,
+        reader: { retrieveSubscription: async () => null },
+        env: BILLING_TEST_ENV,
+      })
+    ).rejects.toThrow(
+      "Stripe subscription could not be verified. The entitlement was left unchanged."
+    );
+    expect(db.entitlements.size).toBe(0);
+
+    const opened = await processVerifiedStripeEvent(subscriptionUpdated, {
+      prisma: db,
+      reader: { retrieveSubscription: async () => trialingSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    expect(opened.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.TRIALING,
+      paidThrough: null,
+      trialEndsAt: new Date(1_763_200_000 * 1000),
+    });
+
+    const replayedZero = await processVerifiedStripeEvent(zero, {
+      prisma: db,
+      reader: { retrieveSubscription: async () => trialingSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    expect(replayedZero.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.TRIALING,
+      paidThrough: null,
+    });
+
+    const collected = invoicePaidEvent();
+    collected.id = "evt_trial_collected";
+    collected.created = 1_763_200_000;
+    const collectedInvoice = collected.data.object as Stripe.Invoice;
+    collectedInvoice.amount_paid = 4900;
+    collectedInvoice.billing_reason = "subscription_cycle";
+    const paid = await processVerifiedStripeEvent(collected, {
+      prisma: db,
+      reader: { retrieveSubscription: async () => activeSubscription },
+      env: BILLING_TEST_ENV,
+    });
+    expect(paid.outcome).toBe("processed");
+    expect(db.entitlements.get("clinic_1")).toMatchObject({
+      entitlementStatus: EntitlementStatus.ACTIVE,
+      billingStatus: BillingStatus.ACTIVE,
+      paidThrough: new Date(1_748_600_000 * 1000),
+      trialEndsAt: new Date(1_763_200_000 * 1000),
+    });
   });
 
   it("records unsupported events as ignored", async () => {
