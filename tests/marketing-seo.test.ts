@@ -114,7 +114,7 @@ describe("marketing crawl files", () => {
       "Patient Aftercare Software Pricing | River Aftercare"
     );
     expect(PRICING_METADATA.description).toBe(
-      "Try River Aftercare free for 14 days. Compare Essential and Practice plans for clinics. Payment details are collected, and the selected subscription starts after the trial unless you cancel first."
+      "Compare River Aftercare Essential, Practice and Group plans for branded patient aftercare. Australian dollar pricing, with a 14-day trial on Essential and Practice."
     );
     expect(PRICING_METADATA.description).not.toMatch(/GST/i);
     expect(PRICING_METADATA.description).not.toMatch(/tax/i);

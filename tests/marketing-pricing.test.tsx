@@ -63,7 +63,16 @@ describe("marketing pricing page", () => {
     const html = renderToStaticMarkup(await MarketingPricingPage());
 
     expect(html.match(/<h1\b/g)).toHaveLength(1);
-    expect(html).toContain("Try River Aftercare free for 14 days");
+    expect(html).toContain("Simple pricing for branded patient aftercare.");
+    expect(html).toContain(
+      "Give patients clear, clinic-branded aftercare guidance they can reopen after the appointment, with no app or patient login. Explore Essential, Practice and Group plans to find the right solution for your clinic."
+    );
+    const heroStart = html.indexOf('data-mk-page-hero="pricing"');
+    const heroEnd = html.indexOf('data-mk-chapter="soft"');
+    const hero = html.slice(heroStart, heroEnd);
+    expect(heroStart).toBeGreaterThan(-1);
+    expect(heroEnd).toBeGreaterThan(heroStart);
+    expect(hero).not.toMatch(/14-day|free trial/i);
     expect(html).toContain('data-mk-page-hero="pricing"');
     expect(html).toContain("mkPageWaveInnerPage");
     expect(html).not.toContain("mkPageWavePricing");
