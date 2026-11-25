@@ -1,5 +1,6 @@
 import "server-only";
 
+import type Stripe from "stripe";
 import {
   BillingStatus,
   PlatformRole,
@@ -191,7 +192,7 @@ export type NegotiatedStripePort = {
           subscription_data: {
             metadata: Record<string, string>;
           };
-          payment_method_types: Array<
+          allowed_payment_method_types: Array<
             (typeof CHECKOUT_PAYMENT_METHOD_TYPES)[number]
           >;
           wallet_options: { link: { display: "never" } };
@@ -1279,32 +1280,30 @@ export async function startNegotiatedCheckout(input: {
   const openSession = async (
     attempt: number
   ): Promise<CheckoutExecutionResult> => {
-    const session = await stripe.checkout.sessions.create(
-      {
-        mode: "subscription",
-        customer: customerId!,
-        client_reference_id: input.clinicId,
-        line_items: lineItems,
-        success_url: input.successUrl,
-        cancel_url: input.cancelUrl,
+    const sessionParams = {
+      mode: "subscription" as const,
+      customer: customerId!,
+      client_reference_id: input.clinicId,
+      line_items: lineItems,
+      success_url: input.successUrl,
+      cancel_url: input.cancelUrl,
+      metadata,
+      subscription_data: {
         metadata,
-        subscription_data: {
-          metadata,
-        },
-        payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
-        wallet_options: { link: { display: "never" } },
-        allow_promotion_codes: false,
       },
-      {
-        idempotencyKey: negotiatedCheckoutIdempotencyKey({
-          clinicId: input.clinicId,
-          offerId: snapshot.offer.id,
-          priceId: ensured.priceId,
-          sessionId: snapshot.sessionId,
-          attempt,
-        }),
-      }
-    );
+      allowed_payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
+      wallet_options: { link: { display: "never" as const } },
+      allow_promotion_codes: false as const,
+    } satisfies Stripe.Checkout.SessionCreateParams;
+    const session = await stripe.checkout.sessions.create(sessionParams, {
+      idempotencyKey: negotiatedCheckoutIdempotencyKey({
+        clinicId: input.clinicId,
+        offerId: snapshot.offer.id,
+        priceId: ensured.priceId,
+        sessionId: snapshot.sessionId,
+        attempt,
+      }),
+    });
     if (!session.url || !hostedCheckoutUrl(session.url)) {
       return checkoutFailure(
         input.clinicId,

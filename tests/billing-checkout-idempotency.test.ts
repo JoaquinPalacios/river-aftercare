@@ -157,9 +157,12 @@ describe("checkout attempt retry", () => {
     const key = stripe.sessionKeys[0];
     expect(key).toBe(`river-checkout-clinic_a-${ESSENTIAL_MONTHLY}-initial`);
     expect(stripe.createdSessions).toHaveLength(1);
-    expect(stripe.createdSessions[0]?.payment_method_types).toEqual([
+    expect(stripe.createdSessions[0]?.allowed_payment_method_types).toEqual([
       ...CHECKOUT_PAYMENT_METHOD_TYPES,
     ]);
+    expect(stripe.createdSessions[0]).not.toHaveProperty(
+      "payment_method_types"
+    );
     expect(stripe.customerCreates).toHaveLength(1);
     expect(stripe.customerCreates[0]?.idempotencyKey).toBe(
       "river-customer-clinic_a"
@@ -229,6 +232,21 @@ describe("checkout attempt retry", () => {
       `river-checkout-clinic_a-${ESSENTIAL_MONTHLY}-attempt-2`,
     ]);
     expect(stripe.createdSessions).toHaveLength(1);
+    expect(stripe.createdSessions[0]).not.toHaveProperty(
+      "payment_method_types"
+    );
+    expect(stripe.createdSessions[0]?.allowed_payment_method_types).toEqual([
+      ...CHECKOUT_PAYMENT_METHOD_TYPES,
+    ]);
+    expect(stripe.attemptedCreates).toHaveLength(3);
+    expect(
+      stripe.attemptedCreates.every(
+        (attempt) =>
+          !attempt.removedPaymentMethodTypes &&
+          attempt.allowed_payment_method_types.join() ===
+            CHECKOUT_PAYMENT_METHOD_TYPES.join()
+      )
+    ).toBe(true);
     expect(stripe.customerCreates).toHaveLength(1);
   });
 
@@ -398,8 +416,12 @@ function fakeStripe() {
   const sessionKeys: string[] = [];
   const createdSessions: Array<{
     line_items: Array<{ price: string; quantity: number }>;
-    payment_method_types: string[];
+    allowed_payment_method_types: string[];
     metadata?: Record<string, string>;
+  }> = [];
+  const attemptedCreates: Array<{
+    allowed_payment_method_types: string[];
+    removedPaymentMethodTypes: boolean;
   }> = [];
   const customerCreates: Array<{ idempotencyKey?: string }> = [];
   const customersByKey = new Map<
@@ -415,6 +437,7 @@ function fakeStripe() {
     dropNextResponse: false,
     sessionKeys,
     createdSessions,
+    attemptedCreates,
     customerCreates,
     metadata(id: string) {
       return customers.get(id) ?? {};
@@ -474,6 +497,10 @@ function fakeStripe() {
             return pending;
           }
           const work = (async () => {
+            attemptedCreates.push({
+              allowed_payment_method_types: params.allowed_payment_method_types,
+              removedPaymentMethodTypes: "payment_method_types" in params,
+            });
             if (stripe.dropNextResponse) {
               stripe.dropNextResponse = false;
               throw new Stripe.errors.StripeConnectionError({
@@ -490,7 +517,8 @@ function fakeStripe() {
               sessions.set(key, { kind: "session", value: session });
               createdSessions.push({
                 line_items: params.line_items,
-                payment_method_types: params.payment_method_types,
+                allowed_payment_method_types:
+                  params.allowed_payment_method_types,
               });
               throw new Stripe.errors.StripeConnectionError({
                 message: "response lost",
@@ -511,7 +539,7 @@ function fakeStripe() {
             sessions.set(key, { kind: "session", value: session });
             createdSessions.push({
               line_items: params.line_items,
-              payment_method_types: params.payment_method_types,
+              allowed_payment_method_types: params.allowed_payment_method_types,
               metadata: params.metadata,
             });
             return session;

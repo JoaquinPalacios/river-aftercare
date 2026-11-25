@@ -209,7 +209,7 @@ Checkout sends an explicit allow-list:
 - `card`
 - `au_becs_debit`
 
-`payment_method_types` is set on the Checkout Session so Dashboard dynamic methods cannot add Afterpay, PayPal, BNPL, or cash. Link wallets are not offered (`wallet_options.link.display` `never`). Stripe still shows its own BECS mandate. River does not recreate that text.
+Stripe API `2026-10-28.endive` rejects Checkout Session `payment_method_types`. `allowed_payment_method_types` filters the account's dynamic methods, so Dashboard methods outside this list are not offered. Link wallets are not offered (`wallet_options.link.display` `never`). Stripe still shows its own BECS mandate. River does not recreate that text.
 
 Enable card and Australian BECS Direct Debit in the Payment Method Configuration for the mode you are configuring. BECS identity verification on the Stripe account may be required before BECS appears. That remains a Dashboard task. Do it separately for test mode and live mode.
 

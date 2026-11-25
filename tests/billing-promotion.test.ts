@@ -319,9 +319,10 @@ describe("introductory promotion checkout", () => {
     expect(opened.ok).toBe(true);
     expect(fresh.created[0]).toMatchObject({
       discounts: [{ coupon: "coupon_year_6" }],
-      payment_method_types: ["card", "au_becs_debit"],
+      allowed_payment_method_types: ["card", "au_becs_debit"],
       payment_method_collection: "always",
     });
+    expect(fresh.created[0]).not.toHaveProperty("payment_method_types");
     expect(fresh.created[0]).not.toHaveProperty("allow_promotion_codes");
     expect(fresh.created[0]?.subscription_data).not.toHaveProperty(
       "trial_period_days"
