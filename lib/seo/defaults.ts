@@ -56,13 +56,13 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
   },
   "/pricing": {
     seoTitle: "Patient Aftercare Software Pricing | River Aftercare",
-    metaDescription: `Try ${PRODUCT_NAME} free for 14 days. Compare Essential and Practice plans for clinics. Payment details are collected, and the selected subscription starts after the trial unless you cancel first.`,
+    metaDescription: `Compare ${PRODUCT_NAME} Essential, Practice and Group plans for branded patient aftercare. Australian dollar pricing, with a 14-day trial on Essential and Practice.`,
     ogTitle: null,
     ogDescription: null,
     ogImagePath: null,
     index: INDEXABLE_ROBOTS.index,
     follow: INDEXABLE_ROBOTS.follow,
-    lastModified: "2026-11-18",
+    lastModified: "2026-11-25",
   },
   "/contact": {
     seoTitle: "Request a Demo | River Aftercare",

@@ -47,8 +47,8 @@ export default async function MarketingPricingPage() {
           variant="pricing"
           eyebrow="Pricing"
           titleId="pricing-hero"
-          title="Try River Aftercare free for 14 days"
-          intro={`Get started with a 14-day free trial. Explore ${PRODUCT_NAME} before your first subscription payment. Payment details are collected, the selected Essential or Practice subscription starts charging after the trial, and you can cancel before the first charge. Group does not include this trial. ${PRODUCT_NAME} looks like the clinic, is frictionless for the patient, and needs no patient account or app.`}
+          title="Simple pricing for branded patient aftercare."
+          intro="Give patients clear, clinic-branded aftercare guidance they can reopen after the appointment, with no app or patient login. Explore Essential, Practice and Group plans to find the right solution for your clinic."
         />
 
         <div className={styles.marketingSoft} data-mk-chapter="soft">
