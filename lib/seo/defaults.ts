@@ -45,14 +45,14 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
   "/": {
     seoTitle: "Patient Aftercare Software for Clinics | River Aftercare",
     metaDescription:
-      "Create branded treatment, recovery and home-care instructions patients can reopen by link or QR code. Built for modern clinics and practices.",
+      "Digital patient aftercare software for Australian clinics. Create and share branded treatment instructions, recovery guidance and home-care plans by link or QR code.",
     ogTitle: "Aftercare that still feels like your clinic",
     ogDescription:
       "Give patients clear, branded guidance they can reopen after they leave—without an app or patient login.",
     ogImagePath: null,
     index: INDEXABLE_ROBOTS.index,
     follow: INDEXABLE_ROBOTS.follow,
-    lastModified: "2026-11-18",
+    lastModified: "2026-11-25",
   },
   "/pricing": {
     seoTitle: "Patient Aftercare Software Pricing | River Aftercare",
@@ -105,64 +105,65 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     lastModified: TERMS_LAST_UPDATED_ISO,
   },
   "/clinics": {
-    seoTitle: "Patient Aftercare for Treatment-Based Clinics | River Aftercare",
+    seoTitle:
+      "Digital Aftercare for Dental, Allied Health & Cosmetic Clinics | River Aftercare",
     metaDescription:
-      "See how River Aftercare helps dental, physiotherapy, chiropractic and cosmetic clinics publish branded aftercare patients can revisit by link or QR code.",
+      "Explore digital patient aftercare for dental, physiotherapy, chiropractic and cosmetic clinics. One branded platform, adapted to different treatment and recovery workflows.",
     ogTitle: "Patient aftercare for treatment-based clinics",
     ogDescription:
-      "See how River Aftercare helps dental, physiotherapy, chiropractic and cosmetic clinics publish branded aftercare patients can revisit by link or QR code.",
+      "Explore digital patient aftercare for dental, physiotherapy, chiropractic and cosmetic clinics. One branded platform, adapted to different treatment and recovery workflows.",
     ogImagePath: null,
     index: INDEXABLE_ROBOTS.index,
     follow: INDEXABLE_ROBOTS.follow,
-    lastModified: "2026-09-21",
+    lastModified: "2026-11-25",
   },
   "/dental": {
-    seoTitle: "Dental Aftercare Software for Practices | River Aftercare",
+    seoTitle: "Dental Aftercare & Postoperative Instructions | River Aftercare",
     metaDescription:
-      "Publish branded dental post-treatment instructions patients can revisit by link or QR code. No patient app or login required.",
-    ogTitle: "Dental Aftercare Software for Practices | River Aftercare",
+      "Digital dental aftercare software for practices. Create and share branded postoperative instructions, recovery guidance and patient home-care information.",
+    ogTitle: "Dental Aftercare & Postoperative Instructions | River Aftercare",
     ogDescription:
-      "Publish branded dental post-treatment instructions patients can revisit by link or QR code. No patient app or login required.",
+      "Digital dental aftercare software for practices. Create and share branded postoperative instructions, recovery guidance and patient home-care information.",
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-09-21",
+    lastModified: "2026-11-25",
   },
   "/physiotherapy": {
-    seoTitle: "Physiotherapy Aftercare Software for Clinics | River Aftercare",
+    seoTitle: "Physiotherapy Aftercare & Home Exercise Plans | River Aftercare",
     metaDescription:
-      "Publish branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR code. No patient app or login required.",
-    ogTitle: "Physiotherapy Aftercare Software for Clinics | River Aftercare",
+      "Create and share branded home exercise plans, recovery guidance and patient home-care instructions for physiotherapy clinics, accessible by link or QR code.",
+    ogTitle: "Physiotherapy Aftercare & Home Exercise Plans | River Aftercare",
     ogDescription:
-      "Publish branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR code. No patient app or login required.",
+      "Create and share branded home exercise plans, recovery guidance and patient home-care instructions for physiotherapy clinics, accessible by link or QR code.",
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-10-02",
+    lastModified: "2026-11-25",
   },
   "/chiropractic": {
-    seoTitle: "Chiropractic Aftercare Software for Practices | River Aftercare",
+    seoTitle: "Chiropractic Patient Aftercare Software | River Aftercare",
     metaDescription:
-      "Publish branded chiropractic home-care and post-appointment guidance patients can revisit between visits by link or QR code. No patient app or login required.",
-    ogTitle: "Chiropractic Aftercare Software for Practices | River Aftercare",
+      "Digital patient instructions and home-care guidance for chiropractic practices. Share practice-branded aftercare patients can revisit between appointments.",
+    ogTitle: "Chiropractic Patient Aftercare Software | River Aftercare",
     ogDescription:
-      "Publish branded chiropractic home-care and post-appointment guidance patients can revisit between visits by link or QR code. No patient app or login required.",
+      "Digital patient instructions and home-care guidance for chiropractic practices. Share practice-branded aftercare patients can revisit between appointments.",
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-09-22",
+    lastModified: "2026-11-25",
   },
   "/cosmetic-clinics": {
     seoTitle: "Cosmetic & Aesthetic Aftercare Software | River Aftercare",
     metaDescription:
-      "Publish branded post-treatment aftercare for cosmetic and aesthetic clinics. Patients or clients can revisit guidance by link or QR code, with no app or login.",
+      "Digital aftercare software for cosmetic and aesthetic clinics. Create branded post-treatment instructions patients and clients can revisit by link or QR code.",
     ogTitle: "Cosmetic & Aesthetic Aftercare Software | River Aftercare",
     ogDescription:
-      "Publish branded post-treatment aftercare for cosmetic and aesthetic clinics. Patients or clients can revisit guidance by link or QR code, with no app or login.",
+      "Digital aftercare software for cosmetic and aesthetic clinics. Create branded post-treatment instructions patients and clients can revisit by link or QR code.",
     ogImagePath: null,
     index: true,
     follow: true,
-    lastModified: "2026-09-23",
+    lastModified: "2026-11-25",
   },
 };
 

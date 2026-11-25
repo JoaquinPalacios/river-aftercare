@@ -73,7 +73,9 @@ test.describe("marketing homepage", () => {
     expect(page.url()).not.toContain("/_marketing");
     await expectOneH1(page, "Aftercare that still feels like your clinic.");
     await expect(
-      page.getByText("Patient aftercare for clinics and practices").first()
+      page
+        .getByText("Digital patient aftercare for clinics and practices")
+        .first()
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "View the demo", exact: true }).first()
@@ -518,7 +520,9 @@ test.describe("marketing homepage", () => {
     await page.goto(marketingUrl("/"), { waitUntil: "load" });
     await expectOneH1(page, "Aftercare that still feels like your clinic.");
     await expect(
-      page.getByText("Patient aftercare for clinics and practices").first()
+      page
+        .getByText("Digital patient aftercare for clinics and practices")
+        .first()
     ).toBeVisible();
     await expect(
       page.getByRole("heading", {

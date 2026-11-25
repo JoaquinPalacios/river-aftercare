@@ -35,11 +35,11 @@ test.describe("clinics overview hub", () => {
       "Aftercare built around the way your clinic works."
     );
     await expect(page).toHaveTitle(
-      "Patient Aftercare for Treatment-Based Clinics | River Aftercare"
+      "Digital Aftercare for Dental, Allied Health & Cosmetic Clinics | River Aftercare"
     );
     await expect(
       page.getByText(
-        "River Aftercare is patient aftercare software for treatment-based clinics. Publish clear, branded guidance patients can return to after appointments, procedures and between visits."
+        "From dental procedures and cosmetic treatments to physiotherapy and chiropractic care, River Aftercare helps clinics deliver consistent, branded patient instructions beyond the appointment."
       )
     ).toBeVisible();
 
@@ -54,7 +54,7 @@ test.describe("clinics overview hub", () => {
     );
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(
       "content",
-      "See how River Aftercare helps dental, physiotherapy, chiropractic and cosmetic clinics publish branded aftercare patients can revisit by link or QR code."
+      "Explore digital patient aftercare for dental, physiotherapy, chiropractic and cosmetic clinics. One branded platform, adapted to different treatment and recovery workflows."
     );
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       "content",
@@ -64,7 +64,7 @@ test.describe("clinics overview hub", () => {
       page.locator('meta[property="og:description"]')
     ).toHaveAttribute(
       "content",
-      "See how River Aftercare helps dental, physiotherapy, chiropractic and cosmetic clinics publish branded aftercare patients can revisit by link or QR code."
+      "Explore digital patient aftercare for dental, physiotherapy, chiropractic and cosmetic clinics. One branded platform, adapted to different treatment and recovery workflows."
     );
 
     await expect(

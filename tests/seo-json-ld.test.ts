@@ -197,7 +197,7 @@ describe("marketing JSON-LD", () => {
     expect(dentalPage?.["@type"]).toBe("WebPage");
     expect(dentalPage?.url).toBe("https://example.test/dental");
     expect(dentalPage?.name).toBe(
-      "Dental Aftercare Software for Practices | River Aftercare"
+      "Dental Aftercare & Postoperative Instructions | River Aftercare"
     );
     expect(dentalPage?.inLanguage).toBe("en");
     expect(dentalPage?.isPartOf).toEqual({
@@ -217,10 +217,10 @@ describe("marketing JSON-LD", () => {
     );
     expect(physioPage?.["@type"]).toBe("WebPage");
     expect(physioPage?.name).toBe(
-      "Physiotherapy Aftercare Software for Clinics | River Aftercare"
+      "Physiotherapy Aftercare & Home Exercise Plans | River Aftercare"
     );
     expect(physioPage?.description).toBe(
-      "Publish branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR code. No patient app or login required."
+      "Create and share branded home exercise plans, recovery guidance and patient home-care instructions for physiotherapy clinics, accessible by link or QR code."
     );
     expect(
       physio["@graph"].filter((node) => node["@type"] === "SoftwareApplication")
@@ -239,7 +239,7 @@ describe("marketing JSON-LD", () => {
     expect(page?.["@type"]).toBe("WebPage");
     expect(page?.url).toBe("https://example.test/clinics");
     expect(page?.name).toBe(
-      "Patient Aftercare for Treatment-Based Clinics | River Aftercare"
+      "Digital Aftercare for Dental, Allied Health & Cosmetic Clinics | River Aftercare"
     );
     expect(page?.mainEntity).toEqual({
       "@id": "https://example.test/#application",

@@ -41,7 +41,7 @@ describe("clinics overview hub", () => {
     expect(html).toContain("Aftercare built around the way your clinic works.");
     expect(html).toContain(CLINICS_HUB_COPY.hero.body);
     expect(html).toContain(
-      "patient aftercare software for treatment-based clinics"
+      "From dental procedures and cosmetic treatments to physiotherapy and chiropractic care, River Aftercare helps clinics deliver consistent, branded patient instructions beyond the appointment."
     );
     expect(html).toContain("For clinics &amp; practices");
     expect(html).toContain("Request a demo");
@@ -129,10 +129,10 @@ describe("clinics overview hub", () => {
       MARKETING_SEO_PATHS.filter((path) => path === "/clinics")
     ).toHaveLength(1);
     expect(defaults.seoTitle).toBe(
-      "Patient Aftercare for Treatment-Based Clinics | River Aftercare"
+      "Digital Aftercare for Dental, Allied Health & Cosmetic Clinics | River Aftercare"
     );
     expect(defaults.metaDescription).toBe(
-      "See how River Aftercare helps dental, physiotherapy, chiropractic and cosmetic clinics publish branded aftercare patients can revisit by link or QR code."
+      "Explore digital patient aftercare for dental, physiotherapy, chiropractic and cosmetic clinics. One branded platform, adapted to different treatment and recovery workflows."
     );
     expect(defaults.seoTitle).not.toBe(home.seoTitle);
     expect(defaults.metaDescription).not.toBe(home.metaDescription);
@@ -142,7 +142,7 @@ describe("clinics overview hub", () => {
     expect(resolved.robots).toEqual({ index: true, follow: true });
     expect(resolved.social.title).toBe(defaults.ogTitle);
     expect(resolved.social.description).toBe(defaults.ogDescription);
-    expect(defaults.lastModified).toBe("2026-09-21");
+    expect(defaults.lastModified).toBe("2026-11-25");
   });
 
   it("uses shared editorial grid tokens for One Platform and Beyond These Four", () => {

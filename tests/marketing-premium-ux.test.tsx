@@ -57,7 +57,9 @@ describe("premium marketing UX contracts", () => {
     );
     expect(html).toContain('data-faq-position="first"');
     expect(html).toContain('data-faq-position="last"');
-    expect(html.match(/data-faq-position="middle"/g)).toHaveLength(4);
+    expect(html.match(/data-faq-position="middle"/g)).toHaveLength(
+      VERTICAL_LANDINGS["/dental"].faq.items.length - 2
+    );
     expect(styles).toContain(".verticalFaqItem:first-child");
     expect(styles).toContain(".verticalFaqItem:last-child");
     expect(styles).toMatch(/\.verticalFaq\s*\{[^}]*overflow:\s*visible/);

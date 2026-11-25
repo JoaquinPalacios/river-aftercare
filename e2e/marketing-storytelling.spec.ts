@@ -789,10 +789,12 @@ test.describe("Phase 1F.11 story clarity", () => {
     await expect(problem.getByText("03")).toBeVisible();
     await expect(problem.locator("ol li")).toHaveCount(3);
     await expect(
-      problem.getByText("Verbal advice is easy to forget")
+      problem.getByText(
+        "Printed handouts, PDFs and verbal instructions can be difficult for patients to revisit."
+      )
     ).toBeVisible();
     await expect(
-      problem.getByText("PDFs can be awkward to reopen")
+      problem.getByText("Paper is easy to lose once the appointment ends.")
     ).toBeVisible();
     await expect(
       problem.getByText("Generic handouts can feel disconnected")
@@ -1585,7 +1587,9 @@ test.describe("Phase 1F.11 story clarity", () => {
       })
     ).toBeVisible();
     await expect(
-      page.getByText("Patient aftercare for clinics and practices").first()
+      page
+        .getByText("Digital patient aftercare for clinics and practices")
+        .first()
     ).toBeVisible();
     await page.locator('[data-mk-chapter="hero"]').screenshot({
       path: "test-results/artifacts/phase-1f12-hero-1440-light.png",

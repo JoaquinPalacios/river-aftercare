@@ -188,24 +188,25 @@ describe("marketing SEO resolution", () => {
     });
     expect(dental.absoluteTitle).toBe(true);
     expect(dental.title).toBe(
-      "Dental Aftercare Software for Practices | River Aftercare"
+      "Dental Aftercare & Postoperative Instructions | River Aftercare"
     );
     expect(dental.title).not.toContain("River Aftercare — River Aftercare");
     expect(brandCountInTitle(dental.title, "River Aftercare")).toBe(1);
 
     const metadata = marketingSeoToMetadata(dental);
     expect(metadata.title).toEqual({
-      absolute: "Dental Aftercare Software for Practices | River Aftercare",
+      absolute:
+        "Dental Aftercare & Postoperative Instructions | River Aftercare",
     });
     expect(metadata.description).toBe(
-      "Publish branded dental post-treatment instructions patients can revisit by link or QR code. No patient app or login required."
+      "Digital dental aftercare software for practices. Create and share branded postoperative instructions, recovery guidance and patient home-care information."
     );
     expect(metadata.robots).toEqual({ index: true, follow: true });
     expect(metadata.alternates?.canonical).toBe("https://example.test/dental");
     expect(metadata.openGraph).toMatchObject({
-      title: "Dental Aftercare Software for Practices | River Aftercare",
+      title: "Dental Aftercare & Postoperative Instructions | River Aftercare",
       description:
-        "Publish branded dental post-treatment instructions patients can revisit by link or QR code. No patient app or login required.",
+        "Digital dental aftercare software for practices. Create and share branded postoperative instructions, recovery guidance and patient home-care information.",
     });
   });
 
@@ -215,11 +216,11 @@ describe("marketing SEO resolution", () => {
       origin: "https://example.test",
     });
     const description =
-      "Publish branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR code. No patient app or login required.";
+      "Create and share branded home exercise plans, recovery guidance and patient home-care instructions for physiotherapy clinics, accessible by link or QR code.";
 
     expect(physiotherapy.absoluteTitle).toBe(true);
     expect(physiotherapy.title).toBe(
-      "Physiotherapy Aftercare Software for Clinics | River Aftercare"
+      "Physiotherapy Aftercare & Home Exercise Plans | River Aftercare"
     );
     expect(physiotherapy.description).toBe(description);
     expect(physiotherapy.title).not.toBe(
@@ -238,7 +239,7 @@ describe("marketing SEO resolution", () => {
     const metadata = marketingSeoToMetadata(physiotherapy);
     expect(metadata.title).toEqual({
       absolute:
-        "Physiotherapy Aftercare Software for Clinics | River Aftercare",
+        "Physiotherapy Aftercare & Home Exercise Plans | River Aftercare",
     });
     expect(metadata.description).toBe(description);
     expect(metadata.robots).toEqual({ index: true, follow: true });
@@ -246,11 +247,11 @@ describe("marketing SEO resolution", () => {
       "https://example.test/physiotherapy"
     );
     expect(metadata.openGraph).toMatchObject({
-      title: "Physiotherapy Aftercare Software for Clinics | River Aftercare",
+      title: "Physiotherapy Aftercare & Home Exercise Plans | River Aftercare",
       description,
     });
     expect(DEFAULT_MARKETING_PAGE_SEO["/physiotherapy"].lastModified).toBe(
-      "2026-10-02"
+      "2026-11-25"
     );
   });
 
@@ -260,11 +261,11 @@ describe("marketing SEO resolution", () => {
       origin: "https://example.test",
     });
     const description =
-      "Publish branded chiropractic home-care and post-appointment guidance patients can revisit between visits by link or QR code. No patient app or login required.";
+      "Digital patient instructions and home-care guidance for chiropractic practices. Share practice-branded aftercare patients can revisit between appointments.";
 
     expect(chiropractic.absoluteTitle).toBe(true);
     expect(chiropractic.title).toBe(
-      "Chiropractic Aftercare Software for Practices | River Aftercare"
+      "Chiropractic Patient Aftercare Software | River Aftercare"
     );
     expect(chiropractic.description).toBe(description);
     expect(chiropractic.title).not.toBe(
@@ -296,8 +297,7 @@ describe("marketing SEO resolution", () => {
 
     const metadata = marketingSeoToMetadata(chiropractic);
     expect(metadata.title).toEqual({
-      absolute:
-        "Chiropractic Aftercare Software for Practices | River Aftercare",
+      absolute: "Chiropractic Patient Aftercare Software | River Aftercare",
     });
     expect(metadata.description).toBe(description);
     expect(metadata.robots).toEqual({ index: true, follow: true });
@@ -305,11 +305,11 @@ describe("marketing SEO resolution", () => {
       "https://example.test/chiropractic"
     );
     expect(metadata.openGraph).toMatchObject({
-      title: "Chiropractic Aftercare Software for Practices | River Aftercare",
+      title: "Chiropractic Patient Aftercare Software | River Aftercare",
       description,
     });
     expect(DEFAULT_MARKETING_PAGE_SEO["/chiropractic"].lastModified).toBe(
-      "2026-09-22"
+      "2026-11-25"
     );
   });
 
@@ -319,7 +319,7 @@ describe("marketing SEO resolution", () => {
       origin: "https://example.test",
     });
     const description =
-      "Publish branded post-treatment aftercare for cosmetic and aesthetic clinics. Patients or clients can revisit guidance by link or QR code, with no app or login.";
+      "Digital aftercare software for cosmetic and aesthetic clinics. Create branded post-treatment instructions patients and clients can revisit by link or QR code.";
 
     expect(cosmetic.absoluteTitle).toBe(true);
     expect(cosmetic.title).toBe(
@@ -373,7 +373,7 @@ describe("marketing SEO resolution", () => {
       description,
     });
     expect(DEFAULT_MARKETING_PAGE_SEO["/cosmetic-clinics"].lastModified).toBe(
-      "2026-09-23"
+      "2026-11-25"
     );
   });
 

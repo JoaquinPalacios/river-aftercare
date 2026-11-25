@@ -38,7 +38,10 @@ test.describe("marketing conversion routes", () => {
     expect(pricing?.status()).toBe(200);
     expect(page.url()).toBe(marketingUrl("/pricing"));
     expect(page.url()).not.toContain("/_marketing");
-    await expectOneH1(page, "Simple pricing for branded patient aftercare.");
+    await expectOneH1(
+      page,
+      "Professional aftercare, built around your practice."
+    );
     await expect(
       page.getByRole("heading", {
         name: "Choose the plan that fits your practice",
@@ -628,7 +631,10 @@ test.describe("marketing conversion routes", () => {
 
     await headerNav.getByRole("link", { name: "Pricing" }).click();
     await expect(page).toHaveURL(marketingUrl("/pricing"));
-    await expectOneH1(page, "Simple pricing for branded patient aftercare.");
+    await expectOneH1(
+      page,
+      "Professional aftercare, built around your practice."
+    );
 
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto(marketingUrl("/contact"), { waitUntil: "load" });

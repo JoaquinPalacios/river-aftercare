@@ -9,22 +9,22 @@ const VERTICALS = [
   {
     path: "/dental",
     h1: "Make post-treatment instructions part of your dental experience.",
-    title: "Dental Aftercare Software for Practices | River Aftercare",
+    title: "Dental Aftercare & Postoperative Instructions | River Aftercare",
     description:
-      "Publish branded dental post-treatment instructions patients can revisit by link or QR code. No patient app or login required.",
-    ogTitle: "Dental Aftercare Software for Practices | River Aftercare",
+      "Digital dental aftercare software for practices. Create and share branded postoperative instructions, recovery guidance and patient home-care information.",
+    ogTitle: "Dental Aftercare & Postoperative Instructions | River Aftercare",
     unique: "leave the chair",
     absent: ["Riverside Physio", "exercise-adherence tracker"],
   },
   {
     path: "/physiotherapy",
     h1: "Keep recovery guidance clear between appointments.",
-    title: "Physiotherapy Aftercare Software for Clinics | River Aftercare",
+    title: "Physiotherapy Aftercare & Home Exercise Plans | River Aftercare",
     description:
-      "Publish branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR code. No patient app or login required.",
-    ogTitle: "Physiotherapy Aftercare Software for Clinics | River Aftercare",
+      "Create and share branded home exercise plans, recovery guidance and patient home-care instructions for physiotherapy clinics, accessible by link or QR code.",
+    ogTitle: "Physiotherapy Aftercare & Home Exercise Plans | River Aftercare",
     ogDescription:
-      "Publish branded physiotherapy recovery and home-care guidance patients can revisit between appointments by link or QR code. No patient app or login required.",
+      "Create and share branded home exercise plans, recovery guidance and patient home-care instructions for physiotherapy clinics, accessible by link or QR code.",
     unique:
       "does not currently track exercise completion, adherence or patient progress",
     absent: [
@@ -36,12 +36,12 @@ const VERTICALS = [
   {
     path: "/chiropractic",
     h1: "Give patients clearer guidance between chiropractic visits.",
-    title: "Chiropractic Aftercare Software for Practices | River Aftercare",
+    title: "Chiropractic Patient Aftercare Software | River Aftercare",
     description:
-      "Publish branded chiropractic home-care and post-appointment guidance patients can revisit between visits by link or QR code. No patient app or login required.",
-    ogTitle: "Chiropractic Aftercare Software for Practices | River Aftercare",
+      "Digital patient instructions and home-care guidance for chiropractic practices. Share practice-branded aftercare patients can revisit between appointments.",
+    ogTitle: "Chiropractic Patient Aftercare Software | River Aftercare",
     ogDescription:
-      "Publish branded chiropractic home-care and post-appointment guidance patients can revisit between visits by link or QR code. No patient app or login required.",
+      "Digital patient instructions and home-care guidance for chiropractic practices. Share practice-branded aftercare patients can revisit between appointments.",
     unique: "patient aftercare publishing technology",
     absent: [
       "spinal alignment",
@@ -54,10 +54,10 @@ const VERTICALS = [
     h1: "Make post-treatment aftercare feel as considered as the treatment.",
     title: "Cosmetic & Aesthetic Aftercare Software | River Aftercare",
     description:
-      "Publish branded post-treatment aftercare for cosmetic and aesthetic clinics. Patients or clients can revisit guidance by link or QR code, with no app or login.",
+      "Digital aftercare software for cosmetic and aesthetic clinics. Create branded post-treatment instructions patients and clients can revisit by link or QR code.",
     ogTitle: "Cosmetic & Aesthetic Aftercare Software | River Aftercare",
     ogDescription:
-      "Publish branded post-treatment aftercare for cosmetic and aesthetic clinics. Patients or clients can revisit guidance by link or QR code, with no app or login.",
+      "Digital aftercare software for cosmetic and aesthetic clinics. Create branded post-treatment instructions patients and clients can revisit by link or QR code.",
     unique:
       "does not currently provide live clinical monitoring, treatment monitoring or emergency triage",
     absent: ["injectables", "Riverside Dental Demo"],
@@ -172,7 +172,7 @@ test.describe("clinic vertical acquisition pages", () => {
     const secondDetails = page.locator("details").filter({ has: second });
     await first.scrollIntoViewIfNeeded();
     await expect(first).toBeVisible();
-    await expect(page.locator("details")).toHaveCount(6);
+    await expect(page.locator("details")).toHaveCount(7);
     await expect(firstDetails).toHaveJSProperty("open", false);
     await expect(page.getByText(firstAnswer)).toBeHidden();
 
@@ -211,6 +211,7 @@ test.describe("clinic vertical acquisition pages", () => {
         "Do patients need an app or account?",
         "Can our dental practice change or create the instructions?",
         "What dental templates are available?",
+        "Can River Aftercare replace printed dental aftercare sheets?",
         "Can River Aftercare match our dental practice branding?",
         "Does River Aftercare replace our practice-management system?",
         "How many custom aftercare guides can we publish?",

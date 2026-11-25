@@ -30,7 +30,13 @@ describe("marketing homepage", () => {
     const html = renderToStaticMarkup(await MarketingHomePage());
 
     expect(html).toContain("River Aftercare");
-    expect(html).toContain("Patient aftercare for clinics and practices");
+    expect(html).toContain(
+      "Digital patient aftercare for clinics and practices"
+    );
+    expect(html).toContain(
+      "Create and share clinic-branded treatment instructions, recovery guidance and home-care plans that patients can revisit anytime"
+    );
+    expect(html).not.toContain("14-day free trial");
     expect(html).not.toContain("Aftercare platform");
     expect(html).not.toContain("THE AFTERCARE PLATFORM");
     expect(html).toContain("Aftercare that still feels like your clinic.");
