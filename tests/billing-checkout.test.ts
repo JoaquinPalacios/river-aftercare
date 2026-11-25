@@ -120,9 +120,12 @@ describe("checkout session creation", () => {
       subscription_data: {
         metadata: { [RIVER_CLINIC_ID_METADATA_KEY]: "clinic_a" },
       },
-      payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
+      allowed_payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
       allow_promotion_codes: false,
     });
+    expect(stripe.sessions.created[0]).not.toHaveProperty(
+      "payment_method_types"
+    );
     expect(stripe.sessions.created[0]).not.toHaveProperty("automatic_tax");
     expect(JSON.stringify(stripe.sessions.created[0])).not.toContain(
       "afterpay"

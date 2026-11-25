@@ -153,7 +153,7 @@ describe("catalogue checkout trial", () => {
       expect(result.ok).toBe(true);
       expect(stripe.sessions.created[0]).toMatchObject({
         line_items: [{ price, quantity: 1 }],
-        payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
+        allowed_payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
         payment_method_collection: "always",
         allow_promotion_codes: false,
         metadata: {
@@ -165,6 +165,9 @@ describe("catalogue checkout trial", () => {
           metadata: { [RIVER_TRIAL_DAYS_METADATA_KEY]: "14" },
         },
       });
+      expect(stripe.sessions.created[0]).not.toHaveProperty(
+        "payment_method_types"
+      );
       expect(stripe.sessions.created[0]).not.toHaveProperty("discounts");
       expect(stripe.sessions.idempotencyKeys[0]).toBe(
         checkoutIdempotencyKey(

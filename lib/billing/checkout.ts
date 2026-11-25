@@ -2,6 +2,8 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
+import type Stripe from "stripe";
+
 import {
   BillingStatus,
   EntitlementStatus,
@@ -75,11 +77,11 @@ import {
 /**
  * Card and AU BECS only.
  *
- * Stripe Checkout still accepts `payment_method_types` on API 2026-08-26.
- * Omitting it would follow the Dashboard's dynamic payment methods, which can
- * surface Afterpay, wallets, or other methods enabled on the account. The
- * launch catalogue is an allow-list, so the session names the two methods.
- * Stripe still renders the BECS mandate. River does not copy that text.
+ * Stripe API `2026-10-28.endive` rejects `payment_method_types` on Checkout
+ * Session create. `allowed_payment_method_types` filters the account's
+ * dynamic methods, so other methods enabled in the Dashboard stay unavailable.
+ * Omitting the filter would offer those methods. Stripe still renders the
+ * BECS mandate. River does not copy that text.
  */
 export const CHECKOUT_PAYMENT_METHOD_TYPES = ["card", "au_becs_debit"] as const;
 
@@ -271,7 +273,9 @@ export type CheckoutSessionCreateShape = {
     metadata: Record<string, string>;
     trial_period_days?: number;
   };
-  payment_method_types: Array<(typeof CHECKOUT_PAYMENT_METHOD_TYPES)[number]>;
+  allowed_payment_method_types: Array<
+    (typeof CHECKOUT_PAYMENT_METHOD_TYPES)[number]
+  >;
   /**
    * Keep collecting a card or AU BECS during a trial. Stripe's default is
    * already `always`; naming it stops a later change to `if_required`.
@@ -788,39 +792,38 @@ export async function executeClinicCheckout(input: {
       promotion.application === RIVER_PROMOTION_APPLICATION_CHECKOUT
         ? promotion.couponId
         : null;
-    const session = await input.stripe.checkout.sessions.create(
-      {
-        mode: "subscription",
-        customer: customerId,
-        client_reference_id: state.clinicId,
-        line_items: lineItems,
-        success_url: input.successUrl,
-        cancel_url: input.cancelUrl,
+    const sessionParams = {
+      mode: "subscription" as const,
+      customer: customerId,
+      client_reference_id: state.clinicId,
+      line_items: lineItems,
+      success_url: input.successUrl,
+      cancel_url: input.cancelUrl,
+      metadata,
+      subscription_data: {
         metadata,
-        subscription_data: {
-          metadata,
-          ...(trialDays === CATALOGUE_TRIAL_PERIOD_DAYS
-            ? { trial_period_days: CATALOGUE_TRIAL_PERIOD_DAYS }
-            : {}),
-        },
-        payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
-        payment_method_collection: "always",
-        wallet_options: { link: { display: "never" } },
-        ...(checkoutCouponId
-          ? { discounts: [{ coupon: checkoutCouponId }] }
-          : { allow_promotion_codes: false as const }),
+        ...(trialDays === CATALOGUE_TRIAL_PERIOD_DAYS
+          ? { trial_period_days: CATALOGUE_TRIAL_PERIOD_DAYS }
+          : {}),
       },
-      {
-        idempotencyKey: checkoutIdempotencyKey(
-          state.clinicId,
-          lineItems,
-          state.stripeCheckoutSessionId,
-          attempt,
-          trialDays ?? 0,
-          promotion
-        ),
-      }
-    );
+      allowed_payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
+      payment_method_collection: "always" as const,
+      wallet_options: { link: { display: "never" as const } },
+      ...(checkoutCouponId
+        ? { discounts: [{ coupon: checkoutCouponId }] }
+        : { allow_promotion_codes: false as const }),
+    } satisfies CheckoutSessionCreateShape &
+      Stripe.Checkout.SessionCreateParams;
+    const session = await input.stripe.checkout.sessions.create(sessionParams, {
+      idempotencyKey: checkoutIdempotencyKey(
+        state.clinicId,
+        lineItems,
+        state.stripeCheckoutSessionId,
+        attempt,
+        trialDays ?? 0,
+        promotion
+      ),
+    });
 
     if (!session.url || !isStripeHostedCheckoutUrl(session.url)) {
       return failure("checkout_unavailable", "missing_checkout_url", {
