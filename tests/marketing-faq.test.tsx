@@ -10,6 +10,7 @@ const FAQ_EXPECTATIONS = {
       "Do patients need an app or account?",
       "Can our dental practice change or create the instructions?",
       "What dental templates are available?",
+      "Can River Aftercare replace printed dental aftercare sheets?",
       "Can River Aftercare match our dental practice branding?",
       "Does River Aftercare replace our practice-management system?",
       "How many custom aftercare guides can we publish?",
@@ -18,6 +19,7 @@ const FAQ_EXPECTATIONS = {
       "No. Patients open their aftercare page in the browser from a durable link or QR code. No River Aftercare app or patient login is required.",
       "Yes, within your plan. Essential and Practice use the same editor.",
       "River Aftercare Demo Clinic currently uses a Tooth Extraction sample guide. It is fictional and illustrative, and it is not clinically reviewed.",
+      "River Aftercare provides a digital alternative to printed postoperative and post-treatment instructions. Your practice can publish its approved guidance under its own brand and share it with patients through a link or QR code. Printed instructions can still be provided where appropriate.",
       "Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details",
       "It is not currently a practice-management system, CRM, patient health record, messaging platform or clinical monitoring system.",
       "Within your plan. The allowance is in the clinic-approved guidance section above.",
@@ -56,7 +58,7 @@ const FAQ_EXPECTATIONS = {
       "No. River Aftercare provides patient aftercare publishing technology. The treating practice remains responsible for the clinical information and instructions it chooses to publish.",
       "Chiropractic template availability is confirmed during onboarding. If no suitable River Aftercare template is available, your practice can publish its own approved guidance within its plan.",
       "Patient pages can carry your logo, colours, curated typography, terminology and practice contact details",
-      "It does not currently replace a practice-management system, patient health record, messaging platform or clinical monitoring system.",
+      "No. River Aftercare publishes the patient guidance your practice chooses to share, alongside the software you already use. It does not currently replace a practice-management system, patient health record, messaging platform or clinical monitoring system.",
     ],
   },
   "/cosmetic-clinics": {
@@ -88,8 +90,8 @@ describe("marketing FAQ accordion", () => {
       />
     );
 
-    expect(html.match(/<details\b/g)).toHaveLength(6);
-    expect(html.match(/<summary\b/g)).toHaveLength(6);
+    expect(html.match(/<details\b/g)).toHaveLength(7);
+    expect(html.match(/<summary\b/g)).toHaveLength(7);
     expect(html).not.toMatch(/<details[^>]*\sopen\b/);
     expect(html).toContain("aria-controls");
     expect(html).toContain('data-faq-position="first"');

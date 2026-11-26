@@ -8,7 +8,7 @@ export const CLINICS_HUB_COPY = {
   hero: {
     eyebrow: "For clinics & practices",
     h1: "Aftercare built around the way your clinic works.",
-    body: "River Aftercare is patient aftercare software for treatment-based clinics. Publish clear, branded guidance patients can return to after appointments, procedures and between visits.",
+    body: "From dental procedures and cosmetic treatments to physiotherapy and chiropractic care, River Aftercare helps clinics deliver consistent, branded patient instructions beyond the appointment.",
     primaryCta: "Request a demo",
     secondaryCta: "Explore clinic types",
   },

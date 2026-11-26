@@ -131,7 +131,10 @@ describe("clinic vertical landing pages", () => {
     expect(physio).not.toContain("home exercise programme app");
     expect(physio).not.toContain("video exercise");
     expect(chiro).toContain(
-      "does not replace your practice-management system, patient health record"
+      "works alongside the software your practice already uses"
+    );
+    expect(chiro).toContain(
+      "does not replace your patient health record or practice-management system"
     );
     expect(chiro).toContain("patient aftercare publishing technology");
     expect(chiro).toContain(
@@ -209,6 +212,13 @@ describe("clinic vertical landing pages", () => {
     );
     expect(dental).toContain("patient aftercare publishing software");
     expect(dental).toContain(
+      "Can River Aftercare replace printed dental aftercare sheets?"
+    );
+    expect(dental).toContain(
+      "Your practice can also publish its own clinic-specific postoperative instructions"
+    );
+    expect(dental).not.toMatch(/wisdom tooth|dental implant|root canal/i);
+    expect(dental).toContain(
       "Add your branding, terminology, and your clinic&#x27;s approved instructions."
     );
     expect(dental).not.toContain("active custom");
@@ -274,7 +284,7 @@ describe("clinic vertical landing pages", () => {
       "Keep recovery guidance clear between appointments."
     );
     expect(landing.hero.body).toBe(
-      "Turn clinic-approved recovery, home-care and written exercise guidance into branded pages patients can revisit between appointments — by link or QR code, with no patient app or login."
+      "Share clinic-branded recovery guidance, written home exercise plans and home-care instructions that patients can revisit between appointments — by link or QR code, with no patient app or login."
     );
     expect(landing.hero.panel.items.map((item) => item.body)).toEqual([
       "Clinic-controlled recovery guidance",
@@ -291,13 +301,16 @@ describe("clinic vertical landing pages", () => {
     expect(landing.guidance.h2).toBe(
       "Support the guidance that happens outside the treatment room"
     );
+    expect(landing.guidance.body).toContain(
+      "Written home exercise plans, under your clinic's brand."
+    );
     expect(landing.guidance.body).toContain("can publish guidance such as:");
     expect(landing.guidance.items).toEqual([
+      "clinic-approved written home exercise plans",
+      "written exercise guidance patients can read again",
+      "a printable copy of the published plan",
       "post-appointment home-care information",
-      "written recovery instructions",
-      "written exercise reminders or instructions",
-      "self-management guidance",
-      "return-to-activity information",
+      "self-management and return-to-activity information",
       "clinic contact and escalation information",
     ]);
     expect(landing.guidance.boundary).toBe(
@@ -391,7 +404,7 @@ describe("clinic vertical landing pages", () => {
       "Give patients clearer guidance between chiropractic visits."
     );
     expect(landing.hero.body).toBe(
-      "Publish practice-branded home-care and post-appointment guidance patients can revisit between visits — by link or QR code, with no patient app or login."
+      "Create and share practice-branded patient instructions, home-care plans and post-appointment guidance patients can revisit between visits — by link or QR code, with no patient app or login."
     );
     expect(landing.hero.secondaryCta).toEqual({
       kind: "anchor",
@@ -464,7 +477,7 @@ describe("clinic vertical landing pages", () => {
       h2: "A publishing layer for patient guidance",
     });
     expect(landing.extras[0]?.kind === "copy" && landing.extras[0].body).toBe(
-      "River Aftercare does not replace your practice-management system, patient health record or practitioner judgement. It provides a clinic-controlled patient-facing place for the guidance your practice chooses to publish."
+      "River Aftercare works alongside the software your practice already uses. It publishes the patient instructions, home-care plans and post-appointment guidance your practice approves, under your own brand."
     );
     expect(
       landing.extras[0]?.kind === "copy" &&
@@ -521,7 +534,7 @@ describe("clinic vertical landing pages", () => {
       "Make post-treatment aftercare feel as considered as the treatment."
     );
     expect(landing.hero.body).toBe(
-      "Give patients or clients clear, clinic-branded aftercare they can revisit after cosmetic and aesthetic treatments — by link or QR code, with no patient app or login."
+      "Create and share clinic-branded post-treatment instructions that patients or clients can revisit after cosmetic and aesthetic treatments — by link or QR code, with no patient app or login."
     );
     expect(landing.hero.secondaryCta).toEqual({
       kind: "anchor",

@@ -366,10 +366,10 @@ test.describe("premium marketing UX", () => {
     await page.goto(marketingUrl("/dental"), { waitUntil: "load" });
 
     const items = page.locator("details");
-    await expect(items).toHaveCount(6);
+    await expect(items).toHaveCount(7);
     const first = items.nth(0);
     const middle = items.nth(2);
-    const last = items.nth(5);
+    const last = items.nth(6);
 
     for (const item of [first, middle, last]) {
       const summary = item.locator("summary");

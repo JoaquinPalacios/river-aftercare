@@ -47,8 +47,8 @@ export default async function MarketingPricingPage() {
           variant="pricing"
           eyebrow="Pricing"
           titleId="pricing-hero"
-          title="Simple pricing for branded patient aftercare."
-          intro="Give patients clear, clinic-branded aftercare guidance they can reopen after the appointment, with no app or patient login. Explore Essential, Practice and Group plans to find the right solution for your clinic."
+          title="Professional aftercare, built around your practice."
+          intro="Choose the River Aftercare plan that suits your clinic, from branded digital patient guidance for a single location to flexible content management and multi-location support. Essential and Practice include a 14-day free trial."
         />
 
         <div className={styles.marketingSoft} data-mk-chapter="soft">

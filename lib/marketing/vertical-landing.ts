@@ -158,7 +158,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
   hero: {
     eyebrow: `${PRODUCT_NAME} for dental practices`,
     h1: "Make post-treatment instructions part of your dental experience.",
-    body: "Give patients clear, practice-branded guidance they can reopen after treatment — by link or QR code, with no app or patient login.",
+    body: "Create and share practice-branded postoperative and post-treatment instructions that patients can revisit after dental care — by link or QR code, with no app or patient login.",
     primaryCtaLabel: "Request a demo",
     secondaryCta: { kind: "demo", label: "View the dental demo" },
     panel: {
@@ -231,7 +231,7 @@ export const DENTAL_LANDING: VerticalLandingContent = {
       label: "Current dental demo",
       value: "Tooth Extraction",
     },
-    note: "River Aftercare Demo Clinic uses a Tooth Extraction sample guide to show the current patient experience. It is fictional and illustrative, and it is not clinically reviewed. Available dental templates are confirmed during onboarding.",
+    note: "River Aftercare Demo Clinic uses a Tooth Extraction sample guide to show the current patient experience. It is fictional and illustrative, and it is not clinically reviewed. Available dental templates are confirmed during onboarding. Your practice can also publish its own clinic-specific postoperative instructions for the treatments it provides.",
   },
   workflow: {
     h2: "From approved instructions to a page patients can revisit",
@@ -287,6 +287,12 @@ export const DENTAL_LANDING: VerticalLandingContent = {
           "River Aftercare Demo Clinic currently uses a Tooth Extraction sample guide. It is fictional and illustrative, and it is not clinically reviewed. Dental template availability is confirmed during onboarding as the library develops.",
       },
       {
+        question:
+          "Can River Aftercare replace printed dental aftercare sheets?",
+        answer:
+          "River Aftercare provides a digital alternative to printed postoperative and post-treatment instructions. Your practice can publish its approved guidance under its own brand and share it with patients through a link or QR code. Printed instructions can still be provided where appropriate.",
+      },
+      {
         question: "Can River Aftercare match our dental practice branding?",
         answer:
           "Yes. Patient pages can carry your logo, colours, curated typography, terminology and clinic contact details. Essential and Practice include the same branding controls, with Light, Dark and System presentation.",
@@ -317,7 +323,7 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
   hero: {
     eyebrow: `${PRODUCT_NAME} for physiotherapy`,
     h1: "Keep recovery guidance clear between appointments.",
-    body: "Turn clinic-approved recovery, home-care and written exercise guidance into branded pages patients can revisit between appointments — by link or QR code, with no patient app or login.",
+    body: "Share clinic-branded recovery guidance, written home exercise plans and home-care instructions that patients can revisit between appointments — by link or QR code, with no patient app or login.",
     primaryCtaLabel: "Request a demo",
     secondaryCta: {
       kind: "anchor",
@@ -390,13 +396,13 @@ export const PHYSIOTHERAPY_LANDING: VerticalLandingContent = {
   guidance: {
     eyebrow: "Between-visit care",
     h2: "Support the guidance that happens outside the treatment room",
-    body: `Depending on your clinic's services and approved content, ${PRODUCT_NAME} can publish guidance such as:`,
+    body: `Written home exercise plans, under your clinic's brand. Give patients a clear reference for the written exercises and home-care guidance your clinic publishes, without another patient account or app. Depending on your clinic's services and approved content, ${PRODUCT_NAME} can publish guidance such as:`,
     items: [
+      "clinic-approved written home exercise plans",
+      "written exercise guidance patients can read again",
+      "a printable copy of the published plan",
       "post-appointment home-care information",
-      "written recovery instructions",
-      "written exercise reminders or instructions",
-      "self-management guidance",
-      "return-to-activity information",
+      "self-management and return-to-activity information",
       "clinic contact and escalation information",
     ],
     boundary: `${PRODUCT_NAME} publishes clinic-approved written guidance. It does not currently track exercise completion, adherence or patient progress.`,
@@ -508,7 +514,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
   hero: {
     eyebrow: `${PRODUCT_NAME} for chiropractic practices`,
     h1: "Give patients clearer guidance between chiropractic visits.",
-    body: "Publish practice-branded home-care and post-appointment guidance patients can revisit between visits — by link or QR code, with no patient app or login.",
+    body: "Create and share practice-branded patient instructions, home-care plans and post-appointment guidance patients can revisit between visits — by link or QR code, with no patient app or login.",
     primaryCtaLabel: "Request a demo",
     secondaryCta: {
       kind: "anchor",
@@ -620,7 +626,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       kind: "copy",
       eyebrow: "How it fits",
       h2: "A publishing layer for patient guidance",
-      body: `${PRODUCT_NAME} does not replace your practice-management system, patient health record or practitioner judgement. It provides a clinic-controlled patient-facing place for the guidance your practice chooses to publish.`,
+      body: `${PRODUCT_NAME} works alongside the software your practice already uses. It publishes the patient instructions, home-care plans and post-appointment guidance your practice approves, under your own brand.`,
       highlights: [
         {
           title: "Practice controlled",
@@ -666,7 +672,7 @@ export const CHIROPRACTIC_LANDING: VerticalLandingContent = {
       },
       {
         question: `Does ${PRODUCT_NAME} replace our practice-management system or patient health record?`,
-        answer: `No. ${PRODUCT_NAME} is patient aftercare publishing software. It does not currently replace a practice-management system, patient health record, messaging platform or clinical monitoring system.`,
+        answer: `No. ${PRODUCT_NAME} publishes the patient guidance your practice chooses to share, alongside the software you already use. It does not currently replace a practice-management system, patient health record, messaging platform or clinical monitoring system.`,
       },
     ],
   },
@@ -685,7 +691,7 @@ export const COSMETIC_CLINICS_LANDING: VerticalLandingContent = {
   hero: {
     eyebrow: `${PRODUCT_NAME} for cosmetic & aesthetic clinics`,
     h1: "Make post-treatment aftercare feel as considered as the treatment.",
-    body: "Give patients or clients clear, clinic-branded aftercare they can revisit after cosmetic and aesthetic treatments — by link or QR code, with no patient app or login.",
+    body: "Create and share clinic-branded post-treatment instructions that patients or clients can revisit after cosmetic and aesthetic treatments — by link or QR code, with no patient app or login.",
     primaryCtaLabel: "Request a demo",
     secondaryCta: {
       kind: "anchor",

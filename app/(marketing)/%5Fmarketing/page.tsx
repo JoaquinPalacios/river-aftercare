@@ -38,9 +38,9 @@ const MarketingReveal = {
 };
 
 const FRICTION = [
-  "Verbal advice is easy to forget once the appointment ends.",
-  "Paper is easy to lose, and PDFs can be awkward to reopen on a phone.",
-  "Generic handouts can feel disconnected from the clinic that provided the care.",
+  "Printed handouts, PDFs and verbal instructions can be difficult for patients to revisit.",
+  "Paper is easy to lose once the appointment ends.",
+  `Generic handouts can feel disconnected from the clinic. ${PRODUCT_NAME} brings your clinic-approved guidance together in a branded digital experience that remains accessible after the appointment.`,
 ] as const;
 
 const BRAND_DIMENSIONS = [
@@ -87,7 +87,7 @@ export default async function MarketingHomePage() {
                 <div className={styles.heroTitleBlock}>
                   <MarketingReveal.Item>
                     <p className={`${styles.eyebrow} ${styles.heroEyebrow}`}>
-                      Patient aftercare for clinics and practices
+                      Digital patient aftercare for clinics and practices
                     </p>
                   </MarketingReveal.Item>
                   <MarketingReveal.Item>
@@ -100,11 +100,10 @@ export default async function MarketingHomePage() {
                   <div className={styles.heroSupport}>
                     <MarketingReveal.Item>
                       <p className={`${styles.lede} ${styles.heroBody}`}>
-                        Give patients clear, clinic-branded treatment, recovery
-                        and home-care guidance they can reopen after the
-                        appointment — by link or QR code, with no app or patient
-                        login. Essential and Practice include a 14-day free
-                        trial.
+                        Create and share clinic-branded treatment instructions,
+                        recovery guidance and home-care plans that patients can
+                        revisit anytime — by link or QR code, with no app or
+                        patient login.
                       </p>
                     </MarketingReveal.Item>
                     <MarketingReveal.Item>
