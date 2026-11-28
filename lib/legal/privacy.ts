@@ -57,11 +57,11 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "For clinic and staff accounts, we may collect a person's name, email address, password in hashed form, clinic membership, account role, authentication and session information, and records reasonably required to administer access to the Service.",
+        text: "For clinic and staff accounts, we may collect a person's name, email address, password in hashed form, clinic membership, account role, authentication and session information, and records reasonably required to administer access to the Service. When a person registers a clinic, this includes the owner's name and email address, the password chosen for that account stored only in hashed form, the practice name, the public web address chosen for the clinic, the practice categories selected, and the Essential or Practice plan and monthly or annual interval selected. We record the Terms version accepted and the Privacy Policy version acknowledged. Before the clinic account is created, we email a time-limited link so the person can confirm that email address. We may also process information used to reset a password or confirm a later change of email address.",
       },
       {
         type: "p",
-        text: "For subscription and billing administration, we may collect, where relevant, a legal entity name, trading or practice name, billing contact name, billing email, billing address, Australian Business Number (ABN), Australian Company Number (ACN) where used instead of an ABN, subscription and plan information, invoice and payment status, and transaction or reference information. An ABN is the usual Australian business identifier. If a customer has no ABN, an ACN may be used instead. Unusual cases may be handled manually.",
+        text: "For subscription and billing administration, we may collect, where relevant, a legal entity name, trading or practice name, billing contact name, billing email, billing address, Australian Business Number (ABN), Australian Company Number (ACN) where used instead of an ABN, subscription and plan information, including whether a free trial applies, invoice and payment status, and transaction or reference information. An ABN is the usual Australian business identifier. If a customer has no ABN, an ACN may be used instead. Unusual cases may be handled manually.",
       },
       {
         type: "p",
@@ -77,7 +77,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "The Contact form uses Cloudflare Turnstile to help distinguish legitimate visitors from automated traffic. Turnstile processes technical browser, device and network signals necessary for that security purpose. River Aftercare does not provide the text entered into the Contact form to Turnstile as part of that verification.",
+        text: "The Contact form, clinic registration and related registration checks use Cloudflare Turnstile to help distinguish legitimate visitors from automated traffic. Turnstile processes technical browser, device and network signals necessary for that security purpose. River Aftercare does not provide the contents of those forms, including messages or passwords, to Turnstile as part of that verification.",
       },
       {
         type: "p",
@@ -117,7 +117,7 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: `We collect personal information directly from people when they contact us, correspond with us, create or use an authorised account, configure a clinic, set up billing or a subscription, or otherwise deal with ${PRODUCT_NAME}.`,
+        text: `We collect personal information directly from people when they contact us, correspond with us, register a clinic, create or use an authorised account, confirm an email address, configure a clinic, set up billing or a subscription, or otherwise deal with ${PRODUCT_NAME}.`,
       },
       {
         type: "p",
@@ -143,7 +143,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "We also use billing information to set up and administer subscriptions; create and maintain the relevant payment-provider customer record; process recurring payments; administer monthly and annual billing; follow up failed or pending payments; provide billing-portal access; issue and maintain invoice or payment records; and maintain tax or accounting records where applicable.",
+        text: "We also use billing information to set up and administer subscriptions, including an eligible free trial; create and maintain the relevant payment-provider customer record; process recurring payments; administer monthly and annual billing; follow up failed or pending payments; provide billing-portal access; issue and maintain invoice or payment records; and maintain tax or accounting records where applicable.",
       },
       {
         type: "p",
@@ -205,7 +205,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "The Contact form uses Cloudflare Turnstile for bot and abuse prevention as described above.",
+        text: "The Contact form and clinic registration use Cloudflare Turnstile for bot and abuse prevention as described above.",
       },
       {
         type: "p",
@@ -223,7 +223,7 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: `${PRODUCT_NAME} uses service providers to operate the Service. Current production providers include Vercel for application hosting, deployment, network delivery and related website measurement; Neon for the production PostgreSQL database; Cloudflare for object storage and Turnstile security services; Resend for application and contact email delivery; and business email providers including Hostinger and Google for email routing, forwarding and mailbox functions. ${PRODUCT_NAME} uses Stripe as the payment and billing processor for subscription payments and billing management. Stripe's handling of personal information is described in ${STRIPE_PRIVACY_POLICY_MARKDOWN}.`,
+        text: `${PRODUCT_NAME} uses service providers to operate the Service. Current production providers include Vercel for application hosting, deployment, network delivery and related website measurement; Neon for the production PostgreSQL database; Cloudflare for object storage and Turnstile security services; Resend for application email, including registration confirmation and account-security messages, and for contact email delivery; and business email providers including Hostinger and Google for email routing, forwarding and mailbox functions. ${PRODUCT_NAME} uses Stripe as the payment and billing processor for subscription payments and billing management. Card and bank-account details entered for payment are handled by Stripe on Stripe-hosted pages. ${PRODUCT_NAME} does not receive those full payment credentials. Stripe's handling of personal information is described in ${STRIPE_PRIVACY_POLICY_MARKDOWN}.`,
       },
       {
         type: "p",
@@ -301,11 +301,11 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "Already-published public patient guides may remain accessible for up to 60 days after the relevant subscription ends, subject to earlier removal where reasonably necessary for legal, security, prohibited-use, harm-prevention, customer-request, account-deletion or other lawful reasons.",
+        text: "Already-published public patient guides may remain accessible for up to 60 days after the relevant subscription ends, including a free trial that ends without a collected subscription payment. Where the subscription included a collected paid period, that period is measured from the end of the paid period. Where a free trial ends without a collected subscription payment, it is measured from the end of the subscription. Guides may be removed earlier where reasonably necessary for legal, security, prohibited-use, harm-prevention, customer-request, account-deletion or other lawful reasons. Keeping a guide available is separate from deleting the clinic account or other records.",
       },
       {
         type: "p",
-        text: `Following the end of a subscription, ${PRODUCT_NAME} ordinarily provides a 30-day period during which the Customer may request an export of available Customer-owned content, after which ${PRODUCT_NAME} may delete active clinic account and operational information that is no longer required. Cancellation or expiry of a subscription is not itself a request to delete an account. Information may be retained for longer where reasonably required for legal, security, accounting or dispute-related purposes.`,
+        text: `Following the end of a subscription, including a free trial that ends without a collected subscription payment, ${PRODUCT_NAME} ordinarily provides a 30-day period during which the Customer may request an export of available Customer-owned content, after which ${PRODUCT_NAME} may delete active clinic account and operational information that is no longer required. That possible deletion is separate from the public-guide availability described above, and this Policy does not promise deletion on a particular day. Cancellation or expiry of a subscription is not itself a request to delete an account. Information may be retained for longer where reasonably required for legal, security, accounting or dispute-related purposes.`,
       },
       {
         type: "p",
@@ -345,7 +345,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `Service communications include messages reasonably necessary to respond to an enquiry, administer an account or subscription, communicate security information, or provide support. Billing communications, including invoices, payment receipts, payment-failure messages and payment-method or billing actions, may be sent by ${PRODUCT_NAME} or by Stripe on ${PRODUCT_NAME}'s behalf or as ${PRODUCT_NAME}'s billing provider.`,
+        text: `Service communications include messages reasonably necessary to respond to an enquiry, administer an account or subscription, communicate security information, or provide support. Billing communications, including invoices, payment receipts, payment-failure messages and payment-method or billing actions, may be sent by Stripe on ${PRODUCT_NAME}'s behalf or as ${PRODUCT_NAME}'s billing provider. ${PRODUCT_NAME} shows the related payment status in the Service and does not send a second payment-failure email for the same event. Registration confirmation, account-security messages and other application email are sent through ${PRODUCT_NAME}'s email provider.`,
       },
       {
         type: "p",
