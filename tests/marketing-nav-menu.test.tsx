@@ -47,6 +47,8 @@ describe("marketing mobile navigation", () => {
     expect(html).toContain("Pricing");
     expect(html).toContain("Contact");
     expect(html).toContain(">Sign in<");
+    expect(html).not.toContain("Start free trial");
+    expect(html).not.toContain("/register");
     expect(html).not.toContain("Staff sign in");
     expect(html).toContain("http://app.localhost:3000/login");
     expect(html).toContain("Theme");
@@ -60,6 +62,24 @@ describe("marketing mobile navigation", () => {
     expect(html).toContain('data-vertical="dental"');
     expect(html).not.toContain("How it works");
     expect(html).not.toContain("Clinic preview");
+  });
+
+  it("adds Start free trial to the site menu only when a registration href is provided", () => {
+    const html = renderToStaticMarkup(
+      <MarketingNavMenu
+        staffHref="http://app.localhost:3000/login"
+        registrationHref="http://app.localhost:3000/register"
+        items={[{ href: "/pricing", label: "Pricing" }]}
+        clinicItems={[{ href: "/clinics", label: "Overview" }]}
+      />
+    );
+
+    const trial = html.indexOf(">Start free trial<");
+    const signIn = html.indexOf(">Sign in<");
+    expect(trial).toBeGreaterThan(-1);
+    expect(signIn).toBeGreaterThan(trial);
+    expect(html).toContain('href="http://app.localhost:3000/register"');
+    expect(html).not.toContain("http://app.localhost:3000/register?");
   });
 
   it("uses full-row menu interaction styles with a 48px minimum height", () => {

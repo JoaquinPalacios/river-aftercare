@@ -14,6 +14,7 @@ import { ProductMark } from "@/lib/branding/product-mark";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { isMarketingMotionEnabled } from "@/lib/marketing/marketing-motion-enabled";
 import { nextMarketingNavVisibility } from "@/lib/marketing/nav-scroll";
+import { START_FREE_TRIAL_LABEL } from "@/lib/marketing/registration-cta";
 import { REVEAL_EASE } from "@/lib/marketing/reveal-timing";
 import type { MarketingSeoPath } from "@/lib/seo/types";
 
@@ -24,11 +25,13 @@ const SIGN_IN_LABEL = "Sign in";
 export function MarketingSiteHeader({
   currentPath,
   staffHref,
+  registrationHref = null,
   menuItems,
   clinicItems,
 }: {
   currentPath: MarketingSeoPath;
   staffHref: string;
+  registrationHref?: string | null;
   menuItems: MarketingMenuItem[];
   clinicItems: MarketingMenuItem[];
 }) {
@@ -159,6 +162,14 @@ export function MarketingSiteHeader({
               {item.label}
             </Link>
           ))}
+          {registrationHref ? (
+            <a
+              className={`${styles.navTrial} ${styles.textLink}`}
+              href={registrationHref}
+            >
+              {START_FREE_TRIAL_LABEL}
+            </a>
+          ) : null}
           <a
             className={`${styles.navStaff} ${styles.textLink}`}
             href={staffHref}
@@ -172,6 +183,7 @@ export function MarketingSiteHeader({
             items={menuItems}
             clinicItems={clinicItems}
             staffHref={staffHref}
+            registrationHref={registrationHref}
             onOpenChange={onMobileOpenChange}
           />
         </nav>

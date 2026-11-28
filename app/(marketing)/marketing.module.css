@@ -667,7 +667,8 @@ html[data-theme-mode="dark"] .wordmarkName {
   font-size: 1rem;
 }
 
-.navStaff {
+.navStaff,
+.navTrial {
   white-space: nowrap;
 }
 
@@ -3541,6 +3542,28 @@ html[data-theme-mode="dark"] .wordmarkName {
   width: 100%;
 }
 
+.planCtaStack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  margin-top: auto;
+}
+
+.planCtaStack .planCta {
+  margin-top: 0;
+}
+
+.planCtaAssist {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  min-height: 2.75rem;
+  margin-top: 0.15rem;
+  text-align: center;
+}
+
 .planFootnoteRef {
   display: inline;
   margin-left: 0.05em;
@@ -5546,6 +5569,7 @@ html[data-theme-mode="dark"] .wordmarkName {
 
   .nav a.navRoute,
   .nav a.navStaff,
+  .nav a.navTrial,
   .navTheme,
   .navClinics {
     display: none;

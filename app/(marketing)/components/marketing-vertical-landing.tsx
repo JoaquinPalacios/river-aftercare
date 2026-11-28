@@ -5,6 +5,7 @@ import {
   MarketingRevealGroup,
   MarketingRevealItem,
 } from "@/app/(marketing)/components/marketing-experience";
+import { MarketingAssistedClose } from "@/app/(marketing)/components/marketing-assisted-close";
 import { MarketingFaq } from "@/app/(marketing)/components/marketing-faq";
 import { MarketingPrimaryAnchor } from "@/app/(marketing)/components/marketing-primary-anchor";
 import { marketingPrimaryClassName } from "@/app/(marketing)/components/marketing-primary-class";
@@ -485,17 +486,13 @@ export function MarketingVerticalLanding({
                   </MarketingRevealItem>
                 </div>
                 <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                  <div className={styles.verticalCtaActions}>
-                    <MarketingPrimaryLink href="/contact">
-                      {content.cta.label}
-                    </MarketingPrimaryLink>
-                    <Link
-                      className={`${styles.textLink} ${styles.verticalCtaSecondary}`}
-                      href={content.cta.secondaryHref}
-                    >
-                      {content.cta.secondaryLabel}
-                    </Link>
-                  </div>
+                  <MarketingAssistedClose
+                    primaryLabel={content.cta.label}
+                    secondary={{
+                      href: content.cta.secondaryHref,
+                      label: content.cta.secondaryLabel,
+                    }}
+                  />
                 </MarketingRevealItem>
               </div>
             </MarketingRevealGroup>

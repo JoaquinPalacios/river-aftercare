@@ -6,6 +6,7 @@ import { MarketingSiteHeader } from "@/app/(marketing)/components/marketing-site
 import { ProductMark } from "@/lib/branding/product-mark";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import { clinicDirectoryNavItems } from "@/lib/marketing/clinic-verticals";
+import { marketingRegistrationOffer } from "@/lib/marketing/registration-offer";
 import type { VerticalThemeId } from "@/lib/marketing/vertical-landing";
 import type { MarketingSeoPath } from "@/lib/seo/types";
 
@@ -99,6 +100,8 @@ export function MarketingShell({
     current: currentPath === item.href,
   }));
   const clinicItems = clinicDirectoryNavItems(currentPath);
+  const registration = marketingRegistrationOffer();
+  const registrationHref = registration.enabled ? registration.href : null;
 
   const footerGroups = [
     FOOTER_GROUPS[0],
@@ -118,6 +121,7 @@ export function MarketingShell({
       <MarketingSiteHeader
         currentPath={currentPath}
         staffHref={staffHref}
+        registrationHref={registrationHref}
         menuItems={menuItems}
         clinicItems={clinicItems}
       />

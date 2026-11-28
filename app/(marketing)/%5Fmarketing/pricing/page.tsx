@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { JsonLd } from "@/app/(marketing)/components/json-ld";
+import { MarketingAssistedClose } from "@/app/(marketing)/components/marketing-assisted-close";
 import {
   MarketingRevealCard,
   MarketingRevealGroup,
@@ -9,7 +8,7 @@ import {
 import { MarketingNumberedSteps } from "@/app/(marketing)/components/marketing-numbered-steps";
 import { MarketingPageHero } from "@/app/(marketing)/components/marketing-page-hero";
 import { MarketingPlanComparison } from "@/app/(marketing)/components/marketing-plan-comparison";
-import { MarketingPrimaryLink } from "@/app/(marketing)/components/marketing-primary-link";
+import { MarketingPlanCta } from "@/app/(marketing)/components/marketing-plan-cta";
 import { MarketingShell } from "@/app/(marketing)/components/marketing-shell";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 import {
@@ -157,21 +156,7 @@ export default async function MarketingPricingPage() {
                           ))}
                         </div>
                       ) : null}
-                      {plan.recommended ? (
-                        <MarketingPrimaryLink
-                          className={styles.planCta}
-                          href={plan.ctaHref}
-                        >
-                          {plan.ctaLabel}
-                        </MarketingPrimaryLink>
-                      ) : (
-                        <Link
-                          className={`${styles.button} ${styles.secondary} ${styles.planCta}`}
-                          href={plan.ctaHref}
-                        >
-                          {plan.ctaLabel}
-                        </Link>
-                      )}
+                      <MarketingPlanCta plan={plan} />
                     </article>
                   </MarketingRevealCard>
                 ))}
@@ -273,11 +258,7 @@ export default async function MarketingPricingPage() {
                   </MarketingRevealItem>
                 </div>
                 <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                  <div className={styles.closingCtaAction}>
-                    <MarketingPrimaryLink href="/contact">
-                      Request a demo
-                    </MarketingPrimaryLink>
-                  </div>
+                  <MarketingAssistedClose primaryLabel="Request a demo" />
                 </MarketingRevealItem>
               </div>
             </MarketingRevealGroup>

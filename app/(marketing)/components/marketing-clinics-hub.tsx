@@ -5,6 +5,7 @@ import {
   MarketingRevealGroup,
   MarketingRevealItem,
 } from "@/app/(marketing)/components/marketing-experience";
+import { MarketingAssistedClose } from "@/app/(marketing)/components/marketing-assisted-close";
 import { MarketingPrimaryLink } from "@/app/(marketing)/components/marketing-primary-link";
 import { MarketingShell } from "@/app/(marketing)/components/marketing-shell";
 import { JsonLd } from "@/app/(marketing)/components/json-ld";
@@ -319,17 +320,13 @@ export function MarketingClinicsHub({
                   </MarketingRevealItem>
                 </div>
                 <MarketingRevealItem delay={editorialRevealDelay(1)}>
-                  <div className={styles.verticalCtaActions}>
-                    <MarketingPrimaryLink href="/contact">
-                      {copy.cta.primary}
-                    </MarketingPrimaryLink>
-                    <Link
-                      className={`${styles.textLink} ${styles.verticalCtaSecondary}`}
-                      href="/pricing"
-                    >
-                      {copy.cta.secondary}
-                    </Link>
-                  </div>
+                  <MarketingAssistedClose
+                    primaryLabel={copy.cta.primary}
+                    secondary={{
+                      href: "/pricing",
+                      label: copy.cta.secondary,
+                    }}
+                  />
                 </MarketingRevealItem>
               </div>
             </MarketingRevealGroup>

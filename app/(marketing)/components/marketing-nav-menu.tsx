@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { MarketingNavTheme } from "@/app/(marketing)/components/marketing-nav-theme";
 import { MARKETING_MOBILE_MAX_REM } from "@/lib/marketing/breakpoints";
 import { lockDocumentScroll } from "@/lib/marketing/document-scroll-lock";
+import { START_FREE_TRIAL_LABEL } from "@/lib/marketing/registration-cta";
 
 import styles from "../marketing.module.css";
 
@@ -22,11 +23,13 @@ export function MarketingNavMenu({
   items,
   clinicItems,
   staffHref,
+  registrationHref = null,
   onOpenChange,
 }: {
   items: MarketingMenuItem[];
   clinicItems: MarketingMenuItem[];
   staffHref: string;
+  registrationHref?: string | null;
   onOpenChange?: (open: boolean) => void;
 }) {
   const reactId = useId().replace(/:/g, "");
@@ -216,6 +219,11 @@ export function MarketingNavMenu({
           ))}
         </ul>
         <div className={styles.navMenuMeta}>
+          {registrationHref ? (
+            <a className={styles.navMenuRow} href={registrationHref}>
+              {START_FREE_TRIAL_LABEL}
+            </a>
+          ) : null}
           <a className={styles.navMenuRow} href={staffHref}>
             Sign in
           </a>

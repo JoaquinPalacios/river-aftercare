@@ -11,8 +11,8 @@ import { MarketingNumberedSteps } from "@/app/(marketing)/components/marketing-n
 import { MarketingPillars } from "@/app/(marketing)/components/marketing-pillars";
 import { MarketingProcess } from "@/app/(marketing)/components/marketing-process";
 import { MarketingProductAssembly } from "@/app/(marketing)/components/marketing-product-assembly";
+import { MarketingAssistedClose } from "@/app/(marketing)/components/marketing-assisted-close";
 import { MarketingPrimaryAnchor } from "@/app/(marketing)/components/marketing-primary-anchor";
-import { MarketingPrimaryLink } from "@/app/(marketing)/components/marketing-primary-link";
 import { MarketingProductPreview } from "@/app/(marketing)/components/marketing-product-preview";
 import { JsonLd } from "@/app/(marketing)/components/json-ld";
 import { MarketingShell } from "@/app/(marketing)/components/marketing-shell";
@@ -354,11 +354,7 @@ export default async function MarketingHomePage() {
                   </MarketingReveal.Item>
                 </div>
                 <MarketingReveal.Item delay={editorialRevealDelay(1)}>
-                  <div className={styles.closingCtaAction}>
-                    <MarketingPrimaryLink href="/contact">
-                      Request a demo
-                    </MarketingPrimaryLink>
-                  </div>
+                  <MarketingAssistedClose primaryLabel="Request a demo" />
                 </MarketingReveal.Item>
               </div>
             </MarketingReveal.Group>
