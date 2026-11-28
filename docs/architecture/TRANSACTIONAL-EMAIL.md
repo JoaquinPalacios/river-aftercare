@@ -67,7 +67,7 @@ The verified Resend sending domain is `mail.riveraftercare.com.au`. Do not send 
 
 Do not reuse Contact From/To for invitations or password reset. Do not reuse auth From for Contact.
 
-Failed-payment and invoice email stay with Stripe. The dashboard past-due notice is read from the local billing projection. It is not a Resend message, and the billing-notice cron does not send one. Do not add a River failed-payment template unless Stripe’s customer email is confirmed absent.
+Failed-payment and invoice email stay with Stripe. The dashboard past-due notice is read from the local billing projection. It is not a Resend message, and the billing-notice cron does not send one. The 28 November 2026 Sandbox card-failure and AU BECS failure runs showed the in-product notice and left Mailpit with only the registration confirmation. That is the intended split. Before launch, confirm Stripe Live → Settings → Billing → Customer emails has failed-payment and invoice emails enabled for the live account. Do not add a River failed-payment template unless that Stripe customer email is confirmed absent.
 
 ## Environment
 

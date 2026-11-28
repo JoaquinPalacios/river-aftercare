@@ -296,6 +296,7 @@ After this change is merged, and before Production billing is used:
 6. Put those live values in Vercel Production under the variable names in this document. Do not reuse any test-mode value.
 7. On a trusted machine, export `VERCEL_ENV=production` and those values, then run `pnpm stripe:config:check`. Expect `Stripe mode: live`, every catalogue row `configured`, and `Catalogue unique: yes`. The command must not print the secret values.
 8. Leave Preview and local on test-mode keys, test Price IDs, a test webhook secret, and a test Portal configuration.
+9. In Stripe Live, open Settings → Billing → Customer emails and confirm failed-payment and invoice emails are enabled. River shows the in-product payment notice and does not send a second failed-payment email. Do not change those Live settings from an application pull request.
 
 ## Test and Preview checklist
 
@@ -308,7 +309,7 @@ Use Stripe test mode and a non-production database.
 5. Create the test-mode Customer Portal configuration and store its `bpc_...` id only in Preview or local env.
 6. As OPERATOR, open the clinic and choose Essential or Practice plus monthly or yearly, or Group plus monthly or yearly and an additional-site quantity of zero or more, then Prepare billing. A Group offer does not grant capacity.
 7. Sign in as that clinic's ADMIN, complete billing identity and Terms acceptance, and continue to Stripe Checkout.
-8. Pay with a [Stripe test card](https://docs.stripe.com/testing) or the AU BECS test debit. Card payment can become active after `invoice.paid`. BECS can stay on Payment processing until settlement.
+8. Pay with a [Stripe test card](https://docs.stripe.com/testing) or the AU BECS test debit. Card payment can become active after `invoice.paid`. A stored Checkout Session id, before the customer submits payment, asks them to continue to secure payment. After Checkout completes, and before the subscription is verified, the page says confirmation is pending. Payment processing is shown only when the retrieved completed Session has `payment_status` `unpaid`, which is the asynchronous BECS case before settlement.
 9. The browser return to `/account/billing/complete` must not be treated as activation. Only the local projection after `invoice.paid` opens product access.
 
 ## Test-mode downgrade notes

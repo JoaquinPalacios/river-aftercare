@@ -2,6 +2,26 @@
 
 **Status:** Phase 5 schedules a Practice → Essential downgrade at the next renewal. Phase 4 enforces Essential and Practice product allowances. Phase 3 (Customer Portal, cancellation, payment-failure UX, public-guide retention, and operator Essential → Practice upgrade) stays as implemented. It is not deployed and it does not configure live Stripe. Phase 2 remains the paid-activation contract: card and AU BECS become `ACTIVE` only from `invoice.paid`. Sections A onward remain the historical investigation. **Approved Phase 1–5 decisions override stale recommendations below.** River Aftercare is not registering for GST at this stage. Do not configure Stripe Tax, GST line items, or GST price labels.
 
+### Sandbox acceptance (2026-11-28)
+
+Essential and Practice completed autonomous registration, 14-day trial activation, collection, renewal, and cancellation in Stripe Sandbox account `acct_1UILQNGYMJ0lopfP`. Group stayed operator-prepared. Production registration and promotional redemption stay disabled. No Production Neon, Stripe Live, or Vercel environment change was made.
+
+Real end-to-end Checkout, on the unmodified customer-create path, covered Essential yearly, Practice monthly, and Practice yearly. Each clinic received one subscription, an A$0 `subscription_create` invoice, `ACTIVE` / `TRIALING`, and an empty `paidThrough`. The signed-in browser returned to `/account/billing/complete`.
+
+Test-clock scenarios are not that unmodified path. The application does not set `test_clock`. Each clock scenario bound a disposable Customer, created with the clock, onto the clinic before Checkout. Checkout, webhooks, and entitlement projection then ran normally. Nothing was marked paid by hand, and no entitlement row was edited directly.
+
+Those clock scenarios were:
+
+- Essential monthly trial, first A$49 collection, a second A$49 renewal, then cancellation at period end. `paidThrough` stayed. One subscription. No charge after cancellation.
+- Essential monthly trial cancelled in the Customer Portal before the first charge. The only invoice was A$0. After the clock passed `trial_end`, entitlement was `ENDED` and `paidThrough` stayed empty.
+- Card `4000000000000341` left the subscription `past_due` with an open A$49 invoice. Entitlement stayed `ACTIVE` / `PAST_DUE`. The customer added Visa `4242` in the portal. Stripe’s scheduled retry collected A$49 and `paidThrough` advanced.
+- AU BECS `000000` / `000123456` collected the first A$49 cycle, then a second A$49 cycle on the same subscription (`sub_1UgarDGYMJ0lopfPvc5YYd7P`). Both successful charges were `au_becs_debit`. Local state stayed `ACTIVE` / `ACTIVE`. `paidThrough` moved from 12 January 2027 to 12 February 2027. One subscription, and no extra invoice.
+- AU BECS `111111113` (`account_closed`) became Stripe `unpaid`, with the A$49 cycle invoice left open. Local state was `RESTRICTED` / `UNPAID` and `paidThrough` stayed empty. Recovery used Manage billing → Update payment method → a test card. The same invoice was paid, the same subscription returned to `active`, and the local row became `ACTIVE` / `ACTIVE` with `paidThrough` 12 January 2027. The failed debit remained. No second subscription was created.
+
+A stored Checkout Session id is not evidence that payment details were received. While entitlement is still `PENDING`, the billing pages now distinguish three follow-ups: complete secure payment when Checkout is still open or only a session id is stored; confirmation pending after Checkout completes until the subscription is verified; payment processing only when a retrieved completed Session has `payment_status` `unpaid`. Active trial, paid, past-due, restricted, cancelled, and ended presentation is unchanged. Entitlement checks and the payment projector are unchanged.
+
+Failed-payment and invoice email stay with Stripe. The sandbox Mailpit inbox received the registration confirmation and no payment-failure email. The in-product “Payment needs attention” and “Payment is unpaid” notices are intentional. Before launch, confirm the Stripe Live customer emails for failed payments and invoices are enabled. Do not add a River failed-payment template for that. Cursor Cloud environment reviewed; no update required.
+
 **Date:** 2026-09-20 (investigation). Phase 1 landed 2026-09-21. Phase 2 customer payment flow landed the same day. Local card and AU BECS acceptance passed 2026-09-22. Phase 3 landed 2026-09-22 in application code only.  
 **Base:** investigation was written against `origin/main` at `2441d9a`.  
 **This document is not tax, legal, or accounting advice.**

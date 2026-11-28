@@ -10,7 +10,10 @@ import {
   BILLING_STATUS_PATH,
 } from "@/lib/billing/activation-gate";
 import { AU_REGION_OPTIONS } from "@/lib/billing/billing-identity";
-import { billingSetupCancelMessage } from "@/lib/billing/billing-presentation";
+import {
+  billingSetupCancelMessage,
+  processingFollowUp,
+} from "@/lib/billing/billing-presentation";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 export const metadata: Metadata = {
@@ -109,7 +112,8 @@ export default async function BillingSetupPage({
         <ActiveBilling view={view} />
       ) : view.presentation.kind === "inactive" ? (
         <InactiveBilling contactHref={context.contactHref} />
-      ) : view.presentation.kind === "processing" ||
+      ) : (view.presentation.kind === "processing" &&
+          view.presentation.phase !== "complete_payment") ||
         view.presentation.kind === "retry" ? (
         <ProcessingBilling view={view} />
       ) : membership.role !== "ADMIN" ? (
@@ -121,46 +125,54 @@ export default async function BillingSetupPage({
           </p>
         </section>
       ) : view.summary ? (
-        <BillingSetupForm
-          clinicName={view.clinicName}
-          planName={view.summary.planName}
-          priceLabel={
-            view.promotion?.quote?.priceLabel ?? view.summary.priceLabel
-          }
-          annualNote={view.promotion?.quote ? null : view.summary.annualNote}
-          detailLines={
-            view.promotion?.quote?.detailLines ?? view.summary.detailLines
-          }
-          capacityNote={view.summary.capacityNote}
-          contactHref={context.contactHref}
-          termsHref={context.termsHref}
-          privacyHref={context.privacyHref}
-          regions={AU_REGION_OPTIONS}
-          cancelMessage={cancelMessage}
-          trialNote={
-            view.promotion?.quote
-              ? null
-              : view.catalogueTrialDisclosure
-                ? CATALOGUE_TRIAL_DISCLOSURE
-                : null
-          }
-          checkoutBlockedMessage={view.promotion?.checkoutBlockedMessage}
-          defaults={{
-            legalEntityName: view.identity?.legalEntityName ?? "",
-            tradingName: view.identity?.tradingName ?? view.clinicName,
-            billingContactName: view.identity?.billingContactName ?? "",
-            billingEmail: view.identity?.billingEmail ?? "",
-            addressLine1: view.identity?.addressLine1 ?? "",
-            addressLine2: view.identity?.addressLine2 ?? "",
-            city: view.identity?.city ?? "",
-            region: view.identity?.region ?? "",
-            postalCode: view.identity?.postalCode ?? "",
-            country: view.identity?.country || "AU",
-            businessNumberKind: view.identity?.businessNumberKind ?? "none",
-            abn: view.identity?.abn ?? "",
-            acn: view.identity?.acn ?? "",
-          }}
-        />
+        <>
+          {view.presentation.kind === "processing" &&
+          view.presentation.phase === "complete_payment" ? (
+            <p className="text-sm" role="status">
+              {processingFollowUp("complete_payment").message}
+            </p>
+          ) : null}
+          <BillingSetupForm
+            clinicName={view.clinicName}
+            planName={view.summary.planName}
+            priceLabel={
+              view.promotion?.quote?.priceLabel ?? view.summary.priceLabel
+            }
+            annualNote={view.promotion?.quote ? null : view.summary.annualNote}
+            detailLines={
+              view.promotion?.quote?.detailLines ?? view.summary.detailLines
+            }
+            capacityNote={view.summary.capacityNote}
+            contactHref={context.contactHref}
+            termsHref={context.termsHref}
+            privacyHref={context.privacyHref}
+            regions={AU_REGION_OPTIONS}
+            cancelMessage={cancelMessage}
+            trialNote={
+              view.promotion?.quote
+                ? null
+                : view.catalogueTrialDisclosure
+                  ? CATALOGUE_TRIAL_DISCLOSURE
+                  : null
+            }
+            checkoutBlockedMessage={view.promotion?.checkoutBlockedMessage}
+            defaults={{
+              legalEntityName: view.identity?.legalEntityName ?? "",
+              tradingName: view.identity?.tradingName ?? view.clinicName,
+              billingContactName: view.identity?.billingContactName ?? "",
+              billingEmail: view.identity?.billingEmail ?? "",
+              addressLine1: view.identity?.addressLine1 ?? "",
+              addressLine2: view.identity?.addressLine2 ?? "",
+              city: view.identity?.city ?? "",
+              region: view.identity?.region ?? "",
+              postalCode: view.identity?.postalCode ?? "",
+              country: view.identity?.country || "AU",
+              businessNumberKind: view.identity?.businessNumberKind ?? "none",
+              abn: view.identity?.abn ?? "",
+              acn: view.identity?.acn ?? "",
+            }}
+          />
+        </>
       ) : (
         <p className="text-sm text-staff-muted" role="status">
           This clinic’s plan can’t be paid online. Contact River Aftercare.
@@ -169,7 +181,9 @@ export default async function BillingSetupPage({
 
       {membership &&
       membership.source !== "operator_support" &&
-      view?.presentation.kind === "setup" ? (
+      (view?.presentation.kind === "setup" ||
+        (view?.presentation.kind === "processing" &&
+          view.presentation.phase === "complete_payment")) ? (
         <OnboardingAssistance
           stage="billing_setup"
           contactHref={context.contactHref}
@@ -230,9 +244,9 @@ function ProcessingBilling({
     >
       <PlanSummary view={view} />
       <p className="mt-4 text-sm">
-        {view.presentation.kind === "retry"
-          ? "We haven’t confirmed payment yet. If you already submitted payment, you can leave this page and we’ll keep processing it."
-          : "Payment processing. Your payment details have been received. We’ll activate your River Aftercare subscription once payment is confirmed."}
+        {view.presentation.kind === "processing"
+          ? processingFollowUp(view.presentation.phase).message
+          : "We haven’t confirmed payment yet. If you already submitted payment, you can leave this page and we’ll keep processing it."}
       </p>
       <Link
         href={BILLING_COMPLETE_PATH}

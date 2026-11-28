@@ -27,6 +27,18 @@ export type BillingTrialPresentation = {
   message: string | null;
 };
 
+/**
+ * How a still-pending Checkout should be described.
+ * A stored Session id is not evidence that payment details were submitted.
+ */
+export type CheckoutFollowUpPhase =
+  "complete_payment" | "confirmation_pending" | "async_processing";
+
+export type CheckoutSessionEvidence = {
+  status: "open" | "complete" | "expired";
+  paymentStatus: "paid" | "unpaid" | "no_payment_required" | null;
+};
+
 export type BillingReturnPresentation =
   | {
       kind: "active";
@@ -38,7 +50,11 @@ export type BillingReturnPresentation =
       attentionMessage: string | null;
       trial: BillingTrialPresentation | null;
     }
-  | { kind: "processing"; productAccess: false }
+  | {
+      kind: "processing";
+      productAccess: false;
+      phase: CheckoutFollowUpPhase;
+    }
   | { kind: "retry"; productAccess: false; canRestartCheckout: boolean }
   | { kind: "restricted"; productAccess: false }
   | { kind: "inactive"; productAccess: false }
@@ -119,6 +135,38 @@ export const RESTRICTED_BILLING_MESSAGE =
 export const ENDED_BILLING_MESSAGE =
   "Your subscription has ended. Clinic editing is unavailable.";
 
+export const CHECKOUT_INCOMPLETE_MESSAGE =
+  "Secure payment hasn’t been completed. Continue to secure payment to finish setting up your subscription.";
+
+export const CHECKOUT_CONFIRMATION_PENDING_MESSAGE =
+  "Checkout is complete. We’re confirming your subscription. This page updates when Stripe confirms it.";
+
+export const ASYNC_PAYMENT_PROCESSING_MESSAGE =
+  "Your payment is processing. We’ll activate your subscription once Stripe confirms it.";
+
+export function processingFollowUp(phase: CheckoutFollowUpPhase): {
+  label: string;
+  message: string;
+} {
+  switch (phase) {
+    case "complete_payment":
+      return {
+        label: "Ready for payment",
+        message: CHECKOUT_INCOMPLETE_MESSAGE,
+      };
+    case "confirmation_pending":
+      return {
+        label: "Confirming subscription",
+        message: CHECKOUT_CONFIRMATION_PENDING_MESSAGE,
+      };
+    case "async_processing":
+      return {
+        label: "Payment processing",
+        message: ASYNC_PAYMENT_PROCESSING_MESSAGE,
+      };
+  }
+}
+
 export const ACTIVE_SUBSCRIPTION_PLAN_CHANGE_NOTICE =
   "This clinic has an active Stripe subscription. Use the Plan change section below for supported changes.";
 
@@ -132,12 +180,46 @@ export function presentOperatorOfferBlock(input: {
   return input.domainMessage;
 }
 
+function checkoutFollowUpPhase(input: {
+  entitlementStatus: EntitlementStatus | null;
+  billingStatus: BillingStatus | null;
+  checkoutStarted: boolean;
+  checkoutSession?: CheckoutSessionEvidence | null;
+}): CheckoutFollowUpPhase | null {
+  if (input.entitlementStatus !== EntitlementStatus.PENDING) {
+    return null;
+  }
+  const session = input.checkoutSession ?? null;
+  if (session?.status === "complete" && session.paymentStatus === "unpaid") {
+    return "async_processing";
+  }
+  if (session?.status === "complete") {
+    return "confirmation_pending";
+  }
+  if (session?.status === "open" || session?.status === "expired") {
+    return "complete_payment";
+  }
+  if (input.billingStatus === BillingStatus.PAYMENT_PENDING) {
+    return "confirmation_pending";
+  }
+  if (input.checkoutStarted) {
+    return "complete_payment";
+  }
+  return null;
+}
+
 export function presentBillingReturn(input: {
   entitlementStatus: EntitlementStatus | null;
   billingStatus: BillingStatus | null;
   commercialPlan: CommercialPlan | null;
   billingInterval: BillingInterval | null;
   checkoutStarted: boolean;
+  /**
+   * Retrieved Checkout Session. Absent means the page could not read one.
+   * An open or expired Session is not a submitted payment. `unpaid` on a
+   * completed Session is the verified asynchronous-payment signal.
+   */
+  checkoutSession?: CheckoutSessionEvidence | null;
   stripeSubscriptionId: string | null;
   paidThrough?: Date | null;
   /**
@@ -223,12 +305,9 @@ export function presentBillingReturn(input: {
     };
   }
 
-  if (
-    input.entitlementStatus === EntitlementStatus.PENDING &&
-    (input.billingStatus === BillingStatus.PAYMENT_PENDING ||
-      input.checkoutStarted)
-  ) {
-    return { kind: "processing", productAccess: false };
+  const followUp = checkoutFollowUpPhase(input);
+  if (followUp) {
+    return { kind: "processing", productAccess: false, phase: followUp };
   }
 
   if (
@@ -377,7 +456,7 @@ export function customerBillingStatusLabel(input: {
     return "Active";
   }
   if (presentation.kind === "processing") {
-    return "Payment processing";
+    return processingFollowUp(presentation.phase).label;
   }
   if (presentation.kind === "restricted" && input.showCommercialDetail) {
     return "Unpaid";

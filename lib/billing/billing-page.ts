@@ -45,6 +45,7 @@ import {
 import type { BillingPageCommercialDetail } from "@/lib/billing/notices/types";
 import { loadClinicPromotionPresentation } from "@/lib/billing/promotion-offer";
 import type { PromotionTerm } from "@/lib/billing/promotion-terms";
+import { getStripeClient } from "@/lib/billing/stripe-client";
 import { catalogueCheckoutTrialEligible } from "@/lib/billing/trial";
 import {
   billingPeriodLabel,
@@ -56,6 +57,7 @@ import {
   presentOperatorOfferBlock,
   presentScheduledPlanChange,
   type BillingReturnPresentation,
+  type CheckoutSessionEvidence,
   type ScheduledPlanChangePresentation,
 } from "@/lib/billing/billing-presentation";
 
@@ -393,6 +395,51 @@ async function loadClinicBillingRecord(clinicId: string) {
   return clinic;
 }
 
+function checkoutSessionStatus(
+  status: string | null
+): CheckoutSessionEvidence["status"] | null {
+  if (status === "open" || status === "complete" || status === "expired") {
+    return status;
+  }
+  return null;
+}
+
+function checkoutPaymentStatus(
+  status: string | null
+): CheckoutSessionEvidence["paymentStatus"] {
+  if (
+    status === "paid" ||
+    status === "unpaid" ||
+    status === "no_payment_required"
+  ) {
+    return status;
+  }
+  return null;
+}
+
+async function readCheckoutSessionEvidence(
+  entitlementStatus: EntitlementStatus | null,
+  sessionId: string | null
+): Promise<CheckoutSessionEvidence | null> {
+  if (entitlementStatus !== EntitlementStatus.PENDING || !sessionId) {
+    return null;
+  }
+  try {
+    const session =
+      await getStripeClient().checkout.sessions.retrieve(sessionId);
+    const status = checkoutSessionStatus(session.status);
+    if (!status) {
+      return null;
+    }
+    return {
+      status,
+      paymentStatus: checkoutPaymentStatus(session.payment_status),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function loadClinicBillingView(
   clinicId: string
 ): Promise<ClinicBillingView | null> {
@@ -417,12 +464,17 @@ export async function loadClinicBillingView(
     entitlement.currentPeriodEnd.getTime() === entitlement.paidThrough.getTime()
       ? entitlement.currentPeriodEnd
       : null;
+  const checkoutSession = await readCheckoutSessionEvidence(
+    entitlement?.entitlementStatus ?? null,
+    profile?.stripeCheckoutSessionId ?? null
+  );
   const presentation = presentBillingReturn({
     entitlementStatus: entitlement?.entitlementStatus ?? null,
     billingStatus: entitlement?.billingStatus ?? null,
     commercialPlan: entitlement?.commercialPlan ?? null,
     billingInterval: entitlement?.billingInterval ?? null,
     checkoutStarted: Boolean(profile?.stripeCheckoutSessionId),
+    checkoutSession,
     stripeSubscriptionId: profile?.stripeSubscriptionId ?? null,
     paidThrough: reliableInstant,
     recordedPaidThrough: entitlement?.paidThrough ?? null,
