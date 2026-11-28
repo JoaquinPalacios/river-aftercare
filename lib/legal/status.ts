@@ -7,9 +7,9 @@ export const LEGAL_DOCUMENT_STATUS = "DRAFT_FOR_LEGAL_REVIEW";
 
 export const LEGAL_LAST_UPDATED_ISO = "2026-09-17";
 
-export const PRIVACY_LAST_UPDATED_ISO = "2026-09-21";
+export const PRIVACY_LAST_UPDATED_ISO = "2026-11-28";
 
-export const TERMS_LAST_UPDATED_ISO = "2026-10-01";
+export const TERMS_LAST_UPDATED_ISO = "2026-11-28";
 
 /**
  * Stable Terms version recorded when a clinic administrator accepts the

@@ -108,8 +108,8 @@ describe("legal documents", () => {
     expect(TERMS_DOCUMENT.status).toBe(LEGAL_DOCUMENT_STATUS);
     expect(TERMS_DOCUMENT.draftBanner).toBeNull();
     expect(TERMS_DOCUMENT.lastUpdatedIso).toBe(TERMS_LAST_UPDATED_ISO);
-    expect(TERMS_DOCUMENT.lastUpdatedIso).toBe("2026-10-01");
-    expect(TERMS_DOCUMENT.lastUpdatedLabel).toBe("1 October 2026");
+    expect(TERMS_DOCUMENT.lastUpdatedIso).toBe("2026-11-28");
+    expect(TERMS_DOCUMENT.lastUpdatedLabel).toBe("28 November 2026");
     expect(TERMS_DOCUMENT.lastUpdatedIso).not.toBe(LEGAL_LAST_UPDATED_ISO);
     expect(TERMS_PAGE_LEGALLY_APPROVED).toBe(false);
     expect(TERMS_DOCUMENT.sections.map((section) => section.id)).toEqual([
@@ -226,9 +226,27 @@ describe("legal documents", () => {
     );
     expect(fees).toContain("does not itself mean that a payment has settled");
     expect(fees).toContain("pending until settlement is confirmed");
+    expect(fees).toContain("standard **14-day** free trial");
+    expect(fees).toContain("Essential or Practice");
+    expect(fees).toContain("The Group plan does not include this trial");
+    expect(fees).toContain("not a promotion code");
+    expect(fees).toContain("not a publicly available discount");
+    expect(fees).toContain(
+      "cannot confirm whether the clinic has had a previous subscription"
+    );
+    expect(fees).toContain("payment is not opened");
+    expect(fees).toContain(
+      "There is no subscription fee during an eligible free trial."
+    );
+    expect(fees).toContain(
+      "trial starts only once the subscription is verified and a payment method is recorded"
+    );
     expect(fees).toContain(
       "Paid-plan entitlements activate only once the first invoice or payment is confirmed as paid"
     );
+    expect(fees).toContain("price disclosed for the selected plan");
+    expect(fees).not.toContain("A$49");
+    expect(fees).not.toContain("A$119");
     expect(fees).toContain("GST will be charged where applicable");
     expect(fees).toContain("no routine refunds for change of mind");
     expect(fees).toContain("Duplicate charges");
@@ -241,7 +259,22 @@ describe("legal documents", () => {
     const term = sectionText(TERMS_DOCUMENT, "term");
     expect(term).toContain("monthly or annual");
     expect(term).toContain("renew automatically");
+    expect(term).toContain("converts automatically to a paid subscription");
+    expect(term).toContain(
+      "first subscription payment becomes due at the end of the trial"
+    );
+    expect(term).toContain("Australian dollars");
+    expect(term).toContain("Manage billing");
     expect(term).toContain("billing portal where available");
+    expect(term).toContain("does not require separate approval");
+    expect(term).toContain("The standard free trial does not apply to Group");
+    expect(term).toContain("access continues until the trial ends");
+    expect(term).toContain("The first subscription payment is not charged");
+    expect(term).toContain("Future recurring charges stop.");
+    expect(term).toContain("described in clause 20");
+    expect(term).toContain(
+      "Plan changes are not available during an eligible free trial."
+    );
     expect(term).toContain(
       "Cancellation takes effect at the end of the current paid billing period"
     );
@@ -260,10 +293,28 @@ describe("legal documents", () => {
       "Content is not automatically deleted merely because a downgrade is scheduled."
     );
     expect(term).toContain(
+      "Supplying and verifying a payment method makes that method available for a later charge"
+    );
+    expect(term).toContain("does not itself collect the subscription fee");
+    expect(term).toContain("seven days before an eligible free trial ends");
+    expect(term).toContain("seven days before an upcoming renewal");
+    expect(term).toContain("card payment or an Australian bank debit fails");
+    expect(term).toContain("current operational settings");
+    expect(term).toContain(
+      "a different notice period may be required by that law"
+    );
+    expect(term).not.toContain(
       "ordinarily sends a reminder approximately 30 days before an annual subscription renews"
     );
-    expect(term).toContain(
+    expect(term).not.toContain(
       "does not send an additional reminder before every ordinary monthly renewal"
+    );
+    expect(term).toContain(
+      "does not provide a self-service upgrade or other change of plan"
+    );
+    expect(term).toContain("may require assistance from River Aftercare");
+    expect(term).toContain(
+      "schedules it from Billing, not from the billing portal"
     );
 
     const changes = sectionText(TERMS_DOCUMENT, "changes");
@@ -287,7 +338,7 @@ describe("legal documents", () => {
     expect(changes).toContain("additional Location");
     expect(changes).not.toContain("Stripe Tax");
     expect(changes).not.toContain("including GST");
-    expect(PRIVACY_DOCUMENT.lastUpdatedIso).toBe("2026-09-21");
+    expect(PRIVACY_DOCUMENT.lastUpdatedIso).toBe("2026-11-28");
 
     const templates = sectionText(TERMS_DOCUMENT, "platform-templates");
     expect(templates).toContain("Essential plan may use available");
@@ -331,6 +382,10 @@ describe("legal documents", () => {
     expect(suspension).toContain("reasonable payment retries");
     expect(suspension).toContain("normal product access continues");
     expect(suspension).toContain("restrict staff authoring");
+    expect(suspension).toContain("using Manage billing");
+    expect(suspension).toContain(
+      "do not fix a number of payment attempts or a set number of days"
+    );
     expect(suspension).toContain(
       "Already-published patient-facing guides ordinarily remain"
     );
@@ -338,10 +393,28 @@ describe("legal documents", () => {
     expect(suspension).not.toContain("14 days after its due date");
 
     const afterEnd = sectionText(TERMS_DOCUMENT, "data-after-termination");
+    expect(afterEnd).toContain(
+      "free trial that ends without a collected subscription payment"
+    );
+    expect(afterEnd).toContain("measured from the end of that paid period");
+    expect(afterEnd).toContain("measured from the end of the subscription");
     expect(afterEnd).toContain("up to **60 days**");
+    expect(afterEnd).toContain(
+      "separate from deleting the Customer's account or other records"
+    );
+    expect(afterEnd).toContain("do not require deletion on a particular day");
     expect(afterEnd).toContain("durable patient guide URLs");
     expect(afterEnd).toContain("For **30 days** after the subscription ends");
-    expect(afterEnd).toContain("export of available Customer-owned content");
+    expect(afterEnd).toContain("request an export by contacting");
+    expect(afterEnd).toContain("admin@riveraftercare.com.au");
+    expect(afterEnd).toContain("clinic-created or clinic-adapted guides");
+    expect(afterEnd).toContain("does not provide an automated download");
+    expect(afterEnd).toContain(
+      "does not provide an automated deletion facility"
+    );
+    expect(afterEnd).toContain(
+      "full payment-card or bank-account details, which are held by Stripe"
+    );
     expect(afterEnd).toContain(
       "Cancellation or expiry of a subscription is not itself a request to delete"
     );
@@ -367,8 +440,8 @@ describe("legal documents", () => {
     expect(PRIVACY_DOCUMENT.status).toBe(LEGAL_DOCUMENT_STATUS);
     expect(PRIVACY_DOCUMENT.draftBanner).toBeNull();
     expect(PRIVACY_DOCUMENT.lastUpdatedIso).toBe(PRIVACY_LAST_UPDATED_ISO);
-    expect(PRIVACY_DOCUMENT.lastUpdatedIso).toBe("2026-09-21");
-    expect(PRIVACY_DOCUMENT.lastUpdatedLabel).toBe("21 September 2026");
+    expect(PRIVACY_DOCUMENT.lastUpdatedIso).toBe("2026-11-28");
+    expect(PRIVACY_DOCUMENT.lastUpdatedLabel).toBe("28 November 2026");
     expect(PRIVACY_DOCUMENT.lastUpdatedIso).not.toBe(LEGAL_LAST_UPDATED_ISO);
     expect(PRIVACY_PAGE_LEGALLY_APPROVED).toBe(false);
     expect(PRIVACY_DOCUMENT.sections.map((section) => section.id)).toEqual([
@@ -474,6 +547,14 @@ describe("legal documents", () => {
     expect(collected).toContain("Stripe-hosted payment or billing pages");
     expect(collected).toContain("does not receive or store full card numbers");
     expect(collected).toContain("full bank-account credentials");
+    expect(collected).toContain("including whether a free trial applies");
+    expect(collected).toContain("time-limited link");
+    expect(collected).toContain("public web address chosen for the clinic");
+    expect(collected).toContain("stored only in hashed form");
+    expect(collected).toContain(
+      "clinic registration and related registration checks"
+    );
+    expect(collected).toContain("does not provide the contents of those forms");
     expect(collected).toContain("limited billing metadata");
     expect(collected).not.toContain("both ABN and ACN are required");
 
@@ -519,14 +600,35 @@ describe("legal documents", () => {
     expect(communications).toContain("Stripe");
     expect(communications).toContain("payment receipts");
     expect(communications).toContain("payment-failure messages");
+    expect(communications).toContain(
+      "does not send a second payment-failure email"
+    );
+    expect(communications).toContain("Registration confirmation");
+    expect(communications).toContain("notice before a free trial ends");
+    expect(communications).toContain("notice before an upcoming renewal");
+    expect(communications).toContain(
+      "operational settings, not a promise of a separate"
+    );
 
     const retention = sectionText(PRIVACY_DOCUMENT, "retention");
     expect(retention).toContain(
       "up to 60 days after the relevant subscription ends"
     );
     expect(retention).toContain(
+      "including a free trial that ends without a collected subscription payment"
+    );
+    expect(retention).toContain(
+      "Keeping a guide available is separate from deleting the clinic account"
+    );
+    expect(retention).toContain(
+      "does not promise deletion on a particular day"
+    );
+    expect(retention).toContain(
       "30-day period during which the Customer may request an export"
     );
+    expect(retention).toContain("admin@riveraftercare.com.au");
+    expect(retention).toContain("There is no automated download.");
+    expect(retention).toContain("There is no automated deletion facility.");
     expect(retention).toContain(
       "Cancellation or expiry of a subscription is not itself a request to delete an account"
     );

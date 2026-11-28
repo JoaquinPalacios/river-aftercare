@@ -420,11 +420,19 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "Unless Customer Commercial Terms provide otherwise, subscriptions may be monthly or annual. Fees are normally charged in advance for the applicable billing period using the payment method authorised during billing setup.",
+        text: "Unless Customer Commercial Terms provide otherwise, subscriptions may be monthly or annual. Fees for a paid billing period are normally charged in advance for that billing period, using the payment method authorised during billing setup.",
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} uses Stripe-hosted payment and billing services to collect subscription payments. Supported methods may include card and Australian BECS Direct Debit. Other methods may be made available from time to time. Customer Commercial Terms may specify a different agreed payment arrangement.`,
+        text: `An eligible new Essential or Practice clinic may receive a standard **14-day** free trial, for either a monthly or an annual billing period. The trial is available only where the clinic has not already had a ${PRODUCT_NAME} subscription, and has not already started a free trial. The Group plan does not include this trial. A complimentary arrangement, a negotiated price, and any other arrangement set out in Customer Commercial Terms is separate from the standard free trial. The standard free trial is not a promotion code and is not a publicly available discount.`,
+      },
+      {
+        type: "p",
+        text: `If ${PRODUCT_NAME} cannot confirm whether the clinic has had a previous subscription, the standard free trial does not start and payment is not opened.`,
+      },
+      {
+        type: "p",
+        text: `${PRODUCT_NAME} uses Stripe-hosted payment and billing services to collect subscription payments and to collect the payment method for an eligible free trial. Supported methods may include card and Australian BECS Direct Debit. Other methods may be made available from time to time. Customer Commercial Terms may specify a different agreed payment arrangement.`,
       },
       {
         type: "p",
@@ -432,15 +440,19 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `Completing a payment-method setup, including a BECS Direct Debit mandate, does not itself mean that a payment has settled. ${PRODUCT_NAME} may treat a Direct Debit or other payment as pending until settlement is confirmed. Paid-plan entitlements activate only once the first invoice or payment is confirmed as paid, unless Customer Commercial Terms provide otherwise.`,
+        text: `A valid payment method, supplied through those Stripe-hosted pages, is required before an eligible free trial can start. The trial starts only once the subscription is verified and a payment method is recorded for that subscription. There is no subscription fee during an eligible free trial.`,
       },
       {
         type: "p",
-        text: "The amount payable is the amount shown in the applicable published pricing or Customer Commercial Terms.",
+        text: `Completing a payment-method setup, including a BECS Direct Debit mandate, does not itself mean that a payment has settled. ${PRODUCT_NAME} may treat a Direct Debit or other payment as pending until settlement is confirmed. During an eligible free trial, access begins when the trial subscription is verified with a payment method, rather than when a subscription fee is collected. Paid-plan entitlements activate only once the first invoice or payment is confirmed as paid, unless the subscription is on an eligible free trial or Customer Commercial Terms provide otherwise.`,
       },
       {
         type: "p",
-        text: "The Customer remains responsible for undisputed fees incurred before the effective end of its subscription.",
+        text: "The amount payable is the amount shown in the applicable published pricing or Customer Commercial Terms, including the price disclosed for the selected plan during billing setup. Where an eligible free trial applies, no subscription fee is payable during the trial. The first subscription fee is that disclosed price and becomes due at the end of the trial unless the Customer cancels before then, as described in clause 19.",
+      },
+      {
+        type: "p",
+        text: "The Customer remains responsible for undisputed fees incurred before the effective end of its subscription. Cancelling an eligible free trial before the first subscription payment does not incur that subscription fee.",
       },
       {
         type: "p",
@@ -458,31 +470,43 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "Subscriptions renew automatically for the same billing period unless cancelled before renewal. Cancelling a monthly subscription stops the next monthly renewal. Cancelling an annual subscription stops the next annual renewal.",
+        text: `Clause 18 describes when a standard 14-day free trial is available. During that trial there is no subscription fee. Supplying and verifying a payment method makes that method available for a later charge. It does not itself collect the subscription fee. Unless the Customer cancels before the trial ends, the trial converts automatically to a paid subscription for the selected plan and billing period. The first subscription payment becomes due at the end of the trial. That payment, and later recurring payments, are the price disclosed for that plan and billing period, in Australian dollars. GST will be charged where applicable, as described in clause 18.`,
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} ordinarily sends a reminder approximately 30 days before an annual subscription renews. The reminder identifies the current plan, the renewal date and the billing interval, includes the expected renewal amount where that amount is known, and explains how to cancel before renewal. ${PRODUCT_NAME} does not send an additional reminder before every ordinary monthly renewal.`,
+        text: "After the first paid period, or where the subscription did not include an eligible free trial, subscriptions renew automatically for the same billing period unless cancelled before renewal. Cancelling a monthly subscription stops the next monthly renewal. Cancelling an annual subscription stops the next annual renewal.",
       },
       {
         type: "p",
-        text: `The Customer may cancel using a cancellation method ${PRODUCT_NAME} makes available, including the billing portal where available.`,
+        text: `Billing notices are currently sent by Stripe under the billing settings in use. Those settings send a notice seven days before an eligible free trial ends, a notice seven days before an upcoming renewal, and a notice when a card payment or an Australian bank debit fails. These are current operational settings. They are not a promise that ${PRODUCT_NAME} sends its own reminder a fixed number of days before every renewal. They do not limit a notice, cancellation right or other right that applicable law requires, and a different notice period may be required by that law.`,
       },
       {
         type: "p",
-        text: "Cancellation takes effect at the end of the current paid billing period. There is no cancellation fee. Access continues through the paid-through date, subject to these Terms, including the security, legal and other restrictions in these Terms.",
+        text: `The Customer may cancel online from Billing, using Manage billing, which opens the billing portal where available. There is no cancellation fee, and cancellation does not require separate approval by ${PRODUCT_NAME}. A Group subscription, or another subscription governed by Customer Commercial Terms, follows those terms where they deal with trial eligibility or cancellation. The standard free trial does not apply to Group.`,
       },
       {
         type: "p",
-        text: "Amounts already paid for a voluntary cancellation are not refunded on a pro-rata basis, except where required by law or expressly agreed otherwise.",
+        text: "If the Customer cancels an eligible free trial before the trial ends and before the first subscription payment, access continues until the trial ends. The first subscription payment is not charged, and recurring charges for that subscription do not start.",
       },
       {
         type: "p",
-        text: "An upgrade to a higher plan may take effect immediately. Higher-plan entitlements may begin immediately, and an appropriate prorated adjustment may be charged for the remainder of the current billing period. The next renewal is then charged at the upgraded plan rate, unless Customer Commercial Terms provide otherwise.",
+        text: "Cancellation takes effect at the end of the current paid billing period when the Customer cancels a paid subscription. There is no cancellation fee. Access continues through the paid-through date, subject to these Terms, including the security, legal and other restrictions in these Terms. Future recurring charges stop.",
       },
       {
         type: "p",
-        text: "A downgrade to a lower plan takes effect at the next renewal or the end of the current paid billing period, unless Customer Commercial Terms provide otherwise. The current plan's access continues until then. There is no automatic pro-rata refund for a scheduled downgrade. Content is not automatically deleted merely because a downgrade is scheduled.",
+        text: "Amounts already paid for a voluntary cancellation are not refunded on a pro-rata basis, except where required by law or expressly agreed otherwise. That does not create a subscription fee for an eligible free trial cancelled before the first subscription payment.",
+      },
+      {
+        type: "p",
+        text: "A temporary payment failure, and any later restriction while a subscription remains unpaid, are described in clause 20. Those steps are separate from cancellation by the Customer and from termination under clause 21.",
+      },
+      {
+        type: "p",
+        text: `The billing portal does not provide a self-service upgrade or other change of plan. An upgrade, or a plan change that is not offered in the Service, may require assistance from ${PRODUCT_NAME}. Plan changes are not available during an eligible free trial. After the trial has ended, or where the subscription did not include an eligible free trial, an upgrade to a higher plan may take effect immediately. Higher-plan entitlements may begin immediately, and an appropriate prorated adjustment may be charged for the remainder of the current billing period. The next renewal is then charged at the upgraded plan rate, unless Customer Commercial Terms provide otherwise.`,
+      },
+      {
+        type: "p",
+        text: "A downgrade to a lower plan takes effect at the next renewal or the end of the current paid billing period, unless Customer Commercial Terms provide otherwise. Where the Service offers that downgrade, the Customer schedules it from Billing, not from the billing portal. The current plan's access continues until then. There is no automatic pro-rata refund for a scheduled downgrade. Content is not automatically deleted merely because a downgrade is scheduled.",
       },
       {
         type: "p",
@@ -500,7 +524,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `If those retries are exhausted or the account is genuinely unpaid, ${PRODUCT_NAME} may restrict staff authoring, including the creation, editing or publishing of new content, and may require the payment to be resolved before restoring full authoring capability. Already-published patient-facing guides ordinarily remain accessible under clause 22, unless another basis in these Terms applies.`,
+        text: `If payment recovery does not succeed and the subscription is unpaid, ${PRODUCT_NAME} may restrict staff authoring, including the creation, editing or publishing of new content, and may restrict other workspace access until the payment is resolved. Billing remains available so the Customer can update the payment method from Billing, using Manage billing. These Terms do not fix a number of payment attempts or a set number of days before that restriction. Already-published patient-facing guides ordinarily remain accessible under clause 22, unless another basis in these Terms applies. Restricting access for non-payment does not, by itself, end the public-guide availability described in clause 22.`,
       },
       {
         type: "p",
@@ -544,11 +568,11 @@ const SECTIONS: readonly LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "When a paid subscription ends, full product functionality continues until the paid-through date. After that date, the former Customer does not have normal paid authoring or publishing rights.",
+        text: "Requesting cancellation does not by itself end access. During an eligible free trial, including a trial cancelled before the first subscription payment, access continues until the trial ends, as described in clause 19. During a paid billing period, including after a cancellation that takes effect at the end of that period, full product functionality continues until the paid-through date. When the subscription ends, the former Customer does not have normal paid authoring or publishing rights. That includes a free trial that ends without a collected subscription payment, and a paid subscription that ends at the close of the paid period.",
       },
       {
         type: "p",
-        text: `Already-published patient-facing guide URLs, referred to in the Service as durable patient guide URLs, may remain available for up to **60 days** after the paid subscription ends. This is an ordinary maximum availability period, not a promise that ${PRODUCT_NAME} will continue hosting particular content. ${PRODUCT_NAME} may take public guides offline earlier where reasonably necessary because of law, security, prohibited content or use, material harm, a Customer request, account deletion, or another lawful basis. After that period, ${PRODUCT_NAME} may take those public guides offline.`,
+        text: `Already-published patient-facing guide URLs, referred to in the Service as durable patient guide URLs, may remain available for up to **60 days** after the subscription ends. Where the subscription included a collected paid period, the 60 days are measured from the end of that paid period. Where an eligible free trial ends without a collected subscription payment, the 60 days are measured from the end of the subscription. This is an ordinary maximum availability period, not a promise that ${PRODUCT_NAME} will continue hosting particular content. ${PRODUCT_NAME} may take public guides offline earlier where reasonably necessary because of law, security, prohibited content or use, material harm, a Customer request, account deletion, or another lawful basis. After that period, ${PRODUCT_NAME} may take those public guides offline. Keeping a published guide available is separate from deleting the Customer's account or other records.`,
       },
       {
         type: "p",
@@ -556,7 +580,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "For **30 days** after the subscription ends, the Customer may request a reasonable export of available Customer-owned content and clinic configuration in a commonly usable form where technically practicable.",
+        text: `For **30 days** after the subscription ends, the Customer may request an export by contacting ${PRIVACY_EMAIL_MARKDOWN}. The Customer may make that request when the subscription ends after a paid period, and when an eligible free trial ends without a collected subscription payment. Where technically practicable, ${PRODUCT_NAME} will provide available Customer Content and clinic configuration held for that Customer, including clinic-created or clinic-adapted guides, clinic information and branding, in a commonly usable form. The Service does not provide an automated download for that request. The export does not include full payment-card or bank-account details, which are held by Stripe.`,
       },
       {
         type: "p",
@@ -564,7 +588,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `After that 30-day export period, ${PRODUCT_NAME} may delete active clinic account and operational data that is no longer reasonably required, subject to the public-guide availability described above and to backup, legal, accounting and security retention.`,
+        text: `After that 30-day export period, ${PRODUCT_NAME} may delete active clinic account and operational data that is no longer reasonably required, subject to the public-guide availability described above and to backup, legal, accounting and security retention. Any such deletion is separate from taking public guides offline. These Terms do not require deletion on a particular day, and the Service does not provide an automated deletion facility.`,
       },
       {
         type: "p",
