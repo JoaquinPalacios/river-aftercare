@@ -78,8 +78,8 @@ test.describe("launch SEO surfaces", () => {
     expect(sitemapBody).toContain("/pricing");
     expect(sitemapBody).toContain("/contact");
     expect(sitemapBody).toContain("/about");
-    expect(sitemapBody).not.toContain("/privacy");
-    expect(sitemapBody).not.toContain("/terms");
+    expect(sitemapBody).toContain("/privacy");
+    expect(sitemapBody).toContain("/terms");
     expect(sitemapBody).toContain("/dental");
     expect(sitemapBody).not.toContain("/dashboard");
     expect(sitemapBody).not.toContain("/operator");
@@ -89,10 +89,10 @@ test.describe("launch SEO surfaces", () => {
     await page.goto(marketingUrl("/privacy"), {
       waitUntil: "domcontentloaded",
     });
-    expect(await robotsContent(page)).toMatch(/noindex/i);
+    expect(await robotsContent(page)).not.toMatch(/noindex/i);
     expect(await robotsContent(page)).not.toMatch(/nofollow/i);
     await page.goto(marketingUrl("/terms"), { waitUntil: "domcontentloaded" });
-    expect(await robotsContent(page)).toMatch(/noindex/i);
+    expect(await robotsContent(page)).not.toMatch(/noindex/i);
     expect(await robotsContent(page)).not.toMatch(/nofollow/i);
   });
 

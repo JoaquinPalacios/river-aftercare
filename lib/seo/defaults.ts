@@ -3,7 +3,7 @@ import {
   PRIVACY_LAST_UPDATED_ISO,
   TERMS_LAST_UPDATED_ISO,
 } from "@/lib/legal/status";
-import { DRAFT_LEGAL_ROBOTS, INDEXABLE_ROBOTS } from "@/lib/seo/robots-policy";
+import { INDEXABLE_ROBOTS } from "@/lib/seo/robots-policy";
 import type {
   MarketingPageSeoInput,
   MarketingSeoPath,
@@ -90,8 +90,8 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogTitle: null,
     ogDescription: null,
     ogImagePath: null,
-    index: DRAFT_LEGAL_ROBOTS.index,
-    follow: DRAFT_LEGAL_ROBOTS.follow,
+    index: INDEXABLE_ROBOTS.index,
+    follow: INDEXABLE_ROBOTS.follow,
     lastModified: PRIVACY_LAST_UPDATED_ISO,
   },
   "/terms": {
@@ -100,8 +100,8 @@ export const DEFAULT_MARKETING_PAGE_SEO: Record<
     ogTitle: null,
     ogDescription: null,
     ogImagePath: null,
-    index: DRAFT_LEGAL_ROBOTS.index,
-    follow: DRAFT_LEGAL_ROBOTS.follow,
+    index: INDEXABLE_ROBOTS.index,
+    follow: INDEXABLE_ROBOTS.follow,
     lastModified: TERMS_LAST_UPDATED_ISO,
   },
   "/clinics": {

@@ -42,6 +42,8 @@ const INDEXABLE_SITEMAP_PATHS = [
   "/pricing",
   "/contact",
   "/about",
+  "/privacy",
+  "/terms",
   "/clinics",
   "/dental",
   "/physiotherapy",
@@ -98,7 +100,7 @@ describe("marketing sitemap lastmod", () => {
       MARKETING_SEO_PATHS.filter(
         (path) => !DEFAULT_MARKETING_PAGE_SEO[path].index
       )
-    ).toEqual(["/privacy", "/terms"]);
+    ).toEqual([]);
 
     const entries = buildMarketingSitemap({ origin: "http://localhost" });
     expect(entries.map((entry) => pathFromUrl(entry.url))).toEqual([
@@ -164,6 +166,7 @@ describe("marketing sitemap lastmod", () => {
       "/contact",
       "/about",
       "/privacy",
+      "/terms",
       "/clinics",
       "/dental",
       "/physiotherapy",

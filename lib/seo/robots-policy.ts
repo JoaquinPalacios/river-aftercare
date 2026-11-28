@@ -15,8 +15,9 @@ export const TENANT_LAUNCH_ROBOTS = {
 } as const;
 
 /**
- * Privacy and Terms while they remain explicit drafts for legal review.
- * Links may still be followed; page-level robots metadata is the noindex control.
+ * Pre-approval robots for Privacy and Terms. Owner approval on 28 November 2026
+ * moved those routes to `INDEXABLE_ROBOTS`. This constant remains the explicit
+ * noindex policy if a later decision withdraws that approval.
  */
 export const DRAFT_LEGAL_ROBOTS = {
   index: false,

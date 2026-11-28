@@ -1,9 +1,10 @@
 /**
- * Shared launch legal status. Public `/privacy` and `/terms` copy is published
- * without a draft banner. Operator legal-approval flags remain separate and
- * still false.
+ * Shared launch legal status. Public `/privacy` and `/terms` copy is the
+ * owner-approved 28 November 2026 wording, published without a draft banner.
+ * Acceptance versions stay on the document dates below. This status does not
+ * rewrite stored `LegalAcceptance` rows.
  */
-export const LEGAL_DOCUMENT_STATUS = "DRAFT_FOR_LEGAL_REVIEW";
+export const LEGAL_DOCUMENT_STATUS = "OWNER_APPROVED";
 
 export const LEGAL_LAST_UPDATED_ISO = "2026-09-17";
 

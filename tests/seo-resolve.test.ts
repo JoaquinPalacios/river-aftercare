@@ -73,7 +73,7 @@ describe("marketing SEO resolution", () => {
     });
     expect(privacy.seoTitle).toBe("Privacy Policy");
     expect(privacy.title).toBe("Privacy Policy — River Aftercare");
-    expect(privacy.robots).toEqual({ index: false, follow: true });
+    expect(privacy.robots).toEqual({ index: true, follow: true });
   });
 
   it("emits absolute document titles so a layout template cannot double the brand", () => {

@@ -1,10 +1,10 @@
 # Legal launch requirements — River Aftercare
 
-Public `/privacy` and `/terms` are published without a draft banner. They are **drafts for Australian legal review**. They are not counsel-approved and they are not a statement that the product is legally compliant.
+Public `/privacy` and `/terms` are published without a draft banner. On 28 November 2026 the owner confirmed legal approval of the Terms and Privacy text dated **28 November 2026**. That confirmation covers the wording already deployed. This record does not change the legal wording, `TERMS_ACCEPTANCE_VERSION`, `PRIVACY_ACKNOWLEDGEMENT_VERSION`, or any stored `LegalAcceptance` row.
 
-`LEGAL_DOCUMENT_STATUS` remains `DRAFT_FOR_LEGAL_REVIEW`. `TERMS_PAGE_LEGALLY_APPROVED` and `PRIVACY_PAGE_LEGALLY_APPROVED` remain `false`. Source robots for both pages remain `noindex, follow`. Do not flip either approval flag, and do not remove `noindex`, until an Australian solicitor has reviewed the near-final wording and Joaquín explicitly approves publication. Those two flags are an explicit public-launch gate.
+`LEGAL_DOCUMENT_STATUS` is `OWNER_APPROVED`. `TERMS_PAGE_LEGALLY_APPROVED` and `PRIVACY_PAGE_LEGALLY_APPROVED` are `true`. Source robots for both pages are `index, follow`. A route is included in the sitemap when `resolveMarketingSeo(...).robots.index` is true, so `/privacy` and `/terms` are included. `lastModified` stays `2026-11-28`. A stored `MarketingPageSeo.index` value still overrides that code default. `llms.txt` continues to list both paths. `robots.txt` already allows them.
 
-Do not enable `REGISTRATION_ENABLED`. Do not enable `STRIPE_PROMOTIONAL_REDEMPTION_ENABLED`, `STRIPE_PROMOTIONAL_REDEMPTION_LIVE_ENABLED`, or `STRIPE_PROMOTION_WITH_TRIAL_ENABLED`. Do not deploy this wording to Production from this change.
+Do not enable `REGISTRATION_ENABLED`. Do not enable `STRIPE_PROMOTIONAL_REDEMPTION_ENABLED`, `STRIPE_PROMOTIONAL_REDEMPTION_LIVE_ENABLED`, or `STRIPE_PROMOTION_WITH_TRIAL_ENABLED`.
 
 ## Document versions
 
@@ -112,7 +112,7 @@ Readiness before 1 July 2027, without claiming the drafts already satisfy the ne
 
 These are launch gates. This change does not perform them.
 
-- Solicitor review and Joaquín’s explicit approval, then the two legal-approval flags and the `noindex` decision.
+- Owner approval of the 28 November 2026 Terms and Privacy wording is recorded. `TERMS_PAGE_LEGALLY_APPROVED` and `PRIVACY_PAGE_LEGALLY_APPROVED` are true, `LEGAL_DOCUMENT_STATUS` is `OWNER_APPROVED`, and both pages are `index, follow` and included in the sitemap. The wording and historical acceptance rows were not changed.
 - `REGISTRATION_ENABLED` stays off until the registration launch checklist in [REGISTRATION-SECURITY.md](REGISTRATION-SECURITY.md) is done, including the registration migration and real Turnstile keys.
 - Promotional redemption flags stay off. Public pages advertise the 14-day trial only.
 - Stripe Live prices, portal configuration, and dunning. The customer-email settings recorded here were supplied for this wording and were not re-checked from this environment. Sandbox evidence is not live configuration.
@@ -143,5 +143,5 @@ This disclaimer is not counsel-approved.
 | Registration                                 | Implemented. Production flag `REGISTRATION_ENABLED` stays off until the launch checklist is approved.                                                                                                                                                                                                     |
 | Promotional redemption                       | Implemented only behind disabled flags. Do not describe it as publicly available.                                                                                                                                                                                                                         |
 | Billing                                      | Stripe-hosted Checkout, Customer Portal, entitlement enforcement, and the 14-day catalogue trial are implemented. Sandbox acceptance on 28 November 2026 is recorded in [../architecture/BILLING.md](../architecture/BILLING.md). Live Stripe and production enforcement are not verified by this change. |
-| Legal approval                               | `TERMS_PAGE_LEGALLY_APPROVED=false`, `PRIVACY_PAGE_LEGALLY_APPROVED=false`, `LEGAL_DOCUMENT_STATUS=DRAFT_FOR_LEGAL_REVIEW`. Both pages stay `noindex, follow`.                                                                                                                                            |
+| Legal approval                               | Owner confirmed on 28 November 2026. `TERMS_PAGE_LEGALLY_APPROVED=true`, `PRIVACY_PAGE_LEGALLY_APPROVED=true`, `LEGAL_DOCUMENT_STATUS=OWNER_APPROVED`. Both pages are `index, follow` and are included in the sitemap. Wording and acceptance versions stay `2026-11-28`.                                 |
 | Production subprocessors named in `/privacy` | Vercel, Neon (Sydney), Cloudflare, Resend, Hostinger, Google, and Stripe.                                                                                                                                                                                                                                 |

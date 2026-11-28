@@ -9,8 +9,8 @@ import type {
 
 export const PRIVACY_PAGE_PUBLISHED = true;
 export const TERMS_PAGE_PUBLISHED = true;
-export const PRIVACY_PAGE_LEGALLY_APPROVED = false;
-export const TERMS_PAGE_LEGALLY_APPROVED = false;
+export const PRIVACY_PAGE_LEGALLY_APPROVED = true;
+export const TERMS_PAGE_LEGALLY_APPROVED = true;
 
 export function buildSeoDiagnostics(input: {
   identity: PlatformSeoIdentity;

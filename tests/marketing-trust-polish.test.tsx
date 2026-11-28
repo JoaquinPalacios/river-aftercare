@@ -26,7 +26,7 @@ import {
   TERMS_METADATA,
 } from "@/lib/marketing/metadata";
 import { marketingSiteOrigin } from "@/lib/marketing/site";
-import { DRAFT_LEGAL_ROBOTS } from "@/lib/seo/robots-policy";
+import { INDEXABLE_ROBOTS } from "@/lib/seo/robots-policy";
 
 const marketingCss = readFileSync(
   "app/(marketing)/marketing.module.css",
@@ -226,8 +226,8 @@ describe("marketing + trust polish", () => {
     const termsMeta = marketingPageMetadata(TERMS_METADATA, {
       pathname: "/terms",
     });
-    expect(privacyMeta.robots).toEqual(DRAFT_LEGAL_ROBOTS);
-    expect(termsMeta.robots).toEqual(DRAFT_LEGAL_ROBOTS);
+    expect(privacyMeta.robots).toEqual(INDEXABLE_ROBOTS);
+    expect(termsMeta.robots).toEqual(INDEXABLE_ROBOTS);
     expect(privacyMeta.alternates?.canonical).toBe(
       `${marketingSiteOrigin()}/privacy`
     );

@@ -111,7 +111,8 @@ describe("legal documents", () => {
     expect(TERMS_DOCUMENT.lastUpdatedIso).toBe("2026-11-28");
     expect(TERMS_DOCUMENT.lastUpdatedLabel).toBe("28 November 2026");
     expect(TERMS_DOCUMENT.lastUpdatedIso).not.toBe(LEGAL_LAST_UPDATED_ISO);
-    expect(TERMS_PAGE_LEGALLY_APPROVED).toBe(false);
+    expect(LEGAL_DOCUMENT_STATUS).toBe("OWNER_APPROVED");
+    expect(TERMS_PAGE_LEGALLY_APPROVED).toBe(true);
     expect(TERMS_DOCUMENT.sections.map((section) => section.id)).toEqual([
       "about",
       "definitions",
@@ -443,7 +444,8 @@ describe("legal documents", () => {
     expect(PRIVACY_DOCUMENT.lastUpdatedIso).toBe("2026-11-28");
     expect(PRIVACY_DOCUMENT.lastUpdatedLabel).toBe("28 November 2026");
     expect(PRIVACY_DOCUMENT.lastUpdatedIso).not.toBe(LEGAL_LAST_UPDATED_ISO);
-    expect(PRIVACY_PAGE_LEGALLY_APPROVED).toBe(false);
+    expect(LEGAL_DOCUMENT_STATUS).toBe("OWNER_APPROVED");
+    expect(PRIVACY_PAGE_LEGALLY_APPROVED).toBe(true);
     expect(PRIVACY_DOCUMENT.sections.map((section) => section.id)).toEqual([
       "who",
       "scope",

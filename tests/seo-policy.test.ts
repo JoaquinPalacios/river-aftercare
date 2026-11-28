@@ -68,11 +68,12 @@ describe("launch SEO policy", () => {
       `${marketingSiteOrigin()}/contact`
     );
     expect(JSON.stringify(contact.twitter)).toContain('"card":"summary"');
-    expect(privacy.robots).toEqual(DRAFT_LEGAL_ROBOTS);
+    expect(privacy.robots).toEqual(INDEXABLE_ROBOTS);
     expect(privacy.alternates?.canonical).toBe(
       `${marketingSiteOrigin()}/privacy`
     );
-    expect(terms.robots).toEqual(DRAFT_LEGAL_ROBOTS);
+    expect(terms.robots).toEqual(INDEXABLE_ROBOTS);
+    expect(DRAFT_LEGAL_ROBOTS).toEqual({ index: false, follow: true });
     expect(terms.alternates?.canonical).toBe(`${marketingSiteOrigin()}/terms`);
     expect(privacy.openGraph?.title).toContain("Privacy");
     expect(terms.openGraph?.title).toContain("Terms");
@@ -142,14 +143,16 @@ describe("launch SEO policy", () => {
         "http://localhost/pricing",
         "http://localhost/contact",
         "http://localhost/about",
+        "http://localhost/privacy",
+        "http://localhost/terms",
         "http://localhost/clinics",
         "http://localhost/dental",
         "http://localhost/physiotherapy",
         "http://localhost/chiropractic",
         "http://localhost/cosmetic-clinics",
       ]);
-      expect(urls.join(" ")).not.toContain("/privacy");
-      expect(urls.join(" ")).not.toContain("/terms");
+      expect(urls.join(" ")).toContain("/privacy");
+      expect(urls.join(" ")).toContain("/terms");
       expect(urls.join(" ")).not.toContain("/dashboard");
       expect(urls.join(" ")).not.toContain("/guides");
       expect(urls.join(" ")).not.toContain("/operator");
