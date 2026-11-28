@@ -8,7 +8,10 @@ import {
   BILLING_SETUP_PATH,
   BILLING_STATUS_PATH,
 } from "@/lib/billing/activation-gate";
-import { RESTRICTED_BILLING_MESSAGE } from "@/lib/billing/billing-presentation";
+import {
+  processingFollowUp,
+  RESTRICTED_BILLING_MESSAGE,
+} from "@/lib/billing/billing-presentation";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 export const metadata: Metadata = {
@@ -86,22 +89,34 @@ export default async function BillingCompletePage() {
           aria-live="polite"
         >
           <p className="staffStatusPill" data-tone="warning">
-            Payment processing
+            {processingFollowUp(presentation.phase).label}
           </p>
-          <h2 className="mt-4 text-lg font-semibold">Payment processing</h2>
+          <h2 className="mt-4 text-lg font-semibold">
+            {processingFollowUp(presentation.phase).label}
+          </h2>
           <p className="mt-2 text-sm text-staff-muted">
-            Your payment details have been received. We’ll activate your River
-            Aftercare subscription once payment is confirmed.
+            {processingFollowUp(presentation.phase).message}
           </p>
-          <div className="mt-4">
-            <PaymentStatusRefresh enabled />
-          </div>
-          <Link
-            href={BILLING_COMPLETE_PATH}
-            className="staffBtn staffBtnSecondary mt-4 inline-flex h-11 items-center"
-          >
-            Refresh status
-          </Link>
+          {presentation.phase === "complete_payment" ? (
+            <Link
+              href={BILLING_SETUP_PATH}
+              className="staffBtn staffBtnPrimary mt-5 inline-flex h-11 items-center"
+            >
+              Continue to secure payment
+            </Link>
+          ) : (
+            <>
+              <div className="mt-4">
+                <PaymentStatusRefresh enabled />
+              </div>
+              <Link
+                href={BILLING_COMPLETE_PATH}
+                className="staffBtn staffBtnSecondary mt-4 inline-flex h-11 items-center"
+              >
+                Refresh status
+              </Link>
+            </>
+          )}
         </section>
       ) : presentation.kind === "inactive" ? (
         <section

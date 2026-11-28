@@ -13,6 +13,7 @@ import {
 import {
   customerBillingStatusLabel,
   ENDED_BILLING_MESSAGE,
+  processingFollowUp,
   RESTRICTED_BILLING_MESSAGE,
 } from "@/lib/billing/billing-presentation";
 import { canViewCommercialBillingNotices } from "@/lib/billing/notices/permissions";
@@ -436,12 +437,26 @@ export default async function BillingStatusPage({
               </Link>
             ) : null}
             {presentation.kind === "processing" ? (
-              <Link
-                href={BILLING_COMPLETE_PATH}
-                className="staffBtn staffBtnSecondary mt-5 inline-flex h-11 items-center"
-              >
-                View payment status
-              </Link>
+              <>
+                <p className="mt-4 text-sm" role="status">
+                  {processingFollowUp(presentation.phase).message}
+                </p>
+                {presentation.phase === "complete_payment" ? (
+                  <Link
+                    href={BILLING_SETUP_PATH}
+                    className="staffBtn staffBtnPrimary mt-5 inline-flex h-11 items-center"
+                  >
+                    Continue to secure payment
+                  </Link>
+                ) : (
+                  <Link
+                    href={BILLING_COMPLETE_PATH}
+                    className="staffBtn staffBtnSecondary mt-5 inline-flex h-11 items-center"
+                  >
+                    View payment status
+                  </Link>
+                )}
+              </>
             ) : null}
             {presentation.kind === "retry" ? (
               <p className="mt-4 text-sm text-staff-muted" role="status">

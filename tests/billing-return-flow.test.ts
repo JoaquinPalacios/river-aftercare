@@ -5,23 +5,31 @@ import { describe, expect, it } from "vitest";
 import {
   billingSetupCancelMessage,
   presentBillingReturn,
+  processingFollowUp,
 } from "@/lib/billing/billing-presentation";
 
 describe("billing return flow", () => {
-  it("shows payment processing for a pending return and does not grant access", () => {
-    expect(
-      presentBillingReturn({
-        entitlementStatus: EntitlementStatus.PENDING,
-        billingStatus: BillingStatus.PAYMENT_PENDING,
-        commercialPlan: "PRACTICE",
-        billingInterval: "MONTHLY",
-        checkoutStarted: true,
-        stripeSubscriptionId: "sub_test",
-      })
-    ).toEqual({ kind: "processing", productAccess: false });
+  it("asks the customer to finish payment when Checkout was created but not completed", () => {
+    const presented = presentBillingReturn({
+      entitlementStatus: EntitlementStatus.PENDING,
+      billingStatus: BillingStatus.OFFER_PREPARED,
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      checkoutStarted: true,
+      stripeSubscriptionId: null,
+    });
+    expect(presented).toEqual({
+      kind: "processing",
+      productAccess: false,
+      phase: "complete_payment",
+    });
+    if (presented.kind !== "processing") {
+      return;
+    }
+    expect(processingFollowUp(presented.phase).label).toBe("Ready for payment");
   });
 
-  it("keeps a just-submitted Checkout pending until the local projection changes", () => {
+  it("treats an open Checkout Session as incomplete even when a session id is stored", () => {
     expect(
       presentBillingReturn({
         entitlementStatus: EntitlementStatus.PENDING,
@@ -29,9 +37,67 @@ describe("billing return flow", () => {
         commercialPlan: "ESSENTIAL",
         billingInterval: "MONTHLY",
         checkoutStarted: true,
+        checkoutSession: { status: "open", paymentStatus: "unpaid" },
         stripeSubscriptionId: null,
       })
-    ).toEqual({ kind: "processing", productAccess: false });
+    ).toMatchObject({ phase: "complete_payment", productAccess: false });
+  });
+
+  it("keeps a completed Checkout as confirmation pending until the subscription is verified", () => {
+    const presented = presentBillingReturn({
+      entitlementStatus: EntitlementStatus.PENDING,
+      billingStatus: BillingStatus.PAYMENT_PENDING,
+      commercialPlan: "PRACTICE",
+      billingInterval: "MONTHLY",
+      checkoutStarted: true,
+      checkoutSession: { status: "complete", paymentStatus: "paid" },
+      stripeSubscriptionId: "sub_test",
+    });
+    expect(presented).toMatchObject({
+      kind: "processing",
+      productAccess: false,
+      phase: "confirmation_pending",
+    });
+    if (presented.kind !== "processing") {
+      return;
+    }
+    expect(processingFollowUp(presented.phase).label).toBe(
+      "Confirming subscription"
+    );
+  });
+
+  it("uses processing copy only for a completed Checkout whose payment is still unpaid", () => {
+    const presented = presentBillingReturn({
+      entitlementStatus: EntitlementStatus.PENDING,
+      billingStatus: BillingStatus.PAYMENT_PENDING,
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      checkoutStarted: true,
+      checkoutSession: { status: "complete", paymentStatus: "unpaid" },
+      stripeSubscriptionId: "sub_test",
+    });
+    expect(presented).toMatchObject({
+      phase: "async_processing",
+      productAccess: false,
+    });
+    if (presented.kind !== "processing") {
+      return;
+    }
+    expect(processingFollowUp(presented.phase).label).toBe(
+      "Payment processing"
+    );
+  });
+
+  it("does not call a stored session id proof that payment details were received", () => {
+    const withoutSession = presentBillingReturn({
+      entitlementStatus: EntitlementStatus.PENDING,
+      billingStatus: BillingStatus.PAYMENT_PENDING,
+      commercialPlan: "ESSENTIAL",
+      billingInterval: "MONTHLY",
+      checkoutStarted: true,
+      stripeSubscriptionId: "sub_test",
+    });
+    expect(withoutSession).toMatchObject({ phase: "confirmation_pending" });
   });
 
   it("shows the active state only from the local entitlement", () => {
@@ -147,7 +213,8 @@ describe("billing return flow", () => {
     expect(complete).not.toContain("invoice.paid");
     expect(complete).not.toContain("session_id");
     expect(complete).not.toContain("entitlement.update");
-    expect(complete).toContain("Payment processing");
+    expect(complete).toContain("processingFollowUp");
+    expect(complete).not.toContain("Your payment details have been received.");
     expect(complete).toContain("Your River Aftercare subscription is active.");
   });
 
@@ -160,6 +227,7 @@ describe("billing return flow", () => {
       "app/(staff)/account/billing/setup/page.tsx",
       "utf8"
     );
+    expect(setup).not.toContain("Your payment details have been received.");
     expect(setup).toContain("billingSetupCancelMessage");
     expect(setup).not.toContain("invoice.paid");
     expect(setup).not.toContain("entitlement.update");
