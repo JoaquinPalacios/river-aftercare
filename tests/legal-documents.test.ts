@@ -293,10 +293,28 @@ describe("legal documents", () => {
       "Content is not automatically deleted merely because a downgrade is scheduled."
     );
     expect(term).toContain(
+      "Supplying and verifying a payment method makes that method available for a later charge"
+    );
+    expect(term).toContain("does not itself collect the subscription fee");
+    expect(term).toContain("seven days before an eligible free trial ends");
+    expect(term).toContain("seven days before an upcoming renewal");
+    expect(term).toContain("card payment or an Australian bank debit fails");
+    expect(term).toContain("current operational settings");
+    expect(term).toContain(
+      "a different notice period may be required by that law"
+    );
+    expect(term).not.toContain(
       "ordinarily sends a reminder approximately 30 days before an annual subscription renews"
     );
-    expect(term).toContain(
+    expect(term).not.toContain(
       "does not send an additional reminder before every ordinary monthly renewal"
+    );
+    expect(term).toContain(
+      "does not provide a self-service upgrade or other change of plan"
+    );
+    expect(term).toContain("may require assistance from River Aftercare");
+    expect(term).toContain(
+      "schedules it from Billing, not from the billing portal"
     );
 
     const changes = sectionText(TERMS_DOCUMENT, "changes");
@@ -387,7 +405,16 @@ describe("legal documents", () => {
     expect(afterEnd).toContain("do not require deletion on a particular day");
     expect(afterEnd).toContain("durable patient guide URLs");
     expect(afterEnd).toContain("For **30 days** after the subscription ends");
-    expect(afterEnd).toContain("export of available Customer-owned content");
+    expect(afterEnd).toContain("request an export by contacting");
+    expect(afterEnd).toContain("admin@riveraftercare.com.au");
+    expect(afterEnd).toContain("clinic-created or clinic-adapted guides");
+    expect(afterEnd).toContain("does not provide an automated download");
+    expect(afterEnd).toContain(
+      "does not provide an automated deletion facility"
+    );
+    expect(afterEnd).toContain(
+      "full payment-card or bank-account details, which are held by Stripe"
+    );
     expect(afterEnd).toContain(
       "Cancellation or expiry of a subscription is not itself a request to delete"
     );
@@ -577,6 +604,11 @@ describe("legal documents", () => {
       "does not send a second payment-failure email"
     );
     expect(communications).toContain("Registration confirmation");
+    expect(communications).toContain("notice before a free trial ends");
+    expect(communications).toContain("notice before an upcoming renewal");
+    expect(communications).toContain(
+      "operational settings, not a promise of a separate"
+    );
 
     const retention = sectionText(PRIVACY_DOCUMENT, "retention");
     expect(retention).toContain(
@@ -594,6 +626,9 @@ describe("legal documents", () => {
     expect(retention).toContain(
       "30-day period during which the Customer may request an export"
     );
+    expect(retention).toContain("admin@riveraftercare.com.au");
+    expect(retention).toContain("There is no automated download.");
+    expect(retention).toContain("There is no automated deletion facility.");
     expect(retention).toContain(
       "Cancellation or expiry of a subscription is not itself a request to delete an account"
     );

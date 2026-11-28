@@ -470,7 +470,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `Clause 18 describes when a standard 14-day free trial is available. During that trial there is no subscription fee. Unless the Customer cancels before the trial ends, the trial converts automatically to a paid subscription for the selected plan and billing period. The first subscription payment becomes due at the end of the trial. That payment, and later recurring payments, are the price disclosed for that plan and billing period, in Australian dollars. GST will be charged where applicable, as described in clause 18.`,
+        text: `Clause 18 describes when a standard 14-day free trial is available. During that trial there is no subscription fee. Supplying and verifying a payment method makes that method available for a later charge. It does not itself collect the subscription fee. Unless the Customer cancels before the trial ends, the trial converts automatically to a paid subscription for the selected plan and billing period. The first subscription payment becomes due at the end of the trial. That payment, and later recurring payments, are the price disclosed for that plan and billing period, in Australian dollars. GST will be charged where applicable, as described in clause 18.`,
       },
       {
         type: "p",
@@ -478,7 +478,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `${PRODUCT_NAME} ordinarily sends a reminder approximately 30 days before an annual subscription renews. The reminder identifies the current plan, the renewal date and the billing interval, includes the expected renewal amount where that amount is known, and explains how to cancel before renewal. ${PRODUCT_NAME} does not send an additional reminder before every ordinary monthly renewal.`,
+        text: `Billing notices are currently sent by Stripe under the billing settings in use. Those settings send a notice seven days before an eligible free trial ends, a notice seven days before an upcoming renewal, and a notice when a card payment or an Australian bank debit fails. These are current operational settings. They are not a promise that ${PRODUCT_NAME} sends its own reminder a fixed number of days before every renewal. They do not limit a notice, cancellation right or other right that applicable law requires, and a different notice period may be required by that law.`,
       },
       {
         type: "p",
@@ -502,11 +502,11 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "Plan changes are not available during an eligible free trial. After the trial has ended, or where the subscription did not include an eligible free trial, an upgrade to a higher plan may take effect immediately. Higher-plan entitlements may begin immediately, and an appropriate prorated adjustment may be charged for the remainder of the current billing period. The next renewal is then charged at the upgraded plan rate, unless Customer Commercial Terms provide otherwise.",
+        text: `The billing portal does not provide a self-service upgrade or other change of plan. An upgrade, or a plan change that is not offered in the Service, may require assistance from ${PRODUCT_NAME}. Plan changes are not available during an eligible free trial. After the trial has ended, or where the subscription did not include an eligible free trial, an upgrade to a higher plan may take effect immediately. Higher-plan entitlements may begin immediately, and an appropriate prorated adjustment may be charged for the remainder of the current billing period. The next renewal is then charged at the upgraded plan rate, unless Customer Commercial Terms provide otherwise.`,
       },
       {
         type: "p",
-        text: "A downgrade to a lower plan takes effect at the next renewal or the end of the current paid billing period, unless Customer Commercial Terms provide otherwise. The current plan's access continues until then. There is no automatic pro-rata refund for a scheduled downgrade. Content is not automatically deleted merely because a downgrade is scheduled.",
+        text: "A downgrade to a lower plan takes effect at the next renewal or the end of the current paid billing period, unless Customer Commercial Terms provide otherwise. Where the Service offers that downgrade, the Customer schedules it from Billing, not from the billing portal. The current plan's access continues until then. There is no automatic pro-rata refund for a scheduled downgrade. Content is not automatically deleted merely because a downgrade is scheduled.",
       },
       {
         type: "p",
@@ -580,7 +580,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: "For **30 days** after the subscription ends, the Customer may request a reasonable export of available Customer-owned content and clinic configuration in a commonly usable form where technically practicable. The Customer may make that request when the subscription ends after a paid period, and when an eligible free trial ends without a collected subscription payment.",
+        text: `For **30 days** after the subscription ends, the Customer may request an export by contacting ${PRIVACY_EMAIL_MARKDOWN}. The Customer may make that request when the subscription ends after a paid period, and when an eligible free trial ends without a collected subscription payment. Where technically practicable, ${PRODUCT_NAME} will provide available Customer Content and clinic configuration held for that Customer, including clinic-created or clinic-adapted guides, clinic information and branding, in a commonly usable form. The Service does not provide an automated download for that request. The export does not include full payment-card or bank-account details, which are held by Stripe.`,
       },
       {
         type: "p",
@@ -588,7 +588,7 @@ const SECTIONS: readonly LegalSection[] = [
       },
       {
         type: "p",
-        text: `After that 30-day export period, ${PRODUCT_NAME} may delete active clinic account and operational data that is no longer reasonably required, subject to the public-guide availability described above and to backup, legal, accounting and security retention. Any such deletion is separate from taking public guides offline. These Terms do not require deletion on a particular day.`,
+        text: `After that 30-day export period, ${PRODUCT_NAME} may delete active clinic account and operational data that is no longer reasonably required, subject to the public-guide availability described above and to backup, legal, accounting and security retention. Any such deletion is separate from taking public guides offline. These Terms do not require deletion on a particular day, and the Service does not provide an automated deletion facility.`,
       },
       {
         type: "p",

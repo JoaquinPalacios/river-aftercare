@@ -35,15 +35,17 @@ Terms corrections:
 - A paid subscription cancelled at period end keeps access through the paid-through date, and future recurring charges stop.
 - Past-due payment keeps access while recovery continues. An unpaid subscription may restrict editing and other workspace access. Billing stays open so the customer can update the payment method. No fixed retry count or grace period is promised.
 - Published guides ordinarily remain while access is only restricted for non-payment. The up-to-60-day public-guide window starts when the subscription ends. A collected paid period is measured from the end of that paid period. A never-paid trial is measured from the end of the subscription. Public availability is not deletion.
-- The separate 30-day export window is a request, including after a never-paid trial. The Terms do not promise deletion on a particular day.
+- The separate 30-day export window is a request to `admin@riveraftercare.com.au`, including after a never-paid trial. There is no automated download and no automated deletion facility. The Terms do not promise deletion on a particular day.
+- Stripe currently sends the billing notices: seven days before a trial ends, seven days before an upcoming renewal, and a notice when a card or Australian bank debit fails. Those are operational settings, not a contractual guarantee, and not a River Aftercare 30-day annual reminder.
+- The billing portal does not change plan. An upgrade, or a plan change the Service does not offer, may require assistance. A downgrade the Service offers is scheduled from Billing and takes effect at the next renewal.
 
 Privacy corrections, and only those:
 
 - Clinic registration fields, hashed password, email-confirmation link, and later password-reset or email-change messages.
 - Cloudflare Turnstile on registration as well as the Contact form. Form contents are not sent to Turnstile.
 - Free-trial status as subscription information. Full card and bank-account details remain with Stripe.
-- Resend for registration confirmation and account-security email. Stripe sends invoice and payment-failure email. River Aftercare does not send a second payment-failure email.
-- The same 60-day / 30-day distinction as the Terms, including a never-paid trial, without promising deletion on a fixed day.
+- Resend for registration confirmation and account-security email. Stripe sends invoice and payment-failure email, and may send the trial-ending and upcoming-renewal notices. River Aftercare does not send a second payment-failure email.
+- The same 60-day / 30-day distinction as the Terms, including a never-paid trial. The 30-day export is a request to `admin@riveraftercare.com.au`. There is no automated download or deletion facility, and no promise of deletion on a fixed day.
 
 ## Sandbox acceptance already completed
 
@@ -62,10 +64,10 @@ Implemented behaviour this wording relies on:
 
 ## Inconsistencies reported, not patched in the product
 
-- The 30-day export is a contractual request. The application has no export action and no 30-day timer. Do not read clause 22 as a claim that a download exists.
-- “May delete” account data after that request period is permission. Nothing in the application deletes operational clinic data automatically when the 30 days pass. Public-guide removal after 60 days is implemented separately and does not delete the account.
-- Clause 19 still says River Aftercare ordinarily sends a reminder about 30 days before an annual renewal. The in-product notice and the email handler exist. `vercel.json` does not schedule `GET /api/cron/billing-notices`. Production email is not sending until that schedule, `CRON_SECRET`, and the auth mailbox are in place. This wording does not remove the reminder sentence. Confirm the schedule before treating the email as live.
-- “An upgrade to a higher plan may take effect immediately” remains the existing sentence. The implemented immediate upgrade is operator-assisted Essential to Practice. Self-service Essential to Practice, monthly/annual switching, and refunds are not implemented. The sentence was not widened.
+- The 30-day export is a request to `admin@riveraftercare.com.au`, the address already named in clause 32 and the Privacy Policy. The application has no export action, no download, and no 30-day timer. What can be provided, where an operator can extract it, is Customer Content and clinic configuration already held for that clinic: clinic-created or clinic-adapted guides, clinic information, and branding. Full card and bank details stay with Stripe. Do not read clause 22 as a claim that a download exists.
+- “May delete” account data after that request period is permission. Nothing in the application deletes operational clinic data automatically when the 30 days pass. The Terms and Privacy Policy now say there is no automated deletion facility. Public-guide removal after 60 days is implemented separately and does not delete the account.
+- Clause 19 no longer promises a River Aftercare reminder about 30 days before an annual renewal, and it no longer says there is no extra reminder before a monthly renewal. The in-product annual notice and `GET /api/cron/billing-notices` still exist, and `vercel.json` still does not schedule that route. This change does not schedule it and does not treat it as a customer promise. The wording records the Stripe Live customer-email settings supplied for this correction: a trial-ending reminder seven days before expiry, upcoming-renewal notifications enabled, the upcoming-renewal event seven days before renewal, and failed card and bank-debit notifications enabled. Those are current operational settings, not a guarantee that the period will stay seven days.
+- “An upgrade to a higher plan may take effect immediately” remains the commercial rule where an upgrade is made. The implemented immediate upgrade is operator-assisted Essential to Practice. The billing portal does not switch plans. The Terms now say an upgrade, or a plan change the Service does not offer, may require assistance. The self-service Practice to Essential downgrade is scheduled from Billing and still takes effect at the next renewal, with no automatic pro-rata refund. Monthly and annual switching is not implemented.
 - Stripe’s retry timing is not fixed in this repository. The Terms do not state a grace period or a retry count. Confirm the live Stripe dunning settings before launch and do not add a day count unless those settings are verified.
 - Neon point-in-time history was observed at about 6 hours in an earlier check. The Privacy Policy does not turn that observation into a backup-retention promise. It still says provider backups follow the provider’s normal cycle.
 
@@ -91,7 +93,7 @@ Readiness before 1 July 2027, without claiming the drafts already satisfy the ne
 
 - The trial-to-paid conversion, the disclosed price, the billing period, and the cancellation path are now stated in the Terms and on the billing page.
 - Cancellation is online: Billing, then Manage billing, then the Stripe portal’s cancel-at-period-end flow. There is no fee and no operator approval. Counsel should decide whether the Stripe step is “only steps that are reasonably necessary” under section 48F.
-- The annual reminder email is the closest current ongoing notice, and it is not scheduled in production. Section 48E does not operate until a contract is prescribed and the Act has commenced.
+- The current ongoing billing notices are Stripe’s, at seven days before trial end and seven days before renewal, plus failed card and bank-debit notices. Section 48E does not operate until a contract is prescribed and the Act has commenced. Counsel should say whether a different period is required before then, or once regulations exist. The unscheduled River Aftercare annual-notice handler is not that notice.
 - No clause was rewritten into a “subscription contract” label. Adding that label before counsel settles section 48D would get ahead of the statute.
 
 [OAIC Australian Privacy Principles](https://www.oaic.gov.au/privacy/australian-privacy-principles) guidance was used only as the current principles framework. The drafts do not say River Aftercare is an APP entity, is exempt, or is certified.
@@ -103,7 +105,7 @@ Readiness before 1 July 2027, without claiming the drafts already satisfy the ne
 3. Is “GST will be charged where applicable” the right customer sentence while River Aftercare is not registered for GST, is not charging GST, and rejects a Stripe Price with inclusive tax behaviour? Do not add an including-GST or excluding-GST price label unless counsel and the accountant both ask for it.
 4. Unfair contract terms: liability cap, no pro-rata refund of a paid period, suspension discretion, early removal of public guides, and the “may delete” retention sentence. The cancellation-without-fee and price-increase notice were kept.
 5. From 1 July 2027: whether these subscription contracts meet the small-business requirement; when section 48D applies; what regulations require beyond this wording; and whether Billing → Manage billing → Stripe portal is a straightforward online exit.
-6. Whether the unscheduled annual-renewal email, the request-only 30-day export, and the absence of automatic account deletion need a wording change or an operational commitment before launch.
+6. Whether Stripe’s current seven-day trial-ending and seven-day renewal notices, together with failed card and bank-debit notices, are a sufficient operational notice. The drafts do not guarantee that period, and they no longer promise a separate 30-day annual reminder. Also confirm that a request to `admin@riveraftercare.com.au` for guides, clinic information and branding, with no automated download or deletion, is the export and deletion position to publish.
 7. Whether a never-paid trial’s 60-day public-guide window, measured from subscription end, is the retention position counsel wants published.
 
 ## Outstanding production checks
@@ -113,8 +115,8 @@ These are launch gates. This change does not perform them.
 - Solicitor review and Joaquín’s explicit approval, then the two legal-approval flags and the `noindex` decision.
 - `REGISTRATION_ENABLED` stays off until the registration launch checklist in [REGISTRATION-SECURITY.md](REGISTRATION-SECURITY.md) is done, including the registration migration and real Turnstile keys.
 - Promotional redemption flags stay off. Public pages advertise the 14-day trial only.
-- Stripe Live prices, portal configuration, dunning, and customer emails for invoices and failed payments. Sandbox evidence is not live configuration.
-- Schedule the annual billing-notice cron before relying on the email reminder.
+- Stripe Live prices, portal configuration, and dunning. The customer-email settings recorded here were supplied for this wording and were not re-checked from this environment. Sandbox evidence is not live configuration.
+- Do not schedule `GET /api/cron/billing-notices` in order to perform a 30-day annual reminder. The Terms do not promise that email.
 - Confirm Resend, Neon Sydney, Cloudflare, Vercel, Hostinger, and Google remain the providers named in the Privacy Policy. Do not add a provider, a region, or a certification that has not been verified.
 
 ## About
