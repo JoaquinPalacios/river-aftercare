@@ -15,6 +15,8 @@ import { marketingPublicLinks } from "@/lib/marketing/public-links";
 
 export type BillingPageContext = {
   userId: string;
+  accountName: string | null;
+  accountEmail: string;
   membership: ClinicMembershipContext | null;
   view: ClinicBillingView | null;
   contactHref: string;
@@ -52,6 +54,8 @@ export async function loadBillingPageContext(): Promise<BillingPageContext> {
 
   return {
     userId: user.id,
+    accountName: user.name,
+    accountEmail: user.email,
     membership,
     view,
     contactHref: new URL("contact", home).href,

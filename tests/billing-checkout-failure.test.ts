@@ -1,4 +1,8 @@
 import { BillingStatus, EntitlementStatus } from "@prisma/client";
+import {
+  PRIVACY_ACKNOWLEDGEMENT_VERSION,
+  TERMS_ACCEPTANCE_VERSION,
+} from "@/lib/legal/status";
 import Stripe from "stripe";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -55,6 +59,23 @@ type StoredProfile = {
   stripeSubscriptionId: string | null;
   stripeCheckoutSessionId: string | null;
 };
+
+function acceptanceWhereMatches(
+  row: Record<string, unknown>,
+  where: Record<string, unknown>
+) {
+  return Object.entries(where).every(([key, value]) => {
+    if (
+      value &&
+      typeof value === "object" &&
+      "in" in value &&
+      Array.isArray((value as { in: unknown[] }).in)
+    ) {
+      return (value as { in: unknown[] }).in.includes(row[key]);
+    }
+    return row[key] === value;
+  });
+}
 
 function memoryBilling(clinicId = CLINIC_ID) {
   const profiles = new Map<string, StoredProfile>();
@@ -134,11 +155,8 @@ function memoryBilling(clinicId = CLINIC_ID) {
       },
       async findFirst(args: { where: Record<string, unknown> }) {
         return (
-          acceptances.find((row) =>
-            Object.entries(args.where).every(
-              ([key, value]) => row[key] === value
-            )
-          ) ?? null
+          acceptances.find((row) => acceptanceWhereMatches(row, args.where)) ??
+          null
         );
       },
     },
@@ -153,6 +171,7 @@ function memoryBilling(clinicId = CLINIC_ID) {
   return {
     db,
     profiles,
+    acceptances,
     entitlements,
     entitlementWrites: () => entitlementWrites,
     setOffer(offer: {
@@ -735,6 +754,188 @@ describe("Essential monthly checkout failures", () => {
     expect(logged).not.toContain(SECRET);
     expect(logged).not.toContain(EMAIL);
     expect(logged).not.toContain(ADDRESS);
+  });
+});
+
+describe("direct checkout legal acceptance", () => {
+  async function recordAcceptance(
+    store: ReturnType<typeof memoryBilling>,
+    overrides: Record<string, unknown> = {}
+  ) {
+    await store.db.legalAcceptance.create({
+      data: {
+        clinicId: CLINIC_ID,
+        userId: USER_ID,
+        termsVersion: TERMS_ACCEPTANCE_VERSION,
+        privacyVersionAcknowledged: PRIVACY_ACKNOWLEDGEMENT_VERSION,
+        source: "REGISTRATION",
+        acceptedAt: new Date("2026-11-28T01:00:00.000Z"),
+        createdAt: new Date("2026-11-28T01:00:00.000Z"),
+        ...overrides,
+      },
+    });
+  }
+
+  async function checkout(
+    store: ReturnType<typeof memoryBilling>,
+    userId = USER_ID
+  ) {
+    return createClinicCheckout({
+      clinicId: CLINIC_ID,
+      userId,
+      successUrl: SUCCESS_URL,
+      cancelUrl: CANCEL_URL,
+      env: BILLING_TEST_ENV,
+      db: store.db as never,
+      stripe: scriptedStripe().port,
+    });
+  }
+
+  it("accepts a current registration record for the same owner and clinic", async () => {
+    const store = memoryBilling();
+    await recordAcceptance(store);
+    const saved = await saveBillingSetup(
+      {
+        clinicId: CLINIC_ID,
+        userId: USER_ID,
+        form: { ...billingForm, termsAccepted: false },
+        termsAlreadyAccepted: true,
+      },
+      store.db as never
+    );
+
+    expect(saved.ok).toBe(true);
+    expect(store.acceptances).toHaveLength(1);
+    expect(store.acceptances[0]).toMatchObject({ source: "REGISTRATION" });
+    await expect(checkout(store)).resolves.toMatchObject({ ok: true });
+    expect(store.acceptances).toHaveLength(1);
+  });
+
+  it("rejects an outdated registration acceptance", async () => {
+    const store = memoryBilling();
+    await recordAcceptance(store, {
+      termsVersion: "2026-10-01",
+      privacyVersionAcknowledged: "2026-10-01",
+    });
+    await saveBillingSetup(
+      {
+        clinicId: CLINIC_ID,
+        userId: USER_ID,
+        form: { ...billingForm, termsAccepted: false },
+        termsAlreadyAccepted: true,
+      },
+      store.db as never
+    );
+
+    await expect(checkout(store)).resolves.toMatchObject({
+      ok: false,
+      code: "terms_required",
+    });
+    expect(store.acceptances).toHaveLength(1);
+    expect(store.acceptances[0]).toMatchObject({ termsVersion: "2026-10-01" });
+  });
+
+  it("rejects a current acceptance for a different actor or clinic", async () => {
+    const otherUser = memoryBilling();
+    await recordAcceptance(otherUser, { userId: "user_other" });
+    await saveBillingSetup(
+      {
+        clinicId: CLINIC_ID,
+        userId: USER_ID,
+        form: { ...billingForm, termsAccepted: false },
+        termsAlreadyAccepted: true,
+      },
+      otherUser.db as never
+    );
+    expect(otherUser.acceptances).toEqual([
+      expect.objectContaining({
+        source: "REGISTRATION",
+        userId: "user_other",
+      }),
+    ]);
+
+    const otherClinic = memoryBilling();
+    await recordAcceptance(otherClinic, { clinicId: "clinic_other" });
+    await saveBillingSetup(
+      {
+        clinicId: CLINIC_ID,
+        userId: USER_ID,
+        form: { ...billingForm, termsAccepted: false },
+        termsAlreadyAccepted: true,
+      },
+      otherClinic.db as never
+    );
+
+    await expect(checkout(otherUser, USER_ID)).resolves.toMatchObject({
+      ok: false,
+      code: "terms_required",
+    });
+    await expect(checkout(otherClinic)).resolves.toMatchObject({
+      ok: false,
+      code: "terms_required",
+    });
+  });
+
+  it("rejects checkout when no acceptance exists", async () => {
+    const store = memoryBilling();
+    await saveBillingSetup(
+      {
+        clinicId: CLINIC_ID,
+        userId: USER_ID,
+        form: { ...billingForm, termsAccepted: false },
+        termsAlreadyAccepted: true,
+      },
+      store.db as never
+    );
+
+    await expect(checkout(store)).resolves.toMatchObject({
+      ok: false,
+      code: "terms_required",
+    });
+    expect(store.acceptances).toHaveLength(0);
+  });
+
+  it("still records an explicit billing acceptance for assisted onboarding", async () => {
+    const store = memoryBilling();
+    const saved = await saveBillingSetup(
+      {
+        clinicId: CLINIC_ID,
+        userId: USER_ID,
+        form: billingForm,
+      },
+      store.db as never
+    );
+
+    expect(saved.ok).toBe(true);
+    expect(store.acceptances).toEqual([
+      expect.objectContaining({
+        source: "BILLING_CHECKOUT",
+        termsVersion: TERMS_ACCEPTANCE_VERSION,
+        privacyVersionAcknowledged: PRIVACY_ACKNOWLEDGEMENT_VERSION,
+        userId: USER_ID,
+        clinicId: CLINIC_ID,
+      }),
+    ]);
+    await expect(checkout(store)).resolves.toMatchObject({ ok: true });
+  });
+
+  it("keeps assisted checkout closed until that billing acceptance exists", async () => {
+    const store = memoryBilling();
+    const saved = await saveBillingSetup(
+      {
+        clinicId: CLINIC_ID,
+        userId: USER_ID,
+        form: { ...billingForm, termsAccepted: false },
+      },
+      store.db as never
+    );
+
+    expect(saved.ok).toBe(false);
+    await expect(checkout(store)).resolves.toMatchObject({
+      ok: false,
+      code: "terms_required",
+    });
+    expect(store.acceptances).toHaveLength(0);
   });
 });
 

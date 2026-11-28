@@ -17,7 +17,7 @@ export function ManageBillingForm() {
   );
 
   return (
-    <form action={action} className="mt-5" aria-busy={pending || undefined}>
+    <form action={action} aria-busy={pending || undefined}>
       <PendingSubmitButton
         label="Manage billing"
         pendingLabel="Opening billing…"

@@ -48,8 +48,8 @@ import type { PromotionTerm } from "@/lib/billing/promotion-terms";
 import { getStripeClient } from "@/lib/billing/stripe-client";
 import { catalogueCheckoutTrialEligible } from "@/lib/billing/trial";
 import {
-  billingPeriodLabel,
   billingStateLabel,
+  customerBillingPeriodLabel,
   entitlementStateLabel,
   formatBillingDate,
   offerSummaryForEntitlement,
@@ -468,6 +468,11 @@ export async function loadClinicBillingView(
     entitlement?.entitlementStatus ?? null,
     profile?.stripeCheckoutSessionId ?? null
   );
+  const summary = offerSummaryForEntitlement(
+    entitlement?.commercialPlan ?? null,
+    entitlement?.billingInterval ?? null,
+    entitlement?.offeredAdditionalSiteQuantity ?? null
+  );
   const presentation = presentBillingReturn({
     entitlementStatus: entitlement?.entitlementStatus ?? null,
     billingStatus: entitlement?.billingStatus ?? null,
@@ -481,6 +486,8 @@ export async function loadClinicBillingView(
     currentPeriodEnd: reliableInstant,
     cancelAtPeriodEnd: entitlement?.cancelAtPeriodEnd ?? false,
     trialEndsAt: entitlement?.trialEndsAt ?? null,
+    recurringPriceLabel:
+      noticeEvaluation?.page.currentPriceLabel ?? summary?.priceLabel ?? null,
   });
   const reliablePeriodLabel = noticeEvaluation?.page.periodEndLabel ?? null;
   const cancelScheduled = Boolean(entitlement?.cancelAtPeriodEnd);
@@ -488,12 +495,11 @@ export async function loadClinicBillingView(
     Boolean(entitlement?.trialEndsAt) &&
     entitlement?.paidThrough == null &&
     entitlement?.entitlementStatus === EntitlementStatus.ACTIVE;
-  const periodLabel =
-    unpaidTrial && entitlement?.trialEndsAt
-      ? entitlement.trialEndsAt.getTime() <= Date.now()
-        ? "Trial ended"
-        : "Trial ends"
-      : billingPeriodLabel(cancelScheduled);
+  const periodLabel = customerBillingPeriodLabel({
+    presentation,
+    cancelAtPeriodEnd: cancelScheduled,
+    complimentary: entitlement?.commercialArrangement === "COMPLIMENTARY",
+  });
   const displayedPeriodLabel =
     unpaidTrial && entitlement?.trialEndsAt
       ? formatBillingDate(entitlement.trialEndsAt)
@@ -520,11 +526,7 @@ export async function loadClinicBillingView(
   return {
     clinicName: clinic.name,
     presentation,
-    summary: offerSummaryForEntitlement(
-      entitlement?.commercialPlan ?? null,
-      entitlement?.billingInterval ?? null,
-      entitlement?.offeredAdditionalSiteQuantity ?? null
-    ),
+    summary,
     billingLabel: billingStateLabel(entitlement?.billingStatus ?? null),
     planLabel: commercialPlanLabel(entitlement?.commercialPlan ?? null),
     intervalLabel: billingIntervalLabel(entitlement?.billingInterval ?? null),

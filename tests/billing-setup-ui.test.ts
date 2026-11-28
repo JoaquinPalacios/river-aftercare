@@ -52,9 +52,14 @@ describe("billing setup UI", () => {
       "utf8"
     );
     const css = readFileSync("app/(staff)/staff.css", "utf8");
-    expect(page).toContain(
-      'businessNumberKind: view.identity?.businessNumberKind ?? "none"'
+    const defaults = readFileSync(
+      "lib/billing/billing-setup-defaults.ts",
+      "utf8"
     );
+    expect(defaults).toContain(
+      'businessNumberKind: identity?.businessNumberKind ?? "none"'
+    );
+    expect(page).toContain("billingSetupFormDefaults");
     expect(page).toContain("staffBillingSetup");
     expect(css).toContain(".staffAppContent:has(.staffBillingSetup)");
     expect(css).toMatch(

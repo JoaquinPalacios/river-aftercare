@@ -41,6 +41,7 @@ import {
 } from "@/lib/billing/customer-portal";
 import { billingIdentityFromForm } from "@/lib/billing/billing-identity";
 import { isBusinessNumberKind } from "@/lib/billing/business-number-kind";
+import { findCurrentDocumentAcceptance } from "@/lib/billing/legal-acceptance";
 import { saveBillingSetup } from "@/lib/billing/save-billing-setup";
 import { isStaffAppHost } from "@/lib/tenancy/staff-app-origin";
 import type { BillingSetupSubmittedValues } from "@/app/(staff)/account/billing/setup/billing-setup-values";
@@ -116,10 +117,15 @@ export async function continueToSecurePaymentAction(
     );
   }
 
+  const priorAcceptance = await findCurrentDocumentAcceptance({
+    clinicId: actor.clinicId,
+    userId: session.user.id,
+  });
   const saved = await saveBillingSetup({
     clinicId: actor.clinicId,
     userId: session.user.id,
     form,
+    termsAlreadyAccepted: priorAcceptance != null,
   });
   if (!saved.ok) {
     return billingSetupFailure(form, saved.error, saved.fieldErrors);

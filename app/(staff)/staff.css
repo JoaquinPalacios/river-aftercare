@@ -1342,6 +1342,111 @@ html[data-theme-mode="dark"] .staffBtnQuiet {
   padding-bottom: 4rem;
 }
 
+.staffBillingSetup {
+  container-type: inline-size;
+  container-name: billing-setup;
+}
+
+.billingSetupPair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  min-width: 0;
+}
+
+@container billing-setup (min-width: 32rem) {
+  .billingSetupPair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.25rem;
+  }
+}
+
+.billingSummary {
+  container-type: inline-size;
+  container-name: billing-summary;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.billingSummaryTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+.billingSummaryGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.85rem 1.5rem;
+  margin: 0;
+}
+
+.billingSummaryGrid > div {
+  min-width: 0;
+}
+
+.billingSummaryGrid dt {
+  color: var(--staff-muted);
+}
+
+.billingSummaryGrid dd {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+@container billing-summary (min-width: 36rem) {
+  .billingSummaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.billingSummaryExplanation,
+.billingSummaryFollow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  max-width: 65ch;
+}
+
+.billingSummaryExplanation {
+  border-top: 1px solid var(--staff-line);
+  padding-top: 1rem;
+}
+
+.billingSummaryExplanation:empty {
+  display: none;
+}
+
+.billingSummaryActions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  max-width: 100%;
+}
+
+@container billing-summary (min-width: 36rem) {
+  .billingSummaryActions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+}
+
+.billingSummaryProvider {
+  margin: 0;
+  max-width: 65ch;
+  color: var(--staff-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 .billingIdentifier {
   min-width: 0;
   margin: 0;
@@ -1552,6 +1657,12 @@ tr[data-active="false"] td:nth-child(2) {
   background: var(--staff-status-warning-surface);
   color: var(--staff-status-warning-text);
   border-color: var(--staff-status-warning-line);
+}
+
+.staffStatusPill[data-tone="error"] {
+  background: color-mix(in srgb, var(--staff-danger) 12%, var(--staff-panel));
+  color: var(--staff-danger);
+  border-color: color-mix(in srgb, var(--staff-danger) 32%, var(--staff-line));
 }
 
 .staffField {

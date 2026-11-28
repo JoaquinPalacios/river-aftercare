@@ -12,6 +12,8 @@ import {
 } from "@/lib/billing/activation-gate";
 import {
   customerBillingStatusLabel,
+  customerBillingStatusPillTone,
+  customerBillingStatusTone,
   ENDED_BILLING_MESSAGE,
   processingFollowUp,
   RESTRICTED_BILLING_MESSAGE,
@@ -40,6 +42,11 @@ export default async function BillingStatusPage({
   const commercial = showCommercialDetail
     ? (view?.commercialDetail ?? null)
     : null;
+  const cataloguePriceLabel =
+    showCommercialDetail && view && !view.complimentary && !view.negotiatedOffer
+      ? (view.summary?.priceLabel ?? null)
+      : null;
+  const priceLabel = commercial?.currentPriceLabel || cataloguePriceLabel;
   const canManageBilling =
     view?.portalEligible === true &&
     context.membership?.role === "ADMIN" &&
@@ -68,6 +75,21 @@ export default async function BillingStatusPage({
     canChangePlan
   );
   const showScheduled = Boolean(view?.scheduledPlanChange);
+  const statusLabel =
+    view && presentation
+      ? customerBillingStatusLabel({
+          presentation,
+          complimentaryLabel: view.complimentary?.accessLabel ?? null,
+          showCommercialDetail,
+          billingLabel: view.billingLabel,
+        })
+      : null;
+  const statusTone =
+    statusLabel && presentation
+      ? customerBillingStatusPillTone(
+          customerBillingStatusTone({ label: statusLabel, presentation })
+        )
+      : null;
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
@@ -88,96 +110,76 @@ export default async function BillingStatusPage({
           </p>
         </section>
       ) : (
-        <section className="min-w-0 rounded-xl border border-staff-line bg-staff-panel p-5 sm:p-6">
-          <div className="max-w-xl">
-            <h2 className="text-base font-semibold">{view.clinicName}</h2>
+        <section className="billingSummary min-w-0 rounded-xl border border-staff-line bg-staff-panel p-5 sm:p-6">
+          <div className="billingSummaryTop">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
+                Billing summary
+              </p>
+              <h2 className="mt-1 text-lg font-semibold tracking-tight">
+                {view.clinicName}
+              </h2>
+            </div>
+            {statusLabel && statusTone ? (
+              <span className="staffStatusPill" data-tone={statusTone}>
+                {statusLabel}
+              </span>
+            ) : null}
+          </div>
+          <dl className="billingSummaryGrid text-sm">
+            <div>
+              <dt>Plan</dt>
+              <dd>{view.planLabel}</dd>
+            </div>
+            <div>
+              <dt>Billing</dt>
+              <dd>
+                {view.complimentary ? "Complimentary" : view.intervalLabel}
+              </dd>
+            </div>
+            {priceLabel ? (
+              <div>
+                <dt>Price</dt>
+                <dd>{priceLabel}</dd>
+              </div>
+            ) : null}
+            {showCommercialDetail &&
+            view.paidThroughLabel &&
+            (presentation.kind === "active" ||
+              presentation.kind === "restricted" ||
+              presentation.kind === "inactive") ? (
+              <div>
+                <dt>{view.periodLabel}</dt>
+                <dd>{view.paidThroughLabel}</dd>
+              </div>
+            ) : null}
+          </dl>
+          <div className="billingSummaryExplanation">
             {paymentRecovery ? (
               <PaymentRecoveryNotice
                 recovery={paymentRecovery}
                 portal={recoveryPortal}
               />
             ) : null}
-            {paymentRecovery && canManageBilling ? <ManageBillingForm /> : null}
-            {paymentRecovery && canManageBilling ? (
-              <p className="mt-3 text-sm text-staff-muted">
-                Payment methods, invoices, and cancellation are managed in
-                Stripe. This page updates after Stripe confirms a change.
-              </p>
-            ) : null}
-            <dl className="mt-4 grid gap-3 text-sm">
-              <div>
-                <dt className="text-staff-muted">Plan</dt>
-                <dd className="font-medium">{view.planLabel}</dd>
-              </div>
-              <div>
-                <dt className="text-staff-muted">Billing</dt>
-                <dd className="font-medium">
-                  {view.complimentary ? "Complimentary" : view.intervalLabel}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-staff-muted">Status</dt>
-                <dd>
-                  <span
-                    className="staffStatusPill"
-                    data-tone={
-                      presentation.kind === "active" &&
-                      (!presentation.attention ||
-                        (!showCommercialDetail &&
-                          presentation.attention === "past_due"))
-                        ? "success"
-                        : presentation.kind === "inactive"
-                          ? "inactive"
-                          : "warning"
-                    }
-                  >
-                    {customerBillingStatusLabel({
-                      presentation,
-                      complimentaryLabel:
-                        view.complimentary?.accessLabel ?? null,
-                      showCommercialDetail,
-                      billingLabel: view.billingLabel,
-                    })}
-                  </span>
-                </dd>
-              </div>
-              {showCommercialDetail && commercial?.currentPriceLabel ? (
-                <div>
-                  <dt className="text-staff-muted">Price</dt>
-                  <dd className="font-medium">
-                    {commercial.currentPriceLabel}
-                  </dd>
-                </div>
-              ) : null}
-              {showCommercialDetail &&
-              view.paidThroughLabel &&
-              (presentation.kind === "active" ||
-                presentation.kind === "restricted" ||
-                presentation.kind === "inactive") ? (
-                <div>
-                  <dt className="text-staff-muted">{view.periodLabel}</dt>
-                  <dd className="font-medium">{view.paidThroughLabel}</dd>
-                </div>
-              ) : null}
-            </dl>
             {showCommercialDetail &&
             presentation.kind === "active" &&
             presentation.attentionMessage &&
             !paymentRecovery ? (
-              <p className="mt-4 text-sm" role="status">
+              <p className="text-sm" role="status">
                 {presentation.attentionMessage}
               </p>
             ) : null}
             {showCommercialDetail &&
             presentation.kind === "active" &&
             presentation.trial?.message &&
+            !presentation.attentionMessage &&
             !paymentRecovery ? (
-              <p className="mt-4 text-sm" role="status">
+              <p className="text-sm" role="status">
                 {presentation.trial.message}
               </p>
             ) : null}
             {commercial?.annualReminder ? (
-              <p className="mt-4 text-sm leading-6" role="status">
+              <p className="text-sm leading-6" role="status">
                 {commercial.annualReminder.title}{" "}
                 {commercial.annualReminder.body}
               </p>
@@ -185,7 +187,7 @@ export default async function BillingStatusPage({
             {commercial?.priceChange ? (
               <div
                 id={BILLING_PRICE_CHANGE_ANCHOR}
-                className="mt-4 scroll-mt-24 text-sm leading-6"
+                className="scroll-mt-24 text-sm leading-6"
                 role="status"
               >
                 <p className="font-medium">{commercial.priceChange.title}</p>
@@ -301,7 +303,7 @@ export default async function BillingStatusPage({
               />
             </div>
           ) : null}
-          <div className="max-w-xl">
+          <div className="billingSummaryFollow">
             {view.complimentary && showCommercialDetail ? (
               <p className="mt-4 text-sm" role="status">
                 {view.complimentary.productAccess
@@ -329,7 +331,7 @@ export default async function BillingStatusPage({
             {showCommercialDetail && view.negotiatedOffer ? (
               <div className="mt-4 border-t border-staff-line pt-4 text-sm">
                 <h3 className="font-semibold">Negotiated price</h3>
-                <dl className="mt-3 grid gap-2">
+                <dl className="billingSummaryGrid mt-3">
                   <div>
                     <dt className="text-staff-muted">Plan</dt>
                     <dd className="font-medium">
@@ -473,45 +475,43 @@ export default async function BillingStatusPage({
                 Return to billing setup
               </Link>
             ) : null}
-            {canManageBilling && !paymentRecovery ? (
-              <ManageBillingForm />
-            ) : null}
             {view.portalEligible && !canManageBilling && !paymentRecovery ? (
-              <p className="mt-4 text-sm text-staff-muted">
+              <p className="text-sm text-staff-muted">
                 A clinic administrator can manage payment methods, invoices, and
                 cancellation.
               </p>
             ) : null}
-            {canManageBilling && !paymentRecovery ? (
-              <p className="mt-3 text-sm text-staff-muted">
-                Payment methods, invoices, and cancellation are managed in
-                Stripe. This page updates after Stripe confirms a change.
-              </p>
-            ) : null}
-            {presentation.kind === "active" ||
-            presentation.kind === "restricted" ||
-            presentation.kind === "inactive" ||
-            presentation.kind === "retry" ? (
-              <div className="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="billingSummaryActions">
+              {canManageBilling ? <ManageBillingForm /> : null}
+              {presentation.kind === "active" ||
+              presentation.kind === "restricted" ||
+              presentation.kind === "inactive" ||
+              presentation.kind === "retry" ? (
                 <a
                   href={context.contactHref}
                   className="staffBtn staffBtnSecondary inline-flex h-11 w-full items-center sm:w-auto"
                 >
                   Contact River Aftercare
                 </a>
-                {presentation.kind === "active" ? (
-                  <Link
-                    href="/dashboard"
-                    className={
-                      canManageBilling || presentation.attention
-                        ? "staffBtn staffBtnSecondary inline-flex h-11 w-full items-center sm:w-auto"
-                        : "staffBtn staffBtnPrimary inline-flex h-11 w-full items-center sm:w-auto"
-                    }
-                  >
-                    Continue
-                  </Link>
-                ) : null}
-              </div>
+              ) : null}
+              {presentation.kind === "active" ? (
+                <Link
+                  href="/dashboard"
+                  className={
+                    canManageBilling || presentation.attention
+                      ? "staffBtn staffBtnSecondary inline-flex h-11 w-full items-center sm:w-auto"
+                      : "staffBtn staffBtnPrimary inline-flex h-11 w-full items-center sm:w-auto"
+                  }
+                >
+                  Go to dashboard
+                </Link>
+              ) : null}
+            </div>
+            {canManageBilling ? (
+              <p className="billingSummaryProvider">
+                Payment methods, invoices, and cancellation are managed in
+                Stripe. This page updates after Stripe confirms a change.
+              </p>
             ) : null}
           </div>
         </section>

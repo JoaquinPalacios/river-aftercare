@@ -77,7 +77,34 @@ export function billingPeriodLabel(
 }
 
 export function cancellationScheduledMessage(effectiveEnd: Date): string {
-  return `Your subscription is scheduled to end on ${formatBillingDate(effectiveEnd)}.`;
+  return `Your subscription is scheduled to end on ${formatBillingDate(effectiveEnd)}. Access continues until then, and future recurring charges will stop.`;
+}
+
+/**
+ * Active trial copy. It names the trial end, the first charge, and the
+ * recurring price. It does not say the customer will not be charged.
+ */
+export function activeTrialAccessMessage(input: {
+  endsAt: Date;
+  recurringPriceLabel?: string | null;
+}): string {
+  const date = formatBillingDate(input.endsAt);
+  const price = input.recurringPriceLabel?.trim();
+  const charge = price
+    ? `The first subscription charge of ${price} is scheduled for that date.`
+    : "The first subscription charge, at the catalogue price, is scheduled for that date.";
+  return `Your free trial includes full access until ${date}. ${charge} That price continues for each following billing period unless you cancel from Billing before the trial ends.`;
+}
+
+/**
+ * Cancelled trial with access still open. Only use this when billing state
+ * shows the trial was cancelled and no charge is scheduled.
+ */
+export function cancelledTrialAccessMessage(endsAt: Date | null): string {
+  if (!endsAt) {
+    return "Your free trial has been cancelled. You can continue using River Aftercare until this trial's access ends. You will not be charged.";
+  }
+  return `Your free trial has been cancelled. You can continue using River Aftercare until ${formatBillingDate(endsAt)}. You will not be charged.`;
 }
 
 export type ScheduledPlanChangePresentation = {
@@ -232,6 +259,12 @@ export function presentBillingReturn(input: {
   cancelAtPeriodEnd?: boolean;
   trialEndsAt?: Date | null;
   now?: Date;
+  /**
+   * Price already loaded for this subscription or catalogue offer.
+   * Used only to describe an open trial. Absent means the sentence
+   * names the catalogue price without inventing an amount.
+   */
+  recurringPriceLabel?: string | null;
 }): BillingReturnPresentation {
   const planName = commercialPlanLabel(input.commercialPlan);
   const intervalLabel = billingIntervalLabel(input.billingInterval);
@@ -260,6 +293,7 @@ export function presentBillingReturn(input: {
           pastDue,
           cancelScheduled,
           now,
+          recurringPriceLabel: input.recurringPriceLabel ?? null,
         })
       : null;
     return {
@@ -369,6 +403,7 @@ function unpaidTrialPresentation(input: {
   pastDue: boolean;
   cancelScheduled: boolean;
   now: Date;
+  recurringPriceLabel: string | null;
 }): BillingTrialPresentation | null {
   if (!input.trialEndsAt) {
     return null;
@@ -387,7 +422,10 @@ function unpaidTrialPresentation(input: {
       endsAt: input.trialEndsAt,
       message: input.cancelScheduled
         ? null
-        : `Your free trial includes full access through ${formatBillingDate(input.trialEndsAt)}. The catalogue price is charged then, unless you cancel from Billing before the trial ends.`,
+        : activeTrialAccessMessage({
+            endsAt: input.trialEndsAt,
+            recurringPriceLabel: input.recurringPriceLabel,
+          }),
     };
   }
   return {
@@ -406,11 +444,8 @@ function trialCancelOrFailureMessage(input: {
   if (input.pastDue) {
     return PAST_DUE_BILLING_MESSAGE;
   }
-  if (input.attention === "cancel_scheduled" && input.effectiveEnd) {
-    return `Your free trial is scheduled to end on ${formatBillingDate(input.effectiveEnd)}. You will not be charged.`;
-  }
   if (input.attention === "cancel_scheduled") {
-    return "Your free trial is scheduled to end. You will not be charged.";
+    return cancelledTrialAccessMessage(input.effectiveEnd);
   }
   return null;
 }
@@ -430,7 +465,7 @@ export function customerBillingStatusLabel(input: {
     presentation.trial?.phase === "in_trial"
   ) {
     return presentation.attention === "cancel_scheduled"
-      ? "Trial ending"
+      ? "Trial cancelled"
       : "Free trial";
   }
   if (
@@ -443,14 +478,14 @@ export function customerBillingStatusLabel(input: {
     presentation.kind === "active" &&
     presentation.attention === "cancel_scheduled"
   ) {
-    return "Scheduled to end";
+    return "Cancellation scheduled";
   }
   if (
     presentation.kind === "active" &&
     presentation.attention === "past_due" &&
     input.showCommercialDetail
   ) {
-    return "Payment issue";
+    return "Past due";
   }
   if (presentation.kind === "active") {
     return "Active";
@@ -459,7 +494,7 @@ export function customerBillingStatusLabel(input: {
     return processingFollowUp(presentation.phase).label;
   }
   if (presentation.kind === "restricted" && input.showCommercialDetail) {
-    return "Unpaid";
+    return "Payment required";
   }
   if (presentation.kind === "restricted") {
     return "Billing";
@@ -468,6 +503,122 @@ export function customerBillingStatusLabel(input: {
     return "Ended";
   }
   return input.billingLabel;
+}
+
+export type CustomerBillingStatusTone =
+  "success" | "warning" | "error" | "neutral";
+
+/**
+ * Maps a customer-facing label onto the staff status tones.
+ * Success, warning, and error use the existing semantic tokens.
+ * Neutral uses the inactive pill.
+ */
+export function customerBillingStatusTone(input: {
+  label: string;
+  presentation: BillingReturnPresentation;
+}): CustomerBillingStatusTone {
+  switch (input.label) {
+    case "Free trial":
+    case "Active":
+      return "success";
+    case "Past due":
+    case "Payment required":
+      return "error";
+    case "Ended":
+    case "Not active":
+      return "neutral";
+    case "Trial cancelled":
+    case "Cancellation scheduled":
+    case "First payment processing":
+    case "Payment processing":
+    case "Confirming subscription":
+    case "Ready for payment":
+    case "Payment issue":
+    case "Billing":
+      return "warning";
+    default:
+      if (input.presentation.kind === "inactive") {
+        return "neutral";
+      }
+      if (input.presentation.kind === "restricted") {
+        return "error";
+      }
+      if (
+        input.presentation.kind === "active" &&
+        input.presentation.attention == null
+      ) {
+        return "success";
+      }
+      return "warning";
+  }
+}
+
+export function customerBillingStatusPillTone(
+  tone: CustomerBillingStatusTone
+): "success" | "warning" | "error" | "inactive" {
+  return tone === "neutral" ? "inactive" : tone;
+}
+
+/**
+ * Date label for the customer billing summary.
+ * Complimentary access keeps the paid-period labels because it is not a
+ * subscription end date.
+ */
+export function customerBillingPeriodLabel(input: {
+  presentation: BillingReturnPresentation;
+  cancelAtPeriodEnd: boolean;
+  complimentary: boolean;
+}):
+  | "Trial ends"
+  | "Trial ended"
+  | "Next renewal"
+  | "Access until"
+  | "Subscription ended" {
+  if (input.complimentary) {
+    return billingPeriodLabel(input.cancelAtPeriodEnd);
+  }
+  if (input.presentation.kind === "inactive") {
+    return "Subscription ended";
+  }
+  if (
+    input.presentation.kind === "active" &&
+    input.presentation.trial?.phase === "in_trial"
+  ) {
+    return input.presentation.attention === "cancel_scheduled"
+      ? "Access until"
+      : "Trial ends";
+  }
+  if (
+    input.presentation.kind === "active" &&
+    input.presentation.trial?.phase === "awaiting_first_charge"
+  ) {
+    return "Trial ended";
+  }
+  if (input.cancelAtPeriodEnd) {
+    return "Access until";
+  }
+  return "Next renewal";
+}
+
+export function paymentConfirmationHeading(
+  presentation: Extract<BillingReturnPresentation, { kind: "active" }>
+): string {
+  if (
+    presentation.trial?.phase === "in_trial" &&
+    presentation.attention === "cancel_scheduled"
+  ) {
+    return "Your free trial has been cancelled.";
+  }
+  if (presentation.trial?.phase === "in_trial") {
+    return "Your River Aftercare free trial has started.";
+  }
+  if (presentation.trial?.phase === "awaiting_first_charge") {
+    return "Your free trial has ended.";
+  }
+  if (presentation.attention === "cancel_scheduled") {
+    return "Your subscription is scheduled to end.";
+  }
+  return "Your River Aftercare subscription is active.";
 }
 
 export function entitlementStateLabel(

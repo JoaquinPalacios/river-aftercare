@@ -39,7 +39,9 @@ describe("billing page width", () => {
           attention: null,
           attentionMessage: null,
         },
-        summary: null,
+        summary: {
+          priceLabel: "A$119 / month",
+        },
         billingLabel: "Active",
         planLabel: "Practice",
         intervalLabel: "Monthly",
@@ -75,7 +77,10 @@ describe("billing page width", () => {
     expect(html).toContain("min-w-0");
     expect(html).toContain("w-full");
     expect(html).not.toContain("overflow-x");
-    expect(html).toContain("max-w-xl");
+    expect(html).toContain("billingSummaryGrid");
+    expect(html).toContain(">Price<");
+    expect(html).toContain("A$119 / month");
+    expect(html).toContain("billingSummaryActions");
     expect(html).toContain("md:grid-cols-2");
     expect(html).toContain("Practice → Essential");
     expect(html).toContain("Custom one");
@@ -84,20 +89,19 @@ describe("billing page width", () => {
     );
 
     const frameEnd = html.indexOf("max-w-5xl");
-    const reading = html.indexOf("max-w-xl");
+    const summary = html.indexOf("billingSummaryGrid");
     const selection = html.indexOf("Practice → Essential");
     expect(frameEnd).toBeGreaterThan(-1);
-    expect(reading).toBeGreaterThan(frameEnd);
-    expect(selection).toBeGreaterThan(reading);
+    expect(summary).toBeGreaterThan(frameEnd);
+    expect(selection).toBeGreaterThan(summary);
 
-    const footer = html.indexOf(
-      "mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center"
-    );
+    const actions = html.indexOf("billingSummaryActions");
     const contact = html.indexOf("Contact River Aftercare");
-    const continueLink = html.indexOf(">Continue<");
-    expect(footer).toBeGreaterThan(-1);
-    expect(contact).toBeGreaterThan(footer);
-    expect(continueLink).toBeGreaterThan(contact);
+    const dashboard = html.indexOf(">Go to dashboard<");
+    expect(actions).toBeGreaterThan(-1);
+    expect(contact).toBeGreaterThan(actions);
+    expect(dashboard).toBeGreaterThan(contact);
+    expect(html).not.toContain(">Continue<");
     expect(html).toContain(
       'class="staffBtn staffBtnSecondary inline-flex h-11 w-full items-center sm:w-auto"'
     );

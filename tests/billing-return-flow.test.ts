@@ -214,8 +214,15 @@ describe("billing return flow", () => {
     expect(complete).not.toContain("session_id");
     expect(complete).not.toContain("entitlement.update");
     expect(complete).toContain("processingFollowUp");
+    expect(complete).toContain("paymentConfirmationHeading");
     expect(complete).not.toContain("Your payment details have been received.");
-    expect(complete).toContain("Your River Aftercare subscription is active.");
+    const presentation = readFileSync(
+      "lib/billing/billing-presentation.ts",
+      "utf8"
+    );
+    expect(presentation).toContain(
+      "Your River Aftercare subscription is active."
+    );
   });
 
   it("returns a cancelled Checkout to setup without an entitlement change", () => {

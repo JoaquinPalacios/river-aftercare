@@ -78,7 +78,13 @@ export function PaymentRecoveryNotice({
           >
             Billing state
           </dt>
-          <dd className="font-medium">{recovery.stateLabel}</dd>
+          <dd className="font-medium">
+            {recovery.severity === "past_due"
+              ? "Past due"
+              : recovery.severity === "unpaid"
+                ? "Payment required"
+                : recovery.stateLabel}
+          </dd>
         </div>
       </dl>
       <p

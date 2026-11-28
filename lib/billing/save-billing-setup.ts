@@ -3,8 +3,8 @@ import "server-only";
 import type { PrismaClient } from "@prisma/client";
 
 import {
-  billingIdentitySchema,
   normalizeBillingIdentity,
+  parseBillingIdentity,
   type NormalizedBillingIdentity,
 } from "@/lib/billing/billing-identity";
 import { fieldErrorsFromZod } from "@/lib/clinic-portal/field-errors";
@@ -22,13 +22,20 @@ export async function saveBillingSetup(
     userId: string;
     form: unknown;
     acceptedAt?: Date;
+    /**
+     * True only after a server read finds a current Terms and Privacy
+     * acceptance for this user and clinic. A client checkbox is not enough.
+     */
+    termsAlreadyAccepted?: boolean;
   },
   db: SetupDb = getPrisma()
 ): Promise<
   | { ok: true; identity: NormalizedBillingIdentity }
   | { ok: false; error: string; fieldErrors: Record<string, string> }
 > {
-  const parsed = billingIdentitySchema.safeParse(input.form);
+  const parsed = parseBillingIdentity(input.form, {
+    termsAlreadyAccepted: input.termsAlreadyAccepted === true,
+  });
   if (!parsed.success) {
     return {
       ok: false,
@@ -49,12 +56,14 @@ export async function saveBillingSetup(
       },
       update: identity,
     });
-    await recordBillingLegalAcceptance({
-      clinicId: input.clinicId,
-      userId: input.userId,
-      acceptedAt,
-      db: tx,
-    });
+    if (parsed.data.termsAccepted) {
+      await recordBillingLegalAcceptance({
+        clinicId: input.clinicId,
+        userId: input.userId,
+        acceptedAt,
+        db: tx,
+      });
+    }
   });
 
   return { ok: true, identity };

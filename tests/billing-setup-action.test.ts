@@ -6,6 +6,7 @@ const createClinicCheckoutMock = vi.hoisted(() => vi.fn());
 const redirectMock = vi.hoisted(() => vi.fn());
 const transactionMock = vi.hoisted(() => vi.fn());
 const upsertMock = vi.hoisted(() => vi.fn());
+const documentAcceptanceMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/headers", () => ({
   headers: async () => new Headers({ host: "app.localhost:3000" }),
@@ -35,6 +36,9 @@ vi.mock("@/lib/prisma", () => ({
     $transaction: transactionMock,
     clinicNegotiatedOffer: {
       findFirst: async () => null,
+    },
+    legalAcceptance: {
+      findFirst: documentAcceptanceMock,
     },
   }),
 }));
@@ -92,6 +96,8 @@ describe("continue to secure payment validation", () => {
     redirectMock.mockReset();
     transactionMock.mockReset();
     upsertMock.mockReset();
+    documentAcceptanceMock.mockReset();
+    documentAcceptanceMock.mockResolvedValue(null);
     requireClinicAdminMock.mockResolvedValue({
       user: { id: "user_admin", platformRole: "NONE" },
       clinicMembership: {
@@ -465,6 +471,32 @@ describe("continue to secure payment validation", () => {
     expect(logged).not.toContain("accounts@example.com");
     errorLog.mockRestore();
     infoLog.mockRestore();
+  });
+
+  it("does not record a second acceptance when registration already covers the current documents", async () => {
+    const createAcceptance = vi.fn();
+    documentAcceptanceMock.mockResolvedValue({
+      id: "acceptance_registration",
+      source: "REGISTRATION",
+    });
+    transactionMock.mockImplementation(async (callback) =>
+      callback({
+        clinicBillingProfile: { upsert: upsertMock },
+        legalAcceptance: { create: createAcceptance },
+      })
+    );
+    upsertMock.mockResolvedValue({});
+    createClinicCheckoutMock.mockResolvedValue({
+      ok: true,
+      url: "https://checkout.stripe.com/c/pay/cs_test_mock",
+    });
+
+    await expect(
+      continueToSecurePaymentAction({}, billingForm(undefined, false))
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(createAcceptance).not.toHaveBeenCalled();
+    expect(createClinicCheckoutMock).toHaveBeenCalled();
   });
 });
 

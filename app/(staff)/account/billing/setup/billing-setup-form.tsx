@@ -48,6 +48,7 @@ export function BillingSetupForm({
   negotiatedTerms = null,
   trialNote = null,
   checkoutBlockedMessage = null,
+  priorTermsAcceptance = null,
 }: {
   clinicName: string;
   planName: string;
@@ -64,6 +65,9 @@ export function BillingSetupForm({
   negotiatedTerms?: { terms: string; policyLabel: string } | null;
   trialNote?: string | null;
   checkoutBlockedMessage?: string | null;
+  priorTermsAcceptance?: {
+    source: "REGISTRATION" | "BILLING_CHECKOUT";
+  } | null;
 }) {
   const [state, action, pending] = useActionState(
     continueToSecurePaymentAction,
@@ -237,42 +241,46 @@ export function BillingSetupForm({
           </p>
         </div>
 
-        <Field
-          id="legalEntityName"
-          name="legalEntityName"
-          label="Legal entity name"
-          value={form.legalEntityName}
-          onChange={(value) => patch("legalEntityName", value)}
-          autoComplete="organization"
-          error={shownError("legalEntityName")}
-        />
-        <Field
-          id="tradingName"
-          name="tradingName"
-          label="Trading or practice name"
-          value={form.tradingName}
-          onChange={(value) => patch("tradingName", value)}
-          error={shownError("tradingName")}
-        />
-        <Field
-          id="billingContactName"
-          name="billingContactName"
-          label="Billing contact name"
-          value={form.billingContactName}
-          onChange={(value) => patch("billingContactName", value)}
-          autoComplete="name"
-          error={shownError("billingContactName")}
-        />
-        <Field
-          id="billingEmail"
-          name="billingEmail"
-          label="Billing email"
-          type="email"
-          value={form.billingEmail}
-          onChange={(value) => patch("billingEmail", value)}
-          autoComplete="email"
-          error={shownError("billingEmail")}
-        />
+        <div className="billingSetupPair">
+          <Field
+            id="legalEntityName"
+            name="legalEntityName"
+            label="Legal entity name"
+            value={form.legalEntityName}
+            onChange={(value) => patch("legalEntityName", value)}
+            autoComplete="organization"
+            error={shownError("legalEntityName")}
+          />
+          <Field
+            id="tradingName"
+            name="tradingName"
+            label="Trading or practice name"
+            value={form.tradingName}
+            onChange={(value) => patch("tradingName", value)}
+            error={shownError("tradingName")}
+          />
+        </div>
+        <div className="billingSetupPair">
+          <Field
+            id="billingContactName"
+            name="billingContactName"
+            label="Billing contact name"
+            value={form.billingContactName}
+            onChange={(value) => patch("billingContactName", value)}
+            autoComplete="name"
+            error={shownError("billingContactName")}
+          />
+          <Field
+            id="billingEmail"
+            name="billingEmail"
+            label="Billing email"
+            type="email"
+            value={form.billingEmail}
+            onChange={(value) => patch("billingEmail", value)}
+            autoComplete="email"
+            error={shownError("billingEmail")}
+          />
+        </div>
 
         <fieldset className="flex flex-col gap-4">
           <legend className="text-sm font-medium">Billing address</legend>
@@ -295,64 +303,68 @@ export function BillingSetupForm({
             optional
             error={shownError("addressLine2")}
           />
-          <Field
-            id="city"
-            name="city"
-            label="Suburb or city"
-            value={form.city}
-            onChange={(value) => patch("city", value)}
-            autoComplete="address-level2"
-            error={shownError("city")}
-          />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="region">
-              State
-            </label>
-            <select
-              id="region"
-              name="region"
-              value={form.region}
-              onChange={(event) => patch("region", event.target.value)}
-              autoComplete="address-level1"
-              aria-invalid={shownError("region") ? "true" : "false"}
-              aria-describedby={
-                shownError("region") ? "region-error" : undefined
-              }
-              className="staffField staffSelect"
-            >
-              <option value="">Choose a state</option>
-              {regions.map((region) => (
-                <option key={region.value} value={region.value}>
-                  {region.label}
-                </option>
-              ))}
-            </select>
-            <FieldError id="region-error" message={shownError("region")} />
+          <div className="billingSetupPair">
+            <Field
+              id="city"
+              name="city"
+              label="Suburb or city"
+              value={form.city}
+              onChange={(value) => patch("city", value)}
+              autoComplete="address-level2"
+              error={shownError("city")}
+            />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium" htmlFor="region">
+                State
+              </label>
+              <select
+                id="region"
+                name="region"
+                value={form.region}
+                onChange={(event) => patch("region", event.target.value)}
+                autoComplete="address-level1"
+                aria-invalid={shownError("region") ? "true" : "false"}
+                aria-describedby={
+                  shownError("region") ? "region-error" : undefined
+                }
+                className="staffField staffSelect"
+              >
+                <option value="">Choose a state</option>
+                {regions.map((region) => (
+                  <option key={region.value} value={region.value}>
+                    {region.label}
+                  </option>
+                ))}
+              </select>
+              <FieldError id="region-error" message={shownError("region")} />
+            </div>
           </div>
-          <Field
-            id="postalCode"
-            name="postalCode"
-            label="Postcode"
-            value={form.postalCode}
-            onChange={(value) => patch("postalCode", value)}
-            autoComplete="postal-code"
-            inputMode="numeric"
-            error={shownError("postalCode")}
-          />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="country">
-              Country
-            </label>
-            <select
-              id="country"
-              name="country"
-              value={form.country || "AU"}
-              onChange={(event) => patch("country", event.target.value)}
-              autoComplete="country"
-              className="staffField staffSelect"
-            >
-              <option value="AU">Australia</option>
-            </select>
+          <div className="billingSetupPair">
+            <Field
+              id="postalCode"
+              name="postalCode"
+              label="Postcode"
+              value={form.postalCode}
+              onChange={(value) => patch("postalCode", value)}
+              autoComplete="postal-code"
+              inputMode="numeric"
+              error={shownError("postalCode")}
+            />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium" htmlFor="country">
+                Country
+              </label>
+              <select
+                id="country"
+                name="country"
+                value={form.country || "AU"}
+                onChange={(event) => patch("country", event.target.value)}
+                autoComplete="country"
+                className="staffField staffSelect"
+              >
+                <option value="AU">Australia</option>
+              </select>
+            </div>
           </div>
         </fieldset>
 
@@ -432,41 +444,68 @@ export function BillingSetupForm({
         </fieldset>
       </section>
 
-      <div className="flex flex-col gap-2">
-        <div className="flex items-start gap-3">
-          <input
-            id="termsAccepted"
-            name="termsAccepted"
-            type="checkbox"
-            value="on"
-            checked={form.termsAccepted}
-            onChange={(event) => patch("termsAccepted", event.target.checked)}
-            aria-invalid={shownError("termsAccepted") ? "true" : "false"}
-            aria-describedby={
-              shownError("termsAccepted") ? termsErrorId : undefined
-            }
-            className="mt-1 h-4 w-4 shrink-0 accent-[var(--staff-brand)]"
-          />
-          <label htmlFor="termsAccepted" className="text-sm leading-6">
-            I agree to the{" "}
-            <a
-              href={termsHref}
-              className="font-medium text-staff-brand underline decoration-staff-brand/40 underline-offset-2"
-            >
-              Terms & Conditions
-            </a>{" "}
-            and acknowledge the{" "}
-            <a
-              href={privacyHref}
-              className="font-medium text-staff-brand underline decoration-staff-brand/40 underline-offset-2"
-            >
-              Privacy Policy
-            </a>
-            .
-          </label>
+      {priorTermsAcceptance && !shownError("termsAccepted") ? (
+        <p
+          className="text-sm leading-6"
+          data-prior-terms-acceptance={priorTermsAcceptance.source}
+        >
+          {priorTermsAcceptance.source === "REGISTRATION"
+            ? "You accepted the current "
+            : "You have already accepted the current "}
+          <a
+            href={termsHref}
+            className="font-medium text-staff-brand underline decoration-staff-brand/40 underline-offset-2"
+          >
+            Terms & Conditions
+          </a>{" "}
+          and acknowledged the{" "}
+          <a
+            href={privacyHref}
+            className="font-medium text-staff-brand underline decoration-staff-brand/40 underline-offset-2"
+          >
+            Privacy Policy
+          </a>
+          {priorTermsAcceptance.source === "REGISTRATION"
+            ? " when you registered this clinic."
+            : " for this clinic."}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-start gap-3">
+            <input
+              id="termsAccepted"
+              name="termsAccepted"
+              type="checkbox"
+              value="on"
+              checked={form.termsAccepted}
+              onChange={(event) => patch("termsAccepted", event.target.checked)}
+              aria-invalid={shownError("termsAccepted") ? "true" : "false"}
+              aria-describedby={
+                shownError("termsAccepted") ? termsErrorId : undefined
+              }
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--staff-brand)]"
+            />
+            <label htmlFor="termsAccepted" className="text-sm leading-6">
+              I agree to the{" "}
+              <a
+                href={termsHref}
+                className="font-medium text-staff-brand underline decoration-staff-brand/40 underline-offset-2"
+              >
+                Terms & Conditions
+              </a>{" "}
+              and acknowledge the{" "}
+              <a
+                href={privacyHref}
+                className="font-medium text-staff-brand underline decoration-staff-brand/40 underline-offset-2"
+              >
+                Privacy Policy
+              </a>
+              .
+            </label>
+          </div>
+          <FieldError id={termsErrorId} message={shownError("termsAccepted")} />
         </div>
-        <FieldError id={termsErrorId} message={shownError("termsAccepted")} />
-      </div>
+      )}
       {negotiatedTerms ? (
         <div className="flex flex-col gap-2">
           <p className="text-sm leading-6">{negotiatedTerms.terms}</p>

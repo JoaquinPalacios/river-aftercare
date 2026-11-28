@@ -65,10 +65,7 @@ import {
 } from "@/lib/billing/stripe-client";
 import { stripeDeployment } from "@/lib/billing/stripe-mode";
 import { lockClinicAccountStructure } from "@/lib/entitlements/locks";
-import {
-  PRIVACY_ACKNOWLEDGEMENT_VERSION,
-  TERMS_ACCEPTANCE_VERSION,
-} from "@/lib/legal/status";
+import { currentDocumentAcceptanceWhere } from "@/lib/billing/legal-acceptance";
 import { getPrisma } from "@/lib/prisma";
 
 const OPEN_OFFER_STATUSES = ["PREPARED", "CHECKOUT_OPEN"] as const;
@@ -1094,13 +1091,7 @@ export async function startNegotiatedCheckout(input: {
       return { ok: false as const, code: "split_in_progress" as const };
     }
     const acceptance = await tx.legalAcceptance.findFirst({
-      where: {
-        clinicId: input.clinicId,
-        userId: input.userId,
-        termsVersion: TERMS_ACCEPTANCE_VERSION,
-        privacyVersionAcknowledged: PRIVACY_ACKNOWLEDGEMENT_VERSION,
-        source: "BILLING_CHECKOUT",
-      },
+      where: currentDocumentAcceptanceWhere(input.clinicId, input.userId),
       select: { id: true },
     });
     if (!acceptance) {

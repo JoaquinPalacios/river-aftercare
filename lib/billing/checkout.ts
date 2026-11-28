@@ -43,10 +43,7 @@ import {
   getStripeClientConfig,
 } from "@/lib/billing/stripe-client";
 import type { Env } from "@/lib/billing/env";
-import {
-  PRIVACY_ACKNOWLEDGEMENT_VERSION,
-  TERMS_ACCEPTANCE_VERSION,
-} from "@/lib/legal/status";
+import { currentDocumentAcceptanceWhere } from "@/lib/billing/legal-acceptance";
 import { getPrisma } from "@/lib/prisma";
 import {
   CATALOGUE_TRIAL_PERIOD_DAYS,
@@ -1118,13 +1115,7 @@ export async function createClinicCheckout(input: {
           where: { clinicId: input.clinicId },
         });
         const acceptance = await transaction.legalAcceptance.findFirst({
-          where: {
-            clinicId: input.clinicId,
-            userId: input.userId,
-            termsVersion: TERMS_ACCEPTANCE_VERSION,
-            privacyVersionAcknowledged: PRIVACY_ACKNOWLEDGEMENT_VERSION,
-            source: "BILLING_CHECKOUT",
-          },
+          where: currentDocumentAcceptanceWhere(input.clinicId, input.userId),
           select: { id: true },
         });
 
