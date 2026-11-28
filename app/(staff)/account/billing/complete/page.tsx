@@ -9,9 +9,14 @@ import {
   BILLING_STATUS_PATH,
 } from "@/lib/billing/activation-gate";
 import {
+  customerBillingStatusLabel,
+  customerBillingStatusPillTone,
+  customerBillingStatusTone,
+  paymentConfirmationHeading,
   processingFollowUp,
   RESTRICTED_BILLING_MESSAGE,
 } from "@/lib/billing/billing-presentation";
+import { canViewCommercialBillingNotices } from "@/lib/billing/notices/permissions";
 import { PRODUCT_NAME } from "@/lib/branding/product-name";
 
 export const metadata: Metadata = {
@@ -42,45 +47,14 @@ export default async function BillingCompletePage() {
           className="rounded-xl border border-staff-line bg-staff-panel p-5 sm:p-6"
           role="status"
         >
-          <p className="staffStatusPill" data-tone="success">
-            {presentation.trial?.phase === "in_trial"
-              ? "Free trial"
-              : presentation.trial?.phase === "awaiting_first_charge"
-                ? "First payment processing"
-                : "Active"}
-          </p>
-          <h2 className="mt-4 text-lg font-semibold">
-            {presentation.trial?.phase === "in_trial"
-              ? "Your River Aftercare free trial has started."
-              : presentation.trial?.phase === "awaiting_first_charge"
-                ? "Your free trial has ended."
-                : "Your River Aftercare subscription is active."}
-          </h2>
-          <p className="mt-2 text-sm text-staff-muted">
-            {presentation.planName} · {presentation.intervalLabel}
-          </p>
-          {presentation.trial?.message ? (
-            <p className="mt-3 text-sm">{presentation.trial.message}</p>
-          ) : null}
-          {presentation.attentionMessage ? (
-            <p className="mt-3 text-sm">{presentation.attentionMessage}</p>
-          ) : presentation.trial
-              ?.message ? null : presentation.assistedSetup ? (
-            <p className="mt-3 text-sm">
-              Your Practice plan is active. We’ll help you get your River
-              Aftercare setup ready.
-            </p>
-          ) : (
-            <p className="mt-3 text-sm text-staff-muted">
-              You can continue into your clinic and start setup.
-            </p>
-          )}
-          <Link
-            href="/dashboard"
-            className="staffBtn staffBtnPrimary mt-5 inline-flex h-11 items-center"
-          >
-            Continue
-          </Link>
+          <ActivePaymentConfirmation
+            view={view}
+            presentation={presentation}
+            showCommercialDetail={canViewCommercialBillingNotices({
+              role: context.membership?.role ?? null,
+              source: context.membership?.source,
+            })}
+          />
         </section>
       ) : presentation.kind === "processing" ? (
         <section
@@ -124,7 +98,7 @@ export default async function BillingCompletePage() {
           role="status"
         >
           <p className="staffStatusPill" data-tone="inactive">
-            Not active
+            Ended
           </p>
           <h2 className="mt-4 text-lg font-semibold">
             Your River Aftercare subscription is not active.
@@ -145,8 +119,8 @@ export default async function BillingCompletePage() {
           className="rounded-xl border border-staff-line bg-staff-panel p-5 sm:p-6"
           role="status"
         >
-          <p className="staffStatusPill" data-tone="warning">
-            Unpaid
+          <p className="staffStatusPill" data-tone="error">
+            Payment required
           </p>
           <h2 className="mt-4 text-lg font-semibold">
             Payment needs attention
@@ -212,5 +186,67 @@ export default async function BillingCompletePage() {
         Billing status
       </Link>
     </div>
+  );
+}
+
+function ActivePaymentConfirmation({
+  view,
+  presentation,
+  showCommercialDetail,
+}: {
+  view: NonNullable<Awaited<ReturnType<typeof loadBillingPageContext>>["view"]>;
+  presentation: Extract<
+    NonNullable<
+      Awaited<ReturnType<typeof loadBillingPageContext>>["view"]
+    >["presentation"],
+    { kind: "active" }
+  >;
+  showCommercialDetail: boolean;
+}) {
+  const label = customerBillingStatusLabel({
+    presentation,
+    complimentaryLabel: view.complimentary?.accessLabel ?? null,
+    showCommercialDetail,
+    billingLabel: view.billingLabel,
+  });
+  const tone = customerBillingStatusPillTone(
+    customerBillingStatusTone({ label, presentation })
+  );
+  const trialCopy =
+    presentation.trial?.message && presentation.attention !== "cancel_scheduled"
+      ? presentation.trial.message
+      : null;
+
+  return (
+    <>
+      <p className="staffStatusPill" data-tone={tone}>
+        {label}
+      </p>
+      <h2 className="mt-4 text-lg font-semibold">
+        {paymentConfirmationHeading(presentation)}
+      </h2>
+      <p className="mt-2 text-sm text-staff-muted">
+        {presentation.planName} · {presentation.intervalLabel}
+      </p>
+      {trialCopy ? <p className="mt-3 text-sm">{trialCopy}</p> : null}
+      {presentation.attentionMessage ? (
+        <p className="mt-3 text-sm">{presentation.attentionMessage}</p>
+      ) : trialCopy ? null : presentation.assistedSetup ? (
+        <p className="mt-3 text-sm">
+          Your Practice plan is active. We’ll help you get your River Aftercare
+          setup ready.
+        </p>
+      ) : (
+        <p className="mt-3 text-sm text-staff-muted">
+          You can continue into your clinic and start setup.
+        </p>
+      )}
+      <Link
+        href="/dashboard"
+        className="staffBtn staffBtnPrimary mt-5 inline-flex h-11 items-center"
+      >
+        Go to dashboard
+      </Link>
+    </>
   );
 }

@@ -3,6 +3,8 @@ import Link from "next/link";
 
 import { BillingSetupForm } from "@/app/(staff)/account/billing/setup/billing-setup-form";
 import { OnboardingAssistance } from "@/app/(staff)/components/onboarding-assistance";
+import { billingSetupFormDefaults } from "@/lib/billing/billing-setup-defaults";
+import { findCurrentDocumentAcceptance } from "@/lib/billing/legal-acceptance";
 import { CATALOGUE_TRIAL_DISCLOSURE } from "@/lib/billing/trial";
 import { loadBillingPageContext } from "@/app/(staff)/account/billing/billing-context";
 import {
@@ -30,9 +32,18 @@ export default async function BillingSetupPage({
   const cancelMessage = billingSetupCancelMessage(params.checkout);
   const membership = context.membership;
   const view = context.view;
+  const priorTerms =
+    membership &&
+    membership.source !== "operator_support" &&
+    membership.role === "ADMIN"
+      ? await findCurrentDocumentAcceptance({
+          clinicId: membership.clinic.id,
+          userId: context.userId,
+        })
+      : null;
 
   return (
-    <div className="staffBillingSetup mx-auto flex w-full min-w-0 max-w-xl flex-col gap-6">
+    <div className="staffBillingSetup mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-6">
       <header>
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-staff-muted">
           Account
@@ -92,21 +103,15 @@ export default async function BillingSetupPage({
             terms: view.negotiatedOffer.terms,
             policyLabel: view.negotiatedOffer.policyLabel,
           }}
-          defaults={{
-            legalEntityName: view.identity?.legalEntityName ?? "",
-            tradingName: view.identity?.tradingName ?? view.clinicName,
-            billingContactName: view.identity?.billingContactName ?? "",
-            billingEmail: view.identity?.billingEmail ?? "",
-            addressLine1: view.identity?.addressLine1 ?? "",
-            addressLine2: view.identity?.addressLine2 ?? "",
-            city: view.identity?.city ?? "",
-            region: view.identity?.region ?? "",
-            postalCode: view.identity?.postalCode ?? "",
-            country: view.identity?.country || "AU",
-            businessNumberKind: view.identity?.businessNumberKind ?? "none",
-            abn: view.identity?.abn ?? "",
-            acn: view.identity?.acn ?? "",
-          }}
+          priorTermsAcceptance={
+            priorTerms ? { source: priorTerms.source } : null
+          }
+          defaults={billingSetupFormDefaults({
+            clinicName: view.clinicName,
+            identity: view.identity,
+            accountName: context.accountName,
+            accountEmail: context.accountEmail,
+          })}
         />
       ) : view.presentation.kind === "active" ? (
         <ActiveBilling view={view} />
@@ -156,21 +161,15 @@ export default async function BillingSetupPage({
                   : null
             }
             checkoutBlockedMessage={view.promotion?.checkoutBlockedMessage}
-            defaults={{
-              legalEntityName: view.identity?.legalEntityName ?? "",
-              tradingName: view.identity?.tradingName ?? view.clinicName,
-              billingContactName: view.identity?.billingContactName ?? "",
-              billingEmail: view.identity?.billingEmail ?? "",
-              addressLine1: view.identity?.addressLine1 ?? "",
-              addressLine2: view.identity?.addressLine2 ?? "",
-              city: view.identity?.city ?? "",
-              region: view.identity?.region ?? "",
-              postalCode: view.identity?.postalCode ?? "",
-              country: view.identity?.country || "AU",
-              businessNumberKind: view.identity?.businessNumberKind ?? "none",
-              abn: view.identity?.abn ?? "",
-              acn: view.identity?.acn ?? "",
-            }}
+            priorTermsAcceptance={
+              priorTerms ? { source: priorTerms.source } : null
+            }
+            defaults={billingSetupFormDefaults({
+              clinicName: view.clinicName,
+              identity: view.identity,
+              accountName: context.accountName,
+              accountEmail: context.accountEmail,
+            })}
           />
         </>
       ) : (
@@ -309,7 +308,7 @@ function ActiveBilling({
         href="/dashboard"
         className="staffBtn staffBtnPrimary mt-4 inline-flex h-11 items-center"
       >
-        Continue
+        Go to dashboard
       </Link>
       <Link
         href={BILLING_STATUS_PATH}

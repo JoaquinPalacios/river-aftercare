@@ -31,7 +31,7 @@ const trialView = {
       phase: "in_trial" as const,
       endsAt: new Date("2026-11-15T00:00:00.000Z"),
       message:
-        "Your free trial includes full access through 15 November 2026. The catalogue price is charged then, unless you cancel from Billing before the trial ends.",
+        "Your free trial includes full access until 15 November 2026. The first subscription charge of A$49 per month is scheduled for that date. That price continues for each following billing period unless you cancel from Billing before the trial ends.",
     },
   },
   summary: null,
@@ -73,7 +73,8 @@ describe("catalogue trial billing copy", () => {
     expect(html).toContain("Free trial");
     expect(html).toContain("Trial ends");
     expect(html).toContain("15 November 2026");
-    expect(html).toContain("catalogue price is charged then");
+    expect(html).toContain("first subscription charge of A$49 per month");
+    expect(html).not.toContain("You will not be charged");
     expect(html).not.toContain("Next renewal");
     expect(html).not.toContain("Paid through");
   });
@@ -90,7 +91,9 @@ describe("catalogue trial billing copy", () => {
 
     const html = renderToStaticMarkup(await BillingCompletePage());
     expect(html).toContain("Your River Aftercare free trial has started.");
+    expect(html).toContain("Go to dashboard");
     expect(html).not.toContain("Your River Aftercare subscription is active.");
+    expect(html).not.toContain("You will not be charged");
   });
 
   it("discloses the trial on catalogue setup and not on a negotiated offer", () => {
@@ -126,6 +129,7 @@ describe("catalogue trial billing copy", () => {
     );
     expect(catalogue).toContain("14 days of River Aftercare");
     expect(catalogue).toContain("card or Australian bank debit");
+    expect(catalogue).toContain('name="termsAccepted"');
     expect(catalogue).not.toContain("coupon");
 
     const negotiated = renderToStaticMarkup(
@@ -148,5 +152,49 @@ describe("catalogue trial billing copy", () => {
       />
     );
     expect(negotiated).not.toContain("14 days of River Aftercare");
+    expect(negotiated).toContain('name="acceptNegotiatedTerms"');
+  });
+
+  it("keeps the terms links and drops the duplicate checkbox after registration", () => {
+    const html = renderToStaticMarkup(
+      <BillingSetupForm
+        clinicName="Harbour Dental"
+        planName="Essential"
+        priceLabel="A$49 per month"
+        annualNote={null}
+        contactHref="/contact"
+        termsHref="/terms"
+        privacyHref="/privacy"
+        regions={[{ value: "NSW", label: "New South Wales" }]}
+        defaults={{
+          legalEntityName: "",
+          tradingName: "Harbour Dental",
+          billingContactName: "River Owner",
+          billingEmail: "owner@example.com",
+          addressLine1: "",
+          addressLine2: "",
+          city: "",
+          region: "",
+          postalCode: "",
+          country: "AU",
+          businessNumberKind: "none",
+          abn: "",
+          acn: "",
+        }}
+        cancelMessage={null}
+        trialNote={CATALOGUE_TRIAL_DISCLOSURE}
+        priorTermsAcceptance={{ source: "REGISTRATION" }}
+      />
+    );
+
+    expect(html).toContain("when you registered this clinic");
+    expect(html).toContain('href="/terms"');
+    expect(html).toContain('href="/privacy"');
+    expect(html).not.toContain('name="termsAccepted"');
+    expect(html).toContain("Continue to secure payment");
+    expect(html).toContain("14 days of River Aftercare");
+    expect(html).toContain('value="River Owner"');
+    expect(html).toContain('value="owner@example.com"');
+    expect(html).toMatch(/name="legalEntityName"[^>]*value=""/);
   });
 });

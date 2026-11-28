@@ -23,114 +23,132 @@ export const AU_REGION_OPTIONS = [
 
 const AU_REGION_VALUES = AU_REGION_OPTIONS.map((option) => option.value);
 
-export const billingIdentitySchema = z
-  .object({
-    legalEntityName: z
-      .string()
-      .trim()
-      .min(1, "Enter the legal entity name.")
-      .max(160),
-    tradingName: z.string().trim().max(160),
-    billingContactName: z
-      .string()
-      .trim()
-      .min(1, "Enter the billing contact name.")
-      .max(120),
-    billingEmail: z
-      .string()
-      .trim()
-      .max(200)
-      .email("Enter a valid billing email."),
-    addressLine1: z
-      .string()
-      .trim()
-      .min(1, "Enter the billing address.")
-      .max(120),
-    addressLine2: z.string().trim().max(120),
-    city: z.string().trim().min(1, "Enter the suburb or city.").max(80),
-    region: z.string().trim().min(1, "Choose a state or region.").max(80),
-    postalCode: z.string().trim().min(1, "Enter the postcode.").max(20),
-    country: z.string().trim().toUpperCase().min(2, "Choose a country.").max(2),
-    businessNumberKind: z.enum(["abn", "acn", "none"], {
-      error: "Choose ABN, ACN, or None.",
-    }),
-    abn: z.string().trim(),
-    acn: z.string().trim(),
-    termsAccepted: z.boolean(),
-  })
-  .superRefine((value, context) => {
-    if (!/^[A-Z]{2}$/.test(value.country)) {
-      context.addIssue({
-        code: "custom",
-        path: ["country"],
-        message: "Choose a country.",
-      });
-    }
-
-    if (value.country === "AU") {
-      if (
-        !AU_REGION_VALUES.includes(
-          value.region as (typeof AU_REGION_VALUES)[number]
-        )
-      ) {
+function buildBillingIdentitySchema(termsAlreadyAccepted: boolean) {
+  return z
+    .object({
+      legalEntityName: z
+        .string()
+        .trim()
+        .min(1, "Enter the legal entity name.")
+        .max(160),
+      tradingName: z.string().trim().max(160),
+      billingContactName: z
+        .string()
+        .trim()
+        .min(1, "Enter the billing contact name.")
+        .max(120),
+      billingEmail: z
+        .string()
+        .trim()
+        .max(200)
+        .email("Enter a valid billing email."),
+      addressLine1: z
+        .string()
+        .trim()
+        .min(1, "Enter the billing address.")
+        .max(120),
+      addressLine2: z.string().trim().max(120),
+      city: z.string().trim().min(1, "Enter the suburb or city.").max(80),
+      region: z.string().trim().min(1, "Choose a state or region.").max(80),
+      postalCode: z.string().trim().min(1, "Enter the postcode.").max(20),
+      country: z
+        .string()
+        .trim()
+        .toUpperCase()
+        .min(2, "Choose a country.")
+        .max(2),
+      businessNumberKind: z.enum(["abn", "acn", "none"], {
+        error: "Choose ABN, ACN, or None.",
+      }),
+      abn: z.string().trim(),
+      acn: z.string().trim(),
+      termsAccepted: z.boolean(),
+    })
+    .superRefine((value, context) => {
+      if (!/^[A-Z]{2}$/.test(value.country)) {
         context.addIssue({
           code: "custom",
-          path: ["region"],
-          message: "Choose an Australian state or territory.",
+          path: ["country"],
+          message: "Choose a country.",
         });
       }
-      if (!/^\d{4}$/.test(value.postalCode)) {
+
+      if (value.country === "AU") {
+        if (
+          !AU_REGION_VALUES.includes(
+            value.region as (typeof AU_REGION_VALUES)[number]
+          )
+        ) {
+          context.addIssue({
+            code: "custom",
+            path: ["region"],
+            message: "Choose an Australian state or territory.",
+          });
+        }
+        if (!/^\d{4}$/.test(value.postalCode)) {
+          context.addIssue({
+            code: "custom",
+            path: ["postalCode"],
+            message: "Enter a 4-digit postcode.",
+          });
+        }
+      }
+
+      if (!termsAlreadyAccepted && !value.termsAccepted) {
         context.addIssue({
           code: "custom",
-          path: ["postalCode"],
-          message: "Enter a 4-digit postcode.",
+          path: ["termsAccepted"],
+          message: "Agree to the Terms & Conditions to continue.",
         });
       }
-    }
 
-    if (!value.termsAccepted) {
-      context.addIssue({
-        code: "custom",
-        path: ["termsAccepted"],
-        message: "Agree to the Terms & Conditions to continue.",
-      });
-    }
+      if (value.businessNumberKind === "none") {
+        return;
+      }
 
-    if (value.businessNumberKind === "none") {
-      return;
-    }
+      if (value.businessNumberKind === "abn") {
+        if (!value.abn) {
+          context.addIssue({
+            code: "custom",
+            path: ["abn"],
+            message: "Enter an ABN.",
+          });
+        } else if (!isValidAbn(value.abn)) {
+          context.addIssue({
+            code: "custom",
+            path: ["abn"],
+            message: INVALID_ABN_MESSAGE,
+          });
+        }
+        return;
+      }
 
-    if (value.businessNumberKind === "abn") {
-      if (!value.abn) {
+      if (!value.acn) {
         context.addIssue({
           code: "custom",
-          path: ["abn"],
-          message: "Enter an ABN.",
+          path: ["acn"],
+          message: "Enter an ACN.",
         });
-      } else if (!isValidAbn(value.abn)) {
+      } else if (!isValidAcn(value.acn)) {
         context.addIssue({
           code: "custom",
-          path: ["abn"],
-          message: INVALID_ABN_MESSAGE,
+          path: ["acn"],
+          message: INVALID_ACN_MESSAGE,
         });
       }
-      return;
-    }
+    });
+}
 
-    if (!value.acn) {
-      context.addIssue({
-        code: "custom",
-        path: ["acn"],
-        message: "Enter an ACN.",
-      });
-    } else if (!isValidAcn(value.acn)) {
-      context.addIssue({
-        code: "custom",
-        path: ["acn"],
-        message: INVALID_ACN_MESSAGE,
-      });
-    }
-  });
+export const billingIdentitySchema = buildBillingIdentitySchema(false);
+
+export function parseBillingIdentity(
+  form: unknown,
+  options?: { termsAlreadyAccepted?: boolean }
+) {
+  return buildBillingIdentitySchema(
+    options?.termsAlreadyAccepted === true
+  ).safeParse(form);
+}
 
 export type BillingIdentityFormInput = z.input<typeof billingIdentitySchema>;
 

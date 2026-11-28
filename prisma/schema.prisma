@@ -958,8 +958,11 @@ enum EntitlementStatus {
 
 /// Why a person accepted the legal documents. Append-only.
 /// `REGISTRATION` records the versions accepted when a verified registration
-/// creates the clinic. Checkout still requires a separate `BILLING_CHECKOUT`
-/// row for the current versions.
+/// creates the clinic. Catalogue Checkout accepts a current `REGISTRATION` or
+/// `BILLING_CHECKOUT` row for the same user and clinic. A new
+/// `BILLING_CHECKOUT` row is written only when that person submits the
+/// checkbox. Account-split destination readiness still requires
+/// `BILLING_CHECKOUT` on the destination clinic.
 enum LegalAcceptanceSource {
   BILLING_CHECKOUT
   REGISTRATION
